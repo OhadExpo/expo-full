@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import WorkoutsView from './WorkoutsView';
 import { C, FN, FB, ytId, EXPO_ICON } from './theme';
 
 // Same exercise data as ClientPortal
@@ -21,7 +22,8 @@ const EX = {
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"};
 
-export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus }) {
+export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, workouts, setWorkouts, plans, trainees, exercises }) {
+  const [subTab, setSubTab] = useState("review");
   const [selectedWo, setSelectedWo] = useState(null);
   const [expandedEx, setExpandedEx] = useState(null);
 
@@ -50,6 +52,26 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     const fk = `${planName}|${dayName}|${eid}|W${week}`;
     return weeklyFocus?.[fk] || '';
   };
+
+  // ===== SUB-NAV =====
+  const subNav = (
+    <div style={{display:"flex",gap:4,marginBottom:16}}>
+      {[["review","Review Client Workouts"],["log","Log In-Person Session"]].map(([k,l]) => (
+        <button key={k} onClick={() => {setSubTab(k);setSelectedWo(null);setExpandedEx(null)}}
+          style={{flex:1,padding:"10px 0",borderRadius:8,border:`1px solid ${subTab===k?C.ac:C.bd}`,
+            background:subTab===k?C.acD:"transparent",color:subTab===k?C.ac:C.tm,
+            fontFamily:FB,fontSize:13,fontWeight:600,cursor:"pointer"}}>{l}</button>
+      ))}
+    </div>
+  );
+
+  // ===== LOG IN-PERSON SESSION (wraps WorkoutsView) =====
+  if (subTab === "log") return (
+    <div>
+      {subNav}
+      <WorkoutsView workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} />
+    </div>
+  );
 
   // ===== WORKOUT DETAIL VIEW =====
   if (selectedWo) {
@@ -208,6 +230,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
   if (allWorkouts.length === 0) return (
     <div>
+      {subNav}
       <h2 style={{fontFamily:FN,fontSize:18,marginBottom:8}}>Workout Review</h2>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>
         Review completed workouts, watch client form videos, and set weekly focus for next week.
@@ -222,6 +245,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
   return (
     <div>
+      {subNav}
       <h2 style={{fontFamily:FN,fontSize:18,marginBottom:4}}>Workout Review</h2>
       <div style={{color:C.tm,fontSize:13,marginBottom:16}}>
         Review completed workouts, watch client form videos, and write focus notes for next week.

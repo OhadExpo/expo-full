@@ -7,3 +7,5 @@ _*.py
 __pycache__
 .DS_Store
 install-nord-fonts.ps1
+
+.vercel
