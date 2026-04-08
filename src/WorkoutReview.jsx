@@ -1,28 +1,12 @@
 import React, { useState } from 'react';
 import WorkoutsView from './WorkoutsView';
 import { C, FN, FB, ytId, EXPO_ICON } from './theme';
-
-// Same exercise data as ClientPortal
-const EX = {
-  e1:{t:"Prone Laying Around the World"},e2:{t:"90/90 POS Rear-Leg Heel-Clicks"},
-  e3:{t:"Dead-Bug POS Elbow Floor-Slide"},e4:{t:"Bear-POS Shoulder Taps"},
-  e5:{t:"ISO Kneeling Push-Up"},e6:{t:"90-90 Get Ups"},e7:{t:"ISO Kossac Squat"},
-  e8:{t:"ABs Sit-Up w Twist"},e9:{t:"Machine Leg Extension"},e10:{t:"BB Lunge"},
-  e11:{t:"BB Pedlay Row"},e12:{t:"Machine Incline Chest-Press"},
-  e13:{t:"Machine Leg Curl"},e14:{t:"Standing Arnold DB OHP"},
-  e29:{t:"Push-Up Tantrum"},e30:{t:"Banded Power Pallof Press"},
-  e31:{t:"HOZ Board Jump SL Landing"},e32:{t:"BB FFESS"},e33:{t:"BB Bench Press"},
-  e34:{t:"Elbow-Supported SA DB Row"},e35:{t:"Hip-Thrust POS DB Pullover"},
-  e36:{t:"Short-Lever ABs Sit-Up"},e37:{t:"FFESS to Lunge POGO Jump"},
-  e38:{t:"Alt SL Squat POGO"},e39:{t:"Power SL Hip-Thrust Catch"},
-  e40:{t:"BB Deficit Jefferson DL"},e41:{t:"Seated BB OHP"},e42:{t:"DB Goblet Squat"},
-  e43:{t:"SA Cable Pulldown"},e44:{t:"Elbow-Supported DB Knee Raise"},
-};
+import { EX } from './exerciseData';
 
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"};
 
-export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, workouts, setWorkouts, plans, trainees, exercises }) {
+export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, workouts, setWorkouts, plans, trainees, exercises, onDecrementSession }) {
   const [subTab, setSubTab] = useState("review");
   const [selectedWo, setSelectedWo] = useState(null);
   const [expandedEx, setExpandedEx] = useState(null);
@@ -36,6 +20,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     // Use the planName to get a better client label
     if (w.clientId === 't1') byClient[key].name = 'Diego Day';
     if (w.clientId === 't2') byClient[key].name = 'Ron Yonker';
+    if (w.clientId === 't3') byClient[key].name = 'Omer Sadeh';
+    if (w.clientId === 't4') byClient[key].name = 'Yuval Barko';
   });
 
   const setFocus = (planName, dayName, eid, week, val) => {
@@ -69,7 +55,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   if (subTab === "log") return (
     <div>
       {subNav}
-      <WorkoutsView workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} />
+      <WorkoutsView workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={onDecrementSession} />
     </div>
   );
 
