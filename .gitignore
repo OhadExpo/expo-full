@@ -1,0 +1,9 @@
+node_modules
+dist
+.vercel
+_nord_tmp
+_*.py
+*.pyc
+__pycache__
+.DS_Store
+install-nord-fonts.ps1

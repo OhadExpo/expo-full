@@ -1,0 +1,389 @@
+import React, { useState } from 'react';
+import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON } from './theme';
+
+const EX = {
+  e1:{t:"Prone Laying Around the World",vid:"https://www.youtube.com/watch?v=cwLZOh5SInQ"},
+  e2:{t:"90/90 POS Rear-Leg Heel-Clicks",vid:"https://www.youtube.com/shorts/cduSxyjDql8"},
+  e3:{t:"Dead-Bug POS Elbow Floor-Slide",vid:"https://www.youtube.com/watch?v=ZtcpBztji78"},
+  e4:{t:"Bear-POS Shoulder Taps",vid:"https://www.youtube.com/shorts/_ENCgTck-yk"},
+  e5:{t:"ISO Kneeling Push-Up",vid:"https://www.youtube.com/shorts/N5Nqb4qBmJ8"},
+  e6:{t:"90-90 Get Ups",vid:"https://www.youtube.com/watch?v=lWf78Bf-rAI"},
+  e7:{t:"ISO Kossac Squat",vid:"https://www.youtube.com/shorts/-GKJ_enu4WM"},
+  e8:{t:"ABs Sit-Up w Twist",vid:"https://www.youtube.com/watch?v=Lje-oV4CsW8"},
+  e9:{t:"Machine Leg Extension",vid:"https://www.youtube.com/shorts/fP6uMgfwqOA"},
+  e10:{t:"BB Lunge"},e11:{t:"BB Pedlay Row"},e12:{t:"Machine Incline Chest-Press"},
+  e13:{t:"Machine Leg Curl"},e14:{t:"Standing Arnold DB OHP"},
+  e29:{t:"Push-Up Tantrum",vid:"https://www.youtube.com/shorts/vdioRdJEZtk"},
+  e30:{t:"Banded Power Pallof Press",vid:"https://www.youtube.com/shorts/uYpjXMkAUOY"},
+  e31:{t:"HOZ Board Jump SL Landing",vid:"https://www.youtube.com/watch?v=Owe3pjT1oiw"},
+  e32:{t:"BB FFESS",vid:"https://www.youtube.com/shorts/gAceC8CKSRU",q:"\u05E8\u05D0\u05E9 \u05DE\u05E2\u05DC \u05D4\u05D1\u05E8\u05DA. \u05D4\u05DE\u05E9\u05E7\u05DC \u05E2\u05DC \u05D4\u05E8\u05D2\u05DC \u05D4\u05E7\u05D3\u05DE\u05D9\u05EA. \u05DC\u05D0\u05E0\u05D2' \u05E7\u05E6\u05E8."},
+  e33:{t:"BB Bench Press",vid:"https://www.youtube.com/shorts/bvaCXyXeBvU",q:"\u05DB\u05E4\u05D5\u05EA \u05E8\u05D2\u05DC\u05D9\u05D9\u05DD \u05DE\u05EA\u05D7\u05EA \u05DC\u05D9\u05E9\u05D1\u05DF. \u05E2\u05E7\u05D1 \u05E0\u05D3\u05D7\u05E3 \u05DC\u05E8\u05E6\u05E4\u05D4."},
+  e34:{t:"Elbow-Supported SA DB Row",vid:"https://www.youtube.com/watch?v=1i2iXHBGAro",q:"\u05DB\u05E3 \u05D4\u05D9\u05D3 \u05DB\u05DC\u05E4\u05D9 \u05D4\u05EA\u05E7\u05E8\u05D4. \u05DE\u05E8\u05E4\u05E7 \u05DC\u05E2\u05D1\u05D5\u05E8 \u05D0\u05EA \u05D4\u05D2\u05D5\u05E3."},
+  e35:{t:"Hip-Thrust POS DB Pullover",vid:"https://www.youtube.com/shorts/Oo2YRiyp378"},
+  e36:{t:"Short-Lever ABs Sit-Up",vid:"https://www.youtube.com/shorts/EvAup1z42-s"},
+  e37:{t:"FFESS to Lunge POGO Jump"},e38:{t:"Alt SL Squat POGO"},e39:{t:"Power SL Hip-Thrust Catch"},
+  e40:{t:"BB Deficit Jefferson DL",vid:"https://www.youtube.com/watch?v=r2kzdEd1sHk"},
+  e41:{t:"Seated BB OHP",vid:"https://www.youtube.com/watch?v=mJkSxRn70yw"},
+  e42:{t:"DB Goblet Squat",vid:"https://www.youtube.com/shorts/EzsUhxczCpM"},
+  e43:{t:"SA Cable Pulldown"},
+  e44:{t:"Elbow-Supported DB Knee Raise",vid:"https://www.youtube.com/watch?v=cYZgZrZtaGE"},
+};
+
+const CLIENTS = [
+{id:"t1",name:"Diego Day",sessions:8,plans:[{name:"Block #9",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+  warmup:[{t:"BW High Step-Up",rx:"1x12E",vid:"https://www.youtube.com/watch?v=KGyVfgh0fhk"},{t:"Push-Up SCAP Pro/Ret",rx:"1x12",vid:"https://www.youtube.com/watch?v=NKekqeudgWs"},{t:"SA Cable Facepull",rx:"2x12E",vid:"https://www.youtube.com/watch?v=rG0PaDoX9Lw"},{t:"HK SA Cable Row",rx:"1x12E",vid:"https://www.youtube.com/shorts/8WDOFDUTwDo"}],
+  days:[{name:"Home W/O",ex:[{eid:"e1",s:2,r:"15"},{eid:"e2",s:2,r:"12E"},{eid:"e3",s:2,r:"10"},{eid:"e4",s:2,r:"10E"},{eid:"e5",s:3,r:"20s",n:"ISO"},{eid:"e6",s:2,r:"8E"},{eid:"e7",s:2,r:"30sE",n:"ISO"},{eid:"e8",s:3,r:"8E"}]},
+  {name:"Day B",ex:[{eid:"e9",s:2,r:"20"},{eid:"e10",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e11",s:3,r:">",tempo:"3s ECC",wk:["8","8","6","6"]},{eid:"e12",s:3,r:"12"},{eid:"e13",s:2,r:"12",tempo:"6-8s/rep"},{eid:"e14",s:2,r:"10"}]}]}]},
+{id:"t2",name:"Ron Yonker",sessions:8,plans:[{name:"Block #13",phase:"Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+  warmup:[{t:"BW Step-Down",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SZXOPRVP1Oc"},{t:"BW Floating-Heel RFESS",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SH9zQAGb7pQ"},{t:"Bear-POS to Superman",rx:"1x8"}],
+  days:[{name:"Day A",ex:[{eid:"e29",s:3,r:"10s"},{eid:"e30",s:3,r:"6E"},{eid:"e31",s:2,r:"3E"},{eid:"e32",s:3,r:">",wk:["4E","4E","3E","3E"]},{eid:"e33",s:5,r:"3",wk:["5set","5set","3set","3set"]},{eid:"e34",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e35",s:2,r:"15"},{eid:"e36",s:3,r:"8"}]},
+  {name:"Day B",ex:[{eid:"e37",s:2,r:"5E"},{eid:"e38",s:2,r:"8E"},{eid:"e39",s:2,r:"8E"},{eid:"e40",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e41",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e42",s:2,r:"20"},{eid:"e43",s:2,r:"12E"},{eid:"e44",s:3,r:"15s>10",tempo:"ISO>REPs"}]}]}]},
+];
+
+const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"};
+const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,fontFamily:FN,background:`${color}18`,color,...s}}>{children}</span>;
+
+// StepLogger: warmup steps → pre-workout → exercise steps → finish
+function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus}) {
+  // Steps: 'wu0','wu1',... → 'pre' → 0,1,2,... (exercise indices) → 'end'
+  const warmup = plan.warmup || [];
+  const wuCount = warmup.length;
+  const exCount = day.ex.length;
+  const [step, setStep] = useState(wuCount > 0 ? 'wu0' : 'pre');
+  const [ar, setAr] = useState({pain:'',energy:'',sleep:''});
+  const [notes, setNotes] = useState('');
+  const [allSets, setAllSets] = useState(() => day.ex.map(ex => Array.from({length:typeof ex.s==='number'?ex.s:3}, () => ({reps:'',load:'',rpe:'',done:false}))));
+  const [fv, setFv] = useState(() => day.ex.map(() => ({note:'',has:false})));
+  const [wuDone, setWuDone] = useState(() => warmup.map(() => false));
+  const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
+
+  const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,formVideos:fv,
+    exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:ex.wk?ex.wk[weekNum]:`${ex.s}x${ex.r}`,sets:allSets[i]}))});
+
+  // Navigation helpers
+  const totalSteps = wuCount + 1 + exCount; // warmups + pre + exercises
+  const stepIndex = typeof step === 'string' && step.startsWith('wu') ? parseInt(step.slice(2)) :
+    step === 'pre' ? wuCount : step === 'end' ? totalSteps : wuCount + 1 + step;
+  const goNext = () => {
+    if (typeof step === 'string' && step.startsWith('wu')) {
+      const wi = parseInt(step.slice(2));
+      const nd = [...wuDone]; nd[wi] = true; setWuDone(nd);
+      if (wi + 1 < wuCount) setStep('wu' + (wi + 1));
+      else setStep('pre');
+    } else if (step === 'pre') setStep(0);
+    else if (typeof step === 'number' && step < exCount - 1) setStep(step + 1);
+    else setStep('end');
+  };
+  const goPrev = () => {
+    if (typeof step === 'string' && step.startsWith('wu')) {
+      const wi = parseInt(step.slice(2));
+      if (wi > 0) setStep('wu' + (wi - 1)); else onBack();
+    } else if (step === 'pre') setStep(wuCount > 0 ? 'wu' + (wuCount - 1) : null);
+    else if (step === 0) setStep('pre');
+    else if (typeof step === 'number') setStep(step - 1);
+    else if (step === 'end') setStep(exCount - 1);
+  };
+
+  // Progress bar with EXPO icon
+  const bar = <div style={{padding:'10px 16px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+      <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>← Exit</button>
+      <img src={EXPO_ICON} alt="EXPO" style={{height:20,opacity:0.5}} />
+      <span style={{fontFamily:FN,fontSize:11,color:C.tm}}>{day.name} · W{weekNum+1}</span></div>
+    <div style={{display:'flex',gap:2}}>
+      {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
+      {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:2,background:stepIndex>i?C.or:stepIndex===i?C.or+'80':C.bd}} />)}
+      {/* Pre-workout dot */}
+      <div style={{flex:1,height:3,borderRadius:2,background:stepIndex>wuCount?C.pu:stepIndex===wuCount?C.pu+'80':C.bd}} />
+      {/* Exercise dots */}
+      {day.ex.map((_,i) => <div key={'ex'+i} style={{flex:1,height:3,borderRadius:2,background:stepIndex>wuCount+1+i?C.gn:stepIndex===wuCount+1+i?C.ac:C.bd}} />)}
+    </div>
+    <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:4,textAlign:'center'}}>
+      {typeof step==='string'&&step.startsWith('wu') ? `Warm-Up ${parseInt(step.slice(2))+1}/${wuCount}` :
+       step==='pre' ? 'Pre-Workout Check' :
+       step==='end' ? 'Complete' :
+       `Exercise ${step+1}/${exCount}`}
+    </div></div>;
+
+  // ===== WARM-UP STEP =====
+  if (typeof step === 'string' && step.startsWith('wu')) {
+    const wi = parseInt(step.slice(2));
+    const wu = warmup[wi];
+    const vid = ytId(wu.vid);
+    return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+      <div style={{padding:20}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+          <div style={{background:C.orD,borderRadius:8,padding:'4px 10px',fontFamily:FN,fontSize:11,color:C.or,fontWeight:700}}>WARM-UP {wi+1}/{wuCount}</div></div>
+        <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{wu.t}</h2>
+        <div style={{fontSize:15,color:C.or,fontWeight:700,fontFamily:FN,marginBottom:14}}>{wu.rx}</div>
+        {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
+          <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
+        {!vid && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:30,marginBottom:14,textAlign:'center',color:C.td}}>No video for this exercise</div>}
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
+          <button onClick={goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:C.or,color:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:'pointer'}}>
+            {wi === wuCount - 1 ? 'Start Check-In →' : 'Next Warm-Up →'}</button></div>
+      </div></div>;
+  }
+
+  // ===== PRE-WORKOUT CHECK =====
+  if (step === 'pre') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+    <div style={{padding:20}}>
+      <h2 style={{margin:'0 0 16px',fontFamily:FN,fontSize:20}}>Pre-Workout Check</h2>
+      {[['pain','Pain Level','0-10',C.rd],['energy','Energy','1-5',C.gn],['sleep','Sleep Quality','1-5',C.pu]].map(([k,l,rng,col]) =>
+        <div key={k} style={{marginBottom:20}}>
+          <div style={{fontSize:15,fontWeight:600,marginBottom:6}}>{l} ({rng})</div>
+          <div style={{display:'flex',gap:4}}>{(rng==='0-10'?[0,1,2,3,4,5,6,7,8,9,10]:[1,2,3,4,5]).map(n =>
+            <div key={n} onClick={() => setAr({...ar,[k]:String(n)})} style={{flex:1,height:40,borderRadius:8,background:ar[k]===String(n)?`${col}25`:C.sf2,border:`2px solid ${ar[k]===String(n)?col:C.bd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:14,color:ar[k]===String(n)?col:C.tm,cursor:'pointer',fontWeight:ar[k]===String(n)?700:400}}>{n}</div>
+          )}</div></div>)}
+      {parseInt(ar.pain)>=4 && <div style={{background:C.rdD,borderRadius:10,padding:12,marginBottom:12,fontSize:13,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — Modify: ROM → Tempo → Intensity → Volume</div>}
+      {(parseInt(ar.energy)<=2||parseInt(ar.sleep)<=2) && <div style={{background:C.orD,borderRadius:10,padding:12,marginBottom:12,fontSize:13,color:C.or,fontWeight:600}}>⚠ Low recovery — Auto-regulate down</div>}
+      <div style={{display:'flex',gap:8}}>
+        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
+        <button onClick={goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:C.ac,color:'#fff',fontFamily:FB,fontSize:15,fontWeight:700,cursor:'pointer'}}>Start Workout →</button></div>
+    </div></div>;
+
+  // ===== FINISH =====
+  if (step === 'end') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+    <div style={{padding:20,textAlign:'center'}}>
+      <img src={EXPO_LOGO} alt="EXPO" style={{height:40,marginBottom:16}} />
+      <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
+      <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
+      <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did it feel? Pain? Modifications?" style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'left'}}/>
+      <button onClick={finish} style={{width:'100%',padding:16,borderRadius:12,border:'none',background:C.gn,color:'#fff',fontFamily:FB,fontSize:16,fontWeight:700,cursor:'pointer'}}>✓ Complete Workout</button>
+      <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>
+    </div></div>;
+
+  // ===== EXERCISE STEP =====
+  const ei = step; const ex = day.ex[ei]; const d = EX[ex.eid]; if (!d) return null;
+  const vid = ytId(d.vid); const hw = ex.wk?.length > 0;
+  const wr = hw ? ex.wk[weekNum] : null; const f = fv[ei];
+  return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+    <div style={{padding:20}}>
+      <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{d.t}</h2>
+      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN}}>{wr || `${ex.s} × ${ex.r}`}</div>
+      {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4}}>⏱ {ex.tempo}</div>}
+      
+      {hw && <div style={{background:C.sf2,borderRadius:10,padding:10,marginTop:12,marginBottom:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
+          {ex.wk.map((w,i) => <div key={i} style={{background:weekNum===i?C.acD:C.sf3,border:`1px solid ${weekNum===i?C.ac+'60':C.bd}`,borderRadius:6,padding:6,textAlign:'center'}}>
+            <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
+            <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div></div>}
+      {/* Coaching Cues - from Excel comments */}
+      {d.q && <div style={{background:C.puD,borderRadius:10,padding:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6,direction:'rtl',textAlign:'right'}}>
+        <div style={{fontSize:10,fontFamily:FN,color:C.pu,marginBottom:4,direction:'ltr',textAlign:'left'}}>COACHING CUES</div>{d.q}</div>}
+      {/* Exercise Notes/Guidelines - ALWAYS visible */}
+      <div style={{background:C.sf,border:'1px solid '+C.or+'40',borderLeft:'3px solid '+C.or,borderRadius:10,padding:12,marginBottom:12}}>
+        <div style={{fontSize:10,fontFamily:FN,color:C.or,marginBottom:4,fontWeight:700}}>EXERCISE NOTES</div>
+        <div style={{fontSize:13,color:ex.n?C.tx:C.td,lineHeight:1.5}}>{ex.n || 'No specific notes for this exercise'}</div></div>
+      {/* Weekly Coach Focus - ALWAYS visible */}
+      {(() => { const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`; const wf = weeklyFocus?.[fk]; return (
+        <div style={{background:wf?C.acD:C.sf,border:'1px solid '+(wf?C.ac+'30':C.bd),borderLeft:'3px solid '+(wf?C.ac:C.bd),borderRadius:10,padding:12,marginBottom:12}}>
+          <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
+          <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>); })()}
+      {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
+        <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
+      <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
+          {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:!h||h==='✓'?'center':'left'}}>{h}</div>)}</div>
+        {(allSets[ei]||[]).map((set,si) => <div key={si} style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
+          <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
+          <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} placeholder="—" style={bi}/>
+          <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} placeholder="kg" style={bi}/>
+          <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} placeholder="—" style={bi}/>
+          <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
+        </div>)}</div>
+      <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:20}}>
+        <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:8}}>FORM CHECK</div>
+        <button onClick={() => {const n=[...fv];n[ei]={...n[ei],has:!n[ei].has};setFv(n)}}
+          style={{width:'100%',padding:'12px',borderRadius:8,border:`1px dashed ${f.has?C.gn:C.bd}`,background:f.has?C.gnD:'transparent',color:f.has?C.gn:C.tm,cursor:'pointer',fontFamily:FB,fontSize:13,marginBottom:8}}>
+          {f.has ? '✓ Video Attached' : '📹 Upload Form Video'}</button>
+        <textarea value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical'}}/></div>
+      <div style={{display:'flex',gap:8}}>
+        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
+        <button onClick={goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:C.ac,color:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:'pointer'}}>
+          {ei===exCount-1 ? 'Finish →' : 'Next Exercise →'}</button></div>
+    </div></div>;
+}
+
+// Main client portal
+export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus }) {
+  const [ci, setCi] = useState(null);
+  const [wk, setWk] = useState(0);
+  const [lg, setLg] = useState(null);
+  const [vw, setVw] = useState('prog');
+  const [bw, setBw] = useState('');
+  const cl = CLIENTS.find(c => c.id === ci);
+  const cw = clientWorkouts.filter(w => w.clientId === ci);
+  const handleComplete = w => { setClientWorkouts(prev => [...prev, w]); if (bw) setBwLog(prev => [...prev, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]); setLg(null); };
+
+  // Step Logger
+  if (lg !== null && cl) { const plan = cl.plans[0]; return <StepLogger day={plan.days[lg]} plan={plan} weekNum={wk} clientId={cl.id} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus}/>; }
+
+  // BW Graph tab
+  if (vw === 'bwt' && cl) { 
+    const bwData = bwLog.filter(b => b.clientId === ci).sort((a,b) => new Date(a.date) - new Date(b.date));
+    const maxBw = bwData.length ? Math.max(...bwData.map(b=>b.bw)) : 100;
+    const minBw = bwData.length ? Math.min(...bwData.map(b=>b.bw)) : 50;
+    const range = Math.max(maxBw - minBw, 2);
+    return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+      <div style={{padding:20}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <button onClick={() => setVw('prog')} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
+          <img src={EXPO_ICON} alt="EXPO" style={{height:18,opacity:0.5}} />
+        </div>
+        <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18}}>Bodyweight Tracking</h2>
+        <div style={{color:C.tm,fontSize:12,marginBottom:16}}>{cl.name} · {bwData.length} entries</div>
+
+        {/* Quick log */}
+        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:16}}>
+          <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>LOG THIS WEEK (W{wk+1})</div>
+          <div style={{display:'flex',gap:8}}>
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" style={{flex:1,background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box'}}/>
+            <button onClick={()=>{if(bw){setBwLog(prev=>[...prev,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]);setBw('')}}} 
+              style={{padding:'10px 20px',borderRadius:8,border:'none',background:bw?C.ac:C.sf3,color:bw?'#fff':C.td,fontFamily:FB,fontSize:13,fontWeight:700,cursor:bw?'pointer':'default'}}>Save</button>
+          </div>
+        </div>
+
+        {/* Graph */}
+        {bwData.length < 2 ? (
+          <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
+            <div style={{fontSize:24,marginBottom:8}}>📊</div>
+            <div style={{fontSize:13}}>Log at least 2 weigh-ins to see your trend</div>
+          </div>
+        ) : (
+          <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:16}}>
+            <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:10}}>TREND</div>
+            <svg viewBox={`0 0 ${Math.max(bwData.length * 60, 300)} 160`} style={{width:'100%',height:160}}>
+              {/* Grid lines */}
+              {[0,0.25,0.5,0.75,1].map((p,i) => {
+                const y = 10 + p * 130;
+                const val = (maxBw - p * range).toFixed(1);
+                return <g key={i}>
+                  <line x1="40" y1={y} x2={Math.max(bwData.length*60,300)-10} y2={y} stroke={C.bd} strokeWidth="0.5" strokeDasharray="4"/>
+                  <text x="36" y={y+4} fill={C.td} fontSize="9" fontFamily={FN} textAnchor="end">{val}</text>
+                </g>;
+              })}
+              {/* Line + dots */}
+              <polyline fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                points={bwData.map((d,i) => `${50+i*50},${10+((maxBw-d.bw)/range)*130}`).join(' ')}/>
+              {bwData.map((d,i) => {
+                const x = 50 + i * 50;
+                const y = 10 + ((maxBw - d.bw) / range) * 130;
+                return <g key={i}>
+                  <circle cx={x} cy={y} r="4" fill={C.ac} stroke={C.bg} strokeWidth="2"/>
+                  <text x={x} y={y-10} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor="middle" fontWeight="600">{d.bw}</text>
+                  <text x={x} y={152} fill={C.td} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week||'?'}</text>
+                </g>;
+              })}
+            </svg>
+            {/* Stats */}
+            <div style={{display:'flex',gap:12,marginTop:10}}>
+              <div style={{flex:1,background:C.sf2,borderRadius:8,padding:10,textAlign:'center'}}>
+                <div style={{fontSize:9,fontFamily:FN,color:C.td}}>LATEST</div>
+                <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData[bwData.length-1].bw}kg</div>
+              </div>
+              <div style={{flex:1,background:C.sf2,borderRadius:8,padding:10,textAlign:'center'}}>
+                <div style={{fontSize:9,fontFamily:FN,color:C.td}}>CHANGE</div>
+                <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:(bwData[bwData.length-1].bw-bwData[0].bw)<=0?C.gn:C.or}}>
+                  {(bwData[bwData.length-1].bw-bwData[0].bw)>0?'+':''}{(bwData[bwData.length-1].bw-bwData[0].bw).toFixed(1)}kg</div>
+              </div>
+              <div style={{flex:1,background:C.sf2,borderRadius:8,padding:10,textAlign:'center'}}>
+                <div style={{fontSize:9,fontFamily:FN,color:C.td}}>ENTRIES</div>
+                <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData.length}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Log history */}
+        <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>HISTORY</div>
+        {bwData.slice().reverse().map((d,i) => (
+          <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:i%2===0?C.sf:'transparent',borderRadius:6,marginBottom:2}}>
+            <div>
+              <span style={{fontSize:13,fontWeight:600,color:C.tx}}>{d.bw} kg</span>
+              <span style={{fontSize:11,color:C.tm,marginLeft:8}}>W{d.week||'?'}</span>
+            </div>
+            <span style={{fontSize:10,color:C.td}}>{new Date(d.date).toLocaleDateString()}</span>
+          </div>
+        ))}
+        {bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
+      </div>
+    </div>;
+  }
+
+  // History
+  if (vw === 'hist' && cl) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+    <div style={{padding:20}}>
+      <button onClick={() => setVw('prog')} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,marginBottom:14}}>← Back</button>
+      <h2 style={{margin:'0 0 12px',fontFamily:FN,fontSize:18}}>History ({cw.length})</h2>
+      {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
+        cw.slice().reverse().map(w => <div key={w.id} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:12,marginBottom:8}}>
+          <div style={{fontWeight:600,fontSize:13}}>{w.dayName} <span style={{color:C.tm,fontWeight:400}}>({w.planName})</span></div>
+          <div style={{fontSize:11,color:C.tm}}>{new Date(w.date).toLocaleDateString()} · W{w.week}</div>
+          {w.exercises.map((x,i) => <div key={i} style={{fontSize:11,color:C.tm,marginTop:2}}>{i+1}. {x.title} ({x.prescribed}) — {x.sets.filter(s=>s.done).length}/{x.sets.length}</div>)}
+          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:C.sf2,padding:6,borderRadius:4}}>📝 {w.notes}</div>}
+        </div>)}</div></div>;
+
+  // Program view
+  if (cl) { const plan = cl.plans[0]; const sl = Math.max(0, cl.sessions - cw.length); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
+    return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+      <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Switch</button>
+          <img src={EXPO_LOGO} alt="EXPO" style={{height:22}} /></div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+          <div><h1 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>Hey {cl.name.split(' ')[0]} 💪</h1>
+            <div style={{display:'flex',gap:6,marginTop:8}}><Bg color={C.ac}>{plan.phase}</Bg><Bg color={C.tm}>{plan.name}</Bg></div></div>
+          <div style={{textAlign:'right'}}><div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.gn}}>{sl}</div><div style={{fontSize:9,color:C.tm,fontFamily:FN}}>SESSIONS</div></div></div></div>
+      <div style={{padding:20}}>
+        <div style={{display:'flex',gap:4,marginBottom:14}}>{[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
+          <button key={k} onClick={() => setVw(k)} style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${vw===k?C.ac:C.bd}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer'}}>{l}</button>)}</div>
+        <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center'}}>
+          <div style={{flex:1}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>Week</div>
+            <div style={{display:'flex',gap:4}}>{[0,1,2,3].map(w => <button key={w} onClick={() => setWk(w)} style={{flex:1,padding:'8px 0',borderRadius:6,border:`1px solid ${wk===w?C.ac:C.bd}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}</div></div>
+          <div style={{width:120}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>BW {lb?`(${lb}kg)`:''}</div>
+            <div style={{display:'flex',gap:4}}>
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center'}}/>
+            {bw && <button onClick={()=>{setBwLog(prev=>[...prev,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]);setBw('')}} style={{background:C.acD,border:'none',borderRadius:6,padding:'4px 8px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Save</button>}
+            </div></div></div>
+        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {plan.rest}</div>
+        {/* Warm-up section */}
+        {plan.warmup?.length > 0 && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:14}}>
+          <div style={{fontSize:11,fontFamily:FN,color:C.or,marginBottom:8,fontWeight:700}}>Warm-Up ({plan.warmup.length})</div>
+          {plan.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<plan.warmup.length-1?`1px solid ${C.bd}22`:'none'}}>
+            <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
+              {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4}}>▶</a>}</div></div>)}</div>}
+        {/* Training days */}
+        {plan.days.map((day,di) => { const done = cw.some(w => w.dayName === day.name && w.week === wk + 1);
+          return <div key={di} style={{background:C.sf,border:`1px solid ${done?C.gn+'40':C.bd}`,borderRadius:12,marginBottom:12,padding:'14px 18px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+              <div><span style={{fontWeight:700,fontSize:15}}>{day.name}</span>{done && <Bg color={C.gn} style={{fontSize:9,padding:'2px 6px',marginLeft:6}}>✓</Bg>}
+                <div style={{fontSize:11,color:C.tm,marginTop:2}}>{day.ex.length} exercises</div></div>
+              <button onClick={() => setLg(di)} style={{padding:'6px 12px',borderRadius:6,border:'none',background:done?C.gnD:C.acD,color:done?C.gn:C.ac,fontFamily:FB,fontSize:11,fontWeight:600,cursor:'pointer'}}>{done?'Again':'📝 Log'}</button></div>
+            {day.ex.map((ex,i) => {const d = EX[ex.eid]; if(!d) return null; const hw = ex.wk?.length>0;
+              return <div key={i} style={{display:'flex',gap:8,alignItems:'center',padding:'4px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
+                <div style={{width:22,height:22,borderRadius:4,background:C.acD,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:10,fontWeight:700,color:C.ac,flexShrink:0}}>{i+1}</div>
+                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
+                  <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN}}>{hw?ex.wk[wk]:ex.s+'x'+ex.r}</span>
+                  {ex.tempo && <span style={{fontSize:9,color:C.or,marginLeft:4}}>{ex.tempo}</span>}</div></div>})}
+          </div>})}
+      </div></div>; }
+
+  // Login screen with EXPO logo
+  return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
+    <div style={{textAlign:'center',marginBottom:40}}>
+      <img src={EXPO_LOGO} alt="EXPO" style={{height:36,marginBottom:12}} />
+      <div style={{color:C.tm,fontSize:15}}>Training Portal</div></div>
+    <div style={{width:'100%',maxWidth:400}}>
+      {CLIENTS.map(c => {const n = clientWorkouts.filter(w => w.clientId === c.id).length; return (
+        <div key={c.id} onClick={() => setCi(c.id)} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:20,marginBottom:12,cursor:'pointer',transition:'all .15s'}}
+          onMouseEnter={e => e.currentTarget.style.borderColor=C.ac} onMouseLeave={e => e.currentTarget.style.borderColor=C.bd}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div><div style={{fontWeight:700,fontSize:18,color:C.tx}}>{c.name}</div>
+              <div style={{fontSize:12,color:C.tm,marginTop:4}}>{c.plans[0].name} · {c.plans[0].phase}</div>
+              {n > 0 && <div style={{fontSize:11,color:C.gn,marginTop:2}}>{n} workouts logged</div>}</div>
+            <img src={EXPO_ICON} alt="" style={{height:24,opacity:0.3}} /></div></div>)})}
+    </div></div>;
+}
