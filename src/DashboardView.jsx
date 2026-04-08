@@ -46,7 +46,7 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
   return (
     <div>
       {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
         {[
           { label: 'Active Clients', value: active, total: trainees.length, color: C.gn },
           { label: 'Total Revenue', value: `₪${totalRev.toLocaleString()}`, color: C.ac },

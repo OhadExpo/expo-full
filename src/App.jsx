@@ -152,10 +152,10 @@ export default function App() {
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
       <header style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,position:"sticky",top:0,zIndex:100}}>
-        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:60}}>
+        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 12px",display:"flex",alignItems:"center",justifyContent:"space-between",height:"auto",minHeight:52,flexWrap:"wrap",gap:4}}>
           <div style={{display:"flex",alignItems:"center"}}>
             <img src={EXPO_LOGO} alt="EXPO" style={{height:26}}/></div>
-          <nav style={{display:"flex",gap:2,alignItems:"center"}}>
+          <nav style={{display:"flex",gap:2,alignItems:"center",overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:"1 1 auto",justifyContent:"flex-end"}}>
             {tabs.map(t=>(<button key={t.key} onClick={()=>{setTab(t.key);setSelectedTrainee(null)}} style={{...baseBtn,background:tab===t.key?C.acD:"transparent",color:tab===t.key?C.ac:C.tm,borderRadius:6,padding:"6px 14px",fontSize:13,fontWeight:tab===t.key?700:500}}>
               <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:11,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}
             <div style={{width:1,height:24,background:C.bd,margin:"0 6px"}}/>
@@ -163,7 +163,7 @@ export default function App() {
             <button onClick={handleExport} style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 10px",fontSize:12}}>📤</button>
             <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:"none"}}/></nav></div></header>
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:importMsg.startsWith("✗")?C.rdD:importMsg.startsWith("⚠")?C.orD:C.gnD,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:8,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
-      <main style={{maxWidth:1200,margin:"0 auto",padding:20}}>
+      <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         {tab==="dashboard"&&<DashboardView trainees={trainees} plans={plans} workouts={workouts} payments={payments} onSelectTrainee={id=>{setSelectedTrainee(id);setTab("trainees")}}/>}
         {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} onSelect={id=>setSelectedTrainee(id)}/>}
         {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} plans={plans} onOpenPlan={pid=>{setTab("plans");setSelectedTrainee(null);/* plan editor opens via PlansView */}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} onBack={()=>setSelectedTrainee(null)}/>}

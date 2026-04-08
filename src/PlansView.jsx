@@ -52,7 +52,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         <button onClick={onCancel} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
         <Btn onClick={() => onSave(plan)}>Save Plan</Btn>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:12,marginBottom:20}}>
         <Input label="Plan Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         <Select label="Assign to Trainee" options={[{value:"",label:"Unassigned"},...trainees.map(t=>({value:t.id,label:t.name}))]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
@@ -79,8 +79,8 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                 <button onClick={()=>moveEx(exIdx,-1)} disabled={exIdx===0} style={{background:"none",border:"none",color:C.td,cursor:"pointer",fontSize:10,opacity:exIdx===0?.3:1}}>▲</button>
                 <button onClick={()=>moveEx(exIdx,1)} disabled={exIdx===day.exercises.length-1} style={{background:"none",border:"none",color:C.td,cursor:"pointer",fontSize:10,opacity:exIdx===day.exercises.length-1?.3:1}}>▼</button>
               </div>
-              <div>
-                <div style={{display:"grid",gridTemplateColumns:"2fr 60px 1fr 1fr 1fr 1fr 1fr auto",gap:8,alignItems:"end"}}>
+              <div style={{overflowX:"auto"}}>
+                <div style={{display:"grid",gridTemplateColumns:"2fr 60px 1fr 1fr 1fr 1fr 1fr auto",minWidth:700,gap:8,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" />
                   <Select label="Group" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
                   <Input label="Sets" type="number" value={ex.sets} onChange={e=>updateEx(exIdx,{sets:parseInt(e.target.value)||0})} />
