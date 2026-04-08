@@ -21,7 +21,7 @@ const CLIENTS = [
   {name:"Day C",ex:[{eid:"e65",s:3,r:"4 E"},{eid:"e66",s:3,r:"1 E",tempo:"3-Way"},{eid:"e67",s:2,r:"8"},{eid:"e68",s:2,r:"6 E"},{eid:"e69",s:2,r:"10 E"},{eid:"e70",s:3,r:"12"},{eid:"e71",s:3,r:"12",tempo:"1s Dead-Stop"},{eid:"e72",s:2,r:">",wk:["25 SEC","35 SEC","45 SEC","60 SEC"]}]}
   ]}]},
 {id:"t4",name:"Yuval Barko",sessions:8,plans:[{name:"Comeback Block",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
-  warmup:[{t:"Kossac Squat to Crossover Lunge",rx:"1x8 E"},{t:"4-Way Bear-Crawl",rx:"1x8 E"},{t:"BW SL Depth Drop",rx:"2x2 E POS"}],
+  warmup:[{t:"Kossac Squat to Crossover Lunge",rx:"1x8 E",vid:"https://www.youtube.com/watch?v=MGLj_HrQTgY"},{t:"4-Way Bear-Crawl",rx:"1x8 E",vid:"https://www.youtube.com/shorts/_apvoiIoqgo"},{t:"BW SL Depth Drop",rx:"2x2 E POS",vid:"https://www.youtube.com/watch?v=vNAOj2kxsXE"}],
   days:[{name:"Day A",ex:[{eid:"e100",s:2,r:"8"},{eid:"e101",s:3,r:"8"},{eid:"e102",s:3,r:"10 SEC",n:"ISO"},{eid:"e103",s:3,r:"6 E",tempo:"3s ECC"},{eid:"e104",s:2,r:"8 E",tempo:"2-3s ECC"},{eid:"e105",s:2,r:"15 SEC",n:"ISO",superset:"A"},{eid:"e106",s:2,r:"15 SEC",n:"ISO",superset:"A"}]},
   {name:"Day B",ex:[{eid:"e107",s:3,r:"3 E"},{eid:"e108",s:2,r:"8 E"},{eid:"e109",s:3,r:"8 E",tempo:"2-3s ECC"},{eid:"e110",s:3,r:"8"},{eid:"e111",s:2,r:"12",tempo:"2-3s ECC"},{eid:"e112",s:2,r:"12",tempo:"5-6s/REP"},{eid:"e113",s:3,r:"8"}]},
   {name:"Day C (Home)",ex:[{eid:"e114",s:2,r:"10 E"},{eid:"e115",s:2,r:"15 SEC E",n:"ISO"},{eid:"e116",s:2,r:"10 E",tempo:"6-8s/REP"},{eid:"e117",s:2,r:"15 SEC > 15 Reps"},{eid:"e118",s:3,r:"3 E"},{eid:"e119",s:3,r:"15 SEC"},{eid:"e120",s:2,r:"10 E"}]}
