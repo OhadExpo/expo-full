@@ -27,6 +27,29 @@ const EX = {
   e42:{t:"DB Goblet Squat",vid:"https://www.youtube.com/shorts/EzsUhxczCpM"},
   e43:{t:"SA Cable Pulldown"},
   e44:{t:"Elbow-Supported DB Knee Raise",vid:"https://www.youtube.com/watch?v=cYZgZrZtaGE"},
+  e50:{t:"DB Squat Jump",vid:"https://www.youtube.com/shorts/LE2WYrSEyZI",q:"רד למצב שאתה ברבע סקוואט, ותעצור שם. לא המשכי! משקולת בכל יד"},
+  e51:{t:"BB Pendlay Row",vid:"https://www.youtube.com/shorts/IhiF9i9s8NI",q:"סט אפ של דדליפט. לדחוף את האגן עוד קצת אחורה. משקל כבד!"},
+  e52:{t:"Hand-Release Power Push-Up",vid:"https://www.youtube.com/shorts/Q0O7BWiQ1FE",q:"תרים את הידיים. בטן מכווצת. פיצוץ עם הידיים כנגד הרצפה"},
+  e53:{t:"Continuous Power SL Hip-Thrust",vid:"https://www.youtube.com/shorts/dwNigaxVq4g",q:"מתחילים מהרצפה. עקב בלבד דוחף את הרצפה. תרגיל פליאומטרי"},
+  e54:{t:"Alternating DB Chest Press",vid:"https://www.youtube.com/watch?v=MM4oFyRYeqg",q:"המשקולות ב-90 מעלות. סט-אפ של בנץ'. שמור משקולת קרובה לגוף"},
+  e55:{t:"Half-Kneeling SA Cable Row",vid:"https://www.youtube.com/watch?v=4QDCC2gU5_E",q:"היד שחותרת בצד הנגדי לרגל הקדמית. משיכה למטה ואחורה!"},
+  e56:{t:"DB AB's Sit-Up + Leg Raise (Clam)",vid:"https://www.youtube.com/watch?v=sutOFgNFX_A",q:"תנועה של צדפה שנסגרת. כפיפת בטן + הרמת רגליים. נפגשים באמצע"},
+  e57:{t:"Deep-Squat POGO Jump",vid:"https://www.youtube.com/shorts/NE2Ctrd2fsY",q:"קפיצות המשכיות במצב סקוואט עמוק"},
+  e58:{t:"Standing VERT Jump to SL Landing",vid:"https://www.youtube.com/watch?v=PNHkYbSd49w",q:"קפיצה לגובה. מרפקים מובילים. נחיתה על רגל אחת"},
+  e59:{t:"Continuous SL VERT Jump to Snap-Down",vid:"https://www.youtube.com/shorts/vdioRdJEZtk",q:"קפיצה לגובה מרגל אחת + סנאפ דאון. קצב קבוע"},
+  e60:{t:"BB/DB Jefferson DL",vid:"https://www.youtube.com/watch?v=7GBBkA60Yu8",q:"ראש מתחיל את התנועה. ברכיים ישרות אך לא נעולות. משקל קרוב לגוף"},
+  e61:{t:"SA Cable Pulldown",vid:"https://www.youtube.com/watch?v=bCjRRJ2lI8Y",q:"סיבוב מלא של כף היד. משוך כתף + מרפק לרצפה"},
+  e62:{t:"Machine Chest-Supported Row",vid:"https://www.youtube.com/watch?v=7oqpWiwSjtY",q:"בית חזה על הספה. תנועה מלאה. אחיזה MID-POS"},
+  e63:{t:"Machine Leg Extension",vid:"https://www.youtube.com/shorts/fP6uMgfwqOA",q:"ישיבה עם זווית סקוואט. משקל תמיד באוויר. פלקס חזק"},
+  e64:{t:"ISO GHD AB Sit-Up w 90° Twist",vid:"https://www.youtube.com/watch?v=p1bpeNYhUKc",q:"כפות ידים על האוזניים. מרפקים רחוקים. ראש מסתובב עם הגוף"},
+  e65:{t:"B-Stance DB Fast ECC DL",vid:"https://www.youtube.com/watch?v=tAvwbyE2nWc",q:"ליפול הכי מהר שאפשר ולתפוס. עקב אחורית באוויר. משקל על עקב קדמית"},
+  e66:{t:"Band-Resisted SL Snap-Down",vid:"https://www.youtube.com/shorts/2nFwe8IHgic",q:"עמידה על קצות אצבעות. סנאפ דאון נמוך, נחיתה על רגל אחת"},
+  e67:{t:"Tall-Kneeling OH MED-Ball Fake Slam",vid:"https://www.youtube.com/watch?v=mXCBGe88CvI",q:"שתי ברכיים על הרצפה. ישבן רחוק מעקבים. תבלום ברגע אחת"},
+  e68:{t:"Standing MED-Ball Lateral Fake Toss",vid:"https://www.youtube.com/shorts/HZRyu5Whf7A",q:"מרפקים ישרים. סובב אגן + בטן לכיוון הקיר. תבלום ברגע אחת"},
+  e69:{t:"Walking DB Lunge",vid:"https://www.youtube.com/watch?v=VG12H7tYnZ8",q:"משקולת בכל יד. בית חזה לרצפה. כף רגל עוברת על הרצפה כמו צעד רגיל"},
+  e70:{t:"Wide-Pronated HOZ Cable Row",vid:"https://www.youtube.com/watch?v=mNqH5_a-trw",q:"אחיזה רחבה. ברכיים נעולות. ישבן רחוק מהכבל. הרפייה מלאה"},
+  e71:{t:"Dead-Bug POS DB Pullover",vid:"https://www.youtube.com/watch?v=Wg2Z2hYxB0c",q:"ברכיים באוויר מעל הפופיק. גב תחתון צמוד. שלח אחורה רחוק"},
+  e72:{t:"ISO Pronated Dead-Hang Leg Raise",vid:"https://www.youtube.com/watch?v=Ri9unVtgUK8",q:"מתח בנים. אגודלים למעלה. ברכיים לא נעולות. פלקס בכפות רגליים"},
 };
 
 const CLIENTS = [
@@ -38,6 +61,12 @@ const CLIENTS = [
   warmup:[{t:"BW Step-Down",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SZXOPRVP1Oc"},{t:"BW Floating-Heel RFESS",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SH9zQAGb7pQ"},{t:"Bear-POS to Superman",rx:"1x8"}],
   days:[{name:"Day A",ex:[{eid:"e29",s:3,r:"10s"},{eid:"e30",s:3,r:"6E"},{eid:"e31",s:2,r:"3E"},{eid:"e32",s:3,r:">",wk:["4E","4E","3E","3E"]},{eid:"e33",s:5,r:"3",wk:["5set","5set","3set","3set"]},{eid:"e34",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e35",s:2,r:"15"},{eid:"e36",s:3,r:"8"}]},
   {name:"Day B",ex:[{eid:"e37",s:2,r:"5E"},{eid:"e38",s:2,r:"8E"},{eid:"e39",s:2,r:"8E"},{eid:"e40",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e41",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e42",s:2,r:"20"},{eid:"e43",s:2,r:"12E"},{eid:"e44",s:3,r:"15s>10",tempo:"ISO>REPs"}]}]}]},
+{id:"t3",name:"Omer Sadeh",sessions:8,plans:[{name:"Block #7",phase:"Power/Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+  warmup:[{t:"High BW Step-Up",rx:"1x10 E",vid:"https://www.youtube.com/shorts/vyGL_ZHf_EE"},{t:"Plate-Supported Hip Airplane",rx:"1x10 E",vid:"https://www.youtube.com/shorts/a8as1ZMwLsE"},{t:"ISO Hollow Hold w Leg Switches",rx:"2x15 SEC",vid:"https://www.youtube.com/shorts/3wxVbHhOdEM"}],
+  days:[{name:"Day A",ex:[{eid:"e50",s:3,r:"6"},{eid:"e51",s:3,r:"6"},{eid:"e52",s:3,r:"6"},{eid:"e53",s:2,r:"10 E"},{eid:"e54",s:2,r:"10 E"},{eid:"e55",s:3,r:"12 E"},{eid:"e56",s:3,r:"10"}]},
+  {name:"Day B",ex:[{eid:"e57",s:2,r:"10 SEC"},{eid:"e58",s:2,r:"4 E"},{eid:"e59",s:2,r:"4+4 E"},{eid:"e60",s:3,r:"5",tempo:"8-10s/REP"},{eid:"e61",s:4,r:"8 E",tempo:"3-4s ECC"},{eid:"e62",s:2,r:"20",tempo:"3-4s ECC"},{eid:"e63",s:3,r:"15"},{eid:"e64",s:3,r:"6 E"}]},
+  {name:"Day C",ex:[{eid:"e65",s:3,r:"4 E"},{eid:"e66",s:3,r:"1 E",tempo:"3-Way"},{eid:"e67",s:2,r:"8"},{eid:"e68",s:2,r:"6 E"},{eid:"e69",s:2,r:"10 E"},{eid:"e70",s:3,r:"12"},{eid:"e71",s:3,r:"12",tempo:"1s Dead-Stop"},{eid:"e72",s:2,r:">",wk:["25 SEC","35 SEC","45 SEC","60 SEC"]}]}
+  ]}]},
 ];
 
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"};
