@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON } from './theme';
 import { useStore } from './useStore';
+import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
 import { Btn, baseBtn } from './ui';
 import * as XLSX from 'xlsx';
 import TraineesView from './TraineesView';
@@ -51,14 +52,14 @@ function parseSpreadsheet(data, fileName) {
 }
 
 export default function App() {
-  const [trainees,setTrainees]=useStore(KEYS.trainees,[]);
-  const [exercises,setExercises]=useStore(KEYS.exercises,[]);
-  const [plans,setPlans]=useStore(KEYS.plans,[]);
-  const [workouts,setWorkouts]=useStore(KEYS.workouts,[]);
-  const [payments,setPayments]=useStore(KEYS.payments,[]);
-  const [clientWorkouts,setClientWorkouts]=useStore(KEYS.cw,[]);
-  const [bwLog,setBwLog]=useStore(KEYS.bw,[]);
-  const [weeklyFocus,setWeeklyFocus]=useStore('expo-weekly-focus',{});
+  const [trainees,setTrainees]=useSupaStore(KEYS.trainees,[]);
+  const [exercises,setExercises]=useSupaStore(KEYS.exercises,[]);
+  const [plans,setPlans]=useSupaStore(KEYS.plans,[]);
+  const [workouts,setWorkouts]=useSupaStore(KEYS.workouts,[]);
+  const [payments,setPayments]=useSupaStore(KEYS.payments,[]);
+  const [clientWorkouts,setClientWorkouts]=useSupaClientWorkouts([]);
+  const [bwLog,setBwLog]=useSupaBwLog([]);
+  const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
   const isPortalDirect = typeof window !== 'undefined' && (window.location.pathname === '/portal' || window.location.search.includes('portal') || window.location.hash.includes('portal'));
   const [tab,setTab]=useState(isPortalDirect ? "client" : "dashboard");
   const [selectedTrainee,setSelectedTrainee]=useState(null);
