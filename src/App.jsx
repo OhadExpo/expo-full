@@ -59,7 +59,8 @@ export default function App() {
   const [clientWorkouts,setClientWorkouts]=useStore(KEYS.cw,[]);
   const [bwLog,setBwLog]=useStore(KEYS.bw,[]);
   const [weeklyFocus,setWeeklyFocus]=useStore('expo-weekly-focus',{});
-  const [tab,setTab]=useState("dashboard");
+  const isPortalDirect = typeof window !== 'undefined' && (window.location.pathname === '/portal' || window.location.search.includes('portal') || window.location.hash.includes('portal'));
+  const [tab,setTab]=useState(isPortalDirect ? "client" : "dashboard");
   const [selectedTrainee,setSelectedTrainee]=useState(null);
   const [importMsg,setImportMsg]=useState(null);
   const fileRef=useRef(null);
@@ -146,8 +147,8 @@ export default function App() {
   };
   const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.length},{key:"plans",label:"Plans",count:plans.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Client Portal",count:null}];
   if(tab==="client")return(<div>
-    <div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"flex-end"}}>
-      <button onClick={()=>setTab("trainees")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>
+    {!isPortalDirect&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"flex-end"}}>
+      <button onClick={()=>setTab("trainees")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
     <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}/></div>);
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
