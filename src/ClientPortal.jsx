@@ -6,21 +6,21 @@ import { EX } from './exerciseData';
 // Previously inline — see exerciseData.js for all client exercises
 
 const CLIENTS = [
-{id:"t1",name:"Diego Day",sessions:8,plans:[{name:"Block #9",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+{id:"t1",name:"Diego Day",email:"",sessions:8,plans:[{name:"Block #9",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"BW High Step-Up",rx:"1x12E",vid:"https://www.youtube.com/watch?v=KGyVfgh0fhk"},{t:"Push-Up SCAP Pro/Ret",rx:"1x12",vid:"https://www.youtube.com/watch?v=NKekqeudgWs"},{t:"SA Cable Facepull",rx:"2x12E",vid:"https://www.youtube.com/watch?v=rG0PaDoX9Lw"},{t:"HK SA Cable Row",rx:"1x12E",vid:"https://www.youtube.com/shorts/8WDOFDUTwDo"}],
   days:[{name:"Home W/O",ex:[{eid:"e1",s:2,r:"15"},{eid:"e2",s:2,r:"12E"},{eid:"e3",s:2,r:"10"},{eid:"e4",s:2,r:"10E"},{eid:"e5",s:3,r:"20s",n:"ISO"},{eid:"e6",s:2,r:"8E"},{eid:"e7",s:2,r:"30sE",n:"ISO"},{eid:"e8",s:3,r:"8E"}]},
   {name:"Day B",ex:[{eid:"e9",s:2,r:"20"},{eid:"e10",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e11",s:3,r:">",tempo:"3s ECC",wk:["8","8","6","6"]},{eid:"e12",s:3,r:"12"},{eid:"e13",s:2,r:"12",tempo:"6-8s/rep"},{eid:"e14",s:2,r:"10"}]}]}]},
-{id:"t2",name:"Ron Yonker",sessions:8,plans:[{name:"Block #13",phase:"Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+{id:"t2",name:"Ron Yonker",email:"",sessions:8,plans:[{name:"Block #13",phase:"Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"BW Step-Down",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SZXOPRVP1Oc"},{t:"BW Floating-Heel RFESS",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SH9zQAGb7pQ"},{t:"Bear-POS to Superman",rx:"1x8"}],
   days:[{name:"Day A",ex:[{eid:"e29",s:3,r:"10s"},{eid:"e30",s:3,r:"6E"},{eid:"e31",s:2,r:"3E"},{eid:"e32",s:3,r:">",wk:["4E","4E","3E","3E"]},{eid:"e33",s:5,r:"3",wk:["5set","5set","3set","3set"]},{eid:"e34",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e35",s:2,r:"15"},{eid:"e36",s:3,r:"8"}]},
   {name:"Day B",ex:[{eid:"e37",s:2,r:"5E"},{eid:"e38",s:2,r:"8E"},{eid:"e39",s:2,r:"8E"},{eid:"e40",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e41",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e42",s:2,r:"20"},{eid:"e43",s:2,r:"12E"},{eid:"e44",s:3,r:"15s>10",tempo:"ISO>REPs"}]}]}]},
-{id:"t3",name:"Omer Sadeh",sessions:8,plans:[{name:"Block #7",phase:"Power/Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+{id:"t3",name:"Omer Sadeh",email:"",sessions:8,plans:[{name:"Block #7",phase:"Power/Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"High BW Step-Up",rx:"1x10 E",vid:"https://www.youtube.com/shorts/vyGL_ZHf_EE"},{t:"Plate-Supported Hip Airplane",rx:"1x10 E",vid:"https://www.youtube.com/shorts/a8as1ZMwLsE"},{t:"ISO Hollow Hold w Leg Switches",rx:"2x15 SEC",vid:"https://www.youtube.com/shorts/3wxVbHhOdEM"}],
   days:[{name:"Day A",ex:[{eid:"e50",s:3,r:"6"},{eid:"e51",s:3,r:"6"},{eid:"e52",s:3,r:"6"},{eid:"e53",s:2,r:"10 E"},{eid:"e54",s:2,r:"10 E"},{eid:"e55",s:3,r:"12 E"},{eid:"e56",s:3,r:"10"}]},
   {name:"Day B",ex:[{eid:"e57",s:2,r:"10 SEC"},{eid:"e58",s:2,r:"4 E"},{eid:"e59",s:2,r:"4+4 E"},{eid:"e60",s:3,r:"5",tempo:"8-10s/REP"},{eid:"e61",s:4,r:"8 E",tempo:"3-4s ECC"},{eid:"e62",s:2,r:"20",tempo:"3-4s ECC"},{eid:"e63",s:3,r:"15"},{eid:"e64",s:3,r:"6 E"}]},
   {name:"Day C",ex:[{eid:"e65",s:3,r:"4 E"},{eid:"e66",s:3,r:"1 E",tempo:"3-Way"},{eid:"e67",s:2,r:"8"},{eid:"e68",s:2,r:"6 E"},{eid:"e69",s:2,r:"10 E"},{eid:"e70",s:3,r:"12"},{eid:"e71",s:3,r:"12",tempo:"1s Dead-Stop"},{eid:"e72",s:2,r:">",wk:["25 SEC","35 SEC","45 SEC","60 SEC"]}]}
   ]}]},
-{id:"t4",name:"Yuval Barko",sessions:8,plans:[{name:"Comeback Block",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+{id:"t4",name:"Yuval Barko",email:"shmuel034@gmail.com",sessions:8,plans:[{name:"Comeback Block",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"Kossac Squat to Crossover Lunge",rx:"1x8 E",vid:"https://www.youtube.com/watch?v=MGLj_HrQTgY"},{t:"4-Way Bear-Crawl",rx:"1x8 E",vid:"https://www.youtube.com/shorts/_apvoiIoqgo"},{t:"BW SL Depth Drop",rx:"2x2 E POS",vid:"https://www.youtube.com/watch?v=vNAOj2kxsXE"}],
   days:[{name:"Day A",ex:[{eid:"e100",s:2,r:"8"},{eid:"e101",s:3,r:"8"},{eid:"e102",s:3,r:"10 SEC",n:"ISO"},{eid:"e103",s:3,r:"6 E",tempo:"3s ECC"},{eid:"e104",s:2,r:"8 E",tempo:"2-3s ECC"},{eid:"e105",s:2,r:"15 SEC",n:"ISO",superset:"A"},{eid:"e106",s:2,r:"15 SEC",n:"ISO",superset:"A"}]},
   {name:"Day B",ex:[{eid:"e107",s:3,r:"3 E"},{eid:"e108",s:2,r:"8 E"},{eid:"e109",s:3,r:"8 E",tempo:"2-3s ECC"},{eid:"e110",s:3,r:"8"},{eid:"e111",s:2,r:"12",tempo:"2-3s ECC"},{eid:"e112",s:2,r:"12",tempo:"5-6s/REP"},{eid:"e113",s:3,r:"8"}]},
@@ -359,19 +359,31 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
           </div>})}
       </div></div>; }
 
-  // Login screen with EXPO logo
+  // Email login screen
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const handleLogin = () => {
+    const email = loginEmail.trim().toLowerCase();
+    if (!email) return;
+    const found = CLIENTS.find(c => c.email && c.email.toLowerCase() === email);
+    if (found) { setCi(found.id); setLoginError(''); }
+    else setLoginError('Email not found. Contact your trainer.');
+  };
   return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
     <div style={{textAlign:'center',marginBottom:40}}>
       <img src={EXPO_LOGO} alt="EXPO" style={{height:36,marginBottom:12}} />
       <div style={{color:C.tm,fontSize:15}}>Training Portal</div></div>
-    <div style={{width:'100%',maxWidth:400}}>
-      {CLIENTS.map(c => {const n = clientWorkouts.filter(w => w.clientId === c.id).length; return (
-        <div key={c.id} onClick={() => setCi(c.id)} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:20,marginBottom:12,cursor:'pointer',transition:'all .15s'}}
-          onMouseEnter={e => e.currentTarget.style.borderColor=C.ac} onMouseLeave={e => e.currentTarget.style.borderColor=C.bd}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div><div style={{fontWeight:700,fontSize:18,color:C.tx}}>{c.name}</div>
-              <div style={{fontSize:12,color:C.tm,marginTop:4}}>{c.plans[0].name} · {c.plans[0].phase}</div>
-              {n > 0 && <div style={{fontSize:11,color:C.gn,marginTop:2}}>{n} workouts logged</div>}</div>
-            <img src={EXPO_ICON} alt="" style={{height:24,opacity:0.3}} /></div></div>)})}
+    <div style={{width:'100%',maxWidth:380}}>
+      <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28}}>
+        <div style={{fontSize:14,fontWeight:600,color:C.tx,marginBottom:16}}>Log in with your email</div>
+        <input value={loginEmail} onChange={e => {setLoginEmail(e.target.value);setLoginError('')}}
+          onKeyDown={e => e.key==='Enter' && handleLogin()}
+          placeholder="your@email.com" type="email" autoComplete="email" autoFocus
+          style={{width:'100%',background:C.sf2,border:`1px solid ${loginError?C.rd:C.bd}`,borderRadius:10,padding:'14px 16px',color:C.tx,fontFamily:FB,fontSize:15,outline:'none',boxSizing:'border-box',marginBottom:12}} />
+        {loginError && <div style={{color:C.rd,fontSize:12,marginBottom:10}}>{loginError}</div>}
+        <button onClick={handleLogin}
+          style={{width:'100%',padding:14,borderRadius:10,border:'none',background:loginEmail.trim()?C.ac:C.sf3,color:loginEmail.trim()?'#000':C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:loginEmail.trim()?'pointer':'default',transition:'all .15s'}}>
+          Enter</button>
+      </div>
     </div></div>;
 }
