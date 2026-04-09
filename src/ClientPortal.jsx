@@ -201,6 +201,8 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   const [lg, setLg] = useState(null);
   const [vw, setVw] = useState('prog');
   const [bw, setBw] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginError, setLoginError] = useState('');
   const cl = CLIENTS.find(c => c.id === ci);
   const cw = clientWorkouts.filter(w => w.clientId === ci);
   const handleComplete = w => { setClientWorkouts(prev => [...prev, w]); if (bw) setBwLog(prev => [...prev, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]); setLg(null); };
@@ -360,8 +362,6 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
       </div></div>; }
 
   // Email login screen
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginError, setLoginError] = useState('');
   const handleLogin = () => {
     const email = loginEmail.trim().toLowerCase();
     if (!email) return;
