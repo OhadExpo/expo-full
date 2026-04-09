@@ -84,4 +84,39 @@ export const EX = {
   e118:{t:"VERT Jump to SL Landing",vid:"https://www.youtube.com/shorts/jQ2Z7sSfibM",q:"קפיצה לגובה מהמקום. מרפקים מובילים תנועה כלפי מעלה. נחיתה על רגל אחת בלבד (בלי תיקונים)"},
   e119:{t:"Multi-Directional POGO Jump (Soft Landing)",vid:"https://www.youtube.com/shorts/2DYc5n4oCko",q:"זמן מגע קצר מאוד עם הרצפה. מכת הצלפה עם כף הרגל ברצפה. בלי הרבה תנועה בברכיים. תזוז מהאגן, רגליים רפויות באוויר ומתכווצות לקראת המגע עם הרצפה"},
   e120:{t:"Push-Up POS Knee to Opposite Elbow",vid:"https://www.youtube.com/watch?v=eGZPjAqV9OM",q:"ישבן קצת יותר גבוה משאר הגוף. ראש למטה. ברגל שנשארת על הרצפה, הברך נעולה. כף רגל שעובדת, בפלקס"},
+
+  // === Shalev Lugashi (t5) — Block #7 ===
+  // Day A
+  e200:{t:"BW High Step-Up",vid:"https://www.youtube.com/watch?v=KGyVfgh0fhk",q:"קופסא הכי גבוהה שאתה יכול. עקב חזק על הקופסא. בית חזה מול הרצפה (משקל על הרגל הקדמית). סיים סט ואז תחליף רגל"},
+  e201:{t:"MID-POS Chin-Up",vid:"https://www.youtube.com/shorts/LMDKMvNuB6s",q:"חמש שניות תלייה במצב רפוי. חמש שניות החזקה למעלה, כשהכתפיים נוגעות במוט. טווח תנועה מלא. ראש בין הידיים בשיא ההרפייה, ומרפקים ליד האוזניים"},
+  e202:{t:"Alternating UNI/IPSI KB SLDL",vid:"https://www.youtube.com/watch?v=-wNUNK0BH1Q",q:"קטלבל ביד אחת, ירידה לדדליפט על רגל אחת, מניח על הרצפה ומרים ביד השנייה. עקב באוויר. ברכיים ישרות לא נעולות. בית חזה כמה שיותר רחוק מהרצפה"},
+  e203:{t:"SL Hip-Thrust POS DB Pullover",vid:"https://www.youtube.com/watch?v=YucEdhbUAgQ",q:"מצב היפ טראסט על רגל אחת, כל כף הרגל על הרצפה. בלי הקשתה בגב. ידיים ישרות מרפקים לא נעולים. תוריד כמה שיותר רחוק מהראש. משקל מת על הרצפה כל חזרה"},
+  e204:{t:"Machine SL Calf Raise",vid:"https://www.youtube.com/watch?v=UdSBmZMcMvw",q:"שב בלאנג' עם ברך אחת על הרצפה. חצי מכף הרגל הקדמית על מדרגה. עליות תאומים בטווח תנועה מלא. משקל על הקצה של הברך"},
+  e205:{t:"Seated (NO Back-Support) DB Bicep Curl",vid:"https://www.youtube.com/shorts/ObM9zmjj8HU"},
+  e206:{t:"ISO SA Plank",vid:"https://www.youtube.com/watch?v=dVYwg0PeRqk"},
+  // Day B
+  e207:{t:"Standing MID-POS DB OHP",vid:"https://www.youtube.com/watch?v=M2rwvNhTOu0",q:"משקולות במיד-פוזישן. עמידה רחבה כמו עם מוט. ישבן ובטן ננעלים אחרי הנשימה. ראש נדחף קדימה ומגיעים למצב של מרפקים נעולים ליד האוזניים"},
+  e208:{t:"DB Kossac Squat",vid:"https://www.youtube.com/shorts/ZJxIfjX2_oo",q:"משקולת בשתי ידיים צמודה לחזה. כל המשקל על העקב של הרגל שיורדים לכיוונה, אבל כל כף הרגל על הרצפה. להרים את האצבעות של הרגל הרחוקה"},
+  e209:{t:"Bird-Dog DB SA Row",vid:"https://www.youtube.com/watch?v=zYHZm9_HJsw",q:"רגל נגדית באוויר. פלקס ברגל שבאוויר, וברך נעולה. חתירה בהרפייה מלאה מעבר לראש"},
+  e210:{t:"Machine SL Curl",vid:"https://www.youtube.com/shorts/bGH1IJz1hSE",q:"רגל אחת בלבד עובדת. תחזיק עם הידיים רחוק מהגוף, כדי שהכתפיים יהיו בהרחקה קדימה, לא רוצים שהגב תחתון ייכנס להקשתה. פלקס בכף הרגל שעובדת"},
+  e211:{t:"Seated HOZ MID-POS Cable Row",vid:"https://www.youtube.com/shorts/Q2FD828aNek",q:"אגודלים כלפי מעלה. ברכיים נעולות, ישבן רחוק מהכבל. הרפייה מלאה. בטן נשארת במקום, הכתפיים והגב העליון זזים. פלקס בכף הרגל"},
+  e212:{t:"Laying DB Skullcrusher",vid:"https://www.youtube.com/watch?v=8aSeE4Nhr4Y",q:"סוף התנועה היא קצת מאחורי הראש, ככה השריר עובד על הסט. מרפקים לא זזים. נעילה מלאה. רגליים על הספה, עקב צמוד לישבן"},
+  e213:{t:"Wall-Supported DB Lateral Raise",vid:"https://www.youtube.com/shorts/3vFAn8FJ6RY",q:"רבע סקוואט רפוי עם הגב על הקיר, תישען על הקיר! להרים קצת מעל הראש. זרתות לכיוון התקרה בהרמה. כתפיים יורדות ושמוטות בהרפייה"},
+  // Day C
+  e214:{t:"Dead-Bug POS DB Chest Press",vid:"https://www.youtube.com/watch?v=vjCfHgZbWR8",q:"כפות רגליים באוויר, וברכיים מקופלות מעל הפופיק. משקולות בצורת חץ. מרפק נשאר תמיד מתחת לשורש כף היד. כתפיים זזות כמו בחתירה"},
+  e215:{t:"Elevated Reverse DB Lunge",vid:"https://www.youtube.com/watch?v=L80de7G3kBU",q:"עומדים על הגבהה או מדרגה. כל פעם שלח רגל אחת אחורה ללאנג'. משקולות בשתי הידיים. בית חזה לרצפה. המשקולות נשארות קדמית לגוף. נחיתה וירידה חלקות"},
+  e216:{t:"BB Deficit RDL",vid:"https://www.youtube.com/watch?v=bJNCRt23nKo",q:"תעמוד על באמפר/מדרגה. כמה שפחות כפיפה בברך. ככל שהתחת הולך יותר אחורה > אנחנו משתפרים בתרגיל. רד עד שהמוט בגובה של הגרביים בערך"},
+  e217:{t:"Inclined Chest-Supported Pronated DB Front-Raise",vid:"https://www.youtube.com/watch?v=Vc3-5xCXv_M",q:"שב עם החזה על הספה, פטמות באוויר. אנחנו מתעסקים בכתף שזזה אחורה וקדימה. ההרמה היא עד גובה העיניים, תרחיק את הזרועות כמה שיותר קדימה"},
+  e218:{t:"SL Wall Sit",vid:"https://www.youtube.com/shorts/s-VVPq1Vpqo"},
+  e219:{t:"Seated SL Calf Raise",vid:"https://www.youtube.com/watch?v=MSOfx7QrFrg",q:"שב על כסא/קופסא. כפות הרגליים על מדרגה (רק הכריות והאצבעות). טווח תנועה מלא בקרסול, גם בפלקס וגם בפויינט. שוק מאונכת לרצפה"},
+  e220:{t:"ISO Chin-Up + Knee Raise",vid:"https://www.youtube.com/watch?v=9JDG4i1Mco8"},
+  // Day D
+  e221:{t:"ISO BB Bench Press",vid:"https://www.youtube.com/shorts/HrHTP04jKCU",q:"כפות רגליים מתחת לישבן. עקב נדחף לרצפה. שכמות כמה שיותר קרובות אחת לשנייה. מרפק מתחת לשורש כף היד"},
+  e222:{t:"ISO Chest-Supported Wide-Pronated DB Row",vid:"https://www.youtube.com/shorts/7UkBOZpCNtU",q:"שכב על הבטן על ספה. מרפקים רחוקים מהגוף. מרפק נמשך כמה שיותר למעלה בכיווץ. בלי הקשתה בצוואר"},
+  e223:{t:"ISO Prone-Lying Ipsilateral Superman",vid:"https://www.youtube.com/shorts/F97OdvMRs7w",q:"שכיבה על הבטן. רגליים וראש רפויים על הרצפה. שתי ידיים ישרות כלפי מעלה. רק יד אחת מתרוממת ורק רגל אחת מתרוממת! אותו הצד! מרפק מוביל. אגודלים כלפי התקרה"},
+  e224:{t:"Plank Stance Knee to Elbow + Opposite Elbow",vid:"https://www.youtube.com/watch?v=dq9r3RUSyIE",q:"מצב פלאנק. נגיעה אחת עם הברך במרפק אחד, ואז נגיעה נוספת במרפק השני. ברך אחת נעולה. בטן לרצפה (בלי להסתובב), וישבן לא זז בכלל"},
+  e225:{t:"Crab-POS Raise",vid:"https://www.youtube.com/shorts/HRN5DJKrVL0",q:"שב על הרצפה. ידיים מתחת לכתפיים. עקבים בלבד על הרצפה. תרים את האגן עד שאתה בקו ישר, מהברך עד הכתפיים, כמו בהיפ-טראסט"},
+  e226:{t:"Supine-Lying External-Rotation",vid:"https://www.youtube.com/shorts/daMOhhSFhZE",q:"שכב על הגב. תרים רגליים באוויר, ברכיים מעל הפופיק. המרפקים הם הציר, לא זזים. המטרה להגיע עם שורש כף היד והמרפקים לרצפה ולהחזיק כמה שיותר קרוב"},
+  e227:{t:"Wall-Assisted 90-90 Rear-Foot Heel-Clicks",vid:"https://www.youtube.com/shorts/cduSxyjDql8",q:"שתי ידיים על הקיר, מרפקים נעולים. פלג גוף עליון כמה שיותר זקוף! נגיעה עם העקב ליד האגן. נגיעה של הברך כשכף הרגל עדיין מורמת באוויר (ללא הקשתה גב!)"},
+  e228:{t:"Short-Lever ABs Sit-Up",vid:"https://www.youtube.com/shorts/EvAup1z42-s",q:"עקבים כמה שיותר קרובים לישבן. רגליים מקובעות מתחת למשהו כבד. ידיים כלפי התקרה כל הזמן. כפיפת בטן מלאה עד לישיבה, תסיים כשאתה מאונך לקרקע"},
 };

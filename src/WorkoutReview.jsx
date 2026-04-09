@@ -22,6 +22,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     if (w.clientId === 't2') byClient[key].name = 'Ron Yonker';
     if (w.clientId === 't3') byClient[key].name = 'Omer Sadeh';
     if (w.clientId === 't4') byClient[key].name = 'Yuval Barko';
+    if (w.clientId === 't5') byClient[key].name = 'Shalev Lugashi';
   });
 
   const setFocus = (planName, dayName, eid, week, val) => {

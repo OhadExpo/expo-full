@@ -26,6 +26,13 @@ const CLIENTS = [
   {name:"Day B",ex:[{eid:"e107",s:3,r:"3 E"},{eid:"e108",s:2,r:"8 E"},{eid:"e109",s:3,r:"8 E",tempo:"2-3s ECC"},{eid:"e110",s:3,r:"8"},{eid:"e111",s:2,r:"12",tempo:"2-3s ECC"},{eid:"e112",s:2,r:"12",tempo:"5-6s/REP"},{eid:"e113",s:3,r:"8"}]},
   {name:"Day C (Home)",ex:[{eid:"e114",s:2,r:"10 E"},{eid:"e115",s:2,r:"15 SEC E",n:"ISO"},{eid:"e116",s:2,r:"10 E",tempo:"6-8s/REP"},{eid:"e117",s:2,r:"15 SEC > 15 Reps"},{eid:"e118",s:3,r:"3 E"},{eid:"e119",s:3,r:"15 SEC"},{eid:"e120",s:2,r:"10 E"}]}
   ]}]},
+{id:"t5",name:"Shalev Lugashi",email:"shalev",sessions:8,plans:[{name:"Block #7",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+  warmup:[{t:"5 Min Bike/Cycle",rx:"5 min"}],
+  days:[{name:"Day A",ex:[{eid:"e200",s:3,r:"12 E",superset:"A"},{eid:"e201",s:3,r:"4",tempo:"5s ISO top+bottom",superset:"A"},{eid:"e202",s:2,r:"8 E",superset:"B"},{eid:"e203",s:2,r:"12 E",tempo:"חצי סט על רגל אחת, חצי על השנייה",superset:"B"},{eid:"e204",s:3,r:"15 E",superset:"C"},{eid:"e205",s:3,r:"12",superset:"C"},{eid:"e206",s:2,r:"20 SEC E"}]},
+  {name:"Day B",ex:[{eid:"e207",s:3,r:"8",superset:"A"},{eid:"e208",s:3,r:"8 E",superset:"A"},{eid:"e209",s:3,r:"8 E",superset:"B"},{eid:"e210",s:3,r:"8 E",tempo:"3-4s ECC",superset:"B"},{eid:"e211",s:2,r:"20",superset:"C"},{eid:"e212",s:2,r:"12",superset:"C"},{eid:"e213",s:3,r:"12",tempo:"3-4s ECC"}]},
+  {name:"Day C",ex:[{eid:"e214",s:3,r:"12",superset:"A"},{eid:"e215",s:2,r:"10 E",superset:"A"},{eid:"e216",s:2,r:"8",superset:"B"},{eid:"e217",s:2,r:"10",tempo:"4-5s ECC",superset:"B"},{eid:"e218",s:2,r:"20 SEC E",superset:"C"},{eid:"e219",s:2,r:"8 E",tempo:"5s ISO top+bottom",superset:"C"},{eid:"e220",s:3,r:"15 SEC E"}]},
+  {name:"Day D",ex:[{eid:"e221",s:3,r:"15 SEC",tempo:"סטטי",superset:"A"},{eid:"e222",s:3,r:"15 SEC",tempo:"סטטי",superset:"A"},{eid:"e223",s:2,r:"20 SEC E",tempo:"סטטי",superset:"B"},{eid:"e224",s:2,r:"10 E + 10 E",superset:"B"},{eid:"e225",s:2,r:"12",tempo:"סט אחד ידיים אחורה, סט אחד קדימה",superset:"C"},{eid:"e226",s:2,r:"10",tempo:"6-8s/REP",superset:"C"},{eid:"e227",s:2,r:"10 E",tempo:"ידיים על הקיר!",superset:"D"},{eid:"e228",s:3,r:"12",superset:"D"}]}
+  ]}]},
 ];
 
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"};
