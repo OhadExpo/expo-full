@@ -157,18 +157,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           {ex.wk.map((w,i) => <div key={i} style={{background:weekNum===i?C.acD:C.sf3,border:`1px solid ${weekNum===i?C.ac+'60':C.bd}`,borderRadius:6,padding:6,textAlign:'center'}}>
             <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
             <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div></div>}
-      {/* Coaching Cues - from Excel comments */}
-      {d.q && <div style={{background:C.puD,borderRadius:10,padding:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6,direction:'rtl',textAlign:'right'}}>
-        <div style={{fontSize:10,fontFamily:FN,color:C.pu,marginBottom:4,direction:'ltr',textAlign:'left'}}>COACHING CUES</div>{d.q}</div>}
-      {/* Exercise Notes/Guidelines - ALWAYS visible */}
-      <div style={{background:C.sf,border:'1px solid '+C.or+'40',borderLeft:'3px solid '+C.or,borderRadius:10,padding:12,marginBottom:12}}>
-        <div style={{fontSize:10,fontFamily:FN,color:C.or,marginBottom:4,fontWeight:700}}>EXERCISE NOTES</div>
-        <div style={{fontSize:13,color:ex.n?C.tx:C.td,lineHeight:1.5}}>{ex.n || 'No specific notes for this exercise'}</div></div>
-      {/* Weekly Coach Focus - ALWAYS visible */}
-      {(() => { const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`; const wf = weeklyFocus?.[fk]; return (
-        <div style={{background:wf?C.acD:C.sf,border:'1px solid '+(wf?C.ac+'30':C.bd),borderLeft:'3px solid '+(wf?C.ac:C.bd),borderRadius:10,padding:12,marginBottom:12}}>
-          <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
-          <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>); })()}
+      {/* Exercise Notes — merged coaching cues (q) + notes (n) */}
+      {(d.q || ex.n) && <div style={{background:C.puD,borderRadius:10,padding:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6,direction:'rtl',textAlign:'right'}}>
+        <div style={{fontSize:10,fontFamily:FN,color:C.pu,marginBottom:4,direction:'ltr',textAlign:'left',fontWeight:700}}>EXERCISE NOTES</div>
+        {d.q}{d.q && ex.n && <div style={{borderTop:`1px solid ${C.pu}30`,margin:'8px 0'}}/>}{ex.n && <div style={{direction:'ltr',textAlign:'left',color:C.or}}>{ex.n}</div>}</div>}
+      {/* Weekly Coach Focus - only if set */}
+      {(() => { const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`; const wf = weeklyFocus?.[fk]; if(!wf) return null; return (
+        <div style={{background:C.acD,border:'1px solid '+C.ac+'30',borderLeft:'3px solid '+C.ac,borderRadius:10,padding:12,marginBottom:12}}>
+          <div style={{fontSize:10,fontFamily:FN,color:C.ac,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
+          <div style={{fontSize:13,color:C.tx,lineHeight:1.5}}>{wf}</div></div>); })()}
       {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
       <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:14}}>
