@@ -161,13 +161,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {(d.q || ex.n) && <div style={{background:C.puD,borderRadius:10,padding:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6,direction:'rtl',textAlign:'right'}}>
         <div style={{fontSize:10,fontFamily:FN,color:C.pu,marginBottom:4,direction:'ltr',textAlign:'left',fontWeight:700}}>EXERCISE NOTES</div>
         {d.q}{d.q && ex.n && <div style={{borderTop:`1px solid ${C.pu}30`,margin:'8px 0'}}/>}{ex.n && <div style={{direction:'ltr',textAlign:'left',color:C.or}}>{ex.n}</div>}</div>}
-      {/* Weekly Coach Focus - only if set */}
-      {(() => { const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`; const wf = weeklyFocus?.[fk]; if(!wf) return null; return (
-        <div style={{background:C.acD,border:'1px solid '+C.ac+'30',borderLeft:'3px solid '+C.ac,borderRadius:10,padding:12,marginBottom:12}}>
-          <div style={{fontSize:10,fontFamily:FN,color:C.ac,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
-          <div style={{fontSize:13,color:C.tx,lineHeight:1.5}}>{wf}</div></div>); })()}
       {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
+      {/* Weekly Coach Focus - always visible, beneath video */}
+      {(() => { const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`; const wf = weeklyFocus?.[fk]; return (
+        <div style={{background:wf?C.acD:C.sf,border:'1px solid '+(wf?C.ac+'30':C.bd),borderLeft:'3px solid '+(wf?C.ac:C.bd),borderRadius:10,padding:12,marginBottom:12}}>
+          <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
+          <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>); })()}
       <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
           {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:!h||h==='✓'?'center':'left'}}>{h}</div>)}</div>
