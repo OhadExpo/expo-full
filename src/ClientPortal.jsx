@@ -20,7 +20,7 @@ const CLIENTS = [
   {name:"Day B",ex:[{eid:"e57",s:2,r:"10 SEC"},{eid:"e58",s:2,r:"4 E"},{eid:"e59",s:2,r:"4+4 E"},{eid:"e60",s:3,r:"5",tempo:"8-10s/REP"},{eid:"e61",s:4,r:"8 E",tempo:"3-4s ECC"},{eid:"e62",s:2,r:"20",tempo:"3-4s ECC"},{eid:"e63",s:3,r:"15"},{eid:"e64",s:3,r:"6 E"}]},
   {name:"Day C",ex:[{eid:"e65",s:3,r:"4 E"},{eid:"e66",s:3,r:"1 E",tempo:"3-Way"},{eid:"e67",s:2,r:"8"},{eid:"e68",s:2,r:"6 E"},{eid:"e69",s:2,r:"10 E"},{eid:"e70",s:3,r:"12"},{eid:"e71",s:3,r:"12",tempo:"1s Dead-Stop"},{eid:"e72",s:2,r:">",wk:["25 SEC","35 SEC","45 SEC","60 SEC"]}]}
   ]}]},
-{id:"t4",name:"Yuval Barko",email:"shmuel034@gmail.com",sessions:8,plans:[{name:"Comeback Block",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+{id:"t4",name:"Yuval Barko",email:["shmuel034@gmail.com","yuvalberkovitch@gmail.com"],sessions:8,plans:[{name:"Comeback Block",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"Kossac Squat to Crossover Lunge",rx:"1x8 E",vid:"https://www.youtube.com/watch?v=MGLj_HrQTgY"},{t:"4-Way Bear-Crawl",rx:"1x8 E",vid:"https://www.youtube.com/shorts/_apvoiIoqgo"},{t:"BW SL Depth Drop",rx:"2x2 E POS",vid:"https://www.youtube.com/watch?v=vNAOj2kxsXE"}],
   days:[{name:"Day A",ex:[{eid:"e100",s:2,r:"8"},{eid:"e101",s:3,r:"8"},{eid:"e102",s:3,r:"10 SEC",n:"ISO"},{eid:"e103",s:3,r:"6 E",tempo:"3s ECC"},{eid:"e104",s:2,r:"8 E",tempo:"2-3s ECC"},{eid:"e105",s:2,r:"15 SEC",n:"ISO",superset:"A"},{eid:"e106",s:2,r:"15 SEC",n:"ISO",superset:"A"}]},
   {name:"Day B",ex:[{eid:"e107",s:3,r:"3 E"},{eid:"e108",s:2,r:"8 E"},{eid:"e109",s:3,r:"8 E",tempo:"2-3s ECC"},{eid:"e110",s:3,r:"8"},{eid:"e111",s:2,r:"12",tempo:"2-3s ECC"},{eid:"e112",s:2,r:"12",tempo:"5-6s/REP"},{eid:"e113",s:3,r:"8"}]},
@@ -241,7 +241,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         ) : (
           <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:16}}>
             <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:10}}>TREND</div>
-            <svg viewBox={`0 0 ${Math.max(bwData.length * 60, 300)} 160`} style={{width:'100%',height:160}}>
+            <svg viewBox={`0 0 ${Math.max(bwData.length * 60, 300)} 175`} style={{width:'100%',height:175}}>
               {/* Grid lines */}
               {[0,0.25,0.5,0.75,1].map((p,i) => {
                 const y = 10 + p * 130;
@@ -261,6 +261,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
                   <circle cx={x} cy={y} r="4" fill={C.ac} stroke={C.bg} strokeWidth="2"/>
                   <text x={x} y={y-10} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor="middle" fontWeight="600">{d.bw}</text>
                   <text x={x} y={152} fill={C.td} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week||'?'}</text>
+                  <text x={x} y={163} fill={C.td} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
                 </g>;
               })}
             </svg>
@@ -362,7 +363,11 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   const handleLogin = () => {
     const email = loginEmail.trim().toLowerCase();
     if (!email) return;
-    const found = CLIENTS.find(c => c.email && c.email.toLowerCase() === email);
+    const found = CLIENTS.find(c => {
+      if (!c.email) return false;
+      if (Array.isArray(c.email)) return c.email.some(e => e.toLowerCase() === email);
+      return c.email.toLowerCase() === email;
+    });
     if (found) { setCi(found.id); setLoginError(''); }
     else setLoginError('Email not found. Contact your trainer.');
   };
