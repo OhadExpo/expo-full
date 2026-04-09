@@ -45,7 +45,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const [wuDone, setWuDone] = useState(() => warmup.map(() => false));
   const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
 
-  const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,formVideos:fv,
+  const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,
+    formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null})),
     exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:ex.wk?ex.wk[weekNum]:`${ex.s}x${ex.r}`,sets:allSets[i]}))});
 
   // Navigation helpers
@@ -180,10 +181,31 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </div>)}</div>
       <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:20}}>
         <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:8}}>FORM CHECK</div>
-        <button onClick={() => {const n=[...fv];n[ei]={...n[ei],has:!n[ei].has};setFv(n)}}
-          style={{width:'100%',padding:'12px',borderRadius:8,border:`1px dashed ${f.has?C.gn:C.bd}`,background:f.has?C.gnD:'transparent',color:f.has?C.gn:C.tm,cursor:'pointer',fontFamily:FB,fontSize:13,marginBottom:8}}>
-          {f.has ? '✓ Video Attached' : '📹 Upload Form Video'}</button>
-        <textarea value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical'}}/></div>
+        {f.has && f.videoUrl ? (
+          <div style={{marginBottom:10}}>
+            <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
+            <button onClick={() => {const n=[...fv];n[ei]={...n[ei],has:false,videoUrl:null};setFv(n)}}
+              style={{width:'100%',marginTop:6,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>
+              Remove Video</button>
+          </div>
+        ) : (
+          <label style={{display:'block',width:'100%',padding:'16px 12px',borderRadius:8,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:13,textAlign:'center'}}>
+            📹 Record or Upload Form Video
+            <input type="file" accept="video/*" capture="environment" style={{display:'none'}}
+              onChange={e => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const url = URL.createObjectURL(file);
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const n=[...fv]; n[ei]={...n[ei], has:true, videoUrl:url, videoData:reader.result, fileName:file.name}; setFv(n);
+                };
+                reader.readAsDataURL(file);
+                e.target.value = '';
+              }} />
+          </label>
+        )}
+        <textarea value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8}}/></div>
       <div style={{display:'flex',gap:8}}>
         <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
         <button onClick={goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:C.ac,color:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:'pointer'}}>
