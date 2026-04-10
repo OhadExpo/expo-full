@@ -161,8 +161,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   {formVideo?.has ? (
                     <div style={{background:C.gnD,border:`1px solid ${C.gn}30`,borderRadius:8,padding:12,marginBottom:10}}>
                       <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700,marginBottom:6}}>📹 FORM VIDEO SUBMITTED</div>
-                      {formVideo.note && <div style={{fontSize:12,color:C.tx,marginBottom:4}}>Client note: {formVideo.note}</div>}
-                      <div style={{fontSize:11,color:C.tm}}>Video review placeholder — file upload not yet connected to storage</div>
+                      {formVideo.cloudUrl ? (
+                        <video src={formVideo.cloudUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:300,background:C.sf2,marginBottom:6}} />
+                      ) : formVideo.fileName ? (
+                        <div style={{fontSize:11,color:C.tm,marginBottom:4}}>File: {formVideo.fileName} (upload pending)</div>
+                      ) : null}
+                      {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:4}}>Client note: {formVideo.note}</div>}
                     </div>
                   ) : (
                     <div style={{background:C.sf2,borderRadius:8,padding:10,marginBottom:10,textAlign:"center"}}>
