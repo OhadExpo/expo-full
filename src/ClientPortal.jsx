@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
 
-export const CLIENTS = [
+const CLIENTS = [
 {id:"t1",name:"Diego Day",email:"",sessions:8,plans:[{name:"Block #9",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"BW High Step-Up",rx:"1x12E",vid:"https://www.youtube.com/watch?v=KGyVfgh0fhk"},{t:"Push-Up SCAP Pro/Ret",rx:"1x12",vid:"https://www.youtube.com/watch?v=NKekqeudgWs"},{t:"SA Cable Facepull",rx:"2x12E",vid:"https://www.youtube.com/watch?v=rG0PaDoX9Lw"},{t:"HK SA Cable Row",rx:"1x12E",vid:"https://www.youtube.com/shorts/8WDOFDUTwDo"}],
   days:[{name:"Home W/O",ex:[{eid:"e1",s:2,r:"15"},{eid:"e2",s:2,r:"12E"},{eid:"e3",s:2,r:"10"},{eid:"e4",s:2,r:"10E"},{eid:"e5",s:3,r:"20s",n:"ISO"},{eid:"e6",s:2,r:"8E"},{eid:"e7",s:2,r:"30sE",n:"ISO"},{eid:"e8",s:3,r:"8E"}]},
@@ -234,8 +234,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 }
 
 // Main client portal
-export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, authClientId }) {
-  const [ci, setCi] = useState(authClientId || null);
+export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus }) {
+  const [ci, setCi] = useState(null);
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
   const [vw, setVw] = useState('prog');
@@ -416,8 +416,6 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     if (found) { setCi(found.id); setLoginError(''); }
     else setLoginError('Email not found. Contact your trainer.');
   };
-  // If auth provided clientId but ci is somehow null, re-set it
-  if (authClientId && !ci) { setCi(authClientId); return null; }
   return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
     <div style={{textAlign:'center',marginBottom:40}}>
       <img src={EXPO_LOGO} alt="EXPO" style={{height:36,marginBottom:12}} />

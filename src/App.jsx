@@ -2,8 +2,6 @@ import React, { useState, useCallback, useRef } from 'react';
 import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON } from './theme';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
-import { useAuth } from './auth';
-import { LoginScreen, UnauthorizedScreen } from './auth';
 import { Btn, baseBtn } from './ui';
 import * as XLSX from 'xlsx';
 import TraineesView from './TraineesView';
@@ -54,7 +52,6 @@ function parseSpreadsheet(data, fileName) {
 }
 
 export default function App() {
-  const auth = useAuth();
   const [trainees,setTrainees]=useSupaStore(KEYS.trainees,[]);
   const [exercises,setExercises]=useSupaStore(KEYS.exercises,[]);
   const [plans,setPlans]=useSupaStore(KEYS.plans,[]);
@@ -63,55 +60,12 @@ export default function App() {
   const [clientWorkouts,setClientWorkouts]=useSupaClientWorkouts([]);
   const [bwLog,setBwLog]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
-  const [tab,setTab]=useState("dashboard");
+  const isPortalDirect = typeof window !== 'undefined' && (window.location.pathname === '/portal' || window.location.search.includes('portal') || window.location.hash.includes('portal'));
+  const [tab,setTab]=useState(isPortalDirect ? "client" : "dashboard");
   const [selectedTrainee,setSelectedTrainee]=useState(null);
   const [importMsg,setImportMsg]=useState(null);
   const fileRef=useRef(null);
   const handleDecrementSession=useCallback(tid=>{setTrainees(prev=>prev.map(t=>t.id===tid&&t.sessionsRemaining>0?{...t,sessionsRemaining:t.sessionsRemaining-1}:t))},[setTrainees]);
-
-  // ====== AUTH GATING ======
-  // Loading state
-  if (auth.loading) {
-    return (
-      <div style={{background:C.bg,color:C.tx,minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',fontFamily:FN,gap:16}}>
-        <img src={EXPO_LOGO} alt="EXPO" style={{height:36}} />
-        <span style={{color:C.td,fontSize:13}}>Loading...</span>
-      </div>
-    );
-  }
-
-  // Not authenticated → show login
-  if (!auth.session) {
-    return <LoginScreen />;
-  }
-
-  // Authenticated but unknown email → unauthorized
-  if (!auth.role) {
-    return <UnauthorizedScreen email={auth.user?.email} onSignOut={auth.signOut} />;
-  }
-
-  // Client role → render client portal directly
-  if (auth.role === 'client') {
-    return (
-      <div>
-        <div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:'8px 20px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <img src={EXPO_LOGO} alt="EXPO" style={{height:22}} />
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <span style={{fontSize:11,color:C.td}}>{auth.user?.email}</span>
-            <button onClick={auth.signOut} style={{background:'none',border:`1px solid ${C.bd}`,borderRadius:6,padding:'4px 10px',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:11}}>Sign Out</button>
-          </div>
-        </div>
-        <ClientPortal
-          clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts}
-          bwLog={bwLog} setBwLog={setBwLog}
-          weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}
-          authClientId={auth.clientId}
-        />
-      </div>
-    );
-  }
-
-  // ====== TRAINER ROLE — full dashboard ======
 
   const doImportSingle=(data)=>{
     const trainee={...data.trainee,id:data.trainee.id||uid(),email:"",phone:"",age:"",weight:"",height:"",injuries:"",goals:"",notes:"",startDate:new Date().toISOString().slice(0,10),packagePrice:""};
@@ -191,10 +145,8 @@ export default function App() {
   const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.length},{key:"plans",label:"Plans",count:plans.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Client Portal",count:null}];
 
   if(tab==="client")return(<div>
-    <div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"space-between"}}>
-      <button onClick={()=>setTab("trainees")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button>
-      <button onClick={auth.signOut} style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"4px 10px",color:C.tm,cursor:"pointer",fontFamily:FB,fontSize:11}}>Sign Out</button>
-    </div>
+    {!isPortalDirect&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"flex-end"}}>
+      <button onClick={()=>setTab("trainees")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
     <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}/></div>);
 
   return(
@@ -209,7 +161,6 @@ export default function App() {
             <div style={{width:1,height:24,background:C.bd,margin:"0 6px"}}/>
             <button onClick={()=>fileRef.current?.click()} style={{...baseBtn,background:C.acD,color:C.ac,padding:"6px 12px",fontSize:12,borderRadius:6}}>📥 Import</button>
             <button onClick={handleExport} style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 10px",fontSize:12}}>📤</button>
-            <button onClick={auth.signOut} style={{...baseBtn,background:"transparent",color:C.td,padding:"6px 10px",fontSize:11,borderLeft:`1px solid ${C.bd}`,borderRadius:0,marginLeft:4}} title={auth.user?.email}>🚪</button>
             <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:"none"}}/></nav></div></header>
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:importMsg.startsWith("✗")?C.rdD:importMsg.startsWith("⚠")?C.orD:C.gnD,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:8,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
