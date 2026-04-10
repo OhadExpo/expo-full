@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON } from './theme';
 import { EX } from './exerciseData';
+import { supabase } from './supabase';
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -213,10 +214,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 try {
                   const ts = Date.now();
                   const path = `${clientId}/${ts}-${file.name}`;
-                  const { supabase: sb } = await import('./supabase');
-                  const { data, error } = await sb.storage.from('form-videos').upload(path, file, { upsert: true });
+                  const { data, error } = await supabase.storage.from('form-videos').upload(path, file, { upsert: true });
                   if (!error) {
-                    const { data: urlData } = sb.storage.from('form-videos').getPublicUrl(path);
+                    const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(path);
                     const n2=[...fv]; n2[ei]={...n2[ei], uploading:false, uploaded:true, cloudUrl:urlData.publicUrl}; setFv(n2);
                   } else {
                     const n2=[...fv]; n2[ei]={...n2[ei], uploading:false}; setFv(n2);
