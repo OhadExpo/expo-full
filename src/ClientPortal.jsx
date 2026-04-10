@@ -53,7 +53,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
 
   const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,
-    formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null})),
+    formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null,cloudUrl:f.cloudUrl||null})),
     exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:ex.wk?ex.wk[weekNum]:`${ex.s}x${ex.r}`,sets:allSets[i]}))});
 
   // Navigation helpers
@@ -193,7 +193,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
             <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
-            <button onClick={() => {const n=[...fv];n[ei]={...n[ei],has:false,videoUrl:null};setFv(n)}}
+            {f.uploading && <div style={{fontSize:11,color:C.ac,fontFamily:FN,marginTop:4}}>Uploading to cloud...</div>}
+            {f.uploaded && <div style={{fontSize:11,color:C.gn,fontFamily:FN,marginTop:4}}>✓ Saved to cloud</div>}
+            <button onClick={() => {const n=[...fv];n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false};setFv(n)}}
               style={{width:'100%',marginTop:6,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>
               Remove Video</button>
           </div>
@@ -201,16 +203,26 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <label style={{display:'block',width:'100%',padding:'16px 12px',borderRadius:8,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:13,textAlign:'center'}}>
             📹 Record or Upload Form Video
             <input type="file" accept="video/*" capture="environment" style={{display:'none'}}
-              onChange={e => {
+              onChange={async e => {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 const url = URL.createObjectURL(file);
-                const reader = new FileReader();
-                reader.onload = () => {
-                  const n=[...fv]; n[ei]={...n[ei], has:true, videoUrl:url, videoData:reader.result, fileName:file.name}; setFv(n);
-                };
-                reader.readAsDataURL(file);
+                const n=[...fv]; n[ei]={...n[ei], has:true, videoUrl:url, fileName:file.name, uploading:true, uploaded:false}; setFv(n);
                 e.target.value = '';
+                // Upload to Supabase Storage
+                try {
+                  const ts = Date.now();
+                  const path = `${clientId}/${ts}-${file.name}`;
+                  const { createClient } = await import('@supabase/supabase-js');
+                  const sb = createClient('https://gtcbfglttoiyfsnfbhdy.supabase.co','sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv');
+                  const { data, error } = await sb.storage.from('form-videos').upload(path, file, { upsert: true });
+                  if (!error) {
+                    const { data: urlData } = sb.storage.from('form-videos').getPublicUrl(path);
+                    const n2=[...fv]; n2[ei]={...n2[ei], uploading:false, uploaded:true, cloudUrl:urlData.publicUrl}; setFv(n2);
+                  } else {
+                    const n2=[...fv]; n2[ei]={...n2[ei], uploading:false}; setFv(n2);
+                  }
+                } catch { const n2=[...fv]; n2[ei]={...n2[ei], uploading:false}; setFv(n2); }
               }} />
           </label>
         )}
