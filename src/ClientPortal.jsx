@@ -212,7 +212,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 const file = e.target.files?.[0];
                 if (!file) return;
                 const url = URL.createObjectURL(file);
-                const n=[...fv]; n[ei]={...n[ei], has:true, videoUrl:url, fileName:file.name, uploading:true, uploaded:false}; setFv(n);
+                setFv(prev => { const n=[...prev]; n[ei]={...n[ei], has:true, videoUrl:url, fileName:file.name, uploading:true, uploaded:false}; return n; });
                 e.target.value = '';
                 // Upload to Supabase Storage
                 try {
@@ -221,11 +221,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                   const { data, error } = await supabase.storage.from('form-videos').upload(path, file, { upsert: true });
                   if (!error) {
                     const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(path);
-                    const n2=[...fv]; n2[ei]={...n2[ei], uploading:false, uploaded:true, cloudUrl:urlData.publicUrl}; setFv(n2);
+                    setFv(prev => { const n=[...prev]; n[ei]={...n[ei], uploading:false, uploaded:true, has:true, cloudUrl:urlData.publicUrl}; return n; });
                   } else {
-                    const n2=[...fv]; n2[ei]={...n2[ei], uploading:false}; setFv(n2);
+                    console.error('Storage upload error:', error);
+                    setFv(prev => { const n=[...prev]; n[ei]={...n[ei], uploading:false}; return n; });
                   }
-                } catch { const n2=[...fv]; n2[ei]={...n2[ei], uploading:false}; setFv(n2); }
+                } catch(err) { console.error('Upload catch:', err); setFv(prev => { const n=[...prev]; n[ei]={...n[ei], uploading:false}; return n; }); }
               }} />
           </label>
         )}

@@ -130,7 +130,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
                     {ex.prescribed} · {doneSets}/{ex.sets.length} sets
-                    {formVideo?.has && <span style={{color:C.gn,marginLeft:6}}>📹</span>}
+                    {(formVideo?.has || formVideo?.cloudUrl) && <span style={{color:C.gn,marginLeft:6}}>📹</span>}
                   </div>
                 </div>
                 {nextFocus && <div style={{width:6,height:6,borderRadius:3,background:C.ac,flexShrink:0}} />}
@@ -158,7 +158,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   </div>
 
                   {/* Client's form video */}
-                  {formVideo?.has ? (
+                  {(formVideo?.has || formVideo?.cloudUrl) ? (
                     <div style={{background:C.gnD,border:`1px solid ${C.gn}30`,borderRadius:8,padding:12,marginBottom:10}}>
                       <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700,marginBottom:6}}>📹 FORM VIDEO SUBMITTED</div>
                       {formVideo.cloudUrl ? (
