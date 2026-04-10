@@ -149,7 +149,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
       <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did it feel? Pain? Modifications?" style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'left'}}/>
-      <button onClick={finish} style={{width:'100%',padding:16,borderRadius:12,border:'none',background:C.gn,color:'#fff',fontFamily:FB,fontSize:16,fontWeight:700,cursor:'pointer'}}>✓ Complete Workout</button>
+      {fv.some(f => f.uploading) ? (
+        <button style={{width:'100%',padding:16,borderRadius:12,border:'none',background:C.sf3,color:C.td,fontFamily:FB,fontSize:16,fontWeight:700,cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
+      ) : (
+        <button onClick={finish} style={{width:'100%',padding:16,borderRadius:12,border:'none',background:C.gn,color:'#fff',fontFamily:FB,fontSize:16,fontWeight:700,cursor:'pointer'}}>✓ Complete Workout</button>
+      )}
       <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>
     </div></div>;
 
@@ -228,8 +232,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <textarea value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8}}/></div>
       <div style={{display:'flex',gap:8}}>
         <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
-        <button onClick={goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:C.ac,color:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:'pointer'}}>
-          {ei===exCount-1 ? 'Finish →' : 'Next Exercise →'}</button></div>
+        <button onClick={f.uploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:f.uploading?C.sf3:C.ac,color:f.uploading?C.td:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:f.uploading?'wait':'pointer',opacity:f.uploading?0.6:1}}>
+          {f.uploading ? '⏳ Uploading video...' : ei===exCount-1 ? 'Finish →' : 'Next Exercise →'}</button></div>
     </div></div>;
 }
 
