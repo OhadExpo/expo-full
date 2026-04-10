@@ -61,6 +61,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const stepIndex = typeof step === 'string' && step.startsWith('wu') ? parseInt(step.slice(2)) :
     step === 'pre' ? wuCount : step === 'end' ? totalSteps : wuCount + 1 + step;
   const goNext = () => {
+    window.scrollTo(0,0);
     if (typeof step === 'string' && step.startsWith('wu')) {
       const wi = parseInt(step.slice(2));
       const nd = [...wuDone]; nd[wi] = true; setWuDone(nd);
@@ -71,6 +72,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     else setStep('end');
   };
   const goPrev = () => {
+    window.scrollTo(0,0);
     if (typeof step === 'string' && step.startsWith('wu')) {
       const wi = parseInt(step.slice(2));
       if (wi > 0) setStep('wu' + (wi - 1)); else onBack();
@@ -239,6 +241,8 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   // BW Graph tab
   if (vw === 'bwt' && cl) { 
     const bwData = bwLog.filter(b => b.clientId === ci).sort((a,b) => new Date(a.date) - new Date(b.date));
+    const existingBw = bwData.find(b => b.week === wk + 1);
+    const bwDisplay = bw || (existingBw ? String(existingBw.bw) : '');
     const maxBw = bwData.length ? Math.max(...bwData.map(b=>b.bw)) : 100;
     const minBw = bwData.length ? Math.min(...bwData.map(b=>b.bw)) : 50;
     const range = Math.max(maxBw - minBw, 2);
@@ -255,8 +259,8 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:16}}>
           <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>LOG THIS WEEK (W{wk+1})</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" style={{flex:1,background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box'}}/>
-            <button onClick={()=>{if(bw){setBwLog(prev=>[...prev,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]);setBw('')}}} 
+            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" style={{flex:1,background:C.sf2,border:`1px solid ${existingBw?C.gn+'60':C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box'}}/>
+            <button onClick={()=>{const val=bw||bwDisplay;if(val){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val)}]});setBw('')}}} 
               style={{padding:'10px 20px',borderRadius:8,border:'none',background:bw?C.ac:C.sf3,color:bw?'#fff':C.td,fontFamily:FB,fontSize:13,fontWeight:700,cursor:bw?'pointer':'default'}}>Save</button>
           </div>
         </div>

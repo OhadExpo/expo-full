@@ -32,7 +32,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, e
             <div style={{color:C.tm,fontSize:13,marginTop:4}}>{td.email}{td.phone?` · ${td.phone}`:""}</div></div>
           <Badge color={statusColor[td.status]}>{td.status}</Badge></div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:16}}>
-          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"],["Since",td.startDate],["Workouts",tw.length],["Total Paid",`₪${totalPaid.toLocaleString()}`]].map(([l,v])=>
+          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthlyPrice?`₪${td.monthlyPrice}`:"—"],["Per Session",td.sessionPrice?`₪${td.sessionPrice}`:"—"],["Last Payment",td.lastPayment||"—"],["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"],["Since",td.startDate],["Workouts",tw.length],["Total Paid",`₪${totalPaid.toLocaleString()}`]].map(([l,v])=>
             <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
         {td.injuries&&<div style={{marginTop:12,padding:10,background:C.orD,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4}}>Injuries</div><div style={{fontSize:13,color:C.tx}}>{td.injuries}</div></div>}
