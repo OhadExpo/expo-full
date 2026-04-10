@@ -14,7 +14,7 @@ export function useSupaStore(key, initial) {
   useEffect(() => {
     (async () => {
       try {
-        const { data: row } = await supabase.from('store').select('value').eq('key', key).single();
+        const { data: row } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
         if (row && row.value !== undefined) {
           setData(row.value);
           dataRef.current = row.value;
