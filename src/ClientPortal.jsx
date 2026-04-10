@@ -53,6 +53,26 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const [wuDone, setWuDone] = useState(() => warmup.map(() => false));
   const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
 
+  const handleVideoUpload = async (e, exIdx) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:url, fileName:file.name, uploading:true, uploaded:false}; return n; });
+    e.target.value = '';
+    try {
+      const ts = Date.now();
+      const path = `${clientId}/${ts}-${file.name}`;
+      const { data, error } = await supabase.storage.from('form-videos').upload(path, file, { upsert: true });
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(path);
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, cloudUrl:urlData.publicUrl}; return n; });
+      } else {
+        console.error('Storage upload error:', error);
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false}; return n; });
+      }
+    } catch(err) { console.error('Upload catch:', err); setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false}; return n; }); }
+  };
+
   const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,
     formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null,cloudUrl:f.cloudUrl||null})),
     exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:ex.wk?ex.wk[weekNum]:`${ex.s}x${ex.r}`,sets:allSets[i]}))});
@@ -193,42 +213,36 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} placeholder="—" style={bi}/>
           <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
         </div>)}</div>
-      <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:20}}>
-        <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:8}}>FORM CHECK</div>
+      <div style={{background:C.sf,border:`1px solid ${f.uploaded?C.gn+'60':C.bd}`,borderRadius:12,padding:14,marginBottom:20}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+          <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>FORM CHECK</div>
+          {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
+            <span style={{fontSize:14}}>✅</span><span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>UPLOADED</span></div>}
+          {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:C.acD,padding:'3px 10px',borderRadius:20}}>
+            <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>⏳ Uploading...</span></div>}
+        </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
             <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
-            {f.uploading && <div style={{fontSize:11,color:C.ac,fontFamily:FN,marginTop:4}}>Uploading to cloud...</div>}
-            {f.uploaded && <div style={{fontSize:11,color:C.gn,fontFamily:FN,marginTop:4}}>✓ Saved to cloud</div>}
-            <button onClick={() => {const n=[...fv];n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false};setFv(n)}}
+            <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
               style={{width:'100%',marginTop:6,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>
               Remove Video</button>
           </div>
         ) : (
-          <label style={{display:'block',width:'100%',padding:'16px 12px',borderRadius:8,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:13,textAlign:'center'}}>
-            📹 Record or Upload Form Video
-            <input type="file" accept="video/*" capture="environment" style={{display:'none'}}
-              onChange={async e => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const url = URL.createObjectURL(file);
-                setFv(prev => { const n=[...prev]; n[ei]={...n[ei], has:true, videoUrl:url, fileName:file.name, uploading:true, uploaded:false}; return n; });
-                e.target.value = '';
-                // Upload to Supabase Storage
-                try {
-                  const ts = Date.now();
-                  const path = `${clientId}/${ts}-${file.name}`;
-                  const { data, error } = await supabase.storage.from('form-videos').upload(path, file, { upsert: true });
-                  if (!error) {
-                    const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(path);
-                    setFv(prev => { const n=[...prev]; n[ei]={...n[ei], uploading:false, uploaded:true, has:true, cloudUrl:urlData.publicUrl}; return n; });
-                  } else {
-                    console.error('Storage upload error:', error);
-                    setFv(prev => { const n=[...prev]; n[ei]={...n[ei], uploading:false}; return n; });
-                  }
-                } catch(err) { console.error('Upload catch:', err); setFv(prev => { const n=[...prev]; n[ei]={...n[ei], uploading:false}; return n; }); }
-              }} />
-          </label>
+          <div style={{display:'flex',gap:8}}>
+            <label style={{flex:1,padding:'14px 8px',borderRadius:8,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:12,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+              <span style={{fontSize:20}}>🎥</span>
+              <span>Record</span>
+              <input type="file" accept="video/*" capture="environment" style={{display:'none'}}
+                onChange={async e => { await handleVideoUpload(e, ei); }} />
+            </label>
+            <label style={{flex:1,padding:'14px 8px',borderRadius:8,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:12,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+              <span style={{fontSize:20}}>📁</span>
+              <span>Gallery</span>
+              <input type="file" accept="video/*" style={{display:'none'}}
+                onChange={async e => { await handleVideoUpload(e, ei); }} />
+            </label>
+          </div>
         )}
         <textarea value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8}}/></div>
       <div style={{display:'flex',gap:8}}>
