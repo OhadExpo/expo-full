@@ -213,8 +213,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 try {
                   const ts = Date.now();
                   const path = `${clientId}/${ts}-${file.name}`;
-                  const { createClient } = await import('@supabase/supabase-js');
-                  const sb = createClient('https://gtcbfglttoiyfsnfbhdy.supabase.co','sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv');
+                  const { supabase: sb } = await import('./supabase');
                   const { data, error } = await sb.storage.from('form-videos').upload(path, file, { upsert: true });
                   if (!error) {
                     const { data: urlData } = sb.storage.from('form-videos').getPublicUrl(path);
