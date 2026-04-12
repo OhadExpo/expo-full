@@ -190,9 +190,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
             <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div></div>}
       {/* Exercise Notes — merged coaching cues (q) + notes (n) */}
-      {(d.q || ex.n) && <div style={{background:C.puD,borderRadius:10,padding:12,marginTop:16,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6,textAlign:'center',direction:'ltr',unicodeBidi:'plaintext'}}>
+      {(d.q || ex.n) && <div style={{background:C.puD,borderRadius:10,padding:12,marginTop:16,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6,textAlign:'center'}}>
         <div style={{fontSize:10,fontFamily:FN,color:C.pu,marginBottom:6,fontWeight:700}}>EXERCISE NOTES</div>
-        {d.q && <div style={{direction:/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr',unicodeBidi:'plaintext'}}>{d.q}</div>}{d.q && ex.n && <div style={{borderTop:`1px solid ${C.pu}30`,margin:'8px 0'}}/>}{ex.n && <div style={{color:C.or,direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr',unicodeBidi:'plaintext'}}>{ex.n}</div>}</div>}
+        {d.q && <div dir={/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr'}>{d.q}</div>}{d.q && ex.n && <div style={{borderTop:`1px solid ${C.pu}30`,margin:'8px 0'}}/>}{ex.n && <div dir={/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr'} style={{color:C.or}}>{ex.n}</div>}</div>}
       {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
       {/* Weekly Coach Focus - always visible, beneath video */}
