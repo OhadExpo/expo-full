@@ -180,9 +180,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const wr = hw ? ex.wk[weekNum] : null; const f = fv[ei];
   return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20}}>
-      <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{d.t}</h2>
-      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN}}>{wr || `${ex.s} × ${ex.r}`}</div>
-      {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4}}>⏱ {ex.tempo}</div>}
+      <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{d.t}</h2>
+      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{wr || `${ex.s} × ${ex.r}`}</div>
+      {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
       
       {hw && <div style={{background:C.sf2,borderRadius:10,padding:10,marginTop:12,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
