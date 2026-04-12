@@ -7,7 +7,7 @@ import { supabase } from './supabase';
 // Previously inline — see exerciseData.js for all client exercises
 
 const CLIENTS = [
-{id:"t1",name:"Diego Day",email:"",sessions:8,plans:[{name:"Block #9",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+{id:"t1",name:"Diego Day",email:"diego@diegoday.com",sessions:8,plans:[{name:"Block #9",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"BW High Step-Up",rx:"1x12E",vid:"https://www.youtube.com/watch?v=KGyVfgh0fhk"},{t:"Push-Up SCAP Pro/Ret",rx:"1x12",vid:"https://www.youtube.com/watch?v=NKekqeudgWs"},{t:"SA Cable Facepull",rx:"2x12E",vid:"https://www.youtube.com/watch?v=rG0PaDoX9Lw"},{t:"HK SA Cable Row",rx:"1x12E",vid:"https://www.youtube.com/shorts/8WDOFDUTwDo"}],
   days:[{name:"Home W/O",ex:[{eid:"e1",s:2,r:"15"},{eid:"e2",s:2,r:"12E"},{eid:"e3",s:2,r:"10"},{eid:"e4",s:2,r:"10E"},{eid:"e5",s:3,r:"20s",n:"ISO"},{eid:"e6",s:2,r:"8E"},{eid:"e7",s:2,r:"30sE",n:"ISO"},{eid:"e8",s:3,r:"8E"}]},
   {name:"Day B",ex:[{eid:"e9",s:2,r:"20"},{eid:"e10",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e11",s:3,r:">",tempo:"3s ECC",wk:["8","8","6","6"]},{eid:"e12",s:3,r:"12"},{eid:"e13",s:2,r:"12",tempo:"6-8s/rep"},{eid:"e14",s:2,r:"10"}]}]}]},
