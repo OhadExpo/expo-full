@@ -119,4 +119,14 @@ export const EX = {
   e226:{t:"Supine-Lying External-Rotation",vid:"https://www.youtube.com/shorts/daMOhhSFhZE",q:"שכב על הגב. תרים רגליים באוויר, ברכיים מעל הפופיק. המרפקים הם הציר, לא זזים. המטרה להגיע עם שורש כף היד והמרפקים לרצפה ולהחזיק כמה שיותר קרוב"},
   e227:{t:"Wall-Assisted 90-90 Rear-Foot Heel-Clicks",vid:"https://www.youtube.com/shorts/cduSxyjDql8",q:"שתי ידיים על הקיר, מרפקים נעולים. פלג גוף עליון כמה שיותר זקוף! נגיעה עם העקב ליד האגן. נגיעה של הברך כשכף הרגל עדיין מורמת באוויר (ללא הקשתה גב!)"},
   e228:{t:"Short-Lever ABs Sit-Up",vid:"https://www.youtube.com/shorts/EvAup1z42-s",q:"עקבים כמה שיותר קרובים לישבן. רגליים מקובעות מתחת למשהו כבד. ידיים כלפי התקרה כל הזמן. כפיפת בטן מלאה עד לישיבה, תסיים כשאתה מאונך לקרקע"},
+  // === Diego Morning Routine ===
+  e3001:{t:"Declined Push-Up SCAP Protraction/Retraction",vid:"https://www.youtube.com/watch?v=NKekqeudgWs",q:"Push-up position, feet elevated. Elbows locked. 1) Retract and lower scaps. 2) Protract and raise scaps."},
+  e3002:{t:"ISO Prone-Laying SA Y-Raise",vid:"https://www.youtube.com/shorts/UqTdjV17_ss",q:"Lay on belly. Raise only one arm off the floor. Thumb points to ceiling."},
+  e3003:{t:"Inclined BB Supinated Push-Up",vid:"https://www.youtube.com/watch?v=F4c0GC2QMa4",q:"You control incline. Palms facing face (supinated). Elbows close to body. Elbow always above wrist."},
+  e3004:{t:"ISO Kneeling Push-Up",vid:"https://www.youtube.com/shorts/N5Nqb4qBmJ8",q:"Control depth, pain max 3/10. Feet floating close to butt. Elbows close, hide armpit. Elbows and shoulders above wrists."},
+  e3005:{t:"Banded Elbow Wall-Slide",vid:"https://www.youtube.com/watch?v=kXXF73vevuw",q:"Constant band tension. Full elbow lockout. Forearms against wall at all times."},
+  e3006:{t:"Crab-POS Raise",vid:"https://www.youtube.com/shorts/HRN5DJKrVL0",q:"Sit on floor, hands beneath shoulders. Only heels touch floor. Raise hips to straight line, knees to shoulders."},
+  e3007:{t:"ISO Prone-Laying MID-POS A Raise",vid:"https://www.youtube.com/shorts/2i48ShBwl3k",q:"Lay on belly. Lift pinkies toward ceiling. Raise arms off floor. Hands higher than elbows."},
+  e3008:{t:"Supine-Lying External-Rotation",vid:"https://www.youtube.com/shorts/daMOhhSFhZE",q:"Lay on back, knees above belly. Elbows are pivot (don't move). Wrists straight with forearms. Bring wrists and elbows to floor, hold active contraction."},
+  e3009:{t:"Prone-Laying Neck Hold",vid:"https://www.youtube.com/shorts/UsNvYtfTGHY",q:"Hands close to hips, palms facing floor. Chin down and back. Hold at end range."},
 };

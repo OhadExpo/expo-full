@@ -7,10 +7,7 @@ import { supabase } from './supabase';
 // Previously inline — see exerciseData.js for all client exercises
 
 const CLIENTS = [
-{id:"t1",name:"Diego Day",email:"diego@diegoday.com",sessions:8,plans:[{name:"Block #9",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
-  warmup:[{t:"BW High Step-Up",rx:"1x12E",vid:"https://www.youtube.com/watch?v=KGyVfgh0fhk"},{t:"Push-Up SCAP Pro/Ret",rx:"1x12",vid:"https://www.youtube.com/watch?v=NKekqeudgWs"},{t:"SA Cable Facepull",rx:"2x12E",vid:"https://www.youtube.com/watch?v=rG0PaDoX9Lw"},{t:"HK SA Cable Row",rx:"1x12E",vid:"https://www.youtube.com/shorts/8WDOFDUTwDo"}],
-  days:[{name:"Home W/O",ex:[{eid:"e1",s:2,r:"15"},{eid:"e2",s:2,r:"12E"},{eid:"e3",s:2,r:"10"},{eid:"e4",s:2,r:"10E"},{eid:"e5",s:3,r:"20s",n:"ISO"},{eid:"e6",s:2,r:"8E"},{eid:"e7",s:2,r:"30sE",n:"ISO"},{eid:"e8",s:3,r:"8E"}]},
-  {name:"Day B",ex:[{eid:"e9",s:2,r:"20"},{eid:"e10",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e11",s:3,r:">",tempo:"3s ECC",wk:["8","8","6","6"]},{eid:"e12",s:3,r:"12"},{eid:"e13",s:2,r:"12",tempo:"6-8s/rep"},{eid:"e14",s:2,r:"10"}]}]}]},
+{id:"t1",name:"Diego Day",email:"diego@diegoday.com",sessions:8,plans:[{name:"Morning Routine",phase:"Daily",rest:"",warmup:[],days:[{name:"Morning Routine",ex:[{eid:"e3001",s:2,r:"8",tempo:"6-8s/rep"},{eid:"e3002",s:2,r:"20sE",n:"ISO"},{eid:"e3003",s:2,r:"6",tempo:"6-8s/rep"},{eid:"e3004",s:2,r:"20s",n:"ISO"},{eid:"e3005",s:2,r:"6",tempo:"8-10s/rep"},{eid:"e3006",s:1,r:"15",tempo:"4-5s/rep"},{eid:"e3007",s:1,r:"30s",n:"ISO"},{eid:"e3008",s:2,r:"10",tempo:"6-8s/rep"},{eid:"e3009",s:2,r:"30s",n:"ISO"}]}]}]},
 {id:"t2",name:"Ron Yonker",email:"",sessions:8,plans:[{name:"Block #13",phase:"Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"BW Step-Down",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SZXOPRVP1Oc"},{t:"BW Floating-Heel RFESS",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SH9zQAGb7pQ"},{t:"Bear-POS to Superman",rx:"1x8"}],
   days:[{name:"Day A",ex:[{eid:"e29",s:3,r:"10s"},{eid:"e30",s:3,r:"6E"},{eid:"e31",s:2,r:"3E"},{eid:"e32",s:3,r:">",wk:["4E","4E","3E","3E"]},{eid:"e33",s:5,r:"3",wk:["5set","5set","3set","3set"]},{eid:"e34",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e35",s:2,r:"15"},{eid:"e36",s:3,r:"8"}]},
