@@ -51,7 +51,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, e
         {td.notes&&<div style={{marginTop:8,padding:10,background:C.sf2,borderRadius:6,textAlign:"left"}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:/[\u0590-\u05FF]/.test(td.notes)?'right':'left'}}>{td.notes}</div></div>}
       </Card>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px"}}>
-        <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Billing ({tPay.length}){totalPaid>0&&<span style={{color:C.gn,marginLeft:8}}>₪{totalPaid.toLocaleString()} paid</span>}</h3>
+        <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Billing ({tPay.length}){totalPaid>0&&<span style={{color:C.gn,marginLeft:8}}>₪{totalPaid.toLocaleString()} total paid</span>}{tPay.length>0&&<span style={{color:C.td,marginLeft:8,fontSize:11}}>· {(()=>{const first=new Date(tPay.reduce((a,p)=>new Date(p.date)<new Date(a.date)?p:a).date);const now=new Date();const ms=now-first;const days=Math.floor(ms/86400000);if(days<30)return`${days}d`;const months=Math.floor(days/30);if(months<12)return`${months}mo`;const years=Math.floor(months/12);const rm=months%12;return rm?`${years}y ${rm}mo`:`${years}y`})()}</span>}</h3>
         <Btn onClick={()=>setShowPayForm(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Add Payment</Btn></div>
       {tPay.length===0?<div style={{color:C.td,fontSize:13}}>No payments recorded.</div>:(
         <div style={{overflowX:"auto",marginBottom:16}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
