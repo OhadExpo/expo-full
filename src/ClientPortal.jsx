@@ -464,10 +464,18 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
             <div style={{display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
               {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4}}>▶</a>}</div></div>)}</div>)}
         {/* Training days from all visible plans */}
-        {(()=>{ let globalDayIdx = 0; return visPlans.map(vp => vp.days.map((day,di) => { const dayIdx = globalDayIdx++; const done = cw.some(w => w.dayName === day.name && w.week === wk + 1);
+        {(()=>{ let globalDayIdx = 0; return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
+          {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
+            <div style={{flex:1,height:1,background:C.bd2}}/>
+            <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{vp.name.toUpperCase()}</span>
+            {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}
+            <div style={{flex:1,height:1,background:C.bd2}}/>
+          </div>}
+          {vp.rest && visPlans.length>1 && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm}}>⏱ {vp.rest}</div>}
+          {vp.days.map((day,di) => { const dayIdx = globalDayIdx++; const done = cw.some(w => w.dayName === day.name && w.week === wk + 1);
           return <div key={vp.name+'-'+di} style={{background:C.sf,border:`1px solid ${done?C.gn+'40':C.bd}`,borderRadius:12,marginBottom:12,padding:'14px 18px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-              <div><span style={{fontWeight:700,fontSize:15}}>{day.name}</span>{visPlans.length>1&&<span style={{fontSize:10,color:C.td,marginLeft:6}}>({vp.name})</span>}{done && <Bg color={C.gn} style={{fontSize:9,padding:'2px 6px',marginLeft:6}}>✓</Bg>}
+              <div><span style={{fontWeight:700,fontSize:15}}>{day.name}</span>{done && <Bg color={C.gn} style={{fontSize:9,padding:'2px 6px',marginLeft:6}}>✓</Bg>}
                 <div style={{fontSize:11,color:C.tm,marginTop:2}}>{day.ex.length} exercises</div></div>
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 12px',borderRadius:6,border:'none',background:done?C.gnD:C.acD,color:done?C.gn:C.ac,fontFamily:FB,fontSize:11,fontWeight:600,cursor:'pointer'}}>{done?'Again':'📝 Log'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid]; if(!d) return null; const hw = ex.wk?.length>0;
@@ -476,7 +484,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
                 <div style={{flex:1}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
                   <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN}}>{hw?ex.wk[wk]:ex.s+'x'+ex.r}</span>
                   {ex.tempo && <span style={{fontSize:9,color:C.or,marginLeft:4}}>{ex.tempo}</span>}</div></div>})}
-          </div>}))})()}
+          </div>})}</React.Fragment>)})()}
       </div></div>; }
 
   // Fallback — if authClientId was provided, ci should already be set.
