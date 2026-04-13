@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON } from './theme';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
@@ -65,6 +65,31 @@ export default function App() {
   const [selectedTrainee,setSelectedTrainee]=useState(null);
   const [importMsg,setImportMsg]=useState(null);
   const fileRef=useRef(null);
+
+  // One-time billing data migration
+  useEffect(()=>{
+    if(!trainees.length) return;
+    const BILLING={
+      "איילת קזצב":{monthly:800,perSession:200,lastPayment:"2026-01-21"},
+      "משה ודנה טיני":{monthly:2400,perSession:200,lastPayment:"2026-01-18"},
+      "מיה וחילק יניב":{monthly:800,perSession:250,lastPayment:"2026-02-06"},
+      "נטע ותום רונן":{monthly:1200,perSession:300,lastPayment:"2026-04-01"},
+      "לימור ודניאל ספן":{monthly:1200,perSession:300,lastPayment:"2026-01-28"},
+      "עמית יהודאי":{monthly:500,lastPayment:"2026-04-01"},
+      "רון יונקר":{monthly:0,lastPayment:"2026-03-16"},
+      "דיאגו דיי":{monthly:800,lastPayment:"2026-02-12"},
+      "טל סיאונוב":{monthly:600,lastPayment:"2026-04-06"},
+      "רועי הצבי":{monthly:0,lastPayment:"2025-09-30"},
+    };
+    const needsUpdate=trainees.some(t=>BILLING[t.name]&&!t.monthly);
+    if(needsUpdate){
+      setTrainees(prev=>prev.map(t=>{
+        const b=BILLING[t.name];
+        return b?{...t,monthly:b.monthly||t.monthly||0,perSession:b.perSession||t.perSession||0,lastPayment:b.lastPayment||t.lastPayment||""}:t;
+      }));
+    }
+  },[trainees.length]);
+
   const handleDecrementSession=useCallback(tid=>{setTrainees(prev=>prev.map(t=>t.id===tid&&t.sessionsRemaining>0?{...t,sessionsRemaining:t.sessionsRemaining-1}:t))},[setTrainees]);
 
   const doImportSingle=(data)=>{

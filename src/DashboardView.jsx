@@ -40,7 +40,7 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
   // Summary stats
   const active = trainees.filter(t => t.status === 'Active').length;
   const archivedCount = trainees.filter(t => t.status === 'Archived').length;
-  const totalRev = enriched.reduce((a, t) => a + t.totalPaid, 0);
+  const totalRev = trainees.filter(t=>t.status==='Active').reduce((a,t) => a + (parseFloat(t.monthly)||0), 0);
   const lowSessions = enriched.filter(t => t.sessionsRemaining > 0 && t.sessionsRemaining <= 2).length;
 
   return (
@@ -49,7 +49,7 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
         {[
           { label: 'Active Clients', value: active, total: trainees.length, color: C.gn },
-          { label: 'Total Revenue', value: `₪${totalRev.toLocaleString()}`, color: C.ac },
+          { label: 'Total Revenue', value: `₪${totalRev.toLocaleString()}/MO`, color: C.ac },
           { label: 'Total Workouts', value: enriched.reduce((a, t) => a + t.workoutCount, 0), color: C.pu },
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
         ].map((s, i) => (
@@ -101,11 +101,11 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
                     ) : <span style={{ color: C.td, fontSize: 12 }}>—</span>}
                   </td>
-                  <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: t.totalPaid > 0 ? C.gn : C.td }}>
-                    {t.totalPaid > 0 ? `₪${t.totalPaid.toLocaleString()}` : '—'}
+                  <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: parseFloat(t.monthly) > 0 ? C.gn : C.td }}>
+                    {parseFloat(t.monthly) > 0 ? `₪${parseInt(t.monthly).toLocaleString()}/MO` : '—'}
                   </td>
                   <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>
-                    {t.lastPay ? new Date(t.lastPay.date).toLocaleDateString('he-IL') : '—'}
+                    {t.lastPayment ? new Date(t.lastPayment).toLocaleDateString('he-IL') : '—'}
                   </td>
                   <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.ac : C.td }}>
                     {t.workoutCount || '—'}
