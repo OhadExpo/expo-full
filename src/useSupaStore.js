@@ -9,13 +9,14 @@ export function useSupaStore(key, initial) {
   });
   const [loaded, setLoaded] = useState(false);
   const dataRef = useRef(data);
+  const hasLocalEdits = useRef(false);
 
-  // Load from Supabase on mount
+  // Load from Supabase on mount — but skip if local edits happened during fetch
   useEffect(() => {
     (async () => {
       try {
         const { data: row } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
-        if (row && row.value !== undefined) {
+        if (row && row.value !== undefined && !hasLocalEdits.current) {
           setData(row.value);
           dataRef.current = row.value;
           localStorage.setItem(key, JSON.stringify(row.value));
@@ -28,6 +29,7 @@ export function useSupaStore(key, initial) {
   useEffect(() => { dataRef.current = data; }, [data]);
 
   const save = useCallback(async (next) => {
+    hasLocalEdits.current = true;
     const val = typeof next === 'function' ? next(dataRef.current) : next;
     setData(val);
     dataRef.current = val;
