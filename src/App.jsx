@@ -67,6 +67,7 @@ export default function App() {
   const [importMsg,setImportMsg]=useState(null);
   const [trainerCode,setTrainerCode]=useState('');
   const [trainerAuth,setTrainerAuth]=useState(false);
+  const [dragOver,setDragOver]=useState(false);
   const fileRef=useRef(null);
 
   // One-time billing data migration
@@ -170,6 +171,10 @@ export default function App() {
     const a=document.createElement("a");a.href=url;a.download=`expo-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
   };
 
+  const handleDrop=(e)=>{e.preventDefault();setDragOver(false);const file=e.dataTransfer?.files?.[0];if(file)handleImport({target:{files:[file],value:""}})};
+  const handleDragOver=(e)=>{e.preventDefault();setDragOver(true)};
+  const handleDragLeave=()=>{setDragOver(false)};
+
   const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.length},{key:"plans",label:"Plans",count:plans.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Portal",count:null}];
 
   if(tab==="client")return(<div>
@@ -206,7 +211,7 @@ export default function App() {
             {tabs.map(t=>(<button key={t.key} onClick={()=>{setTab(t.key);setSelectedTrainee(null)}} style={{...baseBtn,background:tab===t.key?C.acD:"transparent",color:tab===t.key?C.ac:C.tm,borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:tab===t.key?700:500,whiteSpace:"nowrap"}}>
               <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
-            <button onClick={()=>fileRef.current?.click()} title="Import" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+            <button onClick={()=>fileRef.current?.click()} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} title="Import — click or drag file here" style={{...baseBtn,background:dragOver?C.acD:"transparent",color:dragOver?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6,border:dragOver?`1px dashed ${C.ac}`:"1px solid transparent",transition:"all .15s"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
             <button onClick={handleExport} title="Export" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
             <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:"none"}}/></div></div></header>
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:importMsg.startsWith("✗")?C.rdD:importMsg.startsWith("⚠")?C.orD:C.gnD,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:8,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
