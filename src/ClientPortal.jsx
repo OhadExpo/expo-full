@@ -6,6 +6,39 @@ import { supabase } from './supabase';
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
 
+// Build reverse lookup: exercise title → EX key
+const EX_BY_TITLE = {};
+Object.entries(EX).forEach(([k,v]) => { if(v.t) EX_BY_TITLE[v.t.toLowerCase()] = k; });
+
+// Convert trainer-side plan to portal compressed format
+function trainerPlanToPortal(plan, trainerExercises) {
+  return {
+    name: plan.name,
+    phase: plan.phase || '',
+    rest: plan.notes || '',
+    warmup: [],
+    days: (plan.days || []).map(d => ({
+      name: d.name,
+      ex: (d.exercises || []).map(pe => {
+        const exData = trainerExercises.find(e => e.id === pe.exerciseId);
+        const title = exData?.title || '';
+        // Try to find matching EX entry by title
+        let eid = EX_BY_TITLE[title.toLowerCase()];
+        if (!eid && exData) {
+          // Create dynamic EX entry so StepLogger can render it
+          eid = 'dyn_' + pe.exerciseId;
+          if (!EX[eid]) EX[eid] = { t: title, vid: exData.videoLink || '', q: exData.cues || '' };
+        }
+        const out = { eid: eid || 'unknown', s: pe.sets || 3, r: pe.reps || '8-12' };
+        if (pe.tempo) out.tempo = pe.tempo;
+        if (pe.superset) out.superset = pe.superset;
+        if (pe.notes) out.n = pe.notes;
+        return out;
+      })
+    }))
+  };
+}
+
 // Portal-to-Trainee name mapping for portal visibility sync
 const PORTAL_TRAINEE_NAME = {t1:"דיאגו דיי",t2:"רון יונקר",t3:"Omer Sadeh",t4:"Yuval Barko",t5:"Shalev Lugashi"};
 
@@ -253,7 +286,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 }
 
 // Main client portal
-export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis }) {
+export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees }) {
   const [ci, setCi] = useState(null);
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
@@ -262,7 +295,25 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   const [loginEmail, setLoginEmail] = useState('');
   const [loginError, setLoginError] = useState('');
   const cl = CLIENTS.find(c => c.id === ci);
-  const visPlans = cl ? cl.plans.filter(p => { const tn = PORTAL_TRAINEE_NAME[cl.id]; if(!tn || !portalVis) return true; return portalVis[`${tn}:${p.name}`] !== false; }) : [];
+  // Build merged plan list: hardcoded CLIENTS plans + trainer-side plans (converted)
+  const mergedPlans = (() => {
+    if (!cl) return [];
+    const tn = PORTAL_TRAINEE_NAME[cl.id];
+    const hardcoded = cl.plans || [];
+    const hardcodedNames = new Set(hardcoded.map(p => p.name));
+    // Find trainer-side plans for this client's trainee
+    let trainerExtra = [];
+    if (tn && trainerPlans && trainerExercises) {
+      const trainee = (trainees || []).find(t => t.name === tn);
+      if (trainee) {
+        trainerExtra = trainerPlans
+          .filter(p => p.traineeId === trainee.id && !hardcodedNames.has(p.name))
+          .map(p => trainerPlanToPortal(p, trainerExercises));
+      }
+    }
+    return [...hardcoded, ...trainerExtra];
+  })();
+  const visPlans = mergedPlans.filter(p => { const tn = cl ? PORTAL_TRAINEE_NAME[cl.id] : null; if(!tn || !portalVis) return true; return portalVis[`${tn}:${p.name}`] !== false; });
   const cw = clientWorkouts.filter(w => w.clientId === ci);
   const handleComplete = w => { setClientWorkouts(prev => [...prev, w]); if (bw) setBwLog(prev => [...prev, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]); setLg(null); };
 
