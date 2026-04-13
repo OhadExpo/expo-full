@@ -66,7 +66,7 @@ export default function App() {
   const [selectedTrainee,setSelectedTrainee]=useState(null);
   const [importMsg,setImportMsg]=useState(null);
   const [trainerCode,setTrainerCode]=useState('');
-  const [trainerAuth,setTrainerAuth]=useState(()=>{ try{return localStorage.getItem('expo-trainer-auth')==='1'}catch{return false} });
+  const [trainerAuth,setTrainerAuth]=useState(false);
   const fileRef=useRef(null);
 
   // One-time billing data migration
@@ -186,10 +186,10 @@ export default function App() {
       <div style={{width:"100%",maxWidth:320}}>
         <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28}}>
           <input value={trainerCode} onChange={e=>setTrainerCode(e.target.value)}
-            onKeyDown={e=>{if(e.key==='Enter'){if(trainerCode==='#81'){setTrainerAuth(true);try{localStorage.setItem('expo-trainer-auth','1')}catch{}}else{setTrainerCode('')}}}}
+            onKeyDown={e=>{if(e.key==='Enter'){if(trainerCode==='#81'){setTrainerAuth(true)}else{setTrainerCode('')}}}}
             placeholder="Enter code" type="password" autoFocus
             style={{width:"100%",background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 16px",color:C.tx,fontFamily:FN,fontSize:18,outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:"0.15em",marginBottom:12}}/>
-          <button onClick={()=>{if(trainerCode==='#81'){setTrainerAuth(true);try{localStorage.setItem('expo-trainer-auth','1')}catch{}}else{setTrainerCode('')}}}
+          <button onClick={()=>{if(trainerCode==='#81'){setTrainerAuth(true)}else{setTrainerCode('')}}}
             style={{width:"100%",padding:14,borderRadius:10,border:"none",background:trainerCode?C.ac:C.sf3,color:trainerCode?"#000":C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:trainerCode?"pointer":"default"}}>
             Enter</button>
         </div></div></div>);
