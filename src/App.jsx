@@ -196,7 +196,7 @@ export default function App() {
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
-      <header style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,position:"sticky",top:0,zIndex:100,overflow:"hidden"}}>
+      <header style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1200,margin:"0 auto",padding:"0 12px",display:"flex",alignItems:"center",height:56,gap:8,overflow:"hidden"}}>
           <div style={{display:"flex",alignItems:"center",flex:"0 0 auto"}}>
             <img src={EXPO_LOGO} alt="EXPO" style={{height:48,marginRight:4,marginTop:-19}}/></div>
