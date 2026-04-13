@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { C, FN, FB, uid, PAYMENT_METHODS, PAYMENT_STATUSES } from './theme';
-import { Btn, Input, Select, Badge, Card, Modal } from './ui';
+import { C, FN, FB, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal } from './ui';
 export default function TraineeDetail({ trainee, trainees, setTrainees, plans, exercises, workouts, payments, setPayments, onBack, onOpenPlan, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee); const tp=plans.filter(p=>p.traineeId===trainee);
   const tw=workouts.filter(w=>w.traineeId===trainee&&w.status==="completed");
   const tPay=payments.filter(p=>p.traineeId===trainee);
   const [showPayForm,setShowPayForm]=useState(false);
+  const [showEdit,setShowEdit]=useState(false);
+  const [editForm,setEditForm]=useState(null);
   const [showArchiveConfirm,setShowArchiveConfirm]=useState(false);
   const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const [deleteTyped,setDeleteTyped]=useState("");
@@ -16,6 +18,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, e
   const totalPaid=tPay.reduce((a,p)=>a+(parseFloat(p.amount)||0),0);
   const statusColor={Active:C.gn,"On Hold":C.or,Inactive:C.td,Trial:C.ac};
   const handleAddPayment=()=>{if(!payForm.amount)return;setPayments(prev=>[...prev,{id:uid(),traineeId:trainee,...payForm,createdAt:new Date().toISOString()}]);setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});setShowPayForm(false)};
+  const openEdit=()=>{setEditForm({...td});setShowEdit(true)};
+  const saveEdit=()=>{if(!editForm.name)return;setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,...editForm}:t));setShowEdit(false)};
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -30,13 +34,16 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, e
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div><h2 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>{td.name}</h2>
             <div style={{color:C.tm,fontSize:13,marginTop:4}}>{td.email}{td.phone?` · ${td.phone}`:""}</div></div>
-          <Badge color={statusColor[td.status]}>{td.status}</Badge></div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px"}}>✏ Edit</Btn>
+            <Badge color={statusColor[td.status]}>{td.status}</Badge></div></div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:16}}>
-          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthlyPrice?`₪${td.monthlyPrice}`:"—"],["Per Session",td.sessionPrice?`₪${td.sessionPrice}`:"—"],["Last Payment",td.lastPayment||"—"],["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"],["Since",td.startDate],["Workouts",tw.length],["Total Paid",`₪${totalPaid.toLocaleString()}`]].map(([l,v])=>
+          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",td.lastPayment||"—"],["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"],["Since",td.startDate],["Workouts",tw.length],["Total Paid",`₪${totalPaid.toLocaleString()}`]].map(([l,v])=>
             <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
-        {td.injuries&&<div style={{marginTop:12,padding:10,background:C.orD,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4}}>Injuries</div><div style={{fontSize:13,color:C.tx}}>{td.injuries}</div></div>}
-        {td.goals&&<div style={{marginTop:8}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4}}>Goals</div><div style={{fontSize:13,color:C.tm}}>{td.goals}</div></div>}
+        {td.injuries&&<div style={{marginTop:12,padding:10,background:C.orD,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx}}>{td.injuries}</div></div>}
+        {td.goals&&<div style={{marginTop:8,padding:10,background:C.acD,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4}}>Goals</div><div style={{fontSize:13,color:C.tx}}>{td.goals}</div></div>}
+        {td.notes&&<div style={{marginTop:8,padding:10,background:C.sf2,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4}}>Notes</div><div style={{fontSize:13,color:C.tm}}>{td.notes}</div></div>}
       </Card>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px"}}>
         <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Billing ({tPay.length})</h3>
@@ -65,6 +72,31 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, e
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tw.length})</h3>
       {tw.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
         tw.slice().reverse().slice(0,10).map(w=><Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</div><span style={{fontSize:12,color:C.tm}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
+      {/* Edit trainee modal */}
+      <Modal open={showEdit} onClose={()=>setShowEdit(false)} title={`Edit — ${td.name}`} wide>
+        {editForm&&<><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <Input label="Name" value={editForm.name||""} onChange={e=>setEditForm({...editForm,name:e.target.value})} />
+          <Input label="Email" value={editForm.email||""} onChange={e=>setEditForm({...editForm,email:e.target.value})} />
+          <Input label="Phone" value={editForm.phone||""} onChange={e=>setEditForm({...editForm,phone:e.target.value})} placeholder="+972..." />
+          <Input label="Age" type="number" value={editForm.age||""} onChange={e=>setEditForm({...editForm,age:e.target.value})} />
+          <Input label="Weight (kg)" type="number" value={editForm.weight||""} onChange={e=>setEditForm({...editForm,weight:e.target.value})} />
+          <Input label="Height (cm)" type="number" value={editForm.height||""} onChange={e=>setEditForm({...editForm,height:e.target.value})} />
+          <Select label="Format" options={TRAINING_FORMATS} value={editForm.format||""} onChange={v=>setEditForm({...editForm,format:v})} />
+          <Select label="Status" options={TRAINEE_STATUSES.filter(s=>s!=="Archived")} value={editForm.status||""} onChange={v=>setEditForm({...editForm,status:v})} />
+          <Select label="Package" options={PACKAGE_TYPES} value={editForm.package||""} onChange={v=>setEditForm({...editForm,package:v})} />
+          <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining||0} onChange={e=>setEditForm({...editForm,sessionsRemaining:parseInt(e.target.value)||0})} />
+          <Input label="Monthly (₪)" type="number" value={editForm.monthly||""} onChange={e=>setEditForm({...editForm,monthly:parseFloat(e.target.value)||0})} />
+          <Input label="Per Session (₪)" type="number" value={editForm.perSession||""} onChange={e=>setEditForm({...editForm,perSession:parseFloat(e.target.value)||0})} />
+          <Input label="Start Date" type="date" value={editForm.startDate||""} onChange={e=>setEditForm({...editForm,startDate:e.target.value})} />
+          <Input label="Last Payment" type="date" value={editForm.lastPayment||""} onChange={e=>setEditForm({...editForm,lastPayment:e.target.value})} />
+          <div style={{gridColumn:"1 / -1"}}><TextArea label="Injuries / Conditions" value={editForm.injuries||""} onChange={e=>setEditForm({...editForm,injuries:e.target.value})} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
+          <div style={{gridColumn:"1 / -1"}}><TextArea label="Goals" value={editForm.goals||""} onChange={e=>setEditForm({...editForm,goals:e.target.value})} /></div>
+          <div style={{gridColumn:"1 / -1"}}><TextArea label="Notes" value={editForm.notes||""} onChange={e=>setEditForm({...editForm,notes:e.target.value})} /></div>
+        </div>
+        <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
+          <Btn variant="ghost" onClick={()=>setShowEdit(false)}>Cancel</Btn>
+          <Btn onClick={saveEdit}>Save</Btn></div></>}
+      </Modal>
       {/* Archive confirm */}
       {showArchiveConfirm && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)"}} onClick={()=>setShowArchiveConfirm(false)}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,width:380,padding:24}}>
