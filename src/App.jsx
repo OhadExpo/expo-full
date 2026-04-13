@@ -198,3 +198,5 @@ export default function App() {
         {tab==="workouts"&&<WorkoutsView workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
       </main></div>);
 }
+/ /   a u t o - d e p l o y   t e s t  
+ 
