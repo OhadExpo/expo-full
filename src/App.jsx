@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
+import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON } from './theme';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
 import { Btn, baseBtn } from './ui';
@@ -181,7 +181,7 @@ export default function App() {
   if(!trainerAuth && !isPortalDirect && tab!=="client") return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{textAlign:"center",marginBottom:30}}>
-        <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28,marginBottom:16}}/>
+        <img src={EXPO_LOGO} alt="EXPO" style={{height:48,marginBottom:16,marginTop:-19}}/>
         <div style={{color:C.tm,fontSize:14}}>Trainer Access</div></div>
       <div style={{width:"100%",maxWidth:320}}>
         <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28}}>
@@ -197,9 +197,9 @@ export default function App() {
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
       <header style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,position:"sticky",top:0,zIndex:100}}>
-        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 12px",display:"flex",alignItems:"center",height:56,gap:8}}>
+        <div style={{maxWidth:1200,margin:"0 auto",padding:"0 12px",display:"flex",alignItems:"center",height:64,gap:8}}>
           <div style={{display:"flex",alignItems:"center",flex:"0 0 auto"}}>
-            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:24,marginRight:8}}/></div>
+            <img src={EXPO_LOGO} alt="EXPO" style={{height:48,marginRight:8,marginTop:-19}}/></div>
           <nav style={{display:"flex",gap:2,alignItems:"center",overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:"1 1 auto",minWidth:0,paddingBottom:2}}>
             <style>{`nav::-webkit-scrollbar{display:none}`}</style>
             {tabs.map(t=>(<button key={t.key} onClick={()=>{setTab(t.key);setSelectedTrainee(null)}} style={{...baseBtn,background:tab===t.key?C.acD:"transparent",color:tab===t.key?C.ac:C.tm,borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:tab===t.key?700:500,whiteSpace:"nowrap"}}>
