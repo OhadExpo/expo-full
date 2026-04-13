@@ -40,7 +40,10 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
   // Summary stats
   const active = trainees.filter(t => t.status === 'Active').length;
   const archivedCount = trainees.filter(t => t.status === 'Archived').length;
-  const totalRev = trainees.filter(t=>t.status==='Active').reduce((a,t) => a + (parseFloat(t.monthly)||0), 0);
+  const monthlyRate = trainees.filter(t=>t.status==='Active').reduce((a,t) => a + (parseFloat(t.monthly)||0), 0);
+  const now = new Date();
+  const thisMonthPaid = payments.filter(p => { const d=new Date(p.date); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear() && p.status==='Paid'; }).reduce((a,p) => a + (parseFloat(p.amount)||0), 0);
+  const totalAllPaid = payments.filter(p=>p.status==='Paid').reduce((a,p) => a + (parseFloat(p.amount)||0), 0);
   const lowSessions = enriched.filter(t => t.sessionsRemaining > 0 && t.sessionsRemaining <= 2).length;
 
   return (
@@ -49,7 +52,9 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
         {[
           { label: 'Active Clients', value: active, total: trainees.length, color: C.gn },
-          { label: 'Total Revenue', value: `₪${totalRev.toLocaleString()}/MO`, color: C.ac },
+          { label: 'Monthly Rate', value: `₪${monthlyRate.toLocaleString()}/MO`, color: C.ac },
+          { label: 'Paid This Month', value: thisMonthPaid>0?`₪${thisMonthPaid.toLocaleString()}`:'₪0', color: thisMonthPaid>0?C.gn:C.td },
+          { label: 'Total Collected', value: totalAllPaid>0?`₪${totalAllPaid.toLocaleString()}`:'₪0', color: totalAllPaid>0?C.ac:C.td },
           { label: 'Total Workouts', value: enriched.reduce((a, t) => a + t.workoutCount, 0), color: C.pu },
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
         ].map((s, i) => (

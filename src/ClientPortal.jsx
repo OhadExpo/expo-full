@@ -285,7 +285,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 }
 
 // Main client portal
-export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees }) {
+export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession }) {
   const [ci, setCi] = useState(null); // trainee ID from Supabase
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
@@ -318,7 +318,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   });
 
   const cw = clientWorkouts.filter(w => w.clientId === ci);
-  const handleComplete = w => { setClientWorkouts(prev => [...prev, w]); if (bw) setBwLog(prev => [...prev, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]); setLg(null); };
+  const handleComplete = w => { setClientWorkouts(prev => [...prev, w]); if (bw) setBwLog(prev => [...prev, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]); if(onDecrementSession && ci) onDecrementSession(ci); setLg(null); };
 
   // Step Logger — find plan by index across visible plans
   if (lg !== null && trainee) {
