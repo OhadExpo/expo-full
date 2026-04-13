@@ -60,6 +60,7 @@ export default function App() {
   const [clientWorkouts,setClientWorkouts]=useSupaClientWorkouts([]);
   const [bwLog,setBwLog]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
+  const [portalVis,setPortalVis]=useSupaStore('expo-portal-vis',{});
   const isPortalDirect = typeof window !== 'undefined' && (window.location.pathname === '/portal' || window.location.search.includes('portal') || window.location.hash.includes('portal'));
   const [tab,setTab]=useState(isPortalDirect ? "client" : "dashboard");
   const [selectedTrainee,setSelectedTrainee]=useState(null);
@@ -172,7 +173,7 @@ export default function App() {
   if(tab==="client")return(<div>
     {!isPortalDirect&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"flex-end"}}>
       <button onClick={()=>setTab("trainees")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
-    <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}/></div>);
+    <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis}/></div>);
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
@@ -191,7 +192,7 @@ export default function App() {
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         {tab==="dashboard"&&<DashboardView trainees={trainees} plans={plans} workouts={workouts} payments={payments} onSelectTrainee={id=>{setSelectedTrainee(id);setTab("trainees")}}/>}
         {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} onSelect={id=>setSelectedTrainee(id)}/>}
-        {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} plans={plans} onOpenPlan={pid=>{setTab("plans");setSelectedTrainee(null);}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} onBack={()=>setSelectedTrainee(null)}/>}
+        {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} plans={plans} onOpenPlan={pid=>{setTab("plans");setSelectedTrainee(null);}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} onBack={()=>setSelectedTrainee(null)}/>}
         {tab==="exercises"&&<ExercisesView exercises={exercises} setExercises={setExercises}/>}
         {tab==="review"&&<WorkoutReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
         {tab==="plans"&&<PlansView plans={plans} setPlans={setPlans} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}/>}

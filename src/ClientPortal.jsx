@@ -6,6 +6,9 @@ import { supabase } from './supabase';
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
 
+// Portal-to-Trainee name mapping for portal visibility sync
+const PORTAL_TRAINEE_NAME = {t1:"דיאגו דיי",t2:"רון יונקר",t3:"Omer Sadeh",t4:"Yuval Barko",t5:"Shalev Lugashi"};
+
 const CLIENTS = [
 {id:"t1",name:"Diego Day",email:"diego@diegoday.com",sessions:8,plans:[{name:"Morning Routine",phase:"Daily",rest:"",warmup:[],days:[{name:"Morning Routine",ex:[{eid:"e3001",s:2,r:"8",tempo:"6-8s/rep"},{eid:"e3002",s:2,r:"20sE",n:"ISO"},{eid:"e3003",s:2,r:"6",tempo:"6-8s/rep"},{eid:"e3004",s:2,r:"20s",n:"ISO"},{eid:"e3005",s:2,r:"6",tempo:"8-10s/rep"},{eid:"e3006",s:1,r:"15",tempo:"4-5s/rep"},{eid:"e3007",s:1,r:"30s",n:"ISO"},{eid:"e3008",s:2,r:"10",tempo:"6-8s/rep"},{eid:"e3009",s:2,r:"30s",n:"ISO"}]}]}]},
 {id:"t2",name:"Ron Yonker",email:"",sessions:8,plans:[{name:"Block #13",phase:"Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
@@ -250,7 +253,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 }
 
 // Main client portal
-export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus }) {
+export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis }) {
   const [ci, setCi] = useState(null);
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
@@ -259,11 +262,16 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   const [loginEmail, setLoginEmail] = useState('');
   const [loginError, setLoginError] = useState('');
   const cl = CLIENTS.find(c => c.id === ci);
+  const visPlans = cl ? cl.plans.filter(p => { const tn = PORTAL_TRAINEE_NAME[cl.id]; if(!tn || !portalVis) return true; return portalVis[`${tn}:${p.name}`] !== false; }) : [];
   const cw = clientWorkouts.filter(w => w.clientId === ci);
   const handleComplete = w => { setClientWorkouts(prev => [...prev, w]); if (bw) setBwLog(prev => [...prev, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]); setLg(null); };
 
-  // Step Logger
-  if (lg !== null && cl) { const plan = cl.plans[0]; return <StepLogger day={plan.days[lg]} plan={plan} weekNum={wk} clientId={cl.id} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus}/>; }
+  // Step Logger — find plan by index across visible plans
+  if (lg !== null && cl) {
+    let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
+    for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
+    if (!targetPlan) { setLg(null); return null; }
+    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={cl.id} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus}/>; }
 
   // BW Graph tab
   if (vw === 'bwt' && cl) { 
@@ -374,7 +382,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         </div>)}</div></div>;
 
   // Program view
-  if (cl) { const plan = cl.plans[0]; const sl = Math.max(0, cl.sessions - cw.length); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
+  if (cl) { const activePlan = visPlans[0]; const sl = Math.max(0, cl.sessions - cw.length); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
@@ -382,7 +390,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
           <img src={EXPO_LOGO} alt="EXPO" style={{height:22}} /></div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
           <div><h1 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>Hey {cl.name.split(' ')[0]} 💪</h1>
-            <div style={{display:'flex',gap:6,marginTop:8}}><Bg color={C.ac}>{plan.phase}</Bg><Bg color={C.tm}>{plan.name}</Bg></div></div>
+            <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div></div>
           <div style={{textAlign:'right'}}><div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.gn}}>{sl}</div><div style={{fontSize:9,color:C.tm,fontFamily:FN}}>SESSIONS</div></div></div></div>
       <div style={{padding:20}}>
         <div style={{display:'flex',gap:4,marginBottom:14}}>{[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
@@ -395,28 +403,29 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
             <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center'}}/>
             {bw && <button onClick={()=>{setBwLog(prev=>[...prev,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]);setBw('')}} style={{background:C.acD,border:'none',borderRadius:6,padding:'4px 8px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Save</button>}
             </div></div></div>
-        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {plan.rest}</div>
-        {/* Warm-up section */}
-        {plan.warmup?.length > 0 && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:14}}>
-          <div style={{fontSize:11,fontFamily:FN,color:C.or,marginBottom:8,fontWeight:700}}>Warm-Up ({plan.warmup.length})</div>
-          {plan.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<plan.warmup.length-1?`1px solid ${C.bd}22`:'none'}}>
+        {activePlan?.rest && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {activePlan.rest}</div>}
+        {visPlans.length===0 && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:30,textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:20,marginBottom:8}}>📋</div><div style={{fontSize:13}}>No active programs right now. Contact your trainer.</div></div>}
+        {/* Warm-up sections from all visible plans */}
+        {visPlans.map(vp => vp.warmup?.length > 0 && <div key={vp.name+'wu'} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:14}}>
+          <div style={{fontSize:11,fontFamily:FN,color:C.or,marginBottom:8,fontWeight:700}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
+          {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid ${C.bd}22`:'none'}}>
             <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
             <div style={{display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
-              {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4}}>▶</a>}</div></div>)}</div>}
-        {/* Training days */}
-        {plan.days.map((day,di) => { const done = cw.some(w => w.dayName === day.name && w.week === wk + 1);
-          return <div key={di} style={{background:C.sf,border:`1px solid ${done?C.gn+'40':C.bd}`,borderRadius:12,marginBottom:12,padding:'14px 18px'}}>
+              {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4}}>▶</a>}</div></div>)}</div>)}
+        {/* Training days from all visible plans */}
+        {(()=>{ let globalDayIdx = 0; return visPlans.map(vp => vp.days.map((day,di) => { const dayIdx = globalDayIdx++; const done = cw.some(w => w.dayName === day.name && w.week === wk + 1);
+          return <div key={vp.name+'-'+di} style={{background:C.sf,border:`1px solid ${done?C.gn+'40':C.bd}`,borderRadius:12,marginBottom:12,padding:'14px 18px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-              <div><span style={{fontWeight:700,fontSize:15}}>{day.name}</span>{done && <Bg color={C.gn} style={{fontSize:9,padding:'2px 6px',marginLeft:6}}>✓</Bg>}
+              <div><span style={{fontWeight:700,fontSize:15}}>{day.name}</span>{visPlans.length>1&&<span style={{fontSize:10,color:C.td,marginLeft:6}}>({vp.name})</span>}{done && <Bg color={C.gn} style={{fontSize:9,padding:'2px 6px',marginLeft:6}}>✓</Bg>}
                 <div style={{fontSize:11,color:C.tm,marginTop:2}}>{day.ex.length} exercises</div></div>
-              <button onClick={() => setLg(di)} style={{padding:'6px 12px',borderRadius:6,border:'none',background:done?C.gnD:C.acD,color:done?C.gn:C.ac,fontFamily:FB,fontSize:11,fontWeight:600,cursor:'pointer'}}>{done?'Again':'📝 Log'}</button></div>
+              <button onClick={() => setLg(dayIdx)} style={{padding:'6px 12px',borderRadius:6,border:'none',background:done?C.gnD:C.acD,color:done?C.gn:C.ac,fontFamily:FB,fontSize:11,fontWeight:600,cursor:'pointer'}}>{done?'Again':'📝 Log'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid]; if(!d) return null; const hw = ex.wk?.length>0;
               return <div key={i} style={{display:'flex',gap:8,alignItems:'center',padding:'4px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
                 <div style={{width:22,height:22,borderRadius:4,background:C.acD,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:10,fontWeight:700,color:C.ac,flexShrink:0}}>{i+1}</div>
                 <div style={{flex:1}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
                   <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN}}>{hw?ex.wk[wk]:ex.s+'x'+ex.r}</span>
                   {ex.tempo && <span style={{fontSize:9,color:C.or,marginLeft:4}}>{ex.tempo}</span>}</div></div>})}
-          </div>})}
+          </div>}))})()}
       </div></div>; }
 
   // Fallback — if authClientId was provided, ci should already be set.
