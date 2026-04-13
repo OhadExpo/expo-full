@@ -39,35 +39,34 @@ function trainerPlanToPortal(plan, trainerExercises) {
   };
 }
 
-// Portal-to-Trainee name mapping for portal visibility sync
-const PORTAL_TRAINEE_NAME = {t1:"דיאגו דיי",t2:"רון יונקר",t3:"Omer Sadeh",t4:"Yuval Barko",t5:"Shalev Lugashi"};
-
-const CLIENTS = [
-{id:"t1",name:"Diego Day",email:"diego@diegoday.com",sessions:8,plans:[{name:"Morning Routine",phase:"Daily",rest:"",warmup:[],days:[{name:"Morning Routine",ex:[{eid:"e3001",s:2,r:"8",tempo:"6-8s/rep"},{eid:"e3002",s:2,r:"20sE",n:"ISO"},{eid:"e3003",s:2,r:"6",tempo:"6-8s/rep"},{eid:"e3004",s:2,r:"20s",n:"ISO"},{eid:"e3005",s:2,r:"6",tempo:"8-10s/rep"},{eid:"e3006",s:1,r:"15",tempo:"4-5s/rep"},{eid:"e3007",s:1,r:"30s",n:"ISO"},{eid:"e3008",s:2,r:"10",tempo:"6-8s/rep"},{eid:"e3009",s:2,r:"30s",n:"ISO"}]}]}]},
-{id:"t2",name:"Ron Yonker",email:"",sessions:8,plans:[{name:"Block #13",phase:"Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+// Hardcoded curated portal data — overrides trainer-side plans when plan name matches
+// These have hand-picked video links, cues, compressed format
+const CURATED_CLIENTS = {
+"Diego Day":{sessions:8,plans:[{name:"Morning Routine",phase:"Daily",rest:"",warmup:[],days:[{name:"Morning Routine",ex:[{eid:"e3001",s:2,r:"8",tempo:"6-8s/rep"},{eid:"e3002",s:2,r:"20sE",n:"ISO"},{eid:"e3003",s:2,r:"6",tempo:"6-8s/rep"},{eid:"e3004",s:2,r:"20s",n:"ISO"},{eid:"e3005",s:2,r:"6",tempo:"8-10s/rep"},{eid:"e3006",s:1,r:"15",tempo:"4-5s/rep"},{eid:"e3007",s:1,r:"30s",n:"ISO"},{eid:"e3008",s:2,r:"10",tempo:"6-8s/rep"},{eid:"e3009",s:2,r:"30s",n:"ISO"}]}]}]},
+"Ron Yonker":{sessions:8,plans:[{name:"Block #13",phase:"Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"BW Step-Down",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SZXOPRVP1Oc"},{t:"BW Floating-Heel RFESS",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SH9zQAGb7pQ"},{t:"Bear-POS to Superman",rx:"1x8"}],
   days:[{name:"Day A",ex:[{eid:"e29",s:3,r:"10s"},{eid:"e30",s:3,r:"6E"},{eid:"e31",s:2,r:"3E"},{eid:"e32",s:3,r:">",wk:["4E","4E","3E","3E"]},{eid:"e33",s:5,r:"3",wk:["5set","5set","3set","3set"]},{eid:"e34",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e35",s:2,r:"15"},{eid:"e36",s:3,r:"8"}]},
   {name:"Day B",ex:[{eid:"e37",s:2,r:"5E"},{eid:"e38",s:2,r:"8E"},{eid:"e39",s:2,r:"8E"},{eid:"e40",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e41",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e42",s:2,r:"20"},{eid:"e43",s:2,r:"12E"},{eid:"e44",s:3,r:"15s>10",tempo:"ISO>REPs"}]}]}]},
-{id:"t3",name:"Omer Sadeh",email:"omersadehbi@gmail.com",sessions:8,plans:[{name:"Block #7",phase:"Power/Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+"Omer Sadeh":{sessions:8,plans:[{name:"Block #7",phase:"Power/Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"High BW Step-Up",rx:"1x10 E",vid:"https://www.youtube.com/shorts/vyGL_ZHf_EE"},{t:"Plate-Supported Hip Airplane",rx:"1x10 E",vid:"https://www.youtube.com/shorts/a8as1ZMwLsE"},{t:"ISO Hollow Hold w Leg Switches",rx:"2x15 SEC",vid:"https://www.youtube.com/shorts/3wxVbHhOdEM"}],
   days:[{name:"Day A",ex:[{eid:"e50",s:3,r:"6"},{eid:"e51",s:3,r:"6"},{eid:"e52",s:3,r:"6"},{eid:"e53",s:2,r:"10 E"},{eid:"e54",s:2,r:"10 E"},{eid:"e55",s:3,r:"12 E"},{eid:"e56",s:3,r:"10"}]},
   {name:"Day B",ex:[{eid:"e57",s:2,r:"10 SEC"},{eid:"e58",s:2,r:"4 E"},{eid:"e59",s:2,r:"4+4 E"},{eid:"e60",s:3,r:"5",tempo:"8-10s/REP"},{eid:"e61",s:4,r:"8 E",tempo:"3-4s ECC"},{eid:"e62",s:2,r:"20",tempo:"3-4s ECC"},{eid:"e63",s:3,r:"15"},{eid:"e64",s:3,r:"6 E"}]},
   {name:"Day C",ex:[{eid:"e65",s:3,r:"4 E"},{eid:"e66",s:3,r:"1 E",tempo:"3-Way"},{eid:"e67",s:2,r:"8"},{eid:"e68",s:2,r:"6 E"},{eid:"e69",s:2,r:"10 E"},{eid:"e70",s:3,r:"12"},{eid:"e71",s:3,r:"12",tempo:"1s Dead-Stop"},{eid:"e72",s:2,r:">",wk:["25 SEC","35 SEC","45 SEC","60 SEC"]}]}
   ]}]},
-{id:"t4",name:"Yuval Barko",email:["shmuel034@gmail.com","yuvalberkovitch@gmail.com"],sessions:8,plans:[{name:"Comeback Block",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+"Yuval Barko":{sessions:8,plans:[{name:"Comeback Block",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"Kossac Squat to Crossover Lunge",rx:"1x8 E",vid:"https://www.youtube.com/watch?v=MGLj_HrQTgY"},{t:"4-Way Bear-Crawl",rx:"1x8 E",vid:"https://www.youtube.com/shorts/_apvoiIoqgo"},{t:"BW SL Depth Drop",rx:"2x2 E POS",vid:"https://www.youtube.com/watch?v=vNAOj2kxsXE"}],
   days:[{name:"Day A",ex:[{eid:"e100",s:2,r:"8"},{eid:"e101",s:3,r:"8"},{eid:"e102",s:3,r:"10 SEC",n:"ISO"},{eid:"e103",s:3,r:"6 E",tempo:"3s ECC"},{eid:"e104",s:2,r:"8 E",tempo:"2-3s ECC"},{eid:"e105",s:2,r:"15 SEC",n:"ISO",superset:"A"},{eid:"e106",s:2,r:"15 SEC",n:"ISO",superset:"A"}]},
   {name:"Day B",ex:[{eid:"e107",s:3,r:"3 E"},{eid:"e108",s:2,r:"8 E"},{eid:"e109",s:3,r:"8 E",tempo:"2-3s ECC"},{eid:"e110",s:3,r:"8"},{eid:"e111",s:2,r:"12",tempo:"2-3s ECC"},{eid:"e112",s:2,r:"12",tempo:"5-6s/REP"},{eid:"e113",s:3,r:"8"}]},
   {name:"Day C (Home)",ex:[{eid:"e114",s:2,r:"10 E"},{eid:"e115",s:2,r:"15 SEC E",n:"ISO"},{eid:"e116",s:2,r:"10 E",tempo:"6-8s/REP"},{eid:"e117",s:2,r:"15 SEC > 15 Reps"},{eid:"e118",s:3,r:"3 E"},{eid:"e119",s:3,r:"15 SEC"},{eid:"e120",s:2,r:"10 E"}]}
   ]}]},
-{id:"t5",name:"Shalev Lugashi",email:"shalev",sessions:8,plans:[{name:"Block #7",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
+"Shalev Lugashi":{sessions:8,plans:[{name:"Block #7",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
   warmup:[{t:"5 Min Bike/Cycle",rx:"5 min"}],
   days:[{name:"Day A",ex:[{eid:"e200",s:3,r:"12 E",superset:"A"},{eid:"e201",s:3,r:"4",tempo:"5s ISO top+bottom",superset:"A"},{eid:"e202",s:2,r:"8 E",superset:"B"},{eid:"e203",s:2,r:"12 E",tempo:"חצי סט על רגל אחת, חצי על השנייה",superset:"B"},{eid:"e204",s:3,r:"15 E",superset:"C"},{eid:"e205",s:3,r:"12",superset:"C"},{eid:"e206",s:2,r:"20 SEC E"}]},
   {name:"Day B",ex:[{eid:"e207",s:3,r:"8",superset:"A"},{eid:"e208",s:3,r:"8 E",superset:"A"},{eid:"e209",s:3,r:"8 E",superset:"B"},{eid:"e210",s:3,r:"8 E",tempo:"3-4s ECC",superset:"B"},{eid:"e211",s:2,r:"20",superset:"C"},{eid:"e212",s:2,r:"12",superset:"C"},{eid:"e213",s:3,r:"12",tempo:"3-4s ECC"}]},
   {name:"Day C",ex:[{eid:"e214",s:3,r:"12",superset:"A"},{eid:"e215",s:2,r:"10 E",superset:"A"},{eid:"e216",s:2,r:"8",superset:"B"},{eid:"e217",s:2,r:"10",tempo:"4-5s ECC",superset:"B"},{eid:"e218",s:2,r:"20 SEC E",superset:"C"},{eid:"e219",s:2,r:"8 E",tempo:"5s ISO top+bottom",superset:"C"},{eid:"e220",s:3,r:"15 SEC E"}]},
   {name:"Day D",ex:[{eid:"e221",s:3,r:"15 SEC",tempo:"סטטי",superset:"A"},{eid:"e222",s:3,r:"15 SEC",tempo:"סטטי",superset:"A"},{eid:"e223",s:2,r:"20 SEC E",tempo:"סטטי",superset:"B"},{eid:"e224",s:2,r:"10 E + 10 E",superset:"B"},{eid:"e225",s:2,r:"12",tempo:"סט אחד ידיים אחורה, סט אחד קדימה",superset:"C"},{eid:"e226",s:2,r:"10",tempo:"6-8s/REP",superset:"C"},{eid:"e227",s:2,r:"10 E",tempo:"ידיים על הקיר!",superset:"D"},{eid:"e228",s:3,r:"12",superset:"D"}]}
   ]}]},
-];
+};
 
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"};
 const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,fontFamily:FN,background:`${color}18`,color,...s}}>{children}</span>;
@@ -287,45 +286,49 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
 // Main client portal
 export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees }) {
-  const [ci, setCi] = useState(null);
+  const [ci, setCi] = useState(null); // trainee ID from Supabase
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
   const [vw, setVw] = useState('prog');
   const [bw, setBw] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginError, setLoginError] = useState('');
-  const cl = CLIENTS.find(c => c.id === ci);
-  // Build merged plan list: hardcoded CLIENTS plans + trainer-side plans (converted)
+
+  // Resolve client from trainees (Supabase)
+  const trainee = (trainees || []).find(t => t.id === ci);
+  const clientName = trainee?.name || '';
+
+  // Build merged plan list: curated overrides + trainer-side plans (auto-converted)
   const mergedPlans = (() => {
-    if (!cl) return [];
-    const tn = PORTAL_TRAINEE_NAME[cl.id];
-    const hardcoded = cl.plans || [];
-    const hardcodedNames = new Set(hardcoded.map(p => p.name));
-    // Find trainer-side plans for this client's trainee
-    let trainerExtra = [];
-    if (tn && trainerPlans && trainerExercises) {
-      const trainee = (trainees || []).find(t => t.name === tn);
-      if (trainee) {
-        trainerExtra = trainerPlans
-          .filter(p => p.traineeId === trainee.id && !hardcodedNames.has(p.name))
-          .map(p => trainerPlanToPortal(p, trainerExercises));
-      }
-    }
-    return [...hardcoded, ...trainerExtra];
+    if (!trainee) return [];
+    const curated = CURATED_CLIENTS[clientName];
+    const curatedPlans = curated?.plans || [];
+    const curatedNames = new Set(curatedPlans.map(p => p.name));
+    // Trainer-side plans not already curated
+    const trainerExtra = (trainerPlans || [])
+      .filter(p => p.traineeId === trainee.id && !curatedNames.has(p.name))
+      .map(p => trainerPlanToPortal(p, trainerExercises || []));
+    return [...curatedPlans, ...trainerExtra];
   })();
-  const visPlans = mergedPlans.filter(p => { const tn = cl ? PORTAL_TRAINEE_NAME[cl.id] : null; if(!tn || !portalVis) return true; return portalVis[`${tn}:${p.name}`] !== false; });
+
+  // Filter by portal visibility toggles
+  const visPlans = mergedPlans.filter(p => {
+    if (!portalVis || !clientName) return true;
+    return portalVis[`${clientName}:${p.name}`] !== false;
+  });
+
   const cw = clientWorkouts.filter(w => w.clientId === ci);
   const handleComplete = w => { setClientWorkouts(prev => [...prev, w]); if (bw) setBwLog(prev => [...prev, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]); setLg(null); };
 
   // Step Logger — find plan by index across visible plans
-  if (lg !== null && cl) {
+  if (lg !== null && trainee) {
     let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
     for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
     if (!targetPlan) { setLg(null); return null; }
-    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={cl.id} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus}/>; }
+    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus}/>; }
 
   // BW Graph tab
-  if (vw === 'bwt' && cl) { 
+  if (vw === 'bwt' && trainee) { 
     const bwData = bwLog.filter(b => b.clientId === ci).sort((a,b) => new Date(a.date) - new Date(b.date));
     const existingBw = bwData.find(b => b.week === wk + 1);
     const bwDisplay = bw || (existingBw ? String(existingBw.bw) : '');
@@ -339,7 +342,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
           <img src={EXPO_ICON} alt="EXPO" style={{height:18,opacity:0.5}} />
         </div>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18}}>Bodyweight Tracking</h2>
-        <div style={{color:C.tm,fontSize:12,marginBottom:16}}>{cl.name} · {bwData.length} entries</div>
+        <div style={{color:C.tm,fontSize:12,marginBottom:16}}>{clientName} · {bwData.length} entries</div>
 
         {/* Quick log */}
         <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:16}}>
@@ -420,7 +423,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   }
 
   // History
-  if (vw === 'hist' && cl) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+  if (vw === 'hist' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     <div style={{padding:20}}>
       <button onClick={() => setVw('prog')} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,marginBottom:14}}>← Back</button>
       <h2 style={{margin:'0 0 12px',fontFamily:FN,fontSize:18}}>History ({cw.length})</h2>
@@ -433,14 +436,14 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         </div>)}</div></div>;
 
   // Program view
-  if (cl) { const activePlan = visPlans[0]; const sl = Math.max(0, cl.sessions - cw.length); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
+  if (trainee) { const activePlan = visPlans[0]; const sl = Math.max(0, (trainee.sessionsRemaining || 0)); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Switch</button>
           <img src={EXPO_LOGO} alt="EXPO" style={{height:22}} /></div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-          <div><h1 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>Hey {cl.name.split(' ')[0]} 💪</h1>
+          <div><h1 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>Hey {clientName.split(' ')[0]} 💪</h1>
             <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div></div>
           <div style={{textAlign:'right'}}><div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.gn}}>{sl}</div><div style={{fontSize:9,color:C.tm,fontFamily:FN}}>SESSIONS</div></div></div></div>
       <div style={{padding:20}}>
@@ -487,15 +490,14 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
           </div>})}</React.Fragment>)})()}
       </div></div>; }
 
-  // Fallback — if authClientId was provided, ci should already be set.
-  // Legacy email login kept as fallback for direct/unauthenticated access.
+  // Login — match email against trainees from Supabase
   const handleLogin = () => {
     const email = loginEmail.trim().toLowerCase();
     if (!email) return;
-    const found = CLIENTS.find(c => {
-      if (!c.email) return false;
-      if (Array.isArray(c.email)) return c.email.some(e => e.toLowerCase() === email);
-      return c.email.toLowerCase() === email;
+    const found = (trainees || []).find(t => {
+      if (!t.email) return false;
+      if (Array.isArray(t.email)) return t.email.some(e => e.toLowerCase() === email);
+      return t.email.toLowerCase() === email;
     });
     if (found) { setCi(found.id); setLoginError(''); }
     else setLoginError('Email not found. Contact your trainer.');
