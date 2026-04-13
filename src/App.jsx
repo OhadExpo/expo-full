@@ -65,6 +65,8 @@ export default function App() {
   const [tab,setTab]=useState(isPortalDirect ? "client" : "dashboard");
   const [selectedTrainee,setSelectedTrainee]=useState(null);
   const [importMsg,setImportMsg]=useState(null);
+  const [trainerCode,setTrainerCode]=useState('');
+  const [trainerAuth,setTrainerAuth]=useState(()=>{ try{return localStorage.getItem('expo-trainer-auth')==='1'}catch{return false} });
   const fileRef=useRef(null);
 
   // One-time billing data migration
@@ -171,9 +173,26 @@ export default function App() {
   const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.length},{key:"plans",label:"Plans",count:plans.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Portal",count:null}];
 
   if(tab==="client")return(<div>
-    {!isPortalDirect&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"flex-end"}}>
+    {!isPortalDirect&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"center"}}>
       <button onClick={()=>setTab("trainees")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
     <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerPlans={plans} trainerExercises={exercises} trainees={trainees}/></div>);
+
+  // Trainer login gate (portal bypasses this)
+  if(!trainerAuth && !isPortalDirect && tab!=="client") return(
+    <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{textAlign:"center",marginBottom:30}}>
+        <img src={EXPO_LOGO} alt="EXPO" style={{height:48,marginBottom:12,marginTop:-19}}/>
+        <div style={{color:C.tm,fontSize:14}}>Trainer Access</div></div>
+      <div style={{width:"100%",maxWidth:320}}>
+        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28}}>
+          <input value={trainerCode} onChange={e=>setTrainerCode(e.target.value)}
+            onKeyDown={e=>{if(e.key==='Enter'){if(trainerCode==='#81'){setTrainerAuth(true);try{localStorage.setItem('expo-trainer-auth','1')}catch{}}else{setTrainerCode('')}}}}
+            placeholder="Enter code" type="password" autoFocus
+            style={{width:"100%",background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 16px",color:C.tx,fontFamily:FN,fontSize:18,outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:"0.15em",marginBottom:12}}/>
+          <button onClick={()=>{if(trainerCode==='#81'){setTrainerAuth(true);try{localStorage.setItem('expo-trainer-auth','1')}catch{}}else{setTrainerCode('')}}}
+            style={{width:"100%",padding:14,borderRadius:10,border:"none",background:trainerCode?C.ac:C.sf3,color:trainerCode?"#000":C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:trainerCode?"pointer":"default"}}>
+            Enter</button>
+        </div></div></div>);
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
