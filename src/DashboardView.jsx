@@ -52,7 +52,8 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
         {[
           { label: 'Active Clients', value: active, total: trainees.length, color: C.gn },
-          { label: 'Monthly Rate', value: `₪${monthlyRate.toLocaleString()}/MO`, color: C.ac },
+          { label: 'Estimated Monthly Income', value: `₪${monthlyRate.toLocaleString()}/MO`, color: C.ac },
+          { label: 'Monthly Income Collected', value: thisMonthPaid>0?`₪${thisMonthPaid.toLocaleString()}`:'₪0', color: thisMonthPaid>0?C.gn:C.td },
           { label: 'Total Workouts', value: enriched.reduce((a, t) => a + t.workoutCount, 0), color: C.pu },
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
         ].map((s, i) => (
@@ -124,14 +125,10 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
       )}
 
       {/* Payment summary */}
-      {(thisMonthPaid>0||totalAllPaid>0)&&<div style={{marginTop:24,display:"flex",gap:12}}>
-        <div style={{flex:1,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 20px"}}>
-          <div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4}}>Paid This Month</div>
-          <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:thisMonthPaid>0?C.gn:C.td}}>₪{thisMonthPaid.toLocaleString()}</div>
-        </div>
-        <div style={{flex:1,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 20px"}}>
-          <div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4}}>Total Collected</div>
-          <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:totalAllPaid>0?C.ac:C.td}}>₪{totalAllPaid.toLocaleString()}</div>
+      {totalAllPaid>0&&<div style={{marginTop:24}}>
+        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 20px",maxWidth:300}}>
+          <div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4}}>Total Collected (All Time)</div>
+          <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.ac}}>₪{totalAllPaid.toLocaleString()}</div>
         </div>
       </div>}
     </div>
