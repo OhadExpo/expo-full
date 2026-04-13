@@ -49,13 +49,13 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
   return (
     <div>
       {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
         {[
           { label: 'Active Clients', value: active, total: trainees.length, color: C.gn },
-          { label: 'Estimated Monthly Income', value: `₪${monthlyRate.toLocaleString()}/MO`, color: C.ac },
-          { label: 'Monthly Income Collected', value: thisMonthPaid>0?`₪${thisMonthPaid.toLocaleString()}`:'₪0', color: thisMonthPaid>0?C.gn:C.td },
           { label: 'Total Workouts', value: enriched.reduce((a, t) => a + t.workoutCount, 0), color: C.pu },
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
+          { label: 'Estimated Monthly Income', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
+          { label: 'Monthly Income Collected', value: thisMonthPaid>0?`₪${thisMonthPaid.toLocaleString()}`:'₪0', color: thisMonthPaid>0?C.gn:C.td },
         ].map((s, i) => (
           <div key={i} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10, padding: '16px 20px' }}>
             <div style={{ fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{s.label}</div>
