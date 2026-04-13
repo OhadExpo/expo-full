@@ -180,7 +180,7 @@ export default function App() {
         <div style={{maxWidth:1200,margin:"0 auto",padding:"0 20px",display:"flex",alignItems:"center",justifyContent:"space-between",height:64,gap:12}}>
           <div style={{display:"flex",alignItems:"center",flex:"0 0 auto"}}>
             <img src={EXPO_LOGO} alt="EXPO" style={{height:48,marginRight:8}}/></div>
-          <nav style={{display:"flex",gap:2,alignItems:"center",overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:"1 1 auto",justifyContent:"flex-end"}}>
+          <nav style={{display:"flex",gap:2,alignItems:"center",overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none",flex:"1 1 auto",minWidth:0}}>
             {tabs.map(t=>(<button key={t.key} onClick={()=>{setTab(t.key);setSelectedTrainee(null)}} style={{...baseBtn,background:tab===t.key?C.acD:"transparent",color:tab===t.key?C.ac:C.tm,borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:tab===t.key?700:500,whiteSpace:"nowrap"}}>
               <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}
             <div style={{width:1,height:24,background:C.bd,margin:"0 6px"}}/>
