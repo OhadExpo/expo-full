@@ -226,7 +226,7 @@ export default function App() {
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{textAlign:"center",marginBottom:40}}>
         <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:60,marginBottom:12}}/>
-        <div style={{color:C.tm,fontSize:15}}>Trainer Access</div></div>
+        <div style={{color:C.tm,fontSize:15}}>Coaching Portal</div></div>
       <div style={{width:"100%",maxWidth:380}}>
         <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28,textAlign:"center"}}>
           <div style={{fontSize:14,fontWeight:600,color:C.tx,marginBottom:16}}>Enter access code</div>
