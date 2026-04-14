@@ -515,7 +515,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
       <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:60,marginBottom:12}} />
       <div style={{color:C.tm,fontSize:15}}>Training Portal</div></div>
     <div style={{width:'100%',maxWidth:380}}>
-      <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28}}>
+      <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28,textAlign:"center"}}>
         <div style={{fontSize:14,fontWeight:600,color:C.tx,marginBottom:16}}>Log in with your email</div>
         <input value={loginEmail} onChange={e => {setLoginEmail(e.target.value);setLoginError('')}}
           onKeyDown={e => e.key==='Enter' && handleLogin()}

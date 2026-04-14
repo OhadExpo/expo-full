@@ -228,7 +228,7 @@ export default function App() {
         <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:60,marginBottom:12}}/>
         <div style={{color:C.tm,fontSize:15}}>Trainer Access</div></div>
       <div style={{width:"100%",maxWidth:380}}>
-        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28}}>
+        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28,textAlign:"center"}}>
           <div style={{fontSize:14,fontWeight:600,color:C.tx,marginBottom:16}}>Enter access code</div>
           <input value={trainerCode} onChange={e=>setTrainerCode(e.target.value)}
             onKeyDown={e=>{if(e.key==='Enter'){if(trainerCode==='#81'){setTrainerAuth(true)}else{setTrainerCode('')}}}}
