@@ -61,10 +61,10 @@ export default function TraineesView({ trainees, setTrainees, plans, portalVis, 
                 <div style={{flex:1}}>
                   <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, direction:'ltr', unicodeBidi:'plaintext', textAlign:'left' }}>{t.name}</div>
                   <div style={{ fontSize: 12, color: C.tm, marginTop: 2, minHeight: 16, direction:'ltr', unicodeBidi:'plaintext', textAlign:'left' }}>{t.email||''}{t.phone ? ` · ${t.phone}` : ""}</div>
-                  <div style={{ marginTop: 8 }}><Badge color={C.tm}>{t.format}</Badge></div>
+                  <div style={{ fontSize: 11, color: C.tm, marginTop: 8, fontFamily: FN, fontWeight: 600, textTransform:'uppercase', letterSpacing:'0.04em' }}>{t.format}</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", minHeight: 22 }}>
-                    {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <Badge color={t.sessionsRemaining <= 2 ? C.rd : C.gn}>{t.sessionsRemaining} sessions left</Badge>}
-                    {(()=>{const tp=(plans||[]).filter(p=>p.traineeId===t.id);const pc=tp.length;if(!pc)return null;const active=tp.filter(p=>portalVis?.[`${t.name}:${p.name}`]!==false).length;return <Badge color={C.ac}>{active}/{pc} active</Badge>})()}
+                    {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:t.sessionsRemaining<=2?C.rd:C.gn}}>{t.sessionsRemaining} SESSIONS LEFT</span>}
+                    {(()=>{const tp=(plans||[]).filter(p=>p.traineeId===t.id);const pc=tp.length;if(!pc)return null;const active=tp.filter(p=>portalVis?.[`${t.name}:${p.name}`]!==false).length;return <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{active}/{pc} ACTIVE</span>})()}
                   </div>
                 </div>
                 <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge></div>
