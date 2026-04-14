@@ -59,8 +59,8 @@ export default function TraineesView({ trainees, setTrainees, plans, portalVis, 
             <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {}}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{flex:1}}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, direction:'ltr', textAlign:'left' }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: C.tm, marginTop: 2, minHeight: 16, direction:'ltr', textAlign:'left' }}>{t.email||''}{t.phone ? ` · ${t.phone}` : ""}</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, direction:'ltr', unicodeBidi:'plaintext', textAlign:'left' }}>{t.name}</div>
+                  <div style={{ fontSize: 12, color: C.tm, marginTop: 2, minHeight: 16, direction:'ltr', unicodeBidi:'plaintext', textAlign:'left' }}>{t.email||''}{t.phone ? ` · ${t.phone}` : ""}</div>
                   <div style={{ marginTop: 8 }}><Badge color={C.tm}>{t.format}</Badge></div>
                   <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", minHeight: 22 }}>
                     {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <Badge color={t.sessionsRemaining <= 2 ? C.rd : C.gn}>{t.sessionsRemaining} sessions left</Badge>}
