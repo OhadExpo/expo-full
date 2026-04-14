@@ -449,9 +449,9 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:12}}>
           <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:56,display:'block'}} />
           <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,marginBottom:2}}>Switch →</button></div>
+        <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx,textAlign:'center'}}>Hey {clientName.split(' ')[0]} 💪</h1>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
           <div>
-            <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx}}>Hey {clientName.split(' ')[0]} 💪</h1>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div></div>
           <div style={{textAlign:'right'}}><div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.gn}}>{sl}</div><div style={{fontSize:9,color:C.tm,fontFamily:FN}}>SESSIONS</div></div></div></div>
       <div style={{padding:20}}>
