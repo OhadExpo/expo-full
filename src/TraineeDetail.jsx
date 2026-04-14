@@ -9,6 +9,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, s
   const [showEdit,setShowEdit]=useState(false);
   const [editForm,setEditForm]=useState(null);
   const [showAssign,setShowAssign]=useState(false);
+  const [confirmUnassign,setConfirmUnassign]=useState(null);
+  const [unassignTyped,setUnassignTyped]=useState("");
   const [showArchiveConfirm,setShowArchiveConfirm]=useState(false);
   const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const [deleteTyped,setDeleteTyped]=useState("");
@@ -91,7 +93,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, s
         <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
         <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn></div>
       {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:
-        tp.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <Card key={p.id} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}><div style={{fontWeight:600,color:C.tx}}>{p.name}</div><div style={{fontSize:12,color:C.tm,marginTop:2}}>{p.days.length} days · {p.days.reduce((a,d)=>a+d.exercises.length,0)} exercises</div></div><div style={{display:'flex',alignItems:'center',gap:10}}><button onClick={e=>{e.stopPropagation();unassignPlan(p.id)}} title="Unassign from client" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button><button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} title={isVis?"Visible on portal — click to hide":"Hidden from portal — click to show"} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><div style={{width:36,height:20,borderRadius:10,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:16,height:16,borderRadius:8,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?18:1,transition:'all .15s'}}/></div><span style={{fontSize:10,fontFamily:FN,color:isVis?C.gn:C.td,minWidth:32}}>{isVis?'ON':'OFF'}</span></button><span onClick={()=>onOpenPlan&&onOpenPlan(p.id)} style={{color:C.ac,fontSize:12,cursor:'pointer'}}>Open →</span></div></div></Card>})}
+        tp.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <Card key={p.id} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}><div style={{fontWeight:600,color:C.tx}}>{p.name}</div><div style={{fontSize:12,color:C.tm,marginTop:2}}>{p.days.length} days · {p.days.reduce((a,d)=>a+d.exercises.length,0)} exercises</div></div><div style={{display:'flex',alignItems:'center',gap:10}}><button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} title="Remove program" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button><button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} title={isVis?"Visible on portal — click to hide":"Hidden from portal — click to show"} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><div style={{width:36,height:20,borderRadius:10,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:16,height:16,borderRadius:8,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?18:1,transition:'all .15s'}}/></div><span style={{fontSize:10,fontFamily:FN,color:isVis?C.gn:C.td,minWidth:32}}>{isVis?'ON':'OFF'}</span></button><span onClick={()=>onOpenPlan&&onOpenPlan(p.id)} style={{color:C.ac,fontSize:12,cursor:'pointer'}}>Open →</span></div></div></Card>})}
 
       {/* Assign program modal */}
       <Modal open={showAssign} onClose={()=>setShowAssign(false)} title="Assign Program">
@@ -110,6 +112,18 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, s
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tw.length})</h3>
       {tw.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
         tw.slice().reverse().slice(0,10).map(w=><Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</div><span style={{fontSize:12,color:C.tm}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
+      {/* Unassign confirm */}
+      {confirmUnassign && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)"}} onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.rd}40`,borderRadius:12,width:380,padding:24}}>
+          <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.rd}}>Remove Program?</h3>
+          <p style={{margin:"0 0 6px",fontSize:13,color:C.tm}}>This will unassign <strong style={{color:C.tx}}>{plans.find(p=>p.id===confirmUnassign)?.name}</strong> from {td.name}.</p>
+          <div style={{marginBottom:16}}>
+            <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:"uppercase",fontFamily:FN,display:"block",marginBottom:4}}>Type "remove" to confirm</label>
+            <input value={unassignTyped} onChange={e=>setUnassignTyped(e.target.value)} style={{background:C.sf2,border:`1px solid ${C.rd}40`,borderRadius:6,padding:"8px 12px",color:C.tx,fontFamily:FN,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"}} placeholder="remove" autoComplete="off" autoFocus/></div>
+          <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
+            <Btn variant="ghost" onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>Cancel</Btn>
+            <Btn variant="danger" onClick={()=>{if(unassignTyped.trim().toLowerCase()==="remove"){unassignPlan(confirmUnassign);setConfirmUnassign(null);setUnassignTyped("")}}} style={{opacity:unassignTyped.trim().toLowerCase()==="remove"?1:0.3,pointerEvents:unassignTyped.trim().toLowerCase()==="remove"?"auto":"none"}}>Remove</Btn></div></div></div>}
+
       {/* Edit trainee modal */}
       <Modal open={showEdit} onClose={()=>setShowEdit(false)} title={`Edit — ${td.name}`} wide>
         {editForm&&<><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
