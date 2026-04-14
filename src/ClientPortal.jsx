@@ -526,5 +526,6 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
           style={{width:'100%',padding:14,borderRadius:10,border:'none',background:loginEmail.trim()?C.ac:C.sf3,color:loginEmail.trim()?'#000':C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:loginEmail.trim()?'pointer':'default',transition:'all .15s'}}>
           Enter</button>
       </div>
+      <button onClick={()=>window.location.href='/coach'} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontFamily:FB,fontSize:12,marginTop:20}}>Coach Login →</button>
     </div></div>;
 }

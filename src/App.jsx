@@ -237,7 +237,9 @@ export default function App() {
           <button onClick={()=>{if(trainerCode==='#81'){setTrainerAuth(true)}else{setTrainerCode('')}}}
             style={{width:"100%",padding:14,borderRadius:10,border:"none",background:trainerCode?C.ac:C.sf3,color:trainerCode?"#000":C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:trainerCode?"pointer":"default"}}>
             Enter</button>
-        </div></div></div>);
+        </div>
+        <button onClick={()=>window.location.href='/'} style={{background:"none",border:"none",color:C.td,cursor:"pointer",fontFamily:FB,fontSize:12,marginTop:20,display:"block",width:"100%",textAlign:"center"}}>Training Portal →</button>
+        </div></div>);
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
