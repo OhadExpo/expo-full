@@ -520,7 +520,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         <input value={loginEmail} onChange={e => {setLoginEmail(e.target.value);setLoginError('')}}
           onKeyDown={e => e.key==='Enter' && handleLogin()}
           placeholder="your@email.com" type="email" autoComplete="email" autoFocus
-          style={{width:'100%',background:C.sf2,border:`1px solid ${loginError?C.rd:C.bd}`,borderRadius:10,padding:'14px 16px',color:C.tx,fontFamily:FB,fontSize:15,outline:'none',boxSizing:'border-box',marginBottom:12}} />
+          style={{width:'100%',background:C.sf2,border:`1px solid ${loginError?C.rd:C.bd}`,borderRadius:10,padding:'14px 16px',color:C.tx,fontFamily:FB,fontSize:15,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
         {loginError && <div style={{color:C.rd,fontSize:12,marginBottom:10}}>{loginError}</div>}
         <button onClick={handleLogin}
           style={{width:'100%',padding:14,borderRadius:10,border:'none',background:loginEmail.trim()?C.ac:C.sf3,color:loginEmail.trim()?'#000':C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:loginEmail.trim()?'pointer':'default',transition:'all .15s'}}>
