@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/coach/:path*", "destination": "/index.html" },
     { "source": "/portal", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

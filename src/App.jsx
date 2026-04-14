@@ -61,14 +61,53 @@ export default function App() {
   const [bwLog,setBwLog]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
   const [portalVis,setPortalVis]=useSupaStore('expo-portal-vis',{});
-  const isPortalDirect = typeof window !== 'undefined' && (window.location.pathname === '/portal' || window.location.search.includes('portal') || window.location.hash.includes('portal'));
-  const [tab,setTab]=useState(isPortalDirect ? "client" : "dashboard");
-  const [selectedTrainee,setSelectedTrainee]=useState(null);
+
+  // Routing: / = portal, /coach = trainer, /coach/tab = specific tab
+  const getRoute = () => {
+    const p = window.location.pathname;
+    if (p.startsWith('/coach')) {
+      const sub = p.replace('/coach','').replace(/^\//,'');
+      if (sub.startsWith('trainees/')) return { mode:'coach', tab:'trainees', traineeId:sub.split('/')[1] };
+      const tabMap = {dashboard:'dashboard',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts'};
+      return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
+    }
+    return { mode:'portal' };
+  };
+  const initRoute = getRoute();
+  const isCoach = initRoute.mode === 'coach';
+
+  const [tab,setTab]=useState(isCoach ? initRoute.tab : "client");
+  const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
   const [importMsg,setImportMsg]=useState(null);
   const [trainerCode,setTrainerCode]=useState('');
   const [trainerAuth,setTrainerAuth]=useState(false);
   const [dragOver,setDragOver]=useState(false);
   const fileRef=useRef(null);
+
+  // Sync URL when tab or trainee changes (coach mode only)
+  const updateURL = useCallback((newTab, newTrainee) => {
+    if (tab === 'client' && !isCoach) return;
+    const tabUrl = {dashboard:'dashboard',trainees:'trainees',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts'};
+    let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
+    if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+  }, [tab, isCoach]);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const onPop = () => {
+      const r = getRoute();
+      if (r.mode === 'coach') { setTab(r.tab); setSelectedTrainee(r.traineeId); }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const navTo = useCallback((newTab, newTrainee) => {
+    setTab(newTab);
+    setSelectedTrainee(newTrainee || null);
+    updateURL(newTab, newTrainee);
+  }, [updateURL]);
 
   // One-time billing data migration
   useEffect(()=>{
@@ -178,12 +217,12 @@ export default function App() {
   const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.length},{key:"plans",label:"Programs",count:plans.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Portal",count:null}];
 
   if(tab==="client")return(<div>
-    {!isPortalDirect&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"center"}}>
-      <button onClick={()=>setTab("trainees")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
+    {isCoach&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"center"}}>
+      <button onClick={()=>navTo("dashboard")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
     <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerPlans={plans} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession}/></div>);
 
   // Trainer login gate (portal bypasses this)
-  if(!trainerAuth && !isPortalDirect && tab!=="client") return(
+  if(!trainerAuth && isCoach) return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
       <div style={{textAlign:"center",marginBottom:30}}>
         <div style={{position:"relative",width:72,height:48,margin:"0 auto 16px",overflow:"hidden"}}>
@@ -208,7 +247,7 @@ export default function App() {
           <div style={{flex:"0 0 auto",position:"relative",width:83,height:56,marginRight:12,overflow:"hidden"}}>
             <img src={EXPO_LOGO} alt="EXPO" style={{height:56,position:"absolute",left:0,bottom:16}}/></div>
           <nav style={{display:"flex",gap:2,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:"max-content"}}>
-            {tabs.map(t=>(<button key={t.key} onClick={()=>{setTab(t.key);setSelectedTrainee(null)}} style={{...baseBtn,background:tab===t.key?C.acD:"transparent",color:tab===t.key?C.ac:C.tm,borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:tab===t.key?700:500,whiteSpace:"nowrap"}}>
+            {tabs.map(t=>(<button key={t.key} onClick={()=>{if(t.key==='client'){window.location.href='/'}else{navTo(t.key)}}} style={{...baseBtn,background:tab===t.key?C.acD:"transparent",color:tab===t.key?C.ac:C.tm,borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:tab===t.key?700:500,whiteSpace:"nowrap"}}>
               <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
             <button onClick={()=>fileRef.current?.click()} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} title="Import — click or drag file here" style={{...baseBtn,background:dragOver?C.acD:"transparent",color:dragOver?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6,border:dragOver?`1px dashed ${C.ac}`:"1px solid transparent",transition:"all .15s"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
@@ -216,9 +255,9 @@ export default function App() {
             <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:"none"}}/></div></div></header>
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:importMsg.startsWith("✗")?C.rdD:importMsg.startsWith("⚠")?C.orD:C.gnD,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:8,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
-        {tab==="dashboard"&&<DashboardView trainees={trainees} plans={plans} workouts={workouts} payments={payments} onSelectTrainee={id=>{setSelectedTrainee(id);setTab("trainees")}}/>}
-        {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} onSelect={id=>setSelectedTrainee(id)}/>}
-        {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} plans={plans} setPlans={setPlans} onOpenPlan={pid=>{setTab("plans");setSelectedTrainee(null);}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} onBack={()=>setSelectedTrainee(null)}/>}
+        {tab==="dashboard"&&<DashboardView trainees={trainees} plans={plans} workouts={workouts} payments={payments} onSelectTrainee={id=>navTo("trainees",id)}/>}
+        {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} onSelect={id=>navTo("trainees",id)}/>}
+        {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} plans={plans} setPlans={setPlans} onOpenPlan={pid=>navTo("plans")} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} onBack={()=>navTo("trainees")}/>}
         {tab==="exercises"&&<ExercisesView exercises={exercises} setExercises={setExercises}/>}
         {tab==="review"&&<WorkoutReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
         {tab==="plans"&&<PlansView plans={plans} setPlans={setPlans} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}/>}
