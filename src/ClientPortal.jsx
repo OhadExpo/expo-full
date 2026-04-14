@@ -447,8 +447,8 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-          <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Switch</button>
-          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:32}} /></div>
+          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:44}} />
+          <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Switch</button></div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
           <div><h1 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>Hey {clientName.split(' ')[0]} 💪</h1>
             <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div></div>
