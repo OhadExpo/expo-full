@@ -62,7 +62,8 @@ export default function TraineesView({ trainees, setTrainees, plans, portalVis, 
                   <div style={{ fontSize: 12, color: C.tm, marginTop: 2 }}>{t.email}{t.phone ? ` · ${t.phone}` : ""}</div></div>
                 <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge></div>
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                <Badge color={C.tm}>{t.format}</Badge>
+                <Badge color={C.tm}>{t.format}</Badge></div>
+              <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
                 {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <Badge color={t.sessionsRemaining <= 2 ? C.rd : C.gn}>{t.sessionsRemaining} sessions left</Badge>}
                 {(()=>{const tp=(plans||[]).filter(p=>p.traineeId===t.id);const pc=tp.length;if(!pc)return null;const active=tp.filter(p=>portalVis?.[`${t.name}:${p.name}`]!==false).length;return <Badge color={C.ac}>{active}/{pc} active</Badge>})()}
               </div>
