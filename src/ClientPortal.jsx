@@ -446,12 +446,12 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   if (trainee) { const activePlan = visPlans[0]; const sl = Math.max(0, (trainee.sessionsRemaining || 0)); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:44}} />
-          <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Switch</button></div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28}} />
+          <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>Switch →</button></div>
+        <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx}}>Hey {clientName.split(' ')[0]} 💪</h1>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-          <div><h1 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>Hey {clientName.split(' ')[0]} 💪</h1>
-            <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div></div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div>
           <div style={{textAlign:'right'}}><div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.gn}}>{sl}</div><div style={{fontSize:9,color:C.tm,fontFamily:FN}}>SESSIONS</div></div></div></div>
       <div style={{padding:20}}>
         <div style={{display:'flex',gap:4,marginBottom:14}}>{[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
