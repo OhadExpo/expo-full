@@ -9,7 +9,7 @@ const defaultTrainee = () => ({
   notes: "", packagePrice: "",
 });
 
-export default function TraineesView({ trainees, setTrainees, onSelect }) {
+export default function TraineesView({ trainees, setTrainees, plans, onSelect }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");
@@ -64,6 +64,7 @@ export default function TraineesView({ trainees, setTrainees, onSelect }) {
               <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
                 <Badge color={C.tm}>{t.format}</Badge>
                 {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <Badge color={t.sessionsRemaining <= 2 ? C.rd : C.gn}>{t.sessionsRemaining} sessions left</Badge>}
+                {(()=>{const pc=(plans||[]).filter(p=>p.traineeId===t.id).length;return pc>0?<Badge color={C.ac}>{pc} program{pc!==1?'s':''}</Badge>:null})()}
               </div>
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
