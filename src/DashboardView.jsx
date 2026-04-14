@@ -87,7 +87,7 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
                 <SH k="paid" label="Total Paid" />
                 <SH k="lastPay" label="Last Payment" />
                 <SH k="workouts" label="Workouts" />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Plans</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Programs</th>
               </tr>
             </thead>
             <tbody>

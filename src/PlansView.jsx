@@ -50,10 +50,10 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <button onClick={onCancel} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
-        <Btn onClick={() => onSave(plan)}>Save Plan</Btn>
+        <Btn onClick={() => onSave(plan)}>Save Program</Btn>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:12,marginBottom:20}}>
-        <Input label="Plan Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
+        <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         <Select label="Assign to Trainee" options={[{value:"",label:"Unassigned"},...trainees.map(t=>({value:t.id,label:t.name}))]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
       </div>
@@ -127,10 +127,10 @@ export default function PlansView({ plans, setPlans, trainees, exercises, weekly
   return (
     <div>
       <div style={{display:"flex",gap:12,marginBottom:20,alignItems:"center"}}>
-        <div style={{flex:1}}><input placeholder="Search plans..." value={search} onChange={e=>setSearch(e.target.value)} style={{...baseInput,paddingLeft:12}} /></div>
-        <Btn onClick={()=>setEditPlan(defaultPlan())}>+ New Plan</Btn>
+        <div style={{flex:1}}><input placeholder="Search programs..." value={search} onChange={e=>setSearch(e.target.value)} style={{...baseInput,paddingLeft:12}} /></div>
+        <Btn onClick={()=>setEditPlan(defaultPlan())}>+ New Program</Btn>
       </div>
-      {filtered.length===0?<EmptyState icon="📋" message="No plans yet." />:(
+      {filtered.length===0?<EmptyState icon="📋" message="No programs yet." />:(
         <div style={{display:"grid",gap:12}}>{filtered.map(p => {
           const trainee=trainees.find(t=>t.id===p.traineeId);
           return<Card key={p.id} onClick={()=>setEditPlan({...p})}>
@@ -142,7 +142,7 @@ export default function PlansView({ plans, setPlans, trainees, exercises, weekly
                 <button onClick={e=>{e.stopPropagation();handleDup(p)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4}}>📋</button>
                 <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button>
               </div></div></Card>})}</div>)}
-      <ConfirmDialog open={!!confirmDelete} title="Delete Plan?" message="Existing workouts will remain."
+      <ConfirmDialog open={!!confirmDelete} title="Delete Program?" message="Existing workouts will remain."
         onConfirm={()=>{setPlans(prev=>prev.filter(x=>x.id!==confirmDelete));setConfirmDelete(null)}} onCancel={()=>setConfirmDelete(null)} />
     </div>);
 }
