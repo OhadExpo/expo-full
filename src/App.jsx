@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON } from './theme';
+import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
 import { Btn, baseBtn } from './ui';
@@ -224,22 +224,22 @@ export default function App() {
   // Trainer login gate (portal bypasses this)
   if(!trainerAuth && isCoach) return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{textAlign:"center",marginBottom:30}}>
-        <div style={{position:"relative",width:72,height:48,margin:"0 auto 16px",overflow:"hidden"}}>
-          <img src={EXPO_LOGO} alt="EXPO" style={{height:48,position:"absolute",left:0,bottom:0}}/></div>
-        <div style={{color:C.tm,fontSize:14}}>Trainer Access</div></div>
-      <div style={{width:"100%",maxWidth:320}}>
+      <div style={{textAlign:"center",marginBottom:40}}>
+        <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:60,marginBottom:12}}/>
+        <div style={{color:C.tm,fontSize:15}}>Trainer Access</div></div>
+      <div style={{width:"100%",maxWidth:380}}>
         <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28}}>
+          <div style={{fontSize:14,fontWeight:600,color:C.tx,marginBottom:16}}>Enter access code</div>
           <input value={trainerCode} onChange={e=>setTrainerCode(e.target.value)}
             onKeyDown={e=>{if(e.key==='Enter'){if(trainerCode==='#81'){setTrainerAuth(true)}else{setTrainerCode('')}}}}
-            placeholder="Enter code" type="password" autoFocus
-            style={{width:"100%",background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 16px",color:C.tx,fontFamily:FN,fontSize:18,outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:"0.15em",marginBottom:12}}/>
+            placeholder="Code" type="password" autoFocus
+            style={{width:"100%",background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 16px",color:C.tx,fontFamily:FB,fontSize:15,outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:"0.1em",marginBottom:12}}/>
           <button onClick={()=>{if(trainerCode==='#81'){setTrainerAuth(true)}else{setTrainerCode('')}}}
-            style={{width:"100%",padding:14,borderRadius:10,border:"none",background:trainerCode?C.ac:C.sf3,color:trainerCode?"#000":C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:trainerCode?"pointer":"default"}}>
+            style={{width:"100%",padding:14,borderRadius:10,border:"none",background:trainerCode?C.ac:C.sf3,color:trainerCode?"#000":C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:trainerCode?"pointer":"default",transition:"all .15s"}}>
             Enter</button>
         </div>
         <button onClick={()=>window.location.href='/'} style={{background:"none",border:"none",color:C.td,cursor:"pointer",fontFamily:FB,fontSize:12,marginTop:20,display:"block",width:"100%",textAlign:"center"}}>Training Portal →</button>
-        </div></div>);
+      </div></div>);
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>

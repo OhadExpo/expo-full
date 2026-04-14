@@ -448,7 +448,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:56,display:'block'}} />
-          <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>Switch →</button></div>
+          <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,marginTop:4}}>Switch →</button></div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
           <div>
             <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx}}>Hey {clientName.split(' ')[0]} 💪</h1>
