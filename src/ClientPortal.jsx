@@ -446,9 +446,9 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   if (trainee) { const activePlan = visPlans[0]; const sl = Math.max(0, (trainee.sessionsRemaining || 0)); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
-        <div style={{display:'flex',justifyContent:'flex-end',marginBottom:12}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:56,display:'block'}} />
           <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>Switch →</button></div>
-        <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:56,display:'block',marginBottom:12}} />
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
           <div>
             <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx}}>Hey {clientName.split(' ')[0]} 💪</h1>
@@ -512,7 +512,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   };
   return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
     <div style={{textAlign:'center',marginBottom:40}}>
-      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:22,marginBottom:12}} />
+      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:60,marginBottom:12}} />
       <div style={{color:C.tm,fontSize:15}}>Training Portal</div></div>
     <div style={{width:'100%',maxWidth:380}}>
       <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28}}>
