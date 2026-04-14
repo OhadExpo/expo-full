@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON } from './theme';
+import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
 
@@ -197,7 +197,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // ===== FINISH =====
   if (step === 'end') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20,textAlign:'center'}}>
-      <img src={EXPO_LOGO} alt="EXPO" style={{height:40,marginBottom:16}} />
+      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:24,marginBottom:16}} />
       <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
       <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did it feel? Pain? Modifications?" style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'left'}}/>
@@ -448,7 +448,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Switch</button>
-          <div style={{position:"relative",width:50,height:30,overflow:"hidden"}}><img src={EXPO_LOGO} alt="EXPO" style={{height:36,position:"absolute",left:0,bottom:10}}/></div></div>
+          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:18}} /></div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
           <div><h1 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>Hey {clientName.split(' ')[0]} 💪</h1>
             <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div></div>
@@ -511,7 +511,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   };
   return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
     <div style={{textAlign:'center',marginBottom:40}}>
-      <img src={EXPO_LOGO} alt="EXPO" style={{height:36,marginBottom:12}} />
+      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:22,marginBottom:12}} />
       <div style={{color:C.tm,fontSize:15}}>Training Portal</div></div>
     <div style={{width:'100%',maxWidth:380}}>
       <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28}}>
