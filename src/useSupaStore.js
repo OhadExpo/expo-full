@@ -9,17 +9,18 @@ export function useSupaStore(key, initial) {
   });
   const [loaded, setLoaded] = useState(false);
   const dataRef = useRef(data);
-  const hasLocalEdits = useRef(false);
+  const savingRef = useRef(false);
+  const pendingRef = useRef(null);
 
-  // Load from Supabase on mount — but skip if local edits happened during fetch
+  // Load from Supabase on mount
   useEffect(() => {
     (async () => {
       try {
         const { data: row } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
-        if (row && row.value !== undefined && !hasLocalEdits.current) {
+        if (row && row.value !== undefined && !savingRef.current) {
           setData(row.value);
           dataRef.current = row.value;
-          localStorage.setItem(key, JSON.stringify(row.value));
+          try { localStorage.setItem(key, JSON.stringify(row.value)); } catch {}
         }
       } catch {}
       setLoaded(true);
@@ -28,18 +29,28 @@ export function useSupaStore(key, initial) {
 
   useEffect(() => { dataRef.current = data; }, [data]);
 
+  // Debounced Supabase write — ensures only the latest value gets written
+  const writeToSupa = useCallback(async (val) => {
+    pendingRef.current = val;
+    if (savingRef.current) return; // a write is in progress, it'll pick up pendingRef
+    savingRef.current = true;
+    while (pendingRef.current !== null) {
+      const toWrite = pendingRef.current;
+      pendingRef.current = null;
+      try {
+        await supabase.from('store').upsert({ key, value: toWrite, updated_at: new Date().toISOString() });
+      } catch {}
+    }
+    savingRef.current = false;
+  }, [key]);
+
   const save = useCallback(async (next) => {
-    hasLocalEdits.current = true;
     const val = typeof next === 'function' ? next(dataRef.current) : next;
     setData(val);
     dataRef.current = val;
-    // Write to localStorage immediately (fast)
     try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-    // Write to Supabase (async, fire-and-forget)
-    try {
-      await supabase.from('store').upsert({ key, value: val, updated_at: new Date().toISOString() });
-    } catch {}
-  }, [key]);
+    writeToSupa(val);
+  }, [key, writeToSupa]);
 
   return [data, save, loaded];
 }
