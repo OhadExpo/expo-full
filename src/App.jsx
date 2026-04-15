@@ -13,6 +13,12 @@ import ClientPortal from './ClientPortal';
 import DashboardView from './DashboardView';
 import WorkoutReview from './WorkoutReview';
 
+// Memo wrappers prevent re-renders when parent state changes but these props haven't
+const MemoPlans = React.memo(PlansView);
+const MemoExercises = React.memo(ExercisesView);
+const MemoWorkouts = React.memo(WorkoutsView);
+const MemoReview = React.memo(WorkoutReview);
+
 const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", plans:"expo-plans", workouts:"expo-workouts", payments:"expo-payments", cw:"expo-cw", bw:"expo-bw" };
 
 function parseSingleSheet(ws, sheetName) {
@@ -275,9 +281,9 @@ export default function App() {
         {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} payments={payments} onSelectTrainee={id=>navTo("trainees",id)}/>}
         {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} portalVis={portalVis} onSelect={id=>navTo("trainees",id)}/>}
         {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} plans={plans} setPlans={setPlans} onOpenPlan={pid=>navTo("plans")} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} onBack={()=>navTo("trainees")}/>}
-        {tab==="exercises"&&<ExercisesView exercises={exercises} setExercises={setExercises}/>}
-        {tab==="review"&&<WorkoutReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
-        {tab==="plans"&&<PlansView plans={plans} setPlans={setPlans} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}/>}
-        {tab==="workouts"&&<WorkoutsView workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
+        {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
+        {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
+        {tab==="plans"&&<MemoPlans plans={plans} setPlans={setPlans} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}/>}
+        {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
       </main></div>);
 }
