@@ -52,11 +52,11 @@ function parseSpreadsheet(data, fileName) {
 }
 
 export default function App() {
-  const [trainees,setTrainees]=useSupaStore(KEYS.trainees,[]);
-  const [exercises,setExercises]=useSupaStore(KEYS.exercises,[]);
-  const [plans,setPlans]=useSupaStore(KEYS.plans,[]);
-  const [workouts,setWorkouts]=useSupaStore(KEYS.workouts,[]);
-  const [payments,setPayments]=useSupaStore(KEYS.payments,[]);
+  const [trainees,setTrainees,tL]=useSupaStore(KEYS.trainees,[]);
+  const [exercises,setExercises,eL]=useSupaStore(KEYS.exercises,[]);
+  const [plans,setPlans,pL]=useSupaStore(KEYS.plans,[]);
+  const [workouts,setWorkouts,wL]=useSupaStore(KEYS.workouts,[]);
+  const [payments,setPayments,pyL]=useSupaStore(KEYS.payments,[]);
   const [clientWorkouts,setClientWorkouts]=useSupaClientWorkouts([]);
   const [bwLog,setBwLog]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
@@ -240,6 +240,14 @@ export default function App() {
         </div>
         <button onClick={()=>window.location.href='/'} style={{background:"none",border:"none",color:C.td,cursor:"pointer",fontFamily:FB,fontSize:12,marginTop:20,display:"block",width:"100%",textAlign:"center"}}>Training Portal →</button>
       </div></div>);
+
+  // Wait for all stores to load before rendering main UI
+  const storesReady = tL && eL && pL && wL && pyL;
+  if (!storesReady) return (
+    <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:50}} />
+      <div style={{color:C.td,fontSize:13}}>Loading data...</div>
+    </div>);
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
