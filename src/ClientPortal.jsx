@@ -137,10 +137,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
   // Progress bar with EXPO icon
   const bar = <div style={{padding:'10px 16px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-      <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>← Exit</button>
-      <img src={EXPO_ICON} alt="EXPO" style={{height:20,opacity:0.5}} />
-      <span style={{fontFamily:FN,fontSize:11,color:C.tm}}>{day.name} · W{weekNum+1}</span></div>
+    <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',minHeight:28}}>
+      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28}} />
+      <span style={{position:'absolute',left:'50%',transform:'translateX(-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap'}}>{day.name} · W{weekNum+1}</span>
+      <button onClick={onBack} style={{marginLeft:'auto',background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
       {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:2,background:stepIndex>i?C.or:stepIndex===i?C.or+'80':C.bd}} />)}
