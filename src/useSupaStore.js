@@ -22,7 +22,10 @@ export function useSupaStore(key, initial) {
         if (row && row.value !== undefined && !savingRef.current) {
           setData(row.value);
           dataRef.current = row.value;
-          try { localStorage.setItem(key, JSON.stringify(row.value)); } catch {}
+          // Skip localStorage cache for large datasets
+          if (key !== 'expo-plans' && key !== 'expo-exercises') {
+            try { localStorage.setItem(key, JSON.stringify(row.value)); } catch {}
+          }
         }
       } catch {}
       setLoaded(true);
