@@ -138,7 +138,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Progress bar with EXPO icon
   const bar = <div style={{padding:'10px 16px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',minHeight:28}}>
-      <div style={{height:22,overflow:'hidden',flexShrink:0}}><img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:42,display:'block',marginTop:-3}} /></div>
+      <div style={{height:16,overflow:'hidden',flexShrink:0}}><img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:42,display:'block',marginTop:-18}} /></div>
       <span style={{position:'absolute',left:'50%',transform:'translateX(-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap'}}>{day.name} · W{weekNum+1}</span>
       <button onClick={onBack} style={{marginLeft:'auto',background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
