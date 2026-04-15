@@ -5,6 +5,8 @@ import { supabase } from './supabase';
 // Generic store hook: loads from Supabase 'store' table, falls back to localStorage
 export function useSupaStore(key, initial) {
   const [data, setData] = useState(() => {
+    // Skip synchronous localStorage parse for large datasets — let Supabase load handle it
+    if (key === 'expo-plans' || key === 'expo-exercises') return initial;
     try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : initial; } catch { return initial; }
   });
   const [loaded, setLoaded] = useState(false);
@@ -48,7 +50,10 @@ export function useSupaStore(key, initial) {
     const val = typeof next === 'function' ? next(dataRef.current) : next;
     setData(val);
     dataRef.current = val;
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    // Skip localStorage for large datasets — Supabase is source of truth
+    if (key !== 'expo-plans' && key !== 'expo-exercises') {
+      try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    }
     writeToSupa(val);
   }, [key, writeToSupa]);
 
