@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { C, FN, FB, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal } from './ui';
-export default function TraineeDetail({ trainee, trainees, setTrainees, plans, setPlans, exercises, workouts, payments, setPayments, onBack, onOpenPlan, portalVis, setPortalVis }) {
-  const td = trainees.find(t=>t.id===trainee); const tp=plans.filter(p=>p.traineeId===trainee);
+import { savePlan } from './usePlansStore';
+import { supabase } from './supabase';
+export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, payments, setPayments, onBack, onOpenPlan, portalVis, setPortalVis }) {
+  const td = trainees.find(t=>t.id===trainee); const tp=(planIndex||[]).filter(p=>p.traineeId===trainee);
   const tw=workouts.filter(w=>w.traineeId===trainee&&w.status==="completed");
   const tPay=payments.filter(p=>p.traineeId===trainee);
   const [showPayForm,setShowPayForm]=useState(false);
@@ -26,14 +28,25 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, s
   const handleDeletePay=(pid)=>{setPayments(prev=>prev.filter(p=>p.id!==pid))};
   const openEdit=()=>{setEditForm({...td});setShowEdit(true)};
   const saveEdit=()=>{if(!editForm.name)return;setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,...editForm}:t));setShowEdit(false)};
-  const assignPlan=(planId)=>{
-    const src=plans.find(p=>p.id===planId);if(!src)return;
-    // If plan is unassigned, assign directly; otherwise duplicate
-    if(!src.traineeId){setPlans(prev=>prev.map(p=>p.id===planId?{...p,traineeId:trainee}:p))}
-    else{const dup={...src,id:uid(),traineeId:trainee,name:src.name,days:src.days.map(d=>({...d,id:uid(),exercises:d.exercises.map(e=>({...e,id:uid()}))})),createdAt:new Date().toISOString()};setPlans(prev=>[...prev,dup])}
+  const assignPlan=async(planId)=>{
+    // Load full plan from Supabase
+    const{data:src}=await supabase.from('plans').select('*').eq('id',planId).single();
+    if(!src)return;
+    if(!src.trainee_id){
+      // Unassigned — assign directly
+      await supabase.from('plans').update({trainee_id:trainee,updated_at:new Date().toISOString()}).eq('id',planId);
+    } else {
+      // Duplicate for this trainee
+      const dup={id:'pl_'+uid(),name:src.name,traineeId:trainee,phase:src.phase||'',notes:src.notes||'',active:true,createdAt:new Date().toISOString(),days:src.data?.days||[],warmup:src.data?.warmup||[]};
+      await savePlan(dup);
+    }
     setShowAssign(false);
+    if(reloadPlanIndex) await reloadPlanIndex();
   };
-  const unassignPlan=(planId)=>{setPlans(prev=>prev.map(p=>p.id===planId?{...p,traineeId:""}:p))};
+  const unassignPlan=async(planId)=>{
+    await supabase.from('plans').update({trainee_id:'',updated_at:new Date().toISOString()}).eq('id',planId);
+    if(reloadPlanIndex) await reloadPlanIndex();
+  };
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -93,20 +106,20 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, plans, s
         <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
         <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn></div>
       {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:
-        tp.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <Card key={p.id} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}><div style={{fontWeight:600,color:C.tx}}>{p.name}</div><div style={{fontSize:12,color:C.tm,marginTop:2}}>{p.days.length} days · {p.days.reduce((a,d)=>a+d.exercises.length,0)} exercises</div></div><div style={{display:'flex',alignItems:'center',gap:10}}><button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} title="Remove program" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button><button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} title={isVis?"Visible on portal — click to hide":"Hidden from portal — click to show"} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><div style={{width:36,height:20,borderRadius:10,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:16,height:16,borderRadius:8,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?18:1,transition:'all .15s'}}/></div><span style={{fontSize:10,fontFamily:FN,color:isVis?C.gn:C.td,minWidth:32}}>{isVis?'ON':'OFF'}</span></button><span onClick={()=>onOpenPlan&&onOpenPlan(p.id)} style={{color:C.ac,fontSize:12,cursor:'pointer'}}>Open →</span></div></div></Card>})}
+        tp.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <Card key={p.id} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}><div style={{fontWeight:600,color:C.tx}}>{p.name}</div><div style={{fontSize:12,color:C.tm,marginTop:2}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div><div style={{display:'flex',alignItems:'center',gap:10}}><button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} title="Remove program" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button><button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} title={isVis?"Visible on portal — click to hide":"Hidden from portal — click to show"} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><div style={{width:36,height:20,borderRadius:10,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:16,height:16,borderRadius:8,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?18:1,transition:'all .15s'}}/></div><span style={{fontSize:10,fontFamily:FN,color:isVis?C.gn:C.td,minWidth:32}}>{isVis?'ON':'OFF'}</span></button><span onClick={()=>onOpenPlan&&onOpenPlan(p.id)} style={{color:C.ac,fontSize:12,cursor:'pointer'}}>Open →</span></div></div></Card>})}
 
       {/* Assign program modal */}
       <Modal open={showAssign} onClose={()=>setShowAssign(false)} title="Assign Program">
-        {(()=>{const unassigned=plans.filter(p=>!p.traineeId);const others=plans.filter(p=>p.traineeId&&p.traineeId!==trainee);const assignedNames=new Set(tp.map(p=>p.name));const available=[...unassigned,...others].filter(p=>!assignedNames.has(p.name)||p.traineeId!==trainee);
+        {(()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&p.traineeId!==trainee);const assignedNames=new Set(tp.map(p=>p.name));const available=[...unassigned,...others].filter(p=>!assignedNames.has(p.name)||p.traineeId!==trainee);
           return available.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:20}}>No programs available. Create one in the Programs tab first.</div>:
           <div>{unassigned.length>0&&<><div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>UNASSIGNED</div>
             {unassigned.map(p=><div key={p.id} onClick={()=>assignPlan(p.id)} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
-              <div style={{fontSize:11,color:C.tm}}>{p.days.length} days · {p.days.reduce((a,d)=>a+d.exercises.length,0)} exercises</div></div>)}</>}
+              <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>)}</>}
             {others.length>0&&<><div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8,marginTop:12}}>FROM OTHER CLIENTS (will duplicate)</div>
             {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>assignPlan(p.id)} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name} <span style={{fontWeight:400,color:C.tm}}>— {owner?.name||'?'}</span></div>
-              <div style={{fontSize:11,color:C.tm}}>{p.days.length} days · {p.days.reduce((a,d)=>a+d.exercises.length,0)} exercises</div></div>})}</>}
+              <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>})}</>}
           </div>})()}
       </Modal>
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tw.length})</h3>

@@ -9,7 +9,7 @@ const defaultTrainee = () => ({
   notes: "", packagePrice: "",
 });
 
-export default function TraineesView({ trainees, setTrainees, plans, portalVis, onSelect }) {
+export default function TraineesView({ trainees, setTrainees, planCounts, portalVis, onSelect }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");
@@ -64,7 +64,7 @@ export default function TraineesView({ trainees, setTrainees, plans, portalVis, 
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 18, fontFamily: FN, fontWeight: 600, textTransform:'uppercase', letterSpacing:'0.04em' }}>{t.format}</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", minHeight: 22 }}>
                     {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:t.sessionsRemaining<=2?C.rd:C.gn}}>{t.sessionsRemaining} SESSIONS LEFT</span>}
-                    {(()=>{const tp=(plans||[]).filter(p=>p.traineeId===t.id);const pc=tp.length;if(!pc)return null;const active=tp.filter(p=>portalVis?.[`${t.name}:${p.name}`]!==false).length;return <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{active}/{pc} ACTIVE</span>})()}
+                    {(()=>{const pc=planCounts?.[t.id]||0;if(!pc)return null;return <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{pc} PROGRAMS</span>})()}
                   </div>
                 </div>
                 <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge></div>

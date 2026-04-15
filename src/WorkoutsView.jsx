@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { C, FN, FB, uid } from './theme';
 import { Btn, Input, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput } from './ui';
+import { supabase } from './supabase';
 
 function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
   const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); };
@@ -51,13 +52,18 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
     </div>);
 }
 
-export default function WorkoutsView({ workouts, setWorkouts, plans, trainees, exercises, onDecrementSession }) {
+export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession }) {
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [filterTrainee, setFilterTrainee] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const startWorkout = (plan, dayIdx) => {
-    const day = plan.days[dayIdx];
-    const w = {id:uid(),planId:plan.id,traineeId:plan.traineeId,dayName:day.name,planName:plan.name,
+  const startWorkout = async (planSummary, dayIdx) => {
+    // Load full plan data from Supabase
+    const { data: fullPlan } = await supabase.from('plans').select('*').eq('id', planSummary.id).single();
+    if (!fullPlan) return;
+    const days = fullPlan.data?.days || [];
+    const day = days[dayIdx];
+    if (!day) return;
+    const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,
       date:new Date().toISOString(),status:"in-progress",
       exercises:day.exercises.map(ex=>({...ex,id:uid(),sets:Array.from({length:ex.sets},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))})),
       notes:"",autoregulation:{painScore:"",energyLevel:"",sleepQuality:""}};
@@ -76,11 +82,11 @@ export default function WorkoutsView({ workouts, setWorkouts, plans, trainees, e
   return (
     <div>
       <h3 style={{fontFamily:FN,fontSize:12,color:C.td,textTransform:"uppercase",marginBottom:12}}>Start Workout from Plan</h3>
-      {plans.length===0?<div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>:(
-        <div style={{display:"grid",gap:8,marginBottom:24}}>{plans.map(p=>{
+      {planIndex.length===0?<div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>:(
+        <div style={{display:"grid",gap:8,marginBottom:24}}>{planIndex.map(p=>{
           const trainee=trainees.find(t=>t.id===p.traineeId);
           return<Card key={p.id}><div style={{fontWeight:600,color:C.tx,marginBottom:8}}>{p.name} {trainee&&<span style={{fontWeight:400,color:C.tm}}>— {trainee.name}</span>}</div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{p.days.map((d,i)=><Btn key={d.id} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"4px 12px"}}>▶ {d.name}</Btn>)}</div></Card>})}</div>)}
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"4px 12px"}}>▶ {dName}</Btn>)}</div></Card>})}</div>)}
       {inProgress.length>0&&<><h3 style={{fontFamily:FN,fontSize:12,color:C.or,textTransform:"uppercase",marginBottom:12}}>In Progress ({inProgress.length})</h3>
         {inProgress.map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId); return<Card key={w.id} onClick={()=>setActiveWorkout(w.id)} style={{marginBottom:8,borderColor:C.or+"40"}}>
           <div style={{fontWeight:600,color:C.tx}}>{w.dayName}</div><div style={{fontSize:12,color:C.tm}}>{trainee?.name||"—"} · {new Date(w.date).toLocaleDateString()}</div></Card>})}</>}
