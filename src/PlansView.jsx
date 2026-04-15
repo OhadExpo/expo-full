@@ -127,13 +127,20 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
     </div>);
 }
 
-export default function PlansView({ planIndex, reloadIndex, trainees, exercises, weeklyFocus, setWeeklyFocus }) {
+export default function PlansView({ planIndex, reloadIndex, trainees, exercises, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [editMode, setEditMode] = useState(false);
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterTrainee, setFilterTrainee] = useState("");
+
+  // Auto-open plan if requested from TraineeDetail
+  React.useEffect(() => {
+    if (openPlanId && !editMode) {
+      loadFullPlan(openPlanId).then(() => { setEditMode(true); if (onPlanOpened) onPlanOpened(); });
+    }
+  }, [openPlanId]);
 
   const traineeMap = useMemo(() => { const m = {}; trainees.forEach(t => { m[t.id] = t.name; }); return m; }, [trainees]);
 
