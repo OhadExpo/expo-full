@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput } from './ui';
 
@@ -9,15 +9,21 @@ export default function DashboardView({ trainees, plans, workouts, payments, onS
 
   const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac };
 
-  const enriched = trainees.map(t => {
+  // Precompute plan counts per trainee for O(1) lookup
+  const planCounts = useMemo(() => {
+    const m = {};
+    plans.forEach(p => { if (p.traineeId) m[p.traineeId] = (m[p.traineeId]||0) + 1; });
+    return m;
+  }, [plans]);
+
+  const enriched = useMemo(() => trainees.map(t => {
     const tPay = payments.filter(p => p.traineeId === t.id);
     const tWork = workouts.filter(w => w.traineeId === t.id && w.status === 'completed');
-    const tPlans = plans.filter(p => p.traineeId === t.id);
     const totalPaid = tPay.reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
     const lastPay = tPay.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
     const lastWorkout = tWork.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-    return { ...t, totalPaid, lastPay, lastWorkout, workoutCount: tWork.length, planCount: tPlans.length };
-  });
+    return { ...t, totalPaid, lastPay, lastWorkout, workoutCount: tWork.length, planCount: planCounts[t.id] || 0 };
+  }), [trainees, payments, workouts, planCounts]);
 
   const filtered = enriched.filter(t => !filter || t.name.toLowerCase().includes(filter.toLowerCase()));
   const sorted = [...filtered].sort((a, b) => {
