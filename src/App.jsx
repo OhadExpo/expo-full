@@ -241,8 +241,8 @@ export default function App() {
         <button onClick={()=>window.location.href='/'} style={{background:"none",border:"none",color:C.td,cursor:"pointer",fontFamily:FB,fontSize:12,marginTop:20,display:"block",width:"100%",textAlign:"center"}}>Training Portal →</button>
       </div></div>);
 
-  // Wait for all stores to load before rendering main UI
-  const storesReady = tL && eL && pL && wL && pyL;
+  // Wait for small stores only — plans/exercises load in background
+  const storesReady = tL && wL && pyL;
   if (!storesReady) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:50}} />

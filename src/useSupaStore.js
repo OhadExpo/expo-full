@@ -1,5 +1,5 @@
 // src/useSupaStore.js — Supabase-backed storage hook (replaces useStore)
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, startTransition } from 'react';
 import { supabase } from './supabase';
 
 // Generic store hook: loads from Supabase 'store' table, falls back to localStorage
@@ -20,10 +20,15 @@ export function useSupaStore(key, initial) {
       try {
         const { data: row } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
         if (row && row.value !== undefined && !savingRef.current) {
-          setData(row.value);
-          dataRef.current = row.value;
-          // Skip localStorage cache for large datasets
-          if (key !== 'expo-plans' && key !== 'expo-exercises') {
+          // Defer large data updates to avoid blocking the main thread
+          if (key === 'expo-plans' || key === 'expo-exercises') {
+            startTransition(() => {
+              setData(row.value);
+              dataRef.current = row.value;
+            });
+          } else {
+            setData(row.value);
+            dataRef.current = row.value;
             try { localStorage.setItem(key, JSON.stringify(row.value)); } catch {}
           }
         }
