@@ -2,19 +2,12 @@ import React, { useState, useMemo } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput } from './ui';
 
-export default function DashboardView({ trainees, plans, workouts, payments, onSelectTrainee }) {
+export default function DashboardView({ trainees, planCounts, workouts, payments, onSelectTrainee }) {
   const [sort, setSort] = useState('name');
   const [dir, setDir] = useState(1);
   const [filter, setFilter] = useState('');
 
   const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac };
-
-  // Precompute plan counts per trainee for O(1) lookup
-  const planCounts = useMemo(() => {
-    const m = {};
-    plans.forEach(p => { if (p.traineeId) m[p.traineeId] = (m[p.traineeId]||0) + 1; });
-    return m;
-  }, [plans]);
 
   const enriched = useMemo(() => trainees.map(t => {
     const tPay = payments.filter(p => p.traineeId === t.id);
