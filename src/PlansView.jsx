@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { C, FN, FB, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES } from './theme';
 import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput } from './ui';
+import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
+
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: 3, reps: "8-12", load: "", rpe: "", tempo: "", rest: "90", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
-const defaultPlan = () => ({ id: uid(), name: "", traineeId: "", days: [defaultDay(1)], phase: "", notes: "", createdAt: new Date().toISOString(), active: true, warmup: [] });
 
 const PAGE_SIZE = 25;
 
@@ -28,8 +29,7 @@ function ExPicker({ exercises, value, onChange, label }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const sel = exercises.find(e => e.id === value);
-  const filt = useMemo(() => exercises.filter(e => !search || e.title.toLowerCase().includes(search.toLowerCase())).slice(0, 50),
-    [exercises, search]);
+  const filt = useMemo(() => exercises.filter(e => !search || e.title.toLowerCase().includes(search.toLowerCase())).slice(0, 50), [exercises, search]);
   return (<div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 4 }}>
     {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: "uppercase", fontFamily: FN }}>{label}</label>}
     <button onClick={() => setOpen(!open)} style={{ ...baseInput, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between" }}>
@@ -47,6 +47,7 @@ function ExPicker({ exercises, value, onChange, label }) {
 function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyFocus, setWeeklyFocus }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
+  const [saving, setSaving] = useState(false);
   const updateDay = (i, u) => setPlan(p => ({...p, days: p.days.map((d,idx) => idx===i ? {...d,...u} : d)}));
   const addDay = () => { setPlan(p => ({...p, days: [...p.days, defaultDay(p.days.length+1)]})); setActiveDay(plan.days.length); };
   const removeDay = i => { if (plan.days.length<=1) return; setPlan(p => ({...p, days: p.days.filter((_,idx)=>idx!==i)})); if (activeDay>=plan.days.length-1) setActiveDay(Math.max(0,plan.days.length-2)); };
@@ -55,11 +56,12 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const removeEx = ei => updateDay(activeDay, {exercises:plan.days[activeDay].exercises.filter((_,i)=>i!==ei)});
   const moveEx = (ei,dir) => { const exs=[...plan.days[activeDay].exercises]; const si=ei+dir; if(si<0||si>=exs.length) return; [exs[ei],exs[si]]=[exs[si],exs[ei]]; updateDay(activeDay,{exercises:exs}); };
   const day = plan.days[activeDay];
+  const handleSave = async () => { setSaving(true); await onSave(plan); setSaving(false); };
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <button onClick={onCancel} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
-        <Btn onClick={() => onSave(plan)}>Save Program</Btn>
+        <Btn onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Program'}</Btn>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
@@ -100,14 +102,12 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   <Input label="Tempo" value={ex.tempo} onChange={e=>updateEx(exIdx,{tempo:e.target.value})} placeholder="3010" />
                   <button onClick={()=>removeEx(exIdx)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,marginBottom:4,opacity:0.6}}>🗑</button>
                 </div>
-                {/* Show exercise info — from library OR from notes fallback */}
                 {exData?<div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
                   {exData.movementPattern&&<Badge color={C.gn}>{exData.movementPattern}</Badge>}
                   {exData.laterality&&<Badge color={C.tm}>{exData.laterality}</Badge>}
                   {exData.primaryMuscles&&<span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
                 </div>:exTitle?<div style={{fontSize:11,color:C.or,marginTop:4}}>📝 {exTitle}</div>:null}
                 <Input value={ex.notes} onChange={e=>updateEx(exIdx,{notes:e.target.value})} placeholder="Notes, modifications..." style={{marginTop:6}} />
-                {/* Weekly Focus — W1-W4 inline */}
                 {plan.name && day && (
                   <div style={{marginTop:6,background:C.acD,borderRadius:6,padding:"8px 10px",border:`1px solid ${C.ac}20`}}>
                     <div style={{fontSize:9,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:4}}>WEEKLY FOCUS</div>
@@ -127,81 +127,77 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
     </div>);
 }
 
-export default function PlansView({ plans, setPlans, trainees, exercises, weeklyFocus, setWeeklyFocus }) {
-  const [editPlan, setEditPlan] = useState(null);
+export default function PlansView({ planIndex, reloadIndex, trainees, exercises, weeklyFocus, setWeeklyFocus }) {
+  const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
+  const [editMode, setEditMode] = useState(false);
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterTrainee, setFilterTrainee] = useState("");
 
-  // Memoized trainee map for O(1) lookups
-  const traineeMap = useMemo(() => {
-    const m = {};
-    trainees.forEach(t => { m[t.id] = t.name; });
-    return m;
-  }, [trainees]);
+  const traineeMap = useMemo(() => { const m = {}; trainees.forEach(t => { m[t.id] = t.name; }); return m; }, [trainees]);
 
-  // Memoized filtered + sorted plans
   const filtered = useMemo(() => {
-    let result = plans;
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(p => p.name.toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q));
-    }
-    if (filterTrainee) {
-      result = result.filter(p => p.traineeId === filterTrainee);
-    }
-    // Sort: most recent first
-    return result.slice().sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
-  }, [plans, search, filterTrainee, traineeMap]);
+    let result = planIndex;
+    if (search) { const q = search.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
+    if (filterTrainee) result = result.filter(p => p.traineeId === filterTrainee);
+    return result;
+  }, [planIndex, search, filterTrainee, traineeMap]);
 
-  // Only render visible subset
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
 
-  const handleSave = plan => { setPlans(prev => { const idx=prev.findIndex(p=>p.id===plan.id); return idx>=0?prev.map(p=>p.id===plan.id?plan:p):[...prev,plan]; }); setEditPlan(null); };
-  const handleDup = plan => { const dup={...plan,id:uid(),name:plan.name+" (copy)",days:plan.days.map(d=>({...d,id:uid(),exercises:d.exercises.map(e=>({...e,id:uid()}))}))}; setPlans(prev=>[...prev,dup]); };
+  const handleOpenPlan = async (planId) => { await loadFullPlan(planId); setEditMode(true); };
+  const handleNewPlan = () => {
+    setEditPlan({ id: 'pl_' + uid(), name: "", traineeId: "", phase: "", notes: "", active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: [] });
+    setEditMode(true);
+  };
+  const handleSave = async (plan) => { await savePlan(plan); setEditMode(false); clearPlan(); await reloadIndex(); };
+  const handleCancel = () => { setEditMode(false); clearPlan(); };
+  const handleDuplicate = async (planId) => {
+    const { supabase: sb } = await import('./supabase');
+    const { data } = await sb.from('plans').select('*').eq('id', planId).single();
+    if (data) { await duplicatePlan({ id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase, notes: data.notes, active: data.active, createdAt: data.created_at, days: data.data?.days||[], warmup: data.data?.warmup||[] }); await reloadIndex(); }
+  };
+  const handleDelete = async (planId) => { await deletePlan(planId); setConfirmDelete(null); await reloadIndex(); };
 
-  if (editPlan) return <PlanEditor plan={editPlan} onSave={handleSave} onCancel={()=>setEditPlan(null)} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} />;
-
-  // Unique trainees that have plans (for filter dropdown)
   const traineeOptions = useMemo(() => {
-    const ids = [...new Set(plans.map(p => p.traineeId).filter(Boolean))];
+    const ids = [...new Set(planIndex.map(p => p.traineeId).filter(Boolean))];
     return ids.map(id => ({ value: id, label: traineeMap[id] || id })).sort((a,b) => a.label.localeCompare(b.label));
-  }, [plans, traineeMap]);
+  }, [planIndex, traineeMap]);
+
+  if (editMode) {
+    if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
+    return <PlanEditor plan={editPlanData} onSave={handleSave} onCancel={handleCancel} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} />;
+  }
 
   return (
     <div>
       <div style={{display:"flex",gap:12,marginBottom:20,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{flex:1,minWidth:180}}><input placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,paddingLeft:12}} /></div>
         <select value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,width:180}}>
-          <option value="">All Clients ({plans.length})</option>
+          <option value="">All Clients ({planIndex.length})</option>
           {traineeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        <Btn onClick={()=>setEditPlan(defaultPlan())}>+ New Program</Btn>
+        <Btn onClick={handleNewPlan}>+ New Program</Btn>
       </div>
       <div style={{fontSize:12,color:C.td,marginBottom:12,fontFamily:FN}}>
-        Showing {visible.length} of {filtered.length} programs{filtered.length !== plans.length ? ` (${plans.length} total)` : ''}
+        Showing {visible.length} of {filtered.length} programs{filtered.length !== planIndex.length ? ` (${planIndex.length} total)` : ''}
       </div>
       {filtered.length===0?<EmptyState icon="📋" message="No programs match your search." />:(
-        <div style={{display:"grid",gap:10}}>
-          {visible.map(p => {
-            const tName = traineeMap[p.traineeId] || "Unassigned";
-            const totalEx = p.days.reduce((a,d)=>a+(d.exercises?.length||0),0);
-            return <Card key={p.id} onClick={()=>setEditPlan({...p})}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                <div><div style={{fontWeight:700,fontSize:15,color:C.tx}}>{p.name||"Untitled"}</div>
-                  <div style={{fontSize:12,color:C.tm,marginTop:4}}>{tName} · {p.days.length} days · {totalEx} exercises</div>
-                  {p.phase&&<Badge color={C.ac} style={{marginTop:6}}>{p.phase}</Badge>}</div>
-                <div style={{display:"flex",gap:4}}>
-                  <button onClick={e=>{e.stopPropagation();handleDup(p)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4}}>📋</button>
-                  <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button>
-                </div></div></Card>})}
-          {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>
-            Load more ({filtered.length - visibleCount} remaining)
-          </Btn>}
+        <div style={{display:"grid",gap:10}}>{visible.map(p => {
+          const tName = traineeMap[p.traineeId] || "Unassigned";
+          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div><div style={{fontWeight:700,fontSize:15,color:C.tx}}>{p.name||"Untitled"}</div>
+                <div style={{fontSize:12,color:C.tm,marginTop:4}}>{tName} · {p.dayCount} days · {p.exerciseCount} exercises</div>
+                {p.phase&&<Badge color={C.ac} style={{marginTop:6}}>{p.phase}</Badge>}</div>
+              <div style={{display:"flex",gap:4}}>
+                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4}}>📋</button>
+                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button>
+              </div></div></Card>})}
+          {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>)}
-      <ConfirmDialog open={!!confirmDelete} title="Delete Program?" message="Existing workouts will remain."
-        onConfirm={()=>{setPlans(prev=>prev.filter(x=>x.id!==confirmDelete));setConfirmDelete(null)}} onCancel={()=>setConfirmDelete(null)} />
+      <ConfirmDialog open={!!confirmDelete} title="Delete Program?" message="Existing workouts will remain." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)} />
     </div>);
 }

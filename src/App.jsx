@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
+import { usePlanIndex } from './usePlansStore';
 import { Btn, baseBtn } from './ui';
 import * as XLSX from 'xlsx';
 import TraineesView from './TraineesView';
@@ -60,7 +61,8 @@ function parseSpreadsheet(data, fileName) {
 export default function App() {
   const [trainees,setTrainees,tL]=useSupaStore(KEYS.trainees,[]);
   const [exercises,setExercises,eL]=useSupaStore(KEYS.exercises,[]);
-  const [plans,setPlans,pL]=useSupaStore(KEYS.plans,[]);
+  const { index: planIndex, loaded: pL, reload: reloadPlanIndex } = usePlanIndex();
+  const [plans,setPlans]=useSupaStore(KEYS.plans,[]); // Legacy: only for ClientPortal + export. NOT used in coach UI
   const [workouts,setWorkouts,wL]=useSupaStore(KEYS.workouts,[]);
   const [payments,setPayments,pyL]=useSupaStore(KEYS.payments,[]);
   const [clientWorkouts,setClientWorkouts]=useSupaClientWorkouts([]);
@@ -220,14 +222,14 @@ export default function App() {
   const handleDragOver=(e)=>{e.preventDefault();setDragOver(true)};
   const handleDragLeave=()=>{setDragOver(false)};
 
-  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.length},{key:"plans",label:"Programs",count:plans.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Portal",count:null}];
+  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.length},{key:"plans",label:"Programs",count:planIndex.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Portal",count:null}];
 
   // Pre-compute plan counts per trainee — avoids passing full plans array to Dashboard
   const planCounts = useMemo(() => {
     const m = {};
-    plans.forEach(p => { if (p.traineeId) m[p.traineeId] = (m[p.traineeId]||0) + 1; });
+    planIndex.forEach(p => { if (p.traineeId) m[p.traineeId] = (m[p.traineeId]||0) + 1; });
     return m;
-  }, [plans]);
+  }, [planIndex]);
 
   if(tab==="client")return(<div>
     {isCoach&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"center"}}>
@@ -280,10 +282,10 @@ export default function App() {
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} payments={payments} onSelectTrainee={id=>navTo("trainees",id)}/>}
         {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} portalVis={portalVis} onSelect={id=>navTo("trainees",id)}/>}
-        {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} plans={plans} setPlans={setPlans} onOpenPlan={pid=>navTo("plans")} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} onBack={()=>navTo("trainees")}/>}
+        {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>navTo("plans")} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} onBack={()=>navTo("trainees")}/>}
         {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
-        {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
-        {tab==="plans"&&<MemoPlans plans={plans} setPlans={setPlans} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}/>}
-        {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} plans={plans} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
+        {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
+        {tab==="plans"&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus}/>}
+        {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
       </main></div>);
 }
