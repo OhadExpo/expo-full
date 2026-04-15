@@ -235,7 +235,7 @@ export default function App() {
   if(tab==="client")return(<div>
     {isCoach&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"center"}}>
       <button onClick={()=>navTo("dashboard")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
-    <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerPlans={plans} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession}/></div>);
+    <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession}/></div>);
 
   // Trainer login gate (portal bypasses this)
   if(!trainerAuth && isCoach) return(

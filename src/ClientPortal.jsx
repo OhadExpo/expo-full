@@ -293,9 +293,28 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   const [bw, setBw] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
 
   // Resolve client from trainees (Supabase)
   const trainee = (trainees || []).find(t => t.id === ci);
+
+  // Load this client's plans from plans table when client changes
+  React.useEffect(() => {
+    if (!ci) { setClientPlans([]); return; }
+    (async () => {
+      try {
+        const { supabase: sb } = await import('./supabase');
+        const { data } = await sb.from('plans').select('*').eq('trainee_id', ci);
+        if (data) {
+          setClientPlans(data.map(p => ({
+            id: p.id, name: p.name, traineeId: p.trainee_id, phase: p.phase,
+            notes: p.notes, active: p.active, createdAt: p.created_at,
+            days: p.data?.days || [], warmup: p.data?.warmup || [],
+          })));
+        }
+      } catch (e) { console.error('ClientPortal plans load:', e); }
+    })();
+  }, [ci]);
   const clientName = trainee?.name || '';
 
   // Build merged plan list: curated overrides + trainer-side plans (auto-converted)
@@ -304,9 +323,9 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     const curated = CURATED_CLIENTS[clientName];
     const curatedPlans = curated?.plans || [];
     const curatedNames = new Set(curatedPlans.map(p => p.name));
-    // Trainer-side plans not already curated
-    const trainerExtra = (trainerPlans || [])
-      .filter(p => p.traineeId === trainee.id && !curatedNames.has(p.name))
+    // Trainer-side plans not already curated — use plans loaded from Supabase plans table
+    const trainerExtra = clientPlans
+      .filter(p => !curatedNames.has(p.name))
       .map(p => trainerPlanToPortal(p, trainerExercises || []));
     return [...curatedPlans, ...trainerExtra];
   })();
