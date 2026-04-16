@@ -73,10 +73,25 @@ const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-bloc
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus}) {
-  // Steps: 'wu0','wu1',... → 'pre' → 0,1,2,... (exercise indices) → 'end'
+  // Steps: 'wu0','wu1',... → 'pre' → 0,1,2,... (group indices) → 'end'
   const warmup = plan.warmup || [];
   const wuCount = warmup.length;
   const exCount = day.ex.length;
+
+  // Group consecutive exercises sharing the same superset letter.
+  // groups[i] = { exIdxs: [0,1,...], superset: 'A' | '' }
+  const groups = (() => {
+    const out = [];
+    let cur = null;
+    day.ex.forEach((ex, i) => {
+      const ss = ex.superset || '';
+      if (ss && cur && cur.superset === ss) { cur.exIdxs.push(i); }
+      else { cur = { superset: ss, exIdxs: [i] }; out.push(cur); }
+    });
+    return out;
+  })();
+  const groupCount = groups.length;
+
   const [step, setStep] = useState(wuCount > 0 ? 'wu0' : 'pre');
   const [ar, setAr] = useState({pain:'',energy:'',sleep:''});
   const [notes, setNotes] = useState('');
@@ -110,7 +125,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:ex.wk?ex.wk[weekNum]:`${ex.s}x${ex.r}`,sets:allSets[i]}))});
 
   // Navigation helpers
-  const totalSteps = wuCount + 1 + exCount; // warmups + pre + exercises
+  const totalSteps = wuCount + 1 + groupCount; // warmups + pre + groups
   const stepIndex = typeof step === 'string' && step.startsWith('wu') ? parseInt(step.slice(2)) :
     step === 'pre' ? wuCount : step === 'end' ? totalSteps : wuCount + 1 + step;
   const goNext = () => {
@@ -121,7 +136,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (wi + 1 < wuCount) setStep('wu' + (wi + 1));
       else setStep('pre');
     } else if (step === 'pre') setStep(0);
-    else if (typeof step === 'number' && step < exCount - 1) setStep(step + 1);
+    else if (typeof step === 'number' && step < groupCount - 1) setStep(step + 1);
     else setStep('end');
   };
   const goPrev = () => {
@@ -132,7 +147,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     } else if (step === 'pre') setStep(wuCount > 0 ? 'wu' + (wuCount - 1) : null);
     else if (step === 0) setStep('pre');
     else if (typeof step === 'number') setStep(step - 1);
-    else if (step === 'end') setStep(exCount - 1);
+    else if (step === 'end') setStep(groupCount - 1);
   };
 
   // Progress bar with EXPO icon
@@ -146,14 +161,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:2,background:stepIndex>i?C.or:stepIndex===i?C.or+'80':C.bd}} />)}
       {/* Pre-workout dot */}
       <div style={{flex:1,height:3,borderRadius:2,background:stepIndex>wuCount?C.pu:stepIndex===wuCount?C.pu+'80':C.bd}} />
-      {/* Exercise dots */}
-      {day.ex.map((_,i) => <div key={'ex'+i} style={{flex:1,height:3,borderRadius:2,background:stepIndex>wuCount+1+i?C.gn:stepIndex===wuCount+1+i?C.ac:C.bd}} />)}
+      {/* Group dots (one per superset group or solo exercise) */}
+      {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:2,background:stepIndex>wuCount+1+i?C.gn:stepIndex===wuCount+1+i?C.ac:C.bd}} />)}
     </div>
     <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:4,textAlign:'center'}}>
       {typeof step==='string'&&step.startsWith('wu') ? `Warm-Up ${parseInt(step.slice(2))+1}/${wuCount}` :
        step==='pre' ? 'Pre-Workout Check' :
        step==='end' ? 'Complete' :
-       `Exercise ${step+1}/${exCount}`}
+       groups[step]?.superset ? `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}` :
+       `Exercise ${step+1}/${groupCount}`}
     </div></div>;
 
   // ===== WARM-UP STEP =====
@@ -209,78 +225,132 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>
     </div></div>;
 
-  // ===== EXERCISE STEP =====
-  const ei = step; const ex = day.ex[ei]; const d = EX[ex.eid]; if (!d) return null;
-  const vid = ytId(d.vid); const hw = ex.wk?.length > 0;
-  const wr = hw ? ex.wk[weekNum] : null; const f = fv[ei];
-  return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
-    <div style={{padding:20}}>
-      <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{d.t}</h2>
-      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{wr || `${ex.s} × ${ex.r}`}</div>
-      {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
-      
-      {hw && <div style={{background:C.sf2,borderRadius:10,padding:10,marginTop:12,marginBottom:14}}>
+  // ===== EXERCISE STEP (single exercise OR grouped superset) =====
+  const group = groups[step]; if (!group) return null;
+  const isSuperset = group.exIdxs.length > 1 && !!group.superset;
+  const groupExs = group.exIdxs.map(idx => ({ idx, ex: day.ex[idx], d: EX[day.ex[idx].eid] })).filter(g => g.d);
+  if (groupExs.length === 0) return null;
+
+  // Max set count across the group — rounds use the max, shorter exercises grey-out extra rounds
+  const maxSets = Math.max(...groupExs.map(g => typeof g.ex.s === 'number' ? g.ex.s : 3));
+  // Any exercise in the group still uploading?
+  const anyUploading = group.exIdxs.some(i => fv[i]?.uploading);
+
+  const renderExerciseInfo = (g) => {
+    const { idx: ei, ex, d } = g;
+    const vid = ytId(d.vid);
+    const hw = ex.wk?.length > 0;
+    const wr = hw ? ex.wk[weekNum] : null;
+    return <div key={ei} style={{marginBottom:16}}>
+      <h3 style={{margin:'0 0 4px',fontFamily:FN,fontSize:16,textAlign:'center',color:C.tx}}>{d.t}</h3>
+      <div style={{fontSize:14,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{wr || `${ex.s} × ${ex.r}`}</div>
+      {ex.tempo && <div style={{fontSize:12,color:C.or,marginTop:2,textAlign:'center'}}>⏱ {ex.tempo}</div>}
+      {hw && <div style={{background:C.sf2,borderRadius:10,padding:10,marginTop:10,marginBottom:10}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
           {ex.wk.map((w,i) => <div key={i} style={{background:weekNum===i?C.acD:C.sf3,border:`1px solid ${weekNum===i?C.ac+'60':C.bd}`,borderRadius:6,padding:6,textAlign:'center'}}>
             <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
             <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div></div>}
-      {/* Exercise Notes — merged coaching cues (q) + notes (n) */}
-      {(d.q || ex.n) && <div style={{background:C.puD,borderRadius:10,padding:12,marginTop:16,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6}}>
-        <div style={{fontSize:10,fontFamily:FN,color:C.pu,marginBottom:6,fontWeight:700,textAlign:'center'}}>EXERCISE NOTES</div>
-        {d.q && <div style={{textAlign:/[\u0590-\u05FF]/.test(d.q)?'right':'left',direction:/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr'}}>{d.q}</div>}{d.q && ex.n && <div style={{borderTop:`1px solid ${C.pu}30`,margin:'8px 0'}}/>}{ex.n && <div style={{color:C.or,textAlign:/[\u0590-\u05FF]/.test(ex.n)?'right':'left',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr'}}>{ex.n}</div>}</div>}
-      {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
-        <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
-      {/* Weekly Coach Focus - always visible, beneath video */}
-      {(() => { const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`; const wf = weeklyFocus?.[fk]; return (
-        <div style={{background:wf?C.acD:C.sf,border:'1px solid '+(wf?C.ac+'30':C.bd),borderLeft:'3px solid '+(wf?C.ac:C.bd),borderRadius:10,padding:12,marginBottom:12}}>
-          <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
-          <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>); })()}
-      <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:14}}>
-        <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
-          {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:!h||h==='✓'?'center':'left'}}>{h}</div>)}</div>
-        {(allSets[ei]||[]).map((set,si) => <div key={si} style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
-          <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
-          <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} placeholder="—" style={bi}/>
-          <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} placeholder="kg" style={bi}/>
-          <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} placeholder="—" style={bi}/>
-          <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
-        </div>)}</div>
-      <div style={{background:C.sf,border:`1px solid ${f.uploaded?C.gn+'60':C.bd}`,borderRadius:12,padding:14,marginBottom:20}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-          <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>FORM CHECK</div>
-          {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:14}}>✅</span><span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>UPLOADED</span></div>}
-          {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:C.acD,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>⏳ Uploading...</span></div>}
+      {(d.q || ex.n) && <div style={{background:C.puD,borderRadius:10,padding:12,marginTop:10,marginBottom:10,fontSize:13,color:C.tx,lineHeight:1.6}}>
+        <div style={{fontSize:10,fontFamily:FN,color:C.pu,marginBottom:6,fontWeight:700,textAlign:'center'}}>NOTES</div>
+        {d.q && <div style={{textAlign:/[\u0590-\u05FF]/.test(d.q)?'right':'left',direction:/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr'}}>{d.q}</div>}
+        {d.q && ex.n && <div style={{borderTop:`1px solid ${C.pu}30`,margin:'8px 0'}}/>}
+        {ex.n && <div style={{color:C.or,textAlign:/[\u0590-\u05FF]/.test(ex.n)?'right':'left',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr'}}>{ex.n}</div>}</div>}
+      {vid ? <div style={{marginBottom:10,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
+        <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
+        : <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:20,marginBottom:10,textAlign:'center',color:C.td,fontSize:12}}>No video</div>}
+      {(() => { const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`; const wf = weeklyFocus?.[fk]; return wf && (
+        <div style={{background:C.acD,border:`1px solid ${C.ac}30`,borderLeft:`3px solid ${C.ac}`,borderRadius:10,padding:10,marginBottom:10}}>
+          <div style={{fontSize:10,fontFamily:FN,color:C.ac,marginBottom:3,fontWeight:700}}>WEEKLY FOCUS</div>
+          <div style={{fontSize:12,color:C.tx,lineHeight:1.5}}>{wf}</div></div>); })()}
+    </div>;
+  };
+
+  const renderFormCheck = (g) => {
+    const { idx: ei, d } = g; const f = fv[ei];
+    return <div key={ei} style={{background:C.sf,border:`1px solid ${f.uploaded?C.gn+'60':C.bd}`,borderRadius:12,padding:12,marginBottom:10}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+        <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>FORM CHECK · {d.t}</div>
+        {f.uploaded && <div style={{background:C.gnD,padding:'3px 10px',borderRadius:20,fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>✅ UPLOADED</div>}
+        {f.uploading && <div style={{background:C.acD,padding:'3px 10px',borderRadius:20,fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700}}>⏳ Uploading...</div>}
+      </div>
+      {f.has && f.videoUrl ? (
+        <div>
+          <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
+          <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
+            style={{width:'100%',marginTop:6,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>Remove Video</button>
         </div>
-        {f.has && f.videoUrl ? (
-          <div style={{marginBottom:10}}>
-            <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
-            <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
-              style={{width:'100%',marginTop:6,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>
-              Remove Video</button>
-          </div>
-        ) : (
-          <div style={{display:'flex',gap:8}}>
-            <label style={{flex:1,padding:'14px 8px',borderRadius:8,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:12,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-              <span style={{fontSize:20}}>🎥</span>
-              <span>Record</span>
-              <input type="file" accept="video/*" capture="environment" style={{display:'none'}}
-                onChange={async e => { await handleVideoUpload(e, ei); }} />
-            </label>
-            <label style={{flex:1,padding:'14px 8px',borderRadius:8,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:12,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-              <span style={{fontSize:20}}>📁</span>
-              <span>Gallery</span>
-              <input type="file" accept="video/*" style={{display:'none'}}
-                onChange={async e => { await handleVideoUpload(e, ei); }} />
-            </label>
-          </div>
-        )}
-        <textarea value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8}}/></div>
-      <div style={{display:'flex',gap:8}}>
+      ) : (
+        <div style={{display:'flex',gap:8}}>
+          <label style={{flex:1,padding:'10px 8px',borderRadius:8,border:`1px dashed ${C.bd}`,color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:11,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+            <span style={{fontSize:16}}>🎥</span><span>Record</span>
+            <input type="file" accept="video/*" capture="environment" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
+          </label>
+          <label style={{flex:1,padding:'10px 8px',borderRadius:8,border:`1px dashed ${C.bd}`,color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:11,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+            <span style={{fontSize:16}}>📁</span><span>Gallery</span>
+            <input type="file" accept="video/*" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
+          </label>
+        </div>
+      )}
+      <textarea value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:12,minHeight:40,resize:'vertical',marginTop:6}}/>
+    </div>;
+  };
+
+  return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+    <div style={{padding:20}}>
+      {isSuperset && <div style={{background:C.acD,border:`1px solid ${C.ac}40`,borderRadius:10,padding:'8px 12px',marginBottom:14,textAlign:'center'}}>
+        <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>SUPERSET {group.superset} · {groupExs.length} EXERCISES</div>
+        <div style={{fontSize:11,color:C.tm,marginTop:3}}>Alternate between exercises each round</div>
+      </div>}
+
+      {/* Per-exercise info blocks (title, prescription, tempo, wave, notes, video, focus) */}
+      {groupExs.map(renderExerciseInfo)}
+
+      {/* Set logging: one row per round, columns for each exercise */}
+      <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:12,marginBottom:14}}>
+        {isSuperset && <div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:8,textAlign:'center',letterSpacing:'0.06em'}}>LOG EACH ROUND</div>}
+        <div style={{display:'grid',gridTemplateColumns:`28px ${groupExs.map(()=>'1fr').join(' ')} 28px`,gap:4,marginBottom:4,alignItems:'end'}}>
+          <div style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{isSuperset?'RND':'SET'}</div>
+          {groupExs.map(g => <div key={g.idx} style={{fontSize:9,fontFamily:FN,color:C.ac,textAlign:'center',fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{isSuperset?g.d.t.slice(0,18):''}</div>)}
+          <div style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>✓</div>
+        </div>
+        {Array.from({length:maxSets},(_,si)=>si).map(si => {
+          const allDone = groupExs.every(g => (allSets[g.idx]?.[si]?.done) || si >= (allSets[g.idx]?.length || 0));
+          const anyActive = groupExs.some(g => si < (allSets[g.idx]?.length || 0));
+          return <div key={si} style={{display:'grid',gridTemplateColumns:`28px ${groupExs.map(()=>'1fr').join(' ')} 28px`,gap:4,alignItems:'center',padding:'4px 0',borderTop:si?`1px solid ${C.bd}40`:'none',opacity:allDone?0.5:1}}>
+            <div style={{fontFamily:FN,fontSize:12,color:C.td,textAlign:'center'}}>{si+1}</div>
+            {groupExs.map(g => {
+              const hasRow = si < (allSets[g.idx]?.length || 0);
+              if (!hasRow) return <div key={g.idx} style={{background:C.sf2,borderRadius:4,padding:4,textAlign:'center',color:C.td,fontSize:10}}>—</div>;
+              const set = allSets[g.idx][si];
+              return <div key={g.idx} style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:2}}>
+                <input value={set.reps} onChange={e => uSet(g.idx,si,'reps',e.target.value)} placeholder="reps" style={{...bi,padding:'5px 4px',fontSize:12,textAlign:'center'}}/>
+                <input value={set.load} onChange={e => uSet(g.idx,si,'load',e.target.value)} placeholder="kg" style={{...bi,padding:'5px 4px',fontSize:12,textAlign:'center'}}/>
+                <input value={set.rpe} onChange={e => uSet(g.idx,si,'rpe',e.target.value)} placeholder="rpe" style={{...bi,padding:'5px 4px',fontSize:12,textAlign:'center'}}/>
+              </div>;
+            })}
+            <div style={{textAlign:'center'}}>
+              <input type="checkbox" checked={allDone && anyActive} onChange={e => {
+                const next = [...allSets];
+                groupExs.forEach(g => {
+                  if (si < (next[g.idx]?.length || 0)) {
+                    next[g.idx] = [...next[g.idx]];
+                    next[g.idx][si] = {...next[g.idx][si], done: e.target.checked};
+                  }
+                });
+                setAllSets(next);
+              }} style={{width:16,height:16,accentColor:C.gn,cursor:'pointer'}}/>
+            </div>
+          </div>;
+        })}
+      </div>
+
+      {/* Form check block per exercise */}
+      {groupExs.map(renderFormCheck)}
+
+      <div style={{display:'flex',gap:8,marginTop:6}}>
         <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
-        <button onClick={f.uploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:f.uploading?C.sf3:C.ac,color:f.uploading?C.td:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:f.uploading?'wait':'pointer',opacity:f.uploading?0.6:1}}>
-          {f.uploading ? '⏳ Uploading video...' : ei===exCount-1 ? 'Finish →' : 'Next Exercise →'}</button></div>
+        <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:anyUploading?C.sf3:C.ac,color:anyUploading?C.td:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
+          {anyUploading ? '⏳ Uploading video...' : step===groupCount-1 ? 'Finish →' : (isSuperset?'Next Block →':'Next Exercise →')}</button></div>
     </div></div>;
 }
 
