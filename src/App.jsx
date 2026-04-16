@@ -2,7 +2,8 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
-import { usePlanIndex } from './usePlansStore';
+import { usePlanIndex, savePlan } from './usePlansStore';
+import { supabase } from './supabase';
 import { Btn, baseBtn } from './ui';
 import * as XLSX from 'xlsx';
 import TraineesView from './TraineesView';
@@ -20,7 +21,7 @@ const MemoExercises = React.memo(ExercisesView);
 const MemoWorkouts = React.memo(WorkoutsView);
 const MemoReview = React.memo(WorkoutReview);
 
-const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", plans:"expo-plans", workouts:"expo-workouts", payments:"expo-payments", cw:"expo-cw", bw:"expo-bw" };
+const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"expo-workouts", payments:"expo-payments", cw:"expo-cw", bw:"expo-bw" };
 
 function parseSingleSheet(ws, sheetName) {
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
@@ -62,7 +63,6 @@ export default function App() {
   const [trainees,setTrainees,tL]=useSupaStore(KEYS.trainees,[]);
   const [exercises,setExercises,eL]=useSupaStore(KEYS.exercises,[]);
   const { index: planIndex, loaded: pL, reload: reloadPlanIndex } = usePlanIndex();
-  const [plans,setPlans]=useSupaStore(KEYS.plans,[]); // Legacy: only for ClientPortal + export. NOT used in coach UI
   const [workouts,setWorkouts,wL]=useSupaStore(KEYS.workouts,[]);
   const [payments,setPayments,pyL]=useSupaStore(KEYS.payments,[]);
   const [clientWorkouts,setClientWorkouts]=useSupaClientWorkouts([]);
@@ -144,18 +144,19 @@ export default function App() {
 
   const handleDecrementSession=useCallback(tid=>{setTrainees(prev=>prev.map(t=>t.id===tid&&t.sessionsRemaining>0?{...t,sessionsRemaining:t.sessionsRemaining-1}:t))},[setTrainees]);
 
-  const doImportSingle=(data)=>{
+  const doImportSingle=async(data)=>{
     const trainee={...data.trainee,id:data.trainee.id||uid(),email:"",phone:"",age:"",weight:"",height:"",injuries:"",goals:"",notes:"",startDate:new Date().toISOString().slice(0,10),packagePrice:""};
     setTrainees(prev=>{const exists=prev.find(t=>t.name===trainee.name);if(exists){trainee.id=exists.id;return prev.map(t=>t.name===trainee.name?{...t,...trainee}:t)}return[...prev,trainee]});
     const exMap={};
     setExercises(prev=>{const u=[...prev];for(const ex of data.exercises){const e=u.find(x=>x.title===ex.title);if(e){exMap[ex.id]=e.id}else{const nw={...ex,id:ex.id||uid()};exMap[ex.id]=nw.id;u.push(nw)}}return u});
     const plan={id:data.plan.id||uid(),name:data.plan.name,traineeId:trainee.id,phase:data.plan.phase||"",notes:"",createdAt:new Date().toISOString(),
       days:(data.plan.days||[]).map(d=>({id:uid(),name:d.name,exercises:(d.ex||[]).map((ex,i)=>({id:uid(),exerciseId:exMap[ex.eid]||ex.eid,sets:ex.s||3,reps:ex.r||"8-12",load:"",rpe:"",tempo:ex.tempo||"",rest:"90",notes:"",order:i,superset:ex.superset||""}))}))};
-    setPlans(prev=>[...prev,plan]);
+    await savePlan(plan);
+    await reloadPlanIndex();
     return{name:trainee.name,days:plan.days.length,exercises:data.exercises.length,plans:1};
   };
 
-  const doImportMulti=(data)=>{
+  const doImportMulti=async(data)=>{
     const trainee={...data.trainee,id:data.trainee.id||uid(),email:"",phone:"",age:"",weight:"",height:"",injuries:"",goals:"",notes:"",startDate:new Date().toISOString().slice(0,10),packagePrice:""};
     setTrainees(prev=>{const exists=prev.find(t=>t.name===trainee.name);if(exists){trainee.id=exists.id;return prev.map(t=>t.name===trainee.name?{...t,...trainee}:t)}return[...prev,trainee]});
     const exMap={};
@@ -163,7 +164,8 @@ export default function App() {
     let pc=0;
     const newPlans=data.plans.map(p=>{pc++;return{id:p.id||uid(),name:p.name,traineeId:trainee.id,phase:p.phase||"",notes:"",createdAt:new Date().toISOString(),
       days:(p.days||[]).map(d=>({id:uid(),name:d.name,exercises:(d.ex||[]).map((ex,i)=>({id:uid(),exerciseId:exMap[ex.eid]||ex.eid,sets:ex.s||3,reps:ex.r||"8-12",load:"",rpe:"",tempo:ex.tempo||"",rest:"90",notes:"",order:i,superset:ex.superset||""}))}))};});
-    setPlans(prev=>[...prev,...newPlans]);
+    for(const p of newPlans){ await savePlan(p); }
+    await reloadPlanIndex();
     return{name:trainee.name,exercises:data.exercises.length,plans:pc};
   };
 
@@ -172,11 +174,11 @@ export default function App() {
     const ext=file.name.split('.').pop().toLowerCase();
     if(ext==='json'){
       const reader=new FileReader();
-      reader.onload=(ev)=>{
+      reader.onload=async(ev)=>{
         try{
           const data=JSON.parse(ev.target.result);
           if(data.trainee && data.plan && data.exercises){
-            const r=doImportSingle(data);
+            const r=await doImportSingle(data);
             setImportMsg(`✓ Imported: ${r.name} — ${r.days} days, ${r.exercises} exercises`);
           } else if(data.trainees && !data.exportDate){
             let added=0, updated=0;
@@ -193,7 +195,8 @@ export default function App() {
             setImportMsg(`✓ Trainees: ${added} added, ${updated} updated${data.payments?`, ${data.payments.length} payments`:''}`);
           } else if(data.exportDate){
             if(data.trainees)setTrainees(data.trainees); if(data.exercises)setExercises(data.exercises);
-            if(data.plans)setPlans(data.plans); if(data.workouts)setWorkouts(data.workouts); if(data.payments)setPayments(data.payments);
+            if(data.plans && Array.isArray(data.plans)){ for(const p of data.plans){ await savePlan(p); } await reloadPlanIndex(); }
+            if(data.workouts)setWorkouts(data.workouts); if(data.payments)setPayments(data.payments);
             setImportMsg("✓ Full backup restored");
           } else{setImportMsg("⚠ Unrecognized JSON format")}
         }catch(err){setImportMsg("✗ Error: "+err.message)}
@@ -201,10 +204,10 @@ export default function App() {
       }; reader.readAsText(file);
     } else if(['xlsx','xls','csv'].includes(ext)){
       const reader=new FileReader();
-      reader.onload=(ev)=>{
+      reader.onload=async(ev)=>{
         try{
           const parsed=parseSpreadsheet(new Uint8Array(ev.target.result),file.name);
-          const r=doImportMulti(parsed);
+          const r=await doImportMulti(parsed);
           setImportMsg(`✓ Imported ${ext.toUpperCase()}: ${r.name} — ${r.plans} blocks, ${r.exercises} unique exercises`);
         }catch(err){setImportMsg("✗ Error: "+err.message)}
         setTimeout(()=>setImportMsg(null),6000);
@@ -213,8 +216,9 @@ export default function App() {
     e.target.value="";
   };
 
-  const handleExport=()=>{
-    const data=JSON.stringify({trainees,exercises,plans,workouts,payments,clientWorkouts,bwLog,exportDate:new Date().toISOString(),version:"1.0"},null,2);
+  const handleExport=async()=>{
+    const { data: allPlans } = await supabase.from('plans').select('*');
+    const data=JSON.stringify({trainees,exercises,plans:allPlans||[],workouts,payments,clientWorkouts,bwLog,exportDate:new Date().toISOString(),version:"1.0"},null,2);
     const blob=new Blob([data],{type:"application/json"});const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download=`expo-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
   };
