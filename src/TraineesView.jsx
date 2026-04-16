@@ -2,6 +2,26 @@ import React, { useState } from 'react';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
 
+// Normalize email field: always work with arrays internally
+const emailsToArr = (email) => {
+  if (!email) return [''];
+  if (Array.isArray(email)) return email.length ? email : [''];
+  return [email];
+};
+// Convert back for storage: array if 2+, string if 1, empty string if 0
+const emailsToStore = (arr) => {
+  const clean = arr.map(e => e.trim().toLowerCase()).filter(Boolean);
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean[0];
+  return clean;
+};
+// Display on card
+const emailsDisplay = (email) => {
+  if (!email) return '';
+  if (Array.isArray(email)) return email.join(', ');
+  return email;
+};
+
 const defaultTrainee = () => ({
   id: uid(), name: "", email: "", phone: "", age: "", weight: "", height: "",
   injuries: "", goals: "", format: "In-Person Private", status: "Active",
@@ -27,8 +47,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
 
   const handleSave = () => {
     if (!form.name) return;
-    if (editId) setTrainees(prev => prev.map(t => t.id === editId ? form : t));
-    else setTrainees(prev => [...prev, form]);
+    const toSave = { ...form, email: emailsToStore(form._emails || emailsToArr(form.email)) };
+    delete toSave._emails;
+    if (editId) setTrainees(prev => prev.map(t => t.id === editId ? toSave : t));
+    else setTrainees(prev => [...prev, toSave]);
     setForm(defaultTrainee()); setEditId(null); setShowForm(false);
   };
   const handleArchive = (id) => {
@@ -60,7 +82,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{flex:1}}>
                   <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, textAlign:'left' }}>{t.name}</div>
-                  <div style={{ fontSize: 12, color: C.tm, marginTop: 2, minHeight: 16, textAlign:'left' }}>{t.email||''}{t.phone ? ` · ${t.phone}` : ""}</div>
+                  <div style={{ fontSize: 12, color: C.tm, marginTop: 2, minHeight: 16, textAlign:'left' }}>{emailsDisplay(t.email)}{t.phone ? ` · ${t.phone}` : ""}</div>
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 18, fontFamily: FN, fontWeight: 600, textTransform:'uppercase', letterSpacing:'0.04em' }}>{t.format}</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", minHeight: 22 }}>
                     {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:t.sessionsRemaining<=2?C.rd:C.gn}}>{t.sessionsRemaining} SESSIONS LEFT</span>}
@@ -72,7 +94,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
               </div>}
-              {!showArchived && <button onClick={(e) => {e.stopPropagation(); setForm({...t}); setEditId(t.id); setShowForm(true)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",fontSize:11,marginTop:8,padding:0}}>✏️ Edit</button>}
+              {!showArchived && <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",fontSize:11,marginTop:8,padding:0}}>✏️ Edit</button>}
             </Card>))}
         </div>)}
 
@@ -80,7 +102,28 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Trainee" : "New Trainee"} wide>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Input label="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-          <Input label="Email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>Email(s)</label>
+            {(form._emails || emailsToArr(form.email)).map((em, i, arr) => (
+              <div key={i} style={{ display: 'flex', gap: 4 }}>
+                <input value={em} onChange={e => {
+                  const next = [...(form._emails || emailsToArr(form.email))];
+                  next[i] = e.target.value;
+                  setForm({...form, _emails: next});
+                }} placeholder="email@example.com" style={{ ...baseInput, flex: 1 }} />
+                {arr.length > 1 && <button onClick={() => {
+                  const next = [...arr]; next.splice(i, 1);
+                  setForm({...form, _emails: next});
+                }} style={{ background: C.rdD, border: 'none', borderRadius: 6, padding: '0 8px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
+              </div>
+            ))}
+            {(form._emails || emailsToArr(form.email)).length < 3 && (
+              <button onClick={() => {
+                const next = [...(form._emails || emailsToArr(form.email)), ''];
+                setForm({...form, _emails: next});
+              }} style={{ background: 'none', border: `1px dashed ${C.bd}`, borderRadius: 6, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 11, fontWeight: 600 }}>+ Add Email</button>
+            )}
+          </div>
           <Input label="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+972..." />
           <Input label="Age" type="number" value={form.age} onChange={e => setForm({...form, age: e.target.value})} />
           <Input label="Weight (kg)" type="number" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} />
