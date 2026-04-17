@@ -135,20 +135,18 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
               const online = isOnline(t.id, presence);
               return (
                 <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <span style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,fontFamily:FN,background:C.acD,color:C.ac}}>COUPLE</span>
-                      {familyName && <span style={{fontSize:12,color:C.td,fontFamily:FN}}>{familyName}</span>}
-                      {online && <OnlineDot />}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:15,color:C.tx,textAlign:'left',display:'flex',alignItems:'center',gap:6}}>{t.name}{online && <OnlineDot />}</div>
                     </div>
                     <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
                   </div>
-                  <div style={{display:'flex'}}>
+                  <div style={{display:'flex',marginTop:10}}>
                     {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
                         {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:700,fontSize:15,color:C.tx,textAlign:'left'}}>{m.name || `Member ${mi+1}`}</div>
+                          <div style={{fontWeight:600,fontSize:13,color:C.tx,textAlign:'left'}}>{m.name || `Member ${mi+1}`}</div>
                           <div style={{fontSize:12,color:C.tm,marginTop:2,minHeight:16,textAlign:'left'}}>{m.email||''}</div>
                           <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
                             {mpc[mi] > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{mpc[mi]} PROGRAMS</span>}
