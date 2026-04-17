@@ -25,23 +25,22 @@ function PatternCoverage({ plan, exercises }) {
   </div>);
 }
 
-function ExPicker({ exercises, value, onChange, label }) {
-  const [open, setOpen] = useState(false);
+// Shared modal for browsing and picking an exercise.
+// Props: open, onClose, onPick(exerciseId), exercises, currentId, title
+function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, title }) {
   const [search, setSearch] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
-  const containerRef = React.useRef(null);
   const inputRef = React.useRef(null);
   const listRef = React.useRef(null);
-  const sel = exercises.find(e => e.id === value);
 
   const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const clearFilters = () => setFilters({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
+  const clearAll = () => { setSearch(""); clearFilters(); };
 
-  // Token-AND search across all metadata fields + structured filters
   const filt = useMemo(() => {
+    if (!open) return [];
     const q = search.trim().toLowerCase();
     const tokens = q.split(/\s+/).filter(Boolean);
     const match = (ex) => {
@@ -59,19 +58,20 @@ function ExPicker({ exercises, value, onChange, label }) {
       ].filter(Boolean).join(' ').toLowerCase();
       return tokens.every(t => haystack.includes(t));
     };
-    return exercises.filter(match).slice(0, 100);
-  }, [exercises, search, filters]);
+    return exercises.filter(match).slice(0, 200);
+  }, [exercises, search, filters, open]);
 
-  // Reset active row when filter changes
-  React.useEffect(() => { setActiveIdx(0); }, [search, filters, open]);
-
-  // Click-outside to close
+  // Reset state when modal opens
   React.useEffect(() => {
-    if (!open) return;
-    const handler = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) { setOpen(false); setSearch(""); setFiltersOpen(false); } };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    if (open) {
+      setSearch("");
+      clearFilters();
+      setActiveIdx(0);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
   }, [open]);
+
+  React.useEffect(() => { setActiveIdx(0); }, [search, filters]);
 
   // Scroll active row into view
   React.useEffect(() => {
@@ -80,105 +80,107 @@ function ExPicker({ exercises, value, onChange, label }) {
     if (el) el.scrollIntoView({ block: 'nearest' });
   }, [activeIdx, open]);
 
-  const pick = (ex) => { onChange(ex.id); setOpen(false); setSearch(""); setFiltersOpen(false); };
+  const pick = (ex) => { onPick(ex.id); onClose(); };
   const onKeyDown = (e) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, filt.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
     else if (e.key === 'Enter') { e.preventDefault(); if (filt[activeIdx]) pick(filt[activeIdx]); }
-    else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); setSearch(""); setFiltersOpen(false); }
+    else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
   };
 
-  // Format metadata subtitle for a row
-  const subtitle = (ex) => {
-    const parts = [ex.resistanceType, ex.bodyPosition, ex.movementType].filter(Boolean);
-    return parts.join(' · ');
-  };
-  const muscles = (ex) => {
-    const parts = [ex.primaryMuscles, ex.secondaryMuscles].filter(Boolean);
-    return parts.join(' / ');
-  };
+  const subtitle = (ex) => [ex.resistanceType, ex.bodyPosition, ex.movementType].filter(Boolean).join(' · ');
+  const muscles = (ex) => [ex.primaryMuscles, ex.secondaryMuscles].filter(Boolean).join(' / ');
+  const filterSelectStyle = { ...baseInput, padding: '7px 10px', fontSize: 12 };
 
-  const filterSelectStyle = { ...baseInput, padding: '5px 8px', fontSize: 11 };
+  if (!open) return null;
 
   return (
-    <div ref={containerRef} style={{ position: "relative", display: "flex", flexDirection: "column", gap: 4 }}>
-      {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: "uppercase", fontFamily: FN }}>{label}</label>}
-      <button onClick={() => { setOpen(!open); setTimeout(() => inputRef.current?.focus(), 0); }} style={{ ...baseInput, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ color: sel ? C.tx : C.td, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sel ? sel.title : "Select..."}</span>
-        <span style={{color:C.td, fontSize: 10}}>▼</span>
-      </button>
-      {open && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 6, marginTop: 2, maxHeight: 460, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
-          <div style={{ padding: 6, borderBottom: `1px solid ${C.bd}` }}>
-            <input
-              ref={inputRef}
-              placeholder="Search (title, muscle, pattern, position...)"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onKeyDown={onKeyDown}
-              autoFocus
-              style={{ ...baseInput, padding: "6px 10px", fontSize: 12 }}
-            />
-            <div style={{ fontSize: 10, color: C.td, fontFamily: FN, marginTop: 4, padding: "0 4px", display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>{filt.length}{(search.trim() || activeFilterCount > 0) && exercises.length > filt.length ? ` of ${exercises.length}` : ''} match{filt.length === 1 ? '' : 'es'}</span>
-              <button onClick={() => setFiltersOpen(o => !o)} style={{ background: activeFilterCount > 0 ? C.acD : 'transparent', border: `1px solid ${activeFilterCount > 0 ? C.ac + '60' : C.bd}`, borderRadius: 4, padding: '2px 8px', color: activeFilterCount > 0 ? C.ac : C.tm, cursor: 'pointer', fontSize: 10, fontFamily: FN, fontWeight: 600 }}>
-                {filtersOpen ? '▲' : '▼'} FILTERS{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-              </button>
-            </div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 14, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px 12px' }}>
+          <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700 }}>{title || 'Select Exercise'}</h3>
+          <button onClick={onClose} style={{ background: C.sf2, border: `1px solid ${C.bd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 6, fontSize: 14 }}>✕</button>
+        </div>
+        <div style={{ padding: '0 22px' }}>
+          <input
+            ref={inputRef}
+            placeholder="Search by title, muscle, pattern, position..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onKeyDown={onKeyDown}
+            style={{ ...baseInput, padding: '10px 14px', fontSize: 14 }}
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6, marginTop: 10 }}>
+            <select value={filters.category} onChange={e => setF('category', e.target.value)} style={filterSelectStyle}><option value="">Any Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={filterSelectStyle}><option value="">Any Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={filterSelectStyle}><option value="">Any Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={filterSelectStyle}><option value="">Any Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={filterSelectStyle}><option value="">Any Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={filterSelectStyle}><option value="">Any Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}</select>
           </div>
-          {filtersOpen && (
-            <div style={{ padding: 8, borderBottom: `1px solid ${C.bd}`, background: C.sf2 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-                <select value={filters.category} onChange={e => setF('category', e.target.value)} style={filterSelectStyle}><option value="">Any Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
-                <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={filterSelectStyle}><option value="">Any Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
-                <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={filterSelectStyle}><option value="">Any Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}</select>
-                <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={filterSelectStyle}><option value="">Any Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
-                <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={filterSelectStyle}><option value="">Any Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}</select>
-                <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={filterSelectStyle}><option value="">Any Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}</select>
-              </div>
-              {activeFilterCount > 0 && (
-                <div style={{ textAlign: 'right', marginTop: 6 }}>
-                  <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 10, fontFamily: FN, textDecoration: 'underline' }}>Clear filters</button>
-                </div>
-              )}
-            </div>
-          )}
-          <div style={{ fontSize: 10, color: C.td, fontFamily: FN, padding: '4px 10px', background: C.sf, borderBottom: `1px solid ${C.bd}` }}>
-            ↑↓ navigate · Enter select · Esc close
-          </div>
-          <div ref={listRef} style={{ overflowY: "auto", maxHeight: 260 }}>
-            {filt.length === 0 ? (
-              <div style={{ padding: 16, fontSize: 12, color: C.td, textAlign: "center" }}>No exercises found</div>
-            ) : filt.map((ex, idx) => {
-              const isActive = idx === activeIdx;
-              const isSelected = ex.id === value;
-              return (
-                <button
-                  key={ex.id}
-                  data-idx={idx}
-                  onClick={() => pick(ex)}
-                  onMouseEnter={() => setActiveIdx(idx)}
-                  style={{
-                    display: "block", width: "100%", textAlign: "left",
-                    padding: "8px 10px", border: "none",
-                    background: isActive ? C.sf2 : (isSelected ? C.acD : "transparent"),
-                    borderLeft: isSelected ? `2px solid ${C.ac}` : '2px solid transparent',
-                    color: C.tx, cursor: "pointer", fontFamily: FB,
-                    borderBottom: `1px solid ${C.bd}`
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                    <div style={{ fontWeight: 600, fontSize: 12, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ex.title}</div>
-                    {ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.gn, whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
-                  </div>
-                  {subtitle(ex) && <div style={{ fontSize: 10, color: C.tm, marginTop: 2, fontFamily: FN }}>{subtitle(ex)}</div>}
-                  {muscles(ex) && <div style={{ fontSize: 10, color: C.td, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{muscles(ex)}</div>}
-                </button>
-              );
-            })}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, fontSize: 11, fontFamily: FN, color: C.td }}>
+            <span>{filt.length}{(search.trim() || activeFilterCount > 0) && exercises.length > filt.length ? ` of ${exercises.length}` : ''} result{filt.length === 1 ? '' : 's'} · ↑↓ navigate · Enter select · Esc close</span>
+            {(search.trim() || activeFilterCount > 0) && <button onClick={clearAll} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>}
           </div>
         </div>
-      )}
+        <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 22px 22px', marginTop: 10 }}>
+          {filt.length === 0 ? (
+            <div style={{ padding: 40, fontSize: 13, color: C.td, textAlign: 'center' }}>No exercises found. Try relaxing filters or the search term.</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
+              {filt.map((ex, idx) => {
+                const isActive = idx === activeIdx;
+                const isSelected = ex.id === currentId;
+                return (
+                  <button
+                    key={ex.id}
+                    data-idx={idx}
+                    onClick={() => pick(ex)}
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    style={{
+                      textAlign: 'left', padding: '10px 12px',
+                      background: isActive ? C.sf2 : (isSelected ? C.acD : C.sf),
+                      border: `1px solid ${isActive ? C.ac + '60' : (isSelected ? C.ac + '80' : C.bd)}`,
+                      borderRadius: 8, cursor: 'pointer', fontFamily: FB, color: C.tx,
+                      transition: 'all 0.1s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ex.title}</div>
+                      {ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.gn, whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
+                    </div>
+                    {subtitle(ex) && <div style={{ fontSize: 10, color: C.tm, fontFamily: FN, marginBottom: 2 }}>{subtitle(ex)}</div>}
+                    {muscles(ex) && <div style={{ fontSize: 10, color: C.td, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{muscles(ex)}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Small button shown inline in an exercise row. Clicking it opens the browser modal.
+function ExPicker({ exercises, value, onChange, label }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const sel = exercises.find(e => e.id === value);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>{label}</label>}
+      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ color: sel ? C.tx : C.td, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sel ? sel.title : 'Select exercise...'}</span>
+        <span style={{ color: C.td, fontSize: 10 }}>▼</span>
+      </button>
+      <ExerciseBrowserModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onPick={id => { onChange(id); setModalOpen(false); }}
+        exercises={exercises}
+        currentId={value}
+        title={sel ? `Change Exercise (currently: ${sel.title})` : 'Select Exercise'}
+      />
     </div>
   );
 }
@@ -187,10 +189,16 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const updateDay = (i, u) => setPlan(p => ({...p, days: p.days.map((d,idx) => idx===i ? {...d,...u} : d)}));
   const addDay = () => { setPlan(p => ({...p, days: [...p.days, defaultDay(p.days.length+1)]})); setActiveDay(plan.days.length); };
   const removeDay = i => { if (plan.days.length<=1) return; setPlan(p => ({...p, days: p.days.filter((_,idx)=>idx!==i)})); if (activeDay>=plan.days.length-1) setActiveDay(Math.max(0,plan.days.length-2)); };
-  const addEx = () => { const ex = defaultPlanEx(); ex.order = plan.days[activeDay]?.exercises.length||0; updateDay(activeDay, {exercises:[...(plan.days[activeDay]?.exercises||[]),ex]}); };
+  const addExWithId = (exerciseId) => {
+    const ex = defaultPlanEx();
+    ex.order = plan.days[activeDay]?.exercises.length || 0;
+    ex.exerciseId = exerciseId;
+    updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
+  };
   const updateEx = (ei,u) => { const exs=[...plan.days[activeDay].exercises]; exs[ei]={...exs[ei],...u}; updateDay(activeDay,{exercises:exs}); };
   const removeEx = ei => updateDay(activeDay, {exercises:plan.days[activeDay].exercises.filter((_,i)=>i!==ei)});
   const moveEx = (ei,dir) => { const exs=[...plan.days[activeDay].exercises]; const si=ei+dir; if(si<0||si>=exs.length) return; [exs[ei],exs[si]]=[exs[si],exs[ei]]; updateDay(activeDay,{exercises:exs}); };
@@ -217,7 +225,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
       </div>
       {day&&<div style={{marginBottom:12}}><Input label={`Day ${activeDay+1} Name`} value={day.name} onChange={e=>updateDay(activeDay,{name:e.target.value})} /></div>}
       {day&&day.exercises.length===0?
-        <div style={{textAlign:"center",padding:30,color:C.td}}><p style={{fontSize:13}}>No exercises.</p><Btn onClick={addEx} style={{marginTop:8}}>+ Add Exercise</Btn></div>
+        <div style={{textAlign:"center",padding:30,color:C.td}}><p style={{fontSize:13}}>No exercises.</p><Btn onClick={()=>setAddExerciseOpen(true)} style={{marginTop:8}}>+ Add Exercise</Btn></div>
       :<div>
         {day?.exercises.map((ex,exIdx) => {
           const exData = exercises.find(e=>e.id===ex.exerciseId);
@@ -261,8 +269,15 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                 )}
               </div></div></div>);
         })}
-        <Btn variant="ghost" onClick={addEx} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
+        <Btn variant="ghost" onClick={()=>setAddExerciseOpen(true)} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
       </div>}
+      <ExerciseBrowserModal
+        open={addExerciseOpen}
+        onClose={()=>setAddExerciseOpen(false)}
+        onPick={id=>{ addExWithId(id); setAddExerciseOpen(false); }}
+        exercises={exercises}
+        title="Add Exercise to Day"
+      />
     </div>);
 }
 
