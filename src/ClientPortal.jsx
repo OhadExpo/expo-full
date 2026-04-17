@@ -159,6 +159,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   });
 
   // Upload with real progress tracking via XMLHttpRequest
+  // Supabase Storage REST API: POST raw body with Content-Type header
   const uploadWithProgress = (blob, path, contentType, onProgress) => new Promise((resolve, reject) => {
     const supaUrl = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
     const supaKey = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -168,6 +169,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     xhr.open('POST', url);
     xhr.setRequestHeader('Authorization', `Bearer ${supaKey}`);
     xhr.setRequestHeader('apikey', supaKey);
+    xhr.setRequestHeader('Content-Type', contentType);
     xhr.setRequestHeader('x-upsert', 'true');
 
     xhr.upload.onprogress = (e) => {
@@ -177,14 +179,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (xhr.status >= 200 && xhr.status < 300) {
         const publicUrl = `${supaUrl}/storage/v1/object/public/form-videos/${path}`;
         resolve({ publicUrl });
-      } else reject(new Error(`Upload failed: ${xhr.status}`));
+      } else {
+        console.error('Upload response:', xhr.status, xhr.responseText);
+        reject(new Error(`Upload failed: ${xhr.status}`));
+      }
     };
     xhr.onerror = () => reject(new Error('Upload network error'));
-
-    const formData = new FormData();
-    const fileName = path.split('/').pop();
-    formData.append('', new File([blob], fileName, { type: contentType }));
-    xhr.send(formData);
+    xhr.send(blob); // Send raw blob, NOT FormData
   });
 
   const handleVideoUpload = async (e, exIdx) => {
@@ -216,14 +217,25 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         console.log(`Compressed: ${(file.size/1e6).toFixed(1)}MB → ${(result.compressedSize/1e6).toFixed(1)}MB`);
       }
 
-      // Upload with progress
+      // Upload with progress (XHR for real-time %, falls back to Supabase client)
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase:'upload', compressProgress:100}; return n; });
       const ts = Date.now();
       const path = `${clientId}/${ts}-form${ext}`;
 
-      const { publicUrl } = await uploadWithProgress(uploadBlob, path, contentType, pct => {
-        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploadProgress:pct}; return n; });
-      });
+      let publicUrl;
+      try {
+        const result = await uploadWithProgress(uploadBlob, path, contentType, pct => {
+          setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploadProgress:pct}; return n; });
+        });
+        publicUrl = result.publicUrl;
+      } catch (xhrErr) {
+        // Fallback: use Supabase JS client (no progress but reliable)
+        console.warn('XHR upload failed, falling back to Supabase client:', xhrErr);
+        const { error } = await supabase.storage.from('form-videos').upload(path, uploadBlob, { upsert: true, contentType });
+        if (error) throw error;
+        const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(path);
+        publicUrl = urlData.publicUrl;
+      }
 
       URL.revokeObjectURL(previewUrl);
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100}; return n; });
