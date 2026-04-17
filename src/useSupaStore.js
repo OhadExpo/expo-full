@@ -5,8 +5,9 @@ import { supabase } from './supabase';
 // Generic store hook: loads from Supabase 'store' table, falls back to localStorage
 export function useSupaStore(key, initial) {
   const [data, setData] = useState(() => {
-    // Skip synchronous localStorage parse for large datasets — let Supabase load handle it
-    if (key === 'expo-plans' || key === 'expo-exercises') return initial;
+    // Skip synchronous localStorage parse — Supabase is always the source of truth
+    // This prevents stale localStorage from overwriting fresh Supabase data
+    if (key === 'expo-plans' || key === 'expo-exercises' || key === 'expo-trainees') return initial;
     try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : initial; } catch { return initial; }
   });
   const [loaded, setLoaded] = useState(false);
@@ -20,8 +21,8 @@ export function useSupaStore(key, initial) {
       try {
         const { data: row } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
         if (row && row.value !== undefined && !savingRef.current) {
-          // For large datasets, use setTimeout to yield to the browser between state updates
-          if (key === 'expo-plans' || key === 'expo-exercises') {
+          // For large/critical datasets, use setTimeout to yield to the browser between state updates
+          if (key === 'expo-plans' || key === 'expo-exercises' || key === 'expo-trainees') {
             setTimeout(() => {
               setData(row.value);
               dataRef.current = row.value;
@@ -58,8 +59,8 @@ export function useSupaStore(key, initial) {
     const val = typeof next === 'function' ? next(dataRef.current) : next;
     setData(val);
     dataRef.current = val;
-    // Skip localStorage for large datasets — Supabase is source of truth
-    if (key !== 'expo-plans' && key !== 'expo-exercises') {
+    // Skip localStorage for datasets where Supabase is source of truth
+    if (key !== 'expo-plans' && key !== 'expo-exercises' && key !== 'expo-trainees') {
       try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
     }
     writeToSupa(val);

@@ -260,6 +260,21 @@ export default function App() {
     return m;
   }, [planIndex]);
 
+  // Presence polling — read which clients are online
+  const [presence, setPresence] = useState({});
+  useEffect(() => {
+    if (!isCoach) return;
+    const poll = async () => {
+      try {
+        const { data } = await supabase.from('store').select('value').eq('key', 'expo-presence').maybeSingle();
+        if (data?.value) setPresence(data.value);
+      } catch {}
+    };
+    poll();
+    const iv = setInterval(poll, 30000);
+    return () => clearInterval(iv);
+  }, [isCoach]);
+
   if(tab==="client")return(<div>
     {isCoach&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"center"}}>
       <button onClick={()=>navTo("dashboard")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
@@ -310,8 +325,8 @@ export default function App() {
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:importMsg.startsWith("✗")?C.rdD:importMsg.startsWith("⚠")?C.orD:C.gnD,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:8,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} payments={payments} onSelectTrainee={id=>navTo("trainees",id)}/>}
-        {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} portalVis={portalVis} onSelect={id=>navTo("trainees",id)}/>}
-        {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} onBack={()=>navTo("trainees")}/>}
+        {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)}/>}
+        {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
         {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
         {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
         {tab==="plans"&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)}/>}

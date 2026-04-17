@@ -361,6 +361,24 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
       } catch (e) { console.error('ClientPortal plans load:', e); }
     })();
   }, [ci]);
+
+  // Presence heartbeat — let the coach know this client is online
+  React.useEffect(() => {
+    if (!ci) return;
+    const beat = async () => {
+      try {
+        const { supabase: sb } = await import('./supabase');
+        const { data: existing } = await sb.from('store').select('value').eq('key', 'expo-presence').maybeSingle();
+        const presence = existing?.value || {};
+        presence[ci] = Date.now();
+        await sb.from('store').upsert({ key: 'expo-presence', value: presence });
+      } catch (e) { /* silent */ }
+    };
+    beat();
+    const iv = setInterval(beat, 30000);
+    return () => clearInterval(iv);
+  }, [ci]);
+
   const clientName = trainee?.name || '';
 
   // Build merged plan list: curated overrides + trainer-side plans (auto-converted)

@@ -22,6 +22,15 @@ const emailsDisplay = (email) => {
 
 const isCouple = (t) => t.members && t.members.length === 2;
 
+const ONLINE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
+const isOnline = (tid, presence) => {
+  if (!presence || !presence[tid]) return false;
+  return (Date.now() - presence[tid]) < ONLINE_THRESHOLD;
+};
+const OnlineDot = () => (
+  <span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',background:C.gn,boxShadow:`0 0 6px ${C.gn}`,flexShrink:0}} />
+);
+
 // Get plan counts per member for couples: parent ID plans count for both, sub-ID plans count for that member only
 const getMemberPlanCounts = (t, planCounts) => {
   if (!isCouple(t)) return [planCounts?.[t.id] || 0];
@@ -39,7 +48,7 @@ const defaultTrainee = () => ({
   notes: "", packagePrice: "",
 });
 
-export default function TraineesView({ trainees, setTrainees, planCounts, portalVis, onSelect }) {
+export default function TraineesView({ trainees, setTrainees, planCounts, portalVis, presence, onSelect }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");
@@ -98,10 +107,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
         <div ref={addMenuRef} style={{position:'relative'}}>
           <Btn onClick={() => setAddMenuOpen(!addMenuOpen)}>+ Add Trainee ▾</Btn>
           {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:8,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
-            {[['Online','Online'],['In-Person Single','In-Person Private'],['In-Person Couple','In-Person Couple']].map(([label,format])=>(
+            {[['Online Client','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple']].map(([label,format])=>(
               <button key={format} onClick={()=>{
                 const f = {...defaultTrainee(), format};
-                if(format==='In-Person Couple') f.members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''}];
+                if(format==='Gym, Couple') f.members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''}];
                 setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
               }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign:'left'}}
                 onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
@@ -122,12 +131,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
 
             if (couple) {
               const [m0, m1] = t.members;
+              const online = isOnline(t.id, presence);
               return (
                 <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
                     <div style={{display:'flex',alignItems:'center',gap:8}}>
                       <span style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,fontFamily:FN,background:C.acD,color:C.ac}}>COUPLE</span>
                       {familyName && <span style={{fontSize:12,color:C.td,fontFamily:FN}}>{familyName}</span>}
+                      {online && <OnlineDot />}
                     </div>
                     <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
                   </div>
@@ -162,11 +173,12 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
             }
 
             // Solo trainee card (unchanged)
+            const online = isOnline(t.id, presence);
             return (
             <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {}}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{flex:1}}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, textAlign:'left' }}>{t.name}</div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, textAlign:'left', display:'flex', alignItems:'center', gap:6 }}>{t.name}{online && <OnlineDot />}</div>
                   <div style={{ fontSize: 12, color: C.tm, marginTop: 2, minHeight: 16, textAlign:'left' }}>{emailsDisplay(t.email)}{t.phone ? ` · ${t.phone}` : ""}</div>
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 18, fontFamily: FN, fontWeight: 600, textTransform:'uppercase', letterSpacing:'0.04em' }}>{t.format}</div>
                   <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", minHeight: 22 }}>
