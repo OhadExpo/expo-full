@@ -100,51 +100,65 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const [wuDone, setWuDone] = useState(() => warmup.map(() => false));
   const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
 
-  // Video compression: FFmpeg WASM — 480p, 59s max, ~10-15s processing
-  const ffmpegRef = React.useRef(null);
-  const compressVideo = async (file, onProgress) => {
+  // Video compression — Canvas+MediaRecorder at accelerated playback
+  // Works on all browsers including iOS Safari. No WASM dependency.
+  const compressVideo = (file, onProgress) => new Promise((resolve, reject) => {
     const MAX_SEC = 59;
-    const { FFmpeg } = await import('@ffmpeg/ffmpeg');
-    const { fetchFile } = await import('@ffmpeg/util');
+    const TARGET_H = 480;
+    const BITRATE = 1_200_000; // 1.2 Mbps
 
-    if (!ffmpegRef.current) {
-      const ff = new FFmpeg();
-      ff.on('progress', ({ progress }) => { if (onProgress) onProgress(Math.round(progress * 100)); });
-      await ff.load({
-        coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
-        wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm',
-      });
-      ffmpegRef.current = ff;
-    }
-    const ff = ffmpegRef.current;
+    const src = URL.createObjectURL(file);
+    const vid = document.createElement('video');
+    vid.muted = true; vid.playsInline = true; vid.preload = 'auto'; vid.src = src;
 
-    const inputName = 'input' + (file.name.match(/\.[^.]+$/)?.[0] || '.mp4');
-    await ff.writeFile(inputName, await fetchFile(file));
+    vid.onloadedmetadata = () => {
+      const duration = Math.min(vid.duration, MAX_SEC);
+      const scale = vid.videoHeight > TARGET_H ? TARGET_H / vid.videoHeight : 1;
+      const w = Math.round(vid.videoWidth * scale / 2) * 2;
+      const h = Math.round(vid.videoHeight * scale / 2) * 2;
 
-    // 480p, 59s cap, H.264 baseline (mobile-friendly), fast preset, 1.5Mbps
-    await ff.exec([
-      '-i', inputName,
-      '-t', String(MAX_SEC),
-      '-vf', 'scale=-2:480',
-      '-c:v', 'libx264',
-      '-preset', 'ultrafast',
-      '-b:v', '1500k',
-      '-maxrate', '2000k',
-      '-bufsize', '3000k',
-      '-profile:v', 'baseline',
-      '-level', '3.1',
-      '-an',              // strip audio — form check doesn't need it
-      '-movflags', '+faststart',
-      '-y', 'output.mp4',
-    ]);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
 
-    const data = await ff.readFile('output.mp4');
-    await ff.deleteFile(inputName);
-    await ff.deleteFile('output.mp4');
+      const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp8')
+        ? 'video/webm; codecs=vp8' : 'video/webm';
+      const stream = canvas.captureStream(24); // 24fps is enough for form check
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: BITRATE });
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        URL.revokeObjectURL(src);
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        resolve({ blob, ext: '.webm', originalSize: file.size, compressedSize: blob.size });
+      };
 
-    const blob = new Blob([data.buffer], { type: 'video/mp4' });
-    return { blob, ext: '.mp4', originalSize: file.size, compressedSize: blob.size };
-  };
+      vid.currentTime = 0;
+      // Speed up playback — 4-8x faster than real-time
+      // Safari caps at 2x for captureStream, Chrome allows higher
+      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+      vid.playbackRate = isSafari ? 2 : 8;
+
+      vid.play().then(() => {
+        recorder.start(100); // collect chunks every 100ms
+        const draw = () => {
+          if (vid.ended || vid.paused || vid.currentTime >= duration) {
+            if (recorder.state === 'recording') recorder.stop();
+            vid.pause();
+            return;
+          }
+          ctx.drawImage(vid, 0, 0, w, h);
+          if (onProgress) onProgress(Math.round((vid.currentTime / duration) * 100));
+          requestAnimationFrame(draw);
+        };
+        draw();
+        // Safety: force stop after (duration / playbackRate) + buffer
+        const wallTime = (duration / vid.playbackRate) + 3;
+        setTimeout(() => { if (recorder.state === 'recording') { recorder.stop(); vid.pause(); } }, wallTime * 1000);
+      }).catch(reject);
+    };
+    vid.onerror = () => { URL.revokeObjectURL(src); reject(new Error('Failed to load video')); };
+  });
 
   const handleVideoUpload = async (e, exIdx) => {
     const file = e.target.files?.[0];
@@ -162,7 +176,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       const ts = Date.now();
       const path = `${clientId}/${ts}-form${ext}`;
-      const { data, error } = await supabase.storage.from('form-videos').upload(path, blob, { upsert: true, contentType: 'video/mp4' });
+      const { data, error } = await supabase.storage.from('form-videos').upload(path, blob, { upsert: true, contentType: blob.type });
       URL.revokeObjectURL(previewUrl);
       if (!error) {
         const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(path);
