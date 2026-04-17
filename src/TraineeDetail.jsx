@@ -27,6 +27,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const [showEdit,setShowEdit]=useState(false);
   const [editForm,setEditForm]=useState(null);
   const [showAssign,setShowAssign]=useState(false);
+  const [pendingAssignPlan,setPendingAssignPlan]=useState(null); // for couple member picker
   const [confirmUnassign,setConfirmUnassign]=useState(null);
   const [unassignTyped,setUnassignTyped]=useState("");
   const [showArchiveConfirm,setShowArchiveConfirm]=useState(false);
@@ -44,22 +45,41 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const handleAddPayment=()=>{if(!payForm.amount)return;if(editPayId){setPayments(prev=>prev.map(p=>p.id===editPayId?{...p,...payForm}:p));setEditPayId(null)}else{setPayments(prev=>[...prev,{id:uid(),traineeId:trainee,...payForm,createdAt:new Date().toISOString()}])}setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});setShowPayForm(false)};
   const handleEditPay=(p)=>{setPayForm({amount:p.amount,method:p.method,date:p.date,notes:p.notes||"",status:p.status});setEditPayId(p.id);setShowPayForm(true)};
   const handleDeletePay=(pid)=>{setPayments(prev=>prev.filter(p=>p.id!==pid))};
-  const openEdit=()=>{setEditForm({...td, _emails: emailsToArr(td.email)});setShowEdit(true)};
-  const saveEdit=()=>{if(!editForm.name)return;const toSave={...editForm, email: emailsToStore(editForm._emails || emailsToArr(editForm.email))};delete toSave._emails;setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,...toSave}:t));setShowEdit(false)};
-  const assignPlan=async(planId)=>{
-    // Load full plan from Supabase
+  const openEdit=()=>{
+    const ef = {...td, _emails: emailsToArr(td.email)};
+    if (couple) ef._members = td.members.map(m => ({...m}));
+    setEditForm(ef);
+    setShowEdit(true);
+  };
+  const saveEdit=()=>{
+    if(!editForm.name) return;
+    const toSave={...editForm, email: emailsToStore(editForm._emails || emailsToArr(editForm.email))};
+    delete toSave._emails;
+    if (toSave._members) { toSave.members = toSave._members; delete toSave._members; }
+    setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,...toSave}:t));
+    setShowEdit(false);
+  };
+  const assignPlan=async(planId, targetId)=>{
+    const tid = targetId || trainee; // default to parent ID (shared)
     const{data:src}=await supabase.from('plans').select('*').eq('id',planId).single();
     if(!src)return;
     if(!src.trainee_id){
-      // Unassigned — assign directly
-      await supabase.from('plans').update({trainee_id:trainee,updated_at:new Date().toISOString()}).eq('id',planId);
+      await supabase.from('plans').update({trainee_id:tid,updated_at:new Date().toISOString()}).eq('id',planId);
     } else {
-      // Duplicate for this trainee
-      const dup={id:'pl_'+uid(),name:src.name,traineeId:trainee,phase:src.phase||'',notes:src.notes||'',active:true,createdAt:new Date().toISOString(),days:src.data?.days||[],warmup:src.data?.warmup||[]};
+      const dup={id:'pl_'+uid(),name:src.name,traineeId:tid,phase:src.phase||'',notes:src.notes||'',active:true,createdAt:new Date().toISOString(),days:src.data?.days||[],warmup:src.data?.warmup||[]};
       await savePlan(dup);
     }
     setShowAssign(false);
+    setPendingAssignPlan(null);
     if(reloadPlanIndex) await reloadPlanIndex();
+  };
+  // For couples: intercept assign to show member picker
+  const handleAssignClick = (planId) => {
+    if (couple) {
+      setPendingAssignPlan(planId);
+    } else {
+      assignPlan(planId);
+    }
   };
   const unassignPlan=async(planId)=>{
     await supabase.from('plans').update({trainee_id:'',updated_at:new Date().toISOString()}).eq('id',planId);
@@ -210,18 +230,30 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tw.length})</h3>
       {tw.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
         tw.slice().reverse().slice(0,10).map(w=><Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</div><span style={{fontSize:12,color:C.tm}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
-      <Modal open={showAssign} onClose={()=>setShowAssign(false)} title="Assign Program">
-        {(()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&p.traineeId!==trainee);const assignedNames=new Set(tp.map(p=>p.name));const available=[...unassigned,...others].filter(p=>!assignedNames.has(p.name)||p.traineeId!==trainee);
+      <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null)}} title="Assign Program">
+        {pendingAssignPlan && couple ? (
+          <div style={{textAlign:'center',padding:12}}>
+            <div style={{fontSize:13,color:C.tm,marginBottom:16}}>Assign to which member?</div>
+            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
+              {td.members.map((m,mi)=>(
+                <Btn key={mi} onClick={()=>assignPlan(pendingAssignPlan, trainee+'__'+mi)} style={{fontSize:13,padding:'8px 20px'}}>{m.name || `Member ${mi+1}`}</Btn>
+              ))}
+              <Btn variant="ghost" onClick={()=>assignPlan(pendingAssignPlan, trainee)} style={{fontSize:13,padding:'8px 20px'}}>Both (shared)</Btn>
+            </div>
+            <button onClick={()=>setPendingAssignPlan(null)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back to list</button>
+          </div>
+        ) : (
+        (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&p.traineeId!==trainee&&!p.traineeId.startsWith(trainee+'__'));const assignedNames=new Set(tp.map(p=>p.name));const available=[...unassigned,...others].filter(p=>!assignedNames.has(p.name)||p.traineeId!==trainee);
           return available.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:20}}>No programs available. Create one in the Programs tab first.</div>:
           <div>{unassigned.length>0&&<><div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>UNASSIGNED</div>
-            {unassigned.map(p=><div key={p.id} onClick={()=>assignPlan(p.id)} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
+            {unassigned.map(p=><div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
               <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>)}</>}
             {others.length>0&&<><div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8,marginTop:12}}>FROM OTHER CLIENTS (will duplicate)</div>
-            {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>assignPlan(p.id)} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
+            {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name} <span style={{fontWeight:400,color:C.tm}}>— {owner?.name||'?'}</span></div>
               <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>})}</>}
-          </div>})()}
+          </div>})())}
       </Modal>
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tw.length})</h3>
       {tw.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
@@ -240,7 +272,51 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* Edit trainee modal */}
       <Modal open={showEdit} onClose={()=>setShowEdit(false)} title={`Edit — ${td.name}`} wide>
-        {editForm&&<><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        {editForm&&<>{couple && editForm._members ? <>
+          {/* === COUPLE EDIT: shared fields === */}
+          <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>Shared</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+            <Input label="Couple Name" value={editForm.name||""} onChange={e=>setEditForm({...editForm,name:e.target.value})} />
+            <Select label="Format" options={TRAINING_FORMATS} value={editForm.format||""} onChange={v=>setEditForm({...editForm,format:v})} />
+            <Select label="Status" options={TRAINEE_STATUSES.filter(s=>s!=="Archived")} value={editForm.status||""} onChange={v=>setEditForm({...editForm,status:v})} />
+            <Select label="Package" options={PACKAGE_TYPES} value={editForm.package||""} onChange={v=>setEditForm({...editForm,package:v})} />
+            <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining||0} onChange={e=>setEditForm({...editForm,sessionsRemaining:parseInt(e.target.value)||0})} />
+            <Input label="Monthly (₪)" type="number" value={editForm.monthly||""} onChange={e=>setEditForm({...editForm,monthly:parseFloat(e.target.value)||0})} />
+            <Input label="Per Session (₪)" type="number" value={editForm.perSession||""} onChange={e=>setEditForm({...editForm,perSession:parseFloat(e.target.value)||0})} />
+            <Input label="Start Date" type="date" value={editForm.startDate||""} onChange={e=>setEditForm({...editForm,startDate:e.target.value})} />
+            <Input label="Last Payment" type="date" value={editForm.lastPayment||""} onChange={e=>setEditForm({...editForm,lastPayment:e.target.value})} />
+          </div>
+          {/* === COUPLE EDIT: per-member fields === */}
+          <div style={{display:'flex',gap:16}}>
+            {editForm._members.map((m, mi) => {
+              const upd = (field, val) => {
+                const next = [...editForm._members];
+                next[mi] = {...next[mi], [field]: val};
+                setEditForm({...editForm, _members: next});
+              };
+              return (
+                <div key={mi} style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>Member {mi+1}</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    <Input label="Name" value={m.name||""} onChange={e=>upd('name',e.target.value)} />
+                    <Input label="Email" value={m.email||""} onChange={e=>upd('email',e.target.value)} placeholder="email@example.com" />
+                    <Input label="Phone" value={m.phone||""} onChange={e=>upd('phone',e.target.value)} placeholder="+972..." />
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                      <Input label="Age" type="number" value={m.age||""} onChange={e=>upd('age',e.target.value)} />
+                      <Input label="Weight" type="number" value={m.weight||""} onChange={e=>upd('weight',e.target.value)} />
+                      <Input label="Height" type="number" value={m.height||""} onChange={e=>upd('height',e.target.value)} />
+                    </div>
+                    <TextArea label="Injuries" value={m.injuries||""} onChange={e=>upd('injuries',e.target.value)} />
+                    <TextArea label="Goals" value={m.goals||""} onChange={e=>upd('goals',e.target.value)} />
+                    <TextArea label="Notes" value={m.notes||""} onChange={e=>upd('notes',e.target.value)} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </> : <>
+          {/* === SOLO EDIT (unchanged) === */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Input label="Name" value={editForm.name||""} onChange={e=>setEditForm({...editForm,name:e.target.value})} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>Email(s)</label>
@@ -280,6 +356,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <div style={{gridColumn:"1 / -1"}}><TextArea label="Goals" value={editForm.goals||""} onChange={e=>setEditForm({...editForm,goals:e.target.value})} /></div>
           <div style={{gridColumn:"1 / -1"}}><TextArea label="Notes" value={editForm.notes||""} onChange={e=>setEditForm({...editForm,notes:e.target.value})} /></div>
         </div>
+        </>}
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
           <Btn variant="ghost" onClick={()=>setShowEdit(false)}>Cancel</Btn>
           <Btn onClick={saveEdit}>Save</Btn></div></>}
