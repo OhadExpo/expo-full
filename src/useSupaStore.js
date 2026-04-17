@@ -21,8 +21,8 @@ export function useSupaStore(key, initial) {
       try {
         const { data: row } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
         if (row && row.value !== undefined && !savingRef.current) {
-          // For large/critical datasets, use setTimeout to yield to the browser between state updates
-          if (key === 'expo-plans' || key === 'expo-exercises' || key === 'expo-trainees') {
+          // For large datasets, use setTimeout to yield to the browser between state updates
+          if (key === 'expo-plans' || key === 'expo-exercises') {
             setTimeout(() => {
               setData(row.value);
               dataRef.current = row.value;
@@ -30,7 +30,9 @@ export function useSupaStore(key, initial) {
           } else {
             setData(row.value);
             dataRef.current = row.value;
-            try { localStorage.setItem(key, JSON.stringify(row.value)); } catch {}
+            if (key !== 'expo-trainees') {
+              try { localStorage.setItem(key, JSON.stringify(row.value)); } catch {}
+            }
           }
         }
       } catch {}
