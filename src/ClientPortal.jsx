@@ -193,6 +193,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (!file) return;
     e.target.value = '';
 
+    // Warn if file is very large on Safari (no compression available)
+    if (isSafari && file.size > 50 * 1024 * 1024) {
+      const sizeMB = Math.round(file.size / 1e6);
+      if (!confirm(`This video is ${sizeMB}MB. Large videos may take a while to upload. For faster uploads, try recording a shorter clip (under 30 seconds) or select from your photo library instead of recording new.\n\nContinue upload?`)) return;
+    }
+
     const previewUrl = URL.createObjectURL(file);
     setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0}; return n; });
 
