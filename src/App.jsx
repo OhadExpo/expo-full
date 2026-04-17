@@ -25,6 +25,12 @@ const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"e
 
 function parseSingleSheet(ws, sheetName) {
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  // Build hyperlink lookup: row,col -> URL (SheetJS stores hyperlinks on cell objects)
+  const getHyperlink = (r, c) => {
+    const cellRef = XLSX.utils.encode_cell({ r, c });
+    const cell = ws[cellRef];
+    return cell?.l?.Target || cell?.l?.target || '';
+  };
   const exercises = []; const days = []; let currentDay = null; let blockName = '';
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r]; const a = String(row[0]||'').trim(); const b = String(row[1]||'').trim();
@@ -40,7 +46,8 @@ function parseSingleSheet(ws, sheetName) {
     if (repsRaw.includes('>')) { for(let ci=7;ci<=10;ci++){if(row[ci])wave.push(String(row[ci]).trim())} }
     let superset=''; const ssMatch=a.match(/\d+([a-e])/i); if(ssMatch)superset=ssMatch[1].toUpperCase();
     const eid='ex_'+uid(); const exName=b||String(row[2]||'').trim(); if(!exName)continue;
-    exercises.push({id:eid,title:exName,videoLink:'',cues:'',category:'',resistanceType:'',movementPattern:'',laterality:'',primaryMuscles:'',secondaryMuscles:'',primaryJoints:'',jointMovements:'',bodyPosition:'',movementType:'',notes:''});
+    const videoLink=getHyperlink(r, 3);
+    exercises.push({id:eid,title:exName,videoLink,cues:'',category:'',resistanceType:'',movementPattern:'',laterality:'',primaryMuscles:'',secondaryMuscles:'',primaryJoints:'',jointMovements:'',bodyPosition:'',movementType:'',notes:''});
     const dayEx={eid,s:sets,r:repsRaw||'8-12'}; if(tempo&&tempo.toLowerCase()!=='tempo'&&tempo.toLowerCase()!=='none')dayEx.tempo=tempo; if(wave.length>0)dayEx.wk=wave; if(superset)dayEx.superset=superset;
     if(!currentDay)currentDay={name:'Day 1',ex:[]}; currentDay.ex.push(dayEx);
   }
