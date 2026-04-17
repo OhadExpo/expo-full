@@ -1,8 +1,21 @@
 import React, { useState } from 'react';
 import { C, FN, FB, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, baseInput } from './ui';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
+
+const emailsToArr = (email) => {
+  if (!email) return [''];
+  if (Array.isArray(email)) return email.length ? email : [''];
+  return [email];
+};
+const emailsToStore = (arr) => {
+  const clean = arr.map(e => e.trim().toLowerCase()).filter(Boolean);
+  if (clean.length === 0) return '';
+  if (clean.length === 1) return clean[0];
+  return clean;
+};
+
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, payments, setPayments, onBack, onOpenPlan, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee); const tp=(planIndex||[]).filter(p=>p.traineeId===trainee);
   const tw=workouts.filter(w=>w.traineeId===trainee&&w.status==="completed");
@@ -26,8 +39,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const handleAddPayment=()=>{if(!payForm.amount)return;if(editPayId){setPayments(prev=>prev.map(p=>p.id===editPayId?{...p,...payForm}:p));setEditPayId(null)}else{setPayments(prev=>[...prev,{id:uid(),traineeId:trainee,...payForm,createdAt:new Date().toISOString()}])}setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});setShowPayForm(false)};
   const handleEditPay=(p)=>{setPayForm({amount:p.amount,method:p.method,date:p.date,notes:p.notes||"",status:p.status});setEditPayId(p.id);setShowPayForm(true)};
   const handleDeletePay=(pid)=>{setPayments(prev=>prev.filter(p=>p.id!==pid))};
-  const openEdit=()=>{setEditForm({...td});setShowEdit(true)};
-  const saveEdit=()=>{if(!editForm.name)return;setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,...editForm}:t));setShowEdit(false)};
+  const openEdit=()=>{setEditForm({...td, _emails: emailsToArr(td.email)});setShowEdit(true)};
+  const saveEdit=()=>{if(!editForm.name)return;const toSave={...editForm, email: emailsToStore(editForm._emails || emailsToArr(editForm.email))};delete toSave._emails;setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,...toSave}:t));setShowEdit(false)};
   const assignPlan=async(planId)=>{
     // Load full plan from Supabase
     const{data:src}=await supabase.from('plans').select('*').eq('id',planId).single();
@@ -141,7 +154,28 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <Modal open={showEdit} onClose={()=>setShowEdit(false)} title={`Edit — ${td.name}`} wide>
         {editForm&&<><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Input label="Name" value={editForm.name||""} onChange={e=>setEditForm({...editForm,name:e.target.value})} />
-          <Input label="Email" value={editForm.email||""} onChange={e=>setEditForm({...editForm,email:e.target.value})} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>Email(s)</label>
+            {(editForm._emails || emailsToArr(editForm.email)).map((em, i, arr) => (
+              <div key={i} style={{ display: 'flex', gap: 4 }}>
+                <input value={em} onChange={e => {
+                  const next = [...(editForm._emails || emailsToArr(editForm.email))];
+                  next[i] = e.target.value;
+                  setEditForm({...editForm, _emails: next});
+                }} placeholder="email@example.com" style={{ ...baseInput, flex: 1 }} />
+                {arr.length > 1 && <button onClick={() => {
+                  const next = [...arr]; next.splice(i, 1);
+                  setEditForm({...editForm, _emails: next});
+                }} style={{ background: C.rdD, border: 'none', borderRadius: 6, padding: '0 8px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
+              </div>
+            ))}
+            {(editForm._emails || emailsToArr(editForm.email)).length < 3 && (
+              <button onClick={() => {
+                const next = [...(editForm._emails || emailsToArr(editForm.email)), ''];
+                setEditForm({...editForm, _emails: next});
+              }} style={{ background: 'none', border: `1px dashed ${C.bd}`, borderRadius: 6, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 11, fontWeight: 600 }}>+ Add Email</button>
+            )}
+          </div>
           <Input label="Phone" value={editForm.phone||""} onChange={e=>setEditForm({...editForm,phone:e.target.value})} placeholder="+972..." />
           <Input label="Age" type="number" value={editForm.age||""} onChange={e=>setEditForm({...editForm,age:e.target.value})} />
           <Input label="Weight (kg)" type="number" value={editForm.weight||""} onChange={e=>setEditForm({...editForm,weight:e.target.value})} />
