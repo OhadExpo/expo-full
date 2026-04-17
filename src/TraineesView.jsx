@@ -8,18 +8,28 @@ const emailsToArr = (email) => {
   if (Array.isArray(email)) return email.length ? email : [''];
   return [email];
 };
-// Convert back for storage: array if 2+, string if 1, empty string if 0
 const emailsToStore = (arr) => {
   const clean = arr.map(e => e.trim().toLowerCase()).filter(Boolean);
   if (clean.length === 0) return '';
   if (clean.length === 1) return clean[0];
   return clean;
 };
-// Display on card
 const emailsDisplay = (email) => {
   if (!email) return '';
   if (Array.isArray(email)) return email.join(', ');
   return email;
+};
+
+const isCouple = (t) => t.members && t.members.length === 2;
+
+// Get plan counts per member for couples: parent ID plans count for both, sub-ID plans count for that member only
+const getMemberPlanCounts = (t, planCounts) => {
+  if (!isCouple(t)) return [planCounts?.[t.id] || 0];
+  const shared = planCounts?.[t.id] || 0;
+  return [
+    shared + (planCounts?.[t.id + '__0'] || 0),
+    shared + (planCounts?.[t.id + '__1'] || 0),
+  ];
 };
 
 const defaultTrainee = () => ({
@@ -45,7 +55,9 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
   const filtered = (showArchived ? archived : active).filter(t => {
     const s = search.toLowerCase();
     const emailStr = Array.isArray(t.email) ? t.email.join(' ') : (t.email || '');
-    return t.name.toLowerCase().includes(s) || emailStr.toLowerCase().includes(s);
+    if (t.name.toLowerCase().includes(s) || emailStr.toLowerCase().includes(s)) return true;
+    if (t.members) return t.members.some(m => (m.name||'').toLowerCase().includes(s) || (m.email||'').toLowerCase().includes(s));
+    return false;
   });
 
   const handleSave = () => {
@@ -80,7 +92,55 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
 
       {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived clients." : "No trainees yet. Add your first client."} /> : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
-          {filtered.map(t => (
+          {filtered.map(t => {
+            const couple = isCouple(t);
+            const mpc = getMemberPlanCounts(t, planCounts);
+            // Extract family name for couple cards (shared surname after ו)
+            const familyName = couple ? (t.name.match(/\s+(\S+)$/)?.[1] || '') : '';
+
+            if (couple) {
+              const [m0, m1] = t.members;
+              return (
+                <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <span style={{display:'inline-block',padding:'2px 8px',borderRadius:4,fontSize:11,fontWeight:600,fontFamily:FN,background:C.acD,color:C.ac}}>COUPLE</span>
+                      {familyName && <span style={{fontSize:12,color:C.td,fontFamily:FN}}>{familyName}</span>}
+                    </div>
+                    <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
+                  </div>
+                  <div style={{display:'flex'}}>
+                    {[m0, m1].map((m, mi) => (
+                      <React.Fragment key={mi}>
+                        {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontWeight:700,fontSize:15,color:C.tx,textAlign:'left'}}>{m.name || `Member ${mi+1}`}</div>
+                          <div style={{fontSize:12,color:C.tm,marginTop:2,minHeight:16,textAlign:'left'}}>{m.email||''}</div>
+                          <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
+                            {mpc[mi] > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{mpc[mi]} PROGRAMS</span>}
+                          </div>
+                        </div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                  <div style={{height:1,background:C.bd,margin:'10px 0'}} />
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                      {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:t.sessionsRemaining<=2?C.rd:C.gn}}>{t.sessionsRemaining} SESSIONS LEFT</span>}
+                      {t.monthly > 0 && <span style={{fontSize:11,color:C.td,fontFamily:FN}}>₪{t.monthly}/mo</span>}
+                    </div>
+                    {!showArchived && <button onClick={e => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:11,padding:0}}>✏️ Edit</button>}
+                  </div>
+                  {showArchived && <div style={{display:'flex',gap:6,marginTop:10}}>
+                    <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
+                    <Btn variant="danger" onClick={e => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
+                  </div>}
+                </Card>
+              );
+            }
+
+            // Solo trainee card (unchanged)
+            return (
             <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {}}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{flex:1}}>
@@ -98,7 +158,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
               </div>}
               {!showArchived && <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",fontSize:11,marginTop:8,padding:0}}>✏️ Edit</button>}
-            </Card>))}
+            </Card>);
+          })}
         </div>)}
 
       {/* Edit/Create Modal */}
