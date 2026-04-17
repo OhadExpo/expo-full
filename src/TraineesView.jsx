@@ -81,6 +81,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
     if (!form.name) return;
     const toSave = { ...form, email: emailsToStore(form._emails || emailsToArr(form.email)) };
     delete toSave._emails;
+    if (toSave._members) { toSave.members = toSave._members; delete toSave._members; }
     if (editId) setTrainees(prev => prev.map(t => t.id === editId ? toSave : t));
     else setTrainees(prev => [...prev, toSave]);
     setForm(defaultTrainee()); setEditId(null); setShowForm(false);
@@ -162,7 +163,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                     {t.monthly > 0 && <span style={{fontSize:11,color:C.td,fontFamily:FN}}>₪{t.monthly}/mo</span>}
                   </div>
                   <div style={{display:'flex',justifyContent:'flex-end',marginTop:6}}>
-                    {!showArchived && <button onClick={e => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:11,padding:0}}>✏️ Edit</button>}
+                    {!showArchived && <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:11,padding:0}}>✏️ Edit</button>}
                   </div>
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:10}}>
                     <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
@@ -198,6 +199,47 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
 
       {/* Edit/Create Modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Trainee" : "New Trainee"} wide>
+        {form._members ? <>
+          {/* COUPLE EDIT */}
+          <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>Shared</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+            <Input label="Couple Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+            <Select label="Format" options={TRAINING_FORMATS} value={form.format} onChange={v => setForm({...form, format: v})} />
+            <Select label="Status" options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={form.status} onChange={v => setForm({...form, status: v})} />
+            <Select label="Package" options={PACKAGE_TYPES} value={form.package} onChange={v => setForm({...form, package: v})} />
+            <Input label="Sessions Remaining" type="number" value={form.sessionsRemaining} onChange={e => setForm({...form, sessionsRemaining: parseInt(e.target.value)||0})} />
+            <Input label="Start Date" type="date" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} />
+            <Input label="Package Price (₪)" type="number" value={form.packagePrice||""} onChange={e => setForm({...form, packagePrice: e.target.value})} />
+          </div>
+          <div style={{display:'flex',gap:16}}>
+            {form._members.map((m, mi) => {
+              const upd = (field, val) => {
+                const next = [...form._members];
+                next[mi] = {...next[mi], [field]: val};
+                setForm({...form, _members: next});
+              };
+              return (
+                <div key={mi} style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>Member {mi+1}</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    <Input label="Name" value={m.name||""} onChange={e=>upd('name',e.target.value)} />
+                    <Input label="Email" value={m.email||""} onChange={e=>upd('email',e.target.value)} placeholder="email@example.com" />
+                    <Input label="Phone" value={m.phone||""} onChange={e=>upd('phone',e.target.value)} placeholder="+972..." />
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                      <Input label="Age" type="number" value={m.age||""} onChange={e=>upd('age',e.target.value)} />
+                      <Input label="Weight" type="number" value={m.weight||""} onChange={e=>upd('weight',e.target.value)} />
+                      <Input label="Height" type="number" value={m.height||""} onChange={e=>upd('height',e.target.value)} />
+                    </div>
+                    <TextArea label="Injuries" value={m.injuries||""} onChange={e=>upd('injuries',e.target.value)} />
+                    <TextArea label="Goals" value={m.goals||""} onChange={e=>upd('goals',e.target.value)} />
+                    <TextArea label="Notes" value={m.notes||""} onChange={e=>upd('notes',e.target.value)} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </> : <>
+          {/* SOLO EDIT */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Input label="Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -236,6 +278,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
           <div style={{ gridColumn: "1 / -1" }}><TextArea label="Goals" value={form.goals} onChange={e => setForm({...form, goals: e.target.value})} /></div>
           <div style={{ gridColumn: "1 / -1" }}><TextArea label="Notes" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} /></div>
         </div>
+        </>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
           {editId && <Btn variant="danger" onClick={() => setArchiveConfirm(editId)} style={{ marginRight: "auto" }}>📦 Archive Client</Btn>}
           <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
