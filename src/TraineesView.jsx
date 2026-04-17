@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
 
@@ -45,9 +45,17 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
   const [search, setSearch] = useState("");
   const [editId, setEditId] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
-  const [archiveConfirm, setArchiveConfirm] = useState(null); // step 1: archive
-  const [deleteConfirm, setDeleteConfirm] = useState(null);  // step 2: permanent delete from archive
-  const [deleteTyped, setDeleteTyped] = useState("");         // step 3: type name to confirm
+  const [archiveConfirm, setArchiveConfirm] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleteTyped, setDeleteTyped] = useState("");
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const addMenuRef = useRef(null);
+  useEffect(()=>{
+    if(!addMenuOpen) return;
+    const close = (e)=>{ if(addMenuRef.current && !addMenuRef.current.contains(e.target)) setAddMenuOpen(false); };
+    document.addEventListener('mousedown',close);
+    return ()=>document.removeEventListener('mousedown',close);
+  },[addMenuOpen]);         // step 3: type name to confirm
 
   const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
   const active = trainees.filter(t => t.status !== "Archived");
@@ -87,7 +95,21 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
         <button onClick={() => setShowArchived(!showArchived)} style={{ background: showArchived ? C.rdD : "transparent", border: `1px solid ${showArchived ? C.rd : C.bd}`, borderRadius: 6, padding: "8px 14px", color: showArchived ? C.rd : C.tm, fontFamily: FB, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           {showArchived ? `Archive (${archived.length})` : `Archive (${archived.length})`}
         </button>
-        <Btn onClick={() => { setForm(defaultTrainee()); setEditId(null); setShowForm(true); }}>+ Add Trainee</Btn>
+        <div ref={addMenuRef} style={{position:'relative'}}>
+          <Btn onClick={() => setAddMenuOpen(!addMenuOpen)}>+ Add Trainee ▾</Btn>
+          {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:8,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
+            {[['Online','Online'],['In-Person Single','In-Person Private'],['In-Person Couple','In-Person Couple']].map(([label,format])=>(
+              <button key={format} onClick={()=>{
+                const f = {...defaultTrainee(), format};
+                if(format==='In-Person Couple') f.members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''}];
+                setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
+              }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign:'left'}}
+                onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                {label}
+              </button>
+            ))}
+          </div>}
+        </div>
       </div>
 
       {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived clients." : "No trainees yet. Add your first client."} /> : (
