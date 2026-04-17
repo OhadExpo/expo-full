@@ -42,8 +42,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
   const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
   const active = trainees.filter(t => t.status !== "Archived");
   const archived = trainees.filter(t => t.status === "Archived");
-  const filtered = (showArchived ? archived : active).filter(t =>
-    t.name.toLowerCase().includes(search.toLowerCase()) || (t.email||"").toLowerCase().includes(search.toLowerCase()));
+  const filtered = (showArchived ? archived : active).filter(t => {
+    const s = search.toLowerCase();
+    const emailStr = Array.isArray(t.email) ? t.email.join(' ') : (t.email || '');
+    return t.name.toLowerCase().includes(s) || emailStr.toLowerCase().includes(s);
+  });
 
   const handleSave = () => {
     if (!form.name) return;

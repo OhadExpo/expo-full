@@ -59,7 +59,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </div></div>
       <Card style={{marginBottom:8,position:"relative"}}>
         <div style={{textAlign:"center"}}><h2 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>{td.name}</h2>
-          <div style={{color:C.tm,fontSize:13,marginTop:4}}>{td.email}{td.phone?` · ${td.phone}`:""}</div></div>
+          <div style={{color:C.tm,fontSize:13,marginTop:4}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</div></div>
         <div style={{display:"flex",alignItems:"center",gap:8,position:"absolute",right:16,top:16}}>
           <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px"}}>✏ Edit</Btn>
           <Badge color={statusColor[td.status]}>{td.status}</Badge></div>
