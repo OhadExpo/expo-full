@@ -72,9 +72,7 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
           { label: 'Active Clients', value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
-          { label: 'Online Now', value: onlineNow.length, color: onlineNow.length > 0 ? C.gn : C.td },
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
-          { label: 'Dropout Risk', value: dropoutRisk.length, color: dropoutRisk.length > 0 ? C.rd : C.gn },
           { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
           { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
         ].map((s, i) => (
@@ -87,12 +85,12 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
         ))}
       </div>
 
-      {/* Alert sections */}
-      {(onlineNow.length > 0 || expiring.length > 0 || dropoutRisk.length > 0) && (
+      {/* Alert sections (above table: online + expiring) */}
+      {(onlineNow.length > 0 || expiring.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20 }}>
           {onlineNow.length > 0 && (
             <div style={{ background: C.sf, border: `1px solid ${C.gn}30`, borderRadius: 10, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontFamily: FN, color: C.gn, textTransform: 'uppercase', marginBottom: 8 }}>🟢 Online Now</div>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.gn, textTransform: 'uppercase', marginBottom: 8 }}>🟢 Online Now ({onlineNow.length})</div>
               {onlineNow.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
                   <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
@@ -110,20 +108,6 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
                   <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining} LEFT</span>
                 </div>
               ))}
-            </div>
-          )}
-          {dropoutRisk.length > 0 && (
-            <div style={{ background: C.sf, border: `1px solid ${C.rd}30`, borderRadius: 10, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontFamily: FN, color: C.rd, textTransform: 'uppercase', marginBottom: 8 }}>🔻 Dropout Risk (14+ days)</div>
-              {dropoutRisk.map(t => {
-                const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : '∞';
-                return (
-                  <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
-                    <span style={{ color: C.tx }}>{t.name}</span>
-                    <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{days === '∞' ? 'Never trained' : `${days}d ago`}</span>
-                  </div>
-                );
-              })}
             </div>
           )}
         </div>
@@ -185,6 +169,22 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Dropout risk — below the client list */}
+      {dropoutRisk.length > 0 && (
+        <div style={{ marginTop: 20, background: C.sf, border: `1px solid ${C.rd}30`, borderRadius: 10, padding: '14px 18px' }}>
+          <div style={{ fontSize: 10, fontFamily: FN, color: C.rd, textTransform: 'uppercase', marginBottom: 8 }}>🔻 Dropout Risk — 14+ days ({dropoutRisk.length})</div>
+          {dropoutRisk.map(t => {
+            const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : '∞';
+            return (
+              <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                <span style={{ color: C.tx }}>{t.name}</span>
+                <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{days === '∞' ? 'Never trained' : `${days}d ago`}</span>
+              </div>
+            );
+          })}
         </div>
       )}
 
