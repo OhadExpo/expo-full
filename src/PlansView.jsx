@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { C, FN, FB, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES } from './theme';
+import { C, FN, FB, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput } from './ui';
 import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
 
@@ -29,17 +29,29 @@ function ExPicker({ exercises, value, onChange, label }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
   const containerRef = React.useRef(null);
   const inputRef = React.useRef(null);
   const listRef = React.useRef(null);
   const sel = exercises.find(e => e.id === value);
 
-  // Token-AND search across all metadata fields
+  const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const clearFilters = () => setFilters({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
+
+  // Token-AND search across all metadata fields + structured filters
   const filt = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return exercises.slice(0, 100);
     const tokens = q.split(/\s+/).filter(Boolean);
     const match = (ex) => {
+      if (filters.category && ex.category !== filters.category) return false;
+      if (filters.resistanceType && ex.resistanceType !== filters.resistanceType) return false;
+      if (filters.bodyPosition && ex.bodyPosition !== filters.bodyPosition) return false;
+      if (filters.movementType && ex.movementType !== filters.movementType) return false;
+      if (filters.movementPattern && ex.movementPattern !== filters.movementPattern) return false;
+      if (filters.laterality && ex.laterality !== filters.laterality) return false;
+      if (tokens.length === 0) return true;
       const haystack = [
         ex.title, ex.category, ex.resistanceType, ex.bodyPosition, ex.movementType,
         ex.movementPattern, ex.laterality, ex.primaryMuscles, ex.secondaryMuscles,
@@ -48,15 +60,15 @@ function ExPicker({ exercises, value, onChange, label }) {
       return tokens.every(t => haystack.includes(t));
     };
     return exercises.filter(match).slice(0, 100);
-  }, [exercises, search]);
+  }, [exercises, search, filters]);
 
   // Reset active row when filter changes
-  React.useEffect(() => { setActiveIdx(0); }, [search, open]);
+  React.useEffect(() => { setActiveIdx(0); }, [search, filters, open]);
 
   // Click-outside to close
   React.useEffect(() => {
     if (!open) return;
-    const handler = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) { setOpen(false); setSearch(""); } };
+    const handler = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) { setOpen(false); setSearch(""); setFiltersOpen(false); } };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [open]);
@@ -68,12 +80,12 @@ function ExPicker({ exercises, value, onChange, label }) {
     if (el) el.scrollIntoView({ block: 'nearest' });
   }, [activeIdx, open]);
 
-  const pick = (ex) => { onChange(ex.id); setOpen(false); setSearch(""); };
+  const pick = (ex) => { onChange(ex.id); setOpen(false); setSearch(""); setFiltersOpen(false); };
   const onKeyDown = (e) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, filt.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
     else if (e.key === 'Enter') { e.preventDefault(); if (filt[activeIdx]) pick(filt[activeIdx]); }
-    else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); setSearch(""); }
+    else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); setSearch(""); setFiltersOpen(false); }
   };
 
   // Format metadata subtitle for a row
@@ -86,6 +98,8 @@ function ExPicker({ exercises, value, onChange, label }) {
     return parts.join(' / ');
   };
 
+  const filterSelectStyle = { ...baseInput, padding: '5px 8px', fontSize: 11 };
+
   return (
     <div ref={containerRef} style={{ position: "relative", display: "flex", flexDirection: "column", gap: 4 }}>
       {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: "uppercase", fontFamily: FN }}>{label}</label>}
@@ -94,7 +108,7 @@ function ExPicker({ exercises, value, onChange, label }) {
         <span style={{color:C.td, fontSize: 10}}>▼</span>
       </button>
       {open && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 6, marginTop: 2, maxHeight: 360, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 6, marginTop: 2, maxHeight: 460, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
           <div style={{ padding: 6, borderBottom: `1px solid ${C.bd}` }}>
             <input
               ref={inputRef}
@@ -105,12 +119,34 @@ function ExPicker({ exercises, value, onChange, label }) {
               autoFocus
               style={{ ...baseInput, padding: "6px 10px", fontSize: 12 }}
             />
-            <div style={{ fontSize: 10, color: C.td, fontFamily: FN, marginTop: 4, padding: "0 4px", display: 'flex', justifyContent: 'space-between' }}>
-              <span>{filt.length}{search.trim() && exercises.length > filt.length ? ` of ${exercises.length}` : ''} match{filt.length === 1 ? '' : 'es'}</span>
-              <span>↑↓ navigate · Enter select · Esc close</span>
+            <div style={{ fontSize: 10, color: C.td, fontFamily: FN, marginTop: 4, padding: "0 4px", display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{filt.length}{(search.trim() || activeFilterCount > 0) && exercises.length > filt.length ? ` of ${exercises.length}` : ''} match{filt.length === 1 ? '' : 'es'}</span>
+              <button onClick={() => setFiltersOpen(o => !o)} style={{ background: activeFilterCount > 0 ? C.acD : 'transparent', border: `1px solid ${activeFilterCount > 0 ? C.ac + '60' : C.bd}`, borderRadius: 4, padding: '2px 8px', color: activeFilterCount > 0 ? C.ac : C.tm, cursor: 'pointer', fontSize: 10, fontFamily: FN, fontWeight: 600 }}>
+                {filtersOpen ? '▲' : '▼'} FILTERS{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </button>
             </div>
           </div>
-          <div ref={listRef} style={{ overflowY: "auto", maxHeight: 280 }}>
+          {filtersOpen && (
+            <div style={{ padding: 8, borderBottom: `1px solid ${C.bd}`, background: C.sf2 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                <select value={filters.category} onChange={e => setF('category', e.target.value)} style={filterSelectStyle}><option value="">Any Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={filterSelectStyle}><option value="">Any Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={filterSelectStyle}><option value="">Any Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={filterSelectStyle}><option value="">Any Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={filterSelectStyle}><option value="">Any Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={filterSelectStyle}><option value="">Any Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}</select>
+              </div>
+              {activeFilterCount > 0 && (
+                <div style={{ textAlign: 'right', marginTop: 6 }}>
+                  <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 10, fontFamily: FN, textDecoration: 'underline' }}>Clear filters</button>
+                </div>
+              )}
+            </div>
+          )}
+          <div style={{ fontSize: 10, color: C.td, fontFamily: FN, padding: '4px 10px', background: C.sf, borderBottom: `1px solid ${C.bd}` }}>
+            ↑↓ navigate · Enter select · Esc close
+          </div>
+          <div ref={listRef} style={{ overflowY: "auto", maxHeight: 260 }}>
             {filt.length === 0 ? (
               <div style={{ padding: 16, fontSize: 12, color: C.td, textAlign: "center" }}>No exercises found</div>
             ) : filt.map((ex, idx) => {

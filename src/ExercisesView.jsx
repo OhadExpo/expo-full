@@ -7,11 +7,26 @@ export default function ExercisesView({ exercises, setExercises }) {
   const [form, setForm] = useState(defaultExercise());
   const [editId, setEditId] = useState(null);
   const [search, setSearch] = useState("");
-  const [filterCat, setFilterCat] = useState("");
+  const [filters, setFilters] = useState({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
   const [confirmDelete, setConfirmDelete] = useState(null);
+
+  const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const clearFilters = () => setFilters({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
+
   const filtered = exercises.filter(e => {
-    if (search && !e.title.toLowerCase().includes(search.toLowerCase())) return false;
-    if (filterCat && e.category !== filterCat) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const tokens = q.split(/\s+/).filter(Boolean);
+      const haystack = [e.title, e.category, e.resistanceType, e.bodyPosition, e.movementType, e.movementPattern, e.laterality, e.primaryMuscles, e.secondaryMuscles, e.primaryJoints, e.jointMovements].filter(Boolean).join(' ').toLowerCase();
+      if (!tokens.every(t => haystack.includes(t))) return false;
+    }
+    if (filters.category && e.category !== filters.category) return false;
+    if (filters.resistanceType && e.resistanceType !== filters.resistanceType) return false;
+    if (filters.bodyPosition && e.bodyPosition !== filters.bodyPosition) return false;
+    if (filters.movementType && e.movementType !== filters.movementType) return false;
+    if (filters.movementPattern && e.movementPattern !== filters.movementPattern) return false;
+    if (filters.laterality && e.laterality !== filters.laterality) return false;
     return true;
   });
   const handleSave = () => {
@@ -22,12 +37,37 @@ export default function ExercisesView({ exercises, setExercises }) {
   };
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 200 }}><input placeholder="Search exercises..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12 }} /></div>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ ...baseInput, width: 140 }}>
-          <option value="">All Categories</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
+      <div style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 200 }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12 }} /></div>
         <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }}>+ Add Exercise</Btn>
+      </div>
+      <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 10, marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontFamily: FN, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}
+          </div>
+          {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
+          <select value={filters.category} onChange={e => setF('category', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
+            <option value="">Any Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
+            <option value="">Any Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
+            <option value="">Any Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
+            <option value="">Any Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
+            <option value="">Any Movement Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
+            <option value="">Any Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
       </div>
       <div style={{ fontSize: 12, color: C.td, marginBottom: 12, fontFamily: FN }}>{filtered.length} exercise{filtered.length !== 1 ? "s" : ""}</div>
       {filtered.length === 0 ? <EmptyState icon="🏋️" message="No exercises. Build your library." /> : (
