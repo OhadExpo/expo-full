@@ -100,24 +100,91 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const [wuDone, setWuDone] = useState(() => warmup.map(() => false));
   const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
 
+  // Video compression: 480p, 59s max, low bitrate WebM
+  const compressVideo = (file, onProgress) => new Promise((resolve, reject) => {
+    const MAX_SEC = 59;
+    const TARGET_H = 480;
+    const BITRATE = 1_500_000; // 1.5 Mbps — good quality at 480p
+
+    const src = URL.createObjectURL(file);
+    const vid = document.createElement('video');
+    vid.muted = true; vid.playsInline = true; vid.src = src;
+
+    vid.onloadedmetadata = () => {
+      const duration = Math.min(vid.duration, MAX_SEC);
+      const scale = vid.videoHeight > TARGET_H ? TARGET_H / vid.videoHeight : 1;
+      const w = Math.round(vid.videoWidth * scale / 2) * 2; // ensure even
+      const h = Math.round(vid.videoHeight * scale / 2) * 2;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+
+      // Try H.264 first (smaller files, better compat), fall back to VP8
+      const mimeType = MediaRecorder.isTypeSupported('video/mp4; codecs=avc1')
+        ? 'video/mp4; codecs=avc1'
+        : MediaRecorder.isTypeSupported('video/webm; codecs=h264')
+          ? 'video/webm; codecs=h264'
+          : 'video/webm; codecs=vp8';
+      const stream = canvas.captureStream(30);
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: BITRATE });
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        URL.revokeObjectURL(src);
+        const blob = new Blob(chunks, { type: mimeType.split(';')[0] });
+        const ext = mimeType.includes('mp4') ? '.mp4' : '.webm';
+        resolve({ blob, ext, originalSize: file.size, compressedSize: blob.size });
+      };
+
+      vid.currentTime = 0;
+      vid.play().then(() => {
+        recorder.start();
+        const draw = () => {
+          if (vid.ended || vid.currentTime >= duration) {
+            recorder.stop(); vid.pause(); return;
+          }
+          ctx.drawImage(vid, 0, 0, w, h);
+          if (onProgress) onProgress(Math.round((vid.currentTime / duration) * 100));
+          requestAnimationFrame(draw);
+        };
+        draw();
+        // Safety timeout — force stop at duration
+        setTimeout(() => { if (recorder.state === 'recording') { recorder.stop(); vid.pause(); } }, (duration + 1) * 1000);
+      }).catch(reject);
+    };
+    vid.onerror = () => { URL.revokeObjectURL(src); reject(new Error('Failed to load video')); };
+  });
+
   const handleVideoUpload = async (e, exIdx) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:url, fileName:file.name, uploading:true, uploaded:false}; return n; });
     e.target.value = '';
+
+    // Show immediate preview from original file
+    const previewUrl = URL.createObjectURL(file);
+    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0}; return n; });
+
     try {
+      // Compress video client-side
+      const { blob, ext, originalSize, compressedSize } = await compressVideo(file, pct => {
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
+      });
+      console.log(`Video compressed: ${(originalSize/1e6).toFixed(1)}MB → ${(compressedSize/1e6).toFixed(1)}MB`);
+
+      // Upload compressed version
       const ts = Date.now();
-      const path = `${clientId}/${ts}-${file.name}`;
-      const { data, error } = await supabase.storage.from('form-videos').upload(path, file, { upsert: true });
+      const path = `${clientId}/${ts}-form${ext}`;
+      const { data, error } = await supabase.storage.from('form-videos').upload(path, blob, { upsert: true, contentType: blob.type });
+      URL.revokeObjectURL(previewUrl);
       if (!error) {
         const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(path);
-        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, cloudUrl:urlData.publicUrl}; return n; });
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, cloudUrl:urlData.publicUrl, compressProgress:100}; return n; });
       } else {
         console.error('Storage upload error:', error);
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false}; return n; });
       }
-    } catch(err) { console.error('Upload catch:', err); setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false}; return n; }); }
+    } catch(err) { console.error('Video compress/upload error:', err); setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false}; return n; }); }
   };
 
   const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,
@@ -286,7 +353,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:14}}>✅</span><span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>UPLOADED</span></div>}
           {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:C.acD,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>⏳ Uploading...</span></div>}
+            <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{(f.compressProgress||0) < 100 ? `⚙ Compressing ${f.compressProgress||0}%` : '☁ Uploading...'}</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
@@ -326,7 +393,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{display:'flex',gap:8,marginTop:20}}>
         <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
         <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:anyUploading?C.sf3:C.ac,color:anyUploading?C.td:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
-          {anyUploading ? '⏳ Uploading video...' : step===groupCount-1 ? 'Finish →' : (isSuperset?'Next Block →':'Next Exercise →')}</button></div>
+          {anyUploading ? '⚙ Processing video...' : step===groupCount-1 ? 'Finish →' : (isSuperset?'Next Block →':'Next Exercise →')}</button></div>
     </div></div>;
 }
 
