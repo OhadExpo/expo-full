@@ -95,6 +95,8 @@ export default function App() {
   const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
   const [selectedPlanId,setSelectedPlanId]=useState(null);
   const [importMsg,setImportMsg]=useState(null);
+  const [pendingImport,setPendingImport]=useState(null); // {parsed, type:'multi'|'single'} — awaiting trainee selection
+  const [importSelectedTrainees,setImportSelectedTrainees]=useState([]); // selected trainee IDs for import
   const [trainerCode,setTrainerCode]=useState('');
   const [trainerAuth,setTrainerAuth]=useState(false);
   const [dragOver,setDragOver]=useState(false);
@@ -163,17 +165,19 @@ export default function App() {
     return{name:trainee.name,days:plan.days.length,exercises:data.exercises.length,plans:1};
   };
 
-  const doImportMulti=async(data)=>{
-    const trainee={...data.trainee,id:data.trainee.id||uid(),email:"",phone:"",age:"",weight:"",height:"",injuries:"",goals:"",notes:"",startDate:new Date().toISOString().slice(0,10),packagePrice:""};
-    setTrainees(prev=>{const exists=prev.find(t=>t.name===trainee.name);if(exists){trainee.id=exists.id;return prev.map(t=>t.name===trainee.name?{...t,...trainee}:t)}return[...prev,trainee]});
+  const doImportMulti=async(data, targetTraineeIds)=>{
+    // Add exercises to the library (dedup by title)
     const exMap={};
     setExercises(prev=>{const u=[...prev];for(const ex of data.exercises){const e=u.find(x=>x.title===ex.title);if(e){exMap[ex.id]=e.id}else{const nw={...ex,id:ex.id||uid()};exMap[ex.id]=nw.id;u.push(nw)}}return u});
-    let pc=0;
-    const newPlans=data.plans.map(p=>{pc++;return{id:p.id||uid(),name:p.name,traineeId:trainee.id,phase:p.phase||"",notes:"",createdAt:new Date().toISOString(),
-      days:(p.days||[]).map(d=>({id:uid(),name:d.name,exercises:(d.ex||[]).map((ex,i)=>({id:uid(),exerciseId:exMap[ex.eid]||ex.eid,sets:ex.s||3,reps:ex.r||"8-12",load:"",rpe:"",tempo:ex.tempo||"",rest:"90",notes:"",order:i,superset:ex.superset||""}))}))};});
-    for(const p of newPlans){ await savePlan(p); }
+    let totalPlans=0;
+    for(const tid of targetTraineeIds){
+      const newPlans=data.plans.map(p=>{totalPlans++;return{id:'plan_'+uid(),name:p.name,traineeId:tid,phase:p.phase||"",notes:"",createdAt:new Date().toISOString(),
+        days:(p.days||[]).map(d=>({id:uid(),name:d.name,exercises:(d.ex||[]).map((ex,i)=>({id:uid(),exerciseId:exMap[ex.eid]||ex.eid,sets:ex.s||3,reps:ex.r||"8-12",load:"",rpe:"",tempo:ex.tempo||"",rest:"90",notes:"",order:i,superset:ex.superset||""}))}))};});
+      for(const p of newPlans){ await savePlan(p); }
+    }
     await reloadPlanIndex();
-    return{name:trainee.name,exercises:data.exercises.length,plans:pc};
+    const names=targetTraineeIds.map(id=>trainees.find(t=>t.id===id)?.name||'?').join(', ');
+    return{names,exercises:data.exercises.length,plans:totalPlans};
   };
 
   const handleImport=(e)=>{
@@ -214,10 +218,10 @@ export default function App() {
       reader.onload=async(ev)=>{
         try{
           const parsed=parseSpreadsheet(new Uint8Array(ev.target.result),file.name);
-          const r=await doImportMulti(parsed);
-          setImportMsg(`✓ Imported ${ext.toUpperCase()}: ${r.name} — ${r.plans} blocks, ${r.exercises} unique exercises`);
-        }catch(err){setImportMsg("✗ Error: "+err.message)}
-        setTimeout(()=>setImportMsg(null),6000);
+          // Stage for trainee selection instead of importing immediately
+          setPendingImport({parsed,fileName:file.name,ext:ext.toUpperCase()});
+          setImportSelectedTrainees([]);
+        }catch(err){setImportMsg("✗ Error: "+err.message);setTimeout(()=>setImportMsg(null),6000)}
       }; reader.readAsArrayBuffer(file);
     } else{setImportMsg("⚠ Unsupported file type");setTimeout(()=>setImportMsg(null),4000)}
     e.target.value="";
@@ -233,6 +237,19 @@ export default function App() {
   const handleDrop=(e)=>{e.preventDefault();setDragOver(false);const file=e.dataTransfer?.files?.[0];if(file)handleImport({target:{files:[file],value:""}})};
   const handleDragOver=(e)=>{e.preventDefault();setDragOver(true)};
   const handleDragLeave=()=>{setDragOver(false)};
+
+  const handleConfirmImport=async()=>{
+    if(!pendingImport||importSelectedTrainees.length===0) return;
+    try{
+      const r=await doImportMulti(pendingImport.parsed,importSelectedTrainees);
+      setImportMsg(`✓ Imported ${pendingImport.ext}: ${r.names} — ${r.plans} blocks, ${r.exercises} unique exercises`);
+    }catch(err){setImportMsg("✗ Error: "+err.message)}
+    setPendingImport(null);setImportSelectedTrainees([]);
+    setTimeout(()=>setImportMsg(null),6000);
+  };
+  const toggleImportTrainee=(tid)=>{
+    setImportSelectedTrainees(prev=>prev.includes(tid)?prev.filter(x=>x!==tid):[...prev,tid]);
+  };
 
   const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.length},{key:"plans",label:"Programs",count:planIndex.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Portal",count:null}];
 
@@ -299,5 +316,38 @@ export default function App() {
         {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
         {tab==="plans"&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)}/>}
         {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
-      </main></div>);
+      </main>
+      {/* Import trainee assignment modal */}
+      {pendingImport&&<div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:60,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(4px)"}} onClick={()=>setPendingImport(null)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,width:480,maxHeight:"80vh",overflow:"auto",padding:24}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Assign Imported Program</h3>
+            <button onClick={()=>setPendingImport(null)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4,fontSize:16}}>✕</button></div>
+          <div style={{background:C.sf2,borderRadius:8,padding:12,marginBottom:16}}>
+            <div style={{fontSize:13,color:C.tx,fontWeight:600}}>{pendingImport.parsed.plans?.length||0} block{(pendingImport.parsed.plans?.length||0)!==1?'s':''} · {pendingImport.parsed.exercises?.length||0} exercises</div>
+            <div style={{fontSize:11,color:C.tm,marginTop:4}}>{pendingImport.fileName}</div>
+            {pendingImport.parsed.plans?.map(p=><div key={p.id} style={{fontSize:12,color:C.ac,marginTop:4}}>• {p.name} — {p.days?.length||0} days</div>)}
+          </div>
+          <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:8}}>Assign to trainee(s)</div>
+          <div style={{maxHeight:300,overflow:"auto",marginBottom:16}}>
+            {trainees.filter(t=>t.status!=="Archived").map(t=>{
+              const sel=importSelectedTrainees.includes(t.id);
+              return <div key={t.id} onClick={()=>toggleImportTrainee(t.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:6,cursor:"pointer",background:sel?C.acD:"transparent",border:`1px solid ${sel?C.ac:C.bd}`,marginBottom:4,transition:"all .15s"}}>
+                <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${sel?C.ac:C.bd2}`,background:sel?C.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  {sel&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                </div>
+                <div>
+                  <div style={{fontSize:13,color:C.tx,fontWeight:600}}>{t.name}</div>
+                  <div style={{fontSize:11,color:C.tm}}>{t.format}</div>
+                </div>
+              </div>})}
+          </div>
+          <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
+            <Btn variant="ghost" onClick={()=>setPendingImport(null)}>Cancel</Btn>
+            <Btn onClick={handleConfirmImport} style={{opacity:importSelectedTrainees.length?1:0.4,pointerEvents:importSelectedTrainees.length?"auto":"none"}}>
+              Import to {importSelectedTrainees.length||0} trainee{importSelectedTrainees.length!==1?'s':''}</Btn>
+          </div>
+        </div>
+      </div>}
+    </div>);
 }
