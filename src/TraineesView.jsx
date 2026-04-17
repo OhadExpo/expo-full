@@ -145,12 +145,12 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                       </React.Fragment>
                     ))}
                   </div>
-                  <div style={{height:1,background:C.bd,margin:'10px 0'}} />
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-                      {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:t.sessionsRemaining<=2?C.rd:C.gn}}>{t.sessionsRemaining} SESSIONS LEFT</span>}
-                      {t.monthly > 0 && <span style={{fontSize:11,color:C.td,fontFamily:FN}}>₪{t.monthly}/mo</span>}
-                    </div>
+                  <div style={{fontSize:11,color:C.tm,marginTop:14,fontFamily:FN,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em'}}>{t.format}</div>
+                  <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap',minHeight:22}}>
+                    {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:t.sessionsRemaining<=2?C.rd:C.gn}}>{t.sessionsRemaining} SESSIONS LEFT</span>}
+                    {t.monthly > 0 && <span style={{fontSize:11,color:C.td,fontFamily:FN}}>₪{t.monthly}/mo</span>}
+                  </div>
+                  <div style={{display:'flex',justifyContent:'flex-end',marginTop:6}}>
                     {!showArchived && <button onClick={e => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:11,padding:0}}>✏️ Edit</button>}
                   </div>
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:10}}>
