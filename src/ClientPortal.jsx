@@ -100,12 +100,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const [wuDone, setWuDone] = useState(() => warmup.map(() => false));
   const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
 
-  // Video compression — Canvas+MediaRecorder at accelerated playback
-  // Works on all browsers including iOS Safari. No WASM dependency.
-  const compressVideo = (file, onProgress) => new Promise((resolve, reject) => {
+  // Smart video handling: Safari/iOS skips compression (iOS pre-compresses),
+  // Chrome/Android uses Canvas+MediaRecorder at accelerated playback.
+  // Files under 25MB skip compression on all browsers.
+  const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+  const SKIP_COMPRESS_SIZE = 25 * 1024 * 1024; // 25MB
+
+  const compressVideoChrome = (file, onProgress) => new Promise((resolve, reject) => {
     const MAX_SEC = 59;
     const TARGET_H = 480;
-    const BITRATE = 1_200_000; // 1.2 Mbps
+    const BITRATE = 1_200_000;
 
     const src = URL.createObjectURL(file);
     const vid = document.createElement('video');
@@ -123,7 +127,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp8')
         ? 'video/webm; codecs=vp8' : 'video/webm';
-      const stream = canvas.captureStream(24); // 24fps is enough for form check
+      const stream = canvas.captureStream(24);
       const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: BITRATE });
       const chunks = [];
       recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -134,25 +138,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       };
 
       vid.currentTime = 0;
-      // Speed up playback — 4-8x faster than real-time
-      // Safari caps at 2x for captureStream, Chrome allows higher
-      const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-      vid.playbackRate = isSafari ? 2 : 8;
+      vid.playbackRate = 8;
 
       vid.play().then(() => {
-        recorder.start(100); // collect chunks every 100ms
+        recorder.start(100);
         const draw = () => {
           if (vid.ended || vid.paused || vid.currentTime >= duration) {
             if (recorder.state === 'recording') recorder.stop();
-            vid.pause();
-            return;
+            vid.pause(); return;
           }
           ctx.drawImage(vid, 0, 0, w, h);
           if (onProgress) onProgress(Math.round((vid.currentTime / duration) * 100));
           requestAnimationFrame(draw);
         };
         draw();
-        // Safety: force stop after (duration / playbackRate) + buffer
         const wallTime = (duration / vid.playbackRate) + 3;
         setTimeout(() => { if (recorder.state === 'recording') { recorder.stop(); vid.pause(); } }, wallTime * 1000);
       }).catch(reject);
@@ -169,14 +168,33 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0}; return n; });
 
     try {
-      const { blob, ext, originalSize, compressedSize } = await compressVideo(file, pct => {
-        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
-      });
-      console.log(`Video compressed: ${(originalSize/1e6).toFixed(1)}MB → ${(compressedSize/1e6).toFixed(1)}MB`);
+      let uploadBlob = file;
+      let ext = file.name.match(/\.[^.]+$/)?.[0] || '.mp4';
+      let contentType = file.type || 'video/mp4';
 
+      // Decide: compress or upload directly
+      const shouldCompress = !isSafari && file.size > SKIP_COMPRESS_SIZE;
+
+      if (shouldCompress) {
+        // Chrome/Android: compress with Canvas+MediaRecorder
+        const result = await compressVideoChrome(file, pct => {
+          setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
+        });
+        uploadBlob = result.blob;
+        ext = result.ext;
+        contentType = result.blob.type;
+        console.log(`Compressed: ${(file.size/1e6).toFixed(1)}MB → ${(result.compressedSize/1e6).toFixed(1)}MB`);
+      } else {
+        // Safari/iOS or small file: upload directly
+        // iOS already compresses from photo library (~30-50MB for a 1min clip)
+        console.log(`Direct upload: ${(file.size/1e6).toFixed(1)}MB (${isSafari ? 'Safari' : 'small file'})`);
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:100}; return n; });
+      }
+
+      // Upload
       const ts = Date.now();
       const path = `${clientId}/${ts}-form${ext}`;
-      const { data, error } = await supabase.storage.from('form-videos').upload(path, blob, { upsert: true, contentType: blob.type });
+      const { data, error } = await supabase.storage.from('form-videos').upload(path, uploadBlob, { upsert: true, contentType });
       URL.revokeObjectURL(previewUrl);
       if (!error) {
         const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(path);
@@ -185,7 +203,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         console.error('Storage upload error:', error);
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false}; return n; });
       }
-    } catch(err) { console.error('Video compress/upload error:', err); setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false}; return n; }); }
+    } catch(err) { console.error('Video upload error:', err); setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false}; return n; }); }
   };
 
   const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,
@@ -354,7 +372,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:14}}>✅</span><span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>UPLOADED</span></div>}
           {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:C.acD,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{(f.compressProgress||0) < 100 ? `⚙ Compressing ${f.compressProgress||0}%` : '☁ Uploading...'}</span></div>}
+            <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{(f.compressProgress||0) < 100 ? `⚙ Processing ${f.compressProgress||0}%` : '☁ Uploading...'}</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
