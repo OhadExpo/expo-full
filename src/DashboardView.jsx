@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput } from './ui';
 
-export default function DashboardView({ trainees, planCounts, workouts, payments, onSelectTrainee }) {
+export default function DashboardView({ trainees, planCounts, workouts, payments, presence, onSelectTrainee }) {
   const [sort, setSort] = useState('name');
   const [dir, setDir] = useState(1);
   const [filter, setFilter] = useState('');
@@ -45,24 +45,89 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
   const totalAllPaid = payments.filter(p=>p.status==='Paid').reduce((a,p) => a + (parseFloat(p.amount)||0), 0);
   const lowSessions = enriched.filter(t => t.sessionsRemaining > 0 && t.sessionsRemaining <= 2).length;
 
+  // Last month's income for comparison
+  const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const lastMonthPaid = payments.filter(p => { const d=new Date(p.date); return d.getMonth()===lastMonth.getMonth() && d.getFullYear()===lastMonth.getFullYear() && p.status==='Paid'; }).reduce((a,p) => a + (parseFloat(p.amount)||0), 0);
+  const revDelta = lastMonthPaid > 0 ? Math.round(((thisMonthPaid - lastMonthPaid) / lastMonthPaid) * 100) : null;
+
+  // Dropout risk: active clients who haven't trained in 14+ days
+  const DROPOUT_DAYS = 14;
+  const dropoutRisk = enriched.filter(t => {
+    if (t.status !== 'Active') return false;
+    if (!t.lastWorkout) return true; // never trained
+    const daysSince = Math.floor((now - new Date(t.lastWorkout.date)) / 86400000);
+    return daysSince >= DROPOUT_DAYS;
+  });
+
+  // Expiring packages: active with ≤2 sessions
+  const expiring = enriched.filter(t => t.status === 'Active' && t.sessionsRemaining > 0 && t.sessionsRemaining <= 2);
+
+  // Online now
+  const ONLINE_MS = 2 * 60 * 1000;
+  const onlineNow = enriched.filter(t => presence?.[t.id] && (now.getTime() - presence[t.id]) < ONLINE_MS);
+
   return (
     <div>
       {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
-          { label: 'Active Clients', value: active, total: trainees.length, color: C.gn },
-          { label: 'Total Workouts', value: enriched.reduce((a, t) => a + t.workoutCount, 0), color: C.pu },
+          { label: 'Active Clients', value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
+          { label: 'Online Now', value: onlineNow.length, color: onlineNow.length > 0 ? C.gn : C.td },
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
-          { label: 'Estimated Monthly Income', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
-          { label: 'Monthly Income Collected', value: thisMonthPaid>0?`₪${thisMonthPaid.toLocaleString()}`:'₪0', color: thisMonthPaid>0?C.gn:C.td },
+          { label: 'Dropout Risk', value: dropoutRisk.length, color: dropoutRisk.length > 0 ? C.rd : C.gn },
+          { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
+          { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
         ].map((s, i) => (
-          <div key={i} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10, padding: '16px 20px' }}>
+          <div key={i} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10, padding: '14px 18px' }}>
             <div style={{ fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{s.label}</div>
-            <div style={{ fontSize: 24, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}
-              {s.total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400 }}> / {s.total}</span>}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}
+              {s.total !== undefined && <span style={{ fontSize: 12, color: C.td, fontWeight: 400 }}> / {s.total}</span>}</div>
+            {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 4 }}>{s.sub}</div>}
           </div>
         ))}
       </div>
+
+      {/* Alert sections */}
+      {(onlineNow.length > 0 || expiring.length > 0 || dropoutRisk.length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20 }}>
+          {onlineNow.length > 0 && (
+            <div style={{ background: C.sf, border: `1px solid ${C.gn}30`, borderRadius: 10, padding: '14px 18px' }}>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.gn, textTransform: 'uppercase', marginBottom: 8 }}>🟢 Online Now</div>
+              {onlineNow.map(t => (
+                <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
+                  <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
+                  {t.name}
+                </div>
+              ))}
+            </div>
+          )}
+          {expiring.length > 0 && (
+            <div style={{ background: C.sf, border: `1px solid ${C.or}30`, borderRadius: 10, padding: '14px 18px' }}>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 8 }}>⚠ Expiring Packages</div>
+              {expiring.map(t => (
+                <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                  <span style={{ color: C.tx }}>{t.name}</span>
+                  <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining} LEFT</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {dropoutRisk.length > 0 && (
+            <div style={{ background: C.sf, border: `1px solid ${C.rd}30`, borderRadius: 10, padding: '14px 18px' }}>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.rd, textTransform: 'uppercase', marginBottom: 8 }}>🔻 Dropout Risk (14+ days)</div>
+              {dropoutRisk.map(t => {
+                const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : '∞';
+                return (
+                  <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                    <span style={{ color: C.tx }}>{t.name}</span>
+                    <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{days === '∞' ? 'Never trained' : `${days}d ago`}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search */}
       <div style={{ marginBottom: 14 }}>

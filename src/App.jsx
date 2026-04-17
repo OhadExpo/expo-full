@@ -324,7 +324,7 @@ export default function App() {
             <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:"none"}}/></div></div></header>
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:importMsg.startsWith("✗")?C.rdD:importMsg.startsWith("⚠")?C.orD:C.gnD,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:8,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
-        {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} payments={payments} onSelectTrainee={id=>navTo("trainees",id)}/>}
+        {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)}/>}
         {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)}/>}
         {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
         {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
