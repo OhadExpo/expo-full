@@ -66,6 +66,22 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
   const ONLINE_MS = 2 * 60 * 1000;
   const onlineNow = enriched.filter(t => presence?.[t.id] && (now.getTime() - presence[t.id]) < ONLINE_MS);
 
+  // Overdue payment: active clients whose last payment (from payments array OR legacy lastPayment field) is >30 days ago,
+  // OR active clients with a monthly rate but no payment record at all.
+  const OVERDUE_DAYS = 30;
+  const overduePayment = enriched.map(t => {
+    if (t.status !== 'Active') return null;
+    const monthly = parseFloat(t.monthly) || 0;
+    if (monthly <= 0) return null; // not a recurring-billing client, skip
+    const latestPayDate = t.lastPay ? new Date(t.lastPay.date) : (t.lastPayment ? new Date(t.lastPayment) : null);
+    if (!latestPayDate || isNaN(latestPayDate.getTime())) {
+      return { ...t, daysOverdue: null, neverPaid: true };
+    }
+    const days = Math.floor((now - latestPayDate) / 86400000);
+    if (days >= OVERDUE_DAYS) return { ...t, daysOverdue: days, neverPaid: false };
+    return null;
+  }).filter(Boolean).sort((a, b) => (b.daysOverdue || 9999) - (a.daysOverdue || 9999));
+
   return (
     <div>
       {/* Summary cards */}
@@ -85,8 +101,8 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
         ))}
       </div>
 
-      {/* Alert sections (above table: online + expiring) */}
-      {(onlineNow.length > 0 || expiring.length > 0) && (
+      {/* Alert sections (above table: online + expiring + overdue payments) */}
+      {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20 }}>
           {onlineNow.length > 0 && (
             <div style={{ background: C.sf, border: `1px solid ${C.gn}30`, borderRadius: 10, padding: '14px 18px' }}>
@@ -101,11 +117,22 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
           )}
           {expiring.length > 0 && (
             <div style={{ background: C.sf, border: `1px solid ${C.or}30`, borderRadius: 10, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 8 }}>⚠ Expiring Packages</div>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 8 }}>⚠ Expiring Packages ({expiring.length})</div>
               {expiring.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                   <span style={{ color: C.tx }}>{t.name}</span>
                   <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining} LEFT</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {overduePayment.length > 0 && (
+            <div style={{ background: C.sf, border: `1px solid ${C.rd}30`, borderRadius: 10, padding: '14px 18px' }}>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.rd, textTransform: 'uppercase', marginBottom: 8 }}>💰 Overdue Payment ({overduePayment.length})</div>
+              {overduePayment.map(t => (
+                <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                  <span style={{ color: C.tx }}>{t.name}</span>
+                  <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.neverPaid ? 'Never paid' : `${t.daysOverdue}d overdue`}</span>
                 </div>
               ))}
             </div>

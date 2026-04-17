@@ -28,20 +28,123 @@ function PatternCoverage({ plan, exercises }) {
 function ExPicker({ exercises, value, onChange, label }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [activeIdx, setActiveIdx] = useState(0);
+  const containerRef = React.useRef(null);
+  const inputRef = React.useRef(null);
+  const listRef = React.useRef(null);
   const sel = exercises.find(e => e.id === value);
-  const filt = useMemo(() => exercises.filter(e => !search || e.title.toLowerCase().includes(search.toLowerCase())).slice(0, 50), [exercises, search]);
-  return (<div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 4 }}>
-    {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: "uppercase", fontFamily: FN }}>{label}</label>}
-    <button onClick={() => setOpen(!open)} style={{ ...baseInput, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between" }}>
-      <span style={{ color: sel ? C.tx : C.td, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sel ? sel.title : "Select..."}</span><span style={{color:C.td}}>▼</span></button>
-    {open && <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 6, marginTop: 2, maxHeight: 250, overflow: "hidden", display: "flex", flexDirection: "column" }}>
-      <div style={{ padding: 6, borderBottom: `1px solid ${C.bd}` }}><input placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} autoFocus style={{ ...baseInput, padding: "5px 8px", fontSize: 12 }} /></div>
-      <div style={{ overflowY: "auto", maxHeight: 200 }}>
-        {filt.length === 0 ? <div style={{padding:12,fontSize:12,color:C.td,textAlign:"center"}}>No exercises found</div> :
-          filt.map(ex => <button key={ex.id} onClick={() => {onChange(ex.id);setOpen(false);setSearch("")}} style={{display:"block",width:"100%",textAlign:"left",padding:"7px 10px",border:"none",background:ex.id===value?C.acD:"transparent",color:C.tx,cursor:"pointer",fontSize:12,fontFamily:FB,borderBottom:`1px solid ${C.bd}`}}>
-            <div style={{fontWeight:600}}>{ex.title}</div><div style={{fontSize:10,color:C.td}}>{[ex.category,ex.movementPattern].filter(Boolean).join(" · ")}</div></button>)}
-      </div></div>}
-  </div>);
+
+  // Token-AND search across all metadata fields
+  const filt = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return exercises.slice(0, 100);
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const match = (ex) => {
+      const haystack = [
+        ex.title, ex.category, ex.resistanceType, ex.bodyPosition, ex.movementType,
+        ex.movementPattern, ex.laterality, ex.primaryMuscles, ex.secondaryMuscles,
+        ex.primaryJoints, ex.jointMovements
+      ].filter(Boolean).join(' ').toLowerCase();
+      return tokens.every(t => haystack.includes(t));
+    };
+    return exercises.filter(match).slice(0, 100);
+  }, [exercises, search]);
+
+  // Reset active row when filter changes
+  React.useEffect(() => { setActiveIdx(0); }, [search, open]);
+
+  // Click-outside to close
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) { setOpen(false); setSearch(""); } };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Scroll active row into view
+  React.useEffect(() => {
+    if (!open || !listRef.current) return;
+    const el = listRef.current.querySelector(`[data-idx="${activeIdx}"]`);
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }, [activeIdx, open]);
+
+  const pick = (ex) => { onChange(ex.id); setOpen(false); setSearch(""); };
+  const onKeyDown = (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, filt.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (filt[activeIdx]) pick(filt[activeIdx]); }
+    else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); setSearch(""); }
+  };
+
+  // Format metadata subtitle for a row
+  const subtitle = (ex) => {
+    const parts = [ex.resistanceType, ex.bodyPosition, ex.movementType].filter(Boolean);
+    return parts.join(' · ');
+  };
+  const muscles = (ex) => {
+    const parts = [ex.primaryMuscles, ex.secondaryMuscles].filter(Boolean);
+    return parts.join(' / ');
+  };
+
+  return (
+    <div ref={containerRef} style={{ position: "relative", display: "flex", flexDirection: "column", gap: 4 }}>
+      {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: "uppercase", fontFamily: FN }}>{label}</label>}
+      <button onClick={() => { setOpen(!open); setTimeout(() => inputRef.current?.focus(), 0); }} style={{ ...baseInput, textAlign: "left", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ color: sel ? C.tx : C.td, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sel ? sel.title : "Select..."}</span>
+        <span style={{color:C.td, fontSize: 10}}>▼</span>
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 6, marginTop: 2, maxHeight: 360, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 8px 24px rgba(0,0,0,0.4)" }}>
+          <div style={{ padding: 6, borderBottom: `1px solid ${C.bd}` }}>
+            <input
+              ref={inputRef}
+              placeholder="Search (title, muscle, pattern, position...)"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onKeyDown={onKeyDown}
+              autoFocus
+              style={{ ...baseInput, padding: "6px 10px", fontSize: 12 }}
+            />
+            <div style={{ fontSize: 10, color: C.td, fontFamily: FN, marginTop: 4, padding: "0 4px", display: 'flex', justifyContent: 'space-between' }}>
+              <span>{filt.length}{search.trim() && exercises.length > filt.length ? ` of ${exercises.length}` : ''} match{filt.length === 1 ? '' : 'es'}</span>
+              <span>↑↓ navigate · Enter select · Esc close</span>
+            </div>
+          </div>
+          <div ref={listRef} style={{ overflowY: "auto", maxHeight: 280 }}>
+            {filt.length === 0 ? (
+              <div style={{ padding: 16, fontSize: 12, color: C.td, textAlign: "center" }}>No exercises found</div>
+            ) : filt.map((ex, idx) => {
+              const isActive = idx === activeIdx;
+              const isSelected = ex.id === value;
+              return (
+                <button
+                  key={ex.id}
+                  data-idx={idx}
+                  onClick={() => pick(ex)}
+                  onMouseEnter={() => setActiveIdx(idx)}
+                  style={{
+                    display: "block", width: "100%", textAlign: "left",
+                    padding: "8px 10px", border: "none",
+                    background: isActive ? C.sf2 : (isSelected ? C.acD : "transparent"),
+                    borderLeft: isSelected ? `2px solid ${C.ac}` : '2px solid transparent',
+                    color: C.tx, cursor: "pointer", fontFamily: FB,
+                    borderBottom: `1px solid ${C.bd}`
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                    <div style={{ fontWeight: 600, fontSize: 12, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ex.title}</div>
+                    {ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.gn, whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
+                  </div>
+                  {subtitle(ex) && <div style={{ fontSize: 10, color: C.tm, marginTop: 2, fontFamily: FN }}>{subtitle(ex)}</div>}
+                  {muscles(ex) && <div style={{ fontSize: 10, color: C.td, marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{muscles(ex)}</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyFocus, setWeeklyFocus }) {

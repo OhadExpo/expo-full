@@ -3,6 +3,7 @@ import { C, FN, FB, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TR
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, baseInput } from './ui';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
+import OverloadChart from './OverloadChart';
 
 const emailsToArr = (email) => {
   if (!email) return [''];
@@ -230,6 +231,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tw.length})</h3>
       {tw.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
         tw.slice().reverse().slice(0,10).map(w=><Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</div><span style={{fontSize:12,color:C.tm}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
+
+      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Progressive Overload</h3>
+      <OverloadChart workouts={tw} exercises={exercises} />
+
       <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null)}} title="Assign Program">
         {pendingAssignPlan && couple ? (
           <div style={{textAlign:'center',padding:12}}>
@@ -255,9 +260,6 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>})}</>}
           </div>})())}
       </Modal>
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tw.length})</h3>
-      {tw.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
-        tw.slice().reverse().slice(0,10).map(w=><Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</div><span style={{fontSize:12,color:C.tm}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
       {/* Unassign confirm */}
       {confirmUnassign && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)"}} onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.rd}40`,borderRadius:12,width:380,padding:24}}>
