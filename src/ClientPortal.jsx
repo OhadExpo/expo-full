@@ -16,20 +16,30 @@ function trainerPlanToPortal(plan, trainerExercises) {
     name: plan.name,
     phase: plan.phase || '',
     rest: plan.notes || '',
-    warmup: [],
+    warmup: Array.isArray(plan.warmup) ? plan.warmup : [],
     days: (plan.days || []).map(d => ({
       name: d.name,
-      ex: (d.exercises || []).map(pe => {
-        const exData = trainerExercises.find(e => e.id === pe.exerciseId);
-        const title = exData?.title || '';
-        // Try to find matching EX entry by title
+      ex: (d.exercises || []).map((pe, peIdx) => {
+        const exData = pe.exerciseId ? trainerExercises.find(e => e.id === pe.exerciseId) : null;
+        // Prefer the exercise's own title, then library match, then a generic fallback
+        const title = (pe.title || exData?.title || 'Exercise ' + (peIdx + 1)).trim();
+        // Try to find existing EX entry by title first (cheap, no dynamic entry needed)
         let eid = EX_BY_TITLE[title.toLowerCase()];
-        if (!eid && exData) {
-          // Create dynamic EX entry so StepLogger can render it
-          eid = 'dyn_' + pe.exerciseId;
-          if (!EX[eid]) EX[eid] = { t: title, vid: exData.videoLink || '', q: exData.cues || '' };
+        if (!eid) {
+          // Create a dynamic EX entry so StepLogger can render it.
+          // Use the plan-exercise id (or a fallback hash) so the dyn eid is stable across renders
+          // but unique per plan-exercise instance.
+          const stableKey = pe.id || pe.exerciseId || title.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          eid = 'dyn_' + stableKey;
+          if (!EX[eid]) {
+            EX[eid] = {
+              t: title,
+              vid: exData?.videoLink || '',
+              q: exData?.cues || '',
+            };
+          }
         }
-        const out = { eid: eid || 'unknown', s: pe.sets || 3, r: pe.reps || '8-12' };
+        const out = { eid, s: pe.sets || 3, r: pe.reps || '8-12' };
         if (pe.tempo) out.tempo = pe.tempo;
         if (pe.superset) out.superset = pe.superset;
         if (pe.notes) out.n = pe.notes;
