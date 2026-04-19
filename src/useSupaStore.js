@@ -135,7 +135,8 @@ export function useSupaBwLog(initial = []) {
         const { data: rows } = await supabase.from('bw_logs').select('*').order('date', { ascending: true });
         if (rows && rows.length > 0) {
           const mapped = rows.map(r => ({
-            date: r.date, clientId: r.client_id, week: r.week, bw: r.bw
+            date: r.date, clientId: r.client_id, week: r.week, bw: r.bw,
+            blockName: r.block_name, planId: r.plan_id
           }));
           setData(mapped);
           dataRef.current = mapped;
@@ -153,13 +154,22 @@ export function useSupaBwLog(initial = []) {
     setData(val);
     dataRef.current = val;
     try { localStorage.setItem('expo-bw', JSON.stringify(val)); } catch {}
-    // Insert new BW entries
-    const newItems = val.filter(b => !prev.find(p => p.date === b.date && p.clientId === b.clientId));
-    for (const b of newItems) {
+    // Upsert entries that are new or whose bw/date changed for (clientId, blockName, week)
+    const changed = val.filter(b => {
+      const p = prev.find(x => x.clientId === b.clientId && x.blockName === b.blockName && x.week === b.week);
+      return !p || p.bw !== b.bw || p.date !== b.date;
+    });
+    for (const b of changed) {
+      if (!b.blockName) continue; // DB requires block_name NOT NULL
       try {
-        await supabase.from('bw_logs').insert({
-          client_id: b.clientId, week: b.week, bw: b.bw, date: b.date
-        });
+        await supabase.from('bw_logs').upsert({
+          client_id: b.clientId,
+          plan_id: b.planId ?? null,
+          block_name: b.blockName,
+          week: b.week,
+          bw: b.bw,
+          date: b.date,
+        }, { onConflict: 'client_id,block_name,week' });
       } catch {}
     }
   }, []);

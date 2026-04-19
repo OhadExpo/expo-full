@@ -16,13 +16,16 @@ create table client_workouts (
   created_at timestamptz default now()
 );
 
--- Body weight logs
+-- Body weight logs — one row per (client_id, block_name, week); upsert on relog
 create table bw_logs (
   id serial primary key,
   client_id text not null,
+  block_name text not null,
+  plan_id text,
   week integer,
   bw numeric,
-  date timestamptz default now()
+  date timestamptz default now(),
+  constraint bw_logs_client_block_week_uniq unique (client_id, block_name, week)
 );
 
 -- Weekly focus notes (trainer sets per exercise per week)

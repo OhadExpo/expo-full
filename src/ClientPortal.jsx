@@ -546,8 +546,19 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     return portalVis[`${clientName}:${p.name}`] !== false;
   });
 
+  // Active block for bodyweight logging — scopes uniqueness to (client, block, week)
+  const activePlan = visPlans[0];
+
   const cw = clientWorkouts.filter(w => w.clientId === ci);
-  const handleComplete = w => { setClientWorkouts(prev => [...prev, w]); if (bw) setBwLog(prev => [...prev, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]); if(onDecrementSession && ci) onDecrementSession(ci); setLg(null); };
+  const handleComplete = w => {
+    setClientWorkouts(prev => [...prev, w]);
+    if (bw && activePlan) setBwLog(prev => {
+      const filtered = prev.filter(b => !(b.clientId===ci && b.blockName===activePlan.name && b.week===wk+1));
+      return [...filtered, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}];
+    });
+    if(onDecrementSession && ci) onDecrementSession(ci);
+    setLg(null);
+  };
 
   // Step Logger — find plan by index across visible plans
   if (lg !== null && trainee) {
@@ -557,9 +568,9 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus}/>; }
 
   // BW Graph tab
-  if (vw === 'bwt' && trainee) { 
+  if (vw === 'bwt' && trainee) {
     const bwData = bwLog.filter(b => b.clientId === ci).sort((a,b) => new Date(a.date) - new Date(b.date));
-    const existingBw = bwData.find(b => b.week === wk + 1);
+    const existingBw = bwData.find(b => b.week === wk + 1 && b.blockName === activePlan?.name);
     const bwDisplay = bw || (existingBw ? String(existingBw.bw) : '');
     const maxBw = bwData.length ? Math.max(...bwData.map(b=>b.bw)) : 100;
     const minBw = bwData.length ? Math.min(...bwData.map(b=>b.bw)) : 50;
@@ -577,12 +588,13 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
 
         {/* Quick log */}
         <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:16}}>
-          <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>LOG THIS WEEK (W{wk+1})</div>
+          <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" style={{flex:1,background:C.sf2,border:`1px solid ${existingBw?C.gn+'60':C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box'}}/>
-            <button onClick={()=>{const val=bw||bwDisplay;if(val){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val)}]});setBw('')}}} 
-              style={{padding:'10px 20px',borderRadius:8,border:'none',background:bw?C.ac:C.sf3,color:bw?'#fff':C.td,fontFamily:FB,fontSize:13,fontWeight:700,cursor:bw?'pointer':'default'}}>Save</button>
+            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:C.sf2,border:`1px solid ${existingBw?C.gn+'60':C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5}}/>
+            <button disabled={!activePlan} onClick={()=>{const val=bw||bwDisplay;if(val&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
+              style={{padding:'10px 20px',borderRadius:8,border:'none',background:(bw&&activePlan)?C.ac:C.sf3,color:(bw&&activePlan)?'#fff':C.td,fontFamily:FB,fontSize:13,fontWeight:700,cursor:(bw&&activePlan)?'pointer':'default'}}>Save</button>
           </div>
+          {!activePlan && <div style={{fontSize:10,color:C.td,marginTop:6}}>Assign an active program to log bodyweight.</div>}
         </div>
 
         {/* Graph */}
@@ -610,7 +622,10 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
               {bwData.map((d,i) => {
                 const x = 50 + i * 50;
                 const y = 10 + ((maxBw - d.bw) / range) * 130;
+                const prevBlock = i>0 ? bwData[i-1].blockName : null;
+                const blockChanged = d.blockName && d.blockName !== prevBlock;
                 return <g key={i}>
+                  {blockChanged && <line x1={x-25} y1="10" x2={x-25} y2="140" stroke={C.bd2||C.bd} strokeWidth="0.5" strokeDasharray="2"/>}
                   <circle cx={x} cy={y} r="4" fill={C.ac} stroke={C.bg} strokeWidth="2"/>
                   <text x={x} y={y-10} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor="middle" fontWeight="600">{d.bw}</text>
                   <text x={x} y={152} fill={C.td} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week||'?'}</text>
@@ -643,7 +658,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
           <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:i%2===0?C.sf:'transparent',borderRadius:6,marginBottom:2}}>
             <div>
               <span style={{fontSize:13,fontWeight:600,color:C.tx}}>{d.bw} kg</span>
-              <span style={{fontSize:11,color:C.tm,marginLeft:8}}>W{d.week||'?'}</span>
+              <span style={{fontSize:11,color:C.tm,marginLeft:8}}>{d.blockName||'?'} · W{d.week||'?'}</span>
             </div>
             <span style={{fontSize:10,color:C.td}}>{new Date(d.date).toLocaleDateString()}</span>
           </div>
@@ -672,7 +687,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         </div>)}</div></div>;
 
   // Program view
-  if (trainee) { const activePlan = visPlans[0]; const sl = Math.max(0, (trainee.sessionsRemaining || 0)); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
+  if (trainee) { const sl = Math.max(0, (trainee.sessionsRemaining || 0)); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:12}}>
@@ -691,8 +706,8 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
             <div style={{display:'flex',gap:4}}>{[0,1,2,3].map(w => <button key={w} onClick={() => setWk(w)} style={{flex:1,padding:'8px 0',borderRadius:6,border:`1px solid ${wk===w?C.ac:C.bd}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}</div></div>
           <div style={{width:120}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>BW {lb?`(${lb}kg)`:''}</div>
             <div style={{display:'flex',gap:4}}>
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center'}}/>
-            {bw && <button onClick={()=>{setBwLog(prev=>[...prev,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw)}]);setBw('')}} style={{background:C.acD,border:'none',borderRadius:6,padding:'4px 8px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Save</button>}
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" disabled={!activePlan} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+            {bw && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:C.acD,border:'none',borderRadius:6,padding:'4px 8px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Save</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {activePlan.rest}</div>}
         {visPlans.length===0 && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:30,textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:20,marginBottom:8}}>📋</div><div style={{fontSize:13}}>No active programs right now. Contact your trainer.</div></div>}
