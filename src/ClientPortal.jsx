@@ -542,11 +542,13 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     return [...curatedPlans, ...trainerExtra];
   })();
 
-  // Filter by portal visibility toggles
+  // Filter by portal visibility toggles, then sort blocks newest-first by "#N" in the name.
+  // Plans without a block number fall to the end preserving their original order.
+  const blockNum = n => { const m = /#(\d+)/.exec(n || ''); return m ? parseInt(m[1], 10) : -Infinity; };
   const visPlans = mergedPlans.filter(p => {
     if (!portalVis || !clientName) return true;
     return portalVis[`${clientName}:${p.name}`] !== false;
-  });
+  }).slice().sort((a, b) => blockNum(b.name) - blockNum(a.name));
 
   // Active block for bodyweight logging — scopes uniqueness to (client, block, week)
   // Falls back to the first visible plan when no manual selection (or selection no longer visible).
