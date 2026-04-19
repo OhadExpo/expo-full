@@ -122,8 +122,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
   const compressVideoChrome = (file, onProgress) => new Promise((resolve, reject) => {
     const MAX_SEC = 59;
-    const TARGET_H = 480;
-    const BITRATE = 1_200_000;
+    const TARGET_H = 720;
+    const BITRATE = 2_500_000;
 
     const src = URL.createObjectURL(file);
     const vid = document.createElement('video');
@@ -141,7 +141,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp8')
         ? 'video/webm; codecs=vp8' : 'video/webm';
-      const stream = canvas.captureStream(24);
+      const stream = canvas.captureStream(30);
       const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: BITRATE });
       const chunks = [];
       recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
@@ -152,7 +152,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       };
 
       vid.currentTime = 0;
-      vid.playbackRate = 8;
+      // playbackRate = 1 is critical: canvas.captureStream samples at wall-clock,
+      // so any speedup bakes fast-motion into the output (8x was the old bug).
+      vid.playbackRate = 1;
 
       vid.play().then(() => {
         recorder.start(100);
@@ -259,10 +261,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       }
 
       URL.revokeObjectURL(previewUrl);
-      setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100}; return n; });
+      setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100, uploadError:null}; return n; });
     } catch(err) {
       console.error('Video upload error:', err);
-      setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false}; return n; });
+      URL.revokeObjectURL(previewUrl);
+      const msg = err?.message || 'Upload failed';
+      setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:msg}; return n; });
+      alert(`Video upload failed: ${msg}\n\nPlease try again or pick a shorter clip.`);
     }
   };
 

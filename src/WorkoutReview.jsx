@@ -1,28 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import WorkoutsView from './WorkoutsView';
 import { C, FN, FB, ytId, EXPO_ICON } from './theme';
 import { EX } from './exerciseData';
 
-const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",
+const bi = {background:C.sf2,border:`1px solid ${C.bd}`,padding:"8px 10px",borderRadius:6,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"};
 
-export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession }) {
+// Inline player with speed (incl. 0.125x to recover old fast-motion webm) + fullscreen.
+function FormVideoPlayer({ url }) {
+  const ref = useRef(null);
+  const [speed, setSpeed] = useState(1);
+  useEffect(() => { if (ref.current) ref.current.playbackRate = speed; }, [speed]);
+  const fullscreen = () => {
+    const v = ref.current; if (!v) return;
+    if (v.requestFullscreen) v.requestFullscreen();
+    else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
+    else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+  };
+  const speeds = [0.125, 0.25, 0.5, 1, 2];
+  return (
+    <div>
+      <video ref={ref} src={url} controls playsInline
+        style={{width:'100%',borderRadius:8,maxHeight:400,background:C.sf2,marginBottom:6}} />
+      <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
+        <span style={{fontSize:9,fontFamily:FN,color:C.td,marginRight:4,letterSpacing:0.5}}>SPEED</span>
+        {speeds.map(s => (
+          <button key={s} onClick={() => setSpeed(s)}
+            style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${speed===s?C.ac:C.bd}`,
+              background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
+              fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
+        ))}
+        <button onClick={fullscreen}
+          style={{marginLeft:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
+            background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
+      </div>
+    </div>
+  );
+}
+
+export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession, markReviewed }) {
   const [subTab, setSubTab] = useState("review");
   const [selectedWo, setSelectedWo] = useState(null);
   const [expandedEx, setExpandedEx] = useState(null);
 
-  // Group workouts by client
+  const nameOf = (cid) => (trainees || []).find(t => t.id === cid)?.name || cid || 'unknown';
+
+  // Group workouts by client — use real trainee names, no hardcoded ID map.
   const byClient = {};
   clientWorkouts.forEach(w => {
     const key = w.clientId || 'unknown';
-    if (!byClient[key]) byClient[key] = { name: w.exercises?.[0]?.title?.split(' ')[0] || key, workouts: [] };
+    if (!byClient[key]) byClient[key] = { name: nameOf(key), workouts: [] };
     byClient[key].workouts.push(w);
-    // Use the planName to get a better client label
-    if (w.clientId === 't1') byClient[key].name = 'Diego Day';
-    if (w.clientId === 't2') byClient[key].name = 'Ron Yonker';
-    if (w.clientId === 't3') byClient[key].name = 'Omer Sadeh';
-    if (w.clientId === 't4') byClient[key].name = 'Yuval Barko';
-    if (w.clientId === 't5') byClient[key].name = 'Shalev Lugashi';
   });
 
   const setFocus = (planName, dayName, eid, week, val) => {
@@ -79,9 +107,17 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:16,marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
-              <h2 style={{margin:0,fontFamily:FN,fontSize:18}}>{wo.dayName}</h2>
+              <h2 style={{margin:0,fontFamily:FN,fontSize:18,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                {nameOf(wo.clientId)} — {wo.planName}
+                {wo.reviewedAt && (
+                  <span style={{fontSize:9,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
+                    padding:"2px 6px",borderRadius:3,border:`1px solid ${C.gn}40`,background:C.gnD}}>
+                    ✓ REVIEWED
+                  </span>
+                )}
+              </h2>
               <div style={{fontSize:12,color:C.tm,marginTop:4}}>
-                {wo.planName} · W{wo.week} · {new Date(wo.date).toLocaleDateString()}
+                Week {wo.week} · {wo.dayName} · {new Date(wo.date).toLocaleDateString()}
               </div>
             </div>
             <div style={{textAlign:"right"}}>
@@ -162,11 +198,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     <div style={{background:C.gnD,border:`1px solid ${C.gn}30`,borderRadius:8,padding:12,marginBottom:10}}>
                       <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700,marginBottom:6}}>📹 FORM VIDEO SUBMITTED</div>
                       {formVideo.cloudUrl ? (
-                        <video src={formVideo.cloudUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:300,background:C.sf2,marginBottom:6}} />
+                        <FormVideoPlayer url={formVideo.cloudUrl} />
                       ) : formVideo.fileName ? (
                         <div style={{fontSize:11,color:C.tm,marginBottom:4}}>File: {formVideo.fileName} (upload pending)</div>
                       ) : null}
-                      {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:4}}>Client note: {formVideo.note}</div>}
+                      {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>Client note: {formVideo.note}</div>}
                     </div>
                   ) : (
                     <div style={{background:C.sf2,borderRadius:8,padding:10,marginBottom:10,textAlign:"center"}}>
@@ -212,6 +248,36 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             </div>
           );
         })}
+
+        {/* Done — mark reviewed (or unmark) and return to list */}
+        <div style={{display:"flex",gap:8,marginTop:20,marginBottom:8}}>
+          {wo.reviewedAt ? (
+            <>
+              <button onClick={() => { markReviewed && markReviewed(wo.id, false); }}
+                style={{padding:"12px 16px",borderRadius:8,border:`1px solid ${C.bd}`,
+                  background:"transparent",color:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,
+                  cursor:"pointer"}}>
+                UNMARK
+              </button>
+              <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
+                style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.gn}`,
+                  background:C.gn,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
+                  letterSpacing:0.5,cursor:"pointer"}}>
+                ✓ REVIEWED — BACK TO LIST
+              </button>
+            </>
+          ) : (
+            <button onClick={() => {
+                markReviewed && markReviewed(wo.id, true);
+                setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0);
+              }}
+              style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.ac}`,
+                background:C.ac,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
+                letterSpacing:0.5,cursor:"pointer"}}>
+              ✓ DONE — MARK REVIEWED
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -248,27 +314,43 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           <div style={{fontSize:12,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:8}}>
             {data.name.toUpperCase()} ({data.workouts.length})
           </div>
-          {data.workouts.slice().reverse().map(wo => {
+          {data.workouts.slice()
+            // Unreviewed first (by most-recent date), then reviewed (by most-recent date)
+            .sort((a, b) => {
+              const ar = a.reviewedAt ? 1 : 0;
+              const br = b.reviewedAt ? 1 : 0;
+              if (ar !== br) return ar - br;
+              return new Date(b.date) - new Date(a.date);
+            })
+            .map(wo => {
             const doneSets = wo.exercises.reduce((a,ex) => a + ex.sets.filter(s=>s.done).length, 0);
             const totalSets = wo.exercises.reduce((a,ex) => a + ex.sets.length, 0);
             const hasFormVids = wo.formVideos?.some(f => f?.has);
+            const reviewed = !!wo.reviewedAt;
             return (
               <div key={wo.id} onClick={() => setSelectedWo(wo.id)}
                 style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:8,padding:"12px 16px",
                   marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
-                  justifyContent:"space-between",alignItems:"center"}}
+                  justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
                 onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
-                <div>
-                  <div style={{fontWeight:600,fontSize:14}}>{wo.dayName}
-                    <span style={{fontWeight:400,color:C.tm,fontSize:12,marginLeft:6}}>{wo.planName}</span>
+                <div style={{minWidth:0,flex:1}}>
+                  <div style={{fontWeight:600,fontSize:14,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    {wo.dayName}
+                    <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{wo.planName}</span>
+                    {reviewed && (
+                      <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
+                        padding:"1px 5px",borderRadius:3,border:`1px solid ${C.gn}40`,background:C.gnD}}>
+                        ✓ REVIEWED
+                      </span>
+                    )}
                   </div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
                     W{wo.week} · {new Date(wo.date).toLocaleDateString()} · {doneSets}/{totalSets} sets
                     {hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}
                   </div>
                 </div>
-                <span style={{color:C.ac,fontSize:12}}>Review →</span>
+                <span style={{color:reviewed?C.td:C.ac,fontSize:12,marginLeft:8}}>{reviewed?'View →':'Review →'}</span>
               </div>
             );
           })}

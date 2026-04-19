@@ -31,6 +31,37 @@ function parseSingleSheet(ws, sheetName) {
     const cell = ws[cellRef];
     return cell?.l?.Target || cell?.l?.target || '';
   };
+
+  // Extract warm-ups from header rows (rows 0 → first '#' day marker).
+  // Pattern: any cell containing "Name (rx)" where rx has a digit/SEC/REP/MIN.
+  // Captures cell hyperlink as vid. Skips label headers.
+  let firstDayRow = rows.length;
+  for (let r = 0; r < rows.length; r++) {
+    if (String(rows[r][0]||'').trim() === '#' && String(rows[r][1]||'').trim()) { firstDayRow = r; break; }
+  }
+  const WU_HEADER_RE = /^\s*(warm[-\s]?up|morning routine|חימום|instructions?|notes?|neck exc|bb\s*-\s*barbell|everything else|bb exercises|week\s*\d|rest|home routine|date:|day\s+\w)/i;
+  const WU_RX_RE = /^(.+?)\s*\(\s*([^()]+?)\s*\)\s*$/;
+  const warmup = [];
+  const wuSeen = new Set();
+  for (let r = 0; r < firstDayRow; r++) {
+    const row = rows[r] || [];
+    for (let c = 0; c < row.length; c++) {
+      const v = String(row[c]||'').trim();
+      if (!v || WU_HEADER_RE.test(v)) continue;
+      const m = v.match(WU_RX_RE);
+      if (!m) continue;
+      const t = m[1].trim(); const rx = m[2].trim();
+      if (!t || !rx) continue;
+      if (!/\d|sec|rep|min/i.test(rx)) continue;
+      if (/[:]/.test(t)) continue;
+      if (/^(week\s|date\s|new\s+gym)/i.test(t)) continue;
+      const key = t.toLowerCase();
+      if (wuSeen.has(key)) continue; wuSeen.add(key);
+      const vid = getHyperlink(r, c);
+      warmup.push(vid ? { t, rx, vid } : { t, rx });
+    }
+  }
+
   const exercises = []; const days = []; let currentDay = null; let blockName = '';
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r]; const a = String(row[0]||'').trim(); const b = String(row[1]||'').trim();
@@ -52,16 +83,16 @@ function parseSingleSheet(ws, sheetName) {
     if(!currentDay)currentDay={name:'Day 1',ex:[]}; currentDay.ex.push(dayEx);
   }
   if(currentDay?.ex.length>0) days.push(currentDay);
-  return {blockName:blockName||sheetName,exercises,days};
+  return {blockName:blockName||sheetName,exercises,days,warmup};
 }
 
 function parseSpreadsheet(data, fileName) {
   const wb=XLSX.read(data,{type:'array'}); const traineeName=fileName.replace(/\.(xlsx|xls|csv)$/i,'').replace(/[-_]/g,' ').replace(/\s*Training Program\s*$/i,'').replace(/^מעקב\s*/,'').replace(/\s*מעקב\s*$/,'').replace(/^\s*-\s*/,'').replace(/\s*-\s*$/,'').trim();
   const allExercises=[]; const allPlans=[]; const exTitleMap={};
-  for(const sheetName of wb.SheetNames){const ws=wb.Sheets[sheetName]; const{blockName,exercises,days}=parseSingleSheet(ws,sheetName); if(days.length===0)continue;
+  for(const sheetName of wb.SheetNames){const ws=wb.Sheets[sheetName]; const{blockName,exercises,days,warmup}=parseSingleSheet(ws,sheetName); if(days.length===0)continue;
     const sheetExercises=[]; for(const ex of exercises){if(!exTitleMap[ex.title]){exTitleMap[ex.title]=ex.id;allExercises.push(ex)}sheetExercises.push({...ex,dedupId:exTitleMap[ex.title]})}
     const remappedDays=days.map(d=>({...d,ex:d.ex.map(e=>{const orig=sheetExercises.find(se=>se.id===e.eid);return{...e,eid:orig?orig.dedupId:e.eid}})}));
-    allPlans.push({id:'plan_'+uid(),name:blockName,phase:'',rest:'',warmup:[],days:remappedDays});
+    allPlans.push({id:'plan_'+uid(),name:blockName,phase:'',rest:'',warmup:warmup||[],days:remappedDays});
   }
   return{trainee:{id:'tr_'+uid(),name:traineeName,status:'Active',format:'In-Person Private',package:'8 Sessions',sessionsRemaining:8},exercises:allExercises,plans:allPlans,version:'2.0',source:fileName};
 }
@@ -72,7 +103,7 @@ export default function App() {
   const { index: planIndex, loaded: pL, reload: reloadPlanIndex } = usePlanIndex();
   const [workouts,setWorkouts,wL]=useSupaStore(KEYS.workouts,[]);
   const [payments,setPayments,pyL]=useSupaStore(KEYS.payments,[]);
-  const [clientWorkouts,setClientWorkouts]=useSupaClientWorkouts([]);
+  const [clientWorkouts,setClientWorkouts,markWorkoutReviewed]=useSupaClientWorkouts([]);
   const [bwLog,setBwLog]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
   const [portalVis,setPortalVis]=useSupaStore('expo-portal-vis',{});
@@ -328,7 +359,7 @@ export default function App() {
         {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)}/>}
         {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
         {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
-        {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
+        {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} markReviewed={markWorkoutReviewed}/>}
         {tab==="plans"&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)}/>}
         {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
       </main>

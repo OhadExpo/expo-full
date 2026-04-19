@@ -87,7 +87,8 @@ export function useSupaClientWorkouts(initial = []) {
             id: r.id, clientId: r.client_id, planName: r.plan_name,
             dayName: r.day_name, week: r.week, date: r.date,
             autoregulation: r.autoregulation || {}, notes: r.notes || '',
-            exercises: r.exercises || [], formVideos: r.form_videos || []
+            exercises: r.exercises || [], formVideos: r.form_videos || [],
+            reviewedAt: r.reviewed_at || null
           }));
           setData(mapped);
           dataRef.current = mapped;
@@ -113,13 +114,27 @@ export function useSupaClientWorkouts(initial = []) {
           id: w.id, client_id: w.clientId, plan_name: w.planName,
           day_name: w.dayName, week: w.week, date: w.date,
           autoregulation: w.autoregulation, notes: w.notes,
-          exercises: w.exercises, form_videos: w.formVideos
+          exercises: w.exercises, form_videos: w.formVideos,
+          reviewed_at: w.reviewedAt || null
         });
       } catch {}
     }
   }, []);
 
-  return [data, save];
+  // Toggle or set reviewed state on an existing workout. Patches the single
+  // row directly — save() only handles inserts, so this bypasses it.
+  const markReviewed = useCallback(async (id, reviewed = true) => {
+    const ts = reviewed ? new Date().toISOString() : null;
+    const next = dataRef.current.map(w => w.id === id ? { ...w, reviewedAt: ts } : w);
+    setData(next);
+    dataRef.current = next;
+    try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
+    try {
+      await supabase.from('client_workouts').update({ reviewed_at: ts }).eq('id', id);
+    } catch {}
+  }, []);
+
+  return [data, save, markReviewed];
 }
 
 // BW logs hook — uses dedicated table
@@ -190,12 +205,17 @@ export function useSupaBwLog(initial = []) {
   return [data, save];
 }
 
-// Weekly focus hook — uses dedicated table
+// Weekly focus hook — uses dedicated table.
+// Supabase writes are debounced 500ms so typing in the focus textarea doesn't
+// fire one network call per keystroke. Local state + localStorage update
+// synchronously, so UI feels instant.
 export function useSupaWeeklyFocus(initial = {}) {
   const [data, setData] = useState(() => {
     try { const s = localStorage.getItem('expo-weekly-focus'); return s ? JSON.parse(s) : initial; } catch { return initial; }
   });
   const dataRef = useRef(data);
+  const pendingRef = useRef({}); // focus_key -> latest value not yet flushed
+  const timerRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -214,21 +234,36 @@ export function useSupaWeeklyFocus(initial = {}) {
 
   useEffect(() => { dataRef.current = data; }, [data]);
 
-  const save = useCallback(async (next) => {
+  const flush = useCallback(async () => {
+    const pending = pendingRef.current;
+    pendingRef.current = {};
+    timerRef.current = null;
+    for (const [k, v] of Object.entries(pending)) {
+      try {
+        await supabase.from('weekly_focus').upsert({ focus_key: k, value: v, updated_at: new Date().toISOString() });
+      } catch {}
+    }
+  }, []);
+
+  // Flush any pending writes on unmount so typed notes don't sit in memory.
+  useEffect(() => () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); flush(); }
+  }, [flush]);
+
+  const save = useCallback((next) => {
     const prev = dataRef.current;
     const val = typeof next === 'function' ? next(prev) : next;
     setData(val);
     dataRef.current = val;
     try { localStorage.setItem('expo-weekly-focus', JSON.stringify(val)); } catch {}
-    // Upsert all keys (simple approach for small dataset)
+
     for (const [k, v] of Object.entries(val)) {
-      if (prev[k] !== v) {
-        try {
-          await supabase.from('weekly_focus').upsert({ focus_key: k, value: v, updated_at: new Date().toISOString() });
-        } catch {}
-      }
+      if (prev[k] !== v) pendingRef.current[k] = v;
     }
-  }, []);
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(flush, 500);
+  }, [flush]);
 
   return [data, save];
 }
