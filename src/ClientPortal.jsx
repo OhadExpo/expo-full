@@ -15,7 +15,7 @@ function trainerPlanToPortal(plan, trainerExercises) {
   return {
     name: plan.name,
     phase: plan.phase || '',
-    rest: plan.notes || '',
+    rest: (plan.notes || '').replace(/imported from sheets/gi, '').trim(),
     warmup: Array.isArray(plan.warmup) ? plan.warmup : [],
     days: (plan.days || []).map(d => ({
       name: d.name,
@@ -732,14 +732,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
             </div></div></div>
         {activePlan?.rest && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {activePlan.rest}</div>}
         {visPlans.length===0 && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:30,textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:20,marginBottom:8}}>📋</div><div style={{fontSize:13}}>No active programs right now. Contact your trainer.</div></div>}
-        {/* Warm-up sections from all visible plans */}
-        {visPlans.map(vp => vp.warmup?.length > 0 && <div key={vp.name+'wu'} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:14}}>
-          <div style={{fontSize:11,fontFamily:FN,color:C.or,marginBottom:8,fontWeight:700}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
-          {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid ${C.bd}22`:'none'}}>
-            <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
-            <div style={{display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
-              {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4}}>▶</a>}</div></div>)}</div>)}
-        {/* Training days from all visible plans */}
+        {/* Per-plan block: divider → warm-up → rest → training days */}
         {(()=>{ let globalDayIdx = 0; return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
             <div style={{flex:1,height:1,background:C.bd2}}/>
@@ -747,6 +740,12 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
             {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}
             <div style={{flex:1,height:1,background:C.bd2}}/>
           </div>}
+          {vp.warmup?.length > 0 && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:14}}>
+            <div style={{fontSize:11,fontFamily:FN,color:C.or,marginBottom:8,fontWeight:700}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
+            {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid ${C.bd}22`:'none'}}>
+              <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
+                {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4}}>▶</a>}</div></div>)}</div>}
           {vp.rest && visPlans.length>1 && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm}}>⏱ {vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++; const done = cw.some(w => w.dayName === day.name && w.week === wk + 1);
           return <div key={vp.name+'-'+di} style={{background:C.sf,border:`1px solid ${done?C.gn+'40':C.bd}`,borderRadius:12,marginBottom:12,padding:'14px 18px'}}>
