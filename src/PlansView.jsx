@@ -163,14 +163,20 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
 }
 
 // Small button shown inline in an exercise row. Clicking it opens the browser modal.
-function ExPicker({ exercises, value, onChange, label }) {
+function ExPicker({ exercises, value, onChange, label, fallbackTitle }) {
   const [modalOpen, setModalOpen] = useState(false);
   const sel = exercises.find(e => e.id === value);
+  const displayTitle = sel?.title || fallbackTitle || '';
+  const hasDisplay = !!displayTitle;
+  const unlinked = !sel && !!fallbackTitle;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>{label}</label>}
-      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: sel ? C.tx : C.td, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sel ? sel.title : 'Select exercise...'}</span>
+      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderColor: unlinked ? C.or + '60' : undefined }}>
+        <span style={{ color: hasDisplay ? C.tx : C.td, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {unlinked && <span style={{ color: C.or, marginRight: 6, fontSize: 10 }}>📝</span>}
+          {hasDisplay ? displayTitle : 'Select exercise...'}
+        </span>
         <span style={{ color: C.td, fontSize: 10 }}>▼</span>
       </button>
       <ExerciseBrowserModal
@@ -179,8 +185,32 @@ function ExPicker({ exercises, value, onChange, label }) {
         onPick={id => { onChange(id); setModalOpen(false); }}
         exercises={exercises}
         currentId={value}
-        title={sel ? `Change Exercise (currently: ${sel.title})` : 'Select Exercise'}
+        title={sel ? `Change Exercise (currently: ${sel.title})` : (fallbackTitle ? `Link "${fallbackTitle}" to library` : 'Select Exercise')}
       />
+    </div>
+  );
+}
+
+function WarmupEditor({ plan, setPlan }) {
+  const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
+  const update = (idx, patch) => setPlan(p => ({ ...p, warmup: (p.warmup || []).map((w, i) => i === idx ? { ...w, ...patch } : w) }));
+  const add = () => setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] }));
+  const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
+  return (
+    <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: warmup.length ? 10 : 0 }}>
+        <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or }}>WARM-UP ({warmup.length})</div>
+        <Btn variant="ghost" onClick={add} style={{ padding: '4px 10px', fontSize: 11 }}>+ Add Warm-Up</Btn>
+      </div>
+      {warmup.map((w, i) => (
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 30px', gap: 8, marginBottom: 6, alignItems: 'end' }}>
+          <Input label={i === 0 ? 'Exercise' : ''} value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
+          <Input label={i === 0 ? 'Rx' : ''} value={w.rx || ''} onChange={e => update(i, { rx: e.target.value })} placeholder="1x10 E" />
+          <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })} placeholder="https://youtube.com/..." />
+          <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, marginBottom: 4, opacity: 0.6, fontSize: 16 }}>🗑</button>
+        </div>
+      ))}
+      {warmup.length === 0 && <div style={{ fontSize: 11, color: C.td, marginTop: 8 }}>No warm-ups. Click "+ Add Warm-Up" to add one.</div>}
     </div>
   );
 }
@@ -216,6 +246,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
       </div>
       <PatternCoverage plan={plan} exercises={exercises} />
+      <WarmupEditor plan={plan} setPlan={setPlan} />
       <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
         {plan.days.map((d,i) => <div key={d.id} style={{display:"flex"}}>
           <button onClick={()=>setActiveDay(i)} style={{padding:"6px 14px",fontSize:12,borderRadius:"6px 0 0 6px",border:"none",background:i===activeDay?C.ac:C.sf2,color:i===activeDay?"#fff":C.tm,cursor:"pointer",fontFamily:FB,fontWeight:600}}>{d.name} ({d.exercises.length})</button>
@@ -240,7 +271,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
               </div>
               <div style={{overflowX:"auto"}}>
                 <div style={{display:"grid",gridTemplateColumns:"2fr 60px 1fr 1fr 1fr 1fr 1fr auto",minWidth:700,gap:8,alignItems:"end"}}>
-                  <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" />
+                  <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
                   <Select label="Group" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
                   <Input label="Sets" type="number" value={ex.sets} onChange={e=>updateEx(exIdx,{sets:parseInt(e.target.value)||0})} />
                   <Input label="Reps" value={ex.reps} onChange={e=>updateEx(exIdx,{reps:e.target.value})} placeholder="8-12" />

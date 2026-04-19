@@ -20,7 +20,12 @@ function trainerPlanToPortal(plan, trainerExercises) {
     days: (plan.days || []).map(d => ({
       name: d.name,
       ex: (d.exercises || []).map((pe, peIdx) => {
-        const exData = pe.exerciseId ? trainerExercises.find(e => e.id === pe.exerciseId) : null;
+        // First look up by id. If empty, also try matching by title against the trainer library.
+        let exData = pe.exerciseId ? trainerExercises.find(e => e.id === pe.exerciseId) : null;
+        if (!exData && pe.title) {
+          const needle = pe.title.toLowerCase().trim();
+          exData = trainerExercises.find(e => (e.title || '').toLowerCase().trim() === needle) || null;
+        }
         // Prefer the exercise's own title, then library match, then a generic fallback
         const title = (pe.title || exData?.title || 'Exercise ' + (peIdx + 1)).trim();
         // Try to find existing EX entry by title first (cheap, no dynamic entry needed)
