@@ -172,6 +172,19 @@ export function useSupaBwLog(initial = []) {
         }, { onConflict: 'client_id,block_name,week' });
       } catch {}
     }
+    // Delete entries that were in prev but are gone from val
+    const removed = prev.filter(p => {
+      if (!p.blockName || !p.clientId) return false;
+      return !val.find(v => v.clientId === p.clientId && v.blockName === p.blockName && v.week === p.week);
+    });
+    for (const p of removed) {
+      try {
+        await supabase.from('bw_logs').delete()
+          .eq('client_id', p.clientId)
+          .eq('block_name', p.blockName)
+          .eq('week', p.week);
+      } catch {}
+    }
   }, []);
 
   return [data, save];

@@ -486,6 +486,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   const [loginEmail, setLoginEmail] = useState('');
   const [loginError, setLoginError] = useState('');
   const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
+  const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
 
   // Resolve client from trainees (Supabase)
   const trainee = (trainees || []).find(t => t.id === ci);
@@ -531,7 +532,8 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   const mergedPlans = (() => {
     if (!trainee) return [];
     const curated = CURATED_CLIENTS[clientName];
-    const curatedPlans = curated?.plans || [];
+    // Curated plans aren't in the plans table — synthesize a stable pseudo-id so bw_logs.plan_id is non-null for them too
+    const curatedPlans = (curated?.plans || []).map(p => ({ ...p, id: p.id || `curated:${clientName}:${p.name}` }));
     const curatedNames = new Set(curatedPlans.map(p => p.name));
     // Trainer-side plans not already curated — use plans loaded from Supabase plans table
     const trainerExtra = clientPlans
@@ -547,7 +549,8 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   });
 
   // Active block for bodyweight logging — scopes uniqueness to (client, block, week)
-  const activePlan = visPlans[0];
+  // Falls back to the first visible plan when no manual selection (or selection no longer visible).
+  const activePlan = visPlans.find(p => p.name === selectedBlockName) || visPlans[0];
 
   const cw = clientWorkouts.filter(w => w.clientId === ci);
   const handleComplete = w => {
@@ -588,6 +591,13 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
 
         {/* Quick log */}
         <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:14,marginBottom:16}}>
+          {visPlans.length > 1 && <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+            {visPlans.map(p => <button key={p.name} onClick={() => setSelectedBlockName(p.name)}
+              style={{padding:'4px 10px',borderRadius:14,border:`1px solid ${activePlan?.name===p.name?C.ac:C.bd}`,background:activePlan?.name===p.name?C.acD:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
+          </div>}
+          {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10}}>
+            {[0,1,2,3].map(w => <button key={w} onClick={() => setWk(w)} style={{flex:1,padding:'6px 0',borderRadius:6,border:`1px solid ${wk===w?C.ac:C.bd}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
+          </div>}
           <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
           <div style={{display:'flex',gap:8}}>
             <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:C.sf2,border:`1px solid ${existingBw?C.gn+'60':C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5}}/>
@@ -624,11 +634,13 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
                 const y = 10 + ((maxBw - d.bw) / range) * 130;
                 const prevBlock = i>0 ? bwData[i-1].blockName : null;
                 const blockChanged = d.blockName && d.blockName !== prevBlock;
+                const mNum = d.blockName?.match(/#(\d+)/);
+                const blockAbbrev = mNum ? 'B'+mNum[1] : (d.blockName ? d.blockName.slice(0,4) : '?');
                 return <g key={i}>
                   {blockChanged && <line x1={x-25} y1="10" x2={x-25} y2="140" stroke={C.bd2||C.bd} strokeWidth="0.5" strokeDasharray="2"/>}
                   <circle cx={x} cy={y} r="4" fill={C.ac} stroke={C.bg} strokeWidth="2"/>
                   <text x={x} y={y-10} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor="middle" fontWeight="600">{d.bw}</text>
-                  <text x={x} y={152} fill={C.td} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week||'?'}</text>
+                  <text x={x} y={152} fill={C.td} fontSize="8" fontFamily={FN} textAnchor="middle">{blockAbbrev}·W{d.week||'?'}</text>
                   <text x={x} y={163} fill={C.td} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
                 </g>;
               })}
@@ -654,15 +666,24 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
 
         {/* Log history */}
         <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>HISTORY</div>
-        {bwData.slice().reverse().map((d,i) => (
-          <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:i%2===0?C.sf:'transparent',borderRadius:6,marginBottom:2}}>
+        {bwData.slice().reverse().map((d,i) => {
+          const onEdit = () => { setBw(String(d.bw)); setWk((d.week||1)-1); if (d.blockName) setSelectedBlockName(d.blockName); };
+          const onDelete = (e) => {
+            e.stopPropagation();
+            if (!window.confirm(`Delete ${d.bw}kg from ${d.blockName||'?'} W${d.week||'?'}?`)) return;
+            setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week)));
+          };
+          return <div key={i} onClick={onEdit} title="Click to edit" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:i%2===0?C.sf:'transparent',borderRadius:6,marginBottom:2,cursor:'pointer'}}>
             <div>
               <span style={{fontSize:13,fontWeight:600,color:C.tx}}>{d.bw} kg</span>
               <span style={{fontSize:11,color:C.tm,marginLeft:8}}>{d.blockName||'?'} · W{d.week||'?'}</span>
             </div>
-            <span style={{fontSize:10,color:C.td}}>{new Date(d.date).toLocaleDateString()}</span>
-          </div>
-        ))}
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontSize:10,color:C.td}}>{new Date(d.date).toLocaleDateString()}</span>
+              <button onClick={onDelete} title="Delete entry" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:14,padding:'2px 6px',borderRadius:4,lineHeight:1}}>×</button>
+            </div>
+          </div>;
+        })}
         {bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
       </div>
     </div>;
