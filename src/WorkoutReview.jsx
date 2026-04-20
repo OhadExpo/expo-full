@@ -107,43 +107,50 @@ function FormVideoPlayer({ url, onVideoRef }) {
     return () => v.removeEventListener('seeked', reset);
   }, [url]);
 
+  // Shared lazy-loader so both POSE and REPS toggles can fetch the model.
+  const ensureModel = async () => {
+    if (landmarkerRef.current) return true;
+    setPoseLoading(true);
+    setPoseError('');
+    try {
+      const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+      const fileset = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
+      );
+      const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
+      const opts = (delegate) => ({
+        baseOptions: { modelAssetPath: modelUrl, delegate },
+        runningMode: 'VIDEO',
+        numPoses: 1,
+      });
+      try {
+        landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('GPU'));
+      } catch {
+        landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('CPU'));
+      }
+    } catch (e) {
+      console.error('Pose load failed:', e);
+      setPoseError('Model load failed');
+      setPoseLoading(false);
+      return false;
+    }
+    setPoseLoading(false);
+    return true;
+  };
+
   const togglePose = async () => {
     if (poseOn) { setPoseOn(false); return; }
-    if (!landmarkerRef.current) {
-      setPoseLoading(true);
-      setPoseError('');
-      try {
-        const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
-        const fileset = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
-        );
-        // Lite model — empirically the best fit for typical phone-camera form
-        // clips at this scale. Full/heavy were tested and produced worse results
-        // at default thresholds; reverted on coach feedback.
-        const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
-        const opts = (delegate) => ({
-          baseOptions: { modelAssetPath: modelUrl, delegate },
-          runningMode: 'VIDEO',
-          numPoses: 1,
-        });
-        try {
-          landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('GPU'));
-        } catch {
-          landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('CPU'));
-        }
-      } catch (e) {
-        console.error('Pose load failed:', e);
-        setPoseError('Model load failed');
-        setPoseLoading(false);
-        return;
-      }
-      setPoseLoading(false);
-    }
-    setPoseOn(true);
+    if (await ensureModel()) setPoseOn(true);
+  };
+
+  const toggleReps = async () => {
+    if (repsOn) { setRepsOn(false); return; }
+    if (await ensureModel()) setRepsOn(true);
   };
 
   useEffect(() => {
-    if (!poseOn) {
+    // Detection runs whenever EITHER overlay (POSE) or rep counter (REPS) is on.
+    if (!poseOn && !repsOn) {
       const c = canvasRef.current;
       if (c && c.width && c.height) c.getContext('2d').clearRect(0, 0, c.width, c.height);
       setAngles({});
@@ -185,21 +192,25 @@ function FormVideoPlayer({ url, onVideoRef }) {
             ctx.clearRect(0, 0, w, h);
             const lms = result.landmarks?.[0];
             if (lms) {
-              ctx.strokeStyle = '#3BA0FF';
-              ctx.lineWidth = 2;
-              for (const [i, j] of POSE_CONNECTIONS) {
-                const a = lms[i], b = lms[j];
-                if (!a || !b) continue;
-                ctx.beginPath();
-                ctx.moveTo(a.x*w, a.y*h);
-                ctx.lineTo(b.x*w, b.y*h);
-                ctx.stroke();
-              }
-              ctx.fillStyle = '#fff';
-              for (const p of lms) {
-                ctx.beginPath();
-                ctx.arc(p.x*w, p.y*h, 3, 0, 2*Math.PI);
-                ctx.fill();
+              // Skeleton + dots only when the overlay is enabled. Rep counting
+              // still runs silently when only REPS is on.
+              if (poseOn) {
+                ctx.strokeStyle = '#3BA0FF';
+                ctx.lineWidth = 2;
+                for (const [i, j] of POSE_CONNECTIONS) {
+                  const a = lms[i], b = lms[j];
+                  if (!a || !b) continue;
+                  ctx.beginPath();
+                  ctx.moveTo(a.x*w, a.y*h);
+                  ctx.lineTo(b.x*w, b.y*h);
+                  ctx.stroke();
+                }
+                ctx.fillStyle = '#fff';
+                for (const p of lms) {
+                  ctx.beginPath();
+                  ctx.arc(p.x*w, p.y*h, 3, 0, 2*Math.PI);
+                  ctx.fill();
+                }
               }
               const next = {};
               for (const d of ANGLE_DEFS) {
@@ -269,7 +280,7 @@ function FormVideoPlayer({ url, onVideoRef }) {
       v.removeEventListener('seeked', detect);
       v.removeEventListener('loadeddata', detect);
     };
-  }, [poseOn]);
+  }, [poseOn, repsOn]);
 
   useEffect(() => () => {
     if (landmarkerRef.current) {
@@ -287,18 +298,19 @@ function FormVideoPlayer({ url, onVideoRef }) {
         <canvas ref={canvasRef}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
             pointerEvents:'none',display:poseOn?'block':'none'}} />
-        {poseOn && Object.keys(angles).length > 0 && (
+        {(poseOn || repsOn) && (Object.keys(angles).length > 0 || repsOn) && (
           <div style={{position:'absolute',top:6,right:6,background:'rgba(10,10,11,0.78)',
             borderRadius:6,padding:'6px 8px',pointerEvents:'none',fontFamily:FN,fontSize:10,
             color:'#fff',lineHeight:1.5,minWidth:96}}>
             {repsOn && (
-              <div style={{borderBottom:`1px solid ${C.bd}`,paddingBottom:4,marginBottom:4,textAlign:'center'}}>
+              <div style={{paddingBottom:4,marginBottom:poseOn?4:0,textAlign:'center',
+                borderBottom:poseOn?`1px solid ${C.bd}`:'none'}}>
                 <div style={{fontSize:9,color:C.td,letterSpacing:0.5}}>REPS</div>
                 <div style={{fontSize:18,fontWeight:700,color:C.gn,lineHeight:1}}>{reps}</div>
                 {tempo != null && <div style={{fontSize:9,color:C.tm,marginTop:2}}>{tempo.toFixed(1)}s</div>}
               </div>
             )}
-            {ANGLE_DEFS.map(d => (
+            {poseOn && ANGLE_DEFS.map(d => (
               <div key={d.name} style={{display:'flex',justifyContent:'space-between',gap:8}}>
                 <span style={{color:C.td}}>{d.name}</span>
                 <span>{angles[d.name] != null ? angles[d.name] + '°' : '—'}</span>
@@ -327,10 +339,10 @@ function FormVideoPlayer({ url, onVideoRef }) {
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
         </button>
-        <button onClick={() => setRepsOn(v => !v)} disabled={!poseOn} title={poseOn ? 'Count reps from knee angle cycles' : 'Enable POSE first'}
+        <button onClick={toggleReps} disabled={poseLoading} title="Count reps from knee angle cycles"
           style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${repsOn?C.gn:C.bd}`,
-            background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:(poseOn?C.tm:C.td),
-            fontFamily:FN,fontSize:10,cursor:poseOn?'pointer':'not-allowed',opacity:poseOn?1:0.5}}>
+            background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
+            fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {repsOn ? `REPS ${reps}` : 'REPS'}
         </button>
         {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
