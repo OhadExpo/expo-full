@@ -69,25 +69,21 @@ function FormVideoPlayer({ url }) {
         const fileset = await FilesetResolver.forVisionTasks(
           'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
         );
-        // Try GPU first; fall back to CPU if the device rejects it.
+        // Heavy model: ~30MB but noticeably better on side angles + low light
+        // than lite, and rejects most background false positives.
+        const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task';
+        const opts = (delegate) => ({
+          baseOptions: { modelAssetPath: modelUrl, delegate },
+          runningMode: 'VIDEO',
+          numPoses: 1,
+          minPoseDetectionConfidence: 0.6,
+          minPosePresenceConfidence: 0.6,
+          minTrackingConfidence: 0.6,
+        });
         try {
-          landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, {
-            baseOptions: {
-              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',
-              delegate: 'GPU',
-            },
-            runningMode: 'VIDEO',
-            numPoses: 1,
-          });
+          landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('GPU'));
         } catch {
-          landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, {
-            baseOptions: {
-              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',
-              delegate: 'CPU',
-            },
-            runningMode: 'VIDEO',
-            numPoses: 1,
-          });
+          landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('CPU'));
         }
       } catch (e) {
         console.error('Pose load failed:', e);
@@ -138,24 +134,30 @@ function FormVideoPlayer({ url }) {
             ctx.clearRect(0, 0, w, h);
             const lms = result.landmarks?.[0];
             if (lms) {
+              const VIS_MIN = 0.5;
+              const visOk = (i) => lms[i] && (lms[i].visibility ?? 1) >= VIS_MIN;
               ctx.strokeStyle = '#3BA0FF';
               ctx.lineWidth = 2;
               for (const [i, j] of POSE_CONNECTIONS) {
-                const a = lms[i], b = lms[j];
-                if (!a || !b) continue;
+                if (!visOk(i) || !visOk(j)) continue;
                 ctx.beginPath();
-                ctx.moveTo(a.x*w, a.y*h);
-                ctx.lineTo(b.x*w, b.y*h);
+                ctx.moveTo(lms[i].x*w, lms[i].y*h);
+                ctx.lineTo(lms[j].x*w, lms[j].y*h);
                 ctx.stroke();
               }
               ctx.fillStyle = '#fff';
-              for (const p of lms) {
+              // Skip face landmarks (0–10) — useless for biomechanics and the
+              // most common source of phantom dots when the model misreads
+              // background light/shapes as a face.
+              for (let i = 11; i < lms.length; i++) {
+                if (!visOk(i)) continue;
                 ctx.beginPath();
-                ctx.arc(p.x*w, p.y*h, 3, 0, 2*Math.PI);
+                ctx.arc(lms[i].x*w, lms[i].y*h, 3, 0, 2*Math.PI);
                 ctx.fill();
               }
               const next = {};
               for (const d of ANGLE_DEFS) {
+                if (!visOk(d.a) || !visOk(d.b) || !visOk(d.c)) continue;
                 const val = angleAt(lms, d.a, d.b, d.c);
                 if (val != null) next[d.name] = Math.round(val);
               }
