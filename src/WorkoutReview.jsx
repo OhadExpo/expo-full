@@ -38,19 +38,30 @@ const angleAt = (lms, ai, bi, ci) => {
 };
 
 // Form-video player: speed control (0.125x recovers old fast-motion webm),
-// fullscreen, and an optional MediaPipe Pose overlay with live joint angles.
+// frame-step (←/→ ~ 1/30s), fullscreen, and an optional MediaPipe Pose
+// overlay with live joint angles + rep counter.
 function FormVideoPlayer({ url }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
+  const repStateRef = useRef({ state: 'unknown', extreme: null, lastTopVt: null });
   const [speed, setSpeed] = useState(1);
   const [poseOn, setPoseOn] = useState(false);
   const [poseLoading, setPoseLoading] = useState(false);
   const [poseError, setPoseError] = useState('');
   const [angles, setAngles] = useState({});
+  const [repsOn, setRepsOn] = useState(false);
+  const [reps, setReps] = useState(0);
+  const [tempo, setTempo] = useState(null); // seconds of video time for last rep
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
+
+  // Reset rep state when toggle flips or a new video loads.
+  useEffect(() => {
+    setReps(0); setTempo(null);
+    repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null };
+  }, [repsOn, url]);
 
   const fullscreen = () => {
     const v = videoRef.current; if (!v) return;
@@ -58,6 +69,27 @@ function FormVideoPlayer({ url }) {
     else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
     else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
   };
+
+  // Frame-step assumes 30fps source (typical phone clip). For a 60fps clip
+  // this advances 2 frames per click — close enough for form review.
+  const stepFrame = (frames) => {
+    const v = videoRef.current; if (!v) return;
+    if (!v.paused) v.pause();
+    const dt = frames / 30;
+    v.currentTime = Math.max(0, Math.min((v.duration || 0) - 0.001, v.currentTime + dt));
+  };
+
+  // Reset rep state whenever the user scrubs (seeked) — the rep machine
+  // assumes monotonically advancing video time.
+  useEffect(() => {
+    const v = videoRef.current; if (!v) return;
+    const reset = () => {
+      repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null };
+      setReps(0); setTempo(null);
+    };
+    v.addEventListener('seeked', reset);
+    return () => v.removeEventListener('seeked', reset);
+  }, [url]);
 
   const togglePose = async () => {
     if (poseOn) { setPoseOn(false); return; }
@@ -110,9 +142,12 @@ function FormVideoPlayer({ url }) {
     const ctx = c.getContext('2d');
     let lastTs = -1;
     let pendingAngles = {};
+    let pendingReps = null; // { count, tempo } when a rep just completed
     // Throttle the React HUD update — angle numbers don't need 60Hz.
     const hudInterval = setInterval(() => {
-      if (active) setAngles(pendingAngles);
+      if (!active) return;
+      setAngles(pendingAngles);
+      if (pendingReps) { setReps(pendingReps.count); setTempo(pendingReps.tempo); pendingReps = null; }
     }, 200);
 
     const detect = () => {
@@ -154,6 +189,34 @@ function FormVideoPlayer({ url }) {
                 if (val != null) next[d.name] = Math.round(val);
               }
               pendingAngles = next;
+
+              // Rep counter: track avg knee angle, count full top→bottom→top cycles.
+              // Tuned for squat-shaped lifts (knee flexion is the dominant signal).
+              if (repsOn) {
+                const lk = next['L KNE'], rk = next['R KNE'];
+                const knee = lk != null && rk != null ? (lk + rk) / 2 : (lk ?? rk);
+                if (knee != null) {
+                  const s = repStateRef.current;
+                  const vt = v.currentTime;
+                  const AMP = 30; // min angle swing to count a transition
+                  if (s.state === 'unknown') {
+                    if (knee > 140) { s.state = 'top'; s.extreme = knee; s.lastTopVt = vt; }
+                    else if (knee < 110) { s.state = 'bottom'; s.extreme = knee; }
+                  } else if (s.state === 'top') {
+                    if (knee > s.extreme) s.extreme = knee;
+                    else if (s.extreme - knee > AMP) { s.state = 'bottom'; s.extreme = knee; }
+                  } else if (s.state === 'bottom') {
+                    if (knee < s.extreme) s.extreme = knee;
+                    else if (knee - s.extreme > AMP) {
+                      s.state = 'top';
+                      s.extreme = knee;
+                      const tempoSec = s.lastTopVt != null ? vt - s.lastTopVt : null;
+                      s.lastTopVt = vt;
+                      pendingReps = { count: (pendingReps?.count ?? reps) + 1, tempo: tempoSec };
+                    }
+                  }
+                }
+              }
             }
           } catch { /* swallow per-frame detect errors */ }
         }
@@ -209,6 +272,13 @@ function FormVideoPlayer({ url }) {
           <div style={{position:'absolute',top:6,right:6,background:'rgba(10,10,11,0.78)',
             borderRadius:6,padding:'6px 8px',pointerEvents:'none',fontFamily:FN,fontSize:10,
             color:'#fff',lineHeight:1.5,minWidth:96}}>
+            {repsOn && (
+              <div style={{borderBottom:`1px solid ${C.bd}`,paddingBottom:4,marginBottom:4,textAlign:'center'}}>
+                <div style={{fontSize:9,color:C.td,letterSpacing:0.5}}>REPS</div>
+                <div style={{fontSize:18,fontWeight:700,color:C.gn,lineHeight:1}}>{reps}</div>
+                {tempo != null && <div style={{fontSize:9,color:C.tm,marginTop:2}}>{tempo.toFixed(1)}s</div>}
+              </div>
+            )}
             {ANGLE_DEFS.map(d => (
               <div key={d.name} style={{display:'flex',justifyContent:'space-between',gap:8}}>
                 <span style={{color:C.td}}>{d.name}</span>
@@ -219,7 +289,13 @@ function FormVideoPlayer({ url }) {
         )}
       </div>
       <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
-        <span style={{fontSize:9,fontFamily:FN,color:C.td,marginRight:4,letterSpacing:0.5}}>SPEED</span>
+        <button onClick={() => stepFrame(-1)} title="Previous frame"
+          style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
+            background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>◀</button>
+        <button onClick={() => stepFrame(1)} title="Next frame"
+          style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
+            background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>▶</button>
+        <span style={{fontSize:9,fontFamily:FN,color:C.td,marginLeft:6,marginRight:4,letterSpacing:0.5}}>SPEED</span>
         {speeds.map(s => (
           <button key={s} onClick={() => setSpeed(s)}
             style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${speed===s?C.ac:C.bd}`,
@@ -231,6 +307,12 @@ function FormVideoPlayer({ url }) {
             background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
+        </button>
+        <button onClick={() => setRepsOn(v => !v)} disabled={!poseOn} title={poseOn ? 'Count reps from knee angle cycles' : 'Enable POSE first'}
+          style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${repsOn?C.gn:C.bd}`,
+            background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:(poseOn?C.tm:C.td),
+            fontFamily:FN,fontSize:10,cursor:poseOn?'pointer':'not-allowed',opacity:poseOn?1:0.5}}>
+          {repsOn ? `REPS ${reps}` : 'REPS'}
         </button>
         {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
         <button onClick={fullscreen}

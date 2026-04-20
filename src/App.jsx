@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, lazy } from 'react';
 import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
@@ -6,20 +6,27 @@ import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn } from './ui';
 import * as XLSX from 'xlsx';
-import TraineesView from './TraineesView';
-import TraineeDetail from './TraineeDetail';
-import ExercisesView from './ExercisesView';
-import PlansView from './PlansView';
-import WorkoutsView from './WorkoutsView';
-import ClientPortal from './ClientPortal';
-import DashboardView from './DashboardView';
-import WorkoutReview from './WorkoutReview';
+
+// Lazy-load every heavy view so the initial bundle stays small.
+// Each tab fetches its own chunk on first navigation; subsequent visits use cache.
+const TraineesView = lazy(() => import('./TraineesView'));
+const TraineeDetail = lazy(() => import('./TraineeDetail'));
+const ExercisesView = lazy(() => import('./ExercisesView'));
+const PlansView = lazy(() => import('./PlansView'));
+const WorkoutsView = lazy(() => import('./WorkoutsView'));
+const ClientPortal = lazy(() => import('./ClientPortal'));
+const DashboardView = lazy(() => import('./DashboardView'));
+const WorkoutReview = lazy(() => import('./WorkoutReview'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
 const MemoPlans = React.memo(PlansView);
 const MemoExercises = React.memo(ExercisesView);
 const MemoWorkouts = React.memo(WorkoutsView);
 const MemoReview = React.memo(WorkoutReview);
+
+const ViewFallback = () => (
+  <div style={{textAlign:'center',padding:40,color:C.td,fontFamily:FB,fontSize:13}}>Loading…</div>
+);
 
 const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"expo-workouts", payments:"expo-payments", cw:"expo-cw", bw:"expo-bw" };
 
@@ -306,10 +313,10 @@ export default function App() {
     return () => clearInterval(iv);
   }, [isCoach]);
 
-  if(tab==="client")return(<div>
+  if(tab==="client")return(<Suspense fallback={<ViewFallback />}><div>
     {isCoach&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"center"}}>
       <button onClick={()=>navTo("dashboard")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
-    <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession}/></div>);
+    <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession}/></div></Suspense>);
 
   // Trainer login gate (portal bypasses this)
   if(!trainerAuth && isCoach) return(
@@ -355,13 +362,15 @@ export default function App() {
             <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:"none"}}/></div></div></header>
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:importMsg.startsWith("✗")?C.rdD:importMsg.startsWith("⚠")?C.orD:C.gnD,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:8,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
-        {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)}/>}
-        {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)}/>}
-        {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
-        {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
-        {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} markReviewed={markWorkoutReviewed}/>}
-        {tab==="plans"&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)}/>}
-        {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
+        <Suspense fallback={<ViewFallback />}>
+          {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)}/>}
+          {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)}/>}
+          {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} exercises={exercises} workouts={workouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
+          {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
+          {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} markReviewed={markWorkoutReviewed}/>}
+          {tab==="plans"&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)}/>}
+          {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
+        </Suspense>
       </main>
       {/* Import trainee assignment modal */}
       {pendingImport&&<div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:60,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(4px)"}} onClick={()=>setPendingImport(null)}>
