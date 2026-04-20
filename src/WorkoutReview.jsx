@@ -121,16 +121,17 @@ function FormVideoPlayer({ url }) {
       if (active) setAngles(pendingAngles);
     }, 200);
 
-    const detect = (now, metadata) => {
+    const detect = () => {
       if (!active) return;
       const w = v.clientWidth, h = v.clientHeight;
       if (w > 0 && h > 0 && v.readyState >= 2) {
         if (c.width !== w) c.width = w;
         if (c.height !== h) c.height = h;
-        // Use the video's media timestamp when available (rVFC metadata) so
-        // detectForVideo gets a stable time per video frame.
-        const ts = metadata?.mediaTime != null ? metadata.mediaTime * 1000 : (now ?? performance.now());
-        if (ts !== lastTs) {
+        // Use performance.now() consistently so timestamps stay monotonic.
+        // (Mixing performance.now with metadata.mediaTime causes MediaPipe to
+        // silently reject backward timestamps and break the loop.)
+        const ts = Math.max(performance.now(), lastTs + 0.001);
+        if (ts > lastTs) {
           lastTs = ts;
           try {
             const result = lm.detectForVideo(v, ts);
@@ -179,19 +180,18 @@ function FormVideoPlayer({ url }) {
     } else {
       rafRef.current = requestAnimationFrame(detect);
     }
-    detect(performance.now(), null);
+    detect();
 
     // Re-detect on scrub / load so a paused video updates its overlay.
-    const detectOnce = () => detect(performance.now(), null);
-    v.addEventListener('seeked', detectOnce);
-    v.addEventListener('loadeddata', detectOnce);
+    v.addEventListener('seeked', detect);
+    v.addEventListener('loadeddata', detect);
 
     return () => {
       active = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (hudInterval) clearInterval(hudInterval);
-      v.removeEventListener('seeked', detectOnce);
-      v.removeEventListener('loadeddata', detectOnce);
+      v.removeEventListener('seeked', detect);
+      v.removeEventListener('loadeddata', detect);
     };
   }, [poseOn]);
 
