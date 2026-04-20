@@ -4,24 +4,14 @@ import { Btn, Input, Select, TextArea, Badge, Card, Modal, baseInput } from './u
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
-
-const emailsToArr = (email) => {
-  if (!email) return [''];
-  if (Array.isArray(email)) return email.length ? email : [''];
-  return [email];
-};
-const emailsToStore = (arr) => {
-  const clean = arr.map(e => e.trim().toLowerCase()).filter(Boolean);
-  if (clean.length === 0) return '';
-  if (clean.length === 1) return clean[0];
-  return clean;
-};
+import { emailsToArr, emailsToStore, traineeIdsFor, subMemberId } from './traineeUtils';
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, payments, setPayments, onBack, onOpenPlan, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
   // For couples: plans assigned to parent ID are shared, plans to sub-IDs are per-member
-  const tp=(planIndex||[]).filter(p=>p.traineeId===trainee || p.traineeId===trainee+'__0' || p.traineeId===trainee+'__1');
-  const tpMember = (mi) => tp.filter(p => p.traineeId===trainee || p.traineeId===trainee+'__'+mi);
+  const traineeIds = traineeIdsFor(trainee);
+  const tp = (planIndex || []).filter(p => traineeIds.includes(p.traineeId));
+  const tpMember = (mi) => tp.filter(p => p.traineeId === trainee || p.traineeId === subMemberId(trainee, mi));
   const tw=workouts.filter(w=>w.traineeId===trainee&&w.status==="completed");
   const tPay=payments.filter(p=>p.traineeId===trainee);
   const [showPayForm,setShowPayForm]=useState(false);
@@ -241,13 +231,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <div style={{fontSize:13,color:C.tm,marginBottom:16}}>Assign to which member?</div>
             <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
               {td.members.map((m,mi)=>(
-                <Btn key={mi} onClick={()=>assignPlan(pendingAssignPlan, trainee+'__'+mi)} style={{fontSize:13,padding:'8px 20px'}}>{m.name || `Member ${mi+1}`}</Btn>
+                <Btn key={mi} onClick={()=>assignPlan(pendingAssignPlan, subMemberId(trainee, mi))} style={{fontSize:13,padding:'8px 20px'}}>{m.name || `Member ${mi+1}`}</Btn>
               ))}
             </div>
             <button onClick={()=>setPendingAssignPlan(null)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back to list</button>
           </div>
         ) : (
-        (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&p.traineeId!==trainee&&!p.traineeId.startsWith(trainee+'__'));const assignedNames=new Set(tp.map(p=>p.name));const available=[...unassigned,...others].filter(p=>!assignedNames.has(p.name)||p.traineeId!==trainee);
+        (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&!traineeIds.includes(p.traineeId));const assignedNames=new Set(tp.map(p=>p.name));const available=[...unassigned,...others].filter(p=>!assignedNames.has(p.name)||p.traineeId!==trainee);
           return available.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:20}}>No programs available. Create one in the Programs tab first.</div>:
           <div>{unassigned.length>0&&<><div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>UNASSIGNED</div>
             {unassigned.map(p=><div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>

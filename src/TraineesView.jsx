@@ -1,24 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
-
-// Normalize email field: always work with arrays internally
-const emailsToArr = (email) => {
-  if (!email) return [''];
-  if (Array.isArray(email)) return email.length ? email : [''];
-  return [email];
-};
-const emailsToStore = (arr) => {
-  const clean = arr.map(e => e.trim().toLowerCase()).filter(Boolean);
-  if (clean.length === 0) return '';
-  if (clean.length === 1) return clean[0];
-  return clean;
-};
-const emailsDisplay = (email) => {
-  if (!email) return '';
-  if (Array.isArray(email)) return email.join(', ');
-  return email;
-};
+import { emailsToArr, emailsToStore, emailsDisplay, subMemberId } from './traineeUtils';
 
 const isCouple = (t) => t.members && t.members.length === 2;
 
@@ -36,8 +19,8 @@ const getMemberPlanCounts = (t, planCounts) => {
   if (!isCouple(t)) return [planCounts?.[t.id] || 0];
   const shared = planCounts?.[t.id] || 0;
   return [
-    shared + (planCounts?.[t.id + '__0'] || 0),
-    shared + (planCounts?.[t.id + '__1'] || 0),
+    shared + (planCounts?.[subMemberId(t.id, 0)] || 0),
+    shared + (planCounts?.[subMemberId(t.id, 1)] || 0),
   ];
 };
 

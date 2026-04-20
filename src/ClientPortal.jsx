@@ -3,6 +3,7 @@ import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './the
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
 import { useAuth } from './auth';
+import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -498,8 +499,8 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         const { supabase: sb } = await import('./supabase');
         // Couples: a trainee may have plans under parent ID OR sub-member IDs (parent__0, parent__1).
         // Fetch all so the shared portal renders both members' plans.
-        const { data } = await sb.from('plans').select('*')
-          .or(`trainee_id.eq.${ci},trainee_id.eq.${ci}__0,trainee_id.eq.${ci}__1`);
+        const ids = traineeIdsFor(ci);
+        const { data } = await sb.from('plans').select('*').in('trainee_id', ids);
         if (data) {
           setClientPlans(data.map(p => ({
             id: p.id, name: p.name, traineeId: p.trainee_id, phase: p.phase,
@@ -540,12 +541,10 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   // Plans without a block number fall to the end preserving their original order.
   const blockNum = n => { const m = /#(\d+)/.exec(n || ''); return m ? parseInt(m[1], 10) : -Infinity; };
   // visKey matches the trainer-side TraineeDetail keying. Couple member plans
-  // (traineeId like `${ci}__0`, `${ci}__1`) get a `:m{N}` suffix so toggling
-  // one member's plan doesn't ghost into the other's.
+  // get a `:m{N}` suffix so toggling one member's plan doesn't ghost into the other's.
   const visKeyFor = (p) => {
-    const tid = p.traineeId || '';
-    if (ci && tid.startsWith(ci + '__')) return `${clientName}:${p.name}:m${tid.slice(ci.length + 2)}`;
-    return `${clientName}:${p.name}`;
+    const mi = memberIndexFromId(p.traineeId, ci);
+    return mi != null ? `${clientName}:${p.name}:m${mi}` : `${clientName}:${p.name}`;
   };
   const visPlans = mergedPlans.filter(p => {
     if (!portalVis || !clientName) return true;
