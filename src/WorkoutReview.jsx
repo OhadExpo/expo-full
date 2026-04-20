@@ -6,22 +6,196 @@ import { EX } from './exerciseData';
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,padding:"8px 10px",borderRadius:6,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"};
 
-// Inline player with speed (incl. 0.125x to recover old fast-motion webm) + fullscreen.
+// MediaPipe Pose landmark indices for skeleton drawing + joint-angle calc.
+const POSE_CONNECTIONS = [
+  [11,12],[11,23],[12,24],[23,24],   // torso
+  [11,13],[13,15],                    // left arm
+  [12,14],[14,16],                    // right arm
+  [23,25],[25,27],                    // left leg
+  [24,26],[26,28],                    // right leg
+];
+
+const ANGLE_DEFS = [
+  { name: 'L SHO', a:23, b:11, c:13 },
+  { name: 'R SHO', a:24, b:12, c:14 },
+  { name: 'L ELB', a:11, b:13, c:15 },
+  { name: 'R ELB', a:12, b:14, c:16 },
+  { name: 'L HIP', a:11, b:23, c:25 },
+  { name: 'R HIP', a:12, b:24, c:26 },
+  { name: 'L KNE', a:23, b:25, c:27 },
+  { name: 'R KNE', a:24, b:26, c:28 },
+];
+
+const angleAt = (lms, ai, bi, ci) => {
+  const a = lms[ai], b = lms[bi], c = lms[ci];
+  if (!a || !b || !c) return null;
+  const v1x = a.x - b.x, v1y = a.y - b.y;
+  const v2x = c.x - b.x, v2y = c.y - b.y;
+  const m1 = Math.hypot(v1x, v1y), m2 = Math.hypot(v2x, v2y);
+  if (m1 === 0 || m2 === 0) return null;
+  const cos = (v1x*v2x + v1y*v2y) / (m1*m2);
+  return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+};
+
+// Form-video player: speed control (0.125x recovers old fast-motion webm),
+// fullscreen, and an optional MediaPipe Pose overlay with live joint angles.
 function FormVideoPlayer({ url }) {
-  const ref = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const landmarkerRef = useRef(null);
+  const rafRef = useRef(null);
   const [speed, setSpeed] = useState(1);
-  useEffect(() => { if (ref.current) ref.current.playbackRate = speed; }, [speed]);
+  const [poseOn, setPoseOn] = useState(false);
+  const [poseLoading, setPoseLoading] = useState(false);
+  const [poseError, setPoseError] = useState('');
+  const [angles, setAngles] = useState({});
+
+  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
+
   const fullscreen = () => {
-    const v = ref.current; if (!v) return;
+    const v = videoRef.current; if (!v) return;
     if (v.requestFullscreen) v.requestFullscreen();
     else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
     else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
   };
+
+  const togglePose = async () => {
+    if (poseOn) { setPoseOn(false); return; }
+    if (!landmarkerRef.current) {
+      setPoseLoading(true);
+      setPoseError('');
+      try {
+        const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+        const fileset = await FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
+        );
+        // Try GPU first; fall back to CPU if the device rejects it.
+        try {
+          landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, {
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',
+              delegate: 'GPU',
+            },
+            runningMode: 'VIDEO',
+            numPoses: 1,
+          });
+        } catch {
+          landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, {
+            baseOptions: {
+              modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',
+              delegate: 'CPU',
+            },
+            runningMode: 'VIDEO',
+            numPoses: 1,
+          });
+        }
+      } catch (e) {
+        console.error('Pose load failed:', e);
+        setPoseError('Model load failed');
+        setPoseLoading(false);
+        return;
+      }
+      setPoseLoading(false);
+    }
+    setPoseOn(true);
+  };
+
+  useEffect(() => {
+    if (!poseOn) {
+      const c = canvasRef.current;
+      if (c && c.width && c.height) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+      setAngles({});
+      return;
+    }
+    const v = videoRef.current;
+    const c = canvasRef.current;
+    const lm = landmarkerRef.current;
+    if (!v || !c || !lm) return;
+
+    let active = true;
+    const ctx = c.getContext('2d');
+    let lastTs = -1;
+
+    const tick = () => {
+      if (!active) return;
+      const w = v.clientWidth, h = v.clientHeight;
+      if (w > 0 && h > 0) {
+        if (c.width !== w) c.width = w;
+        if (c.height !== h) c.height = h;
+        if (v.readyState >= 2) {
+          const ts = performance.now();
+          if (ts !== lastTs) {
+            lastTs = ts;
+            try {
+              const result = lm.detectForVideo(v, ts);
+              ctx.clearRect(0, 0, w, h);
+              const lms = result.landmarks?.[0];
+              if (lms) {
+                ctx.strokeStyle = '#3BA0FF';
+                ctx.lineWidth = 2;
+                for (const [i, j] of POSE_CONNECTIONS) {
+                  const a = lms[i], b = lms[j];
+                  if (!a || !b) continue;
+                  ctx.beginPath();
+                  ctx.moveTo(a.x*w, a.y*h);
+                  ctx.lineTo(b.x*w, b.y*h);
+                  ctx.stroke();
+                }
+                ctx.fillStyle = '#fff';
+                for (const p of lms) {
+                  ctx.beginPath();
+                  ctx.arc(p.x*w, p.y*h, 3, 0, 2*Math.PI);
+                  ctx.fill();
+                }
+                const next = {};
+                for (const d of ANGLE_DEFS) {
+                  const val = angleAt(lms, d.a, d.b, d.c);
+                  if (val != null) next[d.name] = Math.round(val);
+                }
+                setAngles(next);
+              }
+            } catch { /* swallow per-frame detect errors */ }
+          }
+        }
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      active = false;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [poseOn]);
+
+  useEffect(() => () => {
+    if (landmarkerRef.current) {
+      try { landmarkerRef.current.close(); } catch {}
+      landmarkerRef.current = null;
+    }
+  }, []);
+
   const speeds = [0.125, 0.25, 0.5, 1, 2];
   return (
     <div>
-      <video ref={ref} src={url} controls playsInline
-        style={{width:'100%',borderRadius:8,maxHeight:400,background:C.sf2,marginBottom:6}} />
+      <div style={{position:'relative',marginBottom:6,lineHeight:0}}>
+        <video ref={videoRef} src={url} controls playsInline
+          style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
+        <canvas ref={canvasRef}
+          style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
+            pointerEvents:'none',display:poseOn?'block':'none'}} />
+        {poseOn && Object.keys(angles).length > 0 && (
+          <div style={{position:'absolute',top:6,right:6,background:'rgba(10,10,11,0.78)',
+            borderRadius:6,padding:'6px 8px',pointerEvents:'none',fontFamily:FN,fontSize:10,
+            color:'#fff',lineHeight:1.5,minWidth:96}}>
+            {ANGLE_DEFS.map(d => (
+              <div key={d.name} style={{display:'flex',justifyContent:'space-between',gap:8}}>
+                <span style={{color:C.td}}>{d.name}</span>
+                <span>{angles[d.name] != null ? angles[d.name] + '°' : '—'}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
         <span style={{fontSize:9,fontFamily:FN,color:C.td,marginRight:4,letterSpacing:0.5}}>SPEED</span>
         {speeds.map(s => (
@@ -30,6 +204,13 @@ function FormVideoPlayer({ url }) {
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
         ))}
+        <button onClick={togglePose} disabled={poseLoading}
+          style={{marginLeft:8,padding:'3px 10px',borderRadius:4,border:`1px solid ${poseOn?C.ac:C.bd}`,
+            background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
+            fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
+          {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
+        </button>
+        {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
         <button onClick={fullscreen}
           style={{marginLeft:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
