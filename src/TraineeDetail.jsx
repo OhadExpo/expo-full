@@ -107,7 +107,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </Card>
         <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600,margin:'12px 0 6px'}}>{m.name} — PROGRAMS ({sorted.length})</div>
         {sorted.length===0?<div style={{color:C.td,fontSize:12}}>No programs assigned.</div>:
-          sorted.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return(
+          sorted.map(p=>{const visKey=`${td.name}:${p.name}:m${mi}`;const isVis=portalVis?.[visKey]!==false;return(
             <Card key={p.id} style={{marginBottom:6,padding:10}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}>
@@ -243,7 +243,6 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               {td.members.map((m,mi)=>(
                 <Btn key={mi} onClick={()=>assignPlan(pendingAssignPlan, trainee+'__'+mi)} style={{fontSize:13,padding:'8px 20px'}}>{m.name || `Member ${mi+1}`}</Btn>
               ))}
-              <Btn variant="ghost" onClick={()=>assignPlan(pendingAssignPlan, trainee)} style={{fontSize:13,padding:'8px 20px'}}>Both (shared)</Btn>
             </div>
             <button onClick={()=>setPendingAssignPlan(null)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back to list</button>
           </div>

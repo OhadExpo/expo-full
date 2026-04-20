@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
+import { useAuth } from './auth';
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -483,6 +484,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
 // Main client portal
 export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession }) {
+  const { signOut } = useAuth() || {};
+  const logOut = async () => {
+    setCi(null);
+    setVw('prog');
+    if (signOut) await signOut();
+  };
   const [ci, setCi] = useState(null); // trainee ID from Supabase
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
@@ -502,7 +509,10 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     (async () => {
       try {
         const { supabase: sb } = await import('./supabase');
-        const { data } = await sb.from('plans').select('*').eq('trainee_id', ci);
+        // Couples: a trainee may have plans under parent ID OR sub-member IDs (parent__0, parent__1).
+        // Fetch all so the shared portal renders both members' plans.
+        const { data } = await sb.from('plans').select('*')
+          .or(`trainee_id.eq.${ci},trainee_id.eq.${ci}__0,trainee_id.eq.${ci}__1`);
         if (data) {
           setClientPlans(data.map(p => ({
             id: p.id, name: p.name, traineeId: p.trainee_id, phase: p.phase,
@@ -540,19 +550,28 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     // Curated plans aren't in the plans table — synthesize a stable pseudo-id so bw_logs.plan_id is non-null for them too
     const curatedPlans = (curated?.plans || []).map(p => ({ ...p, id: p.id || `curated:${clientName}:${p.name}` }));
     const curatedNames = new Set(curatedPlans.map(p => p.name));
-    // Trainer-side plans not already curated — use plans loaded from Supabase plans table
+    // Trainer-side plans not already curated — use plans loaded from Supabase plans table.
+    // Preserve traineeId so the visibility key can include the couple member suffix.
     const trainerExtra = clientPlans
       .filter(p => !curatedNames.has(p.name))
-      .map(p => trainerPlanToPortal(p, trainerExercises || []));
+      .map(p => ({ ...trainerPlanToPortal(p, trainerExercises || []), traineeId: p.traineeId }));
     return [...curatedPlans, ...trainerExtra];
   })();
 
   // Filter by portal visibility toggles, then sort blocks newest-first by "#N" in the name.
   // Plans without a block number fall to the end preserving their original order.
   const blockNum = n => { const m = /#(\d+)/.exec(n || ''); return m ? parseInt(m[1], 10) : -Infinity; };
+  // visKey matches the trainer-side TraineeDetail keying. Couple member plans
+  // (traineeId like `${ci}__0`, `${ci}__1`) get a `:m{N}` suffix so toggling
+  // one member's plan doesn't ghost into the other's.
+  const visKeyFor = (p) => {
+    const tid = p.traineeId || '';
+    if (ci && tid.startsWith(ci + '__')) return `${clientName}:${p.name}:m${tid.slice(ci.length + 2)}`;
+    return `${clientName}:${p.name}`;
+  };
   const visPlans = mergedPlans.filter(p => {
     if (!portalVis || !clientName) return true;
-    return portalVis[`${clientName}:${p.name}`] !== false;
+    return portalVis[visKeyFor(p)] !== false;
   }).slice().sort((a, b) => blockNum(b.name) - blockNum(a.name));
 
   // Active block for bodyweight logging — scopes uniqueness to (client, block, week)
@@ -588,7 +607,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       <div style={{padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-          <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Switch</button>
+          <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Log Out</button>
           <img src={EXPO_ICON} alt="EXPO" style={{height:18,opacity:0.5}} />
         </div>
         <div style={{display:'flex',gap:4,marginBottom:14}}>{[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
@@ -700,7 +719,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   if (vw === 'hist' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     <div style={{padding:20}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-        <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Switch</button>
+        <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Log Out</button>
         <img src={EXPO_ICON} alt="EXPO" style={{height:18,opacity:0.5}} />
       </div>
       <div style={{display:'flex',gap:4,marginBottom:14}}>{[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
@@ -720,7 +739,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:12}}>
           <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:56,display:'block'}} />
-          <button onClick={() => {setCi(null);setVw('prog')}} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,marginBottom:2}}>Switch →</button></div>
+          <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,marginBottom:2}}>Log Out →</button></div>
         <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx,textAlign:'center'}}>Hey {clientName.split(' ')[0]} 💪</h1>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
           <div>
