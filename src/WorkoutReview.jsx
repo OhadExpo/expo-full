@@ -69,9 +69,10 @@ function FormVideoPlayer({ url }) {
         const fileset = await FilesetResolver.forVisionTasks(
           'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
         );
-        // Full model: balanced (~9MB) — sweet spot between lite (inaccurate)
-        // and heavy (over-conservative, rejects too many landmarks at default thresholds).
-        const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task';
+        // Lite model — empirically the best fit for typical phone-camera form
+        // clips at this scale. Full/heavy were tested and produced worse results
+        // at default thresholds; reverted on coach feedback.
+        const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
         const opts = (delegate) => ({
           baseOptions: { modelAssetPath: modelUrl, delegate },
           runningMode: 'VIDEO',
@@ -131,30 +132,24 @@ function FormVideoPlayer({ url }) {
             ctx.clearRect(0, 0, w, h);
             const lms = result.landmarks?.[0];
             if (lms) {
-              const VIS_MIN = 0.3;
-              const visOk = (i) => lms[i] && (lms[i].visibility ?? 1) >= VIS_MIN;
               ctx.strokeStyle = '#3BA0FF';
               ctx.lineWidth = 2;
               for (const [i, j] of POSE_CONNECTIONS) {
-                if (!visOk(i) || !visOk(j)) continue;
+                const a = lms[i], b = lms[j];
+                if (!a || !b) continue;
                 ctx.beginPath();
-                ctx.moveTo(lms[i].x*w, lms[i].y*h);
-                ctx.lineTo(lms[j].x*w, lms[j].y*h);
+                ctx.moveTo(a.x*w, a.y*h);
+                ctx.lineTo(b.x*w, b.y*h);
                 ctx.stroke();
               }
               ctx.fillStyle = '#fff';
-              // Skip face landmarks (0–10) — useless for biomechanics and the
-              // most common source of phantom dots when the model misreads
-              // background light/shapes as a face.
-              for (let i = 11; i < lms.length; i++) {
-                if (!visOk(i)) continue;
+              for (const p of lms) {
                 ctx.beginPath();
-                ctx.arc(lms[i].x*w, lms[i].y*h, 3, 0, 2*Math.PI);
+                ctx.arc(p.x*w, p.y*h, 3, 0, 2*Math.PI);
                 ctx.fill();
               }
               const next = {};
               for (const d of ANGLE_DEFS) {
-                if (!visOk(d.a) || !visOk(d.b) || !visOk(d.c)) continue;
                 const val = angleAt(lms, d.a, d.b, d.c);
                 if (val != null) next[d.name] = Math.round(val);
               }
