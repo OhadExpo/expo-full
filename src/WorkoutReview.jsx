@@ -115,55 +115,83 @@ function FormVideoPlayer({ url }) {
     let active = true;
     const ctx = c.getContext('2d');
     let lastTs = -1;
+    let pendingAngles = {};
+    // Throttle the React HUD update — angle numbers don't need 60Hz.
+    const hudInterval = setInterval(() => {
+      if (active) setAngles(pendingAngles);
+    }, 200);
 
-    const tick = () => {
+    const detect = (now, metadata) => {
       if (!active) return;
       const w = v.clientWidth, h = v.clientHeight;
-      if (w > 0 && h > 0) {
+      if (w > 0 && h > 0 && v.readyState >= 2) {
         if (c.width !== w) c.width = w;
         if (c.height !== h) c.height = h;
-        if (v.readyState >= 2) {
-          const ts = performance.now();
-          if (ts !== lastTs) {
-            lastTs = ts;
-            try {
-              const result = lm.detectForVideo(v, ts);
-              ctx.clearRect(0, 0, w, h);
-              const lms = result.landmarks?.[0];
-              if (lms) {
-                ctx.strokeStyle = '#3BA0FF';
-                ctx.lineWidth = 2;
-                for (const [i, j] of POSE_CONNECTIONS) {
-                  const a = lms[i], b = lms[j];
-                  if (!a || !b) continue;
-                  ctx.beginPath();
-                  ctx.moveTo(a.x*w, a.y*h);
-                  ctx.lineTo(b.x*w, b.y*h);
-                  ctx.stroke();
-                }
-                ctx.fillStyle = '#fff';
-                for (const p of lms) {
-                  ctx.beginPath();
-                  ctx.arc(p.x*w, p.y*h, 3, 0, 2*Math.PI);
-                  ctx.fill();
-                }
-                const next = {};
-                for (const d of ANGLE_DEFS) {
-                  const val = angleAt(lms, d.a, d.b, d.c);
-                  if (val != null) next[d.name] = Math.round(val);
-                }
-                setAngles(next);
+        // Use the video's media timestamp when available (rVFC metadata) so
+        // detectForVideo gets a stable time per video frame.
+        const ts = metadata?.mediaTime != null ? metadata.mediaTime * 1000 : (now ?? performance.now());
+        if (ts !== lastTs) {
+          lastTs = ts;
+          try {
+            const result = lm.detectForVideo(v, ts);
+            ctx.clearRect(0, 0, w, h);
+            const lms = result.landmarks?.[0];
+            if (lms) {
+              ctx.strokeStyle = '#3BA0FF';
+              ctx.lineWidth = 2;
+              for (const [i, j] of POSE_CONNECTIONS) {
+                const a = lms[i], b = lms[j];
+                if (!a || !b) continue;
+                ctx.beginPath();
+                ctx.moveTo(a.x*w, a.y*h);
+                ctx.lineTo(b.x*w, b.y*h);
+                ctx.stroke();
               }
-            } catch { /* swallow per-frame detect errors */ }
-          }
+              ctx.fillStyle = '#fff';
+              for (const p of lms) {
+                ctx.beginPath();
+                ctx.arc(p.x*w, p.y*h, 3, 0, 2*Math.PI);
+                ctx.fill();
+              }
+              const next = {};
+              for (const d of ANGLE_DEFS) {
+                const val = angleAt(lms, d.a, d.b, d.c);
+                if (val != null) next[d.name] = Math.round(val);
+              }
+              pendingAngles = next;
+            }
+          } catch { /* swallow per-frame detect errors */ }
         }
       }
-      rafRef.current = requestAnimationFrame(tick);
+      // Re-arm: rVFC fires once per actual decoded frame (idle when paused),
+      // so we don't waste detection cycles on duplicate frames.
+      if (typeof v.requestVideoFrameCallback === 'function') {
+        v.requestVideoFrameCallback(detect);
+      } else {
+        rafRef.current = requestAnimationFrame(detect);
+      }
     };
-    rafRef.current = requestAnimationFrame(tick);
+
+    // Kick off the loop and run an immediate detection so the overlay shows
+    // even when the video is currently paused on a frame.
+    if (typeof v.requestVideoFrameCallback === 'function') {
+      v.requestVideoFrameCallback(detect);
+    } else {
+      rafRef.current = requestAnimationFrame(detect);
+    }
+    detect(performance.now(), null);
+
+    // Re-detect on scrub / load so a paused video updates its overlay.
+    const detectOnce = () => detect(performance.now(), null);
+    v.addEventListener('seeked', detectOnce);
+    v.addEventListener('loadeddata', detectOnce);
+
     return () => {
       active = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (hudInterval) clearInterval(hudInterval);
+      v.removeEventListener('seeked', detectOnce);
+      v.removeEventListener('loadeddata', detectOnce);
     };
   }, [poseOn]);
 
