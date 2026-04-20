@@ -69,16 +69,13 @@ function FormVideoPlayer({ url }) {
         const fileset = await FilesetResolver.forVisionTasks(
           'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
         );
-        // Heavy model: ~30MB but noticeably better on side angles + low light
-        // than lite, and rejects most background false positives.
-        const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task';
+        // Full model: balanced (~9MB) — sweet spot between lite (inaccurate)
+        // and heavy (over-conservative, rejects too many landmarks at default thresholds).
+        const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task';
         const opts = (delegate) => ({
           baseOptions: { modelAssetPath: modelUrl, delegate },
           runningMode: 'VIDEO',
           numPoses: 1,
-          minPoseDetectionConfidence: 0.6,
-          minPosePresenceConfidence: 0.6,
-          minTrackingConfidence: 0.6,
         });
         try {
           landmarkerRef.current = await PoseLandmarker.createFromOptions(fileset, opts('GPU'));
@@ -134,7 +131,7 @@ function FormVideoPlayer({ url }) {
             ctx.clearRect(0, 0, w, h);
             const lms = result.landmarks?.[0];
             if (lms) {
-              const VIS_MIN = 0.5;
+              const VIS_MIN = 0.3;
               const visOk = (i) => lms[i] && (lms[i].visibility ?? 1) >= VIS_MIN;
               ctx.strokeStyle = '#3BA0FF';
               ctx.lineWidth = 2;
