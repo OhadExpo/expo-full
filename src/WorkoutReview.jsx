@@ -48,7 +48,13 @@ function FormVideoPlayer({ url, onVideoRef }) {
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
   const repStateRef = useRef({ state: 'unknown', extreme: null, lastTopVt: null });
+  // Ref-backed counters so the detection loop can increment them without
+  // colliding with stale closure captures (the previous setState-from-closure
+  // approach kept resetting count to 1 on every rep).
+  const repsCountRef = useRef(0);
+  const lastTempoRef = useRef(null);
   const [speed, setSpeed] = useState(1);
+  const [loop, setLoop] = useState(false);
   const [poseOn, setPoseOn] = useState(false);
   const [poseLoading, setPoseLoading] = useState(false);
   const [poseError, setPoseError] = useState('');
@@ -58,6 +64,7 @@ function FormVideoPlayer({ url, onVideoRef }) {
   const [tempo, setTempo] = useState(null); // seconds of video time for last rep
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
+  useEffect(() => { if (videoRef.current) videoRef.current.loop = loop; }, [loop]);
 
   // Hand the <video> element back to the parent if it asked for it.
   useEffect(() => { if (onVideoRef && videoRef.current) onVideoRef(videoRef.current); }, [onVideoRef, url]);
@@ -65,6 +72,8 @@ function FormVideoPlayer({ url, onVideoRef }) {
   // Reset rep state when toggle flips or a new video loads.
   useEffect(() => {
     setReps(0); setTempo(null);
+    repsCountRef.current = 0;
+    lastTempoRef.current = null;
     repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null };
   }, [repsOn, url]);
 
@@ -90,6 +99,8 @@ function FormVideoPlayer({ url, onVideoRef }) {
     const v = videoRef.current; if (!v) return;
     const reset = () => {
       repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null };
+      repsCountRef.current = 0;
+      lastTempoRef.current = null;
       setReps(0); setTempo(null);
     };
     v.addEventListener('seeked', reset);
@@ -147,12 +158,14 @@ function FormVideoPlayer({ url, onVideoRef }) {
     const ctx = c.getContext('2d');
     let lastTs = -1;
     let pendingAngles = {};
-    let pendingReps = null; // { count, tempo } when a rep just completed
     // Throttle the React HUD update — angle numbers don't need 60Hz.
     const hudInterval = setInterval(() => {
       if (!active) return;
       setAngles(pendingAngles);
-      if (pendingReps) { setReps(pendingReps.count); setTempo(pendingReps.tempo); pendingReps = null; }
+      // Always sync reps/tempo from refs — refs hold canonical state, the
+      // detection loop mutates them directly.
+      setReps(repsCountRef.current);
+      setTempo(lastTempoRef.current);
     }, 200);
 
     const detect = () => {
@@ -217,7 +230,8 @@ function FormVideoPlayer({ url, onVideoRef }) {
                       s.extreme = knee;
                       const tempoSec = s.lastTopVt != null ? vt - s.lastTopVt : null;
                       s.lastTopVt = vt;
-                      pendingReps = { count: (pendingReps?.count ?? reps) + 1, tempo: tempoSec };
+                      repsCountRef.current += 1;
+                      lastTempoRef.current = tempoSec;
                     }
                   }
                 }
@@ -320,8 +334,11 @@ function FormVideoPlayer({ url, onVideoRef }) {
           {repsOn ? `REPS ${reps}` : 'REPS'}
         </button>
         {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
+        <button onClick={() => setLoop(v => !v)} title="Loop the video"
+          style={{marginLeft:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
+            background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
         <button onClick={fullscreen}
-          style={{marginLeft:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
+          style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
       </div>
     </div>
