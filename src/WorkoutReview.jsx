@@ -40,7 +40,9 @@ const angleAt = (lms, ai, bi, ci) => {
 // Form-video player: speed control (0.125x recovers old fast-motion webm),
 // frame-step (←/→ ~ 1/30s), fullscreen, and an optional MediaPipe Pose
 // overlay with live joint angles + rep counter.
-function FormVideoPlayer({ url }) {
+// `onVideoRef` lets a parent grab the underlying <video> element (used by
+// the side-by-side compare view to sync timing across two players).
+function FormVideoPlayer({ url, onVideoRef }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
@@ -56,6 +58,9 @@ function FormVideoPlayer({ url }) {
   const [tempo, setTempo] = useState(null); // seconds of video time for last rep
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
+
+  // Hand the <video> element back to the parent if it asked for it.
+  useEffect(() => { if (onVideoRef && videoRef.current) onVideoRef(videoRef.current); }, [onVideoRef, url]);
 
   // Reset rep state when toggle flips or a new video loads.
   useEffect(() => {
@@ -323,10 +328,59 @@ function FormVideoPlayer({ url }) {
   );
 }
 
+// Side-by-side video compare. Two FormVideoPlayer instances + a sync button
+// that copies the left player's currentTime onto the right (cheap manual sync,
+// good enough for "this week vs 4 weeks ago" form review).
+function CompareModal({ leftLabel, leftUrl, rightLabel, rightUrl, onClose }) {
+  const [leftVid, setLeftVid] = useState(null);
+  const [rightVid, setRightVid] = useState(null);
+  const sync = (target) => {
+    if (!leftVid || !rightVid) return;
+    if (target === 'right') rightVid.currentTime = leftVid.currentTime;
+    else leftVid.currentTime = rightVid.currentTime;
+  };
+  const playBoth = () => { leftVid?.play(); rightVid?.play(); };
+  const pauseBoth = () => { leftVid?.pause(); rightVid?.pause(); };
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:1200,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
+      <div onClick={e => e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.bd}`,borderRadius:12,width:'min(1400px, 96vw)',padding:20}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+          <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Compare</h3>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <button onClick={playBoth} style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:6,cursor:'pointer'}}>▶ PLAY BOTH</button>
+            <button onClick={pauseBoth} style={{background:C.sf2,border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:6,cursor:'pointer'}}>❚❚ PAUSE</button>
+            <button onClick={onClose} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:12,alignItems:'start'}}>
+          <div>
+            <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{leftLabel}</div>
+            <FormVideoPlayer url={leftUrl} onVideoRef={setLeftVid} />
+          </div>
+          <div style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
+            <button onClick={() => sync('right')} title="Copy left timestamp to right"
+              style={{background:C.sf2,border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
+            <button onClick={() => sync('left')} title="Copy right timestamp to left"
+              style={{background:C.sf2,border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
+          </div>
+          <div>
+            <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{rightLabel}</div>
+            <FormVideoPlayer url={rightUrl} onVideoRef={setRightVid} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession, markReviewed }) {
   const [subTab, setSubTab] = useState("review");
   const [selectedWo, setSelectedWo] = useState(null);
   const [expandedEx, setExpandedEx] = useState(null);
+  // Compare flow: when set, shows picker modal for selecting the second video.
+  // After pick, switches to CompareModal with both URLs.
+  const [comparePicker, setComparePicker] = useState(null); // { left: {url,label}, candidates: [...] }
+  const [compareActive, setCompareActive] = useState(null); // { left, right }
 
   const nameOf = (cid) => (trainees || []).find(t => t.id === cid)?.name || cid || 'unknown';
 
@@ -383,6 +437,34 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
     return (
       <div>
+        {/* Compare picker: pick second video from the same client */}
+        {comparePicker && (
+          <div onClick={() => setComparePicker(null)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
+            <div onClick={e => e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,width:520,maxHeight:'80vh',overflow:'auto',padding:20}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>Compare with…</h3>
+                <button onClick={() => setComparePicker(null)} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:16}}>✕</button>
+              </div>
+              <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{comparePicker.candidates.length} other video{comparePicker.candidates.length===1?'':'s'} from this client:</div>
+              {comparePicker.candidates.map((c, i) => (
+                <div key={i} onClick={() => { setCompareActive({ left: comparePicker.left, right: { url: c.cloudUrl, label: c.label } }); setComparePicker(null); }}
+                  style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}>
+                  <div style={{fontSize:12,color:C.tx}}>{c.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Compare modal: two players side by side */}
+        {compareActive && (
+          <CompareModal
+            leftLabel={compareActive.left.label} leftUrl={compareActive.left.url}
+            rightLabel={compareActive.right.label} rightUrl={compareActive.right.url}
+            onClose={() => setCompareActive(null)}
+          />
+        )}
         <button onClick={() => { setSelectedWo(null); setExpandedEx(null); }}
           style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0,marginBottom:12}}>
           ← Back to workouts
@@ -481,7 +563,27 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   {/* Client's form video */}
                   {(formVideo?.has || formVideo?.cloudUrl) ? (
                     <div style={{background:C.gnD,border:`1px solid ${C.gn}30`,borderRadius:8,padding:12,marginBottom:10}}>
-                      <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700,marginBottom:6}}>📹 FORM VIDEO SUBMITTED</div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                        <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
+                        {formVideo.cloudUrl && (() => {
+                          // Build picker candidates: every other form video for this client.
+                          const candidates = clientWorkouts
+                            .filter(w => w.clientId === wo.clientId)
+                            .flatMap(w => (w.formVideos || []).map((fv, fi) => fv?.cloudUrl ? {
+                              cloudUrl: fv.cloudUrl,
+                              label: `${w.planName} · W${w.week} · ${w.dayName} — ${w.exercises?.[fi]?.title || 'Exercise ' + (fi+1)} · ${new Date(w.date).toLocaleDateString()}`,
+                            } : null))
+                            .filter(v => v && v.cloudUrl !== formVideo.cloudUrl);
+                          if (candidates.length === 0) return null;
+                          const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${new Date(wo.date).toLocaleDateString()}`;
+                          return (
+                            <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel }, candidates })}
+                              style={{background:'transparent',border:`1px solid ${C.gn}60`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:4,cursor:'pointer',letterSpacing:0.5}}>
+                              ⇄ COMPARE
+                            </button>
+                          );
+                        })()}
+                      </div>
                       {formVideo.cloudUrl ? (
                         <FormVideoPlayer url={formVideo.cloudUrl} />
                       ) : formVideo.fileName ? (
