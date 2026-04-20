@@ -55,34 +55,6 @@ function trainerPlanToPortal(plan, trainerExercises) {
   };
 }
 
-// Hardcoded curated portal data — overrides trainer-side plans when plan name matches
-// These have hand-picked video links, cues, compressed format
-const CURATED_CLIENTS = {
-"Diego Day":{sessions:8,plans:[{name:"Morning Routine",phase:"Daily",rest:"",warmup:[],days:[{name:"Morning Routine",ex:[{eid:"e3001",s:2,r:"8",tempo:"6-8s/rep"},{eid:"e3002",s:2,r:"20sE",n:"ISO"},{eid:"e3003",s:2,r:"6",tempo:"6-8s/rep"},{eid:"e3004",s:2,r:"20s",n:"ISO"},{eid:"e3005",s:2,r:"6",tempo:"8-10s/rep"},{eid:"e3006",s:1,r:"15",tempo:"4-5s/rep"},{eid:"e3007",s:1,r:"30s",n:"ISO"},{eid:"e3008",s:2,r:"10",tempo:"6-8s/rep"},{eid:"e3009",s:2,r:"30s",n:"ISO"}]}]}]},
-"Ron Yonker":{sessions:8,plans:[{name:"Block #13",phase:"Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
-  warmup:[{t:"BW Step-Down",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SZXOPRVP1Oc"},{t:"BW Floating-Heel RFESS",rx:"1x10E",vid:"https://www.youtube.com/watch?v=SH9zQAGb7pQ"},{t:"Bear-POS to Superman",rx:"1x8"}],
-  days:[{name:"Day A",ex:[{eid:"e29",s:3,r:"10s"},{eid:"e30",s:3,r:"6E"},{eid:"e31",s:2,r:"3E"},{eid:"e32",s:3,r:">",wk:["4E","4E","3E","3E"]},{eid:"e33",s:5,r:"3",wk:["5set","5set","3set","3set"]},{eid:"e34",s:3,r:">",wk:["8E","8E","6E","6E"]},{eid:"e35",s:2,r:"15"},{eid:"e36",s:3,r:"8"}]},
-  {name:"Day B",ex:[{eid:"e37",s:2,r:"5E"},{eid:"e38",s:2,r:"8E"},{eid:"e39",s:2,r:"8E"},{eid:"e40",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e41",s:4,r:">",wk:["4x6","4x6","3x5","3x5"]},{eid:"e42",s:2,r:"20"},{eid:"e43",s:2,r:"12E"},{eid:"e44",s:3,r:"15s>10",tempo:"ISO>REPs"}]}]}]},
-"Omer Sadeh":{sessions:8,plans:[{name:"Block #7",phase:"Power/Strength",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
-  warmup:[{t:"High BW Step-Up",rx:"1x10 E",vid:"https://www.youtube.com/shorts/vyGL_ZHf_EE"},{t:"Plate-Supported Hip Airplane",rx:"1x10 E",vid:"https://www.youtube.com/shorts/a8as1ZMwLsE"},{t:"ISO Hollow Hold w Leg Switches",rx:"2x15 SEC",vid:"https://www.youtube.com/shorts/3wxVbHhOdEM"}],
-  days:[{name:"Day A",ex:[{eid:"e50",s:3,r:"6"},{eid:"e51",s:3,r:"6"},{eid:"e52",s:3,r:"6"},{eid:"e53",s:2,r:"10 E"},{eid:"e54",s:2,r:"10 E"},{eid:"e55",s:3,r:"12 E"},{eid:"e56",s:3,r:"10"}]},
-  {name:"Day B",ex:[{eid:"e57",s:2,r:"10 SEC"},{eid:"e58",s:2,r:"4 E"},{eid:"e59",s:2,r:"4+4 E"},{eid:"e60",s:3,r:"5",tempo:"8-10s/REP"},{eid:"e61",s:4,r:"8 E",tempo:"3-4s ECC"},{eid:"e62",s:2,r:"20",tempo:"3-4s ECC"},{eid:"e63",s:3,r:"15"},{eid:"e64",s:3,r:"6 E"}]},
-  {name:"Day C",ex:[{eid:"e65",s:3,r:"4 E"},{eid:"e66",s:3,r:"1 E",tempo:"3-Way"},{eid:"e67",s:2,r:"8"},{eid:"e68",s:2,r:"6 E"},{eid:"e69",s:2,r:"10 E"},{eid:"e70",s:3,r:"12"},{eid:"e71",s:3,r:"12",tempo:"1s Dead-Stop"},{eid:"e72",s:2,r:">",wk:["25 SEC","35 SEC","45 SEC","60 SEC"]}]}
-  ]}]},
-"Yuval Barko":{sessions:8,plans:[{name:"Comeback Block",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
-  warmup:[{t:"Kossac Squat to Crossover Lunge",rx:"1x8 E",vid:"https://www.youtube.com/watch?v=MGLj_HrQTgY"},{t:"4-Way Bear-Crawl",rx:"1x8 E",vid:"https://www.youtube.com/shorts/_apvoiIoqgo"},{t:"BW SL Depth Drop",rx:"2x2 E POS",vid:"https://www.youtube.com/watch?v=vNAOj2kxsXE"}],
-  days:[{name:"Day A",ex:[{eid:"e100",s:2,r:"8"},{eid:"e101",s:3,r:"8"},{eid:"e102",s:3,r:"10 SEC",n:"ISO"},{eid:"e103",s:3,r:"6 E",tempo:"3s ECC"},{eid:"e104",s:2,r:"8 E",tempo:"2-3s ECC"},{eid:"e105",s:2,r:"15 SEC",n:"ISO",superset:"A"},{eid:"e106",s:2,r:"15 SEC",n:"ISO",superset:"A"}]},
-  {name:"Day B",ex:[{eid:"e107",s:3,r:"3 E"},{eid:"e108",s:2,r:"8 E"},{eid:"e109",s:3,r:"8 E",tempo:"2-3s ECC"},{eid:"e110",s:3,r:"8"},{eid:"e111",s:2,r:"12",tempo:"2-3s ECC"},{eid:"e112",s:2,r:"12",tempo:"5-6s/REP"},{eid:"e113",s:3,r:"8"}]},
-  {name:"Day C (Home)",ex:[{eid:"e114",s:2,r:"10 E"},{eid:"e115",s:2,r:"15 SEC E",n:"ISO"},{eid:"e116",s:2,r:"10 E",tempo:"6-8s/REP"},{eid:"e117",s:2,r:"15 SEC > 15 Reps"},{eid:"e118",s:3,r:"3 E"},{eid:"e119",s:3,r:"15 SEC"},{eid:"e120",s:2,r:"10 E"}]}
-  ]}]},
-"Shalev Lugashi":{sessions:8,plans:[{name:"Block #7",phase:"GPP",rest:"BB+Chin-Ups: 2-3:30 | Else: 1:30-2:30",
-  warmup:[{t:"5 Min Bike/Cycle",rx:"5 min"}],
-  days:[{name:"Day A",ex:[{eid:"e200",s:3,r:"12 E",superset:"A"},{eid:"e201",s:3,r:"4",tempo:"5s ISO top+bottom",superset:"A"},{eid:"e202",s:2,r:"8 E",superset:"B"},{eid:"e203",s:2,r:"12 E",tempo:"חצי סט על רגל אחת, חצי על השנייה",superset:"B"},{eid:"e204",s:3,r:"15 E",superset:"C"},{eid:"e205",s:3,r:"12",superset:"C"},{eid:"e206",s:2,r:"20 SEC E"}]},
-  {name:"Day B",ex:[{eid:"e207",s:3,r:"8",superset:"A"},{eid:"e208",s:3,r:"8 E",superset:"A"},{eid:"e209",s:3,r:"8 E",superset:"B"},{eid:"e210",s:3,r:"8 E",tempo:"3-4s ECC",superset:"B"},{eid:"e211",s:2,r:"20",superset:"C"},{eid:"e212",s:2,r:"12",superset:"C"},{eid:"e213",s:3,r:"12",tempo:"3-4s ECC"}]},
-  {name:"Day C",ex:[{eid:"e214",s:3,r:"12",superset:"A"},{eid:"e215",s:2,r:"10 E",superset:"A"},{eid:"e216",s:2,r:"8",superset:"B"},{eid:"e217",s:2,r:"10",tempo:"4-5s ECC",superset:"B"},{eid:"e218",s:2,r:"20 SEC E",superset:"C"},{eid:"e219",s:2,r:"8 E",tempo:"5s ISO top+bottom",superset:"C"},{eid:"e220",s:3,r:"15 SEC E"}]},
-  {name:"Day D",ex:[{eid:"e221",s:3,r:"15 SEC",tempo:"סטטי",superset:"A"},{eid:"e222",s:3,r:"15 SEC",tempo:"סטטי",superset:"A"},{eid:"e223",s:2,r:"20 SEC E",tempo:"סטטי",superset:"B"},{eid:"e224",s:2,r:"10 E + 10 E",superset:"B"},{eid:"e225",s:2,r:"12",tempo:"סט אחד ידיים אחורה, סט אחד קדימה",superset:"C"},{eid:"e226",s:2,r:"10",tempo:"6-8s/REP",superset:"C"},{eid:"e227",s:2,r:"10 E",tempo:"ידיים על הקיר!",superset:"D"},{eid:"e228",s:3,r:"12",superset:"D"}]}
-  ]}]},
-};
 
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"};
 const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,fontFamily:FN,background:`${color}18`,color,...s}}>{children}</span>;
@@ -543,20 +515,11 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
 
   const clientName = trainee?.name || '';
 
-  // Build merged plan list: curated overrides + trainer-side plans (auto-converted)
-  const mergedPlans = (() => {
-    if (!trainee) return [];
-    const curated = CURATED_CLIENTS[clientName];
-    // Curated plans aren't in the plans table — synthesize a stable pseudo-id so bw_logs.plan_id is non-null for them too
-    const curatedPlans = (curated?.plans || []).map(p => ({ ...p, id: p.id || `curated:${clientName}:${p.name}` }));
-    const curatedNames = new Set(curatedPlans.map(p => p.name));
-    // Trainer-side plans not already curated — use plans loaded from Supabase plans table.
-    // Preserve traineeId so the visibility key can include the couple member suffix.
-    const trainerExtra = clientPlans
-      .filter(p => !curatedNames.has(p.name))
-      .map(p => ({ ...trainerPlanToPortal(p, trainerExercises || []), traineeId: p.traineeId }));
-    return [...curatedPlans, ...trainerExtra];
-  })();
+  // All plans live in the Supabase `plans` table (populated from Drive).
+  // Preserve traineeId so the visibility key can include the couple member suffix.
+  const mergedPlans = trainee
+    ? clientPlans.map(p => ({ ...trainerPlanToPortal(p, trainerExercises || []), traineeId: p.traineeId }))
+    : [];
 
   // Filter by portal visibility toggles, then sort blocks newest-first by "#N" in the name.
   // Plans without a block number fall to the end preserving their original order.
