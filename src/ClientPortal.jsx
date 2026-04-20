@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
@@ -93,6 +93,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Files under 25MB skip compression on all browsers.
   const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
 
+  // Tracks whether this StepLogger is still mounted. Compression kicks off an
+  // rAF draw loop and a MediaRecorder that would otherwise keep running if the
+  // user navigates away mid-upload (memory leak + orphan MediaRecorder).
+  const aliveRef = useRef(true);
+  useEffect(() => () => { aliveRef.current = false; }, []);
+
   const compressVideoChrome = (file, onProgress) => new Promise((resolve, reject) => {
     const MAX_SEC = 59;
     const TARGET_H = 720;
@@ -132,6 +138,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       vid.play().then(() => {
         recorder.start(100);
         const draw = () => {
+          // Abort if the host component unmounted mid-compression — otherwise
+          // the rAF loop + MediaRecorder + video element keep running in memory.
+          if (!aliveRef.current) {
+            if (recorder.state === 'recording') recorder.stop();
+            vid.pause();
+            URL.revokeObjectURL(src);
+            reject(new Error('aborted'));
+            return;
+          }
           if (vid.ended || vid.paused || vid.currentTime >= duration) {
             if (recorder.state === 'recording') recorder.stop();
             vid.pause(); return;

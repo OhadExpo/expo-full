@@ -3,30 +3,32 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from './supabase';
 
 // Generic store hook: loads from Supabase 'store' table, falls back to localStorage
+// on network failure so the UI isn't stuck empty when Supabase is unreachable.
 export function useSupaStore(key, initial) {
   const [data, setData] = useState(() => {
-    // Skip synchronous localStorage parse — Supabase is always the source of truth
-    // This prevents stale localStorage from overwriting fresh Supabase data
-    if (key === 'expo-plans' || key === 'expo-exercises' || key === 'expo-trainees') return initial;
+    // Skip synchronous localStorage parse for auth/exercise stores — Supabase is
+    // the source of truth, and a stale localStorage blob here can overwrite fresh
+    // server data during the brief window before the effect runs.
+    if (key === 'expo-exercises' || key === 'expo-trainees') return initial;
     try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : initial; } catch { return initial; }
   });
   const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const dataRef = useRef(data);
   const savingRef = useRef(false);
   const pendingRef = useRef(null);
 
-  // Load from Supabase on mount
+  // Load from Supabase on mount. On failure, fall back to any localStorage
+  // snapshot and surface the error so the caller can show a banner.
   useEffect(() => {
     (async () => {
       try {
-        const { data: row } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
+        const { data: row, error } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
+        if (error) throw error;
         if (row && row.value !== undefined && !savingRef.current) {
-          // For large datasets, use setTimeout to yield to the browser between state updates
-          if (key === 'expo-plans' || key === 'expo-exercises') {
-            setTimeout(() => {
-              setData(row.value);
-              dataRef.current = row.value;
-            }, 0);
+          if (key === 'expo-exercises') {
+            // Yield so React doesn't block on committing a very large list.
+            setTimeout(() => { setData(row.value); dataRef.current = row.value; }, 0);
           } else {
             setData(row.value);
             dataRef.current = row.value;
@@ -35,40 +37,58 @@ export function useSupaStore(key, initial) {
             }
           }
         }
-      } catch {}
+      } catch (e) {
+        // Fall back to localStorage snapshot — nothing worse than an empty UI
+        // on a transient network blip.
+        try {
+          const s = localStorage.getItem(key);
+          if (s) { const parsed = JSON.parse(s); setData(parsed); dataRef.current = parsed; }
+        } catch {}
+        setLoadError(e?.message || 'load failed');
+        console.warn(`useSupaStore[${key}] load failed:`, e?.message || e);
+      }
       setLoaded(true);
     })();
   }, [key]);
 
   useEffect(() => { dataRef.current = data; }, [data]);
 
-  // Debounced Supabase write — ensures only the latest value gets written
+  // Single-flight debounced writer. `pendingRef` is the "next value to write"
+  // and `savingRef` is the in-flight lock. If a new save lands during a write,
+  // it just updates pendingRef — the running loop picks it up on the next turn.
+  // The previous version swallowed failures and left savingRef stuck true on
+  // errors, blocking subsequent writes.
   const writeToSupa = useCallback(async (val) => {
     pendingRef.current = val;
-    if (savingRef.current) return; // a write is in progress, it'll pick up pendingRef
+    if (savingRef.current) return;
     savingRef.current = true;
-    while (pendingRef.current !== null) {
-      const toWrite = pendingRef.current;
-      pendingRef.current = null;
-      try {
-        await supabase.from('store').upsert({ key, value: toWrite, updated_at: new Date().toISOString() });
-      } catch {}
+    try {
+      while (pendingRef.current !== null) {
+        const toWrite = pendingRef.current;
+        pendingRef.current = null;
+        try {
+          const { error } = await supabase.from('store').upsert({ key, value: toWrite, updated_at: new Date().toISOString() });
+          if (error) console.warn(`useSupaStore[${key}] save error:`, error.message || error);
+        } catch (e) {
+          console.warn(`useSupaStore[${key}] save threw:`, e?.message || e);
+        }
+      }
+    } finally {
+      savingRef.current = false;
     }
-    savingRef.current = false;
   }, [key]);
 
   const save = useCallback(async (next) => {
     const val = typeof next === 'function' ? next(dataRef.current) : next;
     setData(val);
     dataRef.current = val;
-    // Skip localStorage for datasets where Supabase is source of truth
-    if (key !== 'expo-plans' && key !== 'expo-exercises' && key !== 'expo-trainees') {
+    if (key !== 'expo-exercises' && key !== 'expo-trainees') {
       try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
     }
     writeToSupa(val);
   }, [key, writeToSupa]);
 
-  return [data, save, loaded];
+  return [data, save, loaded, loadError];
 }
 
 // Client workouts hook — uses dedicated table
