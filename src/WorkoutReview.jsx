@@ -178,7 +178,7 @@ function FormVideoPlayer({ url }) {
   return (
     <div>
       <div style={{position:'relative',marginBottom:6,lineHeight:0}}>
-        <video ref={videoRef} src={url} controls playsInline
+        <video ref={videoRef} src={url} controls playsInline crossOrigin="anonymous"
           style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
         <canvas ref={canvasRef}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
