@@ -4,7 +4,7 @@ import { Btn, Input, Select, TextArea, Badge, Card, Modal, baseInput } from './u
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
-import { emailsToArr, emailsToStore, traineeIdsFor, subMemberId } from './traineeUtils';
+import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId } from './traineeUtils';
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, payments, setPayments, onBack, onOpenPlan, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
@@ -97,7 +97,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <Card style={{marginBottom:8}}>
           <div style={{textAlign:'center',marginBottom:10}}>
             <div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{m.name}</div>
-            <div style={{fontSize:12,color:C.tm,marginTop:2}}>{m.email||''}{m.phone?` · ${m.phone}`:''}</div>
+            <div style={{fontSize:12,color:C.tm,marginTop:2}}>{emailsDisplay(m.email)}{m.phone?` · ${m.phone}`:''}</div>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,textAlign:'center'}}>
             {[['Age',m.age||'—'],['Weight',m.weight?`${m.weight}kg`:'—'],['Height',m.height?`${m.height}cm`:'—']].map(([l,v])=>
