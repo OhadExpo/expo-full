@@ -2,6 +2,34 @@
 // List view loads only metadata; full plan data loads on demand
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { supabase } from './supabase';
+import { uid } from './theme';
+
+// Drive-imported plans store exercises as d.ex = [{eid, s, r, tempo, superset, n, wk}]
+// to save space. The trainer PlanEditor expects d.exercises = [{id, exerciseId, sets,
+// reps, tempo, superset, notes, ...}]. Normalize on load so the editor sees one shape;
+// saving writes back the trainer shape, which ClientPortal also accepts post-fix.
+function normalizeDays(days) {
+  return (days || []).map(d => {
+    const hasTrainerShape = Array.isArray(d.exercises);
+    const src = hasTrainerShape ? d.exercises : (Array.isArray(d.ex) ? d.ex : []);
+    const exercises = src.map((e, i) => ({
+      id: e.id || uid(),
+      exerciseId: e.exerciseId || e.eid || '',
+      sets: e.sets ?? e.s ?? 3,
+      reps: e.reps ?? e.r ?? '',
+      load: e.load ?? '',
+      rpe: e.rpe ?? '',
+      tempo: e.tempo ?? '',
+      rest: e.rest ?? '90',
+      notes: e.notes ?? e.n ?? '',
+      order: e.order ?? i,
+      superset: e.superset ?? '',
+      wk: e.wk ?? null,
+      title: e.title,
+    }));
+    return { id: d.id || uid(), name: d.name || d.n || '', exercises };
+  });
+}
 
 // Plan index: lightweight list for PlansView, Dashboard counts, etc.
 export function usePlanIndex() {
@@ -64,7 +92,7 @@ export function useFullPlan() {
           notes: data.notes || '',
           active: data.active,
           createdAt: data.created_at,
-          days: data.data?.days || [],
+          days: normalizeDays(data.data?.days),
           warmup: data.data?.warmup || [],
         });
       }
