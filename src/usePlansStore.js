@@ -26,7 +26,7 @@ export function usePlanIndex() {
             active: p.active,
             createdAt: p.created_at,
             dayCount: days.length,
-            exerciseCount: days.reduce((a, d) => a + (d.exercises?.length || 0), 0),
+            exerciseCount: days.reduce((a, d) => a + ((d.exercises || d.ex || []).length), 0),
             dayNames: days.map(d => d.name),
           };
         });

@@ -28,7 +28,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // Sort programs newest-first by "#N" in the name. Comeback/rehab blocks
   // float to the top since they replace numbered progressions. createdAt
   // only breaks ties — drive-imported plans share a single timestamp.
-  const blockNum = n => { const m = /#(\d+)/.exec(n || ''); return m ? parseInt(m[1], 10) : -Infinity; };
+  // Matches "#N", "Block N", "Block #N", "Phase N" — drive-imported names
+  // often drop the # (e.g. "Block 8 - High VOL/Conditioning", "Block 1 - Start Moving").
+  const blockNum = n => { const m = /(?:block|phase)\s*#?\s*(\d+)|#(\d+)/i.exec(n || ''); return m ? parseInt(m[1] || m[2], 10) : -Infinity; };
   const isComeback = n => /comeback/i.test(n || '');
   const sortProgramsChrono = (a, b) => {
     const cb = (isComeback(b.name) ? 1 : 0) - (isComeback(a.name) ? 1 : 0);
