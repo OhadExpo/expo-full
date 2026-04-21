@@ -248,8 +248,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         <Select label="Assign to Trainee" options={[{value:"",label:"Unassigned"}, ...trainees.flatMap(t => {
           if (t.members && t.members.length === 2) {
-            const pair = t.members.map((m, i) => ({ value: t.id + '__' + i, label: t.name + ' — ' + (m.name || 'Member ' + (i+1)) }));
-            return [...pair, { value: t.id, label: t.name + ' — Shared' }];
+            return t.members.map((m, i) => ({ value: t.id + '__' + i, label: m.name || ('Member ' + (i+1)) }));
           }
           return [{ value: t.id, label: t.name }];
         })]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
@@ -433,10 +432,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     const m = {};
     trainees.forEach(t => {
       m[t.id] = t.name;
-      // Couples store plans against sub-IDs tr_xxx__0 / __1 — also map those to "Parent — Member"
+      // Couples store plans against sub-IDs tr_xxx__0 / __1 — map those to the member's own name
       if (t.members && t.members.length === 2) {
         t.members.forEach((mem, i) => {
-          m[t.id + '__' + i] = t.name + ' — ' + (mem.name || ('Member ' + (i+1)));
+          m[t.id + '__' + i] = mem.name || ('Member ' + (i+1));
         });
       }
     });
