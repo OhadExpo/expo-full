@@ -95,6 +95,7 @@ export function useFullPlan() {
           createdAt: data.created_at,
           days: normalizeDays(data.data?.days),
           warmup: data.data?.warmup || [],
+          weeks: data.data?.weeks || 4,
         });
       }
     } catch (e) { console.error('useFullPlan load error:', e); }
@@ -117,7 +118,7 @@ export async function savePlan(plan) {
     active: plan.active !== false,
     created_at: plan.createdAt || new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    data: { days: plan.days || [], warmup: plan.warmup || [] },
+    data: { days: plan.days || [], warmup: plan.warmup || [], weeks: plan.weeks || 4 },
   };
   const { error } = await supabase.from('plans').upsert(row);
   if (error) console.error('savePlan error:', error);

@@ -253,6 +253,17 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
           return [{ value: t.id, label: t.name }];
         })]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
+        <Select label="Weeks" options={[3,4,5,6,8,12].map(n=>({value:String(n),label:n+' weeks'}))} value={String(plan.weeks||4)} onChange={v => {
+          const n = parseInt(v) || 4;
+          const resize = (arr) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : ""));
+          // propagate week count to every per-week array across the program
+          const nextDays = (plan.days || []).map(d => ({...d, exercises: (d.exercises||[]).map(ex => ({
+            ...ex,
+            wk: ex.wk ? resize(ex.wk) : ex.wk,
+            wkS: ex.wkS ? resize(ex.wkS) : ex.wkS,
+          }))}));
+          setPlan({...plan, weeks: n, days: nextDays});
+        }} />
       </div>
       <PatternCoverage plan={plan} exercises={exercises} />
       <WarmupEditor plan={plan} setPlan={setPlan} />
@@ -316,17 +327,13 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
               <div style={{overflowX:"auto"}}>
                 <div style={{display:"grid",gridTemplateColumns:"2fr 60px 1fr 1fr 1fr 1fr 1fr auto",minWidth:700,gap:8,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
-                  <Select label="Group" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
+                  <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise.">
+                    <Select label="Group (Superset)" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
+                  </div>
                   {(() => {
-                    // weekCount is driven by whichever per-week array has length; when user toggles 4W/6W on one side, both arrays reshape together so sets and reps stay aligned
-                    const weeks = (ex.wk?.length || ex.wkS?.length || 4);
-                    const resize = (arr, n, fill) => { const out = Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill)); return out; };
-                    const setWeeks = (n) => {
-                      const patch = {};
-                      if (ex.wk) patch.wk = resize(ex.wk, n, "");
-                      if (ex.wkS) patch.wkS = resize(ex.wkS, n, "");
-                      updateEx(exIdx, patch);
-                    };
+                    // Week count comes from plan.weeks — set once at the program level and applied to every per-week array
+                    const weeks = plan.weeks || 4;
+                    const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
                     return <>
                       {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
                         <div style={{display:"flex",flexDirection:"column",gap:4}}>
@@ -353,11 +360,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         <div style={{display:"flex",flexDirection:"column",gap:4}}>
                           <div style={{display:"flex",alignItems:"baseline",gap:4}}>
                             <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps / Wk</label>
-                            <div style={{display:"flex",gap:2,marginLeft:"auto"}}>
-                              <button onClick={()=>setWeeks(4)} title="4-week program" style={{background:weeks===4?C.ac:"none",border:weeks===4?"none":`1px solid ${C.bd}`,color:weeks===4?"#fff":C.tm,fontSize:9,cursor:"pointer",padding:"1px 5px",fontFamily:FN,fontWeight:700,borderRadius:3}}>4W</button>
-                              <button onClick={()=>setWeeks(6)} title="6-week program" style={{background:weeks===6?C.ac:"none",border:weeks===6?"none":`1px solid ${C.bd}`,color:weeks===6?"#fff":C.tm,fontSize:9,cursor:"pointer",padding:"1px 5px",fontFamily:FN,fontWeight:700,borderRadius:3}}>6W</button>
-                              <button onClick={()=>updateEx(exIdx,{wk:null,reps:ex.wk[0]||"8-12"})} title="Collapse to single reps value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,fontFamily:FN,marginLeft:4}}>← flat</button>
-                            </div>
+                            <button onClick={()=>updateEx(exIdx,{wk:null,reps:ex.wk[0]||"8-12"})} title="Collapse to single reps value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,fontFamily:FN,marginLeft:"auto"}}>← flat</button>
                           </div>
                           <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},1fr)`,gap:3}}>
                             {Array.from({length:weeks}).map((_,i) => (
@@ -454,7 +457,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
   const handleOpenPlan = async (planId) => { await loadFullPlan(planId); setEditMode(true); };
   const handleNewPlan = () => {
-    setEditPlan({ id: 'pl_' + uid(), name: "", traineeId: "", phase: "", notes: "", active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: [] });
+    setEditPlan({ id: 'pl_' + uid(), name: "", traineeId: "", phase: "", notes: "", active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: [], weeks: 4 });
     setEditMode(true);
   };
   const handleSave = async (plan) => { await savePlan(plan); setEditMode(false); clearPlan(); await reloadIndex(); };
