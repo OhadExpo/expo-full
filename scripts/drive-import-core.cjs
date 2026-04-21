@@ -88,7 +88,10 @@ function parseSingleSheet(ws, sheetName) {
     currentDay.ex.push(dayEx);
   }
   if (currentDay?.ex.length > 0) days.push(currentDay);
-  return { blockName: blockName || sheetName, exercises, days, warmup };
+  // Prefer the sheet tab name (user-authored, stable) over cell-A0 which is
+  // often a stale copy-paste header (caused Ayelet's #15/#17/#18 to emit as
+  // "Block #16" and "(" / "[" to become plan names).
+  return { blockName: sheetName || blockName, exercises, days, warmup };
 }
 
 function parseSpreadsheet(data, fileName) {
