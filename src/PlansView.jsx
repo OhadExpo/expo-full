@@ -220,6 +220,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
+  const [overview, setOverview] = useState(false);
   const updateDay = (i, u) => setPlan(p => ({...p, days: p.days.map((d,idx) => idx===i ? {...d,...u} : d)}));
   const addDay = () => { setPlan(p => ({...p, days: [...p.days, defaultDay(p.days.length+1)]})); setActiveDay(plan.days.length); };
   const removeDay = i => { if (plan.days.length<=1) return; setPlan(p => ({...p, days: p.days.filter((_,idx)=>idx!==i)})); if (activeDay>=plan.days.length-1) setActiveDay(Math.max(0,plan.days.length-2)); };
@@ -238,7 +239,10 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <button onClick={onCancel} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
-        <Btn onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Program'}</Btn>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>setOverview(v=>!v)} style={{background:overview?C.ac:C.sf2,border:`1px solid ${overview?C.ac:C.bd}`,borderRadius:6,padding:"6px 12px",color:overview?"#fff":C.tm,cursor:"pointer",fontFamily:FN,fontSize:11,fontWeight:600}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
+          <Btn onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Program'}</Btn>
+        </div>
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
@@ -247,15 +251,55 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
       </div>
       <PatternCoverage plan={plan} exercises={exercises} />
       <WarmupEditor plan={plan} setPlan={setPlan} />
-      <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+      {!overview && <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
         {plan.days.map((d,i) => <div key={d.id} style={{display:"flex"}}>
           <button onClick={()=>setActiveDay(i)} style={{padding:"6px 14px",fontSize:12,borderRadius:"6px 0 0 6px",border:"none",background:i===activeDay?C.ac:C.sf2,color:i===activeDay?"#fff":C.tm,cursor:"pointer",fontFamily:FB,fontWeight:600}}>{d.name} ({d.exercises.length})</button>
           {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"6px 6px",fontSize:10,borderRadius:"0 6px 6px 0",border:"none",borderLeft:`1px solid ${C.bd}`,background:i===activeDay?C.ac:C.sf2,color:i===activeDay?"#fff":C.td,cursor:"pointer",opacity:0.7}}>×</button>}
         </div>)}
         <Btn variant="ghost" onClick={addDay} style={{padding:"6px 12px",fontSize:12}}>+</Btn>
-      </div>
-      {day&&<div style={{marginBottom:12}}><Input label={`Day ${activeDay+1} Name`} value={day.name} onChange={e=>updateDay(activeDay,{name:e.target.value})} /></div>}
-      {day&&day.exercises.length===0?
+      </div>}
+      {overview && <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+        {plan.days.map((d,i) => {
+          const dayExs = d.exercises || [];
+          return (
+            <div key={d.id} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:8,padding:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div style={{fontFamily:FB,fontWeight:700,color:C.tx,fontSize:14}}>{d.name} <span style={{color:C.td,fontWeight:400,marginLeft:6}}>({dayExs.length} ex)</span></div>
+                <button onClick={()=>{setActiveDay(i);setOverview(false)}} style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>EDIT</button>
+              </div>
+              {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
+                <div style={{display:"grid",gridTemplateColumns:"24px 2fr 60px 60px 60px 60px 60px 60px",gap:8,fontSize:12,alignItems:"center"}}>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>#</div>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>EXERCISE</div>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>GRP</div>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>SETS</div>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>REPS</div>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>LOAD</div>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>RPE</div>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>TEMPO</div>
+                  {dayExs.map((ex, exIdx) => {
+                    const exData = exercises.find(e=>e.id===ex.exerciseId);
+                    const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
+                    const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
+                    return <React.Fragment key={ex.id}>
+                      <div style={{color:C.td,fontFamily:FN}}>{exIdx+1}</div>
+                      <div style={{color:C.tx,borderLeft:ex.superset?`3px solid ${sc}`:"none",paddingLeft:ex.superset?6:0}}>{title}</div>
+                      <div style={{color:sc,fontFamily:FN,fontWeight:600}}>{ex.superset||"—"}</div>
+                      <div style={{color:C.tx}}>{ex.sets||"—"}</div>
+                      <div style={{color:C.tx}}>{ex.reps||"—"}</div>
+                      <div style={{color:C.tm}}>{ex.load||"—"}</div>
+                      <div style={{color:C.tm}}>{ex.rpe||"—"}</div>
+                      <div style={{color:C.tm}}>{ex.tempo||"—"}</div>
+                    </React.Fragment>;
+                  })}
+                </div>
+              }
+            </div>
+          );
+        })}
+      </div>}
+      {!overview && day && <div style={{marginBottom:12}}><Input label={`Day ${activeDay+1} Name`} value={day.name} onChange={e=>updateDay(activeDay,{name:e.target.value})} /></div>}
+      {!overview && (day&&day.exercises.length===0?
         <div style={{textAlign:"center",padding:30,color:C.td}}><p style={{fontSize:13}}>No exercises.</p><Btn onClick={()=>setAddExerciseOpen(true)} style={{marginTop:8}}>+ Add Exercise</Btn></div>
       :<div>
         {day?.exercises.map((ex,exIdx) => {
@@ -301,7 +345,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
               </div></div></div>);
         })}
         <Btn variant="ghost" onClick={()=>setAddExerciseOpen(true)} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
-      </div>}
+      </div>)}
       <ExerciseBrowserModal
         open={addExerciseOpen}
         onClose={()=>setAddExerciseOpen(false)}
