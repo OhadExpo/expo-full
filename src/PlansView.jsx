@@ -281,7 +281,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                       <div style={{...cell(C.tx), borderLeft:ex.superset?`3px solid ${sc}`:"none", paddingLeft:ex.superset?6:0}}>{title}</div>
                       <div style={{...cell(sc), fontFamily:FN, fontWeight:600}}>{ex.superset||"—"}</div>
                       <div style={cell(C.tx)}>{ex.sets||"—"}</div>
-                      <div style={cell(C.tx)}>{ex.reps||"—"}</div>
+                      <div style={cell(C.tx)}>{ex.wk && ex.wk.length ? ex.wk.map(w=>w||"—").join(" / ") : (ex.reps||"—")}</div>
                       <div style={cell(C.tm)}>{ex.load||"—"}</div>
                       <div style={cell(C.tm)}>{ex.rpe||"—"}</div>
                       <div style={cell(C.tm)}>{ex.tempo||"—"}</div>
@@ -313,7 +313,27 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
                   <Select label="Group" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
                   <Input label="Sets" type="number" value={ex.sets} onChange={e=>updateEx(exIdx,{sets:parseInt(e.target.value)||0})} />
-                  <Input label="Reps" value={ex.reps} onChange={e=>updateEx(exIdx,{reps:e.target.value})} placeholder="8-12" />
+                  {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                        <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps / Wk</label>
+                        <button onClick={()=>updateEx(exIdx,{wk:null,reps:ex.wk[0]||"8-12"})} title="Collapse to single reps value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>← flat</button>
+                      </div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:3}}>
+                        {[0,1,2,3].map(i => (
+                          <input key={i} value={ex.wk[i]||""} onChange={e=>{const next=[ex.wk[0]||"",ex.wk[1]||"",ex.wk[2]||"",ex.wk[3]||""]; next[i]=e.target.value; updateEx(exIdx,{wk:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                        <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps</label>
+                        <button onClick={()=>updateEx(exIdx,{wk:[ex.reps||"",ex.reps||"",ex.reps||"",ex.reps||""],reps:">"})} title="Set different reps per week (W1-W4)" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>per week →</button>
+                      </div>
+                      <input value={ex.reps||""} onChange={e=>updateEx(exIdx,{reps:e.target.value})} placeholder="8-12" style={{...baseInput}} />
+                    </div>
+                  )}
                   <Input label="Load" value={ex.load} onChange={e=>updateEx(exIdx,{load:e.target.value})} placeholder="kg/%" />
                   <Input label="RPE" value={ex.rpe} onChange={e=>updateEx(exIdx,{rpe:e.target.value})} placeholder="7-8" />
                   <Input label="Tempo" value={ex.tempo} onChange={e=>updateEx(exIdx,{tempo:e.target.value})} placeholder="3010" />
