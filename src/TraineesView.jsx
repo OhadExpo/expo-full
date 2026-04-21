@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput } from './ui';
 import { emailsToArr, emailsToStore, emailsDisplay, subMemberId } from './traineeUtils';
 
 const isCouple = (t) => t.members && t.members.length === 2;
@@ -64,7 +64,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
     if (!form.name) return;
     const toSave = { ...form, email: emailsToStore(form._emails || emailsToArr(form.email)) };
     delete toSave._emails;
-    if (toSave._members) { toSave.members = toSave._members; delete toSave._members; }
+    if (toSave._members) {
+      toSave.members = toSave._members.map(m => {
+        const email = emailsToStore(m._emails || emailsToArr(m.email));
+        const { _emails, ...rest } = m;
+        return { ...rest, email };
+      });
+      delete toSave._members;
+    }
     if (editId) setTrainees(prev => prev.map(t => t.id === editId ? toSave : t));
     else setTrainees(prev => [...prev, toSave]);
     setForm(defaultTrainee()); setEditId(null); setShowForm(false);
@@ -144,7 +151,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                     {t.monthly > 0 && <span style={{fontSize:11,color:C.td,fontFamily:FN}}>₪{t.monthly}/mo</span>}
                   </div>
                   <div style={{display:'flex',justifyContent:'flex-end',marginTop:6}}>
-                    {!showArchived && <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:11,padding:0}}>✏️ Edit</button>}
+                    {!showArchived && <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:11,padding:0}}>✏️ Edit</button>}
                   </div>
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:10}}>
                     <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
@@ -204,7 +211,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                   <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>Member {mi+1}</div>
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
                     <Input label="Name" value={m.name||""} onChange={e=>upd('name',e.target.value)} />
-                    <Input label="Email" value={m.email||""} onChange={e=>upd('email',e.target.value)} placeholder="email@example.com" />
+                    <EmailsInput label="Email" value={m._emails || emailsToArr(m.email)} onChange={next=>upd('_emails',next)} />
                     <Input label="Phone" value={m.phone||""} onChange={e=>upd('phone',e.target.value)} placeholder="+972..." />
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
                       <Input label="Age" type="number" value={m.age||""} onChange={e=>upd('age',e.target.value)} />

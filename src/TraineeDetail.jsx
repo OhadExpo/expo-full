@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { C, FN, FB, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, baseInput } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput } from './ui';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
@@ -50,7 +50,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const handleDeletePay=(pid)=>{setPayments(prev=>prev.filter(p=>p.id!==pid))};
   const openEdit=()=>{
     const ef = {...td, _emails: emailsToArr(td.email)};
-    if (couple) ef._members = td.members.map(m => ({...m}));
+    if (couple) ef._members = td.members.map(m => ({...m, _emails: emailsToArr(m.email)}));
     setEditForm(ef);
     setShowEdit(true);
   };
@@ -58,7 +58,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     if(!editForm.name) return;
     const toSave={...editForm, email: emailsToStore(editForm._emails || emailsToArr(editForm.email))};
     delete toSave._emails;
-    if (toSave._members) { toSave.members = toSave._members; delete toSave._members; }
+    if (toSave._members) {
+      toSave.members = toSave._members.map(m => {
+        const email = emailsToStore(m._emails || emailsToArr(m.email));
+        const { _emails, ...rest } = m;
+        return { ...rest, email };
+      });
+      delete toSave._members;
+    }
     setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,...toSave}:t));
     setShowEdit(false);
   };
@@ -302,7 +309,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                   <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>Member {mi+1}</div>
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
                     <Input label="Name" value={m.name||""} onChange={e=>upd('name',e.target.value)} />
-                    <Input label="Email" value={m.email||""} onChange={e=>upd('email',e.target.value)} placeholder="email@example.com" />
+                    <EmailsInput label="Email" value={m._emails || emailsToArr(m.email)} onChange={next=>upd('_emails',next)} />
                     <Input label="Phone" value={m.phone||""} onChange={e=>upd('phone',e.target.value)} placeholder="+972..." />
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
                       <Input label="Age" type="number" value={m.age||""} onChange={e=>upd('age',e.target.value)} />

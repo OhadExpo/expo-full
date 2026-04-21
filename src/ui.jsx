@@ -29,6 +29,26 @@ export const Input = ({ label, style: s, ...props }) => (
   </div>
 );
 
+// Multi-email editor: value is string[] (UI form shape), onChange(next: string[]).
+// Shows one row per email with a × to remove, plus a "+ Add Email" button up to max.
+export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, placeholder = "email@example.com" }) => {
+  const arr = value && value.length ? value : [''];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FN }}>{label}</label>
+      {arr.map((em, i) => (
+        <div key={i} style={{ display: 'flex', gap: 4 }}>
+          <input value={em} onChange={e => { const next = [...arr]; next[i] = e.target.value; onChange(next); }} placeholder={placeholder} style={{ ...baseInput, flex: 1 }} />
+          {arr.length > 1 && <button onClick={() => { const next = [...arr]; next.splice(i, 1); onChange(next); }} style={{ background: C.rdD, border: 'none', borderRadius: 6, padding: '0 8px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
+        </div>
+      ))}
+      {arr.length < max && (
+        <button onClick={() => onChange([...arr, ''])} style={{ background: 'none', border: `1px dashed ${C.bd}`, borderRadius: 6, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 11, fontWeight: 600 }}>+ Add Email</button>
+      )}
+    </div>
+  );
+};
+
 export const Select = ({ label, options, value, onChange, placeholder }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
     {label && <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: FN }}>{label}</label>}
