@@ -12,47 +12,54 @@ import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
 const EX_BY_TITLE = {};
 Object.entries(EX).forEach(([k,v]) => { if(v.t) EX_BY_TITLE[v.t.toLowerCase()] = k; });
 
-// Convert trainer-side plan to portal compressed format
+// Convert trainer-side plan to portal compressed format.
+// Accepts two day shapes:
+//   a) Trainer UI shape: d.exercises = [{ exerciseId, title, sets, reps, tempo, superset, notes }]
+//   b) Drive-import / compressed shape: d.ex = [{ eid, s, r, tempo, superset, n }]
+// Drive-imported plans store only `eid`; the title/video/cues live in the trainer exercise library,
+// so we must look them up there. This path covers the majority of plans in Supabase.
 function trainerPlanToPortal(plan, trainerExercises) {
   return {
     name: plan.name,
     phase: plan.phase || '',
     rest: (plan.notes || '').replace(/imported from sheets/gi, '').trim(),
     warmup: Array.isArray(plan.warmup) ? plan.warmup : [],
-    days: (plan.days || []).map(d => ({
-      name: d.name,
-      ex: (d.exercises || []).map((pe, peIdx) => {
-        // First look up by id. If empty, also try matching by title against the trainer library.
-        let exData = pe.exerciseId ? trainerExercises.find(e => e.id === pe.exerciseId) : null;
-        if (!exData && pe.title) {
-          const needle = pe.title.toLowerCase().trim();
-          exData = trainerExercises.find(e => (e.title || '').toLowerCase().trim() === needle) || null;
-        }
-        // Prefer the exercise's own title, then library match, then a generic fallback
-        const title = (pe.title || exData?.title || 'Exercise ' + (peIdx + 1)).trim();
-        // Try to find existing EX entry by title first (cheap, no dynamic entry needed)
-        let eid = EX_BY_TITLE[title.toLowerCase()];
-        if (!eid) {
-          // Create a dynamic EX entry so StepLogger can render it.
-          // Use the plan-exercise id (or a fallback hash) so the dyn eid is stable across renders
-          // but unique per plan-exercise instance.
-          const stableKey = pe.id || pe.exerciseId || title.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-          eid = 'dyn_' + stableKey;
-          if (!EX[eid]) {
-            EX[eid] = {
-              t: title,
-              vid: exData?.videoLink || '',
-              q: exData?.cues || '',
-            };
+    days: (plan.days || []).map(d => {
+      const rawList = Array.isArray(d.exercises) ? d.exercises : (Array.isArray(d.ex) ? d.ex : []);
+      return {
+        name: d.name,
+        ex: rawList.map((pe, peIdx) => {
+          // Normalize: compressed shape uses eid/s/r, trainer shape uses exerciseId/sets/reps.
+          const libId = pe.exerciseId || pe.eid || null;
+          let exData = libId ? trainerExercises.find(e => e.id === libId) : null;
+          if (!exData && pe.title) {
+            const needle = pe.title.toLowerCase().trim();
+            exData = trainerExercises.find(e => (e.title || '').toLowerCase().trim() === needle) || null;
           }
-        }
-        const out = { eid, s: pe.sets || 3, r: pe.reps || '8-12' };
-        if (pe.tempo) out.tempo = pe.tempo;
-        if (pe.superset) out.superset = pe.superset;
-        if (pe.notes) out.n = pe.notes;
-        return out;
-      })
-    }))
+          const title = (pe.title || exData?.title || 'Exercise ' + (peIdx + 1)).trim();
+          let eid = EX_BY_TITLE[title.toLowerCase()];
+          if (!eid) {
+            const stableKey = pe.id || libId || title.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+            eid = 'dyn_' + stableKey;
+            if (!EX[eid]) {
+              EX[eid] = {
+                t: title,
+                vid: exData?.videoLink || '',
+                q: exData?.cues || '',
+              };
+            }
+          }
+          const sets = pe.sets ?? pe.s ?? 3;
+          const reps = pe.reps ?? pe.r ?? '8-12';
+          const notes = pe.notes ?? pe.n;
+          const out = { eid, s: sets, r: reps };
+          if (pe.tempo) out.tempo = pe.tempo;
+          if (pe.superset) out.superset = pe.superset;
+          if (notes) out.n = notes;
+          return out;
+        })
+      };
+    })
   };
 }
 
