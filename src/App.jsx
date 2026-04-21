@@ -5,6 +5,7 @@ import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus }
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn } from './ui';
+import { parseTraineeId } from './traineeUtils';
 import * as XLSX from 'xlsx';
 
 // Lazy-load every heavy view so the initial bundle stays small.
@@ -189,7 +190,12 @@ export default function App() {
     }
   },[trainees.length]);
 
-  const handleDecrementSession=useCallback(tid=>{setTrainees(prev=>prev.map(t=>t.id===tid&&t.sessionsRemaining>0?{...t,sessionsRemaining:t.sessionsRemaining-1}:t))},[setTrainees]);
+  const handleDecrementSession=useCallback(tid=>{
+    // Couple workouts arrive with sub-member IDs (tr_xxx__0). Sessions counter lives on the parent row.
+    const parsed = parseTraineeId(tid);
+    const targetId = parsed ? parsed.parentId : tid;
+    setTrainees(prev=>prev.map(t=>t.id===targetId&&t.sessionsRemaining>0?{...t,sessionsRemaining:t.sessionsRemaining-1}:t));
+  },[setTrainees]);
 
   const doImportSingle=async(data)=>{
     const trainee={...data.trainee,id:data.trainee.id||uid(),email:"",phone:"",age:"",weight:"",height:"",injuries:"",goals:"",notes:"",startDate:new Date().toISOString().slice(0,10),packagePrice:""};
@@ -291,10 +297,17 @@ export default function App() {
 
   const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.length},{key:"plans",label:"Programs",count:planIndex.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Portal",count:null}];
 
-  // Pre-compute plan counts per trainee — avoids passing full plans array to Dashboard
+  // Pre-compute plan counts per trainee. Counts roll up to the parent ID:
+  // a plan on tr_xxx__0 or __1 (couple sub-members) also increments tr_xxx so
+  // Dashboard's parent-keyed lookup works without rewriting every call site.
   const planCounts = useMemo(() => {
     const m = {};
-    planIndex.forEach(p => { if (p.traineeId) m[p.traineeId] = (m[p.traineeId]||0) + 1; });
+    planIndex.forEach(p => {
+      if (!p.traineeId) return;
+      m[p.traineeId] = (m[p.traineeId]||0) + 1;
+      const parsed = parseTraineeId(p.traineeId);
+      if (parsed) m[parsed.parentId] = (m[parsed.parentId]||0) + 1;
+    });
     return m;
   }, [planIndex]);
 

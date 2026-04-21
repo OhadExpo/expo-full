@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput } from './ui';
+import { traineeIdsFor } from './traineeUtils';
 
 export default function DashboardView({ trainees, planCounts, workouts, payments, presence, onSelectTrainee }) {
   const [sort, setSort] = useState('name');
@@ -10,8 +11,11 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
   const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac };
 
   const enriched = useMemo(() => trainees.map(t => {
-    const tPay = payments.filter(p => p.traineeId === t.id);
-    const tWork = workouts.filter(w => w.traineeId === t.id && w.status === 'completed');
+    // Workouts and payments for couple trainees may be recorded under sub-member IDs
+    // (tr_xxx__0 / __1). Roll everything up to the parent for dashboard display.
+    const ids = new Set(traineeIdsFor(t.id));
+    const tPay = payments.filter(p => ids.has(p.traineeId));
+    const tWork = workouts.filter(w => ids.has(w.traineeId) && w.status === 'completed');
     const totalPaid = tPay.reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
     const lastPay = tPay.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
     const lastWorkout = tWork.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
@@ -22,7 +26,7 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
   const sorted = [...filtered].sort((a, b) => {
     if (sort === 'name') return a.name.localeCompare(b.name) * dir;
     if (sort === 'status') return a.status.localeCompare(b.status) * dir;
-    if (sort === 'sessions') return ((a.sessionsRemaining || 0) - (b.sessionsRemaining || 0)) * dir;
+    if (sort === 'sessions') return ((Number.isFinite(a.sessionsRemaining) ? a.sessionsRemaining : 0) - (Number.isFinite(b.sessionsRemaining) ? b.sessionsRemaining : 0)) * dir;
     if (sort === 'paid') return (a.totalPaid - b.totalPaid) * dir;
     if (sort === 'lastPay') return ((a.lastPay ? new Date(a.lastPay.date).getTime() : 0) - (b.lastPay ? new Date(b.lastPay.date).getTime() : 0)) * dir;
     if (sort === 'workouts') return (a.workoutCount - b.workoutCount) * dir;
@@ -64,7 +68,7 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
 
   // Online now
   const ONLINE_MS = 2 * 60 * 1000;
-  const onlineNow = enriched.filter(t => presence?.[t.id] && (now.getTime() - presence[t.id]) < ONLINE_MS);
+  const onlineNow = enriched.filter(t => traineeIdsFor(t.id).some(id => presence?.[id] && (now.getTime() - presence[id]) < ONLINE_MS));
 
   // Overdue payment: active clients whose last payment (from payments array OR legacy lastPayment field) is >30 days ago,
   // OR active clients with a monthly rate but no payment record at all.

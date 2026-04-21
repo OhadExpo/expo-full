@@ -56,6 +56,8 @@ function trainerPlanToPortal(plan, trainerExercises) {
           if (pe.tempo) out.tempo = pe.tempo;
           if (pe.superset) out.superset = pe.superset;
           if (notes) out.n = notes;
+          if (Array.isArray(pe.wk) && pe.wk.length) out.wk = pe.wk;
+          if (Array.isArray(pe.wkS) && pe.wkS.length) out.wkS = pe.wkS;
           return out;
         })
       };
@@ -91,7 +93,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const [step, setStep] = useState(wuCount > 0 ? 'wu0' : 'pre');
   const [ar, setAr] = useState({pain:'',energy:'',sleep:''});
   const [notes, setNotes] = useState('');
-  const [allSets, setAllSets] = useState(() => day.ex.map(ex => Array.from({length:typeof ex.s==='number'?ex.s:3}, () => ({reps:'',load:'',rpe:'',done:false}))));
+  // Per-week sets (ex.wkS) takes precedence over the scalar ex.s for allocating log rows.
+  // weekNum is 0-indexed; fall back to the flat sets count (or 3) if the week is missing.
+  const setCountFor = (ex) => {
+    const perWeek = Array.isArray(ex.wkS) ? parseInt(ex.wkS[weekNum], 10) : NaN;
+    if (Number.isFinite(perWeek) && perWeek > 0) return perWeek;
+    return typeof ex.s === 'number' ? ex.s : 3;
+  };
+  const [allSets, setAllSets] = useState(() => day.ex.map(ex => Array.from({length:setCountFor(ex)}, () => ({reps:'',load:'',rpe:'',done:false}))));
   const [fv, setFv] = useState(() => day.ex.map(() => ({note:'',has:false})));
   const [wuDone, setWuDone] = useState(() => warmup.map(() => false));
   const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
@@ -269,7 +278,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
   const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,
     formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null,cloudUrl:f.cloudUrl||null})),
-    exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:ex.wk?ex.wk[weekNum]:`${ex.s}x${ex.r}`,sets:allSets[i]}))});
+    exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:(ex.wk&&ex.wk[weekNum])||`${(ex.wkS&&ex.wkS[weekNum])||ex.s}x${(ex.wk&&ex.wk[weekNum])||ex.r}`,sets:allSets[i]}))});
 
   // Navigation helpers
   const totalSteps = wuCount + 1 + groupCount; // warmups + pre + groups
@@ -386,7 +395,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const { idx: ei, ex, d } = g;
     const vid = ytId(d.vid);
     const hw = ex.wk?.length > 0;
-    const wr = hw ? ex.wk[weekNum] : null;
+    const wr = hw ? (ex.wk[weekNum] ?? ex.r) : null;
     const f = fv[ei];
     const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`;
     const wf = weeklyFocus?.[fk];
@@ -498,9 +507,12 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   // Resolve client from trainees (Supabase)
   const trainee = (trainees || []).find(t => t.id === ci);
 
-  // Load this client's plans from plans table when client changes
+  // Load this client's plans from plans table when client changes.
+  // Mount guard: rapid login/logout could otherwise race a stale fetch
+  // into setClientPlans after the component remounted for a different user.
   React.useEffect(() => {
     if (!ci) { setClientPlans([]); return; }
+    let alive = true;
     (async () => {
       try {
         const { supabase: sb } = await import('./supabase');
@@ -508,6 +520,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         // Fetch all so the shared portal renders both members' plans.
         const ids = traineeIdsFor(ci);
         const { data } = await sb.from('plans').select('*').in('trainee_id', ids);
+        if (!alive) return;
         if (data) {
           setClientPlans(data.map(p => ({
             id: p.id, name: p.name, traineeId: p.trainee_id, phase: p.phase,
@@ -515,8 +528,9 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
             days: p.data?.days || [], warmup: p.data?.warmup || [],
           })));
         }
-      } catch (e) { console.error('ClientPortal plans load:', e); }
+      } catch (e) { if (alive) console.error('ClientPortal plans load:', e); }
     })();
+    return () => { alive = false; };
   }, [ci]);
 
   // Presence heartbeat — let the coach know this client is online
@@ -763,11 +777,11 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
               <div><span style={{fontWeight:700,fontSize:15}}>{day.name}</span>{done && <Bg color={C.gn} style={{fontSize:9,padding:'2px 6px',marginLeft:6}}>✓</Bg>}
                 <div style={{fontSize:11,color:C.tm,marginTop:2}}>{day.ex.length} exercises</div></div>
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 12px',borderRadius:6,border:'none',background:done?C.gnD:C.acD,color:done?C.gn:C.ac,fontFamily:FB,fontSize:11,fontWeight:600,cursor:'pointer'}}>{done?'Again':'📝 Log'}</button></div>
-            {day.ex.map((ex,i) => {const d = EX[ex.eid]; if(!d) return null; const hw = ex.wk?.length>0;
+            {day.ex.map((ex,i) => {const d = EX[ex.eid]; if(!d) return null; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
               return <div key={i} style={{display:'flex',gap:8,alignItems:'center',padding:'4px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
                 <div style={{width:22,height:22,borderRadius:4,background:C.acD,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:10,fontWeight:700,color:C.ac,flexShrink:0}}>{i+1}</div>
                 <div style={{flex:1}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
-                  <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN}}>{hw?ex.wk[wk]:ex.s+'x'+ex.r}</span>
+                  <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN}}>{hw?(wr||''):((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+ex.r}</span>
                   {ex.tempo && <span style={{fontSize:9,color:C.or,marginLeft:4}}>{ex.tempo}</span>}</div></div>})}
           </div>})}</React.Fragment>)})()}
       </div></div>; }

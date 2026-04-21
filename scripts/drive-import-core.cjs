@@ -74,7 +74,9 @@ function parseSingleSheet(ws, sheetName) {
       const waveStart = Math.max(colSets, colReps, colTempo, colVid) + 1;
       for (let ci = waveStart; ci <= waveStart + 3; ci++) { if (row[ci]) wave.push(String(row[ci]).trim()); }
     }
-    let superset = ''; const ssMatch = a.match(/\d+([a-e])/i); if (ssMatch) superset = ssMatch[1].toUpperCase();
+    // Superset letter must be at the start of the row label (e.g. "1a", "2b") —
+    // unanchored match false-positives on "3a" embedded inside other cell content.
+    let superset = ''; const ssMatch = /^(\d+)([a-e])\b/i.exec(a); if (ssMatch) superset = ssMatch[2].toUpperCase();
     const eid = 'ex_' + uid();
     const exName = b || String(row[2] || '').trim();
     if (!exName) continue;
