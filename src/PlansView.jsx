@@ -386,7 +386,19 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     }
   }, [openPlanId]);
 
-  const traineeMap = useMemo(() => { const m = {}; trainees.forEach(t => { m[t.id] = t.name; }); return m; }, [trainees]);
+  const traineeMap = useMemo(() => {
+    const m = {};
+    trainees.forEach(t => {
+      m[t.id] = t.name;
+      // Couples store plans against sub-IDs tr_xxx__0 / __1 — also map those to "Parent — Member"
+      if (t.members && t.members.length === 2) {
+        t.members.forEach((mem, i) => {
+          m[t.id + '__' + i] = t.name + ' — ' + (mem.name || ('Member ' + (i+1)));
+        });
+      }
+    });
+    return m;
+  }, [trainees]);
 
   const filtered = useMemo(() => {
     let result = planIndex;
