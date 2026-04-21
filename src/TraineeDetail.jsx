@@ -25,6 +25,18 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const [deleteTyped,setDeleteTyped]=useState("");
   const [programSort,setProgramSort]=useState('chrono'); // 'chrono' | 'alpha'
+  // Sort programs newest-first by "#N" in the name. Comeback/rehab blocks
+  // float to the top since they replace numbered progressions. createdAt
+  // only breaks ties — drive-imported plans share a single timestamp.
+  const blockNum = n => { const m = /#(\d+)/.exec(n || ''); return m ? parseInt(m[1], 10) : -Infinity; };
+  const isComeback = n => /comeback/i.test(n || '');
+  const sortProgramsChrono = (a, b) => {
+    const cb = (isComeback(b.name) ? 1 : 0) - (isComeback(a.name) ? 1 : 0);
+    if (cb !== 0) return cb;
+    const bn = blockNum(b.name) - blockNum(a.name);
+    if (bn !== 0) return bn;
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  };
   const handleArchive = () => { if(setTrainees) setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Archived",archivedAt:new Date().toISOString()}:t)); setShowArchiveConfirm(false); onBack(); };
   const handlePermanentDelete = () => { if(setTrainees) setTrainees(prev=>prev.filter(t=>t.id!==trainee)); setShowDeleteConfirm(false); setDeleteTyped(""); onBack(); };
   const [payForm,setPayForm]=useState({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
@@ -79,7 +91,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // Helper: render a member column (body stats, injuries, goals, programs)
   const renderMemberColumn = (m, mi) => {
     const memberPlans = tpMember(mi);
-    const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):new Date(b.createdAt||0)-new Date(a.createdAt||0));
+    const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
     return (
       <div style={{flex:1,minWidth:0}}>
         <Card style={{marginBottom:8}}>
@@ -118,7 +130,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
   // Helper: render programs list for solo trainees (existing layout)
   const renderProgramsList = () => {
-    const sorted = [...tp].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):new Date(b.createdAt||0)-new Date(a.createdAt||0));
+    const sorted = [...tp].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
     return sorted.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <Card key={p.id} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}><div style={{fontWeight:600,color:C.tx}}>{p.name}</div><div style={{fontSize:12,color:C.tm,marginTop:2}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div><div style={{display:'flex',alignItems:'center',gap:10}}><button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} title="Remove program" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button><button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} title={isVis?"Visible on portal — click to hide":"Hidden from portal — click to show"} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:4}}><div style={{width:36,height:20,borderRadius:10,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:16,height:16,borderRadius:8,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?18:1,transition:'all .15s'}}/></div><span style={{fontSize:10,fontFamily:FN,color:isVis?C.gn:C.td,minWidth:32}}>{isVis?'ON':'OFF'}</span></button><span onClick={()=>onOpenPlan&&onOpenPlan(p.id)} style={{color:C.ac,fontSize:12,cursor:'pointer'}}>Open →</span></div></div></Card>});
   };
 
