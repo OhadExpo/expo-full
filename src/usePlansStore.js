@@ -25,6 +25,7 @@ function normalizeDays(days) {
       order: e.order ?? i,
       superset: e.superset ?? '',
       wk: e.wk ?? null,
+      wkS: e.wkS ?? null,
       title: e.title,
     }));
     return { id: d.id || uid(), name: d.name || d.n || '', exercises };

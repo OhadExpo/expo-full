@@ -246,7 +246,13 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
-        <Select label="Assign to Trainee" options={[{value:"",label:"Unassigned"},...trainees.map(t=>({value:t.id,label:t.name}))]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
+        <Select label="Assign to Trainee" options={[{value:"",label:"Unassigned"}, ...trainees.flatMap(t => {
+          if (t.members && t.members.length === 2) {
+            const pair = t.members.map((m, i) => ({ value: t.id + '__' + i, label: t.name + ' — ' + (m.name || 'Member ' + (i+1)) }));
+            return [...pair, { value: t.id, label: t.name + ' — Shared' }];
+          }
+          return [{ value: t.id, label: t.name }];
+        })]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
       </div>
       <PatternCoverage plan={plan} exercises={exercises} />
@@ -280,7 +286,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                       <div style={{...cell(C.td), fontFamily:FN}}>{exIdx+1}</div>
                       <div style={{...cell(C.tx), borderLeft:ex.superset?`3px solid ${sc}`:"none", paddingLeft:ex.superset?6:0}}>{title}</div>
                       <div style={{...cell(sc), fontFamily:FN, fontWeight:600}}>{ex.superset||"—"}</div>
-                      <div style={cell(C.tx)}>{ex.sets||"—"}</div>
+                      <div style={cell(C.tx)}>{ex.wkS && ex.wkS.length ? ex.wkS.map(w=>w||"—").join(" / ") : (ex.sets||"—")}</div>
                       <div style={cell(C.tx)}>{ex.wk && ex.wk.length ? ex.wk.map(w=>w||"—").join(" / ") : (ex.reps||"—")}</div>
                       <div style={cell(C.tm)}>{ex.load||"—"}</div>
                       <div style={cell(C.tm)}>{ex.rpe||"—"}</div>
@@ -312,28 +318,65 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                 <div style={{display:"grid",gridTemplateColumns:"2fr 60px 1fr 1fr 1fr 1fr 1fr auto",minWidth:700,gap:8,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
                   <Select label="Group" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
-                  <Input label="Sets" type="number" value={ex.sets} onChange={e=>updateEx(exIdx,{sets:parseInt(e.target.value)||0})} />
-                  {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (
-                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                        <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps / Wk</label>
-                        <button onClick={()=>updateEx(exIdx,{wk:null,reps:ex.wk[0]||"8-12"})} title="Collapse to single reps value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>← flat</button>
-                      </div>
-                      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:3}}>
-                        {[0,1,2,3].map(i => (
-                          <input key={i} value={ex.wk[i]||""} onChange={e=>{const next=[ex.wk[0]||"",ex.wk[1]||"",ex.wk[2]||"",ex.wk[3]||""]; next[i]=e.target.value; updateEx(exIdx,{wk:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                        <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps</label>
-                        <button onClick={()=>updateEx(exIdx,{wk:[ex.reps||"",ex.reps||"",ex.reps||"",ex.reps||""],reps:">"})} title="Set different reps per week (W1-W4)" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>per week →</button>
-                      </div>
-                      <input value={ex.reps||""} onChange={e=>updateEx(exIdx,{reps:e.target.value})} placeholder="8-12" style={{...baseInput}} />
-                    </div>
-                  )}
+                  {(() => {
+                    // weekCount is driven by whichever per-week array has length; when user toggles 4W/6W on one side, both arrays reshape together so sets and reps stay aligned
+                    const weeks = (ex.wk?.length || ex.wkS?.length || 4);
+                    const resize = (arr, n, fill) => { const out = Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill)); return out; };
+                    const setWeeks = (n) => {
+                      const patch = {};
+                      if (ex.wk) patch.wk = resize(ex.wk, n, "");
+                      if (ex.wkS) patch.wkS = resize(ex.wkS, n, "");
+                      updateEx(exIdx, patch);
+                    };
+                    return <>
+                      {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
+                        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                          <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Sets / Wk</label>
+                            <button onClick={()=>updateEx(exIdx,{wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3})} title="Collapse to single sets value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>← flat</button>
+                          </div>
+                          <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},1fr)`,gap:3}}>
+                            {Array.from({length:weeks}).map((_,i) => (
+                              <input key={i} value={ex.wkS[i]||""} onChange={e=>{const next=resize(ex.wkS,weeks,""); next[i]=e.target.value; updateEx(exIdx,{wkS:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                          <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Sets</label>
+                            <button onClick={()=>updateEx(exIdx,{wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} title="Set different sets per week" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>per week →</button>
+                          </div>
+                          <input type="number" value={ex.sets} onChange={e=>updateEx(exIdx,{sets:parseInt(e.target.value)||0})} style={{...baseInput}} />
+                        </div>
+                      )}
+                      {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (
+                        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                          <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps / Wk</label>
+                            <div style={{display:"flex",gap:2,marginLeft:"auto"}}>
+                              <button onClick={()=>setWeeks(4)} title="4-week program" style={{background:weeks===4?C.ac:"none",border:weeks===4?"none":`1px solid ${C.bd}`,color:weeks===4?"#fff":C.tm,fontSize:9,cursor:"pointer",padding:"1px 5px",fontFamily:FN,fontWeight:700,borderRadius:3}}>4W</button>
+                              <button onClick={()=>setWeeks(6)} title="6-week program" style={{background:weeks===6?C.ac:"none",border:weeks===6?"none":`1px solid ${C.bd}`,color:weeks===6?"#fff":C.tm,fontSize:9,cursor:"pointer",padding:"1px 5px",fontFamily:FN,fontWeight:700,borderRadius:3}}>6W</button>
+                              <button onClick={()=>updateEx(exIdx,{wk:null,reps:ex.wk[0]||"8-12"})} title="Collapse to single reps value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,fontFamily:FN,marginLeft:4}}>← flat</button>
+                            </div>
+                          </div>
+                          <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},1fr)`,gap:3}}>
+                            {Array.from({length:weeks}).map((_,i) => (
+                              <input key={i} value={ex.wk[i]||""} onChange={e=>{const next=resize(ex.wk,weeks,""); next[i]=e.target.value; updateEx(exIdx,{wk:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                          <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps</label>
+                            <button onClick={()=>updateEx(exIdx,{wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} title="Set different reps per week" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>per week →</button>
+                          </div>
+                          <input value={ex.reps||""} onChange={e=>updateEx(exIdx,{reps:e.target.value})} placeholder="8-12" style={{...baseInput}} />
+                        </div>
+                      )}
+                    </>;
+                  })()}
                   <Input label="Load" value={ex.load} onChange={e=>updateEx(exIdx,{load:e.target.value})} placeholder="kg/%" />
                   <Input label="RPE" value={ex.rpe} onChange={e=>updateEx(exIdx,{rpe:e.target.value})} placeholder="7-8" />
                   <Input label="Tempo" value={ex.tempo} onChange={e=>updateEx(exIdx,{tempo:e.target.value})} placeholder="3010" />
