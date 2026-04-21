@@ -12,8 +12,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const traineeIds = traineeIdsFor(trainee);
   const tp = (planIndex || []).filter(p => traineeIds.includes(p.traineeId));
   const tpMember = (mi) => tp.filter(p => p.traineeId === trainee || p.traineeId === subMemberId(trainee, mi));
-  const tw=workouts.filter(w=>w.traineeId===trainee&&w.status==="completed");
-  const tPay=payments.filter(p=>p.traineeId===trainee);
+  // Couples: workouts/payments may be recorded against either parent or sub-member IDs.
+  const _allIds = new Set(traineeIds);
+  const tw=workouts.filter(w=>_allIds.has(w.traineeId)&&w.status==="completed");
+  const tPay=payments.filter(p=>_allIds.has(p.traineeId));
   const [showPayForm,setShowPayForm]=useState(false);
   const [showEdit,setShowEdit]=useState(false);
   const [editForm,setEditForm]=useState(null);

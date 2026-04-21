@@ -10,7 +10,9 @@
 const { createClient } = require('@supabase/supabase-js');
 const s = createClient('https://gtcbfglttoiyfsnfbhdy.supabase.co','sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv');
 
-const blockNum = n => { const m = /#(\d+)/.exec(n || ''); return m ? parseInt(m[1], 10) : -Infinity; };
+// Matches "#N", "Block N", "Block #N", "Phase N" — drive-imported names
+// often drop the # (e.g. "Phase 9", "Block 8 - High VOL"). Kept in sync with TraineeDetail.
+const blockNum = n => { const m = /(?:block|phase)\s*#?\s*(\d+)|#(\d+)/i.exec(n || ''); return m ? parseInt(m[1] || m[2], 10) : -Infinity; };
 // A "Comeback" block replaces the numbered progression — it's the restart
 // after a long break. "Post INJ" stays excluded because it's often just a
 // tag on a numbered block that later blocks follow.
