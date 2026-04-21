@@ -97,10 +97,30 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     await supabase.from('plans').update({trainee_id:'',updated_at:new Date().toISOString()}).eq('id',planId);
     if(reloadPlanIndex) await reloadPlanIndex();
   };
+  // Toggle all visibility keys in one setState. visible=false hides everything; true shows.
+  const bulkSetVis = (plans, keyFn, visible) => {
+    const next = { ...portalVis };
+    plans.forEach(p => { next[keyFn(p)] = visible; });
+    setPortalVis(next);
+  };
+  const anyVisible = (plans, keyFn) => plans.some(p => portalVis?.[keyFn(p)] !== false);
+  const bulkToggleBtn = (plans, keyFn) => {
+    if (plans.length === 0) return null;
+    const showing = anyVisible(plans, keyFn);
+    return (
+      <button onClick={()=>bulkSetVis(plans, keyFn, !showing)}
+        title={showing ? "Hide all from portal" : "Show all on portal"}
+        style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 8px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>
+        {showing ? 'HIDE ALL' : 'SHOW ALL'}
+      </button>
+    );
+  };
+
   // Helper: render a member column (body stats, injuries, goals, programs)
   const renderMemberColumn = (m, mi) => {
     const memberPlans = tpMember(mi);
     const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
+    const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
     return (
       <div style={{flex:1,minWidth:0}}>
         <Card style={{marginBottom:8}}>
@@ -116,9 +136,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {m.goals&&<div style={{marginTop:6,padding:8,background:C.acD,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,textAlign:'center'}}>{m.goals}</div></div>}
           {m.notes&&<div style={{marginTop:6,padding:8,background:C.sf2,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,textAlign:'center'}}>{m.notes}</div></div>}
         </Card>
-        <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600,margin:'12px 0 6px'}}>{m.name} — PROGRAMS ({sorted.length})</div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'12px 0 6px',gap:8}}>
+          <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600}}>{m.name} — PROGRAMS ({sorted.length})</div>
+          {bulkToggleBtn(sorted, memberVisKey)}
+        </div>
         {sorted.length===0?<div style={{color:C.td,fontSize:12}}>No programs assigned.</div>:
-          sorted.map(p=>{const visKey=`${td.name}:${p.name}:m${mi}`;const isVis=portalVis?.[visKey]!==false;return(
+          sorted.map(p=>{const visKey=memberVisKey(p);const isVis=portalVis?.[visKey]!==false;return(
             <Card key={p.id} style={{marginBottom:6,padding:10}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}>
@@ -208,6 +231,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px"}}>
         <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
         <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
           <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"4px 10px",color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
           <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn></div></div>
       {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
