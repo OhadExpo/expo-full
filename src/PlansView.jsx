@@ -268,28 +268,23 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                 <button onClick={()=>{setActiveDay(i);setOverview(false)}} style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>EDIT</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{display:"grid",gridTemplateColumns:"24px 2fr 60px 60px 60px 60px 60px 60px",gap:8,fontSize:12,alignItems:"center"}}>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>#</div>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>EXERCISE</div>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>GRP</div>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>SETS</div>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>REPS</div>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>LOAD</div>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>RPE</div>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>TEMPO</div>
+                <div style={{display:"grid",gridTemplateColumns:"24px minmax(140px,2fr) minmax(40px,50px) minmax(44px,60px) minmax(60px,1.2fr) minmax(50px,1fr) minmax(40px,60px) minmax(50px,70px)",gap:"6px 8px",fontSize:12,alignItems:"center"}}>
+                  {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO"].map(h =>
+                    <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>)}
                   {dayExs.map((ex, exIdx) => {
                     const exData = exercises.find(e=>e.id===ex.exerciseId);
                     const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
                     const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
+                    const cell = (color) => ({color, minWidth:0, overflowWrap:"anywhere", wordBreak:"break-word"});
                     return <React.Fragment key={ex.id}>
-                      <div style={{color:C.td,fontFamily:FN}}>{exIdx+1}</div>
-                      <div style={{color:C.tx,borderLeft:ex.superset?`3px solid ${sc}`:"none",paddingLeft:ex.superset?6:0}}>{title}</div>
-                      <div style={{color:sc,fontFamily:FN,fontWeight:600}}>{ex.superset||"—"}</div>
-                      <div style={{color:C.tx}}>{ex.sets||"—"}</div>
-                      <div style={{color:C.tx}}>{ex.reps||"—"}</div>
-                      <div style={{color:C.tm}}>{ex.load||"—"}</div>
-                      <div style={{color:C.tm}}>{ex.rpe||"—"}</div>
-                      <div style={{color:C.tm}}>{ex.tempo||"—"}</div>
+                      <div style={{...cell(C.td), fontFamily:FN}}>{exIdx+1}</div>
+                      <div style={{...cell(C.tx), borderLeft:ex.superset?`3px solid ${sc}`:"none", paddingLeft:ex.superset?6:0}}>{title}</div>
+                      <div style={{...cell(sc), fontFamily:FN, fontWeight:600}}>{ex.superset||"—"}</div>
+                      <div style={cell(C.tx)}>{ex.sets||"—"}</div>
+                      <div style={cell(C.tx)}>{ex.reps||"—"}</div>
+                      <div style={cell(C.tm)}>{ex.load||"—"}</div>
+                      <div style={cell(C.tm)}>{ex.rpe||"—"}</div>
+                      <div style={cell(C.tm)}>{ex.tempo||"—"}</div>
                     </React.Fragment>;
                   })}
                 </div>
