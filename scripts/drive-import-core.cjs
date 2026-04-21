@@ -39,26 +39,46 @@ function parseSingleSheet(ws, sheetName) {
     }
   }
 
+  // Column positions for sets/reps/tempo/vid vary across sheets:
+  //   Ayelet-style: #|name|Sets|Reps|Tempo|week1|week2|...
+  //   Tom-style:    #|name|Vid|Tempo|Sets|Reps
+  // Auto-detect from the `#` header row so we don't mis-read week-log columns
+  // as sets/reps.
   const exercises = []; const days = []; let currentDay = null; let blockName = '';
+  let colSets = 5, colReps = 6, colTempo = 4, colVid = 3; // fallback defaults
+  const findCol = (hdr, rx) => { for (let c = 0; c < hdr.length; c++) { if (rx.test(String(hdr[c]||'').trim())) return c; } return -1; };
   for (let r = 0; r < rows.length; r++) {
     const row = rows[r]; const a = String(row[0] || '').trim(); const b = String(row[1] || '').trim();
     if (r === 0 && a && !blockName) { blockName = a; continue; }
     if (r === 0 && !a && b && !blockName) { blockName = b; continue; }
-    if (a === '#' && b) { if (currentDay?.ex.length > 0) days.push(currentDay); currentDay = { name: b, ex: [] }; continue; }
+    if (a === '#' && b) {
+      if (currentDay?.ex.length > 0) days.push(currentDay);
+      currentDay = { name: b, ex: [] };
+      // re-detect columns for this day — Ohad's sheets sometimes change layout between days
+      const sC = findCol(row, /^sets?$/i);       if (sC !== -1) colSets = sC;
+      const rC = findCol(row, /^reps?$/i);       if (rC !== -1) colReps = rC;
+      const tC = findCol(row, /^tempo$/i);       if (tC !== -1) colTempo = tC;
+      const vC = findCol(row, /^vid(eo)?$/i);    if (vC !== -1) colVid = vC;
+      continue;
+    }
     if (!a || a === '#' || a.toLowerCase().includes('rest') || a.toLowerCase().includes('off')) continue;
     if (!b || b.toLowerCase() === 'exercise' || b.toLowerCase() === 'name') continue;
     if (b.toLowerCase().includes('rest') && b.toLowerCase().includes('off')) continue;
     if (a.toLowerCase() === 'instructions' || a.toLowerCase().startsWith('bb -') || a.toLowerCase().startsWith('bb exercises')) continue;
-    const tempo = String(row[4] || '').trim();
-    const setsRaw = String(row[5] || '3').trim();
-    const repsRaw = String(row[6] || '').trim();
+    const tempo = String(row[colTempo] || '').trim();
+    const setsRaw = String(row[colSets] || '3').trim();
+    const repsRaw = String(row[colReps] || '').trim();
     let sets = parseInt(setsRaw) || 3; const wave = [];
-    if (repsRaw.includes('>')) { for (let ci = 7; ci <= 10; ci++) { if (row[ci]) wave.push(String(row[ci]).trim()); } }
+    // wave columns are everything past the reps column (typically week logs)
+    if (repsRaw.includes('>') || setsRaw.includes('>')) {
+      const waveStart = Math.max(colSets, colReps, colTempo, colVid) + 1;
+      for (let ci = waveStart; ci <= waveStart + 3; ci++) { if (row[ci]) wave.push(String(row[ci]).trim()); }
+    }
     let superset = ''; const ssMatch = a.match(/\d+([a-e])/i); if (ssMatch) superset = ssMatch[1].toUpperCase();
     const eid = 'ex_' + uid();
     const exName = b || String(row[2] || '').trim();
     if (!exName) continue;
-    const videoLink = getHyperlink(r, 3);
+    const videoLink = getHyperlink(r, colVid);
     exercises.push({ id: eid, title: exName, videoLink, cues: '', category: '', resistanceType: '', movementPattern: '', laterality: '', primaryMuscles: '', secondaryMuscles: '', primaryJoints: '', jointMovements: '', bodyPosition: '', movementType: '', notes: '' });
     const dayEx = { eid, s: sets, r: repsRaw || '8-12' };
     if (tempo && tempo.toLowerCase() !== 'tempo' && tempo.toLowerCase() !== 'none') dayEx.tempo = tempo;
