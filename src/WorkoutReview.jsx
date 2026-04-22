@@ -26,14 +26,19 @@ const ANGLE_DEFS = [
   { name: 'R KNE', a:24, b:26, c:28 },
 ];
 
+// Joint angle at b between vectors b→a and b→c. Uses 3D (x,y,z) because the
+// 2D screen projection collapses limbs that move toward/away from the camera
+// (e.g., arms hanging forward in a deadlift hinge), producing anatomically
+// impossible shoulder/hip readings. Pass `result.worldLandmarks[0]` here —
+// those are metric 3D coords, not the camera-projected `landmarks`.
 const angleAt = (lms, ai, bi, ci) => {
   const a = lms[ai], b = lms[bi], c = lms[ci];
   if (!a || !b || !c) return null;
-  const v1x = a.x - b.x, v1y = a.y - b.y;
-  const v2x = c.x - b.x, v2y = c.y - b.y;
-  const m1 = Math.hypot(v1x, v1y), m2 = Math.hypot(v2x, v2y);
+  const v1x = a.x - b.x, v1y = a.y - b.y, v1z = (a.z ?? 0) - (b.z ?? 0);
+  const v2x = c.x - b.x, v2y = c.y - b.y, v2z = (c.z ?? 0) - (b.z ?? 0);
+  const m1 = Math.hypot(v1x, v1y, v1z), m2 = Math.hypot(v2x, v2y, v2z);
   if (m1 === 0 || m2 === 0) return null;
-  const cos = (v1x*v2x + v1y*v2y) / (m1*m2);
+  const cos = (v1x*v2x + v1y*v2y + v1z*v2z) / (m1*m2);
   return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
 };
 
@@ -117,7 +122,7 @@ function FormVideoPlayer({ url, onVideoRef }) {
       const fileset = await FilesetResolver.forVisionTasks(
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
       );
-      const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
+      const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task';
       const opts = (delegate) => ({
         baseOptions: { modelAssetPath: modelUrl, delegate },
         runningMode: 'VIDEO',
@@ -191,6 +196,10 @@ function FormVideoPlayer({ url, onVideoRef }) {
             const result = lm.detectForVideo(v, ts);
             ctx.clearRect(0, 0, w, h);
             const lms = result.landmarks?.[0];
+            // worldLandmarks are 3D metric coords (meters, hip-centered) —
+            // use them for joint-angle math so camera perspective doesn't
+            // distort the result. Fall back to 2D `lms` if absent.
+            const wlms = result.worldLandmarks?.[0] || lms;
             if (lms) {
               // Skeleton + dots only when the overlay is enabled. Rep counting
               // still runs silently when only REPS is on.
@@ -214,7 +223,7 @@ function FormVideoPlayer({ url, onVideoRef }) {
               }
               const next = {};
               for (const d of ANGLE_DEFS) {
-                const val = angleAt(lms, d.a, d.b, d.c);
+                const val = angleAt(wlms, d.a, d.b, d.c);
                 if (val != null) next[d.name] = Math.round(val);
               }
               pendingAngles = next;
