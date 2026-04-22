@@ -22,6 +22,7 @@ function trainerPlanToPortal(plan, trainerExercises) {
   return {
     name: plan.name,
     phase: plan.phase || '',
+    weeks: plan.weeks || 4,
     rest: (plan.notes || '').replace(/imported from sheets/gi, '').trim(),
     warmup: Array.isArray(plan.warmup) ? plan.warmup : [],
     days: (plan.days || []).map(d => {
@@ -503,9 +504,24 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   const [loginError, setLoginError] = useState('');
   const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
   const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
+  const [bwDeleteConfirm, setBwDeleteConfirm] = useState(null); // BW log entry pending delete confirmation (null | entry)
 
   // Resolve client from trainees (Supabase)
   const trainee = (trainees || []).find(t => t.id === ci);
+
+  // Restore last-viewed week when a client logs in so they don't land on W1
+  // every session when they're mid-way through a block.
+  React.useEffect(() => {
+    if (!ci) return;
+    try {
+      const v = localStorage.getItem('expo-wk-' + ci);
+      if (v != null) { const n = parseInt(v, 10); if (Number.isFinite(n) && n >= 0) setWk(n); }
+    } catch {}
+  }, [ci]);
+  React.useEffect(() => {
+    if (!ci) return;
+    try { localStorage.setItem('expo-wk-' + ci, String(wk)); } catch {}
+  }, [ci, wk]);
 
   // Load this client's plans from plans table when client changes.
   // Mount guard: rapid login/logout could otherwise race a stale fetch
@@ -526,6 +542,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
             id: p.id, name: p.name, traineeId: p.trainee_id, phase: p.phase,
             notes: p.notes, active: p.active, createdAt: p.created_at,
             days: p.data?.days || [], warmup: p.data?.warmup || [],
+            weeks: p.data?.weeks || 4,
           })));
         }
       } catch (e) { if (alive) console.error('ClientPortal plans load:', e); }
@@ -533,10 +550,14 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     return () => { alive = false; };
   }, [ci]);
 
-  // Presence heartbeat — let the coach know this client is online
+  // Presence heartbeat — let the coach know this client is online.
+  // Gated on document.visibilityState so a backgrounded tab doesn't keep
+  // writing to Supabase every 30s for hours. When the tab comes back to
+  // foreground we beat immediately so the coach sees them as online.
   React.useEffect(() => {
     if (!ci) return;
     const beat = async () => {
+      if (document.visibilityState !== 'visible') return;
       try {
         const { supabase: sb } = await import('./supabase');
         const { data: existing } = await sb.from('store').select('value').eq('key', 'expo-presence').maybeSingle();
@@ -547,7 +568,9 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
     };
     beat();
     const iv = setInterval(beat, 30000);
-    return () => clearInterval(iv);
+    const onVis = () => { if (document.visibilityState === 'visible') beat(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   }, [ci]);
 
   const clientName = trainee?.name || '';
@@ -575,6 +598,14 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   // Active block for bodyweight logging — scopes uniqueness to (client, block, week)
   // Falls back to the first visible plan when no manual selection (or selection no longer visible).
   const activePlan = visPlans.find(p => p.name === selectedBlockName) || visPlans[0];
+
+  // Clamp persisted wk to the current block's week count. Covers two cases:
+  // (a) stored wk=7 carried over from an 8-week block into a new 4-week block,
+  // (b) trainer shortened a plan after the client logged in.
+  React.useEffect(() => {
+    const max = (activePlan?.weeks || 4) - 1;
+    if (wk > max) setWk(max);
+  }, [activePlan?.weeks, wk]);
 
   const cw = clientWorkouts.filter(w => w.clientId === ci);
   const handleComplete = w => {
@@ -619,8 +650,8 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
             {visPlans.map(p => <button key={p.name} onClick={() => setSelectedBlockName(p.name)}
               style={{padding:'4px 10px',borderRadius:14,border:`1px solid ${activePlan?.name===p.name?C.ac:C.bd}`,background:activePlan?.name===p.name?C.acD:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
           </div>}
-          {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10}}>
-            {[0,1,2,3].map(w => <button key={w} onClick={() => setWk(w)} style={{flex:1,padding:'6px 0',borderRadius:6,border:`1px solid ${wk===w?C.ac:C.bd}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
+          {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}}>
+            {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'6px 0',borderRadius:6,border:`1px solid ${wk===w?C.ac:C.bd}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
           </div>}
           <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
           <div style={{display:'flex',gap:8}}>
@@ -692,11 +723,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>HISTORY</div>
         {bwData.slice().reverse().map((d,i) => {
           const onEdit = () => { setBw(String(d.bw)); setWk((d.week||1)-1); if (d.blockName) setSelectedBlockName(d.blockName); };
-          const onDelete = (e) => {
-            e.stopPropagation();
-            if (!window.confirm(`Delete ${d.bw}kg from ${d.blockName||'?'} W${d.week||'?'}?`)) return;
-            setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week)));
-          };
+          const onDelete = (e) => { e.stopPropagation(); setBwDeleteConfirm(d); };
           return <div key={i} onClick={onEdit} title="Click to edit" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:i%2===0?C.sf:'transparent',borderRadius:6,marginBottom:2,cursor:'pointer'}}>
             <div>
               <span style={{fontSize:13,fontWeight:600,color:C.tx}}>{d.bw} kg</span>
@@ -710,6 +737,16 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
         })}
         {bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
       </div>
+      {bwDeleteConfirm && <div onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:20,maxWidth:320,width:'100%'}}>
+          <div style={{fontFamily:FN,fontSize:13,color:C.td,marginBottom:6}}>DELETE ENTRY</div>
+          <div style={{fontSize:14,color:C.tx,marginBottom:16}}>Remove {bwDeleteConfirm.bw}kg from {bwDeleteConfirm.blockName || '?'} · W{bwDeleteConfirm.week || '?'}?</div>
+          <div style={{display:'flex',gap:8}}>
+            <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:8,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>Cancel</button>
+            <button onClick={() => { const d = bwDeleteConfirm; setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:8,border:'none',background:C.rd,color:'#fff',fontFamily:FB,fontSize:13,fontWeight:700,cursor:'pointer'}}>Delete</button>
+          </div>
+        </div>
+      </div>}
     </div>;
   }
 
@@ -748,7 +785,7 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
           <button key={k} onClick={() => setVw(k)} style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${vw===k?C.ac:C.bd}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer'}}>{l}</button>)}</div>
         <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center'}}>
           <div style={{flex:1}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>Week</div>
-            <div style={{display:'flex',gap:4}}>{[0,1,2,3].map(w => <button key={w} onClick={() => setWk(w)} style={{flex:1,padding:'8px 0',borderRadius:6,border:`1px solid ${wk===w?C.ac:C.bd}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}</div></div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:6,border:`1px solid ${wk===w?C.ac:C.bd}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}</div></div>
           <div style={{width:120}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>BW {lb?`(${lb}kg)`:''}</div>
             <div style={{display:'flex',gap:4}}>
             <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" disabled={!activePlan} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
@@ -780,9 +817,11 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
             {day.ex.map((ex,i) => {const d = EX[ex.eid]; if(!d) return null; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
               return <div key={i} style={{display:'flex',gap:8,alignItems:'center',padding:'4px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
                 <div style={{width:22,height:22,borderRadius:4,background:C.acD,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:10,fontWeight:700,color:C.ac,flexShrink:0}}>{i+1}</div>
-                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
+                <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
                   <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN}}>{hw?(wr||''):((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+ex.r}</span>
-                  {ex.tempo && <span style={{fontSize:9,color:C.or,marginLeft:4}}>{ex.tempo}</span>}</div></div>})}
+                  {ex.tempo && <span style={{fontSize:9,color:C.or,marginLeft:4}}>{ex.tempo}</span>}</div>
+                {d.vid && <a href={d.vid} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4,flexShrink:0}}>▶</a>}
+              </div>})}
           </div>})}</React.Fragment>)})()}
       </div></div>; }
 
