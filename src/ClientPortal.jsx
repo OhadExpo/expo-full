@@ -735,9 +735,9 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   if (trainee) { const sl = Math.max(0, (trainee.sessionsRemaining || 0)); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:12}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28,display:'block'}} />
-          <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,marginBottom:2}}>Log Out →</button></div>
+          <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>Log Out →</button></div>
         <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx,textAlign:'center'}}>Hey {clientName.split(' ')[0]} 💪</h1>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
           <div>
