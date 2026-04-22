@@ -141,7 +141,7 @@ export function LoginScreen() {
     <div style={wrapStyle}>
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <img src={EXPO_LOGO} alt="EXPO" style={{ height: 36, marginBottom: 12 }} />
-        <div style={{ color: C.tm, fontSize: 15 }}>Training Portal</div>
+        <div style={{ color: C.tm, fontSize: 15 }}>{typeof window !== 'undefined' && window.location.pathname.startsWith('/coach') ? 'Coaching Portal' : 'Training Portal'}</div>
       </div>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div style={cardStyle}>
