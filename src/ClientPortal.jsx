@@ -602,8 +602,13 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
   // Clamp persisted wk to the current block's week count. Covers two cases:
   // (a) stored wk=7 carried over from an 8-week block into a new 4-week block,
   // (b) trainer shortened a plan after the client logged in.
+  // Gated on activePlan being loaded — otherwise during the Supabase plans fetch
+  // activePlan is undefined, the fallback `|| 4` kicks in, and a legit restored
+  // wk=7 from an 8-week block gets clamped to 3 and written back to localStorage
+  // before the 8-week plan actually arrives, permanently losing the client's week.
   React.useEffect(() => {
-    const max = (activePlan?.weeks || 4) - 1;
+    if (!activePlan) return;
+    const max = (activePlan.weeks || 4) - 1;
     if (wk > max) setWk(max);
   }, [activePlan?.weeks, wk]);
 
