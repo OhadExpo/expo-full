@@ -191,7 +191,7 @@ export function LoginScreen() {
             {submitting ? '...' : 'Sign in'}
           </button>
           <div style={{ fontSize: 11, color: C.td, marginTop: 12, textAlign: 'center', lineHeight: 1.4 }}>
-            Don't have an account? Contact your trainer.
+            Don't have an account? Contact your coach.
           </div>
         </div>
         {/* Cross-portal link — mirrors the old /coach ↔ / toggle so users
@@ -270,7 +270,7 @@ export function UnauthorizedScreen({ email, onSignOut }) {
           <div style={{ fontSize: 16, fontWeight: 600, color: C.tx, marginBottom: 8 }}>Access Denied</div>
           <div style={{ fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
             <strong style={{ color: C.ac }}>{email}</strong> is not registered.<br />
-            Contact your trainer to get access.
+            Contact your coach to get access.
           </div>
           <button
             onClick={onSignOut}
