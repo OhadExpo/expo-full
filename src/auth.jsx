@@ -88,15 +88,34 @@ export function LoginScreen() {
     setError('');
     setSubmitting(true);
     try {
-      const { error: authError } = await supabase.auth.signInWithOAuth({
+      // skipBrowserRedirect lets us handle the redirect manually; without it
+      // Supabase navigates to /auth/v1/authorize?provider=... and if the
+      // provider isn't enabled the user lands on a raw JSON error page with
+      // no back button. By handling redirect here we keep errors in-app.
+      const { data, error: authError } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: window.location.origin + window.location.pathname },
+        options: {
+          redirectTo: window.location.origin + window.location.pathname,
+          skipBrowserRedirect: true,
+        },
       });
-      if (authError) setError(authError.message);
+      if (authError) { setError(authError.message); setSubmitting(false); return; }
+      if (!data?.url) { setError(`${provider} sign-in is not configured yet.`); setSubmitting(false); return; }
+      // Pre-flight: HEAD the authorize URL to detect "provider not enabled"
+      // before redirecting. Supabase returns 400 JSON in that case.
+      try {
+        const probe = await fetch(data.url, { method: 'GET', redirect: 'manual' });
+        if (probe.status >= 400 && probe.status < 500) {
+          let msg = `${provider} sign-in is not configured.`;
+          try { const body = await probe.json(); if (body?.msg) msg = body.msg; } catch {}
+          setError(msg); setSubmitting(false); return;
+        }
+      } catch {} // Opaque/CORS failures are fine — the real redirect will work.
+      window.location.href = data.url;
     } catch (e) {
       setError('Connection error. Try again.');
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const handlePassword = async () => {
@@ -181,6 +200,13 @@ export function LoginScreen() {
             Don't have an account? Contact your trainer.
           </div>
         </div>
+        {/* Cross-portal link — mirrors the old /coach ↔ / toggle so users
+            who bookmarked one side still see a visible way to the other. */}
+        {typeof window !== 'undefined' && window.location.pathname.startsWith('/coach') ? (
+          <button onClick={() => { window.location.href = '/'; }} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FB, fontSize: 12, marginTop: 20, display: 'block', width: '100%', textAlign: 'center' }}>Training Portal →</button>
+        ) : (
+          <button onClick={() => { window.location.href = '/coach'; }} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FB, fontSize: 12, marginTop: 20, display: 'block', width: '100%', textAlign: 'center' }}>Coach Access →</button>
+        )}
       </div>
     </div>
   );
