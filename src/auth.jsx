@@ -73,7 +73,7 @@ export function AuthProvider({ children, clientList }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Login screen — three ways in: Google OAuth, Apple OAuth, or email+password.
+// Login screen — two ways in: Google OAuth or email+password.
 // Sign-in only — accounts are created server-side by the coach (a Supabase
 // trigger provisions an auth user with password '1234' whenever a trainee row
 // gets an email). No sign-up, no forgot-password flow. If a client forgets
@@ -154,14 +154,8 @@ export function LoginScreen() {
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.3 5.8 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.3 5.8 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3c-2 1.4-4.5 2.5-7.3 2.5-5.2 0-9.6-3.3-11.2-8l-6.5 5C9.5 39.7 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4 5.5l6.3 5.3C41 35.2 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
             Continue with Google
           </button>
-          <button
-            onClick={() => handleOAuth('apple')}
-            disabled={submitting}
-            style={{ width: '100%', padding: 12, borderRadius: 10, border: `1px solid ${C.bd}`, background: '#000', color: '#fff', fontFamily: FB, fontSize: 14, fontWeight: 600, cursor: submitting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 18, opacity: submitting ? 0.6 : 1 }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
-            Continue with Apple
-          </button>
+
+          <div style={{ marginBottom: 18 }} />
 
           {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 14px' }}>
@@ -205,7 +199,7 @@ export function LoginScreen() {
         {typeof window !== 'undefined' && window.location.pathname.startsWith('/coach') ? (
           <button onClick={() => { window.location.href = '/'; }} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FB, fontSize: 12, marginTop: 20, display: 'block', width: '100%', textAlign: 'center' }}>Training Portal →</button>
         ) : (
-          <button onClick={() => { window.location.href = '/coach'; }} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FB, fontSize: 12, marginTop: 20, display: 'block', width: '100%', textAlign: 'center' }}>Coach Access →</button>
+          <button onClick={() => { window.location.href = '/coach'; }} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FB, fontSize: 12, marginTop: 20, display: 'block', width: '100%', textAlign: 'center' }}>Coaching Portal →</button>
         )}
       </div>
     </div>
