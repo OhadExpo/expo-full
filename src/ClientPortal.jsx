@@ -505,6 +505,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
   const [bwDeleteConfirm, setBwDeleteConfirm] = useState(null); // BW log entry pending delete confirmation (null | entry)
   const [showPwModal, setShowPwModal] = useState(false);
+  const [plansLoadError, setPlansLoadError] = useState(null);
 
   // Resolve client from trainees (Supabase)
   const trainee = (trainees || []).find(t => t.id === ci);
@@ -526,17 +527,20 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // Load this client's plans from plans table when client changes.
   // Mount guard: rapid login/logout could otherwise race a stale fetch
   // into setClientPlans after the component remounted for a different user.
+  const [plansReloadKey, setPlansReloadKey] = useState(0);
   React.useEffect(() => {
     if (!ci) { setClientPlans([]); return; }
     let alive = true;
+    setPlansLoadError(null);
     (async () => {
       try {
         const { supabase: sb } = await import('./supabase');
         // Couples: a trainee may have plans under parent ID OR sub-member IDs (parent__0, parent__1).
         // Fetch all so the shared portal renders both members' plans.
         const ids = traineeIdsFor(ci);
-        const { data } = await sb.from('plans').select('*').in('trainee_id', ids);
+        const { data, error } = await sb.from('plans').select('*').in('trainee_id', ids);
         if (!alive) return;
+        if (error) throw error;
         if (data) {
           setClientPlans(data.map(p => ({
             id: p.id, name: p.name, traineeId: p.trainee_id, phase: p.phase,
@@ -545,10 +549,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             weeks: p.data?.weeks || 4,
           })));
         }
-      } catch (e) { if (alive) console.error('ClientPortal plans load:', e); }
+      } catch (e) {
+        if (alive) {
+          console.error('ClientPortal plans load:', e);
+          setPlansLoadError(e?.message || 'Could not load your programs.');
+        }
+      }
     })();
     return () => { alive = false; };
-  }, [ci]);
+  }, [ci, plansReloadKey]);
 
   // Presence heartbeat — let the coach know this client is online.
   // Gated on document.visibilityState so a backgrounded tab doesn't keep
@@ -802,7 +811,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {bw && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:C.acD,border:'none',borderRadius:6,padding:'4px 8px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Save</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {activePlan.rest}</div>}
-        {visPlans.length===0 && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:30,textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:20,marginBottom:8}}>📋</div><div style={{fontSize:13}}>No active programs right now. Contact your trainer.</div></div>}
+        {plansLoadError && <div style={{background:C.rdD||'#3a1a1a',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:12,padding:14,marginBottom:14}}>
+          <div style={{fontSize:13,color:C.rd||'#ff6b6b',fontWeight:600,marginBottom:4}}>Couldn't load your programs</div>
+          <div style={{fontSize:11,color:C.tm,marginBottom:8}}>{plansLoadError}</div>
+          <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:6,padding:'6px 12px',fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer'}}>Retry</button>
+        </div>}
+        {visPlans.length===0 && !plansLoadError && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,padding:30,textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:20,marginBottom:8}}>📋</div><div style={{fontSize:13}}>No active programs right now. Contact your coach.</div></div>}
         {/* Per-plan block: divider → warm-up → rest → training days */}
         {(()=>{ let globalDayIdx = 0; return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
