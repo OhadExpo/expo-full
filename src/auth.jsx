@@ -74,13 +74,13 @@ export function AuthProvider({ children, clientList }) {
 }
 
 // Login screen — three ways in: Google OAuth, Apple OAuth, or email+password.
-// OAuth providers redirect the whole page to the provider and back;
-// email+password stays on this page and completes synchronously.
-// Signup vs signin is toggled by `mode` — same form, different Supabase call.
+// Sign-in only — accounts are created server-side by the coach (a Supabase
+// trigger provisions an auth user with password '1234' whenever a trainee row
+// gets an email). No sign-up, no forgot-password flow. If a client forgets
+// they can't log in, they contact the coach who resets via Supabase dashboard.
 export function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -104,19 +104,19 @@ export function LoginScreen() {
     setError('');
     setSubmitting(true);
     try {
-      const creds = { email: email.trim().toLowerCase(), password };
-      const { error: authError } = mode === 'signup'
-        ? await supabase.auth.signUp(creds)
-        : await supabase.auth.signInWithPassword(creds);
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
       if (authError) setError(authError.message);
-      // On success, AuthProvider's onAuthStateChange listener picks up the session — no manual nav needed.
+      // On success, AuthProvider's onAuthStateChange listener picks up the session.
     } catch (e) {
       setError('Connection error. Try again.');
     }
     setSubmitting(false);
   };
 
-  const canSubmit = email.trim() && password.length >= 6 && !submitting;
+  const canSubmit = email.trim() && password && !submitting;
 
   return (
     <div style={wrapStyle}>
@@ -166,7 +166,7 @@ export function LoginScreen() {
             onKeyDown={e => e.key === 'Enter' && canSubmit && handlePassword()}
             placeholder="password"
             type="password"
-            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+            autoComplete="current-password"
             style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
           />
           {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10 }}>{error}</div>}
@@ -175,16 +175,11 @@ export function LoginScreen() {
             disabled={!canSubmit}
             style={{ width: '100%', padding: 12, borderRadius: 10, border: 'none', background: canSubmit ? C.ac : C.sf3, color: canSubmit ? '#000' : C.td, fontFamily: FB, fontSize: 14, fontWeight: 700, cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
           >
-            {submitting ? '...' : (mode === 'signup' ? 'Create account' : 'Sign in')}
+            {submitting ? '...' : 'Sign in'}
           </button>
-
-          {/* Signin / signup toggle */}
-          <button
-            onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); }}
-            style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontFamily: FB, fontSize: 12, marginTop: 14, display: 'block', width: '100%', textAlign: 'center' }}
-          >
-            {mode === 'signin' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
-          </button>
+          <div style={{ fontSize: 11, color: C.td, marginTop: 12, textAlign: 'center', lineHeight: 1.4 }}>
+            Don't have an account? Contact your trainer.
+          </div>
         </div>
       </div>
     </div>
