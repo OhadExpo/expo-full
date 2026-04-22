@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
-import { useAuth } from './auth';
 import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
 
 // EX dict now imported from exerciseData.js (single source of truth)
@@ -488,20 +487,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 }
 
 // Main client portal
-export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession }) {
-  const { signOut } = useAuth() || {};
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession }) {
+  // clientId comes from the authenticated session (resolved upstream in App.jsx).
+  // The old email-lookup login lived inside this component and bypassed auth;
+  // it's gone. Trainee is fixed for the session.
+  const ci = clientId;
   const logOut = async () => {
-    setCi(null);
     setVw('prog');
     if (signOut) await signOut();
   };
-  const [ci, setCi] = useState(null); // trainee ID from Supabase
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
   const [vw, setVw] = useState('prog');
   const [bw, setBw] = useState('');
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginError, setLoginError] = useState('');
   const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
   const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
   const [bwDeleteConfirm, setBwDeleteConfirm] = useState(null); // BW log entry pending delete confirmation (null | entry)
@@ -830,34 +828,10 @@ export default function ClientPortal({ clientWorkouts, setClientWorkouts, bwLog,
           </div>})}</React.Fragment>)})()}
       </div></div>; }
 
-  // Login — match email against trainees from Supabase
-  const handleLogin = () => {
-    const email = loginEmail.trim().toLowerCase();
-    if (!email) return;
-    const found = (trainees || []).find(t => {
-      if (!t.email) return false;
-      if (Array.isArray(t.email)) return t.email.some(e => e.toLowerCase() === email);
-      return t.email.toLowerCase() === email;
-    });
-    if (found) { setCi(found.id); setLoginError(''); }
-    else setLoginError('Email not found. Contact your trainer.');
-  };
-  return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20}}>
-    <div style={{textAlign:'center',marginBottom:40}}>
-      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:60,marginBottom:12}} />
-      <div style={{color:C.tm,fontSize:15}}>Training Portal</div></div>
-    <div style={{width:'100%',maxWidth:380}}>
-      <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28,textAlign:"center"}}>
-        <div style={{fontSize:14,fontWeight:600,color:C.tx,marginBottom:16}}>Log in with your email</div>
-        <input value={loginEmail} onChange={e => {setLoginEmail(e.target.value);setLoginError('')}}
-          onKeyDown={e => e.key==='Enter' && handleLogin()}
-          placeholder="your@email.com" type="email" autoComplete="email" autoFocus
-          style={{width:'100%',background:C.sf2,border:`1px solid ${loginError?C.rd:C.bd}`,borderRadius:10,padding:'14px 16px',color:C.tx,fontFamily:FB,fontSize:15,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
-        {loginError && <div style={{color:C.rd,fontSize:12,marginBottom:10}}>{loginError}</div>}
-        <button onClick={handleLogin}
-          style={{width:'100%',padding:14,borderRadius:10,border:'none',background:loginEmail.trim()?C.ac:C.sf3,color:loginEmail.trim()?'#000':C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:loginEmail.trim()?'pointer':'default',transition:'all .15s'}}>
-          Enter</button>
-      </div>
-      <button onClick={()=>window.location.href='/coach'} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontFamily:FB,fontSize:12,marginTop:20,display:'block',width:'100%',textAlign:'center'}}>Coaching Portal →</button>
-    </div></div>;
+  // Falls through while trainees are still loading (ci set but not yet matched).
+  // Auth is handled upstream in App.jsx — no login form here.
+  return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:20,gap:16}}>
+    <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:50}} />
+    <div style={{color:C.td,fontSize:13}}>Loading your program…</div>
+  </div>;
 }

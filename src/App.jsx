@@ -6,6 +6,7 @@ import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn } from './ui';
 import { parseTraineeId } from './traineeUtils';
+import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, TRAINER_EMAILS } from './auth';
 import * as XLSX from 'xlsx';
 
 // Lazy-load every heavy view so the initial bundle stays small.
@@ -105,7 +106,31 @@ function parseSpreadsheet(data, fileName) {
   return{trainee:{id:'tr_'+uid(),name:traineeName,status:'Active',format:'In-Person Private',package:'8 Sessions',sessionsRemaining:8},exercises:allExercises,plans:allPlans,version:'2.0',source:fileName};
 }
 
+// Root. Wraps in Supabase auth context; AuthGate shows LoginScreen until
+// there's a live session, then hands off to AuthedApp (the old App body).
 export default function App() {
+  return <AuthProvider clientList={[]}><AuthGate /></AuthProvider>;
+}
+
+function BootSplash() {
+  return (
+    <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:50}} />
+      <div style={{color:C.td,fontSize:13}}>Loading…</div>
+    </div>
+  );
+}
+
+function AuthGate() {
+  const auth = useAuth();
+  if (!auth || auth.loading) return <BootSplash />;
+  if (!auth.session) return <LoginScreen />;
+  return <AuthedApp />;
+}
+
+function AuthedApp() {
+  const { session, signOut } = useAuth();
+  const email = (session?.user?.email || '').toLowerCase();
   const [trainees,setTrainees,tL]=useSupaStore(KEYS.trainees,[]);
   const [exercises,setExercises,eL]=useSupaStore(KEYS.exercises,[]);
   const { index: planIndex, loaded: pL, reload: reloadPlanIndex } = usePlanIndex();
@@ -115,6 +140,21 @@ export default function App() {
   const [bwLog,setBwLog]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
   const [portalVis,setPortalVis]=useSupaStore('expo-portal-vis',{});
+
+  // Role. Trainer = hardcoded whitelist; client = email matches a trainees row.
+  // Resolved here rather than in AuthProvider so we don't block auth on the
+  // trainees fetch — AuthProvider doesn't know what a trainee is.
+  const isTrainer = TRAINER_EMAILS.includes(email);
+  const clientTrainee = useMemo(() => {
+    if (isTrainer || !email) return null;
+    return (trainees || []).find(t => {
+      if (!t.email) return false;
+      const emails = Array.isArray(t.email) ? t.email : [t.email];
+      return emails.some(e => e.toLowerCase() === email);
+    }) || null;
+  }, [trainees, email, isTrainer]);
+  const isClient = !!clientTrainee;
+  const clientId = clientTrainee?.id || null;
 
   // Routing: / = portal, /coach = trainer, /coach/tab = specific tab
   const getRoute = () => {
@@ -128,18 +168,25 @@ export default function App() {
     return { mode:'portal' };
   };
   const initRoute = getRoute();
-  const isCoach = initRoute.mode === 'coach';
+  const isCoach = isTrainer;
 
-  const [tab,setTab]=useState(isCoach ? initRoute.tab : "client");
+  const [tab,setTab]=useState(isCoach ? (initRoute.tab || 'dashboard') : "client");
   const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
   const [selectedPlanId,setSelectedPlanId]=useState(null);
   const [importMsg,setImportMsg]=useState(null);
   const [pendingImport,setPendingImport]=useState(null); // {parsed, type:'multi'|'single'} — awaiting trainee selection
   const [importSelectedTrainees,setImportSelectedTrainees]=useState([]); // selected trainee IDs for import
-  const [trainerCode,setTrainerCode]=useState('');
-  const [trainerAuth,setTrainerAuth]=useState(false);
   const [dragOver,setDragOver]=useState(false);
   const fileRef=useRef(null);
+
+  // Send a client who landed on /coach back to /, and a trainer on / to /coach/dashboard.
+  useEffect(() => {
+    if (!tL) return;
+    const p = window.location.pathname;
+    const onCoach = p.startsWith('/coach');
+    if (isClient && onCoach) window.history.replaceState(null, '', '/');
+    else if (isTrainer && !onCoach) { window.history.replaceState(null, '', '/coach/dashboard'); setTab('dashboard'); }
+  }, [tL, isClient, isTrainer]);
 
   // Sync URL when tab or trainee changes (coach mode only)
   const updateURL = useCallback((newTab, newTrainee) => {
@@ -326,30 +373,16 @@ export default function App() {
     return () => clearInterval(iv);
   }, [isCoach]);
 
-  if(tab==="client")return(<Suspense fallback={<ViewFallback />}><div>
-    {isCoach&&<div style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,padding:"8px 20px",display:"flex",justifyContent:"center"}}>
-      <button onClick={()=>navTo("dashboard")} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:12}}>← Trainer View</button></div>}
-    <ClientPortal clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession}/></div></Suspense>);
+  // Authenticated but email not recognized — show Access Denied.
+  // Wait for trainees to load before deciding so real clients don't flash this.
+  if (tL && !isTrainer && !isClient) {
+    return <UnauthorizedScreen email={session?.user?.email || ''} onSignOut={signOut} />;
+  }
 
-  // Trainer login gate (portal bypasses this)
-  if(!trainerAuth && isCoach) return(
-    <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{textAlign:"center",marginBottom:40}}>
-        <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:60,marginBottom:12}}/>
-        <div style={{color:C.tm,fontSize:15}}>Coaching Portal</div></div>
-      <div style={{width:"100%",maxWidth:380}}>
-        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:14,padding:28,textAlign:"center"}}>
-          <div style={{fontSize:14,fontWeight:600,color:C.tx,marginBottom:16}}>Enter access code</div>
-          <input value={trainerCode} onChange={e=>setTrainerCode(e.target.value)}
-            onKeyDown={e=>{if(e.key==='Enter'){if(trainerCode==='#81'){setTrainerAuth(true)}else{setTrainerCode('')}}}}
-            placeholder="Code" type="password" autoFocus
-            style={{width:"100%",background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 16px",color:C.tx,fontFamily:FB,fontSize:15,outline:"none",boxSizing:"border-box",textAlign:"center",letterSpacing:"0.1em",marginBottom:12}}/>
-          <button onClick={()=>{if(trainerCode==='#81'){setTrainerAuth(true)}else{setTrainerCode('')}}}
-            style={{width:"100%",padding:14,borderRadius:10,border:"none",background:trainerCode?C.ac:C.sf3,color:trainerCode?"#000":C.td,fontFamily:FB,fontSize:15,fontWeight:700,cursor:trainerCode?"pointer":"default",transition:"all .15s"}}>
-            Enter</button>
-        </div>
-        <button onClick={()=>window.location.href='/'} style={{background:"none",border:"none",color:C.td,cursor:"pointer",fontFamily:FB,fontSize:12,marginTop:20,display:"block",width:"100%",textAlign:"center"}}>Training Portal →</button>
-      </div></div>);
+  // Client view — portal for the logged-in client.
+  if (isClient) return (<Suspense fallback={<ViewFallback />}>
+    <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession} signOut={signOut}/>
+  </Suspense>);
 
   // Wait for small stores only — plans/exercises load in background
   const storesReady = tL && wL && pyL;
@@ -372,7 +405,9 @@ export default function App() {
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
             <button onClick={()=>fileRef.current?.click()} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} title="Import — click or drag file here" style={{...baseBtn,background:dragOver?C.acD:"transparent",color:dragOver?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6,border:dragOver?`1px dashed ${C.ac}`:"1px solid transparent",transition:"all .15s"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
             <button onClick={handleExport} title="Export" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
-            <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:"none"}}/></div></div></header>
+            <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:"none"}}/>
+            <button onClick={signOut} title="Sign out" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+            </div></div></header>
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:importMsg.startsWith("✗")?C.rdD:importMsg.startsWith("⚠")?C.orD:C.gnD,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:8,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
