@@ -2,6 +2,26 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from './supabase';
 
+// ─────────────────────────────────────────────────────────────
+// Save-error emitter. Every silent `catch {}` around a Supabase
+// write used to mean: write failed, user typed into the void,
+// next page load overwrote the local cache with pre-save data,
+// work lost. Hooks now call `emitSaveError()` on failure and the
+// app mounts a toast (see SaveErrorToast in auth.jsx) that shows
+// the user something went wrong — no forced retries, no silent
+// loss. Coach / client can see what's happening.
+// ─────────────────────────────────────────────────────────────
+const saveErrorListeners = new Set();
+export function onSaveError(listener) {
+  saveErrorListeners.add(listener);
+  return () => saveErrorListeners.delete(listener);
+}
+function emitSaveError(err) {
+  for (const l of saveErrorListeners) {
+    try { l(err); } catch {}
+  }
+}
+
 // Generic store hook: loads from Supabase 'store' table, falls back to localStorage
 // on network failure so the UI isn't stuck empty when Supabase is unreachable.
 export function useSupaStore(key, initial) {
