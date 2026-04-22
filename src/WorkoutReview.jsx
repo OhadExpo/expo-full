@@ -200,6 +200,18 @@ function FormVideoPlayer({ url, onVideoRef }) {
             // use them for joint-angle math so camera perspective doesn't
             // distort the result. Fall back to 2D `lms` if absent.
             const wlms = result.worldLandmarks?.[0] || lms;
+            // Map normalized landmark coords (0..1 of the intrinsic frame)
+            // into the letterboxed pixel rect inside the <video> element.
+            // Default object-fit: contain — a portrait clip in a landscape
+            // element leaves black bars on the sides; drawing at a.x*w
+            // would stretch the skeleton across the whole element including
+            // those bars. Compute the actual displayed rect and offset into it.
+            const vw = v.videoWidth || w, vh = v.videoHeight || h;
+            const s = Math.min(w / vw, h / vh);
+            const dw = vw * s, dh = vh * s;
+            const ox = (w - dw) / 2, oy = (h - dh) / 2;
+            const px = (p) => ox + p.x * dw;
+            const py = (p) => oy + p.y * dh;
             if (lms) {
               // Skeleton + dots only when the overlay is enabled. Rep counting
               // still runs silently when only REPS is on.
@@ -210,14 +222,14 @@ function FormVideoPlayer({ url, onVideoRef }) {
                   const a = lms[i], b = lms[j];
                   if (!a || !b) continue;
                   ctx.beginPath();
-                  ctx.moveTo(a.x*w, a.y*h);
-                  ctx.lineTo(b.x*w, b.y*h);
+                  ctx.moveTo(px(a), py(a));
+                  ctx.lineTo(px(b), py(b));
                   ctx.stroke();
                 }
                 ctx.fillStyle = '#fff';
                 for (const p of lms) {
                   ctx.beginPath();
-                  ctx.arc(p.x*w, p.y*h, 3, 0, 2*Math.PI);
+                  ctx.arc(px(p), py(p), 3, 0, 2*Math.PI);
                   ctx.fill();
                 }
               }
