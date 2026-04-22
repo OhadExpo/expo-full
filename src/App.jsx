@@ -6,7 +6,7 @@ import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn } from './ui';
 import { parseTraineeId } from './traineeUtils';
-import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, TRAINER_EMAILS } from './auth';
+import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, TRAINER_EMAILS } from './auth';
 import * as XLSX from 'xlsx';
 
 // Lazy-load every heavy view so the initial bundle stays small.
@@ -177,6 +177,7 @@ function AuthedApp() {
   const [pendingImport,setPendingImport]=useState(null); // {parsed, type:'multi'|'single'} — awaiting trainee selection
   const [importSelectedTrainees,setImportSelectedTrainees]=useState([]); // selected trainee IDs for import
   const [dragOver,setDragOver]=useState(false);
+  const [showPwModal,setShowPwModal]=useState(false);
   const fileRef=useRef(null);
 
   // Send a client who landed on /coach back to /, and a trainer on / to /coach/dashboard.
@@ -406,8 +407,10 @@ function AuthedApp() {
             <button onClick={()=>fileRef.current?.click()} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} title="Import — click or drag file here" style={{...baseBtn,background:dragOver?C.acD:"transparent",color:dragOver?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6,border:dragOver?`1px dashed ${C.ac}`:"1px solid transparent",transition:"all .15s"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
             <button onClick={handleExport} title="Export" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
             <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:"none"}}/>
+            <button onClick={()=>setShowPwModal(true)} title="Change password" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
             <button onClick={signOut} title="Sign out" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
+      {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:importMsg.startsWith("✗")?C.rdD:importMsg.startsWith("⚠")?C.orD:C.gnD,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:8,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>

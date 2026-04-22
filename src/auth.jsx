@@ -212,6 +212,57 @@ export function LoginScreen() {
   );
 }
 
+// Password change modal — simple overlay triggered from the portal or
+// trainer header. Calls supabase.auth.updateUser({ password }) which
+// hashes and rotates the password in auth.users under the current session.
+// Closes on success; surfaces Supabase errors inline.
+export function PasswordChangeModal({ onClose }) {
+  const [pw, setPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [ok, setOk] = useState(false);
+
+  const handleSave = async () => {
+    setError('');
+    if (pw.length < 4) { setError('Password must be at least 4 characters.'); return; }
+    if (pw !== confirmPw) { setError("Passwords don't match."); return; }
+    setSaving(true);
+    try {
+      const { error: authError } = await supabase.auth.updateUser({ password: pw });
+      if (authError) { setError(authError.message); setSaving(false); return; }
+      setOk(true);
+      setTimeout(onClose, 1200);
+    } catch (e) {
+      setError('Connection error. Try again.');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12, padding: 24, maxWidth: 360, width: '100%' }}>
+        <div style={{ fontFamily: FN, fontSize: 13, color: C.td, marginBottom: 12 }}>CHANGE PASSWORD</div>
+        {ok ? (
+          <div style={{ color: C.gn, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Password updated ✓</div>
+        ) : (
+          <>
+            <input value={pw} onChange={e => { setPw(e.target.value); setError(''); }} type="password" placeholder="New password" autoFocus
+              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
+            <input value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleSave()} type="password" placeholder="Confirm new password"
+              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
+            {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10 }}>{error}</div>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${C.bd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSave} disabled={saving || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: (!saving && pw && confirmPw) ? C.ac : C.sf3, color: (!saving && pw && confirmPw) ? '#000' : C.td, fontFamily: FB, fontSize: 13, fontWeight: 700, cursor: (!saving && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Unauthorized screen — when email doesn't match any known user
 export function UnauthorizedScreen({ email, onSignOut }) {
   return (

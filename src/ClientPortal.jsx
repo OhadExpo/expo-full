@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
+import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
 
 // EX dict now imported from exerciseData.js (single source of truth)
@@ -503,6 +504,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
   const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
   const [bwDeleteConfirm, setBwDeleteConfirm] = useState(null); // BW log entry pending delete confirmation (null | entry)
+  const [showPwModal, setShowPwModal] = useState(false);
 
   // Resolve client from trainees (Supabase)
   const trainee = (trainees || []).find(t => t.id === ci);
@@ -777,7 +779,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28,display:'block'}} />
-          <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>Log Out →</button></div>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </button>
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>Log Out →</button>
+          </div></div>
         <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx,textAlign:'center'}}>Hey {clientName.split(' ')[0]} 💪</h1>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
           <div>
@@ -826,7 +833,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 {d.vid && <a href={d.vid} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4,flexShrink:0}}>▶</a>}
               </div>})}
           </div>})}</React.Fragment>)})()}
-      </div></div>; }
+      </div>
+      {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
+      </div>; }
 
   // Falls through while trainees are still loading (ci set but not yet matched).
   // Auth is handled upstream in App.jsx — no login form here.
