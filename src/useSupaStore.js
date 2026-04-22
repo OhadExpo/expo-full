@@ -88,9 +88,13 @@ export function useSupaStore(key, initial) {
         pendingRef.current = null;
         try {
           const { error } = await supabase.from('store').upsert({ key, value: toWrite, updated_at: new Date().toISOString() });
-          if (error) console.warn(`useSupaStore[${key}] save error:`, error.message || error);
+          if (error) {
+            console.warn(`useSupaStore[${key}] save error:`, error.message || error);
+            emitSaveError({ key, op: 'save', msg: error.message || String(error) });
+          }
         } catch (e) {
           console.warn(`useSupaStore[${key}] save threw:`, e?.message || e);
+          emitSaveError({ key, op: 'save', msg: e?.message || 'save failed' });
         }
       }
     } finally {
@@ -150,14 +154,17 @@ export function useSupaClientWorkouts(initial = []) {
     const newItems = val.filter(w => !prev.find(p => p.id === w.id));
     for (const w of newItems) {
       try {
-        await supabase.from('client_workouts').upsert({
+        const { error } = await supabase.from('client_workouts').upsert({
           id: w.id, client_id: w.clientId, plan_name: w.planName,
           day_name: w.dayName, week: w.week, date: w.date,
           autoregulation: w.autoregulation, notes: w.notes,
           exercises: w.exercises, form_videos: w.formVideos,
           reviewed_at: w.reviewedAt || null
         });
-      } catch {}
+        if (error) emitSaveError({ key: 'client_workouts', op: 'save', msg: error.message || String(error) });
+      } catch (e) {
+        emitSaveError({ key: 'client_workouts', op: 'save', msg: e?.message || 'save failed' });
+      }
     }
   }, []);
 
@@ -170,8 +177,11 @@ export function useSupaClientWorkouts(initial = []) {
     dataRef.current = next;
     try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
     try {
-      await supabase.from('client_workouts').update({ reviewed_at: ts }).eq('id', id);
-    } catch {}
+      const { error } = await supabase.from('client_workouts').update({ reviewed_at: ts }).eq('id', id);
+      if (error) emitSaveError({ key: 'client_workouts', op: 'markReviewed', msg: error.message || String(error) });
+    } catch (e) {
+      emitSaveError({ key: 'client_workouts', op: 'markReviewed', msg: e?.message || 'update failed' });
+    }
   }, []);
 
   return [data, save, markReviewed];
@@ -217,7 +227,7 @@ export function useSupaBwLog(initial = []) {
     for (const b of changed) {
       if (!b.blockName) continue; // DB requires block_name NOT NULL
       try {
-        await supabase.from('bw_logs').upsert({
+        const { error } = await supabase.from('bw_logs').upsert({
           client_id: b.clientId,
           plan_id: b.planId ?? null,
           block_name: b.blockName,
@@ -225,7 +235,10 @@ export function useSupaBwLog(initial = []) {
           bw: b.bw,
           date: b.date,
         }, { onConflict: 'client_id,block_name,week' });
-      } catch {}
+        if (error) emitSaveError({ key: 'bw_logs', op: 'save', msg: error.message || String(error) });
+      } catch (e) {
+        emitSaveError({ key: 'bw_logs', op: 'save', msg: e?.message || 'save failed' });
+      }
     }
     // Delete entries that were in prev but are gone from val
     const removed = prev.filter(p => {
@@ -234,11 +247,14 @@ export function useSupaBwLog(initial = []) {
     });
     for (const p of removed) {
       try {
-        await supabase.from('bw_logs').delete()
+        const { error } = await supabase.from('bw_logs').delete()
           .eq('client_id', p.clientId)
           .eq('block_name', p.blockName)
           .eq('week', p.week);
-      } catch {}
+        if (error) emitSaveError({ key: 'bw_logs', op: 'delete', msg: error.message || String(error) });
+      } catch (e) {
+        emitSaveError({ key: 'bw_logs', op: 'delete', msg: e?.message || 'delete failed' });
+      }
     }
   }, []);
 
@@ -280,8 +296,11 @@ export function useSupaWeeklyFocus(initial = {}) {
     timerRef.current = null;
     for (const [k, v] of Object.entries(pending)) {
       try {
-        await supabase.from('weekly_focus').upsert({ focus_key: k, value: v, updated_at: new Date().toISOString() });
-      } catch {}
+        const { error } = await supabase.from('weekly_focus').upsert({ focus_key: k, value: v, updated_at: new Date().toISOString() });
+        if (error) emitSaveError({ key: 'weekly_focus', op: 'save', msg: error.message || String(error) });
+      } catch (e) {
+        emitSaveError({ key: 'weekly_focus', op: 'save', msg: e?.message || 'save failed' });
+      }
     }
   }, []);
 

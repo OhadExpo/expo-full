@@ -2,6 +2,7 @@
 // Two roles: trainer (Ohad) and client (matched by email in CLIENTS array)
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
+import { onSaveError } from './useSupaStore';
 import { C, FN, FB, EXPO_LOGO } from './theme';
 
 // Trainer email(s) — only these get trainer-level access
@@ -253,6 +254,35 @@ export function PasswordChangeModal({ onClose }) {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// Toast for Supabase write failures. Subscribes to useSupaStore's
+// onSaveError bus; every silent catch() now surfaces as a visible
+// red card bottom-right, auto-dismissed after 5s. Stacks up to 3.
+// Each error also keeps a unique id so re-renders don't churn entries.
+// Mount this once at the authed-app root (App.jsx) — everything else
+// is fire-and-forget module state, no props needed.
+export function SaveErrorToast() {
+  const [errors, setErrors] = useState([]);
+  useEffect(() => {
+    return onSaveError((e) => {
+      const id = Date.now() + Math.random();
+      setErrors(prev => [...prev, { id, ...e }].slice(-3));
+      setTimeout(() => setErrors(prev => prev.filter(x => x.id !== id)), 5000);
+    });
+  }, []);
+  if (errors.length === 0) return null;
+  return (
+    <div style={{ position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 2000, maxWidth: 360 }}>
+      {errors.map(e => (
+        <div key={e.id} style={{ background: C.rdD || '#3a1a1a', border: `1px solid ${C.rd || '#c94444'}`, color: C.rd || '#ff6b6b', borderRadius: 10, padding: '12px 14px', fontFamily: FB, fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 11, marginBottom: 4 }}>SAVE FAILED — {e.key} · {e.op}</div>
+          <div style={{ color: C.tx, fontSize: 12 }}>{e.msg}</div>
+          <div style={{ color: C.tm, fontSize: 10, marginTop: 4 }}>Your data is still in local memory. Check connection and retry.</div>
+        </div>
+      ))}
     </div>
   );
 }

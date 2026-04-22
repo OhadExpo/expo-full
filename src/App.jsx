@@ -6,7 +6,7 @@ import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn } from './ui';
 import { parseTraineeId } from './traineeUtils';
-import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, TRAINER_EMAILS } from './auth';
+import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, TRAINER_EMAILS } from './auth';
 import * as XLSX from 'xlsx';
 
 // Lazy-load every heavy view so the initial bundle stays small.
@@ -125,7 +125,10 @@ function AuthGate() {
   const auth = useAuth();
   if (!auth || auth.loading) return <BootSplash />;
   if (!auth.session) return <LoginScreen />;
-  return <AuthedApp />;
+  // SaveErrorToast rides alongside AuthedApp so a failed write from any
+  // hook (useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus)
+  // surfaces as a red card bottom-right instead of being swallowed.
+  return <><AuthedApp /><SaveErrorToast /></>;
 }
 
 function AuthedApp() {
@@ -385,8 +388,9 @@ function AuthedApp() {
     <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession} signOut={signOut}/>
   </Suspense>);
 
-  // Wait for small stores only — plans/exercises load in background
-  const storesReady = tL && wL && pyL;
+  // Wait for small stores + plan index so trainee card counts don't flash 0
+  // while the plans table is still loading.
+  const storesReady = tL && wL && pyL && pL;
   if (!storesReady) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:50}} />
