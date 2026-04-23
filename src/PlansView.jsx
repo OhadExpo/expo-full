@@ -448,7 +448,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const filtered = useMemo(() => {
     let result = planIndex;
     if (search) { const q = search.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
-    if (filterTrainee) result = result.filter(p => p.traineeId === filterTrainee);
+    if (filterTrainee) {
+      // When a client is selected the global creation-order sort no longer
+      // helps — user just wants their blocks listed in readable order.
+      // Hebrew-aware localeCompare handles mixed Block #N / Hebrew names.
+      result = result.filter(p => p.traineeId === filterTrainee)
+        .slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
+    }
     return result;
   }, [planIndex, search, filterTrainee, traineeMap]);
 
