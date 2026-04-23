@@ -218,6 +218,11 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   const activeKind =
     trackOverride === 'auto' ? autoPick.kind :
     trackOverride;
+  // Ref-mirrored so the detection loop's closure can read the LATEST selection
+  // without needing the effect to re-subscribe every render (activeChannels is
+  // a fresh array each render → can't just put it in the effect's deps).
+  const activeChannelsRef = useRef(activeChannels);
+  useEffect(() => { activeChannelsRef.current = activeChannels; }, [trackOverride, exerciseTitle]);
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
   useEffect(() => { if (videoRef.current) videoRef.current.loop = loop; }, [loop]);
@@ -235,6 +240,34 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
     lastTempoRef.current = null;
     repStateRef.current = { signalBufs: {}, lastPeakRunAt: -1 };
   }, [repsOn, url]);
+
+  // When the channel override changes (or auto-picked exerciseTitle changes),
+  // force a fresh findPeaks on whatever data is already in the buffer. Without
+  // this effect, a paused video wouldn't update the count because the detect
+  // loop only fires on decoded frames.
+  useEffect(() => {
+    if (!repsOn) return;
+    const st = repStateRef.current;
+    if (activeChannels.length === 0) {
+      repsCountRef.current = 0;
+      setReps(0);
+      return;
+    }
+    const minDist = Math.max(4, Math.round(30 * 0.4));
+    let bestCount = 0;
+    for (const key of activeChannels) {
+      const sig = st.signalBufs[key];
+      if (!sig || sig.length < 10) continue;
+      const smoothed = medianFilter(sig, SMOOTH_N);
+      const peaks = findPeaks(smoothed, 20, minDist);
+      if (peaks.length > bestCount) bestCount = peaks.length;
+    }
+    repsCountRef.current = bestCount;
+    setReps(bestCount);
+    // Force the detect-loop throttle to fire on next frame too, so a just-
+    // resumed playback picks up any further buffer growth immediately.
+    st.lastPeakRunAt = -1;
+  }, [trackOverride, exerciseTitle, repsOn]);
 
   const fullscreen = () => {
     const v = videoRef.current; if (!v) return;
@@ -401,8 +434,11 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                   const raw = next[key];
                   st.signalBufs[key][bucket] = raw != null ? raw : NaN;
                 }
-                if (activeChannels.length === 0) {
-                  // isometric / 'none' — nothing to count.
+                // Read the CURRENT override selection from the ref — not the
+                // closure-captured value, which would be stale if the user
+                // changed the dropdown mid-playback.
+                const activeCh = activeChannelsRef.current;
+                if (activeCh.length === 0) {
                   repsCountRef.current = 0;
                 } else {
                   // Throttle re-runs on wall-clock (not video time) so a
@@ -412,7 +448,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                     st.lastPeakRunAt = now;
                     const minDist = Math.max(4, Math.round(BUCKET_FPS * 0.4));
                     let bestCount = 0;
-                    for (const key of activeChannels) {
+                    for (const key of activeCh) {
                       const sig = st.signalBufs[key];
                       if (!sig || sig.length < 10) continue;
                       const smoothed = medianFilter(sig, SMOOTH_N);
@@ -528,7 +564,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
             title="Which joint pair to count peaks on"
             style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
               background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-            <option value="auto">AUTO ({(activeKind || 'none').toUpperCase()})</option>
+            <option value="auto">AUTO ({(autoPick.kind || 'none').toUpperCase()})</option>
             <option value="hip">HIP</option>
             <option value="knee">KNEE</option>
             <option value="elbow">ELBOW</option>
