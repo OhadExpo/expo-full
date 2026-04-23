@@ -399,7 +399,12 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                               st.observedSwings.push(repSwing);
                               if (st.observedSwings.length > 20) st.observedSwings.shift();
                             }
-                            if (tempoSec != null && tempoSec > 0) {
+                            // Skip rep 1's tempo — lastTopVt was seeded at the
+                            // first frame with data, so that value includes any
+                            // setup time before the athlete actually started
+                            // rep 1 and would skew the adaptive cadence median.
+                            // Rep 2 onward: tempoSec is a true rep-to-rep gap.
+                            if (tempoSec != null && tempoSec > 0 && repsCountRef.current >= 2) {
                               st.observedTempos.push(tempoSec);
                               if (st.observedTempos.length > 20) st.observedTempos.shift();
                             }
