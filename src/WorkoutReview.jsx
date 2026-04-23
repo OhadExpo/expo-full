@@ -101,27 +101,34 @@ const rollingMedian = (buf, v) => {
 // meeting another point higher than the peak) exceeds `prominence`. Between
 // two qualifying peaks closer than `minDist` samples we keep the taller one.
 // Matches scipy.signal.find_peaks' prominence/distance behavior.
+// NaN/undefined samples are treated as data gaps — skipped in the local-max
+// check and skipped in the prominence walk. NEVER replaced with a sentinel,
+// because a sentinel would inflate prominence against real peaks near gaps.
+const isReal = (x) => x != null && Number.isFinite(x);
 function findPeaks(signal, prominence, minDist) {
   const candidates = [];
   for (let i = 1; i < signal.length - 1; i++) {
     const v = signal[i];
-    if (v == null || !Number.isFinite(v)) continue;
-    const prev = signal[i - 1], next = signal[i + 1];
-    if (prev == null || next == null) continue;
-    if (v <= prev || v <= next) continue;
-    // prominence: walk left/right until signal exceeds v, track the min of
-    // the intervening values; prominence = v − max(leftMin, rightMin).
+    if (!isReal(v)) continue;
+    // Find nearest real neighbors on either side — NaN gaps shouldn't
+    // invalidate an otherwise-valid local max.
+    let pi = i - 1; while (pi >= 0 && !isReal(signal[pi])) pi--;
+    let ni = i + 1; while (ni < signal.length && !isReal(signal[ni])) ni++;
+    if (pi < 0 || ni >= signal.length) continue;
+    if (v <= signal[pi] || v <= signal[ni]) continue;
+    // Prominence: walk left/right until signal exceeds v, track the min of
+    // real values in between; prominence = v − max(leftMin, rightMin).
     let leftMin = v;
-    for (let j = i - 1; j >= 0; j--) {
+    for (let j = pi; j >= 0; j--) {
       const x = signal[j];
-      if (x == null) continue;
+      if (!isReal(x)) continue;
       if (x > v) break;
       if (x < leftMin) leftMin = x;
     }
     let rightMin = v;
-    for (let j = i + 1; j < signal.length; j++) {
+    for (let j = ni; j < signal.length; j++) {
       const x = signal[j];
-      if (x == null) continue;
+      if (!isReal(x)) continue;
       if (x > v) break;
       if (x < rightMin) rightMin = x;
     }
@@ -366,26 +373,9 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
               }
               pendingAngles = next;
 
-              // Rep counter: four independent joint channels per region, with
-              // adaptive per-clip calibration. Core loop:
-              //   - each tick, per channel: raw angle → 5-frame median → update
-              //     that channel's extreme (max in 'top', min in 'bottom')
-              //   - compute per-channel delta from its extreme; sort; transition
-              //     when top delta > currAmp AND 2nd-highest > currAmp*supportFrac
-              //     for 2 consecutive frames (runAtExtreme debounce)
-              // Adaptive calibration:
-              //   - at top→bot transition: snapshot peakExtremes so we can
-              //     measure this rep's amplitude when the return fires
-              //   - at bot→top transition (= a completed rep):
-              //       * compute dominant-channel swing = max(peak[i] - trough[i])
-              //       * push swing + tempoSec onto observedSwings/observedTempos
-              //       * once 2 reps are captured, set adaptiveAmp = 50% of the
-              //         rolling-median swing and adaptiveMinRepS = 50% of the
-              //         rolling-median tempo, clamped to a sane band around the
-              //         P defaults. These become `currAmp`/`currMinRepS` for
-              //         future rep decisions. Median (not mean) so a single
-              //         weird rep doesn't permanently skew the calibration;
-              //         rolling so late-set fuller-ROM reps can pull it back up.
+              // Rep counter: accumulate per-channel smoothed angle samples
+              // during playback, re-run findPeaks every 0.2s of video time,
+              // display the max peak count across the selected channels.
               if (repsOn && activeChannels.length > 0) {
                 const st = repStateRef.current;
                 const vt = v.currentTime;
@@ -411,8 +401,11 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                   for (const key of activeChannels) {
                     const sig = st.signalBufs[key];
                     if (!sig || sig.length < 10) continue;
-                    const cleaned = sig.map(x => (Number.isFinite(x) ? x : -1e6));
-                    const peaks = findPeaks(cleaned, 20, minDist);
+                    // Pass the raw buffer — NaN values represent data gaps and
+                    // findPeaks handles them correctly (skips in neighbor +
+                    // prominence walks). Replacing them with a low sentinel
+                    // would inflate prominence for real peaks next to gaps.
+                    const peaks = findPeaks(sig, 20, minDist);
                     if (peaks.length > bestCount) bestCount = peaks.length;
                   }
                   repsCountRef.current = bestCount;
