@@ -62,13 +62,17 @@ const detectRegion = (title) => {
   return 'lower'; // conservative default — Amit's library skews lower-body
 };
 
-// Per-region rep-detection parameters. The composite signal is the mean of up
-// to four joint angles (two joints × left/right). `amp` is the minimum swing
-// from the last extreme before a transition fires; `minRepS` is the minimum
-// cycle time — anything faster is treated as jitter.
+// Per-region rep-detection parameters. Each region has TWO independent joint
+// channels (knee/hip for lower, elbow/shoulder for upper). Each channel's
+// angle per tick is min(L, R) — the most-flexed side — so unilateral moves
+// (lunges, split squats) don't get diluted by the stationary trailing leg.
+// A rep transition fires when ANY channel swings more than `amp` degrees from
+// its recorded extreme, so a squat (both channels move), a lunge (knee only),
+// a hip thrust (hip only), and a leg curl (knee only) all count — but a
+// phantom single-joint wobble below `amp` does not.
 const TRACK_PARAMS = {
-  lower: { amp: 30, minRepS: 0.45, joints: ['L KNE', 'R KNE', 'L HIP', 'R HIP'] },
-  upper: { amp: 35, minRepS: 0.30, joints: ['L ELB', 'R ELB', 'L SHO', 'R SHO'] },
+  lower: { amp: 40, minRepS: 0.45, channels: [['L KNE', 'R KNE'], ['L HIP', 'R HIP']] },
+  upper: { amp: 45, minRepS: 0.30, channels: [['L ELB', 'R ELB'], ['L SHO', 'R SHO']] },
   none:  null, // skip counting entirely
 };
 
@@ -96,10 +100,11 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
-  // `buf` holds the last N smoothed-joint angles for rolling-median filtering.
-  // `runAtExtreme` counts consecutive frames still at the current extreme,
-  // used as a 3-frame debounce before accepting a state transition.
-  const repStateRef = useRef({ state: 'unknown', extreme: null, lastTopVt: null, lastBotVt: null, buf: [], runAtExtreme: 0 });
+  // Rep state machine. Shared phase (`state`: 'top' | 'bottom' | 'unknown'),
+  // but per-channel tracking: each channel has its own rolling-median buffer
+  // (`bufs[i]`) and its own recorded extreme (`extremes[i]`). Transitions
+  // trigger on whichever channel's swing-from-extreme first exceeds P.amp.
+  const repStateRef = useRef({ state: 'unknown', extremes: [], bufs: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0 });
   // Ref-backed counters so the detection loop can increment them without
   // colliding with stale closure captures (the previous setState-from-closure
   // approach kept resetting count to 1 on every rep).
@@ -125,12 +130,12 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   // Hand the <video> element back to the parent if it asked for it.
   useEffect(() => { if (onVideoRef && videoRef.current) onVideoRef(videoRef.current); }, [onVideoRef, url]);
 
-  // Reset rep state when toggle flips, tracked joint changes, or a new video loads.
+  // Reset rep state when toggle flips, tracked region changes, or a new video loads.
   useEffect(() => {
     setReps(0); setTempo(null);
     repsCountRef.current = 0;
     lastTempoRef.current = null;
-    repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null, lastBotVt: null, buf: [], runAtExtreme: 0 };
+    repStateRef.current = { state: 'unknown', extremes: [], bufs: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0 };
   }, [repsOn, url, activeRegion]);
 
   const fullscreen = () => {
@@ -154,7 +159,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   useEffect(() => {
     const v = videoRef.current; if (!v) return;
     const reset = () => {
-      repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null, lastBotVt: null, buf: [], runAtExtreme: 0 };
+      repStateRef.current = { state: 'unknown', extremes: [], bufs: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0 };
       repsCountRef.current = 0;
       lastTempoRef.current = null;
       setReps(0); setTempo(null);
@@ -291,44 +296,57 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
               }
               pendingAngles = next;
 
-              // Rep counter: two-joint composite cycle detector. For each tick:
-              //   - take every populated joint angle from the tracked region
-              //     (up to 4: two joints × left/right), average them into one
-              //     composite signal, then median-smooth over 5 frames
-              //   - if at 'top', deepen the extreme upward; when the composite
-              //     falls more than P.amp below extreme for 2 consecutive
-              //     frames, flip to 'bottom'
-              //   - symmetric for 'bottom' → 'top'; that transition credits a
-              //     rep, gated on P.minRepS minimum cycle time to discard
-              //     sub-half-second jitter bounces
-              // Transitions do NOT require the angle to fall inside an absolute
-              // top/bottom zone — amplitude from the last extreme is enough, so
-              // partial-depth reps still count. Using both joints per region
-              // rather than a single joint damps one-joint noise and requires
-              // the whole region to actually cycle before a transition fires.
+              // Rep counter: two independent joint channels per region
+              // (knee+hip for lower, elbow+shoulder for upper). Each tick:
+              //   - extract min(L,R) per channel (most-flexed side) so
+              //     unilateral lifts aren't diluted by the stationary side
+              //   - median-smooth each channel over its own 5-frame buffer
+              //   - compute per-channel delta from that channel's recorded
+              //     extreme; take the max across channels as the composite
+              //     swing signal; transition when that exceeds P.amp for 2
+              //     consecutive frames
+              // Bottom→top transitions credit a rep gated on P.minRepS.
               if (repsOn && TRACK_PARAMS[activeRegion]) {
                 const P = TRACK_PARAMS[activeRegion];
-                const vals = P.joints.map(k => next[k]).filter(v => v != null);
-                const raw = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-                if (raw != null) {
-                  const st = repStateRef.current;
-                  const a = rollingMedian(st.buf, raw);
+                const st = repStateRef.current;
+                // Lazily size per-channel buffers/extremes to match P.channels.
+                if (st.bufs.length !== P.channels.length) {
+                  st.bufs = P.channels.map(() => []);
+                  st.extremes = P.channels.map(() => null);
+                }
+                // Per-channel smoothed value; null if both sides are missing.
+                const smoothed = P.channels.map(([lk, rk], i) => {
+                  const lv = next[lk], rv = next[rk];
+                  const raw = (lv != null && rv != null) ? Math.min(lv, rv) : (lv ?? rv);
+                  return raw != null ? rollingMedian(st.bufs[i], raw) : null;
+                });
+                const anyReady = smoothed.some(v => v != null) && st.bufs[0].length >= 3;
+                if (anyReady) {
                   const vt = v.currentTime;
                   if (st.state === 'unknown') {
-                    // Wait a couple of frames for the buffer to fill so the first
-                    // extreme isn't anchored to a single noisy sample.
-                    if (st.buf.length >= 3) { st.state = 'top'; st.extreme = a; st.lastTopVt = vt; }
+                    // Seed each extreme from the first populated sample per channel.
+                    smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
+                    st.state = 'top'; st.lastTopVt = vt;
                   } else if (st.state === 'top') {
-                    if (a > st.extreme) { st.extreme = a; st.runAtExtreme = 0; }
-                    else if (st.extreme - a > P.amp) {
+                    // Deepen extreme (= maximum angle) per channel.
+                    smoothed.forEach((v, i) => { if (v != null && (st.extremes[i] == null || v > st.extremes[i])) st.extremes[i] = v; });
+                    // Swing away from extreme = extreme − current (bigger = flexed more).
+                    const delta = smoothed.map((v, i) => (v != null && st.extremes[i] != null) ? st.extremes[i] - v : 0);
+                    const maxDelta = Math.max(...delta);
+                    if (maxDelta > P.amp) {
                       st.runAtExtreme = (st.runAtExtreme || 0) + 1;
                       if (st.runAtExtreme >= 2) {
-                        st.state = 'bottom'; st.extreme = a; st.lastBotVt = vt; st.runAtExtreme = 0;
+                        // Reset extremes to current for the bottom phase.
+                        smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
+                        st.state = 'bottom'; st.lastBotVt = vt; st.runAtExtreme = 0;
                       }
                     } else { st.runAtExtreme = 0; }
                   } else if (st.state === 'bottom') {
-                    if (a < st.extreme) { st.extreme = a; st.runAtExtreme = 0; }
-                    else if (a - st.extreme > P.amp) {
+                    // Deepen extreme (= minimum angle) per channel.
+                    smoothed.forEach((v, i) => { if (v != null && (st.extremes[i] == null || v < st.extremes[i])) st.extremes[i] = v; });
+                    const delta = smoothed.map((v, i) => (v != null && st.extremes[i] != null) ? v - st.extremes[i] : 0);
+                    const maxDelta = Math.max(...delta);
+                    if (maxDelta > P.amp) {
                       st.runAtExtreme = (st.runAtExtreme || 0) + 1;
                       if (st.runAtExtreme >= 2) {
                         const tempoSec = st.lastTopVt != null ? vt - st.lastTopVt : null;
@@ -336,7 +354,8 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                           repsCountRef.current += 1;
                           lastTempoRef.current = tempoSec;
                         }
-                        st.state = 'top'; st.extreme = a; st.lastTopVt = vt; st.runAtExtreme = 0;
+                        smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
+                        st.state = 'top'; st.lastTopVt = vt; st.runAtExtreme = 0;
                       }
                     } else { st.runAtExtreme = 0; }
                   }
