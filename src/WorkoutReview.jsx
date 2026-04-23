@@ -42,52 +42,52 @@ const angleAt = (lms, ai, bi, ci) => {
   return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
 };
 
-// Map an exercise title to the body region whose angle cycle defines a rep.
-// Tracking two joints per region (knee+hip for lower, elbow+shoulder for upper)
-// averaged together gives a more stable signal than watching a single joint —
-// noise in one joint gets damped by the other, and the composite swing only
-// clears the threshold when the whole region actually cycled.
-//   lower → squats, lunges, step-ups, deadlifts, hinges, jumps, RFESS, leg curl
-//   upper → bench, press, row, pull, curl, extension, dip, raise
-//   none  → isometrics, carries, plyo micro-pulses (plank, l-sit, pogo, hold)
-// Order matters: `none` has to match before any other rule claims those words.
-const REGION_RULES = [
-  { region: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|pogo|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap|heel[-\s]?click|depth[-\s]?landing|snapdown)\b/i },
-  { region: 'lower', rx: /\b(squat|lunge|step[-\s]?up|split[-\s]?squat|rfess|bulgarian|pistol|leg[-\s]?press|leg[-\s]?extension|leg[-\s]?curl|jump|bounce|goblet|thruster|deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|hip[-\s]?thrust|glute[-\s]?bridge|jefferson|clean|snatch|swing)\b/i },
-  { region: 'upper', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|curl|extension|tricep|skull|dip|pushdown|fly|flye|raise|pullover|hammer)\b/i },
-];
-const detectRegion = (title) => {
-  const t = String(title || '');
-  for (const r of REGION_RULES) if (r.rx.test(t)) return r.region;
-  return 'lower'; // conservative default — Amit's library skews lower-body
-};
-
-// Per-region rep-detection parameters. Each region has FOUR independent joint
-// channels (L_KNE, R_KNE, L_HIP, R_HIP for lower; L_ELB, R_ELB, L_SHO, R_SHO
-// for upper). Each channel is tracked separately with its own extreme. This
-// handles far-leg occlusion: when MediaPipe loses the camera-far leg on a
-// side-view lunge clip, the working side still drives a transition via its
-// own channel instead of being washed out by a min(L,R) over bad data.
+// Rep counting: offline peak detection on the full recorded angle signal.
 //
-// To stop any single noisy channel from triggering phantom reps, a transition
-// requires the TOP channel's swing to exceed P.amp AND the 2nd-highest
-// channel's swing to exceed P.amp * P.supportFrac — i.e. at least two body
-// parts must have moved together. P.supportFrac is tuned so the "supporting"
-// channel covers the realistic secondary movement in each pattern:
-//   - squat: all 4 swing big (both knees + both hips)
-//   - lunge (working far leg): that leg's knee + hip
-//   - hip thrust: both hips (L + R)
-//   - leg curl: both knees (L + R)
-//   - bench/row: both elbows (L + R)
-const TRACK_PARAMS = {
-  lower: { amp: 18, minRepS: 0.25, supportFrac: 0.05, channels: ['L KNE', 'R KNE', 'L HIP', 'R HIP'] },
-  upper: { amp: 16, minRepS: 0.20, supportFrac: 0.05, channels: ['L ELB', 'R ELB', 'L SHO', 'R SHO'] },
-  none:  null, // skip counting entirely
+// Background: an earlier live-state-machine approach missed reps badly on
+// dynamic isolation lifts (SL hip thrust, bench, etc.). Root cause confirmed
+// by running MediaPipe on one of Amit's clips offline and plotting the angle
+// signal: the hip signal on hip thrust is a clean sine wave with ~22 visible
+// cycles — but the knee signal (MediaPipe struggles with supine pose) is pure
+// noise, and any state machine that required cross-channel agreement got
+// dragged down by the noisy channel. Peak-finding with a prominence threshold
+// on the right channel(s) matches the ground truth count within ±1 rep.
+//
+// Each exercise title selects which joint channels carry the rep signal.
+// Detector accumulates per-channel smoothed angle samples during playback,
+// reruns findPeaks every ~200ms, and displays the max peak count across the
+// selected channels. The count stabilizes once playback has passed every rep.
+
+// Joint-channel selection by exercise name. Order matters: `none` must match
+// first so isometric lifts skip counting instead of getting classified as
+// something with cycle.
+const CHANNEL_RULES = [
+  { kind: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap)\b/i,
+    channels: [] },
+  // Hip-dominant: hip thrust, deadlift, rdl, hinge, good-morning. Knees may
+  // stay near 90° the whole time (hip thrust) or move only slightly (RDL).
+  { kind: 'hip',   rx: /\b(hip[-\s]?thrust|glute[-\s]?bridge|deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|jefferson|clean|snatch|swing|kettlebell\s*swing)\b/i,
+    channels: ['L HIP', 'R HIP'] },
+  // Knee-dominant: squat, lunge, step-up, leg curl, leg extension, jumps.
+  { kind: 'knee',  rx: /\b(squat|lunge|step[-\s]?up|split[-\s]?squat|rfess|bulgarian|pistol|leg[-\s]?press|leg[-\s]?extension|leg[-\s]?curl|jump|bounce|goblet|thruster|pogo)\b/i,
+    channels: ['L KNE', 'R KNE'] },
+  // Elbow-dominant: bench, press, row, curl, extension, pulldown, dip, pushup,
+  // pull-up, tricep pushdown.
+  { kind: 'elbow', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|curl|extension|tricep|skull|dip|pushdown|pullover|hammer)\b/i,
+    channels: ['L ELB', 'R ELB'] },
+  // Shoulder-dominant: laterals, front raises, flies.
+  { kind: 'sho',   rx: /\b(fly|flye|raise|lateral|front[-\s]?raise|rear[-\s]?delt)\b/i,
+    channels: ['L SHO', 'R SHO'] },
+];
+const detectChannels = (title) => {
+  const t = String(title || '');
+  for (const r of CHANNEL_RULES) if (r.rx.test(t)) return { kind: r.kind, channels: r.channels };
+  // Default: knee channels — Amit's library skews lower-body.
+  return { kind: 'knee', channels: ['L KNE', 'R KNE'] };
 };
 
-// Rolling median over the last N samples. Median (not mean) because MediaPipe
-// throws the occasional wildly-wrong angle when a limb briefly self-occludes,
-// and one bad frame is enough to nudge a mean across the rep threshold.
+// 5-frame rolling median smoother — same as before, kills single-frame
+// MediaPipe spikes from transient occlusion.
 const SMOOTH_N = 5;
 const rollingMedian = (buf, v) => {
   buf.push(v);
@@ -95,13 +95,53 @@ const rollingMedian = (buf, v) => {
   const sorted = [...buf].sort((a, b) => a - b);
   return sorted[Math.floor(sorted.length / 2)];
 };
-// Plain median (no buffer) — for post-rep calibration against observed swings.
-const medianOf = (arr) => {
-  if (!arr.length) return null;
-  const s = [...arr].sort((a, b) => a - b);
-  return s[Math.floor(s.length / 2)];
-};
-const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+// Offline peak finder with prominence + minimum-distance. A peak is a strict
+// local maximum whose prominence (drop from peak to the lowest valley before
+// meeting another point higher than the peak) exceeds `prominence`. Between
+// two qualifying peaks closer than `minDist` samples we keep the taller one.
+// Matches scipy.signal.find_peaks' prominence/distance behavior.
+function findPeaks(signal, prominence, minDist) {
+  const candidates = [];
+  for (let i = 1; i < signal.length - 1; i++) {
+    const v = signal[i];
+    if (v == null || !Number.isFinite(v)) continue;
+    const prev = signal[i - 1], next = signal[i + 1];
+    if (prev == null || next == null) continue;
+    if (v <= prev || v <= next) continue;
+    // prominence: walk left/right until signal exceeds v, track the min of
+    // the intervening values; prominence = v − max(leftMin, rightMin).
+    let leftMin = v;
+    for (let j = i - 1; j >= 0; j--) {
+      const x = signal[j];
+      if (x == null) continue;
+      if (x > v) break;
+      if (x < leftMin) leftMin = x;
+    }
+    let rightMin = v;
+    for (let j = i + 1; j < signal.length; j++) {
+      const x = signal[j];
+      if (x == null) continue;
+      if (x > v) break;
+      if (x < rightMin) rightMin = x;
+    }
+    const base = Math.max(leftMin, rightMin);
+    const prom = v - base;
+    if (prom < prominence) continue;
+    candidates.push({ idx: i, v, prom });
+  }
+  // Dedup by minDist — keep taller of any two peaks within minDist samples.
+  candidates.sort((a, b) => a.idx - b.idx);
+  const kept = [];
+  for (const c of candidates) {
+    while (kept.length && c.idx - kept[kept.length - 1].idx < minDist) {
+      if (c.v > kept[kept.length - 1].v) kept.pop();
+      else { c._drop = true; break; }
+    }
+    if (!c._drop) kept.push(c);
+  }
+  return kept;
+}
 
 // Form-video player: speed control (0.125x recovers old fast-motion webm),
 // frame-step (←/→ ~ 1/30s), fullscreen, and an optional MediaPipe Pose
@@ -116,17 +156,14 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
-  // Rep state machine. Shared phase (`state`: 'top' | 'bottom' | 'unknown'),
-  // per-channel tracking (`extremes[i]`, `bufs[i]`), plus adaptive calibration:
-  //   observedSwings[] — peak-to-trough amplitude of each completed rep on the
-  //     dominant channel, used to rescale `amp` to this athlete / clip
-  //   observedTempos[] — cycle duration of each completed rep, used to rescale
-  //     `minRepS` to the observed cadence
-  //   peakExtremes[] — snapshot of channel maxes at top→bot transition, held
-  //     so we can compute that rep's amplitude when the next bot→top fires
-  //   adaptiveAmp / adaptiveMinRepS — active thresholds once calibrated (null
-  //     while still in default-param mode for the first 2 reps)
-  const repStateRef = useRef({ state: 'unknown', extremes: [], bufs: [], peakExtremes: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0, observedSwings: [], observedTempos: [], adaptiveAmp: null, adaptiveMinRepS: null });
+  // Offline peak-detection rep counter state:
+  //   signalBufs[channel] — smoothed angle values sampled at the video's frame
+  //     rate during playback; one per MediaPipe frame
+  //   smoothBufs[channel] — the 5-frame rolling-median window used to produce
+  //     signalBufs values
+  //   lastPeakCountsAt — video-time of the last findPeaks run; used to throttle
+  //     re-runs to ~5 Hz so we aren't re-peak-finding every frame
+  const repStateRef = useRef({ signalBufs: {}, smoothBufs: {}, lastPeakRunAt: -1 });
   // Ref-backed counters so the detection loop can increment them without
   // colliding with stale closure captures (the previous setState-from-closure
   // approach kept resetting count to 1 on every rep).
@@ -141,10 +178,21 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   const [repsOn, setRepsOn] = useState(false);
   const [reps, setReps] = useState(0);
   const [tempo, setTempo] = useState(null); // seconds of video time for last rep
-  // Region-override dropdown. 'auto' = pick from exercise title via detectRegion;
-  // other values force the counter onto that region regardless of title.
+  // Override which joint-channels feed the peak detector. 'auto' = derive from
+  // exercise title. Manual overrides let the trainer force a channel pair for
+  // exercises the classifier mismapped.
   const [trackOverride, setTrackOverride] = useState('auto');
-  const activeRegion = trackOverride === 'auto' ? detectRegion(exerciseTitle) : trackOverride;
+  const autoPick = detectChannels(exerciseTitle);
+  const activeChannels =
+    trackOverride === 'auto' ? autoPick.channels :
+    trackOverride === 'hip'  ? ['L HIP', 'R HIP'] :
+    trackOverride === 'knee' ? ['L KNE', 'R KNE'] :
+    trackOverride === 'elbow'? ['L ELB', 'R ELB'] :
+    trackOverride === 'sho'  ? ['L SHO', 'R SHO'] :
+    []; // 'none'
+  const activeKind =
+    trackOverride === 'auto' ? autoPick.kind :
+    trackOverride;
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
   useEffect(() => { if (videoRef.current) videoRef.current.loop = loop; }, [loop]);
@@ -152,13 +200,13 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   // Hand the <video> element back to the parent if it asked for it.
   useEffect(() => { if (onVideoRef && videoRef.current) onVideoRef(videoRef.current); }, [onVideoRef, url]);
 
-  // Reset rep state when toggle flips, tracked region changes, or a new video loads.
+  // Reset rep state when toggle flips, tracked channels change, or a new video loads.
   useEffect(() => {
     setReps(0); setTempo(null);
     repsCountRef.current = 0;
     lastTempoRef.current = null;
-    repStateRef.current = { state: 'unknown', extremes: [], bufs: [], peakExtremes: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0, observedSwings: [], observedTempos: [], adaptiveAmp: null, adaptiveMinRepS: null };
-  }, [repsOn, url, activeRegion]);
+    repStateRef.current = { signalBufs: {}, smoothBufs: {}, lastPeakRunAt: -1 };
+  }, [repsOn, url, trackOverride, exerciseTitle]);
 
   const fullscreen = () => {
     const v = videoRef.current; if (!v) return;
@@ -181,7 +229,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   useEffect(() => {
     const v = videoRef.current; if (!v) return;
     const reset = () => {
-      repStateRef.current = { state: 'unknown', extremes: [], bufs: [], peakExtremes: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0, observedSwings: [], observedTempos: [], adaptiveAmp: null, adaptiveMinRepS: null };
+      repStateRef.current = { signalBufs: {}, smoothBufs: {}, lastPeakRunAt: -1 };
       repsCountRef.current = 0;
       lastTempoRef.current = null;
       setReps(0); setTempo(null);
@@ -338,110 +386,41 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
               //         future rep decisions. Median (not mean) so a single
               //         weird rep doesn't permanently skew the calibration;
               //         rolling so late-set fuller-ROM reps can pull it back up.
-              if (repsOn && TRACK_PARAMS[activeRegion]) {
-                const P = TRACK_PARAMS[activeRegion];
+              if (repsOn && activeChannels.length > 0) {
                 const st = repStateRef.current;
-                if (st.bufs.length !== P.channels.length) {
-                  st.bufs = P.channels.map(() => []);
-                  st.extremes = P.channels.map(() => null);
-                  st.peakExtremes = P.channels.map(() => null);
-                }
-                const smoothed = P.channels.map((key, i) => {
+                const vt = v.currentTime;
+                // Append this frame's smoothed angle per tracked channel.
+                for (const key of activeChannels) {
+                  if (!st.signalBufs[key]) st.signalBufs[key] = [];
+                  if (!st.smoothBufs[key]) st.smoothBufs[key] = [];
                   const raw = next[key];
-                  return raw != null ? rollingMedian(st.bufs[i], raw) : null;
-                });
-                // Arm the detector once ANY channel has at least 3 smoothed
-                // samples — don't single out bufs[0]. If the first-indexed
-                // channel (L_KNE or L_ELB) is permanently occluded (side-view
-                // clip, far-side limb), the other 3 channels can still drive
-                // rep detection.
-                const anyReady = smoothed.some(v => v != null) && st.bufs.some(b => b.length >= 3);
-                if (anyReady) {
-                  const vt = v.currentTime;
-                  const currAmp = st.adaptiveAmp != null ? st.adaptiveAmp : P.amp;
-                  const currMinRepS = st.adaptiveMinRepS != null ? st.adaptiveMinRepS : P.minRepS;
-                  const trackMax = st.state === 'top';
-                  const trackMin = st.state === 'bottom';
-                  if (st.state === 'unknown') {
-                    smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
-                    st.state = 'top'; st.lastTopVt = vt;
-                  } else {
-                    smoothed.forEach((v, i) => {
-                      if (v == null) return;
-                      if (st.extremes[i] == null) { st.extremes[i] = v; return; }
-                      if (trackMax && v > st.extremes[i]) st.extremes[i] = v;
-                      if (trackMin && v < st.extremes[i]) st.extremes[i] = v;
-                    });
-                    const deltas = smoothed.map((v, i) =>
-                      (v != null && st.extremes[i] != null)
-                        ? (trackMax ? st.extremes[i] - v : v - st.extremes[i])
-                        : 0);
-                    const sorted = [...deltas].sort((a, b) => b - a);
-                    const top = sorted[0] || 0, second = sorted[1] || 0;
-                    if (top > currAmp && second > currAmp * P.supportFrac) {
-                      st.runAtExtreme = (st.runAtExtreme || 0) + 1;
-                      if (st.runAtExtreme >= 2) {
-                        if (st.state === 'top') {
-                          // top → bottom: snapshot peaks so the next bot→top
-                          // transition can compute this cycle's amplitude.
-                          st.peakExtremes = st.extremes.map(v => v);
-                          smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
-                          st.state = 'bottom';
-                          st.lastBotVt = vt;
-                        } else {
-                          // bot → top: completed rep candidate. Gate on currMinRepS.
-                          const tempoSec = st.lastTopVt != null ? vt - st.lastTopVt : null;
-                          if (tempoSec == null || tempoSec >= currMinRepS) {
-                            repsCountRef.current += 1;
-                            lastTempoRef.current = tempoSec;
-                            // Dominant-channel amplitude = max(peak - trough).
-                            // Troughs are still in st.extremes at this point
-                            // (we reset after this block).
-                            const swings = st.peakExtremes.map((p, i) =>
-                              (p != null && st.extremes[i] != null) ? p - st.extremes[i] : 0);
-                            const repSwing = Math.max(0, ...swings);
-                            if (repSwing > 0) {
-                              st.observedSwings.push(repSwing);
-                              if (st.observedSwings.length > 20) st.observedSwings.shift();
-                            }
-                            // Skip rep 1's tempo — lastTopVt was seeded at the
-                            // first frame with data, so that value includes any
-                            // setup time before the athlete actually started
-                            // rep 1 and would skew the adaptive cadence median.
-                            // Rep 2 onward: tempoSec is a true rep-to-rep gap.
-                            if (tempoSec != null && tempoSec > 0 && repsCountRef.current >= 2) {
-                              st.observedTempos.push(tempoSec);
-                              if (st.observedTempos.length > 20) st.observedTempos.shift();
-                            }
-                            if (st.observedSwings.length >= 2) {
-                              const mS = medianOf(st.observedSwings);
-                              const mT = medianOf(st.observedTempos);
-                              // Adaptive thresholds = 50% of median observed
-                              // values, clamped to absolute physiological
-                              // bands. Hardcoded bounds (not derived from the
-                              // permissive seed P.amp) so the seed can be low
-                              // enough to catch marginal first reps without
-                              // also letting adaptive collapse into phantom-
-                              // counting territory on a shallow set.
-                              //   amp ∈ [15°, 55°]: 15° kills jitter, 55° rejects
-                              //     half-depth reps when the athlete is actually
-                              //     full-ROM'ing at 120°.
-                              //   minRepS ∈ [0.15s, 0.8s]: 0.15s kills sub-frame
-                              //     jitter, 0.8s stops a pause-per-rep athlete
-                              //     from locking out any subsequent faster set.
-                              st.adaptiveAmp = clamp(mS * 0.5, 15, 55);
-                              st.adaptiveMinRepS = clamp(mT * 0.5, 0.15, 0.8);
-                            }
-                          }
-                          smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
-                          st.state = 'top';
-                          st.lastTopVt = vt;
-                        }
-                        st.runAtExtreme = 0;
-                      }
-                    } else { st.runAtExtreme = 0; }
-                  }
+                  if (raw == null) { st.signalBufs[key].push(NaN); continue; }
+                  st.signalBufs[key].push(rollingMedian(st.smoothBufs[key], raw));
                 }
+                // Cap at ~2 minutes of 30fps data per channel.
+                for (const key of activeChannels) {
+                  if (st.signalBufs[key].length > 3600) st.signalBufs[key].shift();
+                }
+                // Re-run peak detection every ~0.2s of video time.
+                if (st.lastPeakRunAt < 0 || vt - st.lastPeakRunAt > 0.2) {
+                  st.lastPeakRunAt = vt;
+                  const sampleCount = st.signalBufs[activeChannels[0]]?.length || 0;
+                  const fps = vt > 0.1 && sampleCount > 0 ? sampleCount / vt : 30;
+                  const minDist = Math.max(4, Math.round(fps * 0.4));
+                  let bestCount = 0;
+                  for (const key of activeChannels) {
+                    const sig = st.signalBufs[key];
+                    if (!sig || sig.length < 10) continue;
+                    const cleaned = sig.map(x => (Number.isFinite(x) ? x : -1e6));
+                    const peaks = findPeaks(cleaned, 20, minDist);
+                    if (peaks.length > bestCount) bestCount = peaks.length;
+                  }
+                  repsCountRef.current = bestCount;
+                  lastTempoRef.current = bestCount > 1 ? vt / bestCount : null;
+                }
+              } else if (repsOn) {
+                // isometric / 'none' region — hold at 0.
+                repsCountRef.current = 0;
               }
             }
           } catch { /* swallow per-frame detect errors */ }
@@ -536,7 +515,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
           {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
         </button>
         <button onClick={toggleReps} disabled={poseLoading}
-          title={`Count reps from ${activeRegion === 'none' ? 'isometric — no cycle' : activeRegion + '-body'} movement`}
+          title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
           style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${repsOn?C.gn:C.bd}`,
             background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
@@ -544,12 +523,14 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
         </button>
         {repsOn && (
           <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
-            title="Which body region to track"
+            title="Which joint pair to count peaks on"
             style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
               background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-            <option value="auto">AUTO</option>
-            <option value="lower">LOWER</option>
-            <option value="upper">UPPER</option>
+            <option value="auto">AUTO ({(activeKind || 'none').toUpperCase()})</option>
+            <option value="hip">HIP</option>
+            <option value="knee">KNEE</option>
+            <option value="elbow">ELBOW</option>
+            <option value="sho">SHOULDER</option>
             <option value="none">SKIP</option>
           </select>
         )}
