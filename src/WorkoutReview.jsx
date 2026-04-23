@@ -95,6 +95,13 @@ const rollingMedian = (buf, v) => {
   const sorted = [...buf].sort((a, b) => a - b);
   return sorted[Math.floor(sorted.length / 2)];
 };
+// Plain median (no buffer) — for post-rep calibration against observed swings.
+const medianOf = (arr) => {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+};
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
 // Form-video player: speed control (0.125x recovers old fast-motion webm),
 // frame-step (←/→ ~ 1/30s), fullscreen, and an optional MediaPipe Pose
@@ -110,10 +117,16 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
   // Rep state machine. Shared phase (`state`: 'top' | 'bottom' | 'unknown'),
-  // but per-channel tracking: each channel has its own rolling-median buffer
-  // (`bufs[i]`) and its own recorded extreme (`extremes[i]`). Transitions
-  // trigger on whichever channel's swing-from-extreme first exceeds P.amp.
-  const repStateRef = useRef({ state: 'unknown', extremes: [], bufs: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0 });
+  // per-channel tracking (`extremes[i]`, `bufs[i]`), plus adaptive calibration:
+  //   observedSwings[] — peak-to-trough amplitude of each completed rep on the
+  //     dominant channel, used to rescale `amp` to this athlete / clip
+  //   observedTempos[] — cycle duration of each completed rep, used to rescale
+  //     `minRepS` to the observed cadence
+  //   peakExtremes[] — snapshot of channel maxes at top→bot transition, held
+  //     so we can compute that rep's amplitude when the next bot→top fires
+  //   adaptiveAmp / adaptiveMinRepS — active thresholds once calibrated (null
+  //     while still in default-param mode for the first 2 reps)
+  const repStateRef = useRef({ state: 'unknown', extremes: [], bufs: [], peakExtremes: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0, observedSwings: [], observedTempos: [], adaptiveAmp: null, adaptiveMinRepS: null });
   // Ref-backed counters so the detection loop can increment them without
   // colliding with stale closure captures (the previous setState-from-closure
   // approach kept resetting count to 1 on every rep).
@@ -144,7 +157,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
     setReps(0); setTempo(null);
     repsCountRef.current = 0;
     lastTempoRef.current = null;
-    repStateRef.current = { state: 'unknown', extremes: [], bufs: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0 };
+    repStateRef.current = { state: 'unknown', extremes: [], bufs: [], peakExtremes: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0, observedSwings: [], observedTempos: [], adaptiveAmp: null, adaptiveMinRepS: null };
   }, [repsOn, url, activeRegion]);
 
   const fullscreen = () => {
@@ -168,7 +181,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   useEffect(() => {
     const v = videoRef.current; if (!v) return;
     const reset = () => {
-      repStateRef.current = { state: 'unknown', extremes: [], bufs: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0 };
+      repStateRef.current = { state: 'unknown', extremes: [], bufs: [], peakExtremes: [], lastTopVt: null, lastBotVt: null, runAtExtreme: 0, observedSwings: [], observedTempos: [], adaptiveAmp: null, adaptiveMinRepS: null };
       repsCountRef.current = 0;
       lastTempoRef.current = null;
       setReps(0); setTempo(null);
@@ -305,25 +318,33 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
               }
               pendingAngles = next;
 
-              // Rep counter: four independent joint channels per region.
-              // Each tick, for each channel:
-              //   - read the raw angle, median-smooth over its own 5-frame buffer
-              //   - in 'top' state track the maximum (most-extended) value
-              //   - in 'bottom' state track the minimum (most-flexed) value
-              //   - compute delta = extreme − current (flex direction) or
-              //     current − extreme (extend direction)
-              // Transition fires when the TOP delta across channels exceeds
-              // P.amp AND the 2nd-highest delta exceeds P.amp * P.supportFrac,
-              // for 2 consecutive frames. Requiring two channels to agree
-              // blocks single-channel noise from producing phantom reps while
-              // still letting unilateral moves (where ~2 of the 4 channels
-              // actually cycle) through.
+              // Rep counter: four independent joint channels per region, with
+              // adaptive per-clip calibration. Core loop:
+              //   - each tick, per channel: raw angle → 5-frame median → update
+              //     that channel's extreme (max in 'top', min in 'bottom')
+              //   - compute per-channel delta from its extreme; sort; transition
+              //     when top delta > currAmp AND 2nd-highest > currAmp*supportFrac
+              //     for 2 consecutive frames (runAtExtreme debounce)
+              // Adaptive calibration:
+              //   - at top→bot transition: snapshot peakExtremes so we can
+              //     measure this rep's amplitude when the return fires
+              //   - at bot→top transition (= a completed rep):
+              //       * compute dominant-channel swing = max(peak[i] - trough[i])
+              //       * push swing + tempoSec onto observedSwings/observedTempos
+              //       * once 2 reps are captured, set adaptiveAmp = 50% of the
+              //         rolling-median swing and adaptiveMinRepS = 50% of the
+              //         rolling-median tempo, clamped to a sane band around the
+              //         P defaults. These become `currAmp`/`currMinRepS` for
+              //         future rep decisions. Median (not mean) so a single
+              //         weird rep doesn't permanently skew the calibration;
+              //         rolling so late-set fuller-ROM reps can pull it back up.
               if (repsOn && TRACK_PARAMS[activeRegion]) {
                 const P = TRACK_PARAMS[activeRegion];
                 const st = repStateRef.current;
                 if (st.bufs.length !== P.channels.length) {
                   st.bufs = P.channels.map(() => []);
                   st.extremes = P.channels.map(() => null);
+                  st.peakExtremes = P.channels.map(() => null);
                 }
                 const smoothed = P.channels.map((key, i) => {
                   const raw = next[key];
@@ -332,9 +353,8 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                 const anyReady = smoothed.some(v => v != null) && st.bufs[0].length >= 3;
                 if (anyReady) {
                   const vt = v.currentTime;
-                  // Choose delta sign based on phase. In 'top' we're waiting for
-                  // flexion (angle going DOWN), so delta = extreme − current.
-                  // In 'bottom' we're waiting for extension, so delta = current − extreme.
+                  const currAmp = st.adaptiveAmp != null ? st.adaptiveAmp : P.amp;
+                  const currMinRepS = st.adaptiveMinRepS != null ? st.adaptiveMinRepS : P.minRepS;
                   const trackMax = st.state === 'top';
                   const trackMin = st.state === 'bottom';
                   if (st.state === 'unknown') {
@@ -353,19 +373,54 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                         : 0);
                     const sorted = [...deltas].sort((a, b) => b - a);
                     const top = sorted[0] || 0, second = sorted[1] || 0;
-                    if (top > P.amp && second > P.amp * P.supportFrac) {
+                    if (top > currAmp && second > currAmp * P.supportFrac) {
                       st.runAtExtreme = (st.runAtExtreme || 0) + 1;
                       if (st.runAtExtreme >= 2) {
-                        if (st.state === 'bottom') {
+                        if (st.state === 'top') {
+                          // top → bottom: snapshot peaks so the next bot→top
+                          // transition can compute this cycle's amplitude.
+                          st.peakExtremes = st.extremes.map(v => v);
+                          smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
+                          st.state = 'bottom';
+                          st.lastBotVt = vt;
+                        } else {
+                          // bot → top: completed rep candidate. Gate on currMinRepS.
                           const tempoSec = st.lastTopVt != null ? vt - st.lastTopVt : null;
-                          if (tempoSec == null || tempoSec >= P.minRepS) {
+                          if (tempoSec == null || tempoSec >= currMinRepS) {
                             repsCountRef.current += 1;
                             lastTempoRef.current = tempoSec;
+                            // Dominant-channel amplitude = max(peak - trough).
+                            // Troughs are still in st.extremes at this point
+                            // (we reset after this block).
+                            const swings = st.peakExtremes.map((p, i) =>
+                              (p != null && st.extremes[i] != null) ? p - st.extremes[i] : 0);
+                            const repSwing = Math.max(0, ...swings);
+                            if (repSwing > 0) {
+                              st.observedSwings.push(repSwing);
+                              if (st.observedSwings.length > 20) st.observedSwings.shift();
+                            }
+                            if (tempoSec != null && tempoSec > 0) {
+                              st.observedTempos.push(tempoSec);
+                              if (st.observedTempos.length > 20) st.observedTempos.shift();
+                            }
+                            if (st.observedSwings.length >= 2) {
+                              const mS = medianOf(st.observedSwings);
+                              const mT = medianOf(st.observedTempos);
+                              // amp clamped to 0.5×..2× the default — prevents
+                              // a shallow first-two-reps calibration from making
+                              // the rest of the set trivially easy, and a huge
+                              // first-rep from making the rest impossible.
+                              st.adaptiveAmp = clamp(mS * 0.5, P.amp * 0.5, P.amp * 2);
+                              // minRepS at 50% of median cadence, floor at
+                              // 0.5×default to keep some anti-jitter, ceiling
+                              // at 0.8s so a pauser doesn't lock out follow-ups.
+                              st.adaptiveMinRepS = clamp(mT * 0.5, P.minRepS * 0.5, 0.8);
+                            }
                           }
+                          smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
+                          st.state = 'top';
+                          st.lastTopVt = vt;
                         }
-                        smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
-                        if (st.state === 'top') { st.state = 'bottom'; st.lastBotVt = vt; }
-                        else { st.state = 'top'; st.lastTopVt = vt; }
                         st.runAtExtreme = 0;
                       }
                     } else { st.runAtExtreme = 0; }
