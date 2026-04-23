@@ -136,8 +136,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                       <React.Fragment key={mi}>
                         {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:600,fontSize:13,color:C.tx,textAlign:'left'}}>{m.name || `Member ${mi+1}`}</div>
-                          <div style={{fontSize:12,color:C.tm,marginTop:2,minHeight:16,textAlign:'left'}}>{emailsDisplay(m.email)}</div>
+                          <div style={{fontWeight:600,fontSize:13,color:C.tx,textAlign:'left',overflowWrap:'anywhere'}}>{m.name || `Member ${mi+1}`}</div>
+                          <div style={{fontSize:12,color:C.tm,marginTop:2,minHeight:16,textAlign:'left',overflowWrap:'anywhere'}}>{emailsDisplay(m.email)}</div>
                           <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
                             {mpc[mi] > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{mpc[mi]} PROGRAMS</span>}
                           </div>
