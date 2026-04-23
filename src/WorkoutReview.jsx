@@ -62,17 +62,26 @@ const detectRegion = (title) => {
   return 'lower'; // conservative default — Amit's library skews lower-body
 };
 
-// Per-region rep-detection parameters. Each region has TWO independent joint
-// channels (knee/hip for lower, elbow/shoulder for upper). Each channel's
-// angle per tick is min(L, R) — the most-flexed side — so unilateral moves
-// (lunges, split squats) don't get diluted by the stationary trailing leg.
-// A rep transition fires when ANY channel swings more than `amp` degrees from
-// its recorded extreme, so a squat (both channels move), a lunge (knee only),
-// a hip thrust (hip only), and a leg curl (knee only) all count — but a
-// phantom single-joint wobble below `amp` does not.
+// Per-region rep-detection parameters. Each region has FOUR independent joint
+// channels (L_KNE, R_KNE, L_HIP, R_HIP for lower; L_ELB, R_ELB, L_SHO, R_SHO
+// for upper). Each channel is tracked separately with its own extreme. This
+// handles far-leg occlusion: when MediaPipe loses the camera-far leg on a
+// side-view lunge clip, the working side still drives a transition via its
+// own channel instead of being washed out by a min(L,R) over bad data.
+//
+// To stop any single noisy channel from triggering phantom reps, a transition
+// requires the TOP channel's swing to exceed P.amp AND the 2nd-highest
+// channel's swing to exceed P.amp * P.supportFrac — i.e. at least two body
+// parts must have moved together. P.supportFrac is tuned so the "supporting"
+// channel covers the realistic secondary movement in each pattern:
+//   - squat: all 4 swing big (both knees + both hips)
+//   - lunge (working far leg): that leg's knee + hip
+//   - hip thrust: both hips (L + R)
+//   - leg curl: both knees (L + R)
+//   - bench/row: both elbows (L + R)
 const TRACK_PARAMS = {
-  lower: { amp: 40, minRepS: 0.45, channels: [['L KNE', 'R KNE'], ['L HIP', 'R HIP']] },
-  upper: { amp: 45, minRepS: 0.30, channels: [['L ELB', 'R ELB'], ['L SHO', 'R SHO']] },
+  lower: { amp: 28, minRepS: 0.55, supportFrac: 0.35, channels: ['L KNE', 'R KNE', 'L HIP', 'R HIP'] },
+  upper: { amp: 32, minRepS: 0.40, supportFrac: 0.35, channels: ['L ELB', 'R ELB', 'L SHO', 'R SHO'] },
   none:  null, // skip counting entirely
 };
 
@@ -296,66 +305,68 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
               }
               pendingAngles = next;
 
-              // Rep counter: two independent joint channels per region
-              // (knee+hip for lower, elbow+shoulder for upper). Each tick:
-              //   - extract min(L,R) per channel (most-flexed side) so
-              //     unilateral lifts aren't diluted by the stationary side
-              //   - median-smooth each channel over its own 5-frame buffer
-              //   - compute per-channel delta from that channel's recorded
-              //     extreme; take the max across channels as the composite
-              //     swing signal; transition when that exceeds P.amp for 2
-              //     consecutive frames
-              // Bottom→top transitions credit a rep gated on P.minRepS.
+              // Rep counter: four independent joint channels per region.
+              // Each tick, for each channel:
+              //   - read the raw angle, median-smooth over its own 5-frame buffer
+              //   - in 'top' state track the maximum (most-extended) value
+              //   - in 'bottom' state track the minimum (most-flexed) value
+              //   - compute delta = extreme − current (flex direction) or
+              //     current − extreme (extend direction)
+              // Transition fires when the TOP delta across channels exceeds
+              // P.amp AND the 2nd-highest delta exceeds P.amp * P.supportFrac,
+              // for 2 consecutive frames. Requiring two channels to agree
+              // blocks single-channel noise from producing phantom reps while
+              // still letting unilateral moves (where ~2 of the 4 channels
+              // actually cycle) through.
               if (repsOn && TRACK_PARAMS[activeRegion]) {
                 const P = TRACK_PARAMS[activeRegion];
                 const st = repStateRef.current;
-                // Lazily size per-channel buffers/extremes to match P.channels.
                 if (st.bufs.length !== P.channels.length) {
                   st.bufs = P.channels.map(() => []);
                   st.extremes = P.channels.map(() => null);
                 }
-                // Per-channel smoothed value; null if both sides are missing.
-                const smoothed = P.channels.map(([lk, rk], i) => {
-                  const lv = next[lk], rv = next[rk];
-                  const raw = (lv != null && rv != null) ? Math.min(lv, rv) : (lv ?? rv);
+                const smoothed = P.channels.map((key, i) => {
+                  const raw = next[key];
                   return raw != null ? rollingMedian(st.bufs[i], raw) : null;
                 });
                 const anyReady = smoothed.some(v => v != null) && st.bufs[0].length >= 3;
                 if (anyReady) {
                   const vt = v.currentTime;
+                  // Choose delta sign based on phase. In 'top' we're waiting for
+                  // flexion (angle going DOWN), so delta = extreme − current.
+                  // In 'bottom' we're waiting for extension, so delta = current − extreme.
+                  const trackMax = st.state === 'top';
+                  const trackMin = st.state === 'bottom';
                   if (st.state === 'unknown') {
-                    // Seed each extreme from the first populated sample per channel.
                     smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
                     st.state = 'top'; st.lastTopVt = vt;
-                  } else if (st.state === 'top') {
-                    // Deepen extreme (= maximum angle) per channel.
-                    smoothed.forEach((v, i) => { if (v != null && (st.extremes[i] == null || v > st.extremes[i])) st.extremes[i] = v; });
-                    // Swing away from extreme = extreme − current (bigger = flexed more).
-                    const delta = smoothed.map((v, i) => (v != null && st.extremes[i] != null) ? st.extremes[i] - v : 0);
-                    const maxDelta = Math.max(...delta);
-                    if (maxDelta > P.amp) {
+                  } else {
+                    smoothed.forEach((v, i) => {
+                      if (v == null) return;
+                      if (st.extremes[i] == null) { st.extremes[i] = v; return; }
+                      if (trackMax && v > st.extremes[i]) st.extremes[i] = v;
+                      if (trackMin && v < st.extremes[i]) st.extremes[i] = v;
+                    });
+                    const deltas = smoothed.map((v, i) =>
+                      (v != null && st.extremes[i] != null)
+                        ? (trackMax ? st.extremes[i] - v : v - st.extremes[i])
+                        : 0);
+                    const sorted = [...deltas].sort((a, b) => b - a);
+                    const top = sorted[0] || 0, second = sorted[1] || 0;
+                    if (top > P.amp && second > P.amp * P.supportFrac) {
                       st.runAtExtreme = (st.runAtExtreme || 0) + 1;
                       if (st.runAtExtreme >= 2) {
-                        // Reset extremes to current for the bottom phase.
-                        smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
-                        st.state = 'bottom'; st.lastBotVt = vt; st.runAtExtreme = 0;
-                      }
-                    } else { st.runAtExtreme = 0; }
-                  } else if (st.state === 'bottom') {
-                    // Deepen extreme (= minimum angle) per channel.
-                    smoothed.forEach((v, i) => { if (v != null && (st.extremes[i] == null || v < st.extremes[i])) st.extremes[i] = v; });
-                    const delta = smoothed.map((v, i) => (v != null && st.extremes[i] != null) ? v - st.extremes[i] : 0);
-                    const maxDelta = Math.max(...delta);
-                    if (maxDelta > P.amp) {
-                      st.runAtExtreme = (st.runAtExtreme || 0) + 1;
-                      if (st.runAtExtreme >= 2) {
-                        const tempoSec = st.lastTopVt != null ? vt - st.lastTopVt : null;
-                        if (tempoSec == null || tempoSec >= P.minRepS) {
-                          repsCountRef.current += 1;
-                          lastTempoRef.current = tempoSec;
+                        if (st.state === 'bottom') {
+                          const tempoSec = st.lastTopVt != null ? vt - st.lastTopVt : null;
+                          if (tempoSec == null || tempoSec >= P.minRepS) {
+                            repsCountRef.current += 1;
+                            lastTempoRef.current = tempoSec;
+                          }
                         }
                         smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
-                        st.state = 'top'; st.lastTopVt = vt; st.runAtExtreme = 0;
+                        if (st.state === 'top') { st.state = 'bottom'; st.lastBotVt = vt; }
+                        else { st.state = 'top'; st.lastTopVt = vt; }
+                        st.runAtExtreme = 0;
                       }
                     } else { st.runAtExtreme = 0; }
                   }
