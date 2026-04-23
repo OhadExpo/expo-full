@@ -80,8 +80,8 @@ const detectRegion = (title) => {
 //   - leg curl: both knees (L + R)
 //   - bench/row: both elbows (L + R)
 const TRACK_PARAMS = {
-  lower: { amp: 28, minRepS: 0.30, supportFrac: 0.10, channels: ['L KNE', 'R KNE', 'L HIP', 'R HIP'] },
-  upper: { amp: 22, minRepS: 0.25, supportFrac: 0.15, channels: ['L ELB', 'R ELB', 'L SHO', 'R SHO'] },
+  lower: { amp: 18, minRepS: 0.25, supportFrac: 0.05, channels: ['L KNE', 'R KNE', 'L HIP', 'R HIP'] },
+  upper: { amp: 16, minRepS: 0.20, supportFrac: 0.05, channels: ['L ELB', 'R ELB', 'L SHO', 'R SHO'] },
   none:  null, // skip counting entirely
 };
 
@@ -411,15 +411,21 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                             if (st.observedSwings.length >= 2) {
                               const mS = medianOf(st.observedSwings);
                               const mT = medianOf(st.observedTempos);
-                              // amp clamped to 0.5×..2× the default — prevents
-                              // a shallow first-two-reps calibration from making
-                              // the rest of the set trivially easy, and a huge
-                              // first-rep from making the rest impossible.
-                              st.adaptiveAmp = clamp(mS * 0.5, P.amp * 0.5, P.amp * 2);
-                              // minRepS at 50% of median cadence, floor at
-                              // 0.5×default to keep some anti-jitter, ceiling
-                              // at 0.8s so a pauser doesn't lock out follow-ups.
-                              st.adaptiveMinRepS = clamp(mT * 0.5, P.minRepS * 0.5, 0.8);
+                              // Adaptive thresholds = 50% of median observed
+                              // values, clamped to absolute physiological
+                              // bands. Hardcoded bounds (not derived from the
+                              // permissive seed P.amp) so the seed can be low
+                              // enough to catch marginal first reps without
+                              // also letting adaptive collapse into phantom-
+                              // counting territory on a shallow set.
+                              //   amp ∈ [15°, 55°]: 15° kills jitter, 55° rejects
+                              //     half-depth reps when the athlete is actually
+                              //     full-ROM'ing at 120°.
+                              //   minRepS ∈ [0.15s, 0.8s]: 0.15s kills sub-frame
+                              //     jitter, 0.8s stops a pause-per-rep athlete
+                              //     from locking out any subsequent faster set.
+                              st.adaptiveAmp = clamp(mS * 0.5, 15, 55);
+                              st.adaptiveMinRepS = clamp(mT * 0.5, 0.15, 0.8);
                             }
                           }
                           smoothed.forEach((v, i) => { if (v != null) st.extremes[i] = v; });
