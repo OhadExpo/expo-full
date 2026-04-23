@@ -81,7 +81,7 @@ const detectRegion = (title) => {
 //   - bench/row: both elbows (L + R)
 const TRACK_PARAMS = {
   lower: { amp: 28, minRepS: 0.55, supportFrac: 0.20, channels: ['L KNE', 'R KNE', 'L HIP', 'R HIP'] },
-  upper: { amp: 32, minRepS: 0.40, supportFrac: 0.20, channels: ['L ELB', 'R ELB', 'L SHO', 'R SHO'] },
+  upper: { amp: 22, minRepS: 0.25, supportFrac: 0.15, channels: ['L ELB', 'R ELB', 'L SHO', 'R SHO'] },
   none:  null, // skip counting entirely
 };
 
