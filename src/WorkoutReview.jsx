@@ -80,7 +80,7 @@ const detectRegion = (title) => {
 //   - leg curl: both knees (L + R)
 //   - bench/row: both elbows (L + R)
 const TRACK_PARAMS = {
-  lower: { amp: 28, minRepS: 0.55, supportFrac: 0.20, channels: ['L KNE', 'R KNE', 'L HIP', 'R HIP'] },
+  lower: { amp: 28, minRepS: 0.30, supportFrac: 0.10, channels: ['L KNE', 'R KNE', 'L HIP', 'R HIP'] },
   upper: { amp: 22, minRepS: 0.25, supportFrac: 0.15, channels: ['L ELB', 'R ELB', 'L SHO', 'R SHO'] },
   none:  null, // skip counting entirely
 };
