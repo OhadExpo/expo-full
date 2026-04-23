@@ -86,15 +86,26 @@ const detectChannels = (title) => {
   return { kind: 'knee', channels: ['L KNE', 'R KNE'] };
 };
 
-// 5-frame rolling median smoother — same as before, kills single-frame
-// MediaPipe spikes from transient occlusion.
+// Median filter over a buffer, window of WIN samples centered on each index.
+// NaN/undefined samples are skipped — the filter outputs the median of only
+// the real values in the window. Applied at findPeaks time (not during sample
+// collection) so ordering of sample writes doesn't matter.
 const SMOOTH_N = 5;
-const rollingMedian = (buf, v) => {
-  buf.push(v);
-  if (buf.length > SMOOTH_N) buf.shift();
-  const sorted = [...buf].sort((a, b) => a - b);
-  return sorted[Math.floor(sorted.length / 2)];
-};
+function medianFilter(signal, win = SMOOTH_N) {
+  const half = Math.floor(win / 2);
+  const out = new Array(signal.length);
+  for (let i = 0; i < signal.length; i++) {
+    const vals = [];
+    for (let j = Math.max(0, i - half); j <= Math.min(signal.length - 1, i + half); j++) {
+      const x = signal[j];
+      if (x != null && Number.isFinite(x)) vals.push(x);
+    }
+    if (vals.length === 0) { out[i] = undefined; continue; }
+    vals.sort((a, b) => a - b);
+    out[i] = vals[Math.floor(vals.length / 2)];
+  }
+  return out;
+}
 
 // Offline peak finder with prominence + minimum-distance. A peak is a strict
 // local maximum whose prominence (drop from peak to the lowest valley before
@@ -107,6 +118,11 @@ const rollingMedian = (buf, v) => {
 const isReal = (x) => x != null && Number.isFinite(x);
 function findPeaks(signal, prominence, minDist) {
   const candidates = [];
+  // A peak needs real neighbors within NEIGHBOR_MAX samples so sparse frame-
+  // stepped samples don't each register as isolated "peaks". 3 buckets at
+  // BUCKET_FPS=30 is 100ms — tight enough to require genuine dense coverage,
+  // loose enough to tolerate the occasional skipped bucket from a 25fps clip.
+  const NEIGHBOR_MAX = 3;
   for (let i = 1; i < signal.length - 1; i++) {
     const v = signal[i];
     if (!isReal(v)) continue;
@@ -115,6 +131,7 @@ function findPeaks(signal, prominence, minDist) {
     let pi = i - 1; while (pi >= 0 && !isReal(signal[pi])) pi--;
     let ni = i + 1; while (ni < signal.length && !isReal(signal[ni])) ni++;
     if (pi < 0 || ni >= signal.length) continue;
+    if (i - pi > NEIGHBOR_MAX || ni - i > NEIGHBOR_MAX) continue;
     if (v <= signal[pi] || v <= signal[ni]) continue;
     // Prominence: walk left/right until signal exceeds v, track the min of
     // real values in between; prominence = v − max(leftMin, rightMin).
@@ -164,13 +181,14 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
   // Offline peak-detection rep counter state:
-  //   signalBufs[channel] — smoothed angle values sampled at the video's frame
-  //     rate during playback; one per MediaPipe frame
-  //   smoothBufs[channel] — the 5-frame rolling-median window used to produce
-  //     signalBufs values
-  //   lastPeakCountsAt — video-time of the last findPeaks run; used to throttle
-  //     re-runs to ~5 Hz so we aren't re-peak-finding every frame
-  const repStateRef = useRef({ signalBufs: {}, smoothBufs: {}, lastPeakRunAt: -1 });
+  //   signalBufs[channel] — dense arrays indexed by video-frame bucket
+  //     (Math.round(vt * BUCKET_FPS)). Raw angle per bucket; NaN for frames
+  //     MediaPipe hasn't visited yet. Scrubbing back re-visits the same
+  //     bucket and overwrites, so the buffer always reflects the latest
+  //     reading per frame regardless of playback order.
+  //   lastPeakRunAt — video-time of the last findPeaks run; throttles re-runs
+  //     to ~5 Hz so we aren't re-peak-finding on every frame.
+  const repStateRef = useRef({ signalBufs: {}, lastPeakRunAt: -1 });
   // Ref-backed counters so the detection loop can increment them without
   // colliding with stale closure captures (the previous setState-from-closure
   // approach kept resetting count to 1 on every rep).
@@ -207,13 +225,16 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   // Hand the <video> element back to the parent if it asked for it.
   useEffect(() => { if (onVideoRef && videoRef.current) onVideoRef(videoRef.current); }, [onVideoRef, url]);
 
-  // Reset rep state when toggle flips, tracked channels change, or a new video loads.
+  // Reset rep state when toggle flips or a new video loads. `trackOverride`
+  // is intentionally NOT in this dep list — all 8 channels are stored in the
+  // buffer, so switching the tracked region just re-runs findPeaks on a
+  // different subset without needing a replay.
   useEffect(() => {
     setReps(0); setTempo(null);
     repsCountRef.current = 0;
     lastTempoRef.current = null;
-    repStateRef.current = { signalBufs: {}, smoothBufs: {}, lastPeakRunAt: -1 };
-  }, [repsOn, url, trackOverride, exerciseTitle]);
+    repStateRef.current = { signalBufs: {}, lastPeakRunAt: -1 };
+  }, [repsOn, url]);
 
   const fullscreen = () => {
     const v = videoRef.current; if (!v) return;
@@ -231,19 +252,8 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
     v.currentTime = Math.max(0, Math.min((v.duration || 0) - 0.001, v.currentTime + dt));
   };
 
-  // Reset rep state whenever the user scrubs (seeked) — the rep machine
-  // assumes monotonically advancing video time.
-  useEffect(() => {
-    const v = videoRef.current; if (!v) return;
-    const reset = () => {
-      repStateRef.current = { signalBufs: {}, smoothBufs: {}, lastPeakRunAt: -1 };
-      repsCountRef.current = 0;
-      lastTempoRef.current = null;
-      setReps(0); setTempo(null);
-    };
-    v.addEventListener('seeked', reset);
-    return () => v.removeEventListener('seeked', reset);
-  }, [url]);
+  // (No seek reset: signal buffer is indexed by frame bucket, so scrubbing
+  // re-visits the same index and overwrites. Count survives scrub/step-frame.)
 
   // Shared lazy-loader so both POSE and REPS toggles can fetch the model.
   const ensureModel = async () => {
@@ -373,47 +383,46 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
               }
               pendingAngles = next;
 
-              // Rep counter: accumulate per-channel smoothed angle samples
-              // during playback, re-run findPeaks every 0.2s of video time,
-              // display the max peak count across the selected channels.
-              if (repsOn && activeChannels.length > 0) {
+              // Rep counter: write every frame's raw angles into dense per-
+              // channel buffers at index = round(vt * BUCKET_FPS). Scrubbing
+              // back re-visits the same index and overwrites. Every ~0.2s of
+              // video time, median-filter each tracked channel's buffer and
+              // run findPeaks; display max peak count across channels.
+              // All 8 channels are stored (not just the active ones) so
+              // switching the override dropdown doesn't require a replay.
+              const BUCKET_FPS = 30;
+              if (repsOn) {
                 const st = repStateRef.current;
                 const vt = v.currentTime;
-                // Append this frame's smoothed angle per tracked channel.
-                for (const key of activeChannels) {
+                const bucket = Math.round(vt * BUCKET_FPS);
+                for (const d of ANGLE_DEFS) {
+                  const key = d.name;
                   if (!st.signalBufs[key]) st.signalBufs[key] = [];
-                  if (!st.smoothBufs[key]) st.smoothBufs[key] = [];
                   const raw = next[key];
-                  if (raw == null) { st.signalBufs[key].push(NaN); continue; }
-                  st.signalBufs[key].push(rollingMedian(st.smoothBufs[key], raw));
+                  st.signalBufs[key][bucket] = raw != null ? raw : NaN;
                 }
-                // Cap at ~2 minutes of 30fps data per channel.
-                for (const key of activeChannels) {
-                  if (st.signalBufs[key].length > 3600) st.signalBufs[key].shift();
-                }
-                // Re-run peak detection every ~0.2s of video time.
-                if (st.lastPeakRunAt < 0 || vt - st.lastPeakRunAt > 0.2) {
-                  st.lastPeakRunAt = vt;
-                  const sampleCount = st.signalBufs[activeChannels[0]]?.length || 0;
-                  const fps = vt > 0.1 && sampleCount > 0 ? sampleCount / vt : 30;
-                  const minDist = Math.max(4, Math.round(fps * 0.4));
-                  let bestCount = 0;
-                  for (const key of activeChannels) {
-                    const sig = st.signalBufs[key];
-                    if (!sig || sig.length < 10) continue;
-                    // Pass the raw buffer — NaN values represent data gaps and
-                    // findPeaks handles them correctly (skips in neighbor +
-                    // prominence walks). Replacing them with a low sentinel
-                    // would inflate prominence for real peaks next to gaps.
-                    const peaks = findPeaks(sig, 20, minDist);
-                    if (peaks.length > bestCount) bestCount = peaks.length;
+                if (activeChannels.length === 0) {
+                  // isometric / 'none' — nothing to count.
+                  repsCountRef.current = 0;
+                } else {
+                  // Throttle re-runs on wall-clock (not video time) so a
+                  // backward scrub still triggers re-evaluation.
+                  const now = performance.now();
+                  if (st.lastPeakRunAt < 0 || now - st.lastPeakRunAt > 200) {
+                    st.lastPeakRunAt = now;
+                    const minDist = Math.max(4, Math.round(BUCKET_FPS * 0.4));
+                    let bestCount = 0;
+                    for (const key of activeChannels) {
+                      const sig = st.signalBufs[key];
+                      if (!sig || sig.length < 10) continue;
+                      const smoothed = medianFilter(sig, SMOOTH_N);
+                      const peaks = findPeaks(smoothed, 20, minDist);
+                      if (peaks.length > bestCount) bestCount = peaks.length;
+                    }
+                    repsCountRef.current = bestCount;
+                    lastTempoRef.current = bestCount > 1 ? vt / bestCount : null;
                   }
-                  repsCountRef.current = bestCount;
-                  lastTempoRef.current = bestCount > 1 ? vt / bestCount : null;
                 }
-              } else if (repsOn) {
-                // isometric / 'none' region — hold at 0.
-                repsCountRef.current = 0;
               }
             }
           } catch { /* swallow per-frame detect errors */ }
