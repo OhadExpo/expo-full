@@ -42,17 +42,64 @@ const angleAt = (lms, ai, bi, ci) => {
   return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
 };
 
+// Map an exercise title to the joint whose angle-cycle defines a rep.
+//   knee  → squat-shaped lower-body (squat, lunge, step-up, rfess, leg curl, jump)
+//   hip   → hinge-shaped (deadlift, rdl, hip thrust, good-morning, snapdown, clean)
+//   elbow → upper-body push/pull (bench, press, row, pull, curl, extension, dip, raise)
+//   none  → isometrics, carries, plyo micro-pulses (plank, l-sit, pogo, hold, hang, landing)
+// Order matters: `none` has to match before jumping-family rules would claim "pogo" as knee.
+const JOINT_RULES = [
+  { joint: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|pogo|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap|heel[-\s]?click|depth[-\s]?landing|snapdown)\b/i },
+  { joint: 'hip',   rx: /\b(deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|hip[-\s]?thrust|glute[-\s]?bridge|jefferson|clean|snatch|kb\s*swing|swing)\b/i },
+  { joint: 'knee',  rx: /\b(squat|lunge|step[-\s]?up|split[-\s]?squat|rfess|bulgarian|pistol|leg[-\s]?press|leg[-\s]?extension|leg[-\s]?curl|jump|bounce|goblet|thruster)\b/i },
+  { joint: 'elbow', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|curl|extension|tricep|skull|dip|pushdown|fly|flye|raise|pullover|hammer)\b/i },
+];
+const detectJoint = (title) => {
+  const t = String(title || '');
+  for (const r of JOINT_RULES) if (r.rx.test(t)) return r.joint;
+  return 'knee'; // conservative default — Amit's library is squat-heavy
+};
+
+// Per-joint thresholds for the rep state machine. All angles in degrees.
+// `topMin` = above this = extended/top, `botMax` = below this = flexed/bottom,
+// `amp` = minimum swing (exit threshold) before a transition can fire,
+// `minRepS` = minimum seconds between bottom and next top; anything faster is
+// jitter or a micro-bounce and gets discarded.
+const TRACK_PARAMS = {
+  knee:  { topMin: 140, botMax: 110, amp: 45, minRepS: 0.8, pair: ['L KNE', 'R KNE'] },
+  hip:   { topMin: 155, botMax: 115, amp: 40, minRepS: 0.8, pair: ['L HIP', 'R HIP'] },
+  elbow: { topMin: 140, botMax: 75,  amp: 50, minRepS: 0.5, pair: ['L ELB', 'R ELB'] },
+  none:  null, // skip counting entirely
+};
+
+// Rolling median over the last N samples. Median (not mean) because MediaPipe
+// throws the occasional wildly-wrong angle when a limb briefly self-occludes,
+// and one bad frame is enough to nudge a mean across the rep threshold.
+const SMOOTH_N = 5;
+const rollingMedian = (buf, v) => {
+  buf.push(v);
+  if (buf.length > SMOOTH_N) buf.shift();
+  const sorted = [...buf].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
+};
+
 // Form-video player: speed control (0.125x recovers old fast-motion webm),
 // frame-step (←/→ ~ 1/30s), fullscreen, and an optional MediaPipe Pose
 // overlay with live joint angles + rep counter.
+// `exerciseTitle` lets the rep counter auto-pick the right joint (knee/hip/
+// elbow) instead of always-knee. If omitted, defaults to 'auto' which falls
+// back to 'knee'. Trainer can override via the dropdown next to REPS.
 // `onVideoRef` lets a parent grab the underlying <video> element (used by
 // the side-by-side compare view to sync timing across two players).
-function FormVideoPlayer({ url, onVideoRef }) {
+function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
-  const repStateRef = useRef({ state: 'unknown', extreme: null, lastTopVt: null });
+  // `buf` holds the last N smoothed-joint angles for rolling-median filtering.
+  // `runAtExtreme` counts consecutive frames still at the current extreme,
+  // used as a 3-frame debounce before accepting a state transition.
+  const repStateRef = useRef({ state: 'unknown', extreme: null, lastTopVt: null, lastBotVt: null, buf: [], runAtExtreme: 0 });
   // Ref-backed counters so the detection loop can increment them without
   // colliding with stale closure captures (the previous setState-from-closure
   // approach kept resetting count to 1 on every rep).
@@ -67,6 +114,10 @@ function FormVideoPlayer({ url, onVideoRef }) {
   const [repsOn, setRepsOn] = useState(false);
   const [reps, setReps] = useState(0);
   const [tempo, setTempo] = useState(null); // seconds of video time for last rep
+  // Joint-override dropdown. 'auto' = pick from exercise title via detectJoint;
+  // the others force the counter to watch that specific joint regardless of title.
+  const [trackOverride, setTrackOverride] = useState('auto');
+  const activeJoint = trackOverride === 'auto' ? detectJoint(exerciseTitle) : trackOverride;
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
   useEffect(() => { if (videoRef.current) videoRef.current.loop = loop; }, [loop]);
@@ -74,13 +125,13 @@ function FormVideoPlayer({ url, onVideoRef }) {
   // Hand the <video> element back to the parent if it asked for it.
   useEffect(() => { if (onVideoRef && videoRef.current) onVideoRef(videoRef.current); }, [onVideoRef, url]);
 
-  // Reset rep state when toggle flips or a new video loads.
+  // Reset rep state when toggle flips, tracked joint changes, or a new video loads.
   useEffect(() => {
     setReps(0); setTempo(null);
     repsCountRef.current = 0;
     lastTempoRef.current = null;
-    repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null };
-  }, [repsOn, url]);
+    repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null, lastBotVt: null, buf: [], runAtExtreme: 0 };
+  }, [repsOn, url, activeJoint]);
 
   const fullscreen = () => {
     const v = videoRef.current; if (!v) return;
@@ -103,7 +154,7 @@ function FormVideoPlayer({ url, onVideoRef }) {
   useEffect(() => {
     const v = videoRef.current; if (!v) return;
     const reset = () => {
-      repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null };
+      repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null, lastBotVt: null, buf: [], runAtExtreme: 0 };
       repsCountRef.current = 0;
       lastTempoRef.current = null;
       setReps(0); setTempo(null);
@@ -240,30 +291,51 @@ function FormVideoPlayer({ url, onVideoRef }) {
               }
               pendingAngles = next;
 
-              // Rep counter: track avg knee angle, count full top→bottom→top cycles.
-              // Tuned for squat-shaped lifts (knee flexion is the dominant signal).
-              if (repsOn) {
-                const lk = next['L KNE'], rk = next['R KNE'];
-                const knee = lk != null && rk != null ? (lk + rk) / 2 : (lk ?? rk);
-                if (knee != null) {
+              // Rep counter: smoothed joint-angle cycle detector with per-joint
+              // thresholds, 3-frame debounce at each extreme, and a minimum
+              // bottom→top duration gate. Joint selection comes from the
+              // exercise title via detectJoint() unless the trainer overrides.
+              // 'none' = isometric/carry — counter stays at 0.
+              if (repsOn && TRACK_PARAMS[activeJoint]) {
+                const P = TRACK_PARAMS[activeJoint];
+                const [lKey, rKey] = P.pair;
+                const l = next[lKey], r = next[rKey];
+                const raw = l != null && r != null ? (l + r) / 2 : (l ?? r);
+                if (raw != null) {
                   const s = repStateRef.current;
+                  const a = rollingMedian(s.buf, raw);
                   const vt = v.currentTime;
-                  const AMP = 30; // min angle swing to count a transition
+                  const atTop = a > P.topMin, atBot = a < P.botMax;
                   if (s.state === 'unknown') {
-                    if (knee > 140) { s.state = 'top'; s.extreme = knee; s.lastTopVt = vt; }
-                    else if (knee < 110) { s.state = 'bottom'; s.extreme = knee; }
+                    if (atTop) { s.state = 'top'; s.extreme = a; s.lastTopVt = vt; s.runAtExtreme = 1; }
+                    else if (atBot) { s.state = 'bottom'; s.extreme = a; s.lastBotVt = vt; s.runAtExtreme = 1; }
                   } else if (s.state === 'top') {
-                    if (knee > s.extreme) s.extreme = knee;
-                    else if (s.extreme - knee > AMP) { s.state = 'bottom'; s.extreme = knee; }
+                    // stay at / deepen top while angle stays high; accept a
+                    // transition to bottom only after 3 consecutive frames at
+                    // the new extreme AND a swing of at least P.amp degrees.
+                    if (a >= s.extreme - 2) { s.extreme = Math.max(s.extreme, a); s.runAtExtreme = 0; }
+                    else if (s.extreme - a > P.amp && atBot) {
+                      s.runAtExtreme += 1;
+                      if (s.runAtExtreme >= 3) {
+                        s.state = 'bottom'; s.extreme = a; s.lastBotVt = vt; s.runAtExtreme = 0;
+                      }
+                    }
                   } else if (s.state === 'bottom') {
-                    if (knee < s.extreme) s.extreme = knee;
-                    else if (knee - s.extreme > AMP) {
-                      s.state = 'top';
-                      s.extreme = knee;
-                      const tempoSec = s.lastTopVt != null ? vt - s.lastTopVt : null;
-                      s.lastTopVt = vt;
-                      repsCountRef.current += 1;
-                      lastTempoRef.current = tempoSec;
+                    if (a <= s.extreme + 2) { s.extreme = Math.min(s.extreme, a); s.runAtExtreme = 0; }
+                    else if (a - s.extreme > P.amp && atTop) {
+                      s.runAtExtreme += 1;
+                      if (s.runAtExtreme >= 3) {
+                        // Gate on minimum rep duration: if the full cycle
+                        // bottom→top took less than minRepS, it's almost
+                        // certainly jitter rather than a real rep — reset
+                        // without counting.
+                        const tempoSec = s.lastTopVt != null ? vt - s.lastTopVt : null;
+                        if (tempoSec == null || tempoSec >= P.minRepS) {
+                          repsCountRef.current += 1;
+                          lastTempoRef.current = tempoSec;
+                        }
+                        s.state = 'top'; s.extreme = a; s.lastTopVt = vt; s.runAtExtreme = 0;
+                      }
                     }
                   }
                 }
@@ -360,12 +432,25 @@ function FormVideoPlayer({ url, onVideoRef }) {
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
         </button>
-        <button onClick={toggleReps} disabled={poseLoading} title="Count reps from knee angle cycles"
+        <button onClick={toggleReps} disabled={poseLoading}
+          title={`Count reps from ${activeJoint} angle cycles`}
           style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${repsOn?C.gn:C.bd}`,
             background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {repsOn ? `REPS ${reps}` : 'REPS'}
         </button>
+        {repsOn && (
+          <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
+            title="Which joint to watch for the rep cycle"
+            style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
+              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+            <option value="auto">AUTO ({activeJoint.toUpperCase()})</option>
+            <option value="knee">KNEE</option>
+            <option value="hip">HIP</option>
+            <option value="elbow">ELBOW</option>
+            <option value="none">SKIP</option>
+          </select>
+        )}
         {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
         <button onClick={() => setLoop(v => !v)} title="Loop the video"
           style={{marginLeft:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
@@ -381,7 +466,7 @@ function FormVideoPlayer({ url, onVideoRef }) {
 // Side-by-side video compare. Two FormVideoPlayer instances + a sync button
 // that copies the left player's currentTime onto the right (cheap manual sync,
 // good enough for "this week vs 4 weeks ago" form review).
-function CompareModal({ leftLabel, leftUrl, rightLabel, rightUrl, onClose }) {
+function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rightTitle, onClose }) {
   const [leftVid, setLeftVid] = useState(null);
   const [rightVid, setRightVid] = useState(null);
   const sync = (target) => {
@@ -405,7 +490,7 @@ function CompareModal({ leftLabel, leftUrl, rightLabel, rightUrl, onClose }) {
         <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',gap:12,alignItems:'start'}}>
           <div>
             <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{leftLabel}</div>
-            <FormVideoPlayer url={leftUrl} onVideoRef={setLeftVid} />
+            <FormVideoPlayer url={leftUrl} exerciseTitle={leftTitle} onVideoRef={setLeftVid} />
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
             <button onClick={() => sync('right')} title="Copy left timestamp to right"
@@ -415,7 +500,7 @@ function CompareModal({ leftLabel, leftUrl, rightLabel, rightUrl, onClose }) {
           </div>
           <div>
             <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{rightLabel}</div>
-            <FormVideoPlayer url={rightUrl} onVideoRef={setRightVid} />
+            <FormVideoPlayer url={rightUrl} exerciseTitle={rightTitle} onVideoRef={setRightVid} />
           </div>
         </div>
       </div>
@@ -497,7 +582,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               </div>
               <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{comparePicker.candidates.length} other video{comparePicker.candidates.length===1?'':'s'} from this client:</div>
               {comparePicker.candidates.map((c, i) => (
-                <div key={i} onClick={() => { setCompareActive({ left: comparePicker.left, right: { url: c.cloudUrl, label: c.label } }); setComparePicker(null); }}
+                <div key={i} onClick={() => { setCompareActive({ left: comparePicker.left, right: { url: c.cloudUrl, label: c.label, title: c.title } }); setComparePicker(null); }}
                   style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
                   onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                   onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}>
@@ -510,8 +595,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         {/* Compare modal: two players side by side */}
         {compareActive && (
           <CompareModal
-            leftLabel={compareActive.left.label} leftUrl={compareActive.left.url}
-            rightLabel={compareActive.right.label} rightUrl={compareActive.right.url}
+            leftLabel={compareActive.left.label} leftUrl={compareActive.left.url} leftTitle={compareActive.left.title}
+            rightLabel={compareActive.right.label} rightUrl={compareActive.right.url} rightTitle={compareActive.right.title}
             onClose={() => setCompareActive(null)}
           />
         )}
@@ -621,13 +706,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                             .filter(w => w.clientId === wo.clientId)
                             .flatMap(w => (w.formVideos || []).map((fv, fi) => fv?.cloudUrl ? {
                               cloudUrl: fv.cloudUrl,
+                              title: w.exercises?.[fi]?.title || '',
                               label: `${w.planName} · W${w.week} · ${w.dayName} — ${w.exercises?.[fi]?.title || 'Exercise ' + (fi+1)} · ${new Date(w.date).toLocaleDateString()}`,
                             } : null))
                             .filter(v => v && v.cloudUrl !== formVideo.cloudUrl);
                           if (candidates.length === 0) return null;
                           const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${new Date(wo.date).toLocaleDateString()}`;
                           return (
-                            <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel }, candidates })}
+                            <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel, title: ex.title || exName }, candidates })}
                               style={{background:'transparent',border:`1px solid ${C.gn}60`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:4,cursor:'pointer',letterSpacing:0.5}}>
                               ⇄ COMPARE
                             </button>
@@ -635,7 +721,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         })()}
                       </div>
                       {formVideo.cloudUrl ? (
-                        <FormVideoPlayer url={formVideo.cloudUrl} />
+                        <FormVideoPlayer url={formVideo.cloudUrl} exerciseTitle={ex.title || exName} />
                       ) : formVideo.fileName ? (
                         <div style={{fontSize:11,color:C.tm,marginBottom:4}}>File: {formVideo.fileName} (upload pending)</div>
                       ) : null}
