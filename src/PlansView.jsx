@@ -423,6 +423,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterTrainee, setFilterTrainee] = useState("");
+  // Sort: field is 'name' | 'created' | 'updated'; dir is 'asc' | 'desc'.
+  // Default 'created desc' matches the old creation-order-newest-first list.
+  const [sortField, setSortField] = useState('created');
+  const [sortDir, setSortDir] = useState('desc');
 
   // Auto-open plan if requested from TraineeDetail
   React.useEffect(() => {
@@ -448,15 +452,20 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const filtered = useMemo(() => {
     let result = planIndex;
     if (search) { const q = search.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
-    if (filterTrainee) {
-      // When a client is selected the global creation-order sort no longer
-      // helps — user just wants their blocks listed in readable order.
-      // Hebrew-aware localeCompare handles mixed Block #N / Hebrew names.
-      result = result.filter(p => p.traineeId === filterTrainee)
-        .slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'he'));
-    }
-    return result;
-  }, [planIndex, search, filterTrainee, traineeMap]);
+    if (filterTrainee) result = result.filter(p => p.traineeId === filterTrainee);
+    // Apply the user-chosen sort. Hebrew-aware localeCompare for names so
+    // חימום / Block #N / Comeback order predictably. Date fields fall back
+    // to 0 when missing (pre-migration plans) so they sort to the bottom in
+    // desc mode rather than throwing NaN.
+    const dirMul = sortDir === 'asc' ? 1 : -1;
+    const sorted = result.slice().sort((a, b) => {
+      if (sortField === 'name') return (a.name || '').localeCompare(b.name || '', 'he') * dirMul;
+      const ta = new Date(sortField === 'updated' ? (a.updatedAt || a.createdAt || 0) : (a.createdAt || 0)).getTime();
+      const tb = new Date(sortField === 'updated' ? (b.updatedAt || b.createdAt || 0) : (b.createdAt || 0)).getTime();
+      return (ta - tb) * dirMul;
+    });
+    return sorted;
+  }, [planIndex, search, filterTrainee, traineeMap, sortField, sortDir]);
 
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
@@ -487,13 +496,40 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
   return (
     <div>
-      <div style={{display:"flex",gap:12,marginBottom:20,alignItems:"center",flexWrap:"wrap"}}>
+      <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{flex:1,minWidth:180}}><input placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,paddingLeft:12}} /></div>
         <select value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,width:180}}>
           <option value="">All Clients ({planIndex.length})</option>
           {traineeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <Btn onClick={handleNewPlan}>+ New Program</Btn>
+      </div>
+      {/* Sort controls. Click an inactive field to activate it (keeps current dir);
+          click the active field to flip direction. Arrow points 'up' for asc. */}
+      <div style={{display:"flex",gap:6,marginBottom:16,alignItems:"center",flexWrap:"wrap",fontFamily:FN,fontSize:11}}>
+        <span style={{color:C.td,letterSpacing:"0.05em"}}>SORT</span>
+        {[
+          ['name','Name'],
+          ['created','Uploaded'],
+          ['updated','Last edited'],
+        ].map(([field,label]) => {
+          const active = sortField === field;
+          return (
+            <button key={field} onClick={() => {
+              if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+              else setSortField(field);
+            }} style={{
+              padding:"4px 10px",borderRadius:4,
+              border:`1px solid ${active?C.ac:C.bd}`,
+              background:active?C.acD:"transparent",
+              color:active?C.ac:C.tm,
+              fontFamily:FN,fontSize:11,fontWeight:active?700:500,
+              cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4
+            }}>
+              {label}{active && <span style={{fontSize:10}}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+            </button>
+          );
+        })}
       </div>
       <div style={{fontSize:12,color:C.td,marginBottom:12,fontFamily:FN}}>
         Showing {visible.length} of {filtered.length} programs{filtered.length !== planIndex.length ? ` (${planIndex.length} total)` : ''}

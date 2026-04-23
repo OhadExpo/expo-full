@@ -41,7 +41,7 @@ export function usePlanIndex() {
     try {
       const { data } = await supabase
         .from('plans')
-        .select('id, name, trainee_id, phase, active, created_at, data')
+        .select('id, name, trainee_id, phase, active, created_at, updated_at, data')
         .order('created_at', { ascending: false });
       if (data) {
         // Compute day/exercise counts from data without storing full nested arrays in state
@@ -54,6 +54,7 @@ export function usePlanIndex() {
             phase: p.phase,
             active: p.active,
             createdAt: p.created_at,
+            updatedAt: p.updated_at,
             dayCount: days.length,
             exerciseCount: days.reduce((a, d) => a + ((d.exercises || d.ex || []).length), 0),
             dayNames: days.map(d => d.name),
