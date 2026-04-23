@@ -350,7 +350,12 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                   const raw = next[key];
                   return raw != null ? rollingMedian(st.bufs[i], raw) : null;
                 });
-                const anyReady = smoothed.some(v => v != null) && st.bufs[0].length >= 3;
+                // Arm the detector once ANY channel has at least 3 smoothed
+                // samples — don't single out bufs[0]. If the first-indexed
+                // channel (L_KNE or L_ELB) is permanently occluded (side-view
+                // clip, far-side limb), the other 3 channels can still drive
+                // rep detection.
+                const anyReady = smoothed.some(v => v != null) && st.bufs.some(b => b.length >= 3);
                 if (anyReady) {
                   const vt = v.currentTime;
                   const currAmp = st.adaptiveAmp != null ? st.adaptiveAmp : P.amp;
