@@ -212,6 +212,9 @@ export function LoginScreen() {
 // hashes and rotates the password in auth.users under the current session.
 // Closes on success; surfaces Supabase errors inline.
 export function PasswordChangeModal({ onClose }) {
+  const auth = useAuth();
+  const email = auth?.session?.user?.email || '';
+  const [currentPw, setCurrentPw] = useState('');
   const [pw, setPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
   const [error, setError] = useState('');
@@ -220,10 +223,18 @@ export function PasswordChangeModal({ onClose }) {
 
   const handleSave = async () => {
     setError('');
-    if (pw.length < 4) { setError('Password must be at least 4 characters.'); return; }
+    if (!currentPw) { setError('Enter your current password.'); return; }
+    if (pw.length < 4) { setError('New password must be at least 4 characters.'); return; }
     if (pw !== confirmPw) { setError("Passwords don't match."); return; }
     setSaving(true);
     try {
+      // Verify the current password by attempting a sign-in with it. If it
+      // fails, we stop — without this check, any logged-in session could
+      // silently rotate the password (bad if the user left a device unlocked).
+      // Email comes from the live session so nobody can swap identities here.
+      if (!email) { setError('Session lost. Sign out and back in, then retry.'); setSaving(false); return; }
+      const { error: verifyError } = await supabase.auth.signInWithPassword({ email, password: currentPw });
+      if (verifyError) { setError('Current password is incorrect.'); setSaving(false); return; }
       const { error: authError } = await supabase.auth.updateUser({ password: pw });
       if (authError) { setError(authError.message); setSaving(false); return; }
       setOk(true);
@@ -242,14 +253,16 @@ export function PasswordChangeModal({ onClose }) {
           <div style={{ color: C.gn, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Password updated ✓</div>
         ) : (
           <>
-            <input value={pw} onChange={e => { setPw(e.target.value); setError(''); }} type="password" placeholder="New password" autoFocus
+            <input value={currentPw} onChange={e => { setCurrentPw(e.target.value); setError(''); }} type="password" placeholder="Current password" autoComplete="current-password" autoFocus
               style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
-            <input value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleSave()} type="password" placeholder="Confirm new password"
+            <input value={pw} onChange={e => { setPw(e.target.value); setError(''); }} type="password" placeholder="New password" autoComplete="new-password"
+              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
+            <input value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleSave()} type="password" placeholder="Confirm new password" autoComplete="new-password"
               style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
             {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10 }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${C.bd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} disabled={saving || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: (!saving && pw && confirmPw) ? C.ac : C.sf3, color: (!saving && pw && confirmPw) ? '#000' : C.td, fontFamily: FB, fontSize: 13, fontWeight: 700, cursor: (!saving && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>
+              <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: (!saving && currentPw && pw && confirmPw) ? C.ac : C.sf3, color: (!saving && currentPw && pw && confirmPw) ? '#000' : C.td, fontFamily: FB, fontSize: 13, fontWeight: 700, cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>
             </div>
           </>
         )}
