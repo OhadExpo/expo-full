@@ -42,33 +42,33 @@ const angleAt = (lms, ai, bi, ci) => {
   return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
 };
 
-// Map an exercise title to the joint whose angle-cycle defines a rep.
-//   knee  → squat-shaped lower-body (squat, lunge, step-up, rfess, leg curl, jump)
-//   hip   → hinge-shaped (deadlift, rdl, hip thrust, good-morning, snapdown, clean)
-//   elbow → upper-body push/pull (bench, press, row, pull, curl, extension, dip, raise)
-//   none  → isometrics, carries, plyo micro-pulses (plank, l-sit, pogo, hold, hang, landing)
-// Order matters: `none` has to match before jumping-family rules would claim "pogo" as knee.
-const JOINT_RULES = [
-  { joint: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|pogo|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap|heel[-\s]?click|depth[-\s]?landing|snapdown)\b/i },
-  { joint: 'hip',   rx: /\b(deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|hip[-\s]?thrust|glute[-\s]?bridge|jefferson|clean|snatch|kb\s*swing|swing)\b/i },
-  { joint: 'knee',  rx: /\b(squat|lunge|step[-\s]?up|split[-\s]?squat|rfess|bulgarian|pistol|leg[-\s]?press|leg[-\s]?extension|leg[-\s]?curl|jump|bounce|goblet|thruster)\b/i },
-  { joint: 'elbow', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|curl|extension|tricep|skull|dip|pushdown|fly|flye|raise|pullover|hammer)\b/i },
+// Map an exercise title to the body region whose angle cycle defines a rep.
+// Tracking two joints per region (knee+hip for lower, elbow+shoulder for upper)
+// averaged together gives a more stable signal than watching a single joint —
+// noise in one joint gets damped by the other, and the composite swing only
+// clears the threshold when the whole region actually cycled.
+//   lower → squats, lunges, step-ups, deadlifts, hinges, jumps, RFESS, leg curl
+//   upper → bench, press, row, pull, curl, extension, dip, raise
+//   none  → isometrics, carries, plyo micro-pulses (plank, l-sit, pogo, hold)
+// Order matters: `none` has to match before any other rule claims those words.
+const REGION_RULES = [
+  { region: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|pogo|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap|heel[-\s]?click|depth[-\s]?landing|snapdown)\b/i },
+  { region: 'lower', rx: /\b(squat|lunge|step[-\s]?up|split[-\s]?squat|rfess|bulgarian|pistol|leg[-\s]?press|leg[-\s]?extension|leg[-\s]?curl|jump|bounce|goblet|thruster|deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|hip[-\s]?thrust|glute[-\s]?bridge|jefferson|clean|snatch|swing)\b/i },
+  { region: 'upper', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|curl|extension|tricep|skull|dip|pushdown|fly|flye|raise|pullover|hammer)\b/i },
 ];
-const detectJoint = (title) => {
+const detectRegion = (title) => {
   const t = String(title || '');
-  for (const r of JOINT_RULES) if (r.rx.test(t)) return r.joint;
-  return 'knee'; // conservative default — Amit's library is squat-heavy
+  for (const r of REGION_RULES) if (r.rx.test(t)) return r.region;
+  return 'lower'; // conservative default — Amit's library skews lower-body
 };
 
-// Per-joint thresholds for the rep state machine. All angles in degrees.
-// `topMin` = above this = extended/top, `botMax` = below this = flexed/bottom,
-// `amp` = minimum swing (exit threshold) before a transition can fire,
-// `minRepS` = minimum seconds between bottom and next top; anything faster is
-// jitter or a micro-bounce and gets discarded.
+// Per-region rep-detection parameters. The composite signal is the mean of up
+// to four joint angles (two joints × left/right). `amp` is the minimum swing
+// from the last extreme before a transition fires; `minRepS` is the minimum
+// cycle time — anything faster is treated as jitter.
 const TRACK_PARAMS = {
-  knee:  { amp: 35, minRepS: 0.45, pair: ['L KNE', 'R KNE'] },
-  hip:   { amp: 35, minRepS: 0.45, pair: ['L HIP', 'R HIP'] },
-  elbow: { amp: 40, minRepS: 0.30, pair: ['L ELB', 'R ELB'] },
+  lower: { amp: 30, minRepS: 0.45, joints: ['L KNE', 'R KNE', 'L HIP', 'R HIP'] },
+  upper: { amp: 35, minRepS: 0.30, joints: ['L ELB', 'R ELB', 'L SHO', 'R SHO'] },
   none:  null, // skip counting entirely
 };
 
@@ -114,10 +114,10 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
   const [repsOn, setRepsOn] = useState(false);
   const [reps, setReps] = useState(0);
   const [tempo, setTempo] = useState(null); // seconds of video time for last rep
-  // Joint-override dropdown. 'auto' = pick from exercise title via detectJoint;
-  // the others force the counter to watch that specific joint regardless of title.
+  // Region-override dropdown. 'auto' = pick from exercise title via detectRegion;
+  // other values force the counter onto that region regardless of title.
   const [trackOverride, setTrackOverride] = useState('auto');
-  const activeJoint = trackOverride === 'auto' ? detectJoint(exerciseTitle) : trackOverride;
+  const activeRegion = trackOverride === 'auto' ? detectRegion(exerciseTitle) : trackOverride;
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
   useEffect(() => { if (videoRef.current) videoRef.current.loop = loop; }, [loop]);
@@ -131,7 +131,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
     repsCountRef.current = 0;
     lastTempoRef.current = null;
     repStateRef.current = { state: 'unknown', extreme: null, lastTopVt: null, lastBotVt: null, buf: [], runAtExtreme: 0 };
-  }, [repsOn, url, activeJoint]);
+  }, [repsOn, url, activeRegion]);
 
   const fullscreen = () => {
     const v = videoRef.current; if (!v) return;
@@ -291,22 +291,25 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
               }
               pendingAngles = next;
 
-              // Rep counter: smoothed joint-angle cycle detector. For each tick:
-              //   - median-smooth the raw angle (5-frame buffer)
-              //   - if at 'top', keep deepening the extreme upward; when the
-              //     angle falls more than P.amp below extreme for 2 consecutive
+              // Rep counter: two-joint composite cycle detector. For each tick:
+              //   - take every populated joint angle from the tracked region
+              //     (up to 4: two joints × left/right), average them into one
+              //     composite signal, then median-smooth over 5 frames
+              //   - if at 'top', deepen the extreme upward; when the composite
+              //     falls more than P.amp below extreme for 2 consecutive
               //     frames, flip to 'bottom'
-              //   - symmetric for 'bottom' → 'top'; that transition is where
-              //     a rep is credited, gated on P.minRepS minimum cycle time
-              //     to drop sub-half-second jitter bounces
+              //   - symmetric for 'bottom' → 'top'; that transition credits a
+              //     rep, gated on P.minRepS minimum cycle time to discard
+              //     sub-half-second jitter bounces
               // Transitions do NOT require the angle to fall inside an absolute
               // top/bottom zone — amplitude from the last extreme is enough, so
-              // partial-depth reps still count.
-              if (repsOn && TRACK_PARAMS[activeJoint]) {
-                const P = TRACK_PARAMS[activeJoint];
-                const [lKey, rKey] = P.pair;
-                const l = next[lKey], r = next[rKey];
-                const raw = l != null && r != null ? (l + r) / 2 : (l ?? r);
+              // partial-depth reps still count. Using both joints per region
+              // rather than a single joint damps one-joint noise and requires
+              // the whole region to actually cycle before a transition fires.
+              if (repsOn && TRACK_PARAMS[activeRegion]) {
+                const P = TRACK_PARAMS[activeRegion];
+                const vals = P.joints.map(k => next[k]).filter(v => v != null);
+                const raw = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
                 if (raw != null) {
                   const st = repStateRef.current;
                   const a = rollingMedian(st.buf, raw);
@@ -432,7 +435,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
           {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
         </button>
         <button onClick={toggleReps} disabled={poseLoading}
-          title={`Count reps from ${activeJoint} angle cycles`}
+          title={`Count reps from ${activeRegion === 'none' ? 'isometric — no cycle' : activeRegion + '-body'} movement`}
           style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${repsOn?C.gn:C.bd}`,
             background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
@@ -440,13 +443,12 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
         </button>
         {repsOn && (
           <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
-            title="Which joint to watch for the rep cycle"
+            title="Which body region to track"
             style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
               background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-            <option value="auto">AUTO ({activeJoint.toUpperCase()})</option>
-            <option value="knee">KNEE</option>
-            <option value="hip">HIP</option>
-            <option value="elbow">ELBOW</option>
+            <option value="auto">AUTO</option>
+            <option value="lower">LOWER</option>
+            <option value="upper">UPPER</option>
             <option value="none">SKIP</option>
           </select>
         )}
