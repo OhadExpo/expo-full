@@ -66,9 +66,9 @@ const detectJoint = (title) => {
 // `minRepS` = minimum seconds between bottom and next top; anything faster is
 // jitter or a micro-bounce and gets discarded.
 const TRACK_PARAMS = {
-  knee:  { topMin: 140, botMax: 110, amp: 45, minRepS: 0.8, pair: ['L KNE', 'R KNE'] },
-  hip:   { topMin: 155, botMax: 115, amp: 40, minRepS: 0.8, pair: ['L HIP', 'R HIP'] },
-  elbow: { topMin: 140, botMax: 75,  amp: 50, minRepS: 0.5, pair: ['L ELB', 'R ELB'] },
+  knee:  { amp: 35, minRepS: 0.45, pair: ['L KNE', 'R KNE'] },
+  hip:   { amp: 35, minRepS: 0.45, pair: ['L HIP', 'R HIP'] },
+  elbow: { amp: 40, minRepS: 0.30, pair: ['L ELB', 'R ELB'] },
   none:  null, // skip counting entirely
 };
 
@@ -291,52 +291,51 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
               }
               pendingAngles = next;
 
-              // Rep counter: smoothed joint-angle cycle detector with per-joint
-              // thresholds, 3-frame debounce at each extreme, and a minimum
-              // bottom→top duration gate. Joint selection comes from the
-              // exercise title via detectJoint() unless the trainer overrides.
-              // 'none' = isometric/carry — counter stays at 0.
+              // Rep counter: smoothed joint-angle cycle detector. For each tick:
+              //   - median-smooth the raw angle (5-frame buffer)
+              //   - if at 'top', keep deepening the extreme upward; when the
+              //     angle falls more than P.amp below extreme for 2 consecutive
+              //     frames, flip to 'bottom'
+              //   - symmetric for 'bottom' → 'top'; that transition is where
+              //     a rep is credited, gated on P.minRepS minimum cycle time
+              //     to drop sub-half-second jitter bounces
+              // Transitions do NOT require the angle to fall inside an absolute
+              // top/bottom zone — amplitude from the last extreme is enough, so
+              // partial-depth reps still count.
               if (repsOn && TRACK_PARAMS[activeJoint]) {
                 const P = TRACK_PARAMS[activeJoint];
                 const [lKey, rKey] = P.pair;
                 const l = next[lKey], r = next[rKey];
                 const raw = l != null && r != null ? (l + r) / 2 : (l ?? r);
                 if (raw != null) {
-                  const s = repStateRef.current;
-                  const a = rollingMedian(s.buf, raw);
+                  const st = repStateRef.current;
+                  const a = rollingMedian(st.buf, raw);
                   const vt = v.currentTime;
-                  const atTop = a > P.topMin, atBot = a < P.botMax;
-                  if (s.state === 'unknown') {
-                    if (atTop) { s.state = 'top'; s.extreme = a; s.lastTopVt = vt; s.runAtExtreme = 1; }
-                    else if (atBot) { s.state = 'bottom'; s.extreme = a; s.lastBotVt = vt; s.runAtExtreme = 1; }
-                  } else if (s.state === 'top') {
-                    // stay at / deepen top while angle stays high; accept a
-                    // transition to bottom only after 3 consecutive frames at
-                    // the new extreme AND a swing of at least P.amp degrees.
-                    if (a >= s.extreme - 2) { s.extreme = Math.max(s.extreme, a); s.runAtExtreme = 0; }
-                    else if (s.extreme - a > P.amp && atBot) {
-                      s.runAtExtreme += 1;
-                      if (s.runAtExtreme >= 3) {
-                        s.state = 'bottom'; s.extreme = a; s.lastBotVt = vt; s.runAtExtreme = 0;
+                  if (st.state === 'unknown') {
+                    // Wait a couple of frames for the buffer to fill so the first
+                    // extreme isn't anchored to a single noisy sample.
+                    if (st.buf.length >= 3) { st.state = 'top'; st.extreme = a; st.lastTopVt = vt; }
+                  } else if (st.state === 'top') {
+                    if (a > st.extreme) { st.extreme = a; st.runAtExtreme = 0; }
+                    else if (st.extreme - a > P.amp) {
+                      st.runAtExtreme = (st.runAtExtreme || 0) + 1;
+                      if (st.runAtExtreme >= 2) {
+                        st.state = 'bottom'; st.extreme = a; st.lastBotVt = vt; st.runAtExtreme = 0;
                       }
-                    }
-                  } else if (s.state === 'bottom') {
-                    if (a <= s.extreme + 2) { s.extreme = Math.min(s.extreme, a); s.runAtExtreme = 0; }
-                    else if (a - s.extreme > P.amp && atTop) {
-                      s.runAtExtreme += 1;
-                      if (s.runAtExtreme >= 3) {
-                        // Gate on minimum rep duration: if the full cycle
-                        // bottom→top took less than minRepS, it's almost
-                        // certainly jitter rather than a real rep — reset
-                        // without counting.
-                        const tempoSec = s.lastTopVt != null ? vt - s.lastTopVt : null;
+                    } else { st.runAtExtreme = 0; }
+                  } else if (st.state === 'bottom') {
+                    if (a < st.extreme) { st.extreme = a; st.runAtExtreme = 0; }
+                    else if (a - st.extreme > P.amp) {
+                      st.runAtExtreme = (st.runAtExtreme || 0) + 1;
+                      if (st.runAtExtreme >= 2) {
+                        const tempoSec = st.lastTopVt != null ? vt - st.lastTopVt : null;
                         if (tempoSec == null || tempoSec >= P.minRepS) {
                           repsCountRef.current += 1;
                           lastTempoRef.current = tempoSec;
                         }
-                        s.state = 'top'; s.extreme = a; s.lastTopVt = vt; s.runAtExtreme = 0;
+                        st.state = 'top'; st.extreme = a; st.lastTopVt = vt; st.runAtExtreme = 0;
                       }
-                    }
+                    } else { st.runAtExtreme = 0; }
                   }
                 }
               }
