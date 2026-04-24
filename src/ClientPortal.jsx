@@ -68,7 +68,7 @@ function trainerPlanToPortal(plan, trainerExercises) {
 }
 
 
-const bi = {background:C.sf2,border:`1px solid ${C.ac}`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
+const bi = {background:C.sf2,border:`0.5px solid ${C.ac}`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
 const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,fontFamily:FN,background:`${color}18`,color,...s}}>{children}</span>;
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
@@ -343,7 +343,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{fontSize:15,color:C.or,fontWeight:700,fontFamily:FN,marginBottom:14}}>{wu.rx}</div>
         {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
           <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
-        {!vid && <div style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:12,padding:30,marginBottom:14,textAlign:'center',color:C.td}}>No video for this exercise</div>}
+        {!vid && <div style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:12,padding:30,marginBottom:14,textAlign:'center',color:C.td}}>No video for this exercise</div>}
         <div style={{display:'flex',gap:8}}>
           <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:C.or,color:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:'pointer'}}>
@@ -427,7 +427,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
         <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>
 
-      <div style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:12,padding:14,marginBottom:14}}>
+      <div style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:12,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
           {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:!h||h==='✓'?'center':'left'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => <div key={si} style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
@@ -438,7 +438,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
         </div>)}</div>
 
-      <div style={{background:C.sf,border:`1px solid ${f.uploaded?C.gn+'60':C.ac}`,borderRadius:12,padding:14}}>
+      <div style={{background:C.sf,border:`0.5px solid ${f.uploaded?C.gn+'60':C.ac}`,borderRadius:12,padding:14}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
           <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>FORM CHECK</div>
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
@@ -699,7 +699,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{padding:'14px 20px 0',display:'flex',gap:4}}>
         {[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
           <button key={k} onClick={() => setVw(k)}
-            style={{flex:1,padding:8,borderRadius:6,border:`${vw===k?'2px':'1px'} solid ${C.ac}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer',position:'relative'}}>
+            style={{flex:1,padding:8,borderRadius:6,border:`${vw===k?'2px':'0.5px'} solid ${C.ac}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer',position:'relative'}}>
             {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:2,right:6,background:C.rd,color:'#fff',fontSize:9,fontFamily:FN,fontWeight:700,padding:'1px 5px',borderRadius:8}}>{unreadCoachNotes}</span>}
           </button>
         )}
@@ -722,17 +722,17 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         <div style={{color:C.tm,fontSize:12,marginBottom:16}}>{clientName} · {bwData.length} entries</div>
 
         {/* Quick log */}
-        <div style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:12,padding:14,marginBottom:16}}>
+        <div style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:12,padding:14,marginBottom:16}}>
           {visPlans.length > 1 && <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
             {visPlans.map(p => <button key={p.name} onClick={() => setSelectedBlockName(p.name)}
-              style={{padding:'4px 10px',borderRadius:14,border:`${activePlan?.name===p.name?'2px':'1px'} solid ${C.ac}`,background:activePlan?.name===p.name?C.acD:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
+              style={{padding:'4px 10px',borderRadius:14,border:`${activePlan?.name===p.name?'2px':'0.5px'} solid ${C.ac}`,background:activePlan?.name===p.name?C.acD:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
           </div>}
           {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}}>
-            {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'6px 0',borderRadius:6,border:`${wk===w?'2px':'1px'} solid ${C.ac}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
+            {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'6px 0',borderRadius:6,border:`${wk===w?'2px':'0.5px'} solid ${C.ac}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
           </div>}
           <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:C.sf2,border:`1px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5}}/>
+            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:C.sf2,border:`0.5px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5}}/>
             <button disabled={!activePlan} onClick={()=>{const val=bw||bwDisplay;if(val&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
               style={{padding:'10px 20px',borderRadius:8,border:'none',background:(bw&&activePlan)?C.ac:C.sf3,color:(bw&&activePlan)?'#fff':C.td,fontFamily:FB,fontSize:13,fontWeight:700,cursor:(bw&&activePlan)?'pointer':'default'}}>Save</button>
           </div>
@@ -741,12 +741,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
 
         {/* Graph */}
         {bwData.length < 2 ? (
-          <div style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:12,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
+          <div style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:12,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
             <div style={{fontSize:24,marginBottom:8}}>📊</div>
             <div style={{fontSize:13}}>Log at least 2 weigh-ins to see your trend</div>
           </div>
         ) : (
-          <div style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:12,padding:14,marginBottom:16}}>
+          <div style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:12,padding:14,marginBottom:16}}>
             <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:10}}>TREND</div>
             <svg viewBox={`0 0 ${Math.max(bwData.length * 60, 300)} 175`} style={{width:'100%',height:175}}>
               {/* Grid lines */}
@@ -815,7 +815,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
       </div>
       {bwDeleteConfirm && <div onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
-        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:12,padding:20,maxWidth:320,width:'100%'}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:12,padding:20,maxWidth:320,width:'100%'}}>
           <div style={{fontFamily:FN,fontSize:13,color:C.td,marginBottom:6}}>DELETE ENTRY</div>
           <div style={{fontSize:14,color:C.tx,marginBottom:16}}>Remove {bwDeleteConfirm.bw}kg from {bwDeleteConfirm.blockName || '?'} · W{bwDeleteConfirm.week || '?'}?</div>
           <div style={{display:'flex',gap:8}}>
@@ -833,7 +833,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     <div style={{padding:'14px 20px 20px'}}>
       <h2 style={{margin:'0 0 12px',fontFamily:FN,fontSize:18}}>History ({cw.length})</h2>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
-        cw.slice().reverse().map(w => <div key={w.id} style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:10,padding:12,marginBottom:8}}>
+        cw.slice().reverse().map(w => <div key={w.id} style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:10,padding:12,marginBottom:8}}>
           <div style={{fontWeight:600,fontSize:13}}>{w.dayName} <span style={{color:C.tm,fontWeight:400}}>({w.planName})</span></div>
           <div style={{fontSize:11,color:C.tm,marginBottom:4}}>{new Date(w.date).toLocaleDateString()} · W{w.week}</div>
           {w.exercises.map((x,i) => {
@@ -853,7 +853,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   {canExpand && <span style={{color:C.td,fontSize:10}}>{isOpen ? '▲' : '▼'}</span>}
                 </div>
                 {isOpen && hasVideo && (
-                  <div style={{marginTop:6,marginBottom:10,background:C.sf2,border:`1px solid ${C.ac}`,borderRadius:8,padding:8}}>
+                  <div style={{marginTop:6,marginBottom:10,background:C.sf2,border:`0.5px solid ${C.ac}`,borderRadius:8,padding:8}}>
                     <FormVideoPlayer url={fv.cloudUrl} exerciseTitle={x.title}
                       role="client"
                       reviewNotes={fv.reviewNotes || []}
@@ -877,13 +877,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center'}}>
           <div style={{flex:1}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>Week</div>
-            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:6,border:`${wk===w?'2px':'1px'} solid ${C.ac}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}</div></div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:6,border:`${wk===w?'2px':'0.5px'} solid ${C.ac}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}</div></div>
           <div style={{width:120}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>BW {lb?`(${lb}kg)`:''}</div>
             <div style={{display:'flex',gap:4}}>
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" disabled={!activePlan} style={{background:C.sf2,border:`1px solid ${C.ac}`,borderRadius:6,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" disabled={!activePlan} style={{background:C.sf2,border:`0.5px solid ${C.ac}`,borderRadius:6,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:C.acD,border:'none',borderRadius:6,padding:'4px 8px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Save</button>}
             </div></div></div>
-        {activePlan?.rest && <div style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {activePlan.rest}</div>}
+        {activePlan?.rest && <div style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {activePlan.rest}</div>}
         {unreadCoachNotes > 0 && <div onClick={() => setVw('hist')}
           style={{background:C.acD,border:`1px solid ${C.ac}60`,borderRadius:10,padding:'10px 14px',marginBottom:14,cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
           <span style={{fontSize:20}}>📬</span>
@@ -897,7 +897,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{fontSize:11,color:C.tm,marginBottom:8}}>{plansLoadError}</div>
           <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:6,padding:'6px 12px',fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer'}}>Retry</button>
         </div>}
-        {visPlans.length===0 && !plansLoadError && <div style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:12,padding:30,textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:20,marginBottom:8}}>📋</div><div style={{fontSize:13}}>No active programs right now. Contact your coach.</div></div>}
+        {visPlans.length===0 && !plansLoadError && <div style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:12,padding:30,textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:20,marginBottom:8}}>📋</div><div style={{fontSize:13}}>No active programs right now. Contact your coach.</div></div>}
         {/* Per-plan block: divider → warm-up → rest → training days */}
         {(()=>{ let globalDayIdx = 0; return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
@@ -906,15 +906,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}
             <div style={{flex:1,height:1,background:C.bd2}}/>
           </div>}
-          {vp.warmup?.length > 0 && <div style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:12,padding:14,marginBottom:14}}>
+          {vp.warmup?.length > 0 && <div style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:12,padding:14,marginBottom:14}}>
             <div style={{fontSize:11,fontFamily:FN,color:C.or,marginBottom:8,fontWeight:700}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
             {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid ${C.bd}22`:'none'}}>
               <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
               <div style={{display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
                 {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4}}>▶</a>}</div></div>)}</div>}
-          {vp.rest && visPlans.length>1 && <div style={{background:C.sf,border:`1px solid ${C.ac}`,borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm}}>⏱ {vp.rest}</div>}
+          {vp.rest && visPlans.length>1 && <div style={{background:C.sf,border:`0.5px solid ${C.ac}`,borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm}}>⏱ {vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++; const done = cw.some(w => w.dayName === day.name && w.week === wk + 1);
-          return <div key={vp.name+'-'+di} style={{background:C.sf,border:`1px solid ${done?C.gn+'40':C.ac}`,borderRadius:12,marginBottom:12,padding:'14px 18px'}}>
+          return <div key={vp.name+'-'+di} style={{background:C.sf,border:`0.5px solid ${done?C.gn+'40':C.ac}`,borderRadius:12,marginBottom:12,padding:'14px 18px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
               <div><span style={{fontWeight:700,fontSize:15}}>{day.name}</span>{done && <Bg color={C.gn} style={{fontSize:9,padding:'2px 6px',marginLeft:6}}>✓</Bg>}
                 <div style={{fontSize:11,color:C.tm,marginTop:2}}>{day.ex.length} exercises</div></div>

@@ -469,6 +469,8 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // Touch: requires ~1500ms continuous hold before the drag arms (keeps a
   // tap on the readout from accidentally moving it on phones); a small
   // pre-arm move cancels the hold so a swipe up the page still scrolls.
+  // Position is clamped to the wrapper rect on every frame so the HUD can't
+  // be dragged off-screen and lost.
   const onHudPointerDown = (e) => {
     e.preventDefault();
     const isTouch = e.pointerType === 'touch';
@@ -477,6 +479,12 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     let armed = !isTouch;
     let armTimer = null;
     const target = e.currentTarget;
+    // Capture the HUD's intrinsic size at pointerdown — offsetWidth/offsetHeight
+    // ignore any transform we apply for dragging, so they're stable as the
+    // user moves the box around.
+    const hudW = target.offsetWidth;
+    const hudH = target.offsetHeight;
+    const ANCHOR_OFFSET = 6; // top:6 / right:6 anchor in the wrapper coords
     if (!isTouch) {
       try { target.setPointerCapture(e.pointerId); } catch {}
       setHudDragArmed(true);
@@ -500,7 +508,26 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 8) cleanup();
         return;
       }
-      setHudPos({ x: baseX + (ev.clientX - startX), y: baseY + (ev.clientY - startY) });
+      let nextX = baseX + (ev.clientX - startX);
+      let nextY = baseY + (ev.clientY - startY);
+      // Clamp to wrapper bounds. HUD is anchored at (top:6, right:6). With
+      // transform:translate(dx, dy) applied:
+      //   - dx range so left edge >= 0:  dx >= -(W - hudW - 6)
+      //                  right edge <= W: dx <= 6
+      //   - dy range so top edge >= 0:    dy >= -6
+      //                bottom edge <= H:  dy <= H - hudH - 6
+      const wrap = wrapperRef.current;
+      if (wrap) {
+        const wRect = wrap.getBoundingClientRect();
+        const dxMin = -(wRect.width - hudW - ANCHOR_OFFSET);
+        const dxMax = ANCHOR_OFFSET;
+        const dyMin = -ANCHOR_OFFSET;
+        const dyMax = wRect.height - hudH - ANCHOR_OFFSET;
+        // If wrapper is narrower than HUD (paranoia), keep it pinned at 0.
+        nextX = Math.max(dxMin, Math.min(dxMax, nextX));
+        nextY = Math.max(dyMin, Math.min(dyMax, nextY));
+      }
+      setHudPos({ x: nextX, y: nextY });
     };
     const onUp = () => cleanup();
     window.addEventListener('pointermove', onMove);
@@ -884,7 +911,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>▶</button>
         {speeds.map(s => (
           <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
-            style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${speed===s?C.ac:C.bd}`,
+            style={{padding:'3px 6px',borderRadius:4,border:`${speed===s?'2px':'0.5px'} solid ${C.ac}`,
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
         ))}
@@ -897,7 +924,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {notes.length > 0 && (
             <button onClick={toggleComments}
               title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
-              style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${commentsEnabled?C.ac:C.bd}`,
+              style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0.5px'} solid ${C.ac}`,
                 background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
               💬 {commentsEnabled ? 'ON' : 'OFF'}
             </button>
@@ -907,14 +934,14 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       {/* Bottom row: pose/reps on the left; loop/full on the right. */}
       <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginTop:4}}>
         <button onClick={togglePose} disabled={poseLoading}
-          style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${poseOn?C.ac:C.bd}`,
+          style={{padding:'3px 10px',borderRadius:4,border:`${poseOn?'2px':'0.5px'} solid ${C.ac}`,
             background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
         </button>
         <button onClick={toggleReps} disabled={poseLoading}
           title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-          style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${repsOn?C.gn:C.bd}`,
+          style={{padding:'3px 10px',borderRadius:4,border:`${repsOn?'2px':'0.5px'} solid ${C.gn}`,
             background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {repsOn ? `REPS ${reps}` : 'REPS'}
