@@ -763,7 +763,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         {(poseOn || repsOn) && (Object.keys(angles).length > 0 || repsOn) && (
           <div style={{position:'absolute',top:6,right:6,background:'rgba(10,10,11,0.78)',
             borderRadius:6,padding:'6px 8px',pointerEvents:'none',fontFamily:FN,fontSize:10,
-            color:'#fff',lineHeight:1.5,minWidth:96}}>
+            color:'#fff',lineHeight:1.5}}>
             {repsOn && (
               <div style={{paddingBottom:4,marginBottom:poseOn?4:0,textAlign:'center',
                 borderBottom:poseOn?`1px solid ${C.bd}`:'none'}}>
@@ -773,7 +773,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               </div>
             )}
             {poseOn && ANGLE_DEFS.map(d => (
-              <div key={d.name} style={{display:'flex',justifyContent:'space-between',gap:8}}>
+              <div key={d.name} style={{display:'flex',gap:4,whiteSpace:'nowrap'}}>
                 <span style={{color:C.td}}>{d.name}</span>
                 <span>{angles[d.name] != null ? angles[d.name] + '°' : '—'}</span>
               </div>
