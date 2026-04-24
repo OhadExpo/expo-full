@@ -923,12 +923,9 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           })}
         </div>
       )}
-      {/* Top row: frame-step + speed on the left; comment controls on the right.
-          The 'SPEED' label and the larger speed-button padding used to push
-          this row past mobile width, wrapping it onto a second visual line and
-          turning the toolbar into 3 rows instead of 2. Dropped the label and
-          tightened padding so ◀ ▶ + all five speeds + the 💬 toggle fit on
-          one line at ~360px viewport width. */}
+      {/* Top row: speeds + frame-step on the left, FULL pinned right.
+          (COMMENT add stays trainer-only and lives next to FULL since
+          adding a comment is a 'before-fullscreen' utility.) */}
       <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
         {speeds.map(s => (
           <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
@@ -948,6 +945,46 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.ac}40`,
                 background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬 COMMENT</button>
           )}
+          <button onClick={fullscreen}
+            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
+              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
+        </div>
+      </div>
+      {/* Bottom row: POSE/REPS on the left, COMMENTS toggle dead-center,
+          LOOP pinned right. Three flex groups (1fr / auto / 1fr) so the
+          comments toggle sits at the geometric centre of the row regardless
+          of how wide the left and right groups are. */}
+      <div style={{display:'flex',gap:4,alignItems:'center',marginTop:4}}>
+        <div style={{flex:1,display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-start'}}>
+          <button onClick={togglePose} disabled={poseLoading}
+            style={{padding:'3px 10px',borderRadius:4,border:`${poseOn?'2px':'0px'} solid ${C.ac}`,
+              background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
+              fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
+            {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
+          </button>
+          <button onClick={toggleReps} disabled={poseLoading}
+            title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
+            style={{padding:'3px 10px',borderRadius:4,border:`${repsOn?'2px':'0px'} solid ${C.gn}`,
+              background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
+              fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
+            {repsOn ? `REPS ${reps}` : 'REPS'}
+          </button>
+          {repsOn && (
+            <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
+              title="Which joint pair to count peaks on"
+              style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
+                background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+              <option value="auto">AUTO ({(autoPick.kind || 'none').toUpperCase()})</option>
+              <option value="hip">HIP</option>
+              <option value="knee">KNEE</option>
+              <option value="elbow">ELBOW</option>
+              <option value="sho">SHOULDER</option>
+              <option value="none">SKIP</option>
+            </select>
+          )}
+          {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
+        </div>
+        <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center'}}>
           {notes.length > 0 && (
             <button onClick={toggleComments}
               title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
@@ -957,43 +994,10 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             </button>
           )}
         </div>
-      </div>
-      {/* Bottom row: pose/reps on the left; loop/full on the right. */}
-      <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginTop:4}}>
-        <button onClick={togglePose} disabled={poseLoading}
-          style={{padding:'3px 10px',borderRadius:4,border:`${poseOn?'2px':'0px'} solid ${C.ac}`,
-            background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
-            fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-          {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
-        </button>
-        <button onClick={toggleReps} disabled={poseLoading}
-          title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-          style={{padding:'3px 10px',borderRadius:4,border:`${repsOn?'2px':'0px'} solid ${C.gn}`,
-            background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
-            fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-          {repsOn ? `REPS ${reps}` : 'REPS'}
-        </button>
-        {repsOn && (
-          <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
-            title="Which joint pair to count peaks on"
-            style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
-              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-            <option value="auto">AUTO ({(autoPick.kind || 'none').toUpperCase()})</option>
-            <option value="hip">HIP</option>
-            <option value="knee">KNEE</option>
-            <option value="elbow">ELBOW</option>
-            <option value="sho">SHOULDER</option>
-            <option value="none">SKIP</option>
-          </select>
-        )}
-        {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
-        <div style={{marginLeft:'auto',display:'flex',gap:4,alignItems:'center'}}>
+        <div style={{flex:1,display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end'}}>
           <button onClick={() => setLoop(v => !v)} title="Loop the video"
             style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
               background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
-          <button onClick={fullscreen}
-            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
-              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
         </div>
       </div>
       {/* Drawing toolbar — only visible when the trainer is in a drawing
