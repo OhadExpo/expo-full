@@ -90,10 +90,13 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
 
   // Drawing context: which comment's drawings are currently showing? The
   // compose buffer if a new comment is being drafted; else the paused-at
-  // comment's persisted drawings; else none.
-  const currentStrokes = composing
+  // comment's persisted drawings; else none. Defensive — guard against
+  // stored data where `drawings` isn't an array (old saves predate the
+  // field; corrupt saves would blow up spread if we trusted them).
+  const _rawStrokes = composing
     ? composeDrawings
-    : (pausedAtCommentId ? (notes.find(n => n.id === pausedAtCommentId)?.drawings || []) : []);
+    : (pausedAtCommentId ? (notes.find(n => n.id === pausedAtCommentId)?.drawings) : []);
+  const currentStrokes = Array.isArray(_rawStrokes) ? _rawStrokes : [];
   // Can the user edit drawings right now? Only trainer in a context with
   // write access (either composing a new note or viewing an existing one
   // with onReviewNotesChange available).
@@ -168,36 +171,40 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
     setActiveStroke(null);
   };
 
-  // Canvas painter: redraws strokes whenever inputs change. Canvas resolution
-  // tracks the video element's displayed size.
+  // Canvas painter: redraws strokes whenever inputs change. Wrapped in a
+  // try/catch so a bad stored stroke can never black-screen the video — if
+  // the paint throws, the canvas stays transparent and video shows through.
   useEffect(() => {
-    const c = drawCanvasRef.current;
-    const v = videoRef.current;
-    if (!c || !v) return;
-    const w = v.clientWidth, h = v.clientHeight;
-    if (!w || !h) return;
-    if (c.width !== w) c.width = w;
-    if (c.height !== h) c.height = h;
-    const ctx = c.getContext('2d');
-    ctx.clearRect(0, 0, w, h);
-    const strokes = activeStroke ? [...currentStrokes, activeStroke] : currentStrokes;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    for (const s of strokes) {
-      if (!s.points || s.points.length === 0) continue;
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(s.points[0].x * w, s.points[0].y * h);
-      if (s.type === 'line' && s.points.length >= 2) {
-        ctx.lineTo(s.points[1].x * w, s.points[1].y * h);
-      } else {
-        for (let i = 1; i < s.points.length; i++) {
-          ctx.lineTo(s.points[i].x * w, s.points[i].y * h);
+    try {
+      const c = drawCanvasRef.current;
+      const v = videoRef.current;
+      if (!c || !v) return;
+      const w = v.clientWidth, h = v.clientHeight;
+      if (!w || !h) return;
+      if (c.width !== w) c.width = w;
+      if (c.height !== h) c.height = h;
+      const ctx = c.getContext('2d');
+      if (!ctx) return;
+      ctx.clearRect(0, 0, w, h);
+      const strokes = activeStroke ? [...currentStrokes, activeStroke] : currentStrokes;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (const s of strokes) {
+        if (!s || !Array.isArray(s.points) || s.points.length === 0) continue;
+        ctx.strokeStyle = s.color || '#ff4c4c';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(s.points[0].x * w, s.points[0].y * h);
+        if (s.type === 'line' && s.points.length >= 2) {
+          ctx.lineTo(s.points[1].x * w, s.points[1].y * h);
+        } else {
+          for (let i = 1; i < s.points.length; i++) {
+            ctx.lineTo(s.points[i].x * w, s.points[i].y * h);
+          }
         }
+        ctx.stroke();
       }
-      ctx.stroke();
-    }
+    } catch (e) { /* never let a paint error crash the video */ }
   });
   // Offline peak-detection rep counter state:
   //   signalBufs[channel] — dense arrays indexed by video-frame bucket
