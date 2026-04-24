@@ -732,7 +732,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>}
           <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:C.sf2,border:`1px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5}}/>
+            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:C.sf2,border:`4px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5}}/>
             <button disabled={!activePlan} onClick={()=>{const val=bw||bwDisplay;if(val&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
               style={{padding:'10px 20px',borderRadius:8,border:'none',background:(bw&&activePlan)?C.ac:C.sf3,color:(bw&&activePlan)?'#fff':C.td,fontFamily:FB,fontSize:13,fontWeight:700,cursor:(bw&&activePlan)?'pointer':'default'}}>Save</button>
           </div>
