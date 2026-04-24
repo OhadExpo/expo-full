@@ -69,9 +69,28 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
-  // Timestamp-comment state. `composing` = { ts, replyToId } when input is open.
+  // All state declarations up front — derived values and callbacks below
+  // reference them, and placing state after the derivations would trip
+  // the temporal-dead-zone at render time.
   const [composing, setComposing] = useState(null);
   const [composeText, setComposeText] = useState('');
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
+  const [activeDrawColor, setActiveDrawColor] = useState(null);
+  const [rulerMode, setRulerMode] = useState(false);
+  const [activeStroke, setActiveStroke] = useState(null);
+  const [composeDrawings, setComposeDrawings] = useState([]);
+  const [pausedAtCommentId, setPausedAtCommentId] = useState(null);
+  const [videoPaused, setVideoPaused] = useState(true);
+  const [videoEnded, setVideoEnded] = useState(false);
+  const drawCanvasRef = useRef(null);
+  const visitedCommentsRef = useRef(new Set());
+  const DRAW_COLORS = [
+    { key: 'red',   hex: '#ff4c4c' },
+    { key: 'blue',  hex: '#3BA0FF' },
+    { key: 'green', hex: '#28d95b' },
+    { key: 'white', hex: '#ffffff' },
+    { key: 'black', hex: '#000000' },
+  ];
   const notes = Array.isArray(reviewNotes) ? reviewNotes : [];
   const writeNotes = onReviewNotesChange || (() => {});
   const fmtTs = (sec) => {
@@ -251,31 +270,6 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const lastTempoRef = useRef(null);
   const [speed, setSpeed] = useState(1);
   const [loop, setLoop] = useState(false);
-  // Auto-pause-at-comment state + drawing overlay. The `commentsEnabled`
-  // toggle controls BOTH comments and drawings — when OFF, video plays
-  // straight through with no pauses and the drawing canvas is hidden.
-  // Drawings are persisted per-comment on the `drawings` field. Five
-  // colors + ruler (straight-line) mode.
-  const [commentsEnabled, setCommentsEnabled] = useState(true);
-  const [activeDrawColor, setActiveDrawColor] = useState(null); // hex | null; null = draw mode off, clicks pass through
-  const [rulerMode, setRulerMode] = useState(false);
-  const [activeStroke, setActiveStroke] = useState(null); // stroke being drawn right now
-  const [composeDrawings, setComposeDrawings] = useState([]); // strokes accumulated while composing a new comment
-  const drawCanvasRef = useRef(null);
-  const DRAW_COLORS = [
-    { key: 'red',   hex: '#ff4c4c' },
-    { key: 'blue',  hex: '#3BA0FF' },
-    { key: 'green', hex: '#28d95b' },
-    { key: 'white', hex: '#ffffff' },
-    { key: 'black', hex: '#000000' },
-  ];
-  const [pausedAtCommentId, setPausedAtCommentId] = useState(null);
-  const [videoPaused, setVideoPaused] = useState(true);
-  const [videoEnded, setVideoEnded] = useState(false);
-  // Tracks which comments have already triggered a pause in the current
-  // playback run. Cleared on loop-restart and on user seek so each comment
-  // pauses once per pass.
-  const visitedCommentsRef = useRef(new Set());
   const [poseOn, setPoseOn] = useState(false);
   const [poseLoading, setPoseLoading] = useState(false);
   const [poseError, setPoseError] = useState('');
