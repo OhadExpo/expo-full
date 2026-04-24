@@ -209,8 +209,11 @@ async function runCount(source, kind, channels, onProgress) {
   canvas.width = vw; canvas.height = vh;
   const ctx = canvas.getContext('2d');
 
-  // 2x is universally supported; 4x got clamped or rejected on some browsers.
-  try { v.playbackRate = 2; } catch {}
+  // Keep playback at 1x. MediaPipe CPU inference caps throughput at ~12 frames
+  // per wall-second. At 2x playback that means only ~6 SAMPLES per second of
+  // video content — too sparse for peak detection on typical 1–2s rep cycles.
+  // 1x gives ~12 samples per video-second, which matches the interactive
+  // REPS toggle's sample density (it plays at 1x too and counts accurately).
   try { await v.play(); } catch (e) { cleanup(); throw new Error('Video playback blocked: ' + (e?.message || e)); }
 
   let lastTs = -1;
