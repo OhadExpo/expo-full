@@ -470,8 +470,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>🔢 {f.repCount} REPS</span></div>}
           {!f.counting && f.repCount === 0 && f.repKind !== 'none' && <div title={`kind=${f.repKind} · frames=${f.countFrames||0} · withPose=${f.countFramesWithPose||0} · duration=${f.countDuration||'?'}s`} style={{display:'flex',alignItems:'center',gap:4,background:C.sf2,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>⚠ No reps detected</span></div>}
-          {!f.counting && f.countError && <div title={f.countError} style={{display:'flex',alignItems:'center',gap:4,background:C.rdD,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.rd,fontWeight:700}}>⚠ Count unavailable</span></div>}
+          {!f.counting && f.countError && <div title={f.countError} style={{display:'flex',alignItems:'center',gap:4,background:C.rdD,padding:'3px 10px',borderRadius:20,maxWidth:'100%'}}>
+            <span style={{fontSize:10,fontFamily:FN,color:C.rd,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>⚠ {f.countError}</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
