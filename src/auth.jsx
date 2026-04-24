@@ -373,12 +373,10 @@ export function UnauthorizedScreen({ email, onSignOut }) {
 const wrapStyle = {
   background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-  // Asymmetric padding biases the centered block upward — geometric center
-  // looks bottom-heavy because the form card carries more visual weight than
-  // the logo above it. Top 20 / bottom 100 shifts the center up by 40px on
-  // every viewport (mobile, tablet, laptop, desktop), which puts the form
-  // card around the optical center instead of below it.
-  padding: '20px 20px 100px',
+  // Asymmetric padding biases the centered block upward. Top 20 / bottom 240
+  // shifts the visual center ~110px above geometric center on every viewport.
+  // Tried 80px asymmetry first — still read as too low — so doubling+change.
+  padding: '20px 20px 240px',
 };
 
 const cardStyle = {
