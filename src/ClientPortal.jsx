@@ -374,7 +374,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:24,marginBottom:16}} />
       <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
-      <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did it feel? Pain? Modifications?" style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'left'}}/>
+      <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did it feel? Pain? Modifications?" style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'center'}}/>
       {fv.some(f => f.uploading) ? (
         <button style={{width:'100%',padding:16,borderRadius:12,border:'none',background:C.sf3,color:C.td,fontFamily:FB,fontSize:16,fontWeight:700,cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
       ) : (
@@ -423,7 +423,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
 
-      <div style={{background:wf?C.acD:C.sf,border:'1px solid '+(wf?C.ac+'30':C.bd),borderLeft:'3px solid '+(wf?C.ac:C.bd),borderRadius:10,padding:12,marginBottom:12}}>
+      <div style={{background:wf?C.acD:C.sf,border:'1px solid '+(wf?C.ac+'30':C.bd),borderLeft:'3px solid '+(wf?C.ac:C.bd),borderRadius:10,padding:12,marginBottom:12,textAlign:'center'}}>
         <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
         <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>
 
