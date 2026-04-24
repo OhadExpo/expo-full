@@ -373,10 +373,11 @@ export function UnauthorizedScreen({ email, onSignOut }) {
 const wrapStyle = {
   background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-  // Asymmetric padding biases the centered block upward. Top 20 / bottom 240
-  // shifts the visual center ~110px above geometric center on every viewport.
-  // Tried 80px asymmetry first — still read as too low — so doubling+change.
-  padding: '20px 20px 240px',
+  // Asymmetric padding biases the centered block upward. Top 20 / bottom 324
+  // shifts the visual center ~152px above geometric center on every viewport
+  // (~110px from the prior 240 + 2 line-heights of ~21px each per Ohad's last
+  // '2 lines higher' note).
+  padding: '20px 20px 324px',
 };
 
 const cardStyle = {
