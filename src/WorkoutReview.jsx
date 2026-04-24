@@ -923,39 +923,27 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           })}
         </div>
       )}
-      {/* Top row: speeds + frame-step on the left, FULL pinned right.
-          (COMMENT add stays trainer-only and lives next to FULL since
-          adding a comment is a 'before-fullscreen' utility.) */}
-      <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
-        {speeds.map(s => (
-          <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
-            style={{padding:'3px 6px',borderRadius:4,border:`${speed===s?'2px':'0px'} solid ${C.ac}`,
-              background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
-              fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
-        ))}
-        <button onClick={() => stepFrame(-1)} title="Previous frame"
-          style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
-            background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>◀</button>
-        <button onClick={() => stepFrame(1)} title="Next frame"
-          style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
-            background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>▶</button>
-        <div style={{marginLeft:'auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
+      {/* Top row: comments (left) / pose+reps (center) / FULL (right).
+          Three flex groups (1fr / auto / 1fr) so POSE / REPS sit at the
+          true geometric centre of the row regardless of how wide the
+          comments group on the left or the FULL group on the right grow. */}
+      <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
+        <div style={{flex:1,display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-start'}}>
+          {notes.length > 0 && (
+            <button onClick={toggleComments}
+              title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
+              style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
+                background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+              💬 {commentsEnabled ? 'ON' : 'OFF'}
+            </button>
+          )}
           {onReviewNotesChange && role === 'trainer' && (
             <button onClick={addComment} title="Add a timestamped comment at the current video time"
               style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.ac}40`,
                 background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬 COMMENT</button>
           )}
-          <button onClick={fullscreen}
-            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
-              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
         </div>
-      </div>
-      {/* Bottom row: POSE/REPS on the left, COMMENTS toggle dead-center,
-          LOOP pinned right. Three flex groups (1fr / auto / 1fr) so the
-          comments toggle sits at the geometric centre of the row regardless
-          of how wide the left and right groups are. */}
-      <div style={{display:'flex',gap:4,alignItems:'center',marginTop:4}}>
-        <div style={{flex:1,display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-start'}}>
+        <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={togglePose} disabled={poseLoading}
             style={{padding:'3px 10px',borderRadius:4,border:`${poseOn?'2px':'0px'} solid ${C.ac}`,
               background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
@@ -984,21 +972,31 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           )}
           {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
         </div>
-        <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center'}}>
-          {notes.length > 0 && (
-            <button onClick={toggleComments}
-              title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
-              style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
-                background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-              💬 {commentsEnabled ? 'ON' : 'OFF'}
-            </button>
-          )}
-        </div>
         <div style={{flex:1,display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end'}}>
-          <button onClick={() => setLoop(v => !v)} title="Loop the video"
-            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
-              background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
+          <button onClick={fullscreen}
+            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
+              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
         </div>
+      </div>
+      {/* Bottom row: speeds → frame-step → LOOP, all centered as one
+          horizontal group (justifyContent:'center'). Order per Ohad:
+          0.125x .. 2x, ◀ ▶, then ↻ LOOP. */}
+      <div style={{display:'flex',gap:4,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
+        {speeds.map(s => (
+          <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
+            style={{padding:'3px 6px',borderRadius:4,border:`${speed===s?'2px':'0px'} solid ${C.ac}`,
+              background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
+              fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
+        ))}
+        <button onClick={() => stepFrame(-1)} title="Previous frame"
+          style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
+            background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>◀</button>
+        <button onClick={() => stepFrame(1)} title="Next frame"
+          style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
+            background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>▶</button>
+        <button onClick={() => setLoop(v => !v)} title="Loop the video"
+          style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
+            background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
       </div>
       {/* Drawing toolbar — only visible when the trainer is in a drawing
           context (composing a new comment, or paused at an existing one
