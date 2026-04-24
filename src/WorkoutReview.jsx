@@ -35,7 +35,7 @@ const POSE_CONNECTIONS = [
 // back to 'knee'. Trainer can override via the dropdown next to REPS.
 // `onVideoRef` lets a parent grab the underlying <video> element (used by
 // the side-by-side compare view to sync timing across two players).
-function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer' }) {
+export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer' }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);

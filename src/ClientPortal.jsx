@@ -4,6 +4,7 @@ import { EX } from './exerciseData';
 import { supabase } from './supabase';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
+import { FormVideoPlayer } from './WorkoutReview';
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -488,7 +489,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 }
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession, updateFormVideos }) {
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
@@ -500,6 +501,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [wk, setWk] = useState(0);
   const [lg, setLg] = useState(null);
   const [vw, setVw] = useState('prog');
+  const [expandedHistEx, setExpandedHistEx] = useState(null); // `${workoutId}:${exIdx}` — which exercise row in History is open
   const [bw, setBw] = useState('');
   const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
   const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
@@ -777,8 +779,38 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         cw.slice().reverse().map(w => <div key={w.id} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:12,marginBottom:8}}>
           <div style={{fontWeight:600,fontSize:13}}>{w.dayName} <span style={{color:C.tm,fontWeight:400}}>({w.planName})</span></div>
-          <div style={{fontSize:11,color:C.tm}}>{new Date(w.date).toLocaleDateString()} · W{w.week}</div>
-          {w.exercises.map((x,i) => <div key={i} style={{fontSize:11,color:C.tm,marginTop:2}}>{i+1}. {x.title} ({x.prescribed}) — {x.sets.filter(s=>s.done).length}/{x.sets.length}</div>)}
+          <div style={{fontSize:11,color:C.tm,marginBottom:4}}>{new Date(w.date).toLocaleDateString()} · W{w.week}</div>
+          {w.exercises.map((x,i) => {
+            const fv = (w.formVideos || [])[i];
+            const hasVideo = !!(fv && fv.cloudUrl);
+            const notesCount = (fv?.reviewNotes || []).reduce((a, n) => a + 1 + (n.replies?.length || 0), 0);
+            const expandKey = `${w.id}:${i}`;
+            const isOpen = expandedHistEx === expandKey;
+            const canExpand = hasVideo; // only exercises with a video get the tap-to-expand affordance
+            return (
+              <div key={i} style={{marginTop:2}}>
+                <div onClick={canExpand ? () => setExpandedHistEx(isOpen ? null : expandKey) : undefined}
+                  style={{fontSize:11,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'2px 0'}}>
+                  <span style={{flex:1}}>{i+1}. {x.title} ({x.prescribed}) — {x.sets.filter(s=>s.done).length}/{x.sets.length}</span>
+                  {hasVideo && <span style={{color:C.gn,fontSize:12}}>📹</span>}
+                  {notesCount > 0 && <span style={{background:C.acD,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:8}}>💬 {notesCount}</span>}
+                  {canExpand && <span style={{color:C.td,fontSize:10}}>{isOpen ? '▲' : '▼'}</span>}
+                </div>
+                {isOpen && hasVideo && (
+                  <div style={{marginTop:6,marginBottom:10,background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:8}}>
+                    <FormVideoPlayer url={fv.cloudUrl} exerciseTitle={x.title}
+                      role="client"
+                      reviewNotes={fv.reviewNotes || []}
+                      onReviewNotesChange={updateFormVideos ? (nextNotes) => {
+                        const updated = (w.formVideos || []).map((fvi, fi) => fi === i ? { ...fvi, reviewNotes: nextNotes } : fvi);
+                        updateFormVideos(w.id, updated);
+                      } : null}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:C.sf2,padding:6,borderRadius:4}}>📝 {w.notes}</div>}
         </div>)}</div></div>;
 
