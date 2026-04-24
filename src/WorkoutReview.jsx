@@ -103,6 +103,17 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
   const lastTempoRef = useRef(null);
   const [speed, setSpeed] = useState(1);
   const [loop, setLoop] = useState(false);
+  // Auto-pause-at-comment state. When enabled, the video pauses at each
+  // comment's timestamp and highlights that one comment. When disabled, the
+  // video plays through unpaused and the comment UI is completely hidden.
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
+  const [pausedAtCommentId, setPausedAtCommentId] = useState(null);
+  const [videoPaused, setVideoPaused] = useState(true);
+  const [videoEnded, setVideoEnded] = useState(false);
+  // Tracks which comments have already triggered a pause in the current
+  // playback run. Cleared on loop-restart and on user seek so each comment
+  // pauses once per pass.
+  const visitedCommentsRef = useRef(new Set());
   const [poseOn, setPoseOn] = useState(false);
   const [poseLoading, setPoseLoading] = useState(false);
   const [poseError, setPoseError] = useState('');
@@ -132,6 +143,76 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
   useEffect(() => { activeChannelsRef.current = activeChannels; }, [trackOverride, exerciseTitle]);
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
+
+  // Auto-pause at comment timestamps. Listener reads the latest notes + flags
+  // out of refs so the handler doesn't need to re-register on every change.
+  const notesRef = useRef(notes);
+  useEffect(() => { notesRef.current = notes; }, [notes]);
+  const commentsEnabledRef = useRef(commentsEnabled);
+  useEffect(() => { commentsEnabledRef.current = commentsEnabled; }, [commentsEnabled]);
+  const loopRef = useRef(loop);
+  useEffect(() => { loopRef.current = loop; }, [loop]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const TOLERANCE = 0.15;   // seconds — pause if we're within this of a comment ts
+    const onTimeUpdate = () => {
+      if (!commentsEnabledRef.current) return;
+      if (v.seeking || v.paused || v.ended) return;
+      const t = v.currentTime;
+      for (const n of notesRef.current) {
+        if (n.ts == null) continue;
+        if (visitedCommentsRef.current.has(n.id)) continue;
+        // Fire once when playback has just advanced across the comment's ts.
+        if (t >= n.ts && t - n.ts <= TOLERANCE) {
+          visitedCommentsRef.current.add(n.id);
+          try { v.pause(); } catch {}
+          setPausedAtCommentId(n.id);
+          break;
+        }
+      }
+    };
+    const onSeeked = () => {
+      // Rebuild visited set: anything BEFORE current time was seen, anything
+      // AFTER is fresh and will pause again.
+      const t = v.currentTime;
+      const ns = notesRef.current;
+      visitedCommentsRef.current = new Set(ns.filter(n => n.ts != null && n.ts < t - 0.05).map(n => n.id));
+      setPausedAtCommentId(null);
+    };
+    const onPlayEvt = () => {
+      setVideoPaused(false);
+      setVideoEnded(false);
+      setPausedAtCommentId(null);
+    };
+    const onPauseEvt = () => { setVideoPaused(true); };
+    const onEndedEvt = () => {
+      if (loopRef.current) {
+        // Loop handled natively by the video element. Clear visited so the
+        // next pass through pauses at comments again.
+        visitedCommentsRef.current = new Set();
+        setPausedAtCommentId(null);
+        setVideoEnded(false);
+      } else {
+        setVideoEnded(true);
+      }
+    };
+    v.addEventListener('timeupdate', onTimeUpdate);
+    v.addEventListener('seeked', onSeeked);
+    v.addEventListener('play', onPlayEvt);
+    v.addEventListener('pause', onPauseEvt);
+    v.addEventListener('ended', onEndedEvt);
+    // Initial sync.
+    setVideoPaused(v.paused);
+    return () => {
+      v.removeEventListener('timeupdate', onTimeUpdate);
+      v.removeEventListener('seeked', onSeeked);
+      v.removeEventListener('play', onPlayEvt);
+      v.removeEventListener('pause', onPauseEvt);
+      v.removeEventListener('ended', onEndedEvt);
+    };
+  }, [url]);
   useEffect(() => { if (videoRef.current) videoRef.current.loop = loop; }, [loop]);
 
   // Hand the <video> element back to the parent if it asked for it.
@@ -463,18 +544,18 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
           </div>
         )}
       </div>
-      {/* Mini-timeline: shows comment tick marks aligned with the video's
-          duration. Separate from the <video> native scrub bar because we
-          can't style it cross-browser. Click a tick to seek. */}
-      {notes.length > 0 && videoRef.current?.duration > 0 && (
+      {/* Mini-timeline with comment tick marks. Hidden when comments are
+          disabled. Click a tick to seek. */}
+      {commentsEnabled && notes.length > 0 && videoRef.current?.duration > 0 && (
         <div style={{position:'relative',height:14,background:C.sf2,borderRadius:3,marginBottom:8,overflow:'hidden'}}>
           {notes.map(n => {
             if (n.ts == null || !videoRef.current?.duration) return null;
             const pct = Math.min(100, Math.max(0, (n.ts / videoRef.current.duration) * 100));
+            const isActive = pausedAtCommentId === n.id;
             return (
               <div key={n.id} onClick={() => seekTo(n.ts)}
                 title={`${fmtTs(n.ts)} — ${n.text.slice(0, 80)}`}
-                style={{position:'absolute',left:pct+'%',top:0,bottom:0,width:3,background:n.author==='trainer'?C.ac:C.gn,cursor:'pointer',borderRadius:2,transform:'translateX(-1px)'}}/>
+                style={{position:'absolute',left:pct+'%',top:0,bottom:0,width:isActive?5:3,background:n.author==='trainer'?C.ac:C.gn,cursor:'pointer',borderRadius:2,transform:'translateX(-1px)',boxShadow:isActive?`0 0 6px ${n.author==='trainer'?C.ac:C.gn}`:'none'}}/>
             );
           })}
         </div>
@@ -520,8 +601,16 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
           </select>
         )}
         {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
+        {notes.length > 0 && (
+          <button onClick={() => setCommentsEnabled(v => !v)}
+            title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
+            style={{marginLeft:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${commentsEnabled?C.ac:C.bd}`,
+              background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+            💬 {commentsEnabled ? 'ON' : 'OFF'}
+          </button>
+        )}
         <button onClick={() => setLoop(v => !v)} title="Loop the video"
-          style={{marginLeft:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
+          style={{marginLeft:notes.length>0?0:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
             background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
         <button onClick={fullscreen}
           style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
@@ -549,46 +638,58 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
           </div>
         </div>
       )}
-      {/* Threaded comment list. Each top-level has a timestamp; replies are
-          nested underneath without their own timestamp. Click the MM:SS
-          chip to seek the video to that point. */}
-      {notes.length > 0 && (
-        <div style={{marginTop:10,display:'flex',flexDirection:'column',gap:8}}>
-          {notes.slice().sort((a, b) => (a.ts ?? 0) - (b.ts ?? 0)).map(n => (
-            <div key={n.id} style={{background:C.sf2,borderLeft:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:6,padding:10}}>
-              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-                <button onClick={() => seekTo(n.ts)} style={{background:C.acD,border:`1px solid ${C.ac}40`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
-                <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
-                <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
-                {(n.author === role) && (
-                  <button onClick={() => deleteNote(n.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginLeft:4}}>✕</button>
+      {/* Threaded comment list — visibility depends on playback state and
+          the comments toggle. Three modes:
+           1. commentsEnabled && pausedAtCommentId  → show ONLY that comment,
+              highlighted (the video just auto-paused at its timestamp).
+           2. commentsEnabled && videoPaused && !pausedAtCommentId → show
+              the full list (initial load, manual pause, end without loop).
+              `videoEnded && !loop` is a subset of this case since ended →
+              paused natively.
+           3. Playing (or looping), or comments disabled → list hidden. Only
+              the mini-timeline ticks + compose UI remain available. */}
+      {commentsEnabled && notes.length > 0 && (pausedAtCommentId || videoPaused) && (() => {
+        const visible = pausedAtCommentId
+          ? notes.filter(n => n.id === pausedAtCommentId)
+          : notes.slice().sort((a, b) => (a.ts ?? 0) - (b.ts ?? 0));
+        return (
+          <div style={{marginTop:10,display:'flex',flexDirection:'column',gap:8}}>
+            {visible.map(n => (
+              <div key={n.id} style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderLeft:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:6,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                  <button onClick={() => seekTo(n.ts)} style={{background:C.acD,border:`1px solid ${C.ac}40`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
+                  <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
+                  <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
+                  {(n.author === role) && (
+                    <button onClick={() => deleteNote(n.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginLeft:4}}>✕</button>
+                  )}
+                </div>
+                <div style={{fontSize:pausedAtCommentId===n.id?14:13,color:C.tx,whiteSpace:'pre-wrap'}}>{n.text}</div>
+                {(n.replies || []).length > 0 && (
+                  <div style={{marginTop:8,marginLeft:12,display:'flex',flexDirection:'column',gap:6,borderLeft:`2px solid ${C.bd}`,paddingLeft:10}}>
+                    {n.replies.map(r => (
+                      <div key={r.id}>
+                        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                          <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
+                          <span style={{fontSize:10,color:C.td}}>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
+                          {(r.author === role) && (
+                            <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:'auto'}}>✕</button>
+                          )}
+                        </div>
+                        <div style={{fontSize:12,color:C.tx,whiteSpace:'pre-wrap'}}>{r.text}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {onReviewNotesChange && (
+                  <button onClick={() => addReply(n.id)}
+                    style={{marginTop:8,background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:0,cursor:'pointer'}}>↳ Reply</button>
                 )}
               </div>
-              <div style={{fontSize:13,color:C.tx,whiteSpace:'pre-wrap'}}>{n.text}</div>
-              {(n.replies || []).length > 0 && (
-                <div style={{marginTop:8,marginLeft:12,display:'flex',flexDirection:'column',gap:6,borderLeft:`2px solid ${C.bd}`,paddingLeft:10}}>
-                  {n.replies.map(r => (
-                    <div key={r.id}>
-                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-                        <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
-                        <span style={{fontSize:10,color:C.td}}>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
-                        {(r.author === role) && (
-                          <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:'auto'}}>✕</button>
-                        )}
-                      </div>
-                      <div style={{fontSize:12,color:C.tx,whiteSpace:'pre-wrap'}}>{r.text}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {onReviewNotesChange && (
-                <button onClick={() => addReply(n.id)}
-                  style={{marginTop:8,background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:0,cursor:'pointer'}}>↳ Reply</button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }
