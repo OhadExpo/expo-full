@@ -2,6 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import WorkoutsView from './WorkoutsView';
 import { C, FN, FB, ytId, EXPO_ICON } from './theme';
 import { EX } from './exerciseData';
+import {
+  ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
+} from './repCounter';
 
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,padding:"8px 10px",borderRadius:6,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"};
@@ -15,151 +18,14 @@ const POSE_CONNECTIONS = [
   [24,26],[26,28],                    // right leg
 ];
 
-const ANGLE_DEFS = [
-  { name: 'L SHO', a:23, b:11, c:13 },
-  { name: 'R SHO', a:24, b:12, c:14 },
-  { name: 'L ELB', a:11, b:13, c:15 },
-  { name: 'R ELB', a:12, b:14, c:16 },
-  { name: 'L HIP', a:11, b:23, c:25 },
-  { name: 'R HIP', a:12, b:24, c:26 },
-  { name: 'L KNE', a:23, b:25, c:27 },
-  { name: 'R KNE', a:24, b:26, c:28 },
-];
+// ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N
+// now live in src/repCounter.js — imported above. They're shared with the
+// client-side auto-count on upload (ClientPortal.jsx) so both paths run
+// identical algorithm.
 
-// Joint angle at b between vectors b→a and b→c. Uses 3D (x,y,z) because the
-// 2D screen projection collapses limbs that move toward/away from the camera
-// (e.g., arms hanging forward in a deadlift hinge), producing anatomically
-// impossible shoulder/hip readings. Pass `result.worldLandmarks[0]` here —
-// those are metric 3D coords, not the camera-projected `landmarks`.
-const angleAt = (lms, ai, bi, ci) => {
-  const a = lms[ai], b = lms[bi], c = lms[ci];
-  if (!a || !b || !c) return null;
-  const v1x = a.x - b.x, v1y = a.y - b.y, v1z = (a.z ?? 0) - (b.z ?? 0);
-  const v2x = c.x - b.x, v2y = c.y - b.y, v2z = (c.z ?? 0) - (b.z ?? 0);
-  const m1 = Math.hypot(v1x, v1y, v1z), m2 = Math.hypot(v2x, v2y, v2z);
-  if (m1 === 0 || m2 === 0) return null;
-  const cos = (v1x*v2x + v1y*v2y + v1z*v2z) / (m1*m2);
-  return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
-};
-
-// Rep counting: offline peak detection on the full recorded angle signal.
-//
-// Background: an earlier live-state-machine approach missed reps badly on
-// dynamic isolation lifts (SL hip thrust, bench, etc.). Root cause confirmed
-// by running MediaPipe on one of Amit's clips offline and plotting the angle
-// signal: the hip signal on hip thrust is a clean sine wave with ~22 visible
-// cycles — but the knee signal (MediaPipe struggles with supine pose) is pure
-// noise, and any state machine that required cross-channel agreement got
-// dragged down by the noisy channel. Peak-finding with a prominence threshold
-// on the right channel(s) matches the ground truth count within ±1 rep.
-//
-// Each exercise title selects which joint channels carry the rep signal.
-// Detector accumulates per-channel smoothed angle samples during playback,
-// reruns findPeaks every ~200ms, and displays the max peak count across the
-// selected channels. The count stabilizes once playback has passed every rep.
-
-// Joint-channel selection by exercise name. Order matters: `none` must match
-// first so isometric lifts skip counting instead of getting classified as
-// something with cycle.
-const CHANNEL_RULES = [
-  { kind: 'none',  rx: /\b(hold|plank|l[-\s]?sit|dead[-\s]?hang|hanging|carry|farmer|iso|iso[-\s]?metric|wall[-\s]?sit|bear[-\s]?crawl|position|stretch|breath|scap)\b/i,
-    channels: [] },
-  // Hip-dominant: hip thrust, deadlift, rdl, hinge, good-morning. Knees may
-  // stay near 90° the whole time (hip thrust) or move only slightly (RDL).
-  { kind: 'hip',   rx: /\b(hip[-\s]?thrust|glute[-\s]?bridge|deadlift|\bdl\b|rdl|romanian|hinge|good[-\s]?morning|jefferson|clean|snatch|swing|kettlebell\s*swing)\b/i,
-    channels: ['L HIP', 'R HIP'] },
-  // Knee-dominant: squat, lunge, step-up, leg curl, leg extension, jumps.
-  { kind: 'knee',  rx: /\b(squat|lunge|step[-\s]?up|split[-\s]?squat|rfess|bulgarian|pistol|leg[-\s]?press|leg[-\s]?extension|leg[-\s]?curl|jump|bounce|goblet|thruster|pogo)\b/i,
-    channels: ['L KNE', 'R KNE'] },
-  // Elbow-dominant: bench, press, row, curl, extension, pulldown, dip, pushup,
-  // pull-up, tricep pushdown.
-  { kind: 'elbow', rx: /\b(press|bench|push[-\s]?up|ohp|row|pull[-\s]?up|chin[-\s]?up|pulldown|curl|extension|tricep|skull|dip|pushdown|pullover|hammer)\b/i,
-    channels: ['L ELB', 'R ELB'] },
-  // Shoulder-dominant: laterals, front raises, flies.
-  { kind: 'sho',   rx: /\b(fly|flye|raise|lateral|front[-\s]?raise|rear[-\s]?delt)\b/i,
-    channels: ['L SHO', 'R SHO'] },
-];
-const detectChannels = (title) => {
-  const t = String(title || '');
-  for (const r of CHANNEL_RULES) if (r.rx.test(t)) return { kind: r.kind, channels: r.channels };
-  // Default: knee channels — Amit's library skews lower-body.
-  return { kind: 'knee', channels: ['L KNE', 'R KNE'] };
-};
-
-// Median filter over a buffer, window of WIN samples centered on each index.
-// NaN/undefined samples are skipped — the filter outputs the median of only
-// the real values in the window. Applied at findPeaks time (not during sample
-// collection) so ordering of sample writes doesn't matter.
-const SMOOTH_N = 5;
-function medianFilter(signal, win = SMOOTH_N) {
-  const half = Math.floor(win / 2);
-  const out = new Array(signal.length);
-  for (let i = 0; i < signal.length; i++) {
-    const vals = [];
-    for (let j = Math.max(0, i - half); j <= Math.min(signal.length - 1, i + half); j++) {
-      const x = signal[j];
-      if (x != null && Number.isFinite(x)) vals.push(x);
-    }
-    if (vals.length === 0) { out[i] = undefined; continue; }
-    vals.sort((a, b) => a - b);
-    out[i] = vals[Math.floor(vals.length / 2)];
-  }
-  return out;
-}
-
-// Plateau-aware peak finder matching scipy.signal.find_peaks. A peak is a
-// rising→(flat)→falling shape; plateaus of equal values are one peak at the
-// midpoint. Earlier strict v > prev && v > next missed plateau peaks that
-// the median filter creates whenever several consecutive samples are near-
-// equal. That bug alone explained the "21 reps seen, 14 counted" gap.
-// Prominence: largest drop from the peak to the nearest valley in either
-// direction before the signal exceeds peak height again.
-// minDist: minimum samples between kept peaks; within-minDist duplicates are
-// resolved by keeping the taller.
-// NaN/undefined samples = data gaps, skipped in every walk; never replaced
-// with a sentinel because a sentinel would inflate prominence against peaks
-// next to gaps.
-const isReal = (x) => x != null && Number.isFinite(x);
-function findPeaks(signal, prominence, minDist) {
-  const candidates = [];
-  const n = signal.length;
-  let i = 1;
-  while (i < n - 1) {
-    const v = signal[i];
-    if (!isReal(v)) { i++; continue; }
-    // Left: skip NaN + values equal to v, find first lower real.
-    let pi = i - 1;
-    while (pi >= 0 && (!isReal(signal[pi]) || signal[pi] === v)) pi--;
-    if (pi < 0 || signal[pi] > v) { i++; continue; }
-    // Right edge of plateau at v.
-    let pEnd = i;
-    while (pEnd + 1 < n && (!isReal(signal[pEnd + 1]) || signal[pEnd + 1] === v)) pEnd++;
-    // First lower real past the plateau.
-    let ni = pEnd + 1;
-    while (ni < n && !isReal(signal[ni])) ni++;
-    if (ni >= n || signal[ni] >= v) { i = pEnd + 1; continue; }
-    // Confirmed peak — represent it at plateau midpoint.
-    const peakIdx = Math.floor((i + pEnd) / 2);
-    // Prominence walk.
-    let leftMin = v;
-    for (let j = pi; j >= 0; j--) { const x = signal[j]; if (!isReal(x)) continue; if (x > v) break; if (x < leftMin) leftMin = x; }
-    let rightMin = v;
-    for (let j = ni; j < n; j++) { const x = signal[j]; if (!isReal(x)) continue; if (x > v) break; if (x < rightMin) rightMin = x; }
-    const prom = v - Math.max(leftMin, rightMin);
-    if (prom >= prominence) candidates.push({ idx: peakIdx, v, prom });
-    i = pEnd + 1;
-  }
-  // Dedup by minDist — keep taller of any two peaks within minDist samples.
-  const kept = [];
-  for (const c of candidates) {
-    while (kept.length && c.idx - kept[kept.length - 1].idx < minDist) {
-      if (c.v > kept[kept.length - 1].v) kept.pop();
-      else { c._drop = true; break; }
-    }
-    if (!c._drop) kept.push(c);
-  }
-  return kept;
-}
+// Rep counting algorithm (ANGLE_DEFS / angleAt / detectChannels / medianFilter
+// / findPeaks / SMOOTH_N) moved to src/repCounter.js — imported at the top so
+// the client's upload-time auto-count runs the same code.
 
 // Form-video player: speed control (0.125x recovers old fast-motion webm),
 // frame-step (←/→ ~ 1/30s), fullscreen, and an optional MediaPipe Pose
@@ -833,7 +699,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   {(formVideo?.has || formVideo?.cloudUrl) ? (
                     <div style={{background:C.gnD,border:`1px solid ${C.gn}30`,borderRadius:8,padding:12,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-                        <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
+                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                          <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
+                          {typeof formVideo.repCount === 'number' && <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,background:C.acD,padding:'2px 8px',borderRadius:10}}>🔢 {formVideo.repCount} REPS</div>}
+                        </div>
                         {formVideo.cloudUrl && (() => {
                           // Build picker candidates: every other form video for this client.
                           const candidates = clientWorkouts

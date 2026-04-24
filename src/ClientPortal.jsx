@@ -4,6 +4,7 @@ import { EX } from './exerciseData';
 import { supabase } from './supabase';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
+import { countRepsForVideo } from './repCounter';
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -223,7 +224,24 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
 
     const previewUrl = URL.createObjectURL(file);
-    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0}; return n; });
+    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, counting:true, repCount:null, repKind:null}; return n; });
+
+    // Auto-count reps in parallel with compression + upload. Uses the local
+    // File (pre-compression, higher quality) so pose detection has the best
+    // available input. Stashes the result into fv[exIdx] when done; the save
+    // payload in finish() includes whatever count is ready at that moment.
+    // Errors are swallowed (just leaves repCount null — trainer can still
+    // toggle REPS manually in review).
+    (async () => {
+      try {
+        const exTitle = EX[day.ex[exIdx]?.eid]?.t || '';
+        const { count, kind } = await countRepsForVideo(file, exTitle);
+        setFv(prev => { const n=[...prev]; if(!n[exIdx]) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:count, repKind:kind}; return n; });
+      } catch (err) {
+        console.warn('auto-count failed:', err);
+        setFv(prev => { const n=[...prev]; if(!n[exIdx]) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:null}; return n; });
+      }
+    })();
 
     try {
       let uploadBlob = file;
@@ -278,7 +296,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   };
 
   const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,
-    formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null,cloudUrl:f.cloudUrl||null})),
+    formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null,cloudUrl:f.cloudUrl||null,repCount:f.repCount??null,repKind:f.repKind||null})),
     exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:(ex.wk&&ex.wk[weekNum])||`${(ex.wkS&&ex.wkS[weekNum])||ex.s}x${(ex.wk&&ex.wk[weekNum])||ex.r}`,sets:allSets[i]}))});
 
   // Navigation helpers
@@ -444,6 +462,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <span style={{fontSize:14}}>✅</span><span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>UPLOADED</span></div>}
           {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:C.acD,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? `⚙ Compressing ${f.compressProgress||0}%` : `☁ Uploading ${f.uploadProgress||0}%`}</span></div>}
+          {f.counting && <div style={{display:'flex',alignItems:'center',gap:4,background:C.sf2,padding:'3px 10px',borderRadius:20}}>
+            <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>⏱ Counting reps…</span></div>}
+          {!f.counting && typeof f.repCount === 'number' && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
+            <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>🔢 {f.repCount} REPS</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
