@@ -677,7 +677,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     <>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28,display:'block',marginLeft:20}} />
+          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28,display:'block',marginLeft:10}} />
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
