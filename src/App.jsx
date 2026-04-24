@@ -188,12 +188,20 @@ function AuthedApp() {
   const pickPortal = useCallback((side) => {
     sessionStorage.setItem(PORTAL_CHOICE_KEY, side);
     setPortalChoice(side);
-    // Land on the right URL immediately so the rest of the routing logic
-    // doesn't fight the choice on the next render.
-    if (side === 'trainer' && !window.location.pathname.startsWith('/coach')) {
-      window.history.replaceState(null, '', '/coach/dashboard');
-    } else if (side === 'client' && window.location.pathname.startsWith('/coach')) {
-      window.history.replaceState(null, '', '/');
+    // Land on the right URL + tab state immediately. Without the setTab the
+    // coach header would render with the stale "client" initial tab value
+    // on first pick (useState's initializer runs once, before portalChoice
+    // exists), leaving no active tab highlighted until the user clicked.
+    if (side === 'trainer') {
+      if (!window.location.pathname.startsWith('/coach')) {
+        window.history.replaceState(null, '', '/coach/dashboard');
+      }
+      setTab('dashboard');
+    } else if (side === 'client') {
+      if (window.location.pathname.startsWith('/coach')) {
+        window.history.replaceState(null, '', '/');
+      }
+      setTab('client');
     }
   }, []);
   const switchPortal = useCallback(() => {
