@@ -803,7 +803,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         }
       `}</style>
       <div ref={wrapperRef} className="fv-wrap" style={{position:'relative',marginBottom:6,lineHeight:0}}>
-        <video ref={videoRef} src={url} controls playsInline crossOrigin="anonymous"
+        <video ref={videoRef} src={url} controls controlsList="nofullscreen" playsInline crossOrigin="anonymous"
           style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
         <canvas ref={canvasRef}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
