@@ -123,8 +123,11 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
       const truncated = sig.slice(0, Math.max(0, curBucket + 1));
       if (truncated.length < 10) continue;
       const smoothed = medianFilter(truncated, SMOOTH_N);
-      const peaks = findPeaks(smoothed, 25, minDist);
-      if (peaks.length > bestCount) bestCount = peaks.length;
+      // Invert to count troughs: every rep has exactly one flexion bottom
+      // regardless of whether the clip starts extended or flexed.
+      const inverted = smoothed.map(x => Number.isFinite(x) ? -x : x);
+      const troughs = findPeaks(inverted, 25, minDist);
+      if (troughs.length > bestCount) bestCount = troughs.length;
     }
     repsCountRef.current = bestCount;
     setReps(bestCount);
@@ -317,8 +320,10 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                     const truncated = sig.slice(0, Math.max(0, curBucket + 1));
                     if (truncated.length < 10) continue;
                     const smoothed = medianFilter(truncated, SMOOTH_N);
-                    const peaks = findPeaks(smoothed, 25, minDist);
-                    if (peaks.length > bestCount) bestCount = peaks.length;
+                    // Count troughs: invert signal, findPeaks = find flexion bottoms.
+                    const inverted = smoothed.map(x => Number.isFinite(x) ? -x : x);
+                    const troughs = findPeaks(inverted, 25, minDist);
+                    if (troughs.length > bestCount) bestCount = troughs.length;
                   }
                   repsCountRef.current = bestCount;
                   lastTempoRef.current = bestCount > 1 ? vt / bestCount : null;

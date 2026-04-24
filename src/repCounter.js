@@ -272,14 +272,23 @@ async function runCount(source, kind, channels, onProgress) {
   const readyAtEnd = v.readyState;
   cleanup();
 
+  // Count TROUGHS (bottoms of rep cycles), not peaks. Every rep has exactly
+  // one flexion minimum — squat bottom, bench bottom, curl contraction,
+  // hip-thrust starting position — regardless of whether the clip starts/ends
+  // at the extended or flexed position. Counting peaks is off-by-one when
+  // the clip starts extended (standing before a squat) because the starting
+  // "top" reads as a peak but isn't a rep.
+  // Inverting the signal turns the minima into maxima so findPeaks detects
+  // them; NaN samples are preserved (negating NaN is still NaN).
   const minDist = Math.max(4, Math.round(BUCKET_FPS * 0.4));
   let best = 0;
   for (const key of channels) {
     const sig = buffers[key];
     if (!sig || sig.length < 10) continue;
     const sm = medianFilter(sig, SMOOTH_N);
-    const peaks = findPeaks(sm, 25, minDist);
-    if (peaks.length > best) best = peaks.length;
+    const inverted = sm.map(x => isReal(x) ? -x : x);
+    const troughs = findPeaks(inverted, 25, minDist);
+    if (troughs.length > best) best = troughs.length;
   }
   // Diagnostic: log frame/pose counts so silent failures surface in DevTools.
   console.log(`[repCounter] ${kind} count=${best} frames=${frameCount} withPose=${framesWithPose} dur=${durationAtEnd} curT=${currentAtEnd} ended=${endedAtEnd} paused=${pausedAtEnd} ready=${readyAtEnd}`);

@@ -129,6 +129,29 @@ for (const p of [5, 10, 15, 20, 25, 30]) {
   console.log(`  prominence=${p}: ${peaks.length} peaks`);
 }
 
+console.log('\nAll channels at live-code prominence=25 (ground truth: 20 reps):');
+for (const key of ['L_HIP', 'R_HIP', 'L_KNE', 'R_KNE', 'L_ELB', 'R_ELB', 'L_SHO', 'R_SHO']) {
+  const sm = medianFilter(bucketed[key], SMOOTH_N);
+  const peaks = findPeaks(sm, 25, Math.max(4, Math.round(BUCKET_FPS * 0.4)));
+  console.log(`  ${key}: ${peaks.length} peaks`);
+}
+
+// Simulate scrub-tracks-playhead: what does the count look like at various
+// playhead positions? Should grow monotonically from 0 as we sweep forward.
+console.log('\nScrub simulation — max peaks across [L_HIP, R_HIP] up to playhead:');
+for (const vtSec of [0, 2, 5, 8, 12, 16, 20, 24, 28, 31.4]) {
+  const curBucket = Math.round(vtSec * BUCKET_FPS);
+  let best = 0;
+  for (const key of ['L_HIP', 'R_HIP']) {
+    const sliced = bucketed[key].slice(0, curBucket + 1);
+    if (sliced.length < 10) continue;
+    const sm = medianFilter(sliced, SMOOTH_N);
+    const peaks = findPeaks(sm, 25, Math.max(4, Math.round(BUCKET_FPS * 0.4)));
+    if (peaks.length > best) best = peaks.length;
+  }
+  console.log(`  vt=${vtSec.toFixed(1)}s  bucket=${curBucket}  count=${best}`);
+}
+
 // Inspect WHY direct CSV returns only 5 peaks when scipy said 21 at same params.
 console.log('\n--- Debug: candidates found in raw L_HIP signal ---');
 {
