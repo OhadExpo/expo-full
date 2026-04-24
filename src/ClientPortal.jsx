@@ -337,7 +337,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const vid = ytId(wu.vid);
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12}}>
           <div style={{background:C.orD,borderRadius:8,padding:'4px 10px',fontFamily:FN,fontSize:11,color:C.or,fontWeight:700}}>WARM-UP {wi+1}/{wuCount}</div></div>
         <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{wu.t}</h2>
         <div style={{fontSize:15,color:C.or,fontWeight:700,fontFamily:FN,marginBottom:14}}>{wu.rx}</div>
@@ -354,7 +354,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // ===== PRE-WORKOUT CHECK =====
   if (step === 'pre') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20}}>
-      <h2 style={{margin:'0 0 16px',fontFamily:FN,fontSize:20}}>Pre-Workout Check</h2>
+      <h2 style={{margin:'0 0 16px',fontFamily:FN,fontSize:20,textAlign:'center'}}>Pre-Workout Check</h2>
       {[['pain','Pain Level','0-10',C.rd],['energy','Energy','1-5',C.gn],['sleep','Sleep Quality','1-5',C.pu]].map(([k,l,rng,col]) =>
         <div key={k} style={{marginBottom:20}}>
           <div style={{fontSize:15,fontWeight:600,marginBottom:6}}>{l} ({rng})</div>
