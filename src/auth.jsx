@@ -147,8 +147,8 @@ export function LoginScreen() {
   return (
     <div style={wrapStyle}>
       <div style={{ width: '100%', maxWidth: 380 }}>
-        <div style={{ textAlign: 'center', marginBottom: 32, padding: '0 28px', boxSizing: 'border-box' }}>
-          <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', marginBottom: 12 }} />
+        <div style={{ textAlign: 'center', marginBottom: 16, padding: '0 28px', boxSizing: 'border-box' }}>
+          <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', marginBottom: 24 }} />
           <div style={{ color: C.tm, fontSize: 15 }}>Sign<span style={{ color: C.td }}>-</span>in</div>
         </div>
         <div style={cardStyle}>
@@ -372,7 +372,8 @@ export function UnauthorizedScreen({ email, onSignOut }) {
 
 const wrapStyle = {
   background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
-  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20,
+  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
+  padding: '8vh 20px 40px',
 };
 
 const cardStyle = {
