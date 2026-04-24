@@ -107,55 +107,49 @@ function medianFilter(signal, win = SMOOTH_N) {
   return out;
 }
 
-// Offline peak finder with prominence + minimum-distance. A peak is a strict
-// local maximum whose prominence (drop from peak to the lowest valley before
-// meeting another point higher than the peak) exceeds `prominence`. Between
-// two qualifying peaks closer than `minDist` samples we keep the taller one.
-// Matches scipy.signal.find_peaks' prominence/distance behavior.
-// NaN/undefined samples are treated as data gaps — skipped in the local-max
-// check and skipped in the prominence walk. NEVER replaced with a sentinel,
-// because a sentinel would inflate prominence against real peaks near gaps.
+// Plateau-aware peak finder matching scipy.signal.find_peaks. A peak is a
+// rising→(flat)→falling shape; plateaus of equal values are one peak at the
+// midpoint. Earlier strict v > prev && v > next missed plateau peaks that
+// the median filter creates whenever several consecutive samples are near-
+// equal. That bug alone explained the "21 reps seen, 14 counted" gap.
+// Prominence: largest drop from the peak to the nearest valley in either
+// direction before the signal exceeds peak height again.
+// minDist: minimum samples between kept peaks; within-minDist duplicates are
+// resolved by keeping the taller.
+// NaN/undefined samples = data gaps, skipped in every walk; never replaced
+// with a sentinel because a sentinel would inflate prominence against peaks
+// next to gaps.
 const isReal = (x) => x != null && Number.isFinite(x);
 function findPeaks(signal, prominence, minDist) {
   const candidates = [];
-  // A peak needs real neighbors within NEIGHBOR_MAX samples so sparse frame-
-  // stepped samples don't each register as isolated "peaks". 3 buckets at
-  // BUCKET_FPS=30 is 100ms — tight enough to require genuine dense coverage,
-  // loose enough to tolerate the occasional skipped bucket from a 25fps clip.
-  const NEIGHBOR_MAX = 3;
-  for (let i = 1; i < signal.length - 1; i++) {
+  const n = signal.length;
+  let i = 1;
+  while (i < n - 1) {
     const v = signal[i];
-    if (!isReal(v)) continue;
-    // Find nearest real neighbors on either side — NaN gaps shouldn't
-    // invalidate an otherwise-valid local max.
-    let pi = i - 1; while (pi >= 0 && !isReal(signal[pi])) pi--;
-    let ni = i + 1; while (ni < signal.length && !isReal(signal[ni])) ni++;
-    if (pi < 0 || ni >= signal.length) continue;
-    if (i - pi > NEIGHBOR_MAX || ni - i > NEIGHBOR_MAX) continue;
-    if (v <= signal[pi] || v <= signal[ni]) continue;
-    // Prominence: walk left/right until signal exceeds v, track the min of
-    // real values in between; prominence = v − max(leftMin, rightMin).
+    if (!isReal(v)) { i++; continue; }
+    // Left: skip NaN + values equal to v, find first lower real.
+    let pi = i - 1;
+    while (pi >= 0 && (!isReal(signal[pi]) || signal[pi] === v)) pi--;
+    if (pi < 0 || signal[pi] > v) { i++; continue; }
+    // Right edge of plateau at v.
+    let pEnd = i;
+    while (pEnd + 1 < n && (!isReal(signal[pEnd + 1]) || signal[pEnd + 1] === v)) pEnd++;
+    // First lower real past the plateau.
+    let ni = pEnd + 1;
+    while (ni < n && !isReal(signal[ni])) ni++;
+    if (ni >= n || signal[ni] >= v) { i = pEnd + 1; continue; }
+    // Confirmed peak — represent it at plateau midpoint.
+    const peakIdx = Math.floor((i + pEnd) / 2);
+    // Prominence walk.
     let leftMin = v;
-    for (let j = pi; j >= 0; j--) {
-      const x = signal[j];
-      if (!isReal(x)) continue;
-      if (x > v) break;
-      if (x < leftMin) leftMin = x;
-    }
+    for (let j = pi; j >= 0; j--) { const x = signal[j]; if (!isReal(x)) continue; if (x > v) break; if (x < leftMin) leftMin = x; }
     let rightMin = v;
-    for (let j = ni; j < signal.length; j++) {
-      const x = signal[j];
-      if (!isReal(x)) continue;
-      if (x > v) break;
-      if (x < rightMin) rightMin = x;
-    }
-    const base = Math.max(leftMin, rightMin);
-    const prom = v - base;
-    if (prom < prominence) continue;
-    candidates.push({ idx: i, v, prom });
+    for (let j = ni; j < n; j++) { const x = signal[j]; if (!isReal(x)) continue; if (x > v) break; if (x < rightMin) rightMin = x; }
+    const prom = v - Math.max(leftMin, rightMin);
+    if (prom >= prominence) candidates.push({ idx: peakIdx, v, prom });
+    i = pEnd + 1;
   }
   // Dedup by minDist — keep taller of any two peaks within minDist samples.
-  candidates.sort((a, b) => a.idx - b.idx);
   const kept = [];
   for (const c of candidates) {
     while (kept.length && c.idx - kept[kept.length - 1].idx < minDist) {
@@ -253,19 +247,21 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
       setReps(0);
       return;
     }
+    const vt = videoRef.current?.currentTime || 0;
+    const curBucket = Math.round(vt * 30);
     const minDist = Math.max(4, Math.round(30 * 0.4));
     let bestCount = 0;
     for (const key of activeChannels) {
       const sig = st.signalBufs[key];
       if (!sig || sig.length < 10) continue;
-      const smoothed = medianFilter(sig, SMOOTH_N);
-      const peaks = findPeaks(smoothed, 20, minDist);
+      const truncated = sig.slice(0, Math.max(0, curBucket + 1));
+      if (truncated.length < 10) continue;
+      const smoothed = medianFilter(truncated, SMOOTH_N);
+      const peaks = findPeaks(smoothed, 25, minDist);
       if (peaks.length > bestCount) bestCount = peaks.length;
     }
     repsCountRef.current = bestCount;
     setReps(bestCount);
-    // Force the detect-loop throttle to fire on next frame too, so a just-
-    // resumed playback picks up any further buffer growth immediately.
     st.lastPeakRunAt = -1;
   }, [trackOverride, exerciseTitle, repsOn]);
 
@@ -441,23 +437,25 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                 if (activeCh.length === 0) {
                   repsCountRef.current = 0;
                 } else {
-                  // Throttle re-runs on wall-clock (not video time) so a
-                  // backward scrub still triggers re-evaluation.
-                  const now = performance.now();
-                  if (st.lastPeakRunAt < 0 || now - st.lastPeakRunAt > 200) {
-                    st.lastPeakRunAt = now;
-                    const minDist = Math.max(4, Math.round(BUCKET_FPS * 0.4));
-                    let bestCount = 0;
-                    for (const key of activeCh) {
-                      const sig = st.signalBufs[key];
-                      if (!sig || sig.length < 10) continue;
-                      const smoothed = medianFilter(sig, SMOOTH_N);
-                      const peaks = findPeaks(smoothed, 20, minDist);
-                      if (peaks.length > bestCount) bestCount = peaks.length;
-                    }
-                    repsCountRef.current = bestCount;
-                    lastTempoRef.current = bestCount > 1 ? vt / bestCount : null;
+                  // Run findPeaks every tick (no throttle — a full run is
+                  // ~40k ops on a 30s clip, cheap enough to do per frame).
+                  // Truncate each channel at the current playhead so the
+                  // count reflects playback progress — scrubbing backward
+                  // drops the count, matching user expectation.
+                  const minDist = Math.max(4, Math.round(BUCKET_FPS * 0.4));
+                  const curBucket = Math.round(v.currentTime * BUCKET_FPS);
+                  let bestCount = 0;
+                  for (const key of activeCh) {
+                    const sig = st.signalBufs[key];
+                    if (!sig || sig.length < 10) continue;
+                    const truncated = sig.slice(0, Math.max(0, curBucket + 1));
+                    if (truncated.length < 10) continue;
+                    const smoothed = medianFilter(truncated, SMOOTH_N);
+                    const peaks = findPeaks(smoothed, 25, minDist);
+                    if (peaks.length > bestCount) bestCount = peaks.length;
                   }
+                  repsCountRef.current = bestCount;
+                  lastTempoRef.current = bestCount > 1 ? vt / bestCount : null;
                 }
               }
             }
