@@ -853,7 +853,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             onChange={e => setComposeText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitCompose(); } }}
             placeholder={composing.replyToId ? 'Type your reply…' : 'What should the client focus on at this moment?'}
-            style={{width:'100%',minHeight:60,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:6,padding:8,color:C.tx,fontFamily:FB,fontSize:13,boxSizing:'border-box',resize:'vertical'}}/>
+            style={{width:'100%',minHeight:60,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:6,padding:8,color:C.tx,fontFamily:FB,fontSize:13,boxSizing:'border-box',resize:'vertical',textAlign:'center'}}/>
           <div style={{display:'flex',gap:6,justifyContent:'flex-end',marginTop:6}}>
             <button onClick={cancelCompose} style={{padding:'4px 10px',borderRadius:4,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>Cancel</button>
             <button onClick={submitCompose} disabled={!composeText.trim()} style={{padding:'4px 10px',borderRadius:4,border:'none',background:composeText.trim()?C.ac:C.sf3,color:composeText.trim()?'#fff':C.td,fontFamily:FB,fontSize:11,fontWeight:700,cursor:composeText.trim()?'pointer':'default'}}>Save</button>
@@ -886,7 +886,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                     <button onClick={() => deleteNote(n.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginLeft:4}}>✕</button>
                   )}
                 </div>
-                <div style={{fontSize:pausedAtCommentId===n.id?14:13,color:C.tx,whiteSpace:'pre-wrap'}}>{n.text}</div>
+                <div style={{fontSize:pausedAtCommentId===n.id?14:13,color:C.tx,whiteSpace:'pre-wrap',textAlign:'center'}}>{n.text}</div>
                 {(n.replies || []).length > 0 && (
                   <div style={{marginTop:8,marginLeft:12,display:'flex',flexDirection:'column',gap:6,borderLeft:`2px solid ${C.bd}`,paddingLeft:10}}>
                     {n.replies.map(r => (
@@ -898,7 +898,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                             <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:'auto'}}>✕</button>
                           )}
                         </div>
-                        <div style={{fontSize:12,color:C.tx,whiteSpace:'pre-wrap'}}>{r.text}</div>
+                        <div style={{fontSize:12,color:C.tx,whiteSpace:'pre-wrap',textAlign:'center'}}>{r.text}</div>
                       </div>
                     ))}
                   </div>
