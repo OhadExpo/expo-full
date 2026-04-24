@@ -3,7 +3,7 @@ import WorkoutsView from './WorkoutsView';
 import { C, FN, FB, ytId, EXPO_ICON } from './theme';
 import { EX } from './exerciseData';
 import {
-  ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
+  ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, trimOutlierPeaks, SMOOTH_N,
 } from './repCounter';
 
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,padding:"8px 10px",borderRadius:6,
@@ -126,7 +126,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
       // Invert to count troughs: every rep has exactly one flexion bottom
       // regardless of whether the clip starts extended or flexed.
       const inverted = smoothed.map(x => Number.isFinite(x) ? -x : x);
-      const troughs = findPeaks(inverted, 25, minDist);
+      const troughs = trimOutlierPeaks(findPeaks(inverted, 25, minDist), 2.0);
       if (troughs.length > bestCount) bestCount = troughs.length;
     }
     repsCountRef.current = bestCount;
@@ -322,7 +322,7 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
                     const smoothed = medianFilter(truncated, SMOOTH_N);
                     // Count troughs: invert signal, findPeaks = find flexion bottoms.
                     const inverted = smoothed.map(x => Number.isFinite(x) ? -x : x);
-                    const troughs = findPeaks(inverted, 25, minDist);
+                    const troughs = trimOutlierPeaks(findPeaks(inverted, 25, minDist), 2.0);
                     if (troughs.length > bestCount) bestCount = troughs.length;
                   }
                   repsCountRef.current = bestCount;
