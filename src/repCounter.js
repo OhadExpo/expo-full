@@ -171,14 +171,15 @@ async function runCount(source, kind, channels, onProgress) {
   // crossOrigin only needed for external URLs. Setting it for blob: URLs can
   // cause load failures on some browsers since blob: doesn't respond to CORS.
   if (typeof source === 'string') v.crossOrigin = 'anonymous';
-  v.src = url;
   v.muted = true;
   v.playsInline = true;
   v.preload = 'auto';
-  // Offscreen but rendered — do NOT use opacity:0 or display:none; mobile
-  // Safari blocks playback for those. `left:-10000px` puts it out of view
-  // while the element remains "visible" as far as the renderer is concerned.
-  v.style.cssText = 'position:fixed;left:-10000px;top:0;width:320px;height:240px;pointer-events:none;';
+  // Offscreen. No CSS width/height so the element sizes to its intrinsic
+  // video dimensions — mobile browsers sometimes fail to decode into a
+  // container sized smaller than the source. `left:-10000px` keeps it out
+  // of view. No opacity:0 or display:none (both block autoplay on iOS).
+  v.style.cssText = 'position:fixed;left:-10000px;top:0;pointer-events:none;';
+  v.src = url;
   document.body.appendChild(v);
 
   const cleanup = () => {
@@ -198,6 +199,16 @@ async function runCount(source, kind, channels, onProgress) {
   ANGLE_DEFS.forEach(d => { buffers[d.name] = []; });
   let frameCount = 0, framesWithPose = 0;
 
+  // Create a drawing canvas sized to the video's intrinsic dimensions.
+  // MediaPipe's detectForVideo reads from the canvas reliably even when the
+  // video element itself is offscreen/hidden — passing the <video> directly
+  // fails on some mobile browsers that skip rendering for invisible videos.
+  const vw = v.videoWidth || 640;
+  const vh = v.videoHeight || 480;
+  const canvas = document.createElement('canvas');
+  canvas.width = vw; canvas.height = vh;
+  const ctx = canvas.getContext('2d');
+
   // 2x is universally supported; 4x got clamped or rejected on some browsers.
   try { v.playbackRate = 2; } catch {}
   try { await v.play(); } catch (e) { cleanup(); throw new Error('Video playback blocked: ' + (e?.message || e)); }
@@ -209,7 +220,11 @@ async function runCount(source, kind, channels, onProgress) {
       if (ts <= lastTs) return;
       lastTs = ts;
       frameCount++;
-      const result = lm.detectForVideo(v, ts);
+      // Draw the current video frame to our canvas, then run pose detection
+      // on the canvas. Works regardless of the video element's visibility.
+      try { ctx.drawImage(v, 0, 0, canvas.width, canvas.height); }
+      catch { return; }
+      const result = lm.detectForVideo(canvas, ts);
       const wlms = result.worldLandmarks?.[0] || result.landmarks?.[0];
       if (!wlms) return;
       framesWithPose++;
