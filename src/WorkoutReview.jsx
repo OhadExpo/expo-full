@@ -742,18 +742,22 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           })}
         </div>
       )}
-      {/* Top row: frame-step + speed on the left; comment controls on the right. */}
+      {/* Top row: frame-step + speed on the left; comment controls on the right.
+          The 'SPEED' label and the larger speed-button padding used to push
+          this row past mobile width, wrapping it onto a second visual line and
+          turning the toolbar into 3 rows instead of 2. Dropped the label and
+          tightened padding so ◀ ▶ + all five speeds + the 💬 toggle fit on
+          one line at ~360px viewport width. */}
       <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
         <button onClick={() => stepFrame(-1)} title="Previous frame"
-          style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
+          style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>◀</button>
         <button onClick={() => stepFrame(1)} title="Next frame"
-          style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
+          style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>▶</button>
-        <span style={{fontSize:9,fontFamily:FN,color:C.td,marginLeft:6,marginRight:4,letterSpacing:0.5}}>SPEED</span>
         {speeds.map(s => (
-          <button key={s} onClick={() => setSpeed(s)}
-            style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${speed===s?C.ac:C.bd}`,
+          <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
+            style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${speed===s?C.ac:C.bd}`,
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
         ))}
