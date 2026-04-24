@@ -903,18 +903,18 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           tightened padding so ◀ ▶ + all five speeds + the 💬 toggle fit on
           one line at ~360px viewport width. */}
       <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
+        {speeds.map(s => (
+          <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
+            style={{padding:'3px 6px',borderRadius:4,border:`${speed===s?'2px':'0px'} solid ${C.ac}`,
+              background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
+              fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
+        ))}
         <button onClick={() => stepFrame(-1)} title="Previous frame"
           style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>◀</button>
         <button onClick={() => stepFrame(1)} title="Next frame"
           style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>▶</button>
-        {speeds.map(s => (
-          <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
-            style={{padding:'3px 6px',borderRadius:4,border:`${speed===s?'2px':'0.5px'} solid ${C.ac}`,
-              background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
-              fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
-        ))}
         <div style={{marginLeft:'auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
           {onReviewNotesChange && role === 'trainer' && (
             <button onClick={addComment} title="Add a timestamped comment at the current video time"
@@ -924,7 +924,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {notes.length > 0 && (
             <button onClick={toggleComments}
               title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
-              style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0.5px'} solid ${C.ac}`,
+              style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
                 background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
               💬 {commentsEnabled ? 'ON' : 'OFF'}
             </button>
@@ -934,14 +934,14 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       {/* Bottom row: pose/reps on the left; loop/full on the right. */}
       <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginTop:4}}>
         <button onClick={togglePose} disabled={poseLoading}
-          style={{padding:'3px 10px',borderRadius:4,border:`${poseOn?'2px':'0.5px'} solid ${C.ac}`,
+          style={{padding:'3px 10px',borderRadius:4,border:`${poseOn?'2px':'0px'} solid ${C.ac}`,
             background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
         </button>
         <button onClick={toggleReps} disabled={poseLoading}
           title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-          style={{padding:'3px 10px',borderRadius:4,border:`${repsOn?'2px':'0.5px'} solid ${C.gn}`,
+          style={{padding:'3px 10px',borderRadius:4,border:`${repsOn?'2px':'0px'} solid ${C.gn}`,
             background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {repsOn ? `REPS ${reps}` : 'REPS'}
