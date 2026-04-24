@@ -91,6 +91,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const [hudPos, setHudPos] = useState({ x: 0, y: 0 });
   const [hudDragArmed, setHudDragArmed] = useState(false);
   const [, setRenderTick] = useState(0);
+  // Tracks whether *we* are currently in fullscreen (any FS element on the
+  // page is the wrapper or its video). Drives the toggle that re-shows the
+  // native fullscreen button while inside our FS, so the user has a one-tap
+  // escape back to the page.
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const visitedCommentsRef = useRef(new Set());
   // Tracks the last currentTime we saw on a timeupdate tick. The auto-pause
   // logic uses this to detect comment crossings in the (lastT, currentT]
@@ -451,12 +456,32 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     st.lastPeakRunAt = -1;
   }, [trackOverride, exerciseTitle, repsOn]);
 
-  // Force a re-render after fullscreen change so the drawing canvas
+  // Fullscreen handling: (1) bump a render counter so the drawing canvas
   // useEffect re-runs and resizes its buffer to the new wrapper dims;
-  // without this the strokes paint into a buffer sized for the pre-FS
-  // viewport and either smear or stay invisible at the new size.
+  // (2) track whether *we* are in fullscreen so the native FS button can
+  // re-appear inside it (single-tap escape back to the page); (3) if the
+  // user taps the native FS button while we're already fullscreen via the
+  // wrapper, the browser tries to transition to video-only fullscreen —
+  // detect that and call exitFullscreen() instead, so a click on the
+  // native button reads as 'exit fullscreen' rather than 'switch to
+  // video-only fullscreen and lose the overlays'.
   useEffect(() => {
-    const onFsChange = () => setRenderTick(t => t + 1);
+    const onFsChange = () => {
+      const fsEl = document.fullscreenElement || document.webkitFullscreenElement || null;
+      const wrap = wrapperRef.current;
+      const video = videoRef.current;
+      // We consider 'in our fullscreen' as: the FS element is the wrapper.
+      // If the FS element is the bare video, the user clicked the native
+      // button while we were in wrapper-FS — exit entirely.
+      if (fsEl && video && fsEl === video) {
+        try { document.exitFullscreen?.(); } catch {}
+        try { document.webkitExitFullscreen?.(); } catch {}
+        setIsFullscreen(false);
+      } else {
+        setIsFullscreen(!!(fsEl && wrap && fsEl === wrap));
+      }
+      setRenderTick(t => t + 1);
+    };
     document.addEventListener('fullscreenchange', onFsChange);
     document.addEventListener('webkitfullscreenchange', onFsChange);
     return () => {
@@ -830,7 +855,9 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         }
       `}</style>
       <div ref={wrapperRef} className="fv-wrap" style={{position:'relative',marginBottom:6,lineHeight:0}}>
-        <video ref={videoRef} src={url} controls controlsList="nofullscreen" playsInline crossOrigin="anonymous"
+        <video ref={videoRef} src={url} controls
+          controlsList={isFullscreen ? '' : 'nofullscreen'}
+          playsInline crossOrigin="anonymous"
           style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
         <canvas ref={canvasRef}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
