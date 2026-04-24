@@ -60,7 +60,7 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
     setComposing({ ts: null, replyToId: parentId });
     setComposeText('');
   };
-  const cancelCompose = () => { setComposing(null); setComposeText(''); };
+  const cancelCompose = () => { setComposing(null); setComposeText(''); setComposeDrawings([]); };
   const submitCompose = () => {
     const text = composeText.trim();
     if (!text || !composing) { cancelCompose(); return; }
@@ -72,7 +72,7 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
         : n);
       writeNotes(next);
     } else {
-      writeNotes([...notes, { id: newId, ts: composing.ts, text, author: role, createdAt: nowIso, replies: [] }]);
+      writeNotes([...notes, { id: newId, ts: composing.ts, text, author: role, createdAt: nowIso, replies: [], drawings: composeDrawings }]);
     }
     cancelCompose();
   };
@@ -87,6 +87,118 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
     if (!v || ts == null) return;
     v.currentTime = Math.max(0, ts);
   };
+
+  // Drawing context: which comment's drawings are currently showing? The
+  // compose buffer if a new comment is being drafted; else the paused-at
+  // comment's persisted drawings; else none.
+  const currentStrokes = composing
+    ? composeDrawings
+    : (pausedAtCommentId ? (notes.find(n => n.id === pausedAtCommentId)?.drawings || []) : []);
+  // Can the user edit drawings right now? Only trainer in a context with
+  // write access (either composing a new note or viewing an existing one
+  // with onReviewNotesChange available).
+  const canDraw = role === 'trainer' && !!onReviewNotesChange && (!!composing || !!pausedAtCommentId);
+
+  const pushStroke = (stroke) => {
+    if (composing) {
+      setComposeDrawings(prev => [...prev, stroke]);
+    } else if (pausedAtCommentId) {
+      const next = notes.map(n => n.id === pausedAtCommentId
+        ? { ...n, drawings: [...(n.drawings || []), stroke] }
+        : n);
+      writeNotes(next);
+    }
+  };
+  const undoLastStroke = () => {
+    if (composing) {
+      setComposeDrawings(prev => prev.slice(0, -1));
+    } else if (pausedAtCommentId) {
+      const n = notes.find(x => x.id === pausedAtCommentId);
+      if (!n || !n.drawings?.length) return;
+      const next = notes.map(x => x.id === pausedAtCommentId
+        ? { ...x, drawings: x.drawings.slice(0, -1) }
+        : x);
+      writeNotes(next);
+    }
+  };
+  const clearDrawings = () => {
+    if (composing) {
+      setComposeDrawings([]);
+    } else if (pausedAtCommentId) {
+      const next = notes.map(x => x.id === pausedAtCommentId
+        ? { ...x, drawings: [] }
+        : x);
+      writeNotes(next);
+    }
+  };
+
+  const normPoint = (e) => {
+    const c = drawCanvasRef.current;
+    if (!c) return { x: 0, y: 0 };
+    const rect = c.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / rect.width,
+      y: (e.clientY - rect.top) / rect.height,
+    };
+  };
+  const onCanvasPointerDown = (e) => {
+    if (!activeDrawColor || !canDraw) return;
+    e.preventDefault();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const p = normPoint(e);
+    setActiveStroke({
+      id: 'dr_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+      color: activeDrawColor,
+      type: rulerMode ? 'line' : 'free',
+      points: [p],
+    });
+  };
+  const onCanvasPointerMove = (e) => {
+    if (!activeStroke) return;
+    const p = normPoint(e);
+    setActiveStroke(s => !s ? s : (s.type === 'line'
+      ? { ...s, points: [s.points[0], p] }
+      : { ...s, points: [...s.points, p] }));
+  };
+  const onCanvasPointerUp = () => {
+    if (!activeStroke) return;
+    // Require at least 2 meaningful points to save. Prevents accidental dots.
+    const s = activeStroke;
+    if (s.points.length >= 2) pushStroke(s);
+    setActiveStroke(null);
+  };
+
+  // Canvas painter: redraws strokes whenever inputs change. Canvas resolution
+  // tracks the video element's displayed size.
+  useEffect(() => {
+    const c = drawCanvasRef.current;
+    const v = videoRef.current;
+    if (!c || !v) return;
+    const w = v.clientWidth, h = v.clientHeight;
+    if (!w || !h) return;
+    if (c.width !== w) c.width = w;
+    if (c.height !== h) c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0, 0, w, h);
+    const strokes = activeStroke ? [...currentStrokes, activeStroke] : currentStrokes;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const s of strokes) {
+      if (!s.points || s.points.length === 0) continue;
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(s.points[0].x * w, s.points[0].y * h);
+      if (s.type === 'line' && s.points.length >= 2) {
+        ctx.lineTo(s.points[1].x * w, s.points[1].y * h);
+      } else {
+        for (let i = 1; i < s.points.length; i++) {
+          ctx.lineTo(s.points[i].x * w, s.points[i].y * h);
+        }
+      }
+      ctx.stroke();
+    }
+  });
   // Offline peak-detection rep counter state:
   //   signalBufs[channel] — dense arrays indexed by video-frame bucket
   //     (Math.round(vt * BUCKET_FPS)). Raw angle per bucket; NaN for frames
@@ -103,10 +215,24 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
   const lastTempoRef = useRef(null);
   const [speed, setSpeed] = useState(1);
   const [loop, setLoop] = useState(false);
-  // Auto-pause-at-comment state. When enabled, the video pauses at each
-  // comment's timestamp and highlights that one comment. When disabled, the
-  // video plays through unpaused and the comment UI is completely hidden.
+  // Auto-pause-at-comment state + drawing overlay. The `commentsEnabled`
+  // toggle controls BOTH comments and drawings — when OFF, video plays
+  // straight through with no pauses and the drawing canvas is hidden.
+  // Drawings are persisted per-comment on the `drawings` field. Five
+  // colors + ruler (straight-line) mode.
   const [commentsEnabled, setCommentsEnabled] = useState(true);
+  const [activeDrawColor, setActiveDrawColor] = useState(null); // hex | null; null = draw mode off, clicks pass through
+  const [rulerMode, setRulerMode] = useState(false);
+  const [activeStroke, setActiveStroke] = useState(null); // stroke being drawn right now
+  const [composeDrawings, setComposeDrawings] = useState([]); // strokes accumulated while composing a new comment
+  const drawCanvasRef = useRef(null);
+  const DRAW_COLORS = [
+    { key: 'red',   hex: '#ff4c4c' },
+    { key: 'blue',  hex: '#3BA0FF' },
+    { key: 'green', hex: '#28d95b' },
+    { key: 'white', hex: '#ffffff' },
+    { key: 'black', hex: '#000000' },
+  ];
   const [pausedAtCommentId, setPausedAtCommentId] = useState(null);
   const [videoPaused, setVideoPaused] = useState(true);
   const [videoEnded, setVideoEnded] = useState(false);
@@ -523,6 +649,22 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
         <canvas ref={canvasRef}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
             pointerEvents:'none',display:poseOn?'block':'none'}} />
+        {/* Drawing overlay: visible whenever the comments are enabled AND
+            we're in a drawing context (composing OR paused-at-a-comment).
+            Pointer events only flow to the canvas when a draw color is
+            active, so when inactive the video native controls are still
+            reachable. */}
+        {commentsEnabled && (composing || pausedAtCommentId) && (
+          <canvas ref={drawCanvasRef}
+            onPointerDown={onCanvasPointerDown}
+            onPointerMove={onCanvasPointerMove}
+            onPointerUp={onCanvasPointerUp}
+            onPointerCancel={onCanvasPointerUp}
+            style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
+              pointerEvents: (activeDrawColor && canDraw) ? 'auto' : 'none',
+              cursor: (activeDrawColor && canDraw) ? 'crosshair' : 'default',
+              touchAction: 'none'}} />
+        )}
         {(poseOn || repsOn) && (Object.keys(angles).length > 0 || repsOn) && (
           <div style={{position:'absolute',top:6,right:6,background:'rgba(10,10,11,0.78)',
             borderRadius:6,padding:'6px 8px',pointerEvents:'none',fontFamily:FN,fontSize:10,
@@ -621,6 +763,38 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
               background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬 COMMENT</button>
         )}
       </div>
+      {/* Drawing toolbar — only visible when the trainer is in a drawing
+          context (composing a new comment, or paused at an existing one
+          they can edit). Color swatches toggle draw mode; active color
+          shown ringed. Ruler toggles straight-line drawing. Undo /
+          Clear manage the current comment's stroke list. */}
+      {canDraw && commentsEnabled && (
+        <div style={{display:'flex',gap:6,alignItems:'center',marginTop:6,flexWrap:'wrap'}}>
+          <span style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:0.5,marginRight:2}}>DRAW</span>
+          {DRAW_COLORS.map(c => {
+            const active = activeDrawColor === c.hex;
+            return (
+              <button key={c.key} onClick={() => setActiveDrawColor(active ? null : c.hex)}
+                title={c.key + (active ? ' (click to disable drawing)' : ' (click to draw)')}
+                style={{width:20,height:20,borderRadius:'50%',background:c.hex,
+                  border: active ? `2px solid ${C.ac}` : `1px solid ${C.bd}`,
+                  boxShadow: active ? `0 0 0 2px ${C.ac}60` : 'none',
+                  cursor:'pointer',padding:0}} />
+            );
+          })}
+          <button onClick={() => setRulerMode(v => !v)} title={rulerMode ? 'Straight-line mode ON' : 'Freehand mode — click for straight-line'}
+            style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${rulerMode?C.ac:C.bd}`,
+              background:rulerMode?C.acD:'transparent',color:rulerMode?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+            📏 {rulerMode ? 'LINE' : 'FREE'}
+          </button>
+          <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title="Undo last stroke"
+            style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
+              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>↶ UNDO</button>
+          <button onClick={clearDrawings} disabled={currentStrokes.length === 0} title="Clear all drawings on this comment"
+            style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
+              background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>✕ CLEAR</button>
+        </div>
+      )}
       {/* Compose input (new comment or reply). Appears inline when composing is active. */}
       {composing && (
         <div style={{background:C.sf2,border:`1px solid ${C.ac}60`,borderRadius:8,padding:10,marginTop:8}}>
