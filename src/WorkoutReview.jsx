@@ -701,7 +701,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                         <div style={{display:'flex',alignItems:'center',gap:8}}>
                           <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
-                          {typeof formVideo.repCount === 'number' && <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,background:C.acD,padding:'2px 8px',borderRadius:10}}>🔢 {formVideo.repCount} REPS</div>}
+                          {typeof formVideo.repCount === 'number' && formVideo.repKind && formVideo.repKind !== 'none' && <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,background:C.acD,padding:'2px 8px',borderRadius:10}}>🔢 {formVideo.repCount} REPS</div>}
                         </div>
                         {formVideo.cloudUrl && (() => {
                           // Build picker candidates: every other form video for this client.

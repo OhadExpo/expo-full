@@ -224,22 +224,24 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
 
     const previewUrl = URL.createObjectURL(file);
-    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, counting:true, repCount:null, repKind:null}; return n; });
+    // Upload token: identifies this specific upload so stale background-count
+    // results from a replaced or removed video can't clobber the fresh state.
+    const uploadToken = Date.now() + Math.random();
+    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, counting:true, repCount:null, repKind:null, uploadToken}; return n; });
 
     // Auto-count reps in parallel with compression + upload. Uses the local
     // File (pre-compression, higher quality) so pose detection has the best
-    // available input. Stashes the result into fv[exIdx] when done; the save
-    // payload in finish() includes whatever count is ready at that moment.
-    // Errors are swallowed (just leaves repCount null — trainer can still
-    // toggle REPS manually in review).
+    // available input. The result only lands on fv[exIdx] if the token still
+    // matches — a replacement upload or video removal will have cycled the
+    // token and the stale result is discarded.
     (async () => {
       try {
         const exTitle = EX[day.ex[exIdx]?.eid]?.t || '';
         const { count, kind } = await countRepsForVideo(file, exTitle);
-        setFv(prev => { const n=[...prev]; if(!n[exIdx]) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:count, repKind:kind}; return n; });
+        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:count, repKind:kind}; return n; });
       } catch (err) {
         console.warn('auto-count failed:', err);
-        setFv(prev => { const n=[...prev]; if(!n[exIdx]) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:null}; return n; });
+        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:null}; return n; });
       }
     })();
 
@@ -464,13 +466,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? `⚙ Compressing ${f.compressProgress||0}%` : `☁ Uploading ${f.uploadProgress||0}%`}</span></div>}
           {f.counting && <div style={{display:'flex',alignItems:'center',gap:4,background:C.sf2,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>⏱ Counting reps…</span></div>}
-          {!f.counting && typeof f.repCount === 'number' && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
+          {!f.counting && typeof f.repCount === 'number' && f.repKind && f.repKind !== 'none' && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>🔢 {f.repCount} REPS</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
             <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
-            <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
+            <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null,counting:false,repCount:null,repKind:null,uploadToken:null}; return n; })}
               style={{width:'100%',marginTop:6,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>
               Remove Video</button>
           </div>

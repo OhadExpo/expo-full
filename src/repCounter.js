@@ -128,6 +128,12 @@ async function getLandmarker() {
   return landmarkerPromise;
 }
 
+// Serialize calls — MediaPipe's Landmarker is stateful per-instance and can't
+// process two video streams concurrently (interleaved detectForVideo calls
+// confuse internal timestamp tracking). Each countRepsForVideo awaits the
+// previous one's turn.
+let countChain = Promise.resolve();
+
 // Auto-count reps on a video File/Blob OR a URL. Returns { count, kind }.
 //   - source: File | Blob | string (URL)
 //   - exerciseTitle: string — routed through detectChannels() to pick joint pair
@@ -136,6 +142,19 @@ async function getLandmarker() {
 export async function countRepsForVideo(source, exerciseTitle, onProgress) {
   const { kind, channels } = detectChannels(exerciseTitle);
   if (channels.length === 0) return { count: 0, kind };
+  // Queue: wait for prior caller to finish before touching the Landmarker.
+  const prior = countChain;
+  let releaseNext;
+  countChain = new Promise((r) => { releaseNext = r; });
+  try {
+    await prior;
+    return await runCount(source, kind, channels, onProgress);
+  } finally {
+    releaseNext();
+  }
+}
+
+async function runCount(source, kind, channels, onProgress) {
   const lm = await getLandmarker();
 
   // Offscreen video element; create URL if we got a File/Blob.
@@ -189,6 +208,8 @@ export async function countRepsForVideo(source, exerciseTitle, onProgress) {
   };
 
   // Loop — rVFC fires once per decoded frame; fall back to requestAnimationFrame.
+  // Only exit on `ended` or safety timeout — transient `paused` (tab backgrounding,
+  // decoder stall) would otherwise cut us off with partial signal and undercount.
   const usesRVFC = typeof v.requestVideoFrameCallback === 'function';
   await new Promise((resolve) => {
     let done = false;
@@ -196,13 +217,16 @@ export async function countRepsForVideo(source, exerciseTitle, onProgress) {
     const loop = () => {
       if (done) return;
       processFrame();
-      if (v.ended || v.paused) { finish(); return; }
+      if (v.ended) { finish(); return; }
       if (usesRVFC) v.requestVideoFrameCallback(loop);
       else requestAnimationFrame(loop);
     };
     v.onended = finish;
-    // Safety timeout: if duration * 2 seconds wall time elapses without ending, bail.
-    setTimeout(finish, Math.max(30000, (v.duration || 60) * 1000));
+    // Safety timeout. At 4x playback wall time ≈ duration/4, but playbackRate
+    // may get clamped to 1x or 2x on some browsers. 60s min, 1.5x duration ms
+    // to keep comfortable headroom for 1x clamped playback on longer clips.
+    const timeoutMs = Math.max(60000, (v.duration || 60) * 1500);
+    setTimeout(finish, timeoutMs);
     if (usesRVFC) v.requestVideoFrameCallback(loop);
     else requestAnimationFrame(loop);
   });
