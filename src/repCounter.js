@@ -107,11 +107,16 @@ export function findPeaks(signal, prominence, minDist) {
   return kept;
 }
 
-// Module-shared landmarker — lazy-loaded once per session.
+// Module-shared landmarker — lazy-loaded once per session. On load failure
+// we null the promise so a later call can retry a transient network error
+// instead of getting stuck with the cached rejection forever.
 let landmarkerPromise = null;
 async function getLandmarker() {
-  if (landmarkerPromise) return landmarkerPromise;
-  landmarkerPromise = (async () => {
+  if (landmarkerPromise) {
+    try { return await landmarkerPromise; }
+    catch { landmarkerPromise = null; }
+  }
+  const p = (async () => {
     const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
     const fileset = await FilesetResolver.forVisionTasks(
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
@@ -125,7 +130,9 @@ async function getLandmarker() {
     try { return await PoseLandmarker.createFromOptions(fileset, opts('GPU')); }
     catch { return await PoseLandmarker.createFromOptions(fileset, opts('CPU')); }
   })();
-  return landmarkerPromise;
+  landmarkerPromise = p;
+  try { return await p; }
+  catch (e) { if (landmarkerPromise === p) landmarkerPromise = null; throw e; }
 }
 
 // Serialize calls — MediaPipe's Landmarker is stateful per-instance and can't
