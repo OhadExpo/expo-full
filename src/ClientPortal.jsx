@@ -466,10 +466,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? `⚙ Compressing ${f.compressProgress||0}%` : `☁ Uploading ${f.uploadProgress||0}%`}</span></div>}
           {f.counting && <div style={{display:'flex',alignItems:'center',gap:4,background:C.sf2,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>⏱ Counting reps…</span></div>}
-          {!f.counting && typeof f.repCount === 'number' && f.repKind && f.repKind !== 'none' && f.repCount > 0 && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>🔢 {f.repCount} REPS</span></div>}
-          {!f.counting && f.repCount === 0 && f.repKind !== 'none' && <div title={`frames=${f.countFrames||0} withPose=${f.countFramesWithPose||0} duration=${f.countDuration||'?'}s stopped_at=${f.countCurrentTime||'?'}s`} style={{display:'flex',alignItems:'center',gap:4,background:C.sf2,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>0 reps · f={f.countFrames||0} p={f.countFramesWithPose||0} d={f.countDuration?f.countDuration.toFixed(1):'?'}s t={f.countCurrentTime?f.countCurrentTime.toFixed(1):'?'}s</span></div>}
+          {!f.counting && typeof f.repCount === 'number' && f.repKind && f.repKind !== 'none' && <div title={`kind=${f.repKind} frames=${f.countFrames||0} withPose=${f.countFramesWithPose||0} duration=${f.countDuration||'?'}s`} style={{display:'flex',alignItems:'center',gap:4,background:f.repCount>0?C.gnD:C.sf2,padding:'3px 10px',borderRadius:20}}>
+            <span style={{fontSize:11,fontFamily:FN,color:f.repCount>0?C.gn:C.tm,fontWeight:700}}>{f.repCount} REPS · {f.repKind} · f={f.countFrames||0} p={f.countFramesWithPose||0} d={f.countDuration?f.countDuration.toFixed(1):'?'}s</span></div>}
           {!f.counting && f.countError && <div title={f.countError} style={{display:'flex',alignItems:'center',gap:4,background:C.rdD,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.rd,fontWeight:700}}>⚠ Count unavailable</span></div>}
         </div>
