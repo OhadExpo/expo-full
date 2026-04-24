@@ -68,7 +68,7 @@ function trainerPlanToPortal(plan, trainerExercises) {
 }
 
 
-const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box"};
+const bi = {background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
 const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,fontFamily:FN,background:`${color}18`,color,...s}}>{children}</span>;
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
@@ -669,6 +669,44 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     if (!targetPlan) { setLg(null); return null; }
     return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus}/>; }
 
+  // Shared portal header (logo + lock + logout / greeting / block badges +
+  // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
+  // and History so the layout stays consistent across tabs.
+  const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
+  const renderTopHeader = () => (
+    <>
+      <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28,display:'block'}} />
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </button>
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>Log Out →</button>
+          </div>
+        </div>
+        <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx,textAlign:'center'}}>Hey {clientName.split(' ')[0]} 💪</h1>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
+          <div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.gn}}>{sl}</div>
+            <div style={{fontSize:9,color:C.tm,fontFamily:FN}}>SESSIONS</div>
+          </div>
+        </div>
+      </div>
+      <div style={{padding:'14px 20px 0',display:'flex',gap:4}}>
+        {[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
+          <button key={k} onClick={() => setVw(k)}
+            style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${vw===k?C.ac:C.bd}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer',position:'relative'}}>
+            {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:2,right:6,background:C.rd,color:'#fff',fontSize:9,fontFamily:FN,fontWeight:700,padding:'1px 5px',borderRadius:8}}>{unreadCoachNotes}</span>}
+          </button>
+        )}
+      </div>
+    </>
+  );
+
   // BW Graph tab
   if (vw === 'bwt' && trainee) {
     const bwData = bwLog.filter(b => b.clientId === ci).sort((a,b) => new Date(a.date) - new Date(b.date));
@@ -678,13 +716,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const minBw = bwData.length ? Math.min(...bwData.map(b=>b.bw)) : 50;
     const range = Math.max(maxBw - minBw, 2);
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
-      <div style={{padding:20}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-          <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Log Out</button>
-          <img src={EXPO_ICON} alt="EXPO" style={{height:18,opacity:0.5}} />
-        </div>
-        <div style={{display:'flex',gap:4,marginBottom:14}}>{[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
-          <button key={k} onClick={() => setVw(k)} style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${vw===k?C.ac:C.bd}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer'}}>{l}</button>)}</div>
+      {renderTopHeader()}
+      <div style={{padding:'14px 20px 20px'}}>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18}}>Bodyweight Tracking</h2>
         <div style={{color:C.tm,fontSize:12,marginBottom:16}}>{clientName} · {bwData.length} entries</div>
 
@@ -796,13 +829,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
 
   // History
   if (vw === 'hist' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
-    <div style={{padding:20}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-        <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:12,padding:0}}>← Log Out</button>
-        <img src={EXPO_ICON} alt="EXPO" style={{height:18,opacity:0.5}} />
-      </div>
-      <div style={{display:'flex',gap:4,marginBottom:14}}>{[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
-        <button key={k} onClick={() => setVw(k)} style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${vw===k?C.ac:C.bd}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer',position:'relative'}}>{l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:2,right:6,background:C.rd,color:'#fff',fontSize:9,fontFamily:FN,fontWeight:700,padding:'1px 5px',borderRadius:8}}>{unreadCoachNotes}</span>}</button>)}</div>
+    {renderTopHeader()}
+    <div style={{padding:'14px 20px 20px'}}>
       <h2 style={{margin:'0 0 12px',fontFamily:FN,fontSize:18}}>History ({cw.length})</h2>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         cw.slice().reverse().map(w => <div key={w.id} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:12,marginBottom:8}}>
@@ -843,25 +871,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         </div>)}</div></div>;
 
   // Program view
-  if (trainee) { const sl = Math.max(0, (trainee.sessionsRemaining || 0)); const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
+  if (trainee) { const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
-      <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28,display:'block'}} />
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </button>
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>Log Out →</button>
-          </div></div>
-        <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx,textAlign:'center'}}>Hey {clientName.split(' ')[0]} 💪</h1>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-          <div>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div></div>
-          <div style={{textAlign:'right'}}><div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.gn}}>{sl}</div><div style={{fontSize:9,color:C.tm,fontFamily:FN}}>SESSIONS</div></div></div></div>
-      <div style={{padding:20}}>
-        <div style={{display:'flex',gap:4,marginBottom:14}}>{[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
-          <button key={k} onClick={() => setVw(k)} style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${vw===k?C.ac:C.bd}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer'}}>{l}</button>)}</div>
+      {renderTopHeader()}
+      <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center'}}>
           <div style={{flex:1}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>Week</div>
             <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:6,border:`1px solid ${wk===w?C.ac:C.bd}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}</div></div>

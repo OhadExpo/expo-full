@@ -7,7 +7,7 @@ import {
 } from './repCounter';
 
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,padding:"8px 10px",borderRadius:6,
-  color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box"};
+  color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
 
 // MediaPipe Pose landmark indices for skeleton drawing + joint-angle calc.
 const POSE_CONNECTIONS = [
@@ -742,6 +742,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           })}
         </div>
       )}
+      {/* Top row: frame-step + speed on the left; comment controls on the right. */}
       <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
         <button onClick={() => stepFrame(-1)} title="Previous frame"
           style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
@@ -756,8 +757,26 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
         ))}
+        <div style={{marginLeft:'auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
+          {onReviewNotesChange && role === 'trainer' && (
+            <button onClick={addComment} title="Add a timestamped comment at the current video time"
+              style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.ac}40`,
+                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬 COMMENT</button>
+          )}
+          {notes.length > 0 && (
+            <button onClick={toggleComments}
+              title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
+              style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${commentsEnabled?C.ac:C.bd}`,
+                background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+              💬 {commentsEnabled ? 'ON' : 'OFF'}
+            </button>
+          )}
+        </div>
+      </div>
+      {/* Bottom row: pose/reps on the left; loop/full on the right. */}
+      <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginTop:4}}>
         <button onClick={togglePose} disabled={poseLoading}
-          style={{marginLeft:8,padding:'3px 10px',borderRadius:4,border:`1px solid ${poseOn?C.ac:C.bd}`,
+          style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${poseOn?C.ac:C.bd}`,
             background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
             fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
           {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
@@ -783,25 +802,14 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           </select>
         )}
         {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
-        {notes.length > 0 && (
-          <button onClick={toggleComments}
-            title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
-            style={{marginLeft:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${commentsEnabled?C.ac:C.bd}`,
-              background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-            💬 {commentsEnabled ? 'ON' : 'OFF'}
-          </button>
-        )}
-        <button onClick={() => setLoop(v => !v)} title="Loop the video"
-          style={{marginLeft:notes.length>0?0:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
-            background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
-        <button onClick={fullscreen}
-          style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
-            background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
-        {onReviewNotesChange && role === 'trainer' && (
-          <button onClick={addComment} title="Add a timestamped comment at the current video time"
-            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.ac}40`,
-              background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬 COMMENT</button>
-        )}
+        <div style={{marginLeft:'auto',display:'flex',gap:4,alignItems:'center'}}>
+          <button onClick={() => setLoop(v => !v)} title="Loop the video"
+            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
+              background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
+          <button onClick={fullscreen}
+            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
+              background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
+        </div>
       </div>
       {/* Drawing toolbar — only visible when the trainer is in a drawing
           context (composing a new comment, or paused at an existing one
