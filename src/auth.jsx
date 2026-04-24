@@ -146,11 +146,11 @@ export function LoginScreen() {
 
   return (
     <div style={wrapStyle}>
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
-        <img src={EXPO_LOGO} alt="EXPO" style={{ height: 36, marginBottom: 12 }} />
-        <div style={{ color: C.tm, fontSize: 15 }}>Sign in</div>
-      </div>
       <div style={{ width: '100%', maxWidth: 380 }}>
+        <div style={{ textAlign: 'center', marginBottom: 32, padding: '0 28px', boxSizing: 'border-box' }}>
+          <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', marginBottom: 12 }} />
+          <div style={{ color: C.tm, fontSize: 15 }}>Sign<span style={{ color: C.td }}>-</span>in</div>
+        </div>
         <div style={cardStyle}>
           {/* OAuth buttons */}
           <button
