@@ -83,7 +83,13 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const [videoPaused, setVideoPaused] = useState(true);
   const [videoEnded, setVideoEnded] = useState(false);
   const drawCanvasRef = useRef(null);
+  const wrapperRef = useRef(null);
   const visitedCommentsRef = useRef(new Set());
+  // Tracks the last currentTime we saw on a timeupdate tick. The auto-pause
+  // logic uses this to detect comment crossings in the (lastT, currentT]
+  // interval — robust to uneven tick rates that the old fixed-tolerance
+  // window kept missing on 2nd/3rd replays.
+  const lastTimeRef = useRef(0);
   const DRAW_COLORS = [
     { key: 'red',   hex: '#ff4c4c' },
     { key: 'blue',  hex: '#3BA0FF' },
@@ -312,16 +318,30 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    const TOLERANCE = 0.15;   // seconds — pause if we're within this of a comment ts
+    // Mark a comment as "passed" once we see currentTime cross it between
+    // ticks. Using the (lastT, currentT] interval makes detection independent
+    // of how often timeupdate fires — the old fixed-tolerance window missed
+    // comments when a tick straddled them, which is why replays felt flaky.
+    const rebuildVisited = (t) => {
+      const ns = notesRef.current;
+      visitedCommentsRef.current = new Set(ns.filter(n => n.ts != null && n.ts < t - 0.05).map(n => n.id));
+    };
     const onTimeUpdate = () => {
       if (!commentsEnabledRef.current) return;
       if (v.seeking || v.paused || v.ended) return;
       const t = v.currentTime;
+      const lastT = lastTimeRef.current;
+      lastTimeRef.current = t;
+      // Backward jump (loop wrap, scrub, replay-after-end without a seeked
+      // event). Trust onSeeked / onPlayEvt to rebuild visited; this tick is
+      // only good for catching forward crossings.
+      if (t < lastT - 0.05) return;
       for (const n of notesRef.current) {
         if (n.ts == null) continue;
         if (visitedCommentsRef.current.has(n.id)) continue;
-        // Fire once when playback has just advanced across the comment's ts.
-        if (t >= n.ts && t - n.ts <= TOLERANCE) {
+        // Crossed during this tick (small +0.05s grace catches the very first
+        // tick after play() lands exactly on a ts).
+        if (n.ts > lastT && n.ts <= t + 0.05) {
           visitedCommentsRef.current.add(n.id);
           try { v.pause(); } catch {}
           setPausedAtCommentId(n.id);
@@ -330,14 +350,19 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       }
     };
     const onSeeked = () => {
-      // Rebuild visited set: anything BEFORE current time was seen, anything
-      // AFTER is fresh and will pause again.
       const t = v.currentTime;
-      const ns = notesRef.current;
-      visitedCommentsRef.current = new Set(ns.filter(n => n.ts != null && n.ts < t - 0.05).map(n => n.id));
+      lastTimeRef.current = t;
+      rebuildVisited(t);
       setPausedAtCommentId(null);
     };
     const onPlayEvt = () => {
+      // Some browsers don't fire 'seeked' when re-playing after the video
+      // ended (they implicitly snap to 0 and start). Detect that here so the
+      // visited set is rebuilt and the next pass through pauses at comments
+      // again — fixes the "2nd replay misses comments" flake.
+      const t = v.currentTime;
+      if (t < lastTimeRef.current - 0.2) rebuildVisited(t);
+      lastTimeRef.current = t;
       setVideoPaused(false);
       setVideoEnded(false);
       setPausedAtCommentId(null);
@@ -348,6 +373,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         // Loop handled natively by the video element. Clear visited so the
         // next pass through pauses at comments again.
         visitedCommentsRef.current = new Set();
+        lastTimeRef.current = 0;
         setPausedAtCommentId(null);
         setVideoEnded(false);
       } else {
@@ -419,10 +445,17 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   }, [trackOverride, exerciseTitle, repsOn]);
 
   const fullscreen = () => {
-    const v = videoRef.current; if (!v) return;
-    if (v.requestFullscreen) v.requestFullscreen();
-    else if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
-    else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+    // Fullscreen the WRAPPER (video + pose canvas + draw canvas + REPS
+    // readout), not the bare <video>, so all overlays come along. iOS
+    // Safari is the exception — it only supports fullscreen on <video> via
+    // webkitEnterFullscreen, so on iOS we fall back to the old video-only
+    // behavior (no overlays in fullscreen on that platform).
+    const wrap = wrapperRef.current;
+    const v = videoRef.current;
+    if (wrap && wrap.requestFullscreen) { wrap.requestFullscreen(); return; }
+    if (wrap && wrap.webkitRequestFullscreen) { wrap.webkitRequestFullscreen(); return; }
+    if (v && v.webkitEnterFullscreen) { v.webkitEnterFullscreen(); return; }
+    if (v && v.requestFullscreen) v.requestFullscreen();
   };
 
   // Frame-step assumes 30fps source (typical phone clip). For a 60fps clip
@@ -683,7 +716,19 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const speeds = [0.125, 0.25, 0.5, 1, 2];
   return (
     <div>
-      <div style={{position:'relative',marginBottom:6,lineHeight:0}}>
+      {/* :fullscreen rules let pose / drawing / REPS overlays scale with the
+          video when the wrapper is fullscreened. The video letterboxes via
+          object-fit:contain; the pose-canvas drawing math already accounts
+          for the letterbox bars (see the (ox, oy, dw, dh) math in detect),
+          and the drawing canvas uses canvas-relative normalized coords so
+          strokes draw consistently. */}
+      <style>{`
+        .fv-wrap:fullscreen { background:#000; margin:0; padding:0; max-height:none; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+        .fv-wrap:fullscreen video { max-height:100vh !important; height:100vh !important; width:100vw !important; max-width:100vw !important; border-radius:0 !important; object-fit:contain; background:#000; }
+        .fv-wrap:-webkit-full-screen { background:#000; margin:0; padding:0; max-height:none; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
+        .fv-wrap:-webkit-full-screen video { max-height:100vh !important; height:100vh !important; width:100vw !important; max-width:100vw !important; border-radius:0 !important; object-fit:contain; background:#000; }
+      `}</style>
+      <div ref={wrapperRef} className="fv-wrap" style={{position:'relative',marginBottom:6,lineHeight:0}}>
         <video ref={videoRef} src={url} controls playsInline crossOrigin="anonymous"
           style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
         <canvas ref={canvasRef}
