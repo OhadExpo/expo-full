@@ -502,6 +502,34 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [lg, setLg] = useState(null);
   const [vw, setVw] = useState('prog');
   const [expandedHistEx, setExpandedHistEx] = useState(null); // `${workoutId}:${exIdx}` — which exercise row in History is open
+  // Last-seen timestamp for client-side unread tracking of coach comments.
+  // Stored per client in localStorage. Updated each time the History tab
+  // opens. Comments with createdAt > this count as unread.
+  const [lastHistSeen, setLastHistSeen] = useState(() => {
+    try { return localStorage.getItem('expo-hist-seen-' + clientId) || ''; } catch { return ''; }
+  });
+  useEffect(() => {
+    if (vw !== 'hist' || !clientId) return;
+    const now = new Date().toISOString();
+    setLastHistSeen(now);
+    try { localStorage.setItem('expo-hist-seen-' + clientId, now); } catch {}
+  }, [vw, clientId]);
+  // Unread coach comments = reviewNotes (trainer-authored only) with
+  // createdAt > lastHistSeen, across all of this client's workouts.
+  const unreadCoachNotes = (() => {
+    let n = 0;
+    for (const w of (clientWorkouts || [])) {
+      for (const fv of (w.formVideos || [])) {
+        for (const note of (fv?.reviewNotes || [])) {
+          if (note.author === 'trainer' && note.createdAt && note.createdAt > lastHistSeen) n++;
+          for (const r of (note.replies || [])) {
+            if (r.author === 'trainer' && r.createdAt && r.createdAt > lastHistSeen) n++;
+          }
+        }
+      }
+    }
+    return n;
+  })();
   const [bw, setBw] = useState('');
   const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
   const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
@@ -774,7 +802,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         <img src={EXPO_ICON} alt="EXPO" style={{height:18,opacity:0.5}} />
       </div>
       <div style={{display:'flex',gap:4,marginBottom:14}}>{[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
-        <button key={k} onClick={() => setVw(k)} style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${vw===k?C.ac:C.bd}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer'}}>{l}</button>)}</div>
+        <button key={k} onClick={() => setVw(k)} style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${vw===k?C.ac:C.bd}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer',position:'relative'}}>{l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:2,right:6,background:C.rd,color:'#fff',fontSize:9,fontFamily:FN,fontWeight:700,padding:'1px 5px',borderRadius:8}}>{unreadCoachNotes}</span>}</button>)}</div>
       <h2 style={{margin:'0 0 12px',fontFamily:FN,fontSize:18}}>History ({cw.length})</h2>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         cw.slice().reverse().map(w => <div key={w.id} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:12,marginBottom:8}}>
@@ -843,6 +871,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {bw && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:C.acD,border:'none',borderRadius:6,padding:'4px 8px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Save</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {activePlan.rest}</div>}
+        {unreadCoachNotes > 0 && <div onClick={() => setVw('hist')}
+          style={{background:C.acD,border:`1px solid ${C.ac}60`,borderRadius:10,padding:'10px 14px',marginBottom:14,cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:20}}>📬</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,color:C.ac,fontWeight:700}}>Ohad left {unreadCoachNotes} new note{unreadCoachNotes===1?'':'s'} on your workouts</div>
+            <div style={{fontSize:11,color:C.tm,marginTop:2}}>Tap to view in History →</div>
+          </div>
+        </div>}
         {plansLoadError && <div style={{background:C.rdD||'#3a1a1a',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:12,padding:14,marginBottom:14}}>
           <div style={{fontSize:13,color:C.rd||'#ff6b6b',fontWeight:600,marginBottom:4}}>Couldn't load your programs</div>
           <div style={{fontSize:11,color:C.tm,marginBottom:8}}>{plansLoadError}</div>
