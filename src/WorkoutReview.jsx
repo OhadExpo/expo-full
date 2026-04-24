@@ -484,12 +484,27 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
     v.addEventListener('seeked', detect);
     v.addEventListener('loadeddata', detect);
 
+    // Pressing Play restarts the rep count from 0. Each play → pause cycle is
+    // a fresh counting session. Clears only the rep-counter buffers, not the
+    // pose-overlay cache. Deliberately no reset on `seeked` or `pause` — only
+    // the Play button resets.
+    const onPlay = () => {
+      if (!repsOn) return;
+      repStateRef.current.signalBufs = {};
+      repsCountRef.current = 0;
+      lastTempoRef.current = null;
+      setReps(0);
+      setTempo(null);
+    };
+    v.addEventListener('play', onPlay);
+
     return () => {
       active = false;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (hudInterval) clearInterval(hudInterval);
       v.removeEventListener('seeked', detect);
       v.removeEventListener('loadeddata', detect);
+      v.removeEventListener('play', onPlay);
     };
   }, [poseOn, repsOn]);
 
