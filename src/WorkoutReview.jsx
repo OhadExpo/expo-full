@@ -35,7 +35,36 @@ const POSE_CONNECTIONS = [
 // back to 'knee'. Trainer can override via the dropdown next to REPS.
 // `onVideoRef` lets a parent grab the underlying <video> element (used by
 // the side-by-side compare view to sync timing across two players).
-export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer' }) {
+// Error boundary so that a render throw inside the player doesn't black-
+// screen the entire review page. Shows the error message + reload link
+// instead, so the rest of the workout card stays usable.
+class FormVideoErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err, info) { console.error('FormVideoPlayer crash:', err, info); }
+  render() {
+    if (this.state.err) {
+      return (
+        <div style={{background:'#3a1a1a',border:`1px solid #c94444`,borderRadius:8,padding:12,color:'#ff6b6b',fontSize:12,fontFamily:FB}}>
+          <div style={{fontWeight:700,marginBottom:4}}>Video player crashed — reload to retry</div>
+          <div style={{fontSize:11,opacity:0.8,whiteSpace:'pre-wrap',fontFamily:'monospace'}}>{String(this.state.err?.message || this.state.err)}</div>
+          <button onClick={() => this.setState({ err: null })} style={{marginTop:8,background:'transparent',border:`1px solid #c94444`,color:'#ff6b6b',borderRadius:4,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>Retry</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export function FormVideoPlayer(props) {
+  return (
+    <FormVideoErrorBoundary>
+      <FormVideoPlayerImpl {...props} />
+    </FormVideoErrorBoundary>
+  );
+}
+
+function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer' }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
