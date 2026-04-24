@@ -4,7 +4,6 @@ import { EX } from './exerciseData';
 import { supabase } from './supabase';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
-import { countRepsForVideo } from './repCounter';
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -224,26 +223,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
 
     const previewUrl = URL.createObjectURL(file);
-    // Upload token: identifies this specific upload so stale background-count
-    // results from a replaced or removed video can't clobber the fresh state.
-    const uploadToken = Date.now() + Math.random();
-    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, counting:true, repCount:null, repKind:null, uploadToken}; return n; });
-
-    // Auto-count reps in parallel with compression + upload. Uses the local
-    // File (pre-compression, higher quality) so pose detection has the best
-    // available input. The result only lands on fv[exIdx] if the token still
-    // matches — a replacement upload or video removal will have cycled the
-    // token and the stale result is discarded.
-    (async () => {
-      try {
-        const exTitle = EX[day.ex[exIdx]?.eid]?.t || '';
-        const result = await countRepsForVideo(file, exTitle);
-        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:result.count, repKind:result.kind, countError:null, countFrames:result.frames, countFramesWithPose:result.framesWithPose, countDuration:result.duration, countCurrentTime:result.currentTime}; return n; });
-      } catch (err) {
-        console.warn('auto-count failed:', err);
-        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:null, countError: err?.message || 'Auto-count failed'}; return n; });
-      }
-    })();
+    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0}; return n; });
 
     try {
       let uploadBlob = file;
@@ -298,7 +278,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   };
 
   const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,
-    formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null,cloudUrl:f.cloudUrl||null,repCount:f.repCount??null,repKind:f.repKind||null})),
+    formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null,cloudUrl:f.cloudUrl||null})),
     exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:(ex.wk&&ex.wk[weekNum])||`${(ex.wkS&&ex.wkS[weekNum])||ex.s}x${(ex.wk&&ex.wk[weekNum])||ex.r}`,sets:allSets[i]}))});
 
   // Navigation helpers
@@ -464,19 +444,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <span style={{fontSize:14}}>✅</span><span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>UPLOADED</span></div>}
           {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:C.acD,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? `⚙ Compressing ${f.compressProgress||0}%` : `☁ Uploading ${f.uploadProgress||0}%`}</span></div>}
-          {f.counting && <div style={{display:'flex',alignItems:'center',gap:4,background:C.sf2,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>⏱ Counting reps…</span></div>}
-          {!f.counting && typeof f.repCount === 'number' && f.repKind && f.repKind !== 'none' && f.repCount > 0 && <div title={`kind=${f.repKind} · frames=${f.countFrames||0} · withPose=${f.countFramesWithPose||0} · duration=${f.countDuration||'?'}s`} style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>🔢 {f.repCount} REPS</span></div>}
-          {!f.counting && f.repCount === 0 && f.repKind !== 'none' && <div title={`kind=${f.repKind} · frames=${f.countFrames||0} · withPose=${f.countFramesWithPose||0} · duration=${f.countDuration||'?'}s`} style={{display:'flex',alignItems:'center',gap:4,background:C.sf2,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>⚠ No reps detected</span></div>}
-          {!f.counting && f.countError && <div title={f.countError} style={{display:'flex',alignItems:'center',gap:4,background:C.rdD,padding:'3px 10px',borderRadius:20,maxWidth:'100%'}}>
-            <span style={{fontSize:10,fontFamily:FN,color:C.rd,fontWeight:700,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>⚠ {f.countError}</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
             <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
-            <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null,counting:false,repCount:null,repKind:null,uploadToken:null}; return n; })}
+            <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
               style={{width:'100%',marginTop:6,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>
               Remove Video</button>
           </div>

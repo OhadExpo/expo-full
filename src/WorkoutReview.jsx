@@ -704,10 +704,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   {(formVideo?.has || formVideo?.cloudUrl) ? (
                     <div style={{background:C.gnD,border:`1px solid ${C.gn}30`,borderRadius:8,padding:12,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-                        <div style={{display:'flex',alignItems:'center',gap:8}}>
-                          <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
-                          {typeof formVideo.repCount === 'number' && formVideo.repKind && formVideo.repKind !== 'none' && <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,background:C.acD,padding:'2px 8px',borderRadius:10}}>🔢 {formVideo.repCount} REPS</div>}
-                        </div>
+                        <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
                         {formVideo.cloudUrl && (() => {
                           // Build picker candidates: every other form video for this client.
                           const candidates = clientWorkouts
