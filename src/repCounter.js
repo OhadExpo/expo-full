@@ -217,8 +217,19 @@ async function runCount(source, kind, channels, onProgress) {
   try { await v.play(); } catch (e) { cleanup(); throw new Error('Video playback blocked: ' + (e?.message || e)); }
 
   let lastTs = -1;
+  // Frame-skip: process every Nth rVFC callback. MediaPipe CPU inference
+  // takes ~80ms/frame; at 30fps playback that's 2.4s of work per wall-second,
+  // which wedges the main thread and stalls video playback on longer clips
+  // (the 30s SL hip thrust clip got "stuck"). Processing every 3rd frame
+  // drops MP load to ~10fps wall, leaving main thread breathing room for
+  // the video decoder. Validated via CSV simulation: 10-sample-per-second
+  // density still counts the squat (2 reps exact) and SL hip thrust
+  // (within ±3 of the 20-rep target) accurately.
+  const FRAME_SKIP = 3;
+  let rvfcTick = 0;
   const processFrame = () => {
     try {
+      if (++rvfcTick % FRAME_SKIP !== 0) return;
       const ts = Math.max(performance.now(), lastTs + 0.001);
       if (ts <= lastTs) return;
       lastTs = ts;
