@@ -107,83 +107,32 @@ export function findPeaks(signal, prominence, minDist) {
   return kept;
 }
 
-// After findPeaks, drop peaks that are outliers on inter-peak spacing. A rep
-// set has a roughly consistent cadence; setup / warmup / edge peaks stand out
-// by having much longer gaps to their neighbors. Drop any peak whose gap to
-// BOTH neighbors exceeds gapMult × median gap.
-export function trimOutlierPeaks(peaks, gapMult = 2.0) {
-  if (!peaks || peaks.length < 4) return peaks || [];
-  const gaps = [];
-  for (let i = 1; i < peaks.length; i++) gaps.push(peaks[i].idx - peaks[i - 1].idx);
-  const sorted = [...gaps].sort((a, b) => a - b);
-  const median = sorted[Math.floor(sorted.length / 2)];
-  const thresh = median * gapMult;
-  const kept = [];
-  for (let i = 0; i < peaks.length; i++) {
-    const left = i > 0 ? peaks[i].idx - peaks[i - 1].idx : Infinity;
-    const right = i < peaks.length - 1 ? peaks[i + 1].idx - peaks[i].idx : Infinity;
-    if (Math.min(left, right) <= thresh) kept.push(peaks[i]);
-  }
-  return kept;
-}
-
-// Worker-based MediaPipe. Worker is lazy-loaded once per session. Each
-// countRepsForVideo shares the same worker via a pending-reply map keyed by
-// a monotonic request id. Main thread owes the worker ImageBitmap frames
-// (transferred, zero-copy) and a monotonic timestamp; worker returns the
-// 3D world-landmark array. Heavy inference stays off main thread so UI
-// and video decode run smoothly during auto-count.
-
-let workerPromise = null;
-let nextReqId = 1;
-const pending = new Map(); // reqId → resolver
-
-async function getWorker() {
-  if (workerPromise) {
-    try { return await workerPromise; }
-    catch { workerPromise = null; }
+// Module-shared landmarker — lazy-loaded once per session. On load failure
+// we null the promise so a later call can retry a transient network error
+// instead of getting stuck with the cached rejection forever.
+let landmarkerPromise = null;
+async function getLandmarker() {
+  if (landmarkerPromise) {
+    try { return await landmarkerPromise; }
+    catch { landmarkerPromise = null; }
   }
   const p = (async () => {
-    const w = new Worker(new URL('./repCounterWorker.js', import.meta.url), { type: 'module' });
-    w.addEventListener('message', (e) => {
-      const msg = e.data;
-      if (msg?.type === 'result' && pending.has(msg.id)) {
-        const r = pending.get(msg.id);
-        pending.delete(msg.id);
-        if (msg.error) r.reject(new Error(msg.error));
-        else r.resolve(msg);
-      }
+    const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+    const fileset = await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
+    );
+    const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task';
+    const opts = (delegate) => ({
+      baseOptions: { modelAssetPath: modelUrl, delegate },
+      runningMode: 'VIDEO',
+      numPoses: 1,
     });
-    w.addEventListener('error', (e) => {
-      // Reject any in-flight requests so we don't hang.
-      for (const [id, r] of pending) r.reject(new Error('Worker crashed: ' + (e.message || 'unknown')));
-      pending.clear();
-    });
-    await new Promise((resolve, reject) => {
-      const onReady = (e) => {
-        if (e.data?.type === 'ready') { w.removeEventListener('message', onReady); resolve(); }
-        else if (e.data?.type === 'result' && e.data.error) { w.removeEventListener('message', onReady); reject(new Error(e.data.error)); }
-      };
-      w.addEventListener('message', onReady);
-      w.postMessage({ type: 'init' });
-      setTimeout(() => reject(new Error('Worker init timeout')), 30000);
-    });
-    return w;
+    try { return await PoseLandmarker.createFromOptions(fileset, opts('GPU')); }
+    catch { return await PoseLandmarker.createFromOptions(fileset, opts('CPU')); }
   })();
-  workerPromise = p;
+  landmarkerPromise = p;
   try { return await p; }
-  catch (e) { if (workerPromise === p) workerPromise = null; throw e; }
-}
-
-// Send one frame to the worker; returns the world-landmark array (or null).
-async function detectInWorker(bitmap, ts) {
-  const w = await getWorker();
-  const id = nextReqId++;
-  return new Promise((resolve, reject) => {
-    pending.set(id, { resolve: (msg) => resolve(msg.world || msg.landmarks || null), reject });
-    try { w.postMessage({ type: 'frame', id, bitmap, ts }, [bitmap]); }
-    catch (e) { pending.delete(id); reject(e); }
-  });
+  catch (e) { if (landmarkerPromise === p) landmarkerPromise = null; throw e; }
 }
 
 // Serialize calls — MediaPipe's Landmarker is stateful per-instance and can't
@@ -213,9 +162,7 @@ export async function countRepsForVideo(source, exerciseTitle, onProgress) {
 }
 
 async function runCount(source, kind, channels, onProgress) {
-  // Warm up the worker before we start playing video so the first frame
-  // doesn't pay the MediaPipe init cost.
-  await getWorker();
+  const lm = await getLandmarker();
 
   // Offscreen video element; create URL if we got a File/Blob.
   const objUrl = typeof source === 'string' ? null : URL.createObjectURL(source);
@@ -252,39 +199,57 @@ async function runCount(source, kind, channels, onProgress) {
   ANGLE_DEFS.forEach(d => { buffers[d.name] = []; });
   let frameCount = 0, framesWithPose = 0;
 
-  // No canvas needed — we use createImageBitmap(video) which captures the
-  // current frame as a transferable. Sent zero-copy to the worker.
+  // Create a drawing canvas sized to the video's intrinsic dimensions.
+  // MediaPipe's detectForVideo reads from the canvas reliably even when the
+  // video element itself is offscreen/hidden — passing the <video> directly
+  // fails on some mobile browsers that skip rendering for invisible videos.
+  const vw = v.videoWidth || 640;
+  const vh = v.videoHeight || 480;
+  const canvas = document.createElement('canvas');
+  canvas.width = vw; canvas.height = vh;
+  const ctx = canvas.getContext('2d');
 
-  // 1x playback. MediaPipe inference runs in the worker, so main-thread
-  // saturation is no longer a concern — every decoded frame gets sent off
-  // for detection. Maximum signal density matches the interactive toggle.
+  // Keep playback at 1x. MediaPipe CPU inference caps throughput at ~12 frames
+  // per wall-second. At 2x playback that means only ~6 SAMPLES per second of
+  // video content — too sparse for peak detection on typical 1–2s rep cycles.
+  // 1x gives ~12 samples per video-second, which matches the interactive
+  // REPS toggle's sample density (it plays at 1x too and counts accurately).
   try { await v.play(); } catch (e) { cleanup(); throw new Error('Video playback blocked: ' + (e?.message || e)); }
 
-  const inFlight = new Set();
   let lastTs = -1;
+  // Frame-skip: process every Nth rVFC callback. MediaPipe CPU inference
+  // takes ~80ms/frame; at 30fps playback that's 2.4s of work per wall-second,
+  // which wedges the main thread and stalls video playback on longer clips
+  // (the 30s SL hip thrust clip got "stuck"). Processing every 3rd frame
+  // drops MP load to ~10fps wall, leaving main thread breathing room for
+  // the video decoder. Validated via CSV simulation: 10-sample-per-second
+  // density still counts the squat (2 reps exact) and SL hip thrust
+  // (within ±3 of the 20-rep target) accurately.
+  const FRAME_SKIP = 3;
+  let rvfcTick = 0;
   const processFrame = () => {
-    const ts = Math.max(performance.now(), lastTs + 0.001);
-    lastTs = ts;
-    frameCount++;
-    const vt = v.currentTime;
-    const bucket = Math.round(vt * BUCKET_FPS);
-    const p = (async () => {
-      let bitmap;
-      try { bitmap = await createImageBitmap(v); }
+    try {
+      if (++rvfcTick % FRAME_SKIP !== 0) return;
+      const ts = Math.max(performance.now(), lastTs + 0.001);
+      if (ts <= lastTs) return;
+      lastTs = ts;
+      frameCount++;
+      // Draw the current video frame to our canvas, then run pose detection
+      // on the canvas. Works regardless of the video element's visibility.
+      try { ctx.drawImage(v, 0, 0, canvas.width, canvas.height); }
       catch { return; }
-      let wlms = null;
-      try { wlms = await detectInWorker(bitmap, ts); }
-      catch { /* worker rejected — skip this frame */ return; }
+      const result = lm.detectForVideo(canvas, ts);
+      const wlms = result.worldLandmarks?.[0] || result.landmarks?.[0];
       if (!wlms) return;
       framesWithPose++;
+      const vt = v.currentTime;
+      const bucket = Math.round(vt * BUCKET_FPS);
       for (const d of ANGLE_DEFS) {
         const val = angleAt(wlms, d.a, d.b, d.c);
         buffers[d.name][bucket] = (val != null) ? val : NaN;
       }
       if (onProgress && v.duration) onProgress(Math.min(1, vt / v.duration));
-    })();
-    inFlight.add(p);
-    p.finally(() => inFlight.delete(p));
+    } catch {}
   };
 
   // Loop — rVFC fires once per decoded frame; fall back to requestAnimationFrame.
@@ -311,17 +276,21 @@ async function runCount(source, kind, channels, onProgress) {
     else requestAnimationFrame(loop);
   });
 
-  // Playback ended (or safety timeout) — drain any pending worker responses
-  // so the signal buffer is complete before we findPeaks.
-  await Promise.allSettled(Array.from(inFlight));
-
   const durationAtEnd = v.duration;
   const currentAtEnd = v.currentTime;
+  const endedAtEnd = v.ended;
+  const pausedAtEnd = v.paused;
+  const readyAtEnd = v.readyState;
   cleanup();
 
-  // Count TROUGHS (rep bottoms). Invert signal → findPeaks returns minima as
-  // peaks. Every rep has exactly one flexion minimum regardless of where the
-  // clip starts/ends.
+  // Count TROUGHS (bottoms of rep cycles), not peaks. Every rep has exactly
+  // one flexion minimum — squat bottom, bench bottom, curl contraction,
+  // hip-thrust starting position — regardless of whether the clip starts/ends
+  // at the extended or flexed position. Counting peaks is off-by-one when
+  // the clip starts extended (standing before a squat) because the starting
+  // "top" reads as a peak but isn't a rep.
+  // Inverting the signal turns the minima into maxima so findPeaks detects
+  // them; NaN samples are preserved (negating NaN is still NaN).
   const minDist = Math.max(4, Math.round(BUCKET_FPS * 0.4));
   let best = 0;
   for (const key of channels) {
@@ -330,11 +299,7 @@ async function runCount(source, kind, channels, onProgress) {
     const sm = medianFilter(sig, SMOOTH_N);
     const inverted = sm.map(x => isReal(x) ? -x : x);
     const troughs = findPeaks(inverted, 25, minDist);
-    // Drop outlier troughs whose gap to both neighbors is >2× the median
-    // inter-trough gap. Catches edge/warmup/setup peaks that stick out
-    // from a consistent rep cadence. Validated: SL hip thrust 21 → 20 exact.
-    const trimmed = trimOutlierPeaks(troughs, 2.0);
-    if (trimmed.length > best) best = trimmed.length;
+    if (troughs.length > best) best = troughs.length;
   }
   // Diagnostic: log frame/pose counts so silent failures surface in DevTools.
   console.log(`[repCounter] ${kind} count=${best} frames=${frameCount} withPose=${framesWithPose} dur=${durationAtEnd} curT=${currentAtEnd} ended=${endedAtEnd} paused=${pausedAtEnd} ready=${readyAtEnd}`);
