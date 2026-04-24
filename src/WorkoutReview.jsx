@@ -84,6 +84,13 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const [videoEnded, setVideoEnded] = useState(false);
   const drawCanvasRef = useRef(null);
   const wrapperRef = useRef(null);
+  // HUD position offset (drag) + a render-bumping counter so the drawing
+  // canvas resizes on fullscreen enter/exit (its useEffect runs on every
+  // render but needs *some* render trigger to fire after the wrapper
+  // changes size).
+  const [hudPos, setHudPos] = useState({ x: 0, y: 0 });
+  const [hudDragArmed, setHudDragArmed] = useState(false);
+  const [, setRenderTick] = useState(0);
   const visitedCommentsRef = useRef(new Set());
   // Tracks the last currentTime we saw on a timeupdate tick. The auto-pause
   // logic uses this to detect comment crossings in the (lastT, currentT]
@@ -444,6 +451,63 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     st.lastPeakRunAt = -1;
   }, [trackOverride, exerciseTitle, repsOn]);
 
+  // Force a re-render after fullscreen change so the drawing canvas
+  // useEffect re-runs and resizes its buffer to the new wrapper dims;
+  // without this the strokes paint into a buffer sized for the pre-FS
+  // viewport and either smear or stay invisible at the new size.
+  useEffect(() => {
+    const onFsChange = () => setRenderTick(t => t + 1);
+    document.addEventListener('fullscreenchange', onFsChange);
+    document.addEventListener('webkitfullscreenchange', onFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', onFsChange);
+      document.removeEventListener('webkitfullscreenchange', onFsChange);
+    };
+  }, []);
+
+  // Drag the pose/REPS HUD. Mouse: pointerdown starts dragging right away.
+  // Touch: requires ~1500ms continuous hold before the drag arms (keeps a
+  // tap on the readout from accidentally moving it on phones); a small
+  // pre-arm move cancels the hold so a swipe up the page still scrolls.
+  const onHudPointerDown = (e) => {
+    e.preventDefault();
+    const isTouch = e.pointerType === 'touch';
+    const startX = e.clientX, startY = e.clientY;
+    const baseX = hudPos.x, baseY = hudPos.y;
+    let armed = !isTouch;
+    let armTimer = null;
+    const target = e.currentTarget;
+    if (!isTouch) {
+      try { target.setPointerCapture(e.pointerId); } catch {}
+      setHudDragArmed(true);
+    } else {
+      armTimer = setTimeout(() => {
+        armed = true;
+        try { target.setPointerCapture(e.pointerId); } catch {}
+        setHudDragArmed(true);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(40);
+      }, 1500);
+    }
+    const cleanup = () => {
+      if (armTimer) clearTimeout(armTimer);
+      setHudDragArmed(false);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+    const onMove = (ev) => {
+      if (!armed) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 8) cleanup();
+        return;
+      }
+      setHudPos({ x: baseX + (ev.clientX - startX), y: baseY + (ev.clientY - startY) });
+    };
+    const onUp = () => cleanup();
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  };
+
   const fullscreen = () => {
     // Fullscreen the WRAPPER (video + pose canvas + draw canvas + REPS
     // readout), not the bare <video>, so all overlays come along. iOS
@@ -761,9 +825,17 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               touchAction: 'none'}} />
         )}
         {(poseOn || repsOn) && (Object.keys(angles).length > 0 || repsOn) && (
-          <div style={{position:'absolute',top:6,right:6,background:'rgba(10,10,11,0.78)',
-            borderRadius:6,padding:'6px 8px',pointerEvents:'none',fontFamily:FN,fontSize:10,
-            color:'#fff',lineHeight:1.5}}>
+          <div onPointerDown={onHudPointerDown}
+            title="Long-press (mobile) or click and drag (desktop) to move"
+            style={{position:'absolute',top:6,right:6,
+              transform:`translate(${hudPos.x}px, ${hudPos.y}px)`,
+              background:'rgba(10,10,11,0.78)',
+              borderRadius:6,padding:'6px 8px',
+              border:`1px solid ${hudDragArmed?C.ac:'transparent'}`,
+              fontFamily:FN,fontSize:10,color:'#fff',lineHeight:1.5,
+              fontVariantNumeric:'tabular-nums',
+              cursor:hudDragArmed?'grabbing':'grab',
+              touchAction:'none',userSelect:'none'}}>
             {repsOn && (
               <div style={{paddingBottom:4,marginBottom:poseOn?4:0,textAlign:'center',
                 borderBottom:poseOn?`1px solid ${C.bd}`:'none'}}>
@@ -773,9 +845,9 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               </div>
             )}
             {poseOn && ANGLE_DEFS.map(d => (
-              <div key={d.name} style={{display:'flex',gap:4,whiteSpace:'nowrap'}}>
-                <span style={{color:C.td}}>{d.name}</span>
-                <span>{angles[d.name] != null ? angles[d.name] + '°' : '—'}</span>
+              <div key={d.name} style={{display:'flex',gap:6,whiteSpace:'nowrap'}}>
+                <span style={{color:C.td,minWidth:60,display:'inline-block'}}>{d.name}</span>
+                <span style={{minWidth:32,display:'inline-block',textAlign:'right'}}>{angles[d.name] != null ? angles[d.name] + '°' : '—'}</span>
               </div>
             ))}
           </div>
