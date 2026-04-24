@@ -184,7 +184,24 @@ export function useSupaClientWorkouts(initial = []) {
     }
   }, []);
 
-  return [data, save, markReviewed];
+  // Patch just the form_videos column of a workout. Used by the trainer's
+  // timestamped-comment feature and the client's reply-to-comment flow.
+  // Optimistic: updates local state first, then writes to Supabase. Errors
+  // surface via emitSaveError and get shown in the save-error toast.
+  const updateFormVideos = useCallback(async (id, formVideos) => {
+    const next = dataRef.current.map(w => w.id === id ? { ...w, formVideos } : w);
+    setData(next);
+    dataRef.current = next;
+    try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
+    try {
+      const { error } = await supabase.from('client_workouts').update({ form_videos: formVideos }).eq('id', id);
+      if (error) emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: error.message || String(error) });
+    } catch (e) {
+      emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
+    }
+  }, []);
+
+  return [data, save, markReviewed, updateFormVideos];
 }
 
 // BW logs hook — uses dedicated table

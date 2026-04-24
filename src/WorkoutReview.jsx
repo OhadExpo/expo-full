@@ -35,11 +35,58 @@ const POSE_CONNECTIONS = [
 // back to 'knee'. Trainer can override via the dropdown next to REPS.
 // `onVideoRef` lets a parent grab the underlying <video> element (used by
 // the side-by-side compare view to sync timing across two players).
-function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
+function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, onReviewNotesChange, role = 'trainer' }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
+  // Timestamp-comment state. `composing` = { ts, replyToId } when input is open.
+  const [composing, setComposing] = useState(null);
+  const [composeText, setComposeText] = useState('');
+  const notes = Array.isArray(reviewNotes) ? reviewNotes : [];
+  const writeNotes = onReviewNotesChange || (() => {});
+  const fmtTs = (sec) => {
+    const s = Math.max(0, Math.floor(sec || 0));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  };
+  const addComment = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    try { v.pause(); } catch {}
+    setComposing({ ts: v.currentTime, replyToId: null });
+    setComposeText('');
+  };
+  const addReply = (parentId) => {
+    setComposing({ ts: null, replyToId: parentId });
+    setComposeText('');
+  };
+  const cancelCompose = () => { setComposing(null); setComposeText(''); };
+  const submitCompose = () => {
+    const text = composeText.trim();
+    if (!text || !composing) { cancelCompose(); return; }
+    const nowIso = new Date().toISOString();
+    const newId = 'rn_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    if (composing.replyToId) {
+      const next = notes.map(n => n.id === composing.replyToId
+        ? { ...n, replies: [...(n.replies || []), { id: newId, text, author: role, createdAt: nowIso }] }
+        : n);
+      writeNotes(next);
+    } else {
+      writeNotes([...notes, { id: newId, ts: composing.ts, text, author: role, createdAt: nowIso, replies: [] }]);
+    }
+    cancelCompose();
+  };
+  const deleteNote = (id) => {
+    // Delete top-level note (and all its replies), or a reply.
+    const top = notes.find(n => n.id === id);
+    if (top) { writeNotes(notes.filter(n => n.id !== id)); return; }
+    writeNotes(notes.map(n => ({ ...n, replies: (n.replies || []).filter(r => r.id !== id) })));
+  };
+  const seekTo = (ts) => {
+    const v = videoRef.current;
+    if (!v || ts == null) return;
+    v.currentTime = Math.max(0, ts);
+  };
   // Offline peak-detection rep counter state:
   //   signalBufs[channel] — dense arrays indexed by video-frame bucket
   //     (Math.round(vt * BUCKET_FPS)). Raw angle per bucket; NaN for frames
@@ -416,6 +463,22 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
           </div>
         )}
       </div>
+      {/* Mini-timeline: shows comment tick marks aligned with the video's
+          duration. Separate from the <video> native scrub bar because we
+          can't style it cross-browser. Click a tick to seek. */}
+      {notes.length > 0 && videoRef.current?.duration > 0 && (
+        <div style={{position:'relative',height:14,background:C.sf2,borderRadius:3,marginBottom:8,overflow:'hidden'}}>
+          {notes.map(n => {
+            if (n.ts == null || !videoRef.current?.duration) return null;
+            const pct = Math.min(100, Math.max(0, (n.ts / videoRef.current.duration) * 100));
+            return (
+              <div key={n.id} onClick={() => seekTo(n.ts)}
+                title={`${fmtTs(n.ts)} — ${n.text.slice(0, 80)}`}
+                style={{position:'absolute',left:pct+'%',top:0,bottom:0,width:3,background:n.author==='trainer'?C.ac:C.gn,cursor:'pointer',borderRadius:2,transform:'translateX(-1px)'}}/>
+            );
+          })}
+        </div>
+      )}
       <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
         <button onClick={() => stepFrame(-1)} title="Previous frame"
           style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
@@ -463,7 +526,69 @@ function FormVideoPlayer({ url, exerciseTitle, onVideoRef }) {
         <button onClick={fullscreen}
           style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
+        {onReviewNotesChange && role === 'trainer' && (
+          <button onClick={addComment} title="Add a timestamped comment at the current video time"
+            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.ac}40`,
+              background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬 COMMENT</button>
+        )}
       </div>
+      {/* Compose input (new comment or reply). Appears inline when composing is active. */}
+      {composing && (
+        <div style={{background:C.sf2,border:`1px solid ${C.ac}60`,borderRadius:8,padding:10,marginTop:8}}>
+          <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6}}>
+            {composing.replyToId ? '↳ REPLYING' : `💬 COMMENT AT ${fmtTs(composing.ts)}`}
+          </div>
+          <textarea value={composeText} autoFocus
+            onChange={e => setComposeText(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitCompose(); } }}
+            placeholder={composing.replyToId ? 'Type your reply…' : 'What should the client focus on at this moment?'}
+            style={{width:'100%',minHeight:60,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:6,padding:8,color:C.tx,fontFamily:FB,fontSize:13,boxSizing:'border-box',resize:'vertical'}}/>
+          <div style={{display:'flex',gap:6,justifyContent:'flex-end',marginTop:6}}>
+            <button onClick={cancelCompose} style={{padding:'4px 10px',borderRadius:4,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>Cancel</button>
+            <button onClick={submitCompose} disabled={!composeText.trim()} style={{padding:'4px 10px',borderRadius:4,border:'none',background:composeText.trim()?C.ac:C.sf3,color:composeText.trim()?'#fff':C.td,fontFamily:FB,fontSize:11,fontWeight:700,cursor:composeText.trim()?'pointer':'default'}}>Save</button>
+          </div>
+        </div>
+      )}
+      {/* Threaded comment list. Each top-level has a timestamp; replies are
+          nested underneath without their own timestamp. Click the MM:SS
+          chip to seek the video to that point. */}
+      {notes.length > 0 && (
+        <div style={{marginTop:10,display:'flex',flexDirection:'column',gap:8}}>
+          {notes.slice().sort((a, b) => (a.ts ?? 0) - (b.ts ?? 0)).map(n => (
+            <div key={n.id} style={{background:C.sf2,borderLeft:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:6,padding:10}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+                <button onClick={() => seekTo(n.ts)} style={{background:C.acD,border:`1px solid ${C.ac}40`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
+                <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
+                <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
+                {(n.author === role) && (
+                  <button onClick={() => deleteNote(n.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginLeft:4}}>✕</button>
+                )}
+              </div>
+              <div style={{fontSize:13,color:C.tx,whiteSpace:'pre-wrap'}}>{n.text}</div>
+              {(n.replies || []).length > 0 && (
+                <div style={{marginTop:8,marginLeft:12,display:'flex',flexDirection:'column',gap:6,borderLeft:`2px solid ${C.bd}`,paddingLeft:10}}>
+                  {n.replies.map(r => (
+                    <div key={r.id}>
+                      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
+                        <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
+                        <span style={{fontSize:10,color:C.td}}>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
+                        {(r.author === role) && (
+                          <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:'auto'}}>✕</button>
+                        )}
+                      </div>
+                      <div style={{fontSize:12,color:C.tx,whiteSpace:'pre-wrap'}}>{r.text}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {onReviewNotesChange && (
+                <button onClick={() => addReply(n.id)}
+                  style={{marginTop:8,background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:0,cursor:'pointer'}}>↳ Reply</button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -513,7 +638,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   );
 }
 
-export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession, markReviewed }) {
+export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession, markReviewed, updateFormVideos }) {
   const [subTab, setSubTab] = useState("review");
   const [selectedWo, setSelectedWo] = useState(null);
   const [expandedEx, setExpandedEx] = useState(null);
@@ -726,7 +851,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         })()}
                       </div>
                       {formVideo.cloudUrl ? (
-                        <FormVideoPlayer url={formVideo.cloudUrl} exerciseTitle={ex.title || exName} />
+                        <FormVideoPlayer url={formVideo.cloudUrl} exerciseTitle={ex.title || exName}
+                          role="trainer"
+                          reviewNotes={formVideo.reviewNotes || []}
+                          onReviewNotesChange={updateFormVideos ? (nextNotes) => {
+                            const updated = (wo.formVideos || []).map((fv, fi) => fi === i ? { ...fv, reviewNotes: nextNotes } : fv);
+                            updateFormVideos(wo.id, updated);
+                          } : null}
+                        />
                       ) : formVideo.fileName ? (
                         <div style={{fontSize:11,color:C.tm,marginBottom:4}}>File: {formVideo.fileName} (upload pending)</div>
                       ) : null}
