@@ -373,7 +373,7 @@ export function UnauthorizedScreen({ email, onSignOut }) {
 const wrapStyle = {
   background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start',
-  padding: '8vh 20px 40px',
+  padding: '20px 20px 40px',
 };
 
 const cardStyle = {
