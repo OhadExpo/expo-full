@@ -723,10 +723,20 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           and the drawing canvas uses canvas-relative normalized coords so
           strokes draw consistently. */}
       <style>{`
-        .fv-wrap:fullscreen { background:#000; margin:0; padding:0; max-height:none; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
-        .fv-wrap:fullscreen video { max-height:100vh !important; height:100vh !important; width:100vw !important; max-width:100vw !important; border-radius:0 !important; object-fit:contain; background:#000; }
-        .fv-wrap:-webkit-full-screen { background:#000; margin:0; padding:0; max-height:none; width:100vw; height:100vh; display:flex; align-items:center; justify-content:center; }
-        .fv-wrap:-webkit-full-screen video { max-height:100vh !important; height:100vh !important; width:100vw !important; max-width:100vw !important; border-radius:0 !important; object-fit:contain; background:#000; }
+        .fv-wrap:fullscreen, .fv-wrap:-webkit-full-screen {
+          background:#000 !important; margin:0 !important; padding:0 !important;
+          max-height:none !important; width:100vw !important; height:100vh !important;
+          display:block !important; position:relative !important;
+        }
+        .fv-wrap:fullscreen video, .fv-wrap:-webkit-full-screen video {
+          width:100% !important; height:100% !important;
+          max-width:100% !important; max-height:100% !important;
+          border-radius:0 !important; object-fit:contain !important; background:#000 !important;
+        }
+        .fv-wrap:fullscreen canvas, .fv-wrap:-webkit-full-screen canvas {
+          position:absolute !important; top:0 !important; left:0 !important;
+          width:100% !important; height:100% !important; z-index:5 !important;
+        }
       `}</style>
       <div ref={wrapperRef} className="fv-wrap" style={{position:'relative',marginBottom:6,lineHeight:0}}>
         <video ref={videoRef} src={url} controls playsInline crossOrigin="anonymous"
