@@ -238,10 +238,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       try {
         const exTitle = EX[day.ex[exIdx]?.eid]?.t || '';
         const { count, kind } = await countRepsForVideo(file, exTitle);
-        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:count, repKind:kind}; return n; });
+        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:count, repKind:kind, countError:null}; return n; });
       } catch (err) {
         console.warn('auto-count failed:', err);
-        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:null}; return n; });
+        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:null, countError: err?.message || 'Auto-count failed'}; return n; });
       }
     })();
 
@@ -468,6 +468,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>⏱ Counting reps…</span></div>}
           {!f.counting && typeof f.repCount === 'number' && f.repKind && f.repKind !== 'none' && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>🔢 {f.repCount} REPS</span></div>}
+          {!f.counting && f.countError && <div title={f.countError} style={{display:'flex',alignItems:'center',gap:4,background:C.rdD,padding:'3px 10px',borderRadius:20}}>
+            <span style={{fontSize:11,fontFamily:FN,color:C.rd,fontWeight:700}}>⚠ Count unavailable</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>

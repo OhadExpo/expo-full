@@ -168,12 +168,17 @@ async function runCount(source, kind, channels, onProgress) {
   const objUrl = typeof source === 'string' ? null : URL.createObjectURL(source);
   const url = objUrl || source;
   const v = document.createElement('video');
+  // crossOrigin only needed for external URLs. Setting it for blob: URLs can
+  // cause load failures on some browsers since blob: doesn't respond to CORS.
+  if (typeof source === 'string') v.crossOrigin = 'anonymous';
   v.src = url;
-  v.crossOrigin = 'anonymous';
   v.muted = true;
   v.playsInline = true;
-  // Offscreen but attached so decoders work on mobile Safari.
-  v.style.cssText = 'position:fixed;left:-10000px;top:0;width:320px;height:240px;opacity:0;pointer-events:none;';
+  v.preload = 'auto';
+  // Offscreen but rendered — do NOT use opacity:0 or display:none; mobile
+  // Safari blocks playback for those. `left:-10000px` puts it out of view
+  // while the element remains "visible" as far as the renderer is concerned.
+  v.style.cssText = 'position:fixed;left:-10000px;top:0;width:320px;height:240px;pointer-events:none;';
   document.body.appendChild(v);
 
   const cleanup = () => {
@@ -191,9 +196,11 @@ async function runCount(source, kind, channels, onProgress) {
   const BUCKET_FPS = 30;
   const buffers = {};
   ANGLE_DEFS.forEach(d => { buffers[d.name] = []; });
+  let frameCount = 0, framesWithPose = 0;
 
-  try { v.playbackRate = 4; } catch {}
-  try { await v.play(); } catch (e) { cleanup(); throw e; }
+  // 2x is universally supported; 4x got clamped or rejected on some browsers.
+  try { v.playbackRate = 2; } catch {}
+  try { await v.play(); } catch (e) { cleanup(); throw new Error('Video playback blocked: ' + (e?.message || e)); }
 
   let lastTs = -1;
   const processFrame = () => {
@@ -201,9 +208,11 @@ async function runCount(source, kind, channels, onProgress) {
       const ts = Math.max(performance.now(), lastTs + 0.001);
       if (ts <= lastTs) return;
       lastTs = ts;
+      frameCount++;
       const result = lm.detectForVideo(v, ts);
       const wlms = result.worldLandmarks?.[0] || result.landmarks?.[0];
       if (!wlms) return;
+      framesWithPose++;
       const vt = v.currentTime;
       const bucket = Math.round(vt * BUCKET_FPS);
       for (const d of ANGLE_DEFS) {
@@ -249,5 +258,7 @@ async function runCount(source, kind, channels, onProgress) {
     const peaks = findPeaks(sm, 25, minDist);
     if (peaks.length > best) best = peaks.length;
   }
-  return { count: best, kind };
+  // Diagnostic: log frame/pose counts so silent failures surface in DevTools.
+  console.log(`[repCounter] ${kind} count=${best} frames=${frameCount} withPose=${framesWithPose}`);
+  return { count: best, kind, frames: frameCount, framesWithPose };
 }
