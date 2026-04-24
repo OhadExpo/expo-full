@@ -262,6 +262,11 @@ async function runCount(source, kind, channels, onProgress) {
     else requestAnimationFrame(loop);
   });
 
+  const durationAtEnd = v.duration;
+  const currentAtEnd = v.currentTime;
+  const endedAtEnd = v.ended;
+  const pausedAtEnd = v.paused;
+  const readyAtEnd = v.readyState;
   cleanup();
 
   const minDist = Math.max(4, Math.round(BUCKET_FPS * 0.4));
@@ -274,6 +279,10 @@ async function runCount(source, kind, channels, onProgress) {
     if (peaks.length > best) best = peaks.length;
   }
   // Diagnostic: log frame/pose counts so silent failures surface in DevTools.
-  console.log(`[repCounter] ${kind} count=${best} frames=${frameCount} withPose=${framesWithPose}`);
-  return { count: best, kind, frames: frameCount, framesWithPose };
+  console.log(`[repCounter] ${kind} count=${best} frames=${frameCount} withPose=${framesWithPose} dur=${durationAtEnd} curT=${currentAtEnd} ended=${endedAtEnd} paused=${pausedAtEnd} ready=${readyAtEnd}`);
+  return {
+    count: best, kind,
+    frames: frameCount, framesWithPose,
+    duration: durationAtEnd, currentTime: currentAtEnd,
+  };
 }

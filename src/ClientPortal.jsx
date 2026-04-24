@@ -238,7 +238,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       try {
         const exTitle = EX[day.ex[exIdx]?.eid]?.t || '';
         const result = await countRepsForVideo(file, exTitle);
-        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:result.count, repKind:result.kind, countError:null, countFrames:result.frames, countFramesWithPose:result.framesWithPose}; return n; });
+        setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:result.count, repKind:result.kind, countError:null, countFrames:result.frames, countFramesWithPose:result.framesWithPose, countDuration:result.duration, countCurrentTime:result.currentTime}; return n; });
       } catch (err) {
         console.warn('auto-count failed:', err);
         setFv(prev => { const n=[...prev]; if(!n[exIdx] || n[exIdx].uploadToken !== uploadToken) return prev; n[exIdx]={...n[exIdx], counting:false, repCount:null, countError: err?.message || 'Auto-count failed'}; return n; });
@@ -468,8 +468,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>⏱ Counting reps…</span></div>}
           {!f.counting && typeof f.repCount === 'number' && f.repKind && f.repKind !== 'none' && f.repCount > 0 && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>🔢 {f.repCount} REPS</span></div>}
-          {!f.counting && f.repCount === 0 && f.repKind !== 'none' && <div title={`frames=${f.countFrames||0} withPose=${f.countFramesWithPose||0}`} style={{display:'flex',alignItems:'center',gap:4,background:C.sf2,padding:'3px 10px',borderRadius:20}}>
-            <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>0 reps · f={f.countFrames||0} p={f.countFramesWithPose||0}</span></div>}
+          {!f.counting && f.repCount === 0 && f.repKind !== 'none' && <div title={`frames=${f.countFrames||0} withPose=${f.countFramesWithPose||0} duration=${f.countDuration||'?'}s stopped_at=${f.countCurrentTime||'?'}s`} style={{display:'flex',alignItems:'center',gap:4,background:C.sf2,padding:'3px 10px',borderRadius:20}}>
+            <span style={{fontSize:11,fontFamily:FN,color:C.tm,fontWeight:700}}>0 reps · f={f.countFrames||0} p={f.countFramesWithPose||0} d={f.countDuration?f.countDuration.toFixed(1):'?'}s t={f.countCurrentTime?f.countCurrentTime.toFixed(1):'?'}s</span></div>}
           {!f.counting && f.countError && <div title={f.countError} style={{display:'flex',alignItems:'center',gap:4,background:C.rdD,padding:'3px 10px',borderRadius:20}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.rd,fontWeight:700}}>⚠ Count unavailable</span></div>}
         </div>
