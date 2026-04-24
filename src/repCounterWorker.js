@@ -5,11 +5,16 @@
 // ~80ms/frame on CPU) happens off main thread so UI and video decode run
 // smoothly during auto-count.
 
+// STATIC import of MediaPipe so Vite bundles it into the worker chunk.
+// Earlier dynamic import() produced a production build that called
+// `self.import(...)` — which doesn't exist in classic-worker context and
+// blew up with "self.import is not a function" on Ohad's browser.
+import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+
 let lm = null;
 let ready = false;
 
 async function initLandmarker() {
-  const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
   const fileset = await FilesetResolver.forVisionTasks(
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
   );
