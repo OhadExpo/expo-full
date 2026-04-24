@@ -17,20 +17,26 @@ export function useAuth() {
 export function AuthProvider({ children, clientList }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState(null); // 'trainer' | 'client' | null
+  const [role, setRole] = useState(null); // 'trainer' | 'client' | 'both' | null
   const [clientId, setClientId] = useState(null); // matched client ID from CLIENTS array
 
-  // Resolve role from email
+  // Resolve role from email. 'both' = same email is in TRAINER_EMAILS *and*
+  // matches a trainee row — these accounts get a portal-picker after login
+  // (see RolePickerScreen). Pure trainers get role='trainer' with no clientId,
+  // pure clients get role='client' with their matched id.
   const resolveRole = (email) => {
     if (!email) return { role: null, clientId: null };
     const lower = email.toLowerCase();
-    if (TRAINER_EMAILS.includes(lower)) return { role: 'trainer', clientId: null };
-    // Check client list
+    const isTrainer = TRAINER_EMAILS.includes(lower);
+    let matchedClientId = null;
     for (const cl of clientList) {
       if (!cl.email) continue;
       const emails = Array.isArray(cl.email) ? cl.email : [cl.email];
-      if (emails.some(e => e.toLowerCase() === lower)) return { role: 'client', clientId: cl.id };
+      if (emails.some(e => e.toLowerCase() === lower)) { matchedClientId = cl.id; break; }
     }
+    if (isTrainer && matchedClientId) return { role: 'both', clientId: matchedClientId };
+    if (isTrainer) return { role: 'trainer', clientId: null };
+    if (matchedClientId) return { role: 'client', clientId: matchedClientId };
     return { role: null, clientId: null };
   };
 
@@ -142,7 +148,7 @@ export function LoginScreen() {
     <div style={wrapStyle}>
       <div style={{ textAlign: 'center', marginBottom: 32 }}>
         <img src={EXPO_LOGO} alt="EXPO" style={{ height: 36, marginBottom: 12 }} />
-        <div style={{ color: C.tm, fontSize: 15 }}>{typeof window !== 'undefined' && window.location.pathname.startsWith('/coach') ? 'Coaching Portal' : 'Training Portal'}</div>
+        <div style={{ color: C.tm, fontSize: 15 }}>Sign in</div>
       </div>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div style={cardStyle}>
@@ -195,13 +201,6 @@ export function LoginScreen() {
             Don't have an account? Contact your coach.
           </div>
         </div>
-        {/* Cross-portal link — mirrors the old /coach ↔ / toggle so users
-            who bookmarked one side still see a visible way to the other. */}
-        {typeof window !== 'undefined' && window.location.pathname.startsWith('/coach') ? (
-          <button onClick={() => { window.location.href = '/'; }} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FB, fontSize: 12, marginTop: 20, display: 'block', width: '100%', textAlign: 'center' }}>Training Portal →</button>
-        ) : (
-          <button onClick={() => { window.location.href = '/coach'; }} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FB, fontSize: 12, marginTop: 20, display: 'block', width: '100%', textAlign: 'center' }}>Coaching Portal →</button>
-        )}
       </div>
     </div>
   );
@@ -296,6 +295,50 @@ export function SaveErrorToast() {
           <div style={{ color: C.tm, fontSize: 10, marginTop: 4 }}>Your data is still in local memory. Check connection and retry.</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Portal picker — only shown for role==='both' (an email that's both in
+// TRAINER_EMAILS and on a trainee row). Choice is sticky in sessionStorage so
+// a refresh keeps you on the chosen side, but a new browser session re-prompts.
+// onPick(side) is wired in App.jsx — it sets the same sessionStorage key and
+// triggers a re-render.
+export const PORTAL_CHOICE_KEY = 'expo-portal-choice'; // 'trainer' | 'client'
+export function RolePickerScreen({ name, onPick, onSignOut }) {
+  const card = (label, sub, side) => (
+    <button
+      onClick={() => onPick(side)}
+      style={{
+        background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 14, padding: '28px 24px',
+        color: C.tx, fontFamily: FB, cursor: 'pointer', textAlign: 'center',
+        display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220,
+        transition: 'border-color 120ms, transform 120ms',
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = C.bd; e.currentTarget.style.transform = 'translateY(0)'; }}
+    >
+      <div style={{ fontSize: 32 }}>{side === 'trainer' ? '🧠' : '💪'}</div>
+      <div style={{ fontSize: 16, fontWeight: 700 }}>{label}</div>
+      <div style={{ fontSize: 12, color: C.tm }}>{sub}</div>
+    </button>
+  );
+  return (
+    <div style={wrapStyle}>
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <img src={EXPO_LOGO} alt="EXPO" style={{ height: 36, marginBottom: 12 }} />
+        <div style={{ color: C.tm, fontSize: 15 }}>Hey {name || 'there'} — which side today?</div>
+      </div>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {card('Coach Portal', 'Manage clients & plans', 'trainer')}
+        {card('Training Portal', 'View your own program', 'client')}
+      </div>
+      <button
+        onClick={onSignOut}
+        style={{ marginTop: 28, background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FB, fontSize: 12 }}
+      >
+        Sign out
+      </button>
     </div>
   );
 }

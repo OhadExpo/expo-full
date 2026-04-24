@@ -6,7 +6,7 @@ import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn } from './ui';
 import { parseTraineeId } from './traineeUtils';
-import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, TRAINER_EMAILS } from './auth';
+import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS } from './auth';
 import * as XLSX from 'xlsx';
 
 // Lazy-load every heavy view so the initial bundle stays small.
@@ -123,6 +123,15 @@ function BootSplash() {
 
 function AuthGate() {
   const auth = useAuth();
+  // Single-login-URL: anyone hitting /coach without a session gets bounced
+  // to / so the LoginScreen lives at exactly one address. The post-login
+  // routing (and the role picker for dual-role accounts) lands them in the
+  // right portal anyway, so the old /coach login mirror was redundant.
+  useEffect(() => {
+    if (auth && !auth.loading && !auth.session && window.location.pathname.startsWith('/coach')) {
+      window.history.replaceState(null, '', '/');
+    }
+  }, [auth]);
   if (!auth || auth.loading) return <BootSplash />;
   if (!auth.session) return <LoginScreen />;
   // SaveErrorToast rides alongside AuthedApp so a failed write from any
@@ -132,8 +141,15 @@ function AuthGate() {
 }
 
 function AuthedApp() {
-  const { session, signOut } = useAuth();
+  const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
+  // Clear the portal choice on sign-out so the next login (potentially a
+  // different account) goes through the picker fresh instead of inheriting
+  // the previous user's preference.
+  const signOut = useCallback(async () => {
+    try { sessionStorage.removeItem(PORTAL_CHOICE_KEY); } catch {}
+    await rawSignOut();
+  }, [rawSignOut]);
   const [trainees,setTrainees,tL]=useSupaStore(KEYS.trainees,[]);
   const [exercises,setExercises,eL]=useSupaStore(KEYS.exercises,[]);
   const { index: planIndex, loaded: pL, reload: reloadPlanIndex } = usePlanIndex();
@@ -147,16 +163,49 @@ function AuthedApp() {
   // Role. Trainer = hardcoded whitelist; client = email matches a trainees row.
   // Resolved here rather than in AuthProvider so we don't block auth on the
   // trainees fetch — AuthProvider doesn't know what a trainee is.
-  const isTrainer = TRAINER_EMAILS.includes(email);
+  // Note: drop the `if (isTrainer)` short-circuit so an email present in BOTH
+  // the trainer list AND a trainee row still resolves a clientTrainee — that
+  // dual-role state is what triggers the portal picker.
+  const isTrainerEmail = TRAINER_EMAILS.includes(email);
   const clientTrainee = useMemo(() => {
-    if (isTrainer || !email) return null;
+    if (!email) return null;
     return (trainees || []).find(t => {
       if (!t.email) return false;
       const emails = Array.isArray(t.email) ? t.email : [t.email];
       return emails.some(e => e.toLowerCase() === email);
     }) || null;
-  }, [trainees, email, isTrainer]);
-  const isClient = !!clientTrainee;
+  }, [trainees, email]);
+  const hasClientRow = !!clientTrainee;
+  const isBoth = isTrainerEmail && hasClientRow;
+
+  // Portal choice for dual-role users. sessionStorage = persists across
+  // refreshes within the same browser session, dies on new window — exactly
+  // what we want (refresh keeps you in, fresh Chrome = re-pick).
+  const [portalChoice, setPortalChoice] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    return sessionStorage.getItem(PORTAL_CHOICE_KEY);
+  });
+  const pickPortal = useCallback((side) => {
+    sessionStorage.setItem(PORTAL_CHOICE_KEY, side);
+    setPortalChoice(side);
+    // Land on the right URL immediately so the rest of the routing logic
+    // doesn't fight the choice on the next render.
+    if (side === 'trainer' && !window.location.pathname.startsWith('/coach')) {
+      window.history.replaceState(null, '', '/coach/dashboard');
+    } else if (side === 'client' && window.location.pathname.startsWith('/coach')) {
+      window.history.replaceState(null, '', '/');
+    }
+  }, []);
+  const switchPortal = useCallback(() => {
+    sessionStorage.removeItem(PORTAL_CHOICE_KEY);
+    setPortalChoice(null);
+  }, []);
+
+  // Effective role flags. For pure trainers/clients they match the raw flags.
+  // For dual-role users they reflect the picked portal — letting the rest of
+  // AuthedApp ignore the dual-role wrinkle entirely.
+  const isTrainer = isBoth ? portalChoice === 'trainer' : isTrainerEmail;
+  const isClient = isBoth ? portalChoice === 'client' : hasClientRow;
   const clientId = clientTrainee?.id || null;
 
   // Routing: / = portal, /coach = trainer, /coach/tab = specific tab
@@ -377,9 +426,17 @@ function AuthedApp() {
     return () => clearInterval(iv);
   }, [isCoach]);
 
+  // Dual-role accounts: no portal picked yet → show the picker. Wait for
+  // trainees to load so we don't briefly render the picker for a pure trainer
+  // before the trainee match resolves (would flash for one frame otherwise).
+  if (tL && isBoth && !portalChoice) {
+    return <RolePickerScreen name={clientTrainee?.name || ''} onPick={pickPortal} onSignOut={signOut} />;
+  }
+
   // Authenticated but email not recognized — show Access Denied.
   // Wait for trainees to load before deciding so real clients don't flash this.
-  if (tL && !isTrainer && !isClient) {
+  // Excludes isBoth since they're handled by the picker branch above.
+  if (tL && !isTrainer && !isClient && !isBoth) {
     return <UnauthorizedScreen email={session?.user?.email || ''} onSignOut={signOut} />;
   }
 
@@ -405,7 +462,7 @@ function AuthedApp() {
           <div style={{flex:"0 0 auto",position:"relative",width:83,height:56,marginRight:12,overflow:"hidden"}}>
             <img src={EXPO_LOGO} alt="EXPO" style={{height:56,position:"absolute",left:0,bottom:16}}/></div>
           <nav style={{display:"flex",gap:2,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:"max-content"}}>
-            {tabs.map(t=>(<button key={t.key} onClick={async()=>{if(t.key==='client'){await signOut();window.location.href='/';}else{navTo(t.key)}}} style={{...baseBtn,background:tab===t.key?C.acD:"transparent",color:tab===t.key?C.ac:C.tm,borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:tab===t.key?700:500,whiteSpace:"nowrap"}}>
+            {tabs.map(t=>(<button key={t.key} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,background:tab===t.key?C.acD:"transparent",color:tab===t.key?C.ac:C.tm,borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:tab===t.key?700:500,whiteSpace:"nowrap"}}>
               <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
             <button onClick={()=>fileRef.current?.click()} onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave} title="Import — click or drag file here" style={{...baseBtn,background:dragOver?C.acD:"transparent",color:dragOver?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:6,border:dragOver?`1px dashed ${C.ac}`:"1px solid transparent",transition:"all .15s"}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
