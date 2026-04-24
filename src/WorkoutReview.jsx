@@ -438,14 +438,24 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
     return true;
   };
 
+  // POSE / REPS and COMMENTS are mutually exclusive. Pose/reps auto-pause
+  // for inference and the rep counter state-machine; that conflicts with
+  // comments' auto-pause at timestamps and would corrupt mid-drawing state.
+  // So turning on one group disables the other.
   const togglePose = async () => {
     if (poseOn) { setPoseOn(false); return; }
-    if (await ensureModel()) setPoseOn(true);
+    if (await ensureModel()) { setPoseOn(true); setCommentsEnabled(false); }
   };
-
   const toggleReps = async () => {
     if (repsOn) { setRepsOn(false); return; }
-    if (await ensureModel()) setRepsOn(true);
+    if (await ensureModel()) { setRepsOn(true); setCommentsEnabled(false); }
+  };
+  const toggleComments = () => {
+    setCommentsEnabled(v => {
+      const next = !v;
+      if (next) { setPoseOn(false); setRepsOn(false); }
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -744,7 +754,7 @@ export function FormVideoPlayer({ url, exerciseTitle, onVideoRef, reviewNotes, o
         )}
         {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
         {notes.length > 0 && (
-          <button onClick={() => setCommentsEnabled(v => !v)}
+          <button onClick={toggleComments}
             title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
             style={{marginLeft:'auto',padding:'3px 10px',borderRadius:4,border:`1px solid ${commentsEnabled?C.ac:C.bd}`,
               background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
