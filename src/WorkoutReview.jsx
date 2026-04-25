@@ -1641,16 +1641,18 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     {hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}
                   </div>
                 </div>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:8}}>
-                  {deleteWorkout && (
-                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
-                      title="Delete this workout"
-                      style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}40`,color:C.rd||'#ff6b6b',
-                        borderRadius:6,padding:'2px 8px',fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1.4}}>
-                      DELETE
-                    </button>
-                  )}
-                  <span style={{color:reviewed?C.td:C.ac,fontSize:12}}>{reviewed?'View →':'Review →'}</span>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:8,flexShrink:0}}>
+                  <div style={{width:64,display:'flex',justifyContent:'flex-end'}}>
+                    {deleteWorkout && (
+                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
+                        title="Delete this workout"
+                        style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}40`,color:C.rd||'#ff6b6b',
+                          borderRadius:6,padding:'2px 8px',fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1.4}}>
+                        DELETE
+                      </button>
+                    )}
+                  </div>
+                  <span style={{color:reviewed?C.td:C.ac,fontSize:12,width:60,textAlign:'right',display:'inline-block'}}>{reviewed?'View →':'Review →'}</span>
                 </div>
               </div>
             );
