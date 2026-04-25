@@ -1652,7 +1652,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       </button>
                     )}
                   </div>
-                  <span style={{color:reviewed?C.td:C.ac,fontSize:12,width:60,textAlign:'right',display:'inline-block'}}>{reviewed?'View →':'Review →'}</span>
+                  <span style={{color:reviewed?C.td:C.ac,fontSize:12,width:64,textAlign:'right',display:'inline-block',whiteSpace:'nowrap',flexShrink:0}}>{reviewed?'View →':'Review →'}</span>
                 </div>
               </div>
             );
