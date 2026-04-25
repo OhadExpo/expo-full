@@ -48,19 +48,22 @@ function uniqueTags(list) {
 }
 
 function Nav() {
-  const linkStyle = { color: C.tm, fontFamily: FN, fontSize: 12, letterSpacing: 1, padding: '6px 10px', cursor: 'pointer' };
+  const linkStyle = {
+    color: C.tm, fontFamily: FN, fontSize: 12, letterSpacing: 1,
+    padding: '6px 8px', cursor: 'pointer', whiteSpace: 'nowrap',
+  };
   return (
     <nav style={{
       position: 'sticky', top: 0, zIndex: 50,
       background: 'rgba(10,10,11,0.78)', backdropFilter: 'blur(12px)',
       borderBottom: `1px solid ${C.bd}`,
-      padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
     }}>
-      <a href="#/" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <a href="#/" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <Logo size={26} />
-        <span style={{ fontFamily: FN, fontWeight: 700, letterSpacing: 2, fontSize: 14 }}>EXPO</span>
+        <span className="fv-wordmark" style={{ fontFamily: FN, fontWeight: 700, letterSpacing: 2, fontSize: 14 }}>EXPO</span>
       </a>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
         <a href="#/" style={linkStyle}>PROGRAMS</a>
         <a href="#/#how" style={linkStyle}>HOW IT WORKS</a>
         <a href="#/#contact" style={linkStyle}>CONTACT</a>
