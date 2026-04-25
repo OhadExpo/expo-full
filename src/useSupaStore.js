@@ -201,7 +201,22 @@ export function useSupaClientWorkouts(initial = []) {
     }
   }, []);
 
-  return [data, save, markReviewed, updateFormVideos];
+  // Hard-delete a workout (and its form videos / review notes by cascade —
+  // the row owns those columns). Optimistic local removal, then DB delete.
+  const deleteWorkout = useCallback(async (id) => {
+    const next = dataRef.current.filter(w => w.id !== id);
+    setData(next);
+    dataRef.current = next;
+    try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
+    try {
+      const { error } = await supabase.from('client_workouts').delete().eq('id', id);
+      if (error) emitSaveError({ key: 'client_workouts', op: 'delete', msg: error.message || String(error) });
+    } catch (e) {
+      emitSaveError({ key: 'client_workouts', op: 'delete', msg: e?.message || 'delete failed' });
+    }
+  }, []);
+
+  return [data, save, markReviewed, updateFormVideos, deleteWorkout];
 }
 
 // BW logs hook — uses dedicated table
