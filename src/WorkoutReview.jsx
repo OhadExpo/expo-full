@@ -1253,6 +1253,57 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     </div>
   );
 
+  // Shared delete-confirm modal. Driven by deleteConfirmFor (the workout id)
+  // and the typed verification text. Same component used from both the list
+  // cards and the detail-screen DELETE button — render it in each return
+  // path that needs it.
+  const woForConfirm = deleteConfirmFor ? clientWorkouts.find(w => w.id === deleteConfirmFor) : null;
+  const onDeleteConfirm = () => {
+    const id = deleteConfirmFor;
+    deleteWorkout && deleteWorkout(id);
+    setDeleteConfirmFor(null);
+    setDeleteConfirmText('');
+    if (selectedWo === id) {
+      setSelectedWo(null);
+      setExpandedEx(null);
+      window.scrollTo(0, 0);
+    }
+  };
+  const confirmOk = deleteConfirmText.trim().toLowerCase() === 'delete';
+  const deleteModal = woForConfirm ? (
+    <div onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
+      style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
+      <div onClick={e => e.stopPropagation()}
+        style={{background:C.sf,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:12,padding:20,maxWidth:380,width:'100%'}}>
+        <div style={{fontFamily:FN,fontSize:13,color:C.rd||'#ff6b6b',marginBottom:6,fontWeight:700}}>DELETE WORKOUT</div>
+        <div style={{fontSize:13,color:C.tx,marginBottom:6}}>
+          {woForConfirm.dayName} · {woForConfirm.planName} · W{woForConfirm.week}
+        </div>
+        <div style={{fontSize:12,color:C.tm,marginBottom:14}}>
+          This permanently removes the workout, its sets, form videos, and review notes. Type <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>delete</span> to confirm.
+        </div>
+        <input autoFocus value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && confirmOk) onDeleteConfirm(); }}
+          placeholder='type "delete"'
+          style={{width:'100%',background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12}} />
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
+            style={{flex:1,padding:'10px 0',borderRadius:8,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
+            Cancel
+          </button>
+          <button disabled={!confirmOk} onClick={onDeleteConfirm}
+            style={{flex:1,padding:'10px 0',borderRadius:8,border:'none',
+              background: confirmOk ? (C.rd||'#c94444') : C.sf3,
+              color: confirmOk ? '#fff' : C.td,
+              fontFamily:FB,fontSize:13,fontWeight:700,
+              cursor: confirmOk ? 'pointer' : 'default'}}>
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   // ===== LOG IN-PERSON SESSION (wraps WorkoutsView) =====
   if (subTab === "log") return (
     <div>
@@ -1517,45 +1568,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           )}
         </div>
 
-        {/* Delete confirm modal — requires typing "delete" or "remove". */}
-        {deleteConfirmFor === wo.id && (
-          <div onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
-            style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
-            <div onClick={e => e.stopPropagation()}
-              style={{background:C.sf,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:12,padding:20,maxWidth:380,width:'100%'}}>
-              <div style={{fontFamily:FN,fontSize:13,color:C.rd||'#ff6b6b',marginBottom:6,fontWeight:700}}>DELETE WORKOUT</div>
-              <div style={{fontSize:13,color:C.tx,marginBottom:6}}>
-                {wo.dayName} · {wo.planName} · W{wo.week}
-              </div>
-              <div style={{fontSize:12,color:C.tm,marginBottom:14}}>
-                This permanently removes the workout, its sets, form videos, and review notes. Type <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>delete</span> or <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>remove</span> to confirm.
-              </div>
-              <input autoFocus value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
-                placeholder='type "delete" or "remove"'
-                style={{width:'100%',background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12}} />
-              <div style={{display:'flex',gap:8}}>
-                <button onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
-                  style={{flex:1,padding:'10px 0',borderRadius:8,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
-                  Cancel
-                </button>
-                <button
-                  disabled={!['delete','remove'].includes(deleteConfirmText.trim().toLowerCase())}
-                  onClick={() => {
-                    deleteWorkout && deleteWorkout(wo.id);
-                    setDeleteConfirmFor(null); setDeleteConfirmText('');
-                    setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0);
-                  }}
-                  style={{flex:1,padding:'10px 0',borderRadius:8,border:'none',
-                    background: ['delete','remove'].includes(deleteConfirmText.trim().toLowerCase()) ? (C.rd||'#c94444') : C.sf3,
-                    color: ['delete','remove'].includes(deleteConfirmText.trim().toLowerCase()) ? '#fff' : C.td,
-                    fontFamily:FB,fontSize:13,fontWeight:700,
-                    cursor: ['delete','remove'].includes(deleteConfirmText.trim().toLowerCase()) ? 'pointer' : 'default'}}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {deleteModal}
       </div>
     );
   }
@@ -1628,12 +1641,23 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     {hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}
                   </div>
                 </div>
-                <span style={{color:reviewed?C.td:C.ac,fontSize:12,marginLeft:8}}>{reviewed?'View →':'Review →'}</span>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:8}}>
+                  {deleteWorkout && (
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
+                      title="Delete this workout"
+                      style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}40`,color:C.rd||'#ff6b6b',
+                        borderRadius:6,padding:'2px 8px',fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1.4}}>
+                      DELETE
+                    </button>
+                  )}
+                  <span style={{color:reviewed?C.td:C.ac,fontSize:12}}>{reviewed?'View →':'Review →'}</span>
+                </div>
               </div>
             );
           })}
         </div>
       ))}
+      {deleteModal}
     </div>
   );
 }
