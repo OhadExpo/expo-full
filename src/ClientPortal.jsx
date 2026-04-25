@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
 import { FormVideoPlayer } from './WorkoutReview';
-import { enqueueBlob, attachWorkout, drainBlobs, newBlobId } from './blobQueue';
+import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob } from './blobQueue';
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -224,8 +224,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (!confirm(`This video is ${sizeMB}MB. Large videos may take a while to upload. For faster uploads, try recording a shorter clip (under 30 seconds) or select from your photo library instead of recording new.\n\nContinue upload?`)) return;
     }
 
+    // If a previously-recorded clip on this slot was queued for offline
+    // upload but the user just re-recorded, drop the old blob from IDB so it
+    // doesn't upload pointlessly later.
+    const prevPending = fv[exIdx]?.pendingBlobId;
+    if (prevPending) {
+      try { await removeBlob(prevPending); } catch {}
+    }
+
     const previewUrl = URL.createObjectURL(file);
-    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0}; return n; });
+    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, pendingBlobId:null}; return n; });
 
     try {
       let uploadBlob = file;
@@ -282,8 +290,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         try {
           const blobId = newBlobId();
           await enqueueBlob({ id: blobId, blob: uploadBlob, contentType, storagePath: path });
-          URL.revokeObjectURL(previewUrl);
-          setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:true, cloudUrl:null, pendingBlobId:blobId, compressProgress:100, uploadProgress:0, uploadError:null}; return n; });
+          // Keep previewUrl alive — it's the only way to play the recording
+          // until the blob queue uploads it. Browser GC reclaims it when the
+          // tab closes or when we revoke after a successful drain.
+          setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:true, videoUrl:previewUrl, cloudUrl:null, pendingBlobId:blobId, compressProgress:100, uploadProgress:0, uploadError:null}; return n; });
           return;
         } catch (e2) {
           // IndexedDB failed (private browsing, quota) — fall through to alert.

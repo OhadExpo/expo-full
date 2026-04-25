@@ -92,6 +92,14 @@ async function deleteEntry(id) {
   });
 }
 
+// Public alias used by the upload UI to drop a previously-queued blob when
+// the user re-uploads to the same exercise slot before the original drained.
+export async function removeBlob(id) {
+  await deleteEntry(id);
+  const all = await readAll();
+  notify(all.length);
+}
+
 async function getEntry(id) {
   const store = await txStore('readonly');
   return new Promise((resolve, reject) => {
@@ -192,13 +200,38 @@ export async function drainBlobs() {
 
         const patchedFv = await patchLocalCw(entry.workoutId, entry.exerciseIndex, cloudUrl);
         if (patchedFv) {
-          // Persist the patched form_videos column. Goes through the regular
-          // queue so it's resilient to a flap mid-drain.
-          enqueueOp({
-            type: 'client_workouts.update',
-            payload: { id: entry.workoutId, patch: { form_videos: patchedFv } },
-            dedupeKey: 'fv:' + entry.workoutId,
-          });
+          // Try the DB write directly — keeps localStorage and DB in sync
+          // immediately. If a reload happens between blob-upload and the
+          // queued offlineQueue drain, the row would otherwise come back
+          // with a stale form_videos and clobber the local patch on rehydrate.
+          let directDbOk = false;
+          try {
+            const { error: e2 } = await supabase
+              .from('client_workouts')
+              .update({ form_videos: patchedFv })
+              .eq('id', entry.workoutId);
+            if (e2) throw e2;
+            directDbOk = true;
+          } catch {
+            directDbOk = false;
+          }
+          if (!directDbOk) {
+            // Fall back through the regular queue so a flap mid-drain still
+            // converges. The blob is already uploaded — we don't redo that
+            // work even if this update has to retry.
+            enqueueOp({
+              type: 'client_workouts.update',
+              payload: { id: entry.workoutId, patch: { form_videos: patchedFv } },
+              dedupeKey: 'fv:' + entry.workoutId,
+            });
+          }
+          // Tell the UI the upload is done so it can swap the local
+          // previewUrl out for the cloudUrl and free its blob URL.
+          try {
+            window.dispatchEvent(new CustomEvent('expo-blob-uploaded', {
+              detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, cloudUrl },
+            }));
+          } catch {}
         }
         await deleteEntry(entry.id);
       } catch (e) {

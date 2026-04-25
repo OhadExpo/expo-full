@@ -211,6 +211,24 @@ export function useSupaClientWorkouts(initial = []) {
 
   useEffect(() => { dataRef.current = data; }, [data]);
 
+  // Re-hydrate from localStorage when the blob queue patches a workout's
+  // form_videos in place. Without this, components viewing History would
+  // keep showing a pendingBlobId placeholder until the user reloads.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onPatch = () => {
+      try {
+        const s = localStorage.getItem('expo-cw');
+        if (!s) return;
+        const parsed = JSON.parse(s);
+        setData(parsed);
+        dataRef.current = parsed;
+      } catch {}
+    };
+    window.addEventListener('expo-cw-patched', onPatch);
+    return () => window.removeEventListener('expo-cw-patched', onPatch);
+  }, []);
+
   const save = useCallback(async (next) => {
     const prev = dataRef.current;
     const val = typeof next === 'function' ? next(prev) : next;
