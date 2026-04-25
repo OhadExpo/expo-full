@@ -338,7 +338,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12}}>
-          <div style={{background:C.orD,borderRadius:8,padding:'4px 10px',fontFamily:FN,fontSize:11,color:C.or,fontWeight:700}}>WARM-UP {wi+1}/{wuCount}</div></div>
+          <div style={{background:C.orD,borderRadius:8,padding:'4px 10px',fontFamily:FN,fontSize:11,color:C.or,fontWeight:700,minWidth:110,textAlign:'center',fontVariantNumeric:'tabular-nums',boxSizing:'border-box'}}>WARM-UP {wi+1}/{wuCount}</div></div>
         <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{wu.t}</h2>
         <div style={{fontSize:15,color:C.or,fontWeight:700,fontFamily:FN,marginBottom:14}}>{wu.rx}</div>
         {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
