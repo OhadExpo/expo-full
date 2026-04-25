@@ -416,121 +416,253 @@ function Catalog() {
   );
 }
 
-// PhoneFrame: a CSS-only mock of a phone showing the portal's "today" screen.
-// Renders inline (no PNGs), stays sharp on all DPRs, and contains zero real
-// client data. Width is fixed so it composes predictably inside the grid.
-function PhoneFrame() {
-  const t = useT();
+// PhoneFrame: shared chrome (rounded body, notch bar, dark inner canvas).
+// The interesting bits live in `children` — each WhatsInside feature renders a
+// different inner panel inside the same frame so the row reads as one product.
+function PhoneFrame({ children, tag, height = 360 }) {
   return (
     <div style={{
-      width: 252, maxWidth: '100%', margin: '0 auto',
-      borderRadius: 32, padding: 8,
+      width: 220, maxWidth: '100%', margin: '0 auto',
+      borderRadius: 28, padding: 7,
       background: '#0d0d10', border: `1px solid ${C.bd2}`,
       boxShadow: `0 24px 64px -32px ${C.ac}55, 0 0 0 0.5px ${C.ac4D}`,
       position: 'relative',
     }}>
-      {/* notch / speaker bar */}
       <div style={{
-        position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)',
-        width: 56, height: 5, borderRadius: 3, background: '#1a1a1f',
+        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+        width: 50, height: 4, borderRadius: 2, background: '#1a1a1f', zIndex: 2,
       }} />
       <div style={{
-        background: C.bg, borderRadius: 24, padding: '28px 12px 14px',
-        minHeight: 420, display: 'flex', flexDirection: 'column', gap: 10,
+        background: C.bg, borderRadius: 22, padding: '24px 10px 12px',
+        minHeight: height, display: 'flex', flexDirection: 'column', gap: 8,
         direction: 'ltr', textAlign: 'left',
       }}>
-        {/* App header */}
+        {/* App header — same across all three frames */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          paddingBottom: 8, borderBottom: `1px solid ${C.bd}`,
+          paddingBottom: 6, borderBottom: `1px solid ${C.bd}`,
         }}>
           <span style={{
             fontFamily: FN, fontSize: 9, letterSpacing: 2, color: C.ac, fontWeight: 700,
           }}>EXPO</span>
-          <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1 }}>
-            {t('inside.mock.title')}
-          </span>
+          <span style={{
+            fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2, fontWeight: 700,
+          }}>{tag}</span>
         </div>
-
-        {/* Active set widget (highlighted) */}
-        <div style={{
-          background: C.acD, border: `1px solid ${C.ac}`,
-          borderRadius: 10, padding: '10px 12px',
-        }}>
-          <div style={{
-            fontFamily: FN, fontSize: 8, color: C.ac, letterSpacing: 1.5, fontWeight: 700,
-            marginBottom: 4,
-          }}>
-            {t('inside.mock.set')}
-          </div>
-          <div style={{ fontFamily: FB, fontSize: 13, fontWeight: 700, color: C.tx, marginBottom: 6 }}>
-            {t('inside.mock.exa.t')}
-          </div>
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <div style={{
-              flex: 1, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 6,
-              padding: '6px 8px', fontFamily: FN, fontSize: 11, color: C.tx,
-            }}>
-              90 <span style={{ color: C.tm, fontSize: 9 }}>{t('inside.mock.weight')}</span>
-            </div>
-            <div style={{
-              flex: 1, background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 6,
-              padding: '6px 8px', fontFamily: FN, fontSize: 11, color: C.tx,
-            }}>
-              5 <span style={{ color: C.tm, fontSize: 9 }}>reps</span>
-            </div>
-            <div style={{
-              background: C.ac, color: '#000', borderRadius: 6,
-              padding: '6px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-            }}>
-              ✓
-            </div>
-          </div>
-        </div>
-
-        {/* Other exercises in session — dimmed */}
-        {[
-          { t: t('inside.mock.exb.t'), s: t('inside.mock.exb.s') },
-          { t: t('inside.mock.exc.t'), s: t('inside.mock.exc.s') },
-        ].map((ex, i) => (
-          <div key={i} style={{
-            border: `0.5px solid ${C.bd}`, borderRadius: 10, padding: '8px 12px',
-            opacity: 0.55,
-          }}>
-            <div style={{ fontFamily: FB, fontSize: 12, fontWeight: 600, color: C.tx, marginBottom: 2 }}>
-              {ex.t}
-            </div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 0.5 }}>
-              {ex.s}
-            </div>
-          </div>
-        ))}
-
-        {/* Bottom strip — set-tracking dots */}
-        <div style={{ flex: 1 }} />
-        <div style={{
-          display: 'flex', justifyContent: 'center', gap: 6,
-          paddingTop: 10, borderTop: `1px solid ${C.bd}`,
-        }}>
-          {[1, 1, 0, 0].map((on, i) => (
-            <div key={i} style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: on ? C.ac : 'transparent',
-              border: `1px solid ${on ? C.ac : C.bd2}`,
-            }} />
-          ))}
-        </div>
+        {children}
       </div>
     </div>
   );
 }
 
+// PoseScreen: stick-figure squat with key-joint markers + skeleton lines, the
+// way the live portal renders a MediaPipe Pose Landmarker overlay on top of a
+// trainee's clip. Dot positions roughly match a mid-depth squat pose.
+function PoseScreen() {
+  const t = useT();
+  // Coords are inside a 100x140 viewBox, scaled to fit.
+  const joints = {
+    head:   [50, 22], shoulderL:[40, 38], shoulderR:[60, 38],
+    elbowL: [34, 58], elbowR:   [66, 58], wristL:   [30, 78], wristR: [70, 78],
+    hipL:   [44, 78], hipR:     [56, 78], kneeL:    [42, 102], kneeR:  [58, 102],
+    ankleL: [40, 128], ankleR:  [60, 128],
+  };
+  const lines = [
+    ['shoulderL','shoulderR'], ['shoulderL','elbowL'], ['elbowL','wristL'],
+    ['shoulderR','elbowR'], ['elbowR','wristR'],
+    ['shoulderL','hipL'], ['shoulderR','hipR'], ['hipL','hipR'],
+    ['hipL','kneeL'], ['kneeL','ankleL'],
+    ['hipR','kneeR'], ['kneeR','ankleR'],
+  ];
+  return (
+    <>
+      <div style={{
+        flex: 1, position: 'relative', borderRadius: 8,
+        background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
+        border: `1px solid ${C.bd}`, overflow: 'hidden',
+      }}>
+        <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
+          style={{ display: 'block' }}>
+          {/* Subtle silhouette hint behind the skeleton */}
+          <ellipse cx="50" cy="72" rx="22" ry="50" fill={C.bd} opacity="0.25" />
+          {/* Skeleton lines */}
+          {lines.map(([a, b], i) => (
+            <line key={i} x1={joints[a][0]} y1={joints[a][1]}
+              x2={joints[b][0]} y2={joints[b][1]}
+              stroke={C.ac} strokeWidth="0.8" strokeLinecap="round" opacity="0.85" />
+          ))}
+          {/* Head */}
+          <circle cx={joints.head[0]} cy={joints.head[1]} r="6" fill="none" stroke={C.ac} strokeWidth="0.8" />
+          {/* Joint dots */}
+          {Object.values(joints).map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r="1.6" fill={C.ac} />
+          ))}
+          {/* Highlighted knee + hip with crosshair */}
+          <circle cx={joints.kneeL[0]} cy={joints.kneeL[1]} r="3.2" fill="none" stroke={C.ac} strokeWidth="0.7" />
+          <circle cx={joints.hipL[0]} cy={joints.hipL[1]} r="3.2" fill="none" stroke={C.ac} strokeWidth="0.7" />
+        </svg>
+
+        {/* Floating angle/depth badges */}
+        <div style={{
+          position: 'absolute', top: 8, left: 8, padding: '3px 6px',
+          fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
+          background: C.acD, color: C.ac, borderRadius: 4,
+          border: `1px solid ${C.ac4D}`,
+        }}>{t('inside.pose.angle')}</div>
+        <div style={{
+          position: 'absolute', bottom: 8, right: 8, padding: '3px 6px',
+          fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
+          background: C.acD, color: C.ac, borderRadius: 4,
+          border: `1px solid ${C.ac4D}`,
+        }}>{t('inside.pose.depth')}</div>
+      </div>
+      <div style={{
+        fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
+        textAlign: 'center', paddingTop: 6,
+      }}>{t('inside.pose.foot')}</div>
+    </>
+  );
+}
+
+// RepCounterScreen: video-thumb-style tile with the big "8/8 REPS" overlay
+// the portal shows when the count completes, plus a trough-detection sparkline
+// underneath (the prominence=25 trough algorithm noted in memory).
+function RepCounterScreen() {
+  const t = useT();
+  // 8 troughs across a 200-wide sparkline.
+  const troughs = [16, 40, 65, 90, 114, 138, 162, 186];
+  // Sine-ish path with dips at each trough x.
+  const pathPoints = [];
+  for (let x = 0; x <= 200; x += 2) {
+    // Build a soft wave that dips at each trough x.
+    let y = 18;
+    for (const tx of troughs) {
+      const d = Math.abs(x - tx);
+      if (d < 12) y += (12 - d) * 1.4;
+    }
+    pathPoints.push(`${x},${y}`);
+  }
+  const pathStr = 'M ' + pathPoints.join(' L ');
+  return (
+    <>
+      <div style={{
+        flex: 1, position: 'relative', borderRadius: 8,
+        background: 'linear-gradient(135deg, #0d0d11 0%, #14141a 50%, #0a0a0c 100%)',
+        border: `1px solid ${C.bd}`, overflow: 'hidden',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {/* Faux play triangle behind the count, very dim */}
+        <svg viewBox="0 0 100 100" width="56" height="56"
+          style={{ position: 'absolute', opacity: 0.12 }}>
+          <polygon points="35,25 35,75 78,50" fill={C.tx} />
+        </svg>
+        {/* Big rep count */}
+        <div style={{ position: 'relative', textAlign: 'center' }}>
+          <div style={{
+            fontFamily: FN, fontWeight: 700, fontSize: 42,
+            color: C.ac, lineHeight: 1, letterSpacing: -1,
+            textShadow: `0 0 24px ${C.ac}66`,
+          }}>{t('inside.rep.big')}</div>
+          <div style={{
+            fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 3,
+            fontWeight: 700, marginTop: 4,
+          }}>{t('inside.rep.label')}</div>
+        </div>
+      </div>
+
+      {/* Trough-detection sparkline */}
+      <div style={{
+        background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 8,
+        padding: '6px 8px',
+      }}>
+        <svg viewBox="0 0 200 32" width="100%" height="32"
+          preserveAspectRatio="none" style={{ display: 'block' }}>
+          <path d={pathStr} fill="none" stroke={C.tm} strokeWidth="1" />
+          {troughs.map((x, i) => (
+            <circle key={i} cx={x} cy="32" r="2.2" fill={C.ac} />
+          ))}
+        </svg>
+      </div>
+
+      <div style={{
+        fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
+        textAlign: 'center', paddingTop: 4,
+      }}>{t('inside.rep.foot')}</div>
+    </>
+  );
+}
+
+// CompareScreen: two video thumbs stacked, labeled with weight + a quick
+// rep-quality cue. Mirrors the "side-by-side at the same load" view the
+// portal exposes once a clip is uploaded.
+function CompareScreen() {
+  const t = useT();
+  const Tile = ({ title, sub, dimmed, repsOk }) => (
+    <div style={{
+      flex: 1, position: 'relative',
+      borderRadius: 8, border: dimmed ? `1px solid ${C.bd}` : `1px solid ${C.ac}`,
+      background: dimmed
+        ? 'linear-gradient(135deg, #0d0d11 0%, #14141a 100%)'
+        : 'linear-gradient(135deg, #101018 0%, #181826 100%)',
+      overflow: 'hidden', minHeight: 0,
+      display: 'flex', alignItems: 'flex-end', padding: 8,
+      opacity: dimmed ? 0.7 : 1,
+    }}>
+      {/* Faux play triangle */}
+      <svg viewBox="0 0 100 100" width="22" height="22"
+        style={{ position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)', opacity: 0.18 }}>
+        <polygon points="35,25 35,75 78,50" fill={C.tx} />
+      </svg>
+      {/* Tiny rep dots row top-right */}
+      <div style={{
+        position: 'absolute', top: 6, right: 6,
+        display: 'flex', gap: 3,
+      }}>
+        {Array.from({ length: repsOk.length }).map((_, i) => (
+          <div key={i} style={{
+            width: 5, height: 5, borderRadius: '50%',
+            background: repsOk[i] ? C.ac : 'transparent',
+            border: `1px solid ${repsOk[i] ? C.ac : C.bd2}`,
+          }} />
+        ))}
+      </div>
+      <div>
+        <div style={{
+          fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1.2,
+          color: dimmed ? C.tm : C.ac,
+        }}>{title}</div>
+        <div style={{
+          fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 0.8,
+          marginTop: 2,
+        }}>{sub}</div>
+      </div>
+    </div>
+  );
+  return (
+    <>
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column', gap: 6,
+      }}>
+        <Tile title={t('inside.cmp.last.t')} sub={t('inside.cmp.last.s')}
+          dimmed repsOk={[1, 1, 1, 0]} />
+        <Tile title={t('inside.cmp.now.t')} sub={t('inside.cmp.now.s')}
+          dimmed={false} repsOk={[1, 1, 1, 1, 1]} />
+      </div>
+      <div style={{
+        fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
+        textAlign: 'center', paddingTop: 4,
+      }}>{t('inside.cmp.foot')}</div>
+    </>
+  );
+}
+
 function WhatsInside() {
   const t = useT();
-  const tiles = [
-    { t: t('inside.tile1.t'), d: t('inside.tile1.d') },
-    { t: t('inside.tile2.t'), d: t('inside.tile2.d') },
-    { t: t('inside.tile3.t'), d: t('inside.tile3.d') },
+  const cards = [
+    { tag: t('inside.pose.tag'), h: t('inside.pose.h'), d: t('inside.pose.d'), Inner: PoseScreen        },
+    { tag: t('inside.rep.tag'),  h: t('inside.rep.h'),  d: t('inside.rep.d'),  Inner: RepCounterScreen  },
+    { tag: t('inside.cmp.tag'),  h: t('inside.cmp.h'),  d: t('inside.cmp.d'),  Inner: CompareScreen     },
   ];
   return (
     <section id="inside" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 16px' }}>
@@ -542,39 +674,41 @@ function WhatsInside() {
         {t('inside.h2')}
       </h2>
       <p style={{
-        fontFamily: FB, color: C.tm, fontSize: 14, maxWidth: 720,
-        lineHeight: 1.55, marginBottom: 28,
+        fontFamily: FB, color: C.tm, fontSize: 14, maxWidth: 760,
+        lineHeight: 1.55, marginBottom: 32,
       }}>
         {t('inside.body')}
       </p>
 
-      <div style={{
-        display: 'grid', gap: 24, alignItems: 'center',
-        gridTemplateColumns: 'minmax(0, 280px) minmax(0, 1fr)',
-      }} className="fv-inside-grid">
-        <PhoneFrame />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {tiles.map((tile, i) => (
+      <div className="fv-inside-grid" style={{
+        display: 'grid', gap: 28, alignItems: 'start',
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+      }}>
+        {cards.map((card, i) => {
+          const Inner = card.Inner;
+          return (
             <div key={i} style={{
-              background: C.sf, border: `0.25px solid ${C.ac4D}`,
-              borderRadius: 12, padding: 14,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
             }}>
-              <div style={{ fontFamily: FB, fontSize: 15, fontWeight: 700, marginBottom: 6, color: C.tx }}>
-                {tile.t}
-              </div>
-              <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.55 }}>
-                {tile.d}
+              <PhoneFrame tag={card.tag}><Inner /></PhoneFrame>
+              <div style={{ textAlign: 'center', maxWidth: 280 }}>
+                <div style={{
+                  fontFamily: FB, fontSize: 15, fontWeight: 700, color: C.tx, marginBottom: 6,
+                }}>{card.h}</div>
+                <div style={{
+                  fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.55,
+                }}>{card.d}</div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
       <p style={{
-        fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
-        marginTop: 20, textAlign: 'center',
+        fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1,
+        marginTop: 28, textAlign: 'center',
       }}>
-        {t('inside.disclaimer')}
+        {t('inside.note')}
       </p>
     </section>
   );
@@ -1143,8 +1277,13 @@ export default function App() {
       <style>{`
         /* Offset section anchors so the sticky 56px header doesn't overlap them. */
         #programs, #inside, #why, #how, #contact { scroll-margin-top: 64px; }
-        @media (max-width: 720px) {
+        @media (max-width: 980px) {
+          .fv-inside-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        }
+        @media (max-width: 620px) {
           .fv-inside-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 720px) {
           .fv-why-grid { grid-template-columns: 1fr !important; }
         }
         @media (min-width: 721px) {

@@ -110,43 +110,52 @@ const STRINGS = {
   },
 
   // ─── What's inside the portal ─────────────────────────────────────
-  'inside.badge':        { en: "WHAT'S INSIDE",   he: 'מה יש בפנים' },
-  'inside.h2':           { en: 'Programmed training, on your phone.', he: 'אימון מבוסס תוכנית, בטלפון שלך.' },
+  'inside.badge':        { en: 'INSIDE THE PORTAL', he: 'בתוך הפורטל' },
+  'inside.h2':           { en: 'Your phone counts the reps. You focus on the lift.', he: 'הטלפון סופר את החזרות. אתה מתרכז במשקל.' },
   'inside.body': {
-    en: "Once you buy, you sign into expo-app.co.il and your block is already loaded. Open it on the rack — the page is built for one-thumb logging, not a desktop dashboard you'll never use.",
-    he: 'אחרי הקנייה, אתה מתחבר ל-expo-app.co.il והבלוק שלך כבר טעון. פותח את הדף ליד המתקן — הוא בנוי לרישום באגודל אחד, לא דשבורד דסקטופ שלא תשתמש בו.',
+    en: 'Film any set with your phone. The portal runs pose detection on the clip, counts the reps automatically, and lets you compare the new attempt with your last set at the same weight — same engine I use with private clients, no manual stopwatch.',
+    he: 'צלם כל סט בטלפון. הפורטל מריץ זיהוי תנוחה על הקליפ, סופר חזרות אוטומטית, ומאפשר להשוות את הניסיון החדש לסט הקודם באותו משקל — אותה השיטה שאני משתמש בה עם לקוחות אישיים, בלי סטופר ידני.',
   },
 
-  // Phone-frame mock content
-  'inside.mock.title':   { en: 'TODAY · DAY A', he: 'היום · יום A' },
-  'inside.mock.exa.t':   { en: 'Trap Bar Deadlift',           he: 'דדליפט במוט מלכודת' },
-  'inside.mock.exa.s':   { en: '4 × 5 @ RPE 8',               he: '4 × 5 @ RPE 8' },
-  'inside.mock.exb.t':   { en: 'DB Bench Press',              he: 'לחיצת חזה במשקולות' },
-  'inside.mock.exb.s':   { en: '3 × 8–10 · tempo 31X1',       he: '3 × 8–10 · טמפו 31X1' },
-  'inside.mock.exc.t':   { en: 'Chest-Supported Row',         he: 'חתירה עם תמיכת חזה' },
-  'inside.mock.exc.s':   { en: '3 × 10–12',                   he: '3 × 10–12' },
-  'inside.mock.set':     { en: 'SET 2 OF 4',                  he: 'סט 2 מתוך 4' },
-  'inside.mock.weight':  { en: 'kg',                          he: 'ק״ג' },
+  // Phone 1 — pose landmarker
+  'inside.pose.tag':     { en: 'POSE',              he: 'תנוחה' },
+  'inside.pose.h':       { en: 'Pose detection',    he: 'זיהוי תנוחה' },
+  'inside.pose.d': {
+    en: 'MediaPipe Pose Landmarker tracks 33 joints in real time on any phone. Knee angle, hip depth, bar path — visible the moment you finish the set.',
+    he: 'MediaPipe Pose Landmarker עוקב אחר 33 מפרקים בזמן אמת בכל טלפון. זווית ברך, עומק ירך, מסלול מוט — נראים ברגע שסיימת את הסט.',
+  },
+  'inside.pose.angle':   { en: 'KNEE 87°',          he: 'ברך °87' },
+  'inside.pose.depth':   { en: 'DEPTH 92%',         he: '92% עומק' },
+  'inside.pose.foot':    { en: '33 LANDMARKS · LITE MODEL', he: '33 נקודות · מודל LITE' },
 
-  // Feature tiles
-  'inside.tile1.t':      { en: 'Bodyweight + RPE trend',   he: 'מגמת משקל גוף ו-RPE' },
-  'inside.tile1.d': {
-    en: 'Tap a number after each session. The portal plots the trend so you and I can see when fatigue is climbing — before it becomes an injury.',
-    he: 'הקלד מספר אחרי כל אימון. הפורטל מציג את המגמה כדי שנוכל לראות מתי העייפות מצטברת — לפני שזה הופך לפציעה.',
+  // Phone 2 — rep counter
+  'inside.rep.tag':      { en: 'REP COUNT',         he: 'ספירת חזרות' },
+  'inside.rep.h':        { en: 'Auto rep counter',  he: 'מונה חזרות אוטומטי' },
+  'inside.rep.d': {
+    en: 'Detects troughs in the bar path, not peaks — so a paused or grindy rep still counts. Runs at 1× playback the moment the upload finishes.',
+    he: 'מזהה נקודות שפל במסלול המוט, לא שיאים — כך שחזרה עם עצירה או "כבדה" עדיין נספרת. רץ במהירות 1x ברגע שההעלאה מסתיימת.',
   },
-  'inside.tile2.t':      { en: 'Form-check video',         he: 'סרטון בדיקת ביצוע' },
-  'inside.tile2.d': {
-    en: 'Upload a phone clip of any set. The portal counts reps automatically and lets you compare the new clip side-by-side with your last attempt at the same weight.',
-    he: 'העלה סרטון טלפון של סט כלשהו. הפורטל סופר את החזרות אוטומטית ומאפשר להשוות את הסרטון החדש לצד הקודם באותו משקל.',
+  'inside.rep.big':      { en: '8 / 8',             he: '8 / 8' },
+  'inside.rep.label':    { en: 'REPS',              he: 'חזרות' },
+  'inside.rep.foot':     { en: 'AUTO · TROUGHS DETECTED', he: 'אוטומטי · שפלים זוהו' },
+
+  // Phone 3 — side-by-side compare
+  'inside.cmp.tag':      { en: 'COMPARE',           he: 'השוואה' },
+  'inside.cmp.h':        { en: 'Side-by-side check',he: 'השוואה זה לצד זה' },
+  'inside.cmp.d': {
+    en: 'Every clip slots into your library by exercise + weight. Two taps to see today against your last attempt at the same load — ROM, tempo, depth, all visible.',
+    he: 'כל קליפ נכנס לספרייה לפי תרגיל + משקל. שתי לחיצות כדי לראות את היום מול הניסיון הקודם באותו עומס — ROM, טמפו, עומק, הכל גלוי.',
   },
-  'inside.tile3.t':      { en: 'Weekly focus card',        he: 'כרטיס פוקוס שבועי' },
-  'inside.tile3.d': {
-    en: 'Each week the program highlights one technique cue or one auto-regulation rule, so you walk into the gym with one clear job — not ten.',
-    he: 'בכל שבוע התוכנית מדגישה מסר טכני אחד או כלל אוטו-רגולציה אחד, כך שאתה נכנס לחדר כושר עם משימה ברורה אחת — לא עשר.',
-  },
-  'inside.disclaimer': {
-    en: 'Preview only — actual screens evolve as the portal does. The buy includes lifetime access to whatever the portal becomes.',
-    he: 'תצוגה מקדימה בלבד — המסכים בפועל מתפתחים יחד עם הפורטל. הרכישה כוללת גישה לכל החיים לכל מה שהפורטל יהיה.',
+  'inside.cmp.last.t':   { en: 'LAST · 90 KG',      he: 'קודם · 90 ק״ג' },
+  'inside.cmp.last.s':   { en: '4 reps · grindy #4',he: '4 חזרות · #4 כבדה' },
+  'inside.cmp.now.t':    { en: 'TODAY · 95 KG',     he: 'היום · 95 ק״ג' },
+  'inside.cmp.now.s':    { en: '5 reps · all clean',he: '5 חזרות · כולן נקיות' },
+  'inside.cmp.foot':     { en: 'ROM +6° · TEMPO MATCH', he: 'ROM +6° · התאמת טמפו' },
+
+  // Footer line
+  'inside.note': {
+    en: 'All three are included in every program — no separate add-on, no extra charge.',
+    he: 'שלושתם כלולים בכל תוכנית — בלי תוספת נפרדת, בלי תשלום נוסף.',
   },
 
   // ─── Why templates (price anchor) ─────────────────────────────────
