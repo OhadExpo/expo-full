@@ -96,7 +96,7 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
           { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
           { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
         ].map((s, i) => (
-          <div key={i} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10, padding: '14px 18px' }}>
+          <div key={i} style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10, padding: '14px 18px' }}>
             <div style={{ fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{s.label}</div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}
               {s.total !== undefined && <span style={{ fontSize: 12, color: C.td, fontWeight: 400 }}> / {s.total}</span>}</div>
@@ -154,7 +154,7 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
       {sorted.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: C.td }}>No clients yet. Import your trainee list.</div>
       ) : (
-        <div style={{ overflowX: 'auto', background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10 }}>
+        <div style={{ overflowX: 'auto', background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
@@ -220,8 +220,8 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
       )}
 
       {/* Payment summary */}
-      {totalAllPaid>0&&<div style={{marginTop:24}}>
-        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:"14px 20px",maxWidth:300}}>
+      {totalAllPaid>0&&<div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
+        <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:10,padding:"14px 20px",maxWidth:300,textAlign:'center'}}>
           <div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4}}>Total Collected (All Time)</div>
           <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.ac}}>₪{totalAllPaid.toLocaleString()}</div>
         </div>

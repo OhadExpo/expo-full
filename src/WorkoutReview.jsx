@@ -1266,7 +1266,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         </button>
 
         {/* Workout header */}
-        <div style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:10,padding:16,marginBottom:16}}>
+        <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:10,padding:16,marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
               <h2 style={{margin:0,fontFamily:FN,fontSize:18,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -1519,11 +1519,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const reviewed = !!wo.reviewedAt;
             return (
               <div key={wo.id} onClick={() => setSelectedWo(wo.id)}
-                style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:8,padding:"12px 16px",
+                style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:8,padding:"12px 16px",
                   marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
-                onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
+                onMouseLeave={e=>e.currentTarget.style.borderColor=C.ac+'4D'}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{fontWeight:600,fontSize:14,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                     {wo.dayName}
