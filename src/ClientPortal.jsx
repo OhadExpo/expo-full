@@ -768,19 +768,40 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 const blockChanged = d.blockName && d.blockName !== prevBlock;
                 const mNum = d.blockName?.match(/#(\d+)/);
                 const blockAbbrev = mNum ? 'B'+mNum[1] : (d.blockName ? d.blockName.slice(0,4) : '?');
-                // Place value label off the line: troughs get a label below,
-                // peaks/monotonic get a label above. Near chart edges, force
-                // the side with room so the label never clips off-canvas.
+                // Label placement rule: classify each dot by the direction its
+                // adjacent segments leave the dot, then place label in the
+                // empty zone — guarantees no overlap with any line segment.
+                //   Both segments go DOWN (peak-like)  → label above (centered)
+                //   Both segments go UP   (trough-like)→ label below (centered)
+                //   One up, one down     (monotonic)   → diagonal, in the
+                //       empty quadrant: upper-left if ascending (next higher
+                //       than prev on screen), upper-right if descending.
+                //   Endpoints use their single neighbor for the same rule.
+                // Final edge clamp: if the chosen side would clip the viewBox
+                // top or hit the x-axis labels, flip.
                 const prevY = i>0 ? 10 + ((maxBw - bwData[i-1].bw) / range) * 130 : null;
                 const nextY = i<bwData.length-1 ? 10 + ((maxBw - bwData[i+1].bw) / range) * 130 : null;
-                const isTrough = (prevY == null || prevY < y) && (nextY == null || nextY < y);
-                let labelAbove = !isTrough;
-                if (y > 130) labelAbove = true;
-                const labelY = labelAbove ? y - 8 : y + 14;
+                const prevDown = prevY != null ? prevY > y : null;
+                const nextDown = nextY != null ? nextY > y : null;
+                const dirs = [prevDown, nextDown].filter(d => d != null);
+                const isPeak = dirs.length > 0 && dirs.every(d => d === true);
+                const isTrough = dirs.length > 0 && dirs.every(d => d === false);
+                let labelX = x, labelY, anchor = 'middle';
+                if (!isPeak && !isTrough && prevY != null && nextY != null) {
+                  const ascending = nextY < prevY;
+                  labelX = ascending ? x - 6 : x + 6;
+                  labelY = y - 4;
+                  anchor = ascending ? 'end' : 'start';
+                } else {
+                  let labelAbove = isPeak; // peak → above; trough/empty → below
+                  if (labelAbove && y < 6) labelAbove = false;
+                  else if (!labelAbove && y > 132) labelAbove = true;
+                  labelY = labelAbove ? y - 8 : y + 14;
+                }
                 return <g key={i}>
                   {blockChanged && <line x1={x-25} y1="10" x2={x-25} y2="140" stroke={C.bd2||C.bd} strokeWidth="0.5" strokeDasharray="2"/>}
                   <circle cx={x} cy={y} r="4" fill={C.ac} stroke={C.bg} strokeWidth="2"/>
-                  <text x={x} y={labelY} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor="middle" fontWeight="600">{d.bw}</text>
+                  <text x={labelX} y={labelY} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor={anchor} fontWeight="600">{d.bw}</text>
                   <text x={x} y={152} fill={C.td} fontSize="8" fontFamily={FN} textAnchor="middle">{blockAbbrev}·W{d.week||'?'}</text>
                   <text x={x} y={163} fill={C.td} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
                 </g>;
