@@ -177,7 +177,7 @@ export function LoginScreen() {
     <div style={wrapStyle}>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div style={{ textAlign: 'center', marginBottom: 16, padding: '0 28px', boxSizing: 'border-box' }}>
-          <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '20vh', objectFit: 'contain', marginBottom: 98 }} />
+          <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '20vh', objectFit: 'contain', marginBottom: 77 }} />
           <div style={{ color: C.tm, fontSize: 15 }}>Sign<span style={{ color: C.td }}>-</span>in</div>
         </div>
         <div style={cardStyle}>
@@ -231,21 +231,16 @@ export function LoginScreen() {
           </div>
         </div>
         {!isStandalone && (
-          <>
-            <button
-              onClick={handleInstall}
-              style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: `1px solid ${C.bd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-            >
-              Add to Home Screen
-            </button>
-            {showInstallHelp && (
-              <div style={{ marginTop: 10, padding: 12, background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10, fontSize: 12, color: C.tm, lineHeight: 1.5, textAlign: 'center' }}>
-                {isIOS
+          <button
+            onClick={handleInstall}
+            style={{ width: '100%', marginTop: 16, padding: showInstallHelp ? '14px 16px' : 12, borderRadius: 10, border: `1px solid ${C.bd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: showInstallHelp ? 12 : 14, fontWeight: showInstallHelp ? 400 : 600, cursor: 'pointer', lineHeight: showInstallHelp ? 1.5 : 1.2, textAlign: 'center' }}
+          >
+            {showInstallHelp
+              ? (isIOS
                   ? 'Tap the Share button at the bottom of Safari, then choose "Add to Home Screen".'
-                  : 'Open your browser menu and choose "Install app" or "Add to Home Screen".'}
-              </div>
-            )}
-          </>
+                  : 'Open your browser menu and choose "Install app" or "Add to Home Screen".')
+              : 'Add to Home Screen'}
+          </button>
         )}
       </div>
     </div>
