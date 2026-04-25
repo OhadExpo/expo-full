@@ -923,27 +923,13 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           })}
         </div>
       )}
-      {/* Top row: comments (left) / pose+reps (center) / FULL (right).
-          Three flex groups (1fr / auto / 1fr) so POSE / REPS sit at the
-          true geometric centre of the row regardless of how wide the
-          comments group on the left or the FULL group on the right grow. */}
+      {/* Top row: pose+reps (left) / comments (center) / FULL (right).
+          Three flex groups (1fr / auto / 1fr) so the COMMENTS toggle sits
+          at the true geometric centre of the row regardless of how wide
+          the pose/reps group on the left or the FULL group on the right
+          grow. */}
       <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
         <div style={{flex:1,display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-start'}}>
-          {notes.length > 0 && (
-            <button onClick={toggleComments}
-              title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
-              style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
-                background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-              💬 {commentsEnabled ? 'ON' : 'OFF'}
-            </button>
-          )}
-          {onReviewNotesChange && role === 'trainer' && (
-            <button onClick={addComment} title="Add a timestamped comment at the current video time"
-              style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.ac}40`,
-                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬 COMMENT</button>
-          )}
-        </div>
-        <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
           <button onClick={togglePose} disabled={poseLoading}
             style={{padding:'3px 10px',borderRadius:4,border:`${poseOn?'2px':'0px'} solid ${C.ac}`,
               background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
@@ -971,6 +957,21 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             </select>
           )}
           {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
+        </div>
+        <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
+          {notes.length > 0 && (
+            <button onClick={toggleComments}
+              title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
+              style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
+                background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+              💬 {commentsEnabled ? 'ON' : 'OFF'}
+            </button>
+          )}
+          {onReviewNotesChange && role === 'trainer' && (
+            <button onClick={addComment} title="Add a timestamped comment at the current video time"
+              style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.ac}40`,
+                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬 COMMENT</button>
+          )}
         </div>
         <div style={{flex:1,display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end'}}>
           <button onClick={fullscreen}
