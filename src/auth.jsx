@@ -365,7 +365,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
     </button>
   );
   return (
-    <div style={{ ...wrapStyle, padding: '220px 20px 20px' }}>
+    <div style={{ ...wrapStyle, padding: '20px' }}>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <img src={EXPO_LOGO} alt="EXPO" style={{ height: 36, marginBottom: 12 }} />
         <div style={{ color: C.tm, fontSize: 15 }}>Hey {name || 'there'} — which side today?</div>

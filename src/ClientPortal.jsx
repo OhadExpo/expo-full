@@ -768,10 +768,20 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 const blockChanged = d.blockName && d.blockName !== prevBlock;
                 const mNum = d.blockName?.match(/#(\d+)/);
                 const blockAbbrev = mNum ? 'B'+mNum[1] : (d.blockName ? d.blockName.slice(0,4) : '?');
+                // Place value label off the line: troughs get a label below,
+                // peaks/monotonic get a label above. Near chart edges, force
+                // the side with room so the label never clips off-canvas.
+                const prevY = i>0 ? 10 + ((maxBw - bwData[i-1].bw) / range) * 130 : null;
+                const nextY = i<bwData.length-1 ? 10 + ((maxBw - bwData[i+1].bw) / range) * 130 : null;
+                const isTrough = (prevY == null || prevY < y) && (nextY == null || nextY < y);
+                let labelAbove = !isTrough;
+                if (y < 22) labelAbove = false;
+                else if (y > 128) labelAbove = true;
+                const labelY = labelAbove ? y - 8 : y + 14;
                 return <g key={i}>
                   {blockChanged && <line x1={x-25} y1="10" x2={x-25} y2="140" stroke={C.bd2||C.bd} strokeWidth="0.5" strokeDasharray="2"/>}
                   <circle cx={x} cy={y} r="4" fill={C.ac} stroke={C.bg} strokeWidth="2"/>
-                  <text x={x} y={y-10} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor="middle" fontWeight="600">{d.bw}</text>
+                  <text x={x} y={labelY} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor="middle" fontWeight="600">{d.bw}</text>
                   <text x={x} y={152} fill={C.td} fontSize="8" fontFamily={FN} textAnchor="middle">{blockAbbrev}·W{d.week||'?'}</text>
                   <text x={x} y={163} fill={C.td} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
                 </g>;

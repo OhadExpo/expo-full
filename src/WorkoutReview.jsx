@@ -201,13 +201,35 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     }
   };
 
+  // Compute the actual video content rectangle within an element box, given
+  // intrinsic videoWidth/videoHeight and CSS object-fit:contain. In normal
+  // mode the element ≈ content (video sized to its aspect). In fullscreen
+  // the element is 100vw × 100vh and the content is letterboxed inside, so
+  // strokes must be normalized/painted relative to the content rect — not
+  // the element rect — to keep proportions consistent across modes.
+  const getContentRect = (elW, elH) => {
+    const v = videoRef.current;
+    const vw = v?.videoWidth || 0;
+    const vh = v?.videoHeight || 0;
+    if (!elW || !elH || !vw || !vh) return { offX: 0, offY: 0, w: elW, h: elH };
+    const elAspect = elW / elH;
+    const vidAspect = vw / vh;
+    if (vidAspect > elAspect) {
+      const w = elW, h = elW / vidAspect;
+      return { offX: 0, offY: (elH - h) / 2, w, h };
+    }
+    const h = elH, w = elH * vidAspect;
+    return { offX: (elW - w) / 2, offY: 0, w, h };
+  };
+
   const normPoint = (e) => {
     const c = drawCanvasRef.current;
     if (!c) return { x: 0, y: 0 };
     const rect = c.getBoundingClientRect();
+    const { offX, offY, w, h } = getContentRect(rect.width, rect.height);
     return {
-      x: (e.clientX - rect.left) / rect.width,
-      y: (e.clientY - rect.top) / rect.height,
+      x: w ? (e.clientX - rect.left - offX) / w : 0,
+      y: h ? (e.clientY - rect.top - offY) / h : 0,
     };
   };
   const onCanvasPointerDown = (e) => {
@@ -245,27 +267,31 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       const c = drawCanvasRef.current;
       const v = videoRef.current;
       if (!c || !v) return;
-      const w = v.clientWidth, h = v.clientHeight;
-      if (!w || !h) return;
-      if (c.width !== w) c.width = w;
-      if (c.height !== h) c.height = h;
+      const elW = v.clientWidth, elH = v.clientHeight;
+      if (!elW || !elH) return;
+      if (c.width !== elW) c.width = elW;
+      if (c.height !== elH) c.height = elH;
       const ctx = c.getContext('2d');
       if (!ctx) return;
-      ctx.clearRect(0, 0, w, h);
+      ctx.clearRect(0, 0, elW, elH);
+      const { offX, offY, w, h } = getContentRect(elW, elH);
+      if (!w || !h) return;
       const strokes = activeStroke ? [...currentStrokes, activeStroke] : currentStrokes;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
+      const px = (p) => p.x * w + offX;
+      const py = (p) => p.y * h + offY;
       for (const s of strokes) {
         if (!s || !Array.isArray(s.points) || s.points.length === 0) continue;
         ctx.strokeStyle = s.color || '#ff4c4c';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.moveTo(s.points[0].x * w, s.points[0].y * h);
+        ctx.moveTo(px(s.points[0]), py(s.points[0]));
         if (s.type === 'line' && s.points.length >= 2) {
-          ctx.lineTo(s.points[1].x * w, s.points[1].y * h);
+          ctx.lineTo(px(s.points[1]), py(s.points[1]));
         } else {
           for (let i = 1; i < s.points.length; i++) {
-            ctx.lineTo(s.points[i].x * w, s.points[i].y * h);
+            ctx.lineTo(px(s.points[i]), py(s.points[i]));
           }
         }
         ctx.stroke();
