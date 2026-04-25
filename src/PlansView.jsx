@@ -19,7 +19,7 @@ function PatternCoverage({ plan, exercises }) {
   }, [plan.days, exercises]);
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
   if (exercises.length === 0) return null;
-  return (<div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+  return (<div style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
     <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: missing.length > 0 ? C.or : C.gn, marginBottom: 8 }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.rd}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
@@ -96,7 +96,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 14, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 14, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px 12px' }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700 }}>{title || 'Select Exercise'}</h3>
           <button onClick={onClose} style={{ background: C.sf2, border: `1px solid ${C.bd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 6, fontSize: 14 }}>✕</button>
@@ -197,7 +197,7 @@ function WarmupEditor({ plan, setPlan }) {
   const add = () => setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] }));
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   return (
-    <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+    <div style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: warmup.length ? 10 : 0 }}>
         <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or }}>WARM-UP ({warmup.length})</div>
         <Btn variant="ghost" onClick={add} style={{ padding: '4px 10px', fontSize: 11 }}>+ Add Warm-Up</Btn>
@@ -240,7 +240,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <button onClick={onCancel} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={()=>setOverview(v=>!v)} style={{background:overview?C.ac:C.sf2,border:`1px solid ${overview?C.ac:C.bd}`,borderRadius:6,padding:"6px 12px",color:overview?"#fff":C.tm,cursor:"pointer",fontFamily:FN,fontSize:11,fontWeight:600}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
+          <button onClick={()=>setOverview(v=>!v)} style={{background:overview?C.ac:C.sf2,border:`${overview?'2px':'0.25px'} solid ${overview?C.ac:`${C.ac}4D`}`,borderRadius:6,padding:"6px 12px",color:overview?"#fff":C.tm,cursor:"pointer",fontFamily:FN,fontSize:11,fontWeight:600}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
           <Btn onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
@@ -278,7 +278,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         {plan.days.map((d,i) => {
           const dayExs = d.exercises || [];
           return (
-            <div key={d.id} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:8,padding:12}}>
+            <div key={d.id} style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:8,padding:12}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                 <div style={{fontFamily:FB,fontWeight:700,color:C.tx,fontSize:14}}>{d.name} <span style={{color:C.td,fontWeight:400,marginLeft:6}}>({dayExs.length} ex)</span></div>
                 <button onClick={()=>{setActiveDay(i);setOverview(false)}} style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>EDIT</button>

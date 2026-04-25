@@ -97,7 +97,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
         </button>
         <div ref={addMenuRef} style={{position:'relative'}}>
           <Btn onClick={() => setAddMenuOpen(!addMenuOpen)}>+ Add Trainee ▾</Btn>
-          {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:8,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
+          {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:8,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
             {[['Online Client','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple']].map(([label,format])=>(
               <button key={format} onClick={()=>{
                 const f = {...defaultTrainee(), format};

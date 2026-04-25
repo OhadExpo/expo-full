@@ -401,7 +401,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       </Modal>
       {/* Archive confirm */}
       {showArchiveConfirm && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)"}} onClick={()=>setShowArchiveConfirm(false)}>
-        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,width:380,padding:24}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,width:380,padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.tx}}>Archive {td.name}?</h3>
           <p style={{margin:"0 0 20px",fontSize:13,color:C.tm}}>Client will be moved to archive. Plans, workouts, and payments are preserved. You can restore anytime.</p>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
