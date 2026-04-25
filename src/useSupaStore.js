@@ -1,6 +1,7 @@
 // src/useSupaStore.js — Supabase-backed storage hook (replaces useStore)
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from './supabase';
+import { enqueue, registerHandler, drain, setOnError } from './offlineQueue';
 
 // ─────────────────────────────────────────────────────────────
 // Save-error emitter. Every silent `catch {}` around a Supabase
@@ -21,6 +22,62 @@ function emitSaveError(err) {
     try { l(err); } catch {}
   }
 }
+
+// Forward queue-permanent failures (after MAX_ATTEMPTS) to the same toast bus
+// so users see writes that gave up rather than discovering them missing later.
+setOnError((e) => emitSaveError({ key: e.type, op: 'queue-drop', msg: e.msg }));
+
+// Decide whether a thrown/returned Supabase error is a transient network
+// problem worth queueing (vs. a real DB error like a constraint violation
+// that will never succeed on retry). When in doubt, queue — ops are idempotent
+// or last-write-wins, so re-trying a real error costs only attempts*latency
+// and eventually gets dropped via MAX_ATTEMPTS.
+function isTransient(err) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  const msg = (err?.message || String(err || '')).toLowerCase();
+  if (!msg) return true;
+  if (msg.includes('network') || msg.includes('failed to fetch') || msg.includes('timeout') ||
+      msg.includes('aborted') || msg.includes('offline') || msg.includes('econnreset') ||
+      msg.includes('refused')) return true;
+  // Postgrest constraint codes start with PG; treat as permanent.
+  if (err?.code && /^P/.test(err.code)) return false;
+  return true; // default: queue
+}
+
+// ─── Queue handlers ─────────────────────────────────────────────────────────
+// Each Supabase write that we want to survive offline gets a handler here.
+// The wrapper functions in the hooks below try the write directly; on failure
+// they enqueue with the matching `type`, and the handler replays it.
+registerHandler('store.upsert', async ({ key, value }) => {
+  const { error } = await supabase.from('store').upsert({ key, value, updated_at: new Date().toISOString() });
+  if (error) throw error;
+});
+registerHandler('client_workouts.upsert', async ({ row }) => {
+  const { error } = await supabase.from('client_workouts').upsert(row);
+  if (error) throw error;
+});
+registerHandler('client_workouts.update', async ({ id, patch }) => {
+  const { error } = await supabase.from('client_workouts').update(patch).eq('id', id);
+  if (error) throw error;
+});
+registerHandler('client_workouts.delete', async ({ id }) => {
+  const { error } = await supabase.from('client_workouts').delete().eq('id', id);
+  if (error) throw error;
+});
+registerHandler('bw_logs.upsert', async ({ row }) => {
+  const { error } = await supabase.from('bw_logs').upsert(row);
+  if (error) throw error;
+});
+registerHandler('bw_logs.delete', async ({ filter }) => {
+  let q = supabase.from('bw_logs').delete();
+  for (const [k, v] of Object.entries(filter)) q = q.eq(k, v);
+  const { error } = await q;
+  if (error) throw error;
+});
+registerHandler('weekly_focus.upsert', async ({ k, v }) => {
+  const { error } = await supabase.from('weekly_focus').upsert({ focus_key: k, value: v, updated_at: new Date().toISOString() });
+  if (error) throw error;
+});
 
 // Generic store hook: loads from Supabase 'store' table, falls back to localStorage
 // on network failure so the UI isn't stuck empty when Supabase is unreachable.
@@ -89,12 +146,20 @@ export function useSupaStore(key, initial) {
         try {
           const { error } = await supabase.from('store').upsert({ key, value: toWrite, updated_at: new Date().toISOString() });
           if (error) {
-            console.warn(`useSupaStore[${key}] save error:`, error.message || error);
-            emitSaveError({ key, op: 'save', msg: error.message || String(error) });
+            if (isTransient(error)) {
+              enqueue({ type: 'store.upsert', payload: { key, value: toWrite }, dedupeKey: key });
+            } else {
+              console.warn(`useSupaStore[${key}] save error:`, error.message || error);
+              emitSaveError({ key, op: 'save', msg: error.message || String(error) });
+            }
           }
         } catch (e) {
-          console.warn(`useSupaStore[${key}] save threw:`, e?.message || e);
-          emitSaveError({ key, op: 'save', msg: e?.message || 'save failed' });
+          if (isTransient(e)) {
+            enqueue({ type: 'store.upsert', payload: { key, value: toWrite }, dedupeKey: key });
+          } else {
+            console.warn(`useSupaStore[${key}] save threw:`, e?.message || e);
+            emitSaveError({ key, op: 'save', msg: e?.message || 'save failed' });
+          }
         }
       }
     } finally {
@@ -153,17 +218,22 @@ export function useSupaClientWorkouts(initial = []) {
     // Find new workouts not yet in Supabase
     const newItems = val.filter(w => !prev.find(p => p.id === w.id));
     for (const w of newItems) {
+      const row = {
+        id: w.id, client_id: w.clientId, plan_name: w.planName,
+        day_name: w.dayName, week: w.week, date: w.date,
+        autoregulation: w.autoregulation, notes: w.notes,
+        exercises: w.exercises, form_videos: w.formVideos,
+        reviewed_at: w.reviewedAt || null
+      };
       try {
-        const { error } = await supabase.from('client_workouts').upsert({
-          id: w.id, client_id: w.clientId, plan_name: w.planName,
-          day_name: w.dayName, week: w.week, date: w.date,
-          autoregulation: w.autoregulation, notes: w.notes,
-          exercises: w.exercises, form_videos: w.formVideos,
-          reviewed_at: w.reviewedAt || null
-        });
-        if (error) emitSaveError({ key: 'client_workouts', op: 'save', msg: error.message || String(error) });
+        const { error } = await supabase.from('client_workouts').upsert(row);
+        if (error) {
+          if (isTransient(error)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id });
+          else emitSaveError({ key: 'client_workouts', op: 'save', msg: error.message || String(error) });
+        }
       } catch (e) {
-        emitSaveError({ key: 'client_workouts', op: 'save', msg: e?.message || 'save failed' });
+        if (isTransient(e)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id });
+        else emitSaveError({ key: 'client_workouts', op: 'save', msg: e?.message || 'save failed' });
       }
     }
   }, []);
@@ -178,9 +248,13 @@ export function useSupaClientWorkouts(initial = []) {
     try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
     try {
       const { error } = await supabase.from('client_workouts').update({ reviewed_at: ts }).eq('id', id);
-      if (error) emitSaveError({ key: 'client_workouts', op: 'markReviewed', msg: error.message || String(error) });
+      if (error) {
+        if (isTransient(error)) enqueue({ type: 'client_workouts.update', payload: { id, patch: { reviewed_at: ts } }, dedupeKey: 'reviewed:' + id });
+        else emitSaveError({ key: 'client_workouts', op: 'markReviewed', msg: error.message || String(error) });
+      }
     } catch (e) {
-      emitSaveError({ key: 'client_workouts', op: 'markReviewed', msg: e?.message || 'update failed' });
+      if (isTransient(e)) enqueue({ type: 'client_workouts.update', payload: { id, patch: { reviewed_at: ts } }, dedupeKey: 'reviewed:' + id });
+      else emitSaveError({ key: 'client_workouts', op: 'markReviewed', msg: e?.message || 'update failed' });
     }
   }, []);
 
@@ -195,9 +269,13 @@ export function useSupaClientWorkouts(initial = []) {
     try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
     try {
       const { error } = await supabase.from('client_workouts').update({ form_videos: formVideos }).eq('id', id);
-      if (error) emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: error.message || String(error) });
+      if (error) {
+        if (isTransient(error)) enqueue({ type: 'client_workouts.update', payload: { id, patch: { form_videos: formVideos } }, dedupeKey: 'fv:' + id });
+        else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: error.message || String(error) });
+      }
     } catch (e) {
-      emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
+      if (isTransient(e)) enqueue({ type: 'client_workouts.update', payload: { id, patch: { form_videos: formVideos } }, dedupeKey: 'fv:' + id });
+      else emitSaveError({ key: 'client_workouts', op: 'updateFormVideos', msg: e?.message || 'update failed' });
     }
   }, []);
 
@@ -210,9 +288,13 @@ export function useSupaClientWorkouts(initial = []) {
     try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
     try {
       const { error } = await supabase.from('client_workouts').delete().eq('id', id);
-      if (error) emitSaveError({ key: 'client_workouts', op: 'delete', msg: error.message || String(error) });
+      if (error) {
+        if (isTransient(error)) enqueue({ type: 'client_workouts.delete', payload: { id } });
+        else emitSaveError({ key: 'client_workouts', op: 'delete', msg: error.message || String(error) });
+      }
     } catch (e) {
-      emitSaveError({ key: 'client_workouts', op: 'delete', msg: e?.message || 'delete failed' });
+      if (isTransient(e)) enqueue({ type: 'client_workouts.delete', payload: { id } });
+      else emitSaveError({ key: 'client_workouts', op: 'delete', msg: e?.message || 'delete failed' });
     }
   }, []);
 
@@ -258,18 +340,24 @@ export function useSupaBwLog(initial = []) {
     });
     for (const b of changed) {
       if (!b.blockName) continue; // DB requires block_name NOT NULL
+      const row = {
+        client_id: b.clientId,
+        plan_id: b.planId ?? null,
+        block_name: b.blockName,
+        week: b.week,
+        bw: b.bw,
+        date: b.date,
+      };
+      const dedupeKey = `${b.clientId}|${b.blockName}|${b.week}`;
       try {
-        const { error } = await supabase.from('bw_logs').upsert({
-          client_id: b.clientId,
-          plan_id: b.planId ?? null,
-          block_name: b.blockName,
-          week: b.week,
-          bw: b.bw,
-          date: b.date,
-        }, { onConflict: 'client_id,block_name,week' });
-        if (error) emitSaveError({ key: 'bw_logs', op: 'save', msg: error.message || String(error) });
+        const { error } = await supabase.from('bw_logs').upsert(row, { onConflict: 'client_id,block_name,week' });
+        if (error) {
+          if (isTransient(error)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey });
+          else emitSaveError({ key: 'bw_logs', op: 'save', msg: error.message || String(error) });
+        }
       } catch (e) {
-        emitSaveError({ key: 'bw_logs', op: 'save', msg: e?.message || 'save failed' });
+        if (isTransient(e)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey });
+        else emitSaveError({ key: 'bw_logs', op: 'save', msg: e?.message || 'save failed' });
       }
     }
     // Delete entries that were in prev but are gone from val
@@ -278,14 +366,19 @@ export function useSupaBwLog(initial = []) {
       return !val.find(v => v.clientId === p.clientId && v.blockName === p.blockName && v.week === p.week);
     });
     for (const p of removed) {
+      const filter = { client_id: p.clientId, block_name: p.blockName, week: p.week };
       try {
         const { error } = await supabase.from('bw_logs').delete()
           .eq('client_id', p.clientId)
           .eq('block_name', p.blockName)
           .eq('week', p.week);
-        if (error) emitSaveError({ key: 'bw_logs', op: 'delete', msg: error.message || String(error) });
+        if (error) {
+          if (isTransient(error)) enqueue({ type: 'bw_logs.delete', payload: { filter } });
+          else emitSaveError({ key: 'bw_logs', op: 'delete', msg: error.message || String(error) });
+        }
       } catch (e) {
-        emitSaveError({ key: 'bw_logs', op: 'delete', msg: e?.message || 'delete failed' });
+        if (isTransient(e)) enqueue({ type: 'bw_logs.delete', payload: { filter } });
+        else emitSaveError({ key: 'bw_logs', op: 'delete', msg: e?.message || 'delete failed' });
       }
     }
   }, []);
@@ -329,9 +422,13 @@ export function useSupaWeeklyFocus(initial = {}) {
     for (const [k, v] of Object.entries(pending)) {
       try {
         const { error } = await supabase.from('weekly_focus').upsert({ focus_key: k, value: v, updated_at: new Date().toISOString() });
-        if (error) emitSaveError({ key: 'weekly_focus', op: 'save', msg: error.message || String(error) });
+        if (error) {
+          if (isTransient(error)) enqueue({ type: 'weekly_focus.upsert', payload: { k, v }, dedupeKey: k });
+          else emitSaveError({ key: 'weekly_focus', op: 'save', msg: error.message || String(error) });
+        }
       } catch (e) {
-        emitSaveError({ key: 'weekly_focus', op: 'save', msg: e?.message || 'save failed' });
+        if (isTransient(e)) enqueue({ type: 'weekly_focus.upsert', payload: { k, v }, dedupeKey: k });
+        else emitSaveError({ key: 'weekly_focus', op: 'save', msg: e?.message || 'save failed' });
       }
     }
   }, []);

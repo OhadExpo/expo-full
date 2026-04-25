@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
 import { onSaveError } from './useSupaStore';
+import { subscribe as subscribeQueue, drain as drainQueue, getCount as getQueueCount } from './offlineQueue';
 import { C, FN, FB, EXPO_LOGO } from './theme';
 
 // Trainer email(s) — only these get trainer-level access
@@ -336,6 +337,45 @@ export function SaveErrorToast() {
           <div style={{ color: C.tm, fontSize: 10, marginTop: 4 }}>Your data is still in local memory. Check connection and retry.</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Connectivity + queue indicator. Sits bottom-left so it doesn't fight with
+// the SaveErrorToast (bottom-right). Hidden completely when online and the
+// queue is empty — no chrome unless something is actually pending or off.
+export function OfflineStatusPill() {
+  const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
+  const [count, setCount] = useState(() => { try { return getQueueCount(); } catch { return 0; } });
+  useEffect(() => {
+    const onUp = () => { setOnline(true); drainQueue(); };
+    const onDown = () => setOnline(false);
+    window.addEventListener('online', onUp);
+    window.addEventListener('offline', onDown);
+    const unsub = subscribeQueue(setCount);
+    return () => {
+      window.removeEventListener('online', onUp);
+      window.removeEventListener('offline', onDown);
+      unsub();
+    };
+  }, []);
+  if (online && count === 0) return null;
+  const offline = !online;
+  const bg = offline ? (C.rdD || '#3a1a1a') : (C.acD || '#0d2438');
+  const fg = offline ? (C.rd || '#ff6b6b') : (C.ac || '#3BA0FF');
+  const dotBg = offline ? (C.rd || '#ff6b6b') : (C.ac || '#3BA0FF');
+  const text = offline
+    ? (count > 0 ? `OFFLINE · ${count} pending` : 'OFFLINE')
+    : `SYNCING · ${count} pending`;
+  return (
+    <div onClick={() => { if (online) drainQueue(); }}
+      title={offline ? "You're offline. Changes are saved locally and will sync when connection returns." : 'Replaying queued changes…'}
+      style={{ position: 'fixed', bottom: 20, left: 20, display: 'flex', alignItems: 'center', gap: 8,
+        background: bg, border: `1px solid ${fg}40`, color: fg, borderRadius: 999,
+        padding: '6px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+        cursor: online ? 'pointer' : 'default', zIndex: 1500, userSelect: 'none' }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotBg }} />
+      {text}
     </div>
   );
 }
