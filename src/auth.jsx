@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
 import { onSaveError } from './useSupaStore';
 import { subscribe as subscribeQueue, drain as drainQueue, getCount as getQueueCount } from './offlineQueue';
+import { subscribe as subscribeBlobs, drainBlobs } from './blobQueue';
 import { C, FN, FB, EXPO_LOGO } from './theme';
 
 // Trainer email(s) — only these get trainer-level access
@@ -346,29 +347,35 @@ export function SaveErrorToast() {
 // queue is empty — no chrome unless something is actually pending or off.
 export function OfflineStatusPill() {
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
-  const [count, setCount] = useState(() => { try { return getQueueCount(); } catch { return 0; } });
+  const [opCount, setOpCount] = useState(() => { try { return getQueueCount(); } catch { return 0; } });
+  const [blobCount, setBlobCount] = useState(0);
   useEffect(() => {
-    const onUp = () => { setOnline(true); drainQueue(); };
+    const onUp = () => { setOnline(true); drainQueue(); drainBlobs(); };
     const onDown = () => setOnline(false);
     window.addEventListener('online', onUp);
     window.addEventListener('offline', onDown);
-    const unsub = subscribeQueue(setCount);
+    const unsub1 = subscribeQueue(setOpCount);
+    const unsub2 = subscribeBlobs(setBlobCount);
     return () => {
       window.removeEventListener('online', onUp);
       window.removeEventListener('offline', onDown);
-      unsub();
+      unsub1(); unsub2();
     };
   }, []);
-  if (online && count === 0) return null;
+  const total = opCount + blobCount;
+  if (online && total === 0) return null;
   const offline = !online;
   const bg = offline ? (C.rdD || '#3a1a1a') : (C.acD || '#0d2438');
   const fg = offline ? (C.rd || '#ff6b6b') : (C.ac || '#3BA0FF');
   const dotBg = offline ? (C.rd || '#ff6b6b') : (C.ac || '#3BA0FF');
+  const detail = blobCount > 0
+    ? `${total} pending (${blobCount} video${blobCount === 1 ? '' : 's'})`
+    : `${total} pending`;
   const text = offline
-    ? (count > 0 ? `OFFLINE · ${count} pending` : 'OFFLINE')
-    : `SYNCING · ${count} pending`;
+    ? (total > 0 ? `OFFLINE · ${detail}` : 'OFFLINE')
+    : `SYNCING · ${detail}`;
   return (
-    <div onClick={() => { if (online) drainQueue(); }}
+    <div onClick={() => { if (online) { drainQueue(); drainBlobs(); } }}
       title={offline ? "You're offline. Changes are saved locally and will sync when connection returns." : 'Replaying queued changes…'}
       style={{ position: 'fixed', bottom: 20, left: 20, display: 'flex', alignItems: 'center', gap: 8,
         background: bg, border: `1px solid ${fg}40`, color: fg, borderRadius: 999,

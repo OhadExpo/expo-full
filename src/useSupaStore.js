@@ -2,6 +2,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from './supabase';
 import { enqueue, registerHandler, drain, setOnError } from './offlineQueue';
+import { setOnError as setBlobOnError } from './blobQueue';
 
 // ─────────────────────────────────────────────────────────────
 // Save-error emitter. Every silent `catch {}` around a Supabase
@@ -26,6 +27,7 @@ function emitSaveError(err) {
 // Forward queue-permanent failures (after MAX_ATTEMPTS) to the same toast bus
 // so users see writes that gave up rather than discovering them missing later.
 setOnError((e) => emitSaveError({ key: e.type, op: 'queue-drop', msg: e.msg }));
+setBlobOnError((e) => emitSaveError({ key: 'form_video', op: 'upload-drop', msg: e.msg }));
 
 // Decide whether a thrown/returned Supabase error is a transient network
 // problem worth queueing (vs. a real DB error like a constraint violation

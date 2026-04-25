@@ -5,6 +5,7 @@ import { supabase } from './supabase';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
 import { FormVideoPlayer } from './WorkoutReview';
+import { enqueueBlob, attachWorkout, drainBlobs, newBlobId } from './blobQueue';
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -268,19 +269,63 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       }
 
       URL.revokeObjectURL(previewUrl);
-      setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100, uploadError:null}; return n; });
+      setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100, uploadError:null, pendingBlobId:null}; return n; });
     } catch(err) {
       console.error('Video upload error:', err);
-      URL.revokeObjectURL(previewUrl);
+      // If we appear to be offline (or this is a network-shaped error), persist
+      // the blob to IndexedDB and let the blob queue replay it once connectivity
+      // returns. Workout flow continues — the user doesn't have to re-record.
+      const offline = (typeof navigator !== 'undefined' && navigator.onLine === false);
       const msg = err?.message || 'Upload failed';
+      const looksTransient = offline || /network|fetch|timeout|abort|offline/i.test(msg);
+      if (looksTransient) {
+        try {
+          const blobId = newBlobId();
+          await enqueueBlob({ id: blobId, blob: uploadBlob, contentType, storagePath: path });
+          URL.revokeObjectURL(previewUrl);
+          setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:true, cloudUrl:null, pendingBlobId:blobId, compressProgress:100, uploadProgress:0, uploadError:null}; return n; });
+          return;
+        } catch (e2) {
+          // IndexedDB failed (private browsing, quota) — fall through to alert.
+          console.error('Blob queue enqueue failed:', e2);
+        }
+      }
+      URL.revokeObjectURL(previewUrl);
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:msg}; return n; });
       alert(`Video upload failed: ${msg}\n\nPlease try again or pick a shorter clip.`);
     }
   };
 
-  const finish = () => onComplete({id:uid(),clientId,planName:plan.name,dayName:day.name,week:weekNum+1,date:new Date().toISOString(),autoregulation:ar,notes,
-    formVideos:fv.map(f=>({has:f.has,note:f.note,fileName:f.fileName||null,cloudUrl:f.cloudUrl||null})),
-    exercises:day.ex.map((ex,i)=>({eid:ex.eid,title:EX[ex.eid]?.t||'?',prescribed:(ex.wk&&ex.wk[weekNum])||`${(ex.wkS&&ex.wkS[weekNum])||ex.s}x${(ex.wk&&ex.wk[weekNum])||ex.r}`,sets:allSets[i]}))});
+  const finish = () => {
+    const workoutId = uid();
+    // Carry pendingBlobId on each form_video entry so the blob queue can find
+    // and patch this workout once the upload eventually succeeds.
+    const formVideos = fv.map(f => ({
+      has: f.has,
+      note: f.note,
+      fileName: f.fileName || null,
+      cloudUrl: f.cloudUrl || null,
+      pendingBlobId: f.pendingBlobId || null,
+    }));
+    // Attach the now-known workout id to each queued blob, then poke the
+    // drainer in case we're online.
+    fv.forEach((f, i) => {
+      if (f.pendingBlobId) {
+        attachWorkout(f.pendingBlobId, workoutId, i).catch(() => {});
+      }
+    });
+    if (fv.some(f => f.pendingBlobId)) drainBlobs();
+    onComplete({
+      id: workoutId, clientId, planName: plan.name, dayName: day.name,
+      week: weekNum + 1, date: new Date().toISOString(), autoregulation: ar, notes,
+      formVideos,
+      exercises: day.ex.map((ex, i) => ({
+        eid: ex.eid, title: EX[ex.eid]?.t || '?',
+        prescribed: (ex.wk && ex.wk[weekNum]) || `${(ex.wkS && ex.wkS[weekNum]) || ex.s}x${(ex.wk && ex.wk[weekNum]) || ex.r}`,
+        sets: allSets[i],
+      })),
+    });
+  };
 
   // Navigation helpers
   const totalSteps = wuCount + 1 + groupCount; // warmups + pre + groups
