@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Analytics, track } from '@vercel/analytics/react';
-import { C, FN, FB, CONTACT, buyOnWhatsApp } from './theme';
+import { C, FN, FB, CONTACT, buyOnWhatsApp, EXPO_LOGO_NAV, EXPO_LOGO } from './theme';
 import { PROGRAMS } from './programs';
 import { useT, useLang, setLang } from './i18n';
 
@@ -59,18 +59,14 @@ const baseBtn = {
   cursor: 'pointer', letterSpacing: '0.02em', transition: 'all 0.15s',
 };
 
-// Real EXPO assets, copied into /public/ from _branding/ via
-// scripts/trim-brand-assets.py.
-function IconMark({ size = 32 }) {
+// EXPO brand marks — pulled from the coach app's brand system (src/theme.js)
+// via expo-il/scripts/sync-brand-from-coach.py so the landing site reads as
+// the same product, not a generic re-skin. Never inline alternate cropped PNGs
+// in expo-il/public/ — those drifted from the canonical mark before.
+function BrandMark({ height = 50 }) {
   return (
-    <img src="/expo-icon.png" alt="EXPO"
-      style={{ width: size, height: size, borderRadius: Math.round(size * 0.18), display: 'block' }} />
-  );
-}
-function Wordmark({ height = 56 }) {
-  return (
-    <img src="/expo-logo.png" alt="EXPO"
-      style={{ height, width: 'auto', display: 'block', maxWidth: '90%' }} />
+    <img src={EXPO_LOGO_NAV} alt="EXPO"
+      style={{ height, width: 'auto', display: 'block' }} />
   );
 }
 
@@ -138,12 +134,10 @@ function Nav() {
         msOverflowStyle: 'none', scrollbarWidth: 'none',
       }}>
         <a href="#/" style={{
-          flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 10,
+          flex: '0 0 auto', display: 'flex', alignItems: 'center',
           marginRight: 12, height: 56,
         }}>
-          <IconMark size={28} />
-          <img className="fv-wordmark" src="/expo-logo.png" alt="EXPO"
-            style={{ height: 18, display: 'block' }} />
+          <BrandMark height={36} />
         </a>
         <nav style={{
           display: 'flex', gap: 2, alignItems: 'center',
@@ -202,7 +196,7 @@ function Hero() {
       textAlign: 'center',
     }}>
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-        <Wordmark height={92} />
+        <img src={EXPO_LOGO} alt="EXPO" style={{ height: 92, width: 'auto', display: 'block' }} />
       </div>
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
@@ -824,7 +818,7 @@ function Footer() {
       flexWrap: 'wrap', gap: 14,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <IconMark size={22} />
+        <BrandMark height={20} />
         <span style={{ fontFamily: FN, color: C.td, fontSize: 11 }}>
           {t('footer.copy.tmpl', { year: new Date().getFullYear() })}
         </span>
