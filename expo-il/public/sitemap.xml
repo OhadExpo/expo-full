@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://expo-il.co.il/</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="he" href="https://expo-il.co.il/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://expo-il.co.il/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://expo-il.co.il/" />
+  </url>
+  <url>
+    <loc>https://expo-il.co.il/#/programs/foundation-12</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="he" href="https://expo-il.co.il/#/programs/foundation-12" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://expo-il.co.il/#/programs/foundation-12" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://expo-il.co.il/#/programs/foundation-12" />
+  </url>
+  <url>
+    <loc>https://expo-il.co.il/#/programs/hypertrophy-16</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="he" href="https://expo-il.co.il/#/programs/hypertrophy-16" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://expo-il.co.il/#/programs/hypertrophy-16" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://expo-il.co.il/#/programs/hypertrophy-16" />
+  </url>
+  <url>
+    <loc>https://expo-il.co.il/#/programs/powerbuild-12</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="he" href="https://expo-il.co.il/#/programs/powerbuild-12" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://expo-il.co.il/#/programs/powerbuild-12" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://expo-il.co.il/#/programs/powerbuild-12" />
+  </url>
+  <url>
+    <loc>https://expo-il.co.il/#/programs/couples-12</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="he" href="https://expo-il.co.il/#/programs/couples-12" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://expo-il.co.il/#/programs/couples-12" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://expo-il.co.il/#/programs/couples-12" />
+  </url>
+  <url>
+    <loc>https://expo-il.co.il/#/programs/rehab-return</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="he" href="https://expo-il.co.il/#/programs/rehab-return" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://expo-il.co.il/#/programs/rehab-return" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://expo-il.co.il/#/programs/rehab-return" />
+  </url>
+  <url>
+    <loc>https://expo-il.co.il/#/programs/athlete-conditioning-12</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="he" href="https://expo-il.co.il/#/programs/athlete-conditioning-12" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://expo-il.co.il/#/programs/athlete-conditioning-12" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://expo-il.co.il/#/programs/athlete-conditioning-12" />
+  </url>
+</urlset>

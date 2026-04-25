@@ -1033,6 +1033,32 @@ function SampleWeek({ sampleWeek, accent }) {
 function ProgramDetail({ program }) {
   const t = useT();
   useEffect(() => { window.scrollTo(0, 0); }, [program.id]);
+  // Inject Product structured data so Google + WhatsApp render rich previews.
+  // Cleaned up on unmount so we don't leak stale schema across routes.
+  useEffect(() => {
+    const ld = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: program.title,
+      description: program.summary,
+      sku: program.id,
+      brand: { '@type': 'Brand', name: 'EXPO' },
+      category: 'Training Program',
+      offers: {
+        '@type': 'Offer',
+        priceCurrency: program.currency || 'NIS',
+        price: program.price,
+        availability: 'https://schema.org/InStock',
+        url: `https://expo-il.co.il/#/programs/${program.id}`,
+      },
+    };
+    const tag = document.createElement('script');
+    tag.type = 'application/ld+json';
+    tag.dataset.programLd = program.id;
+    tag.textContent = JSON.stringify(ld);
+    document.head.appendChild(tag);
+    return () => { tag.remove(); };
+  }, [program.id, program.title, program.summary, program.price, program.currency]);
   const weekCount = (program.duration || '').split(' ')[0] || '';
   const currency = t('card.currency.' + program.currency) === 'card.currency.' + program.currency ? program.currency : t('card.currency.' + program.currency);
   return (

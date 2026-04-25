@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://expo-il.co.il/sitemap.xml
