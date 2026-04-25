@@ -38,8 +38,9 @@ export const CONTACT = {
   instagram: 'https://www.instagram.com/',
 };
 
-// Build a wa.me link with a pre-filled buy message in Hebrew.
-export function buyOnWhatsApp(program) {
-  const text = `שלום אוהד, אני מעוניין בתוכנית "${program.title}" (${program.id}). מה הצעדים הבאים?`;
-  return `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(text)}`;
+// Build a wa.me link with a pre-filled buy message. Caller passes the
+// localised text (built from the i18n 'wa.buy.tmpl' key).
+export function buyOnWhatsApp(program, text) {
+  const fallback = `Hi Ohad, I want to buy "${program.title}" (${program.id}).`;
+  return `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(text || fallback)}`;
 }

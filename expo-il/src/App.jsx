@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { C, FN, FB, CONTACT, buyOnWhatsApp } from './theme';
 import { PROGRAMS } from './programs';
+import { useT, useLang, setLang } from './i18n';
 
 // ───────────────────────────────────────────────────────────────────────────
-// Hash-based routing
+// Hash-based routing — see programs.js header for the schema.
 //
-// We use the hash fragment so the SPA Vercel rewrite (everything → /index.html)
-// doesn't need to think about it, and so links are shareable. Only two views
-// for now:
 //   #/                         → catalog (Home)
 //   #/programs/<program-id>    → ProgramDetail
 //
@@ -34,20 +32,36 @@ function useHashRoute() {
   return route;
 }
 
-function nav(href) {
-  // window.location.hash assignment triggers hashchange
-  window.location.hash = href;
-}
-
-// Filter chips — derived from the catalog so adding a new program with a
-// new tag automatically gets a chip without code changes.
 function uniqueTags(list) {
   const set = new Set();
   for (const p of list) set.add(p.tag);
-  return ['All', ...Array.from(set)];
+  return ['__all', ...Array.from(set)];
+}
+
+function buildBuyLink(program, t) {
+  const text = t('wa.buy.tmpl', { title: program.title, id: program.id });
+  return buyOnWhatsApp(program, text);
+}
+
+function LangToggle() {
+  const [lang] = useLang();
+  const next = lang === 'he' ? 'en' : 'he';
+  const label = lang === 'he' ? 'EN' : 'עב';
+  return (
+    <button onClick={() => setLang(next)} title="Toggle language"
+      style={{
+        background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`,
+        borderRadius: 999, padding: '4px 10px',
+        fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1,
+        cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+      }}>
+      {label}
+    </button>
+  );
 }
 
 function Nav() {
+  const t = useT();
   const linkStyle = {
     color: C.tm, fontFamily: FN, fontSize: 12, letterSpacing: 1,
     padding: '6px 8px', cursor: 'pointer', whiteSpace: 'nowrap',
@@ -64,15 +78,16 @@ function Nav() {
         <span className="fv-wordmark" style={{ fontFamily: FN, fontWeight: 700, letterSpacing: 2, fontSize: 14 }}>EXPO</span>
       </a>
       <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-        <a href="#/" style={linkStyle}>PROGRAMS</a>
-        <a href="#/#how" style={linkStyle}>HOW IT WORKS</a>
-        <a href="#/#contact" style={linkStyle}>CONTACT</a>
+        <a href="#/" style={linkStyle}>{t('nav.programs')}</a>
+        <a href="#/#how" style={linkStyle}>{t('nav.how')}</a>
+        <a href="#/#contact" style={linkStyle}>{t('nav.contact')}</a>
+        <span style={{ display: 'inline-block', width: 6 }} />
+        <LangToggle />
       </div>
     </nav>
   );
 }
 
-// Compact SVG of the EXPO mark — same proportions as the PWA icon.
 function Logo({ size = 32 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-label="EXPO">
@@ -85,6 +100,7 @@ function Logo({ size = 32 }) {
 }
 
 function Hero() {
+  const t = useT();
   return (
     <section id="top" style={{
       maxWidth: 1100, margin: '0 auto', padding: '80px 24px 60px',
@@ -94,34 +110,33 @@ function Hero() {
         <Logo size={68} />
       </div>
       <div style={{ fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, marginBottom: 14 }}>
-        PROGRAMMED TRAINING
+        {t('hero.badge')}
       </div>
       <h1 style={{
         fontFamily: FB, fontWeight: 700, fontSize: 'clamp(34px, 6vw, 60px)',
         lineHeight: 1.05, marginBottom: 18, letterSpacing: -1,
       }}>
-        תוכניות אימון<br />
-        <span style={{ color: C.ac }}>שעובדות בפועל</span>
+        {t('hero.h1.line1')}<br />
+        <span style={{ color: C.ac }}>{t('hero.h1.line2')}</span>
       </h1>
       <p style={{
         fontFamily: FB, color: C.tm, fontSize: 'clamp(15px, 1.6vw, 18px)',
         maxWidth: 620, margin: '0 auto 32px', lineHeight: 1.55,
       }}>
-        Block-periodised templates for hypertrophy, strength, rehab, and time-poor schedules.
-        Same engine I use with private clients — now available as standalone purchases you can run yourself.
+        {t('hero.subhead')}
       </p>
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
         <a href="#programs" style={{
           background: C.ac, color: '#0a0a0b', padding: '14px 26px', borderRadius: 10,
           fontFamily: FN, fontWeight: 700, fontSize: 13, letterSpacing: 1.5,
         }}>
-          BROWSE PROGRAMS ↓
+          {t('hero.cta.browse')}
         </a>
         <a href="#how" style={{
           background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`,
           padding: '14px 26px', borderRadius: 10, fontFamily: FN, fontWeight: 700, fontSize: 13, letterSpacing: 1.5,
         }}>
-          HOW IT WORKS
+          {t('hero.cta.how')}
         </a>
       </div>
     </section>
@@ -147,7 +162,9 @@ function ProgramMeta({ p }) {
 }
 
 function ProgramCard({ p }) {
+  const t = useT();
   const [hover, setHover] = useState(false);
+  const currency = t('card.currency.' + p.currency) === 'card.currency.' + p.currency ? p.currency : t('card.currency.' + p.currency);
   return (
     <div
       onMouseEnter={() => setHover(true)}
@@ -193,9 +210,9 @@ function ProgramCard({ p }) {
         paddingTop: 12, borderTop: `1px solid ${C.bd}`, gap: 12,
       }}>
         <div>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>PRICE</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{t('card.price')}</div>
           <div style={{ fontFamily: FN, fontSize: 22, fontWeight: 700, color: C.tx }}>
-            {p.price} <span style={{ fontSize: 13, color: C.tm }}>{p.currency}</span>
+            {p.price} <span style={{ fontSize: 13, color: C.tm }}>{currency}</span>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -205,15 +222,15 @@ function ProgramCard({ p }) {
               padding: '10px 14px', borderRadius: 8,
               fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
             }}>
-            VIEW
+            {t('card.view')}
           </a>
-          <a href={buyOnWhatsApp(p)} target="_blank" rel="noopener noreferrer"
+          <a href={buildBuyLink(p, t)} target="_blank" rel="noopener noreferrer"
             style={{
               background: p.accent, color: '#0a0a0b',
               padding: '10px 18px', borderRadius: 8,
               fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
             }}>
-            BUY →
+            {t('card.buy')}
           </a>
         </div>
       </div>
@@ -222,36 +239,39 @@ function ProgramCard({ p }) {
 }
 
 function Catalog() {
+  const t = useT();
   const tags = uniqueTags(PROGRAMS);
-  const [active, setActive] = useState('All');
-  const list = active === 'All' ? PROGRAMS : PROGRAMS.filter(p => p.tag === active);
+  const [active, setActive] = useState('__all');
+  const list = active === '__all' ? PROGRAMS : PROGRAMS.filter(p => p.tag === active);
   return (
     <section id="programs" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px 60px' }}>
       <div style={{ marginBottom: 24 }}>
-        <div style={{ fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, marginBottom: 8 }}>CATALOG</div>
+        <div style={{ fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, marginBottom: 8 }}>{t('catalog.badge')}</div>
         <h2 style={{ fontFamily: FB, fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 700, marginBottom: 8 }}>
-          Pick the block that matches where you are.
+          {t('catalog.h2')}
         </h2>
         <p style={{ fontFamily: FB, color: C.tm, fontSize: 15, maxWidth: 720, lineHeight: 1.55 }}>
-          Every program ships as a 4-week block (or longer) inside the EXPO portal — log sets on your phone,
-          watch your bodyweight trend, and follow the same auto-regulation rules I use with private clients.
+          {t('catalog.body')}
         </p>
       </div>
       <div style={{
         display: 'flex', gap: 8, marginBottom: 28, flexWrap: 'wrap',
       }}>
-        {tags.map(t => (
-          <button key={t} onClick={() => setActive(t)} style={{
-            background: active === t ? C.acD : 'transparent',
-            color: active === t ? C.ac : C.tm,
-            border: `1px solid ${active === t ? C.ac : C.bd}`,
-            padding: '6px 14px', borderRadius: 999,
-            fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1, cursor: 'pointer',
-            transition: 'background 150ms, color 150ms, border-color 150ms',
-          }}>
-            {t.toUpperCase()}
-          </button>
-        ))}
+        {tags.map(tag => {
+          const label = tag === '__all' ? t('catalog.chip.all') : tag.toUpperCase();
+          return (
+            <button key={tag} onClick={() => setActive(tag)} style={{
+              background: active === tag ? C.acD : 'transparent',
+              color: active === tag ? C.ac : C.tm,
+              border: `1px solid ${active === tag ? C.ac : C.bd}`,
+              padding: '6px 14px', borderRadius: 999,
+              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1, cursor: 'pointer',
+              transition: 'background 150ms, color 150ms, border-color 150ms',
+            }}>
+              {label}
+            </button>
+          );
+        })}
       </div>
       <div style={{
         display: 'grid', gap: 18,
@@ -261,7 +281,7 @@ function Catalog() {
       </div>
       {list.length === 0 && (
         <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FN, fontSize: 12 }}>
-          NO PROGRAMS IN THIS CATEGORY
+          {t('catalog.empty')}
         </div>
       )}
     </section>
@@ -269,19 +289,20 @@ function Catalog() {
 }
 
 function HowItWorks() {
+  const t = useT();
   const steps = [
-    { n: '01', t: 'Pick a program', d: 'Browse the catalog above. Each card shows the duration, who it\'s for, and what\'s inside.' },
-    { n: '02', t: 'Pay via Bit', d: `Tap "Buy" on the program — opens WhatsApp with everything pre-filled. Pay through Bit (${CONTACT.bitPhone}) and send a screenshot of the confirmation.` },
-    { n: '03', t: 'Get your account', d: 'Within a few hours you receive an email with a sign-in link to expo-app.co.il. Your purchased program is already loaded.' },
-    { n: '04', t: 'Train', d: 'Log every set on your phone. The program adapts to your bodyweight, RPE, and sessions completed — same engine as my private clients.' },
+    { n: '01', t: t('how.01.t'), d: t('how.01.d') },
+    { n: '02', t: t('how.02.t'), d: t('how.02.d.tmpl', { bit: CONTACT.bitPhone }) },
+    { n: '03', t: t('how.03.t'), d: t('how.03.d') },
+    { n: '04', t: t('how.04.t'), d: t('how.04.d') },
   ];
   return (
     <section id="how" style={{
       maxWidth: 1100, margin: '0 auto', padding: '60px 24px',
     }}>
-      <div style={{ fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, marginBottom: 8 }}>HOW IT WORKS</div>
+      <div style={{ fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, marginBottom: 8 }}>{t('how.badge')}</div>
       <h2 style={{ fontFamily: FB, fontSize: 'clamp(26px, 4vw, 36px)', fontWeight: 700, marginBottom: 30 }}>
-        From buy to first set in under a day.
+        {t('how.h2')}
       </h2>
       <div style={{
         display: 'grid', gap: 18,
@@ -304,25 +325,26 @@ function HowItWorks() {
 }
 
 function Contact() {
+  const t = useT();
   return (
     <section id="contact" style={{
       maxWidth: 720, margin: '0 auto', padding: '60px 24px 40px', textAlign: 'center',
     }}>
-      <div style={{ fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, marginBottom: 8 }}>CONTACT</div>
+      <div style={{ fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, marginBottom: 8 }}>{t('contact.badge')}</div>
       <h2 style={{ fontFamily: FB, fontSize: 'clamp(24px, 3.5vw, 32px)', fontWeight: 700, marginBottom: 12 }}>
-        Questions before you buy?
+        {t('contact.h2')}
       </h2>
       <p style={{ fontFamily: FB, color: C.tm, fontSize: 14, lineHeight: 1.55, marginBottom: 24 }}>
-        WhatsApp is the fastest. Tell me what you train for, your equipment, and how many days you can give me — I'll point you at the right program.
+        {t('contact.body')}
       </p>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <a href={`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent('שלום אוהד, יש לי שאלה לגבי התוכניות')}`}
+        <a href={`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(t('contact.wa.prefill'))}`}
           target="_blank" rel="noopener noreferrer"
           style={{
             background: C.ac, color: '#0a0a0b', padding: '12px 22px', borderRadius: 10,
             fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
           }}>
-          WHATSAPP
+          {t('contact.cta.whatsapp')}
         </a>
         <a href={`mailto:${CONTACT.email}`}
           style={{
@@ -330,7 +352,7 @@ function Contact() {
             padding: '12px 22px', borderRadius: 10,
             fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
           }}>
-          EMAIL
+          {t('contact.cta.email')}
         </a>
       </div>
     </section>
@@ -338,6 +360,7 @@ function Contact() {
 }
 
 function Footer() {
+  const t = useT();
   return (
     <footer style={{
       borderTop: `1px solid ${C.bd}`, padding: '28px 24px',
@@ -347,32 +370,25 @@ function Footer() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <Logo size={20} />
         <span style={{ fontFamily: FN, color: C.td, fontSize: 11 }}>
-          © {new Date().getFullYear()} EXPO · Ohad Yossifoff
+          {t('footer.copy.tmpl', { year: new Date().getFullYear() })}
         </span>
       </div>
       <div style={{ display: 'flex', gap: 14 }}>
         <a href="https://expo-app.co.il" target="_blank" rel="noopener noreferrer"
           style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>
-          PORTAL ↗
+          {t('footer.portal')}
         </a>
         <a href={CONTACT.instagram} target="_blank" rel="noopener noreferrer"
           style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>
-          INSTAGRAM ↗
+          {t('footer.instagram')}
         </a>
       </div>
     </footer>
   );
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// ProgramDetail — lives at #/programs/<id>
-//
-// Renders the full pitch for one program plus a sample-week preview when
-// `program.sampleWeek` is filled in. The detail page is the place to send
-// people on Instagram / WhatsApp when they ask "what's actually in it?"
-// ───────────────────────────────────────────────────────────────────────────
-
 function SampleWeek({ sampleWeek, accent }) {
+  const t = useT();
   if (!sampleWeek) {
     return (
       <div style={{
@@ -380,7 +396,7 @@ function SampleWeek({ sampleWeek, accent }) {
         padding: 28, textAlign: 'center', color: C.td,
         fontFamily: FN, fontSize: 12, letterSpacing: 1,
       }}>
-        SAMPLE WEEK COMING SOON
+        {t('detail.sample.empty')}
       </div>
     );
   }
@@ -391,7 +407,8 @@ function SampleWeek({ sampleWeek, accent }) {
       gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 280px), 1fr))`,
     }}>
       {days.map(([dayKey, exercises]) => {
-        const label = dayKey.startsWith('day') ? `Day ${dayKey.replace('day', '').toUpperCase()}` : dayKey;
+        const letter = dayKey.startsWith('day') ? dayKey.replace('day', '').toUpperCase() : dayKey;
+        const label = t('detail.day.label.tmpl', { x: letter });
         return (
           <div key={dayKey} style={{
             background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12, padding: 18,
@@ -400,7 +417,7 @@ function SampleWeek({ sampleWeek, accent }) {
               fontFamily: FN, fontSize: 11, color: accent, fontWeight: 700,
               letterSpacing: 2, marginBottom: 12,
             }}>
-              {label.toUpperCase()}
+              {label}
             </div>
             <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {(exercises || []).map((ex, i) => (
@@ -413,7 +430,7 @@ function SampleWeek({ sampleWeek, accent }) {
                   </div>
                   {(ex.tempo || ex.notes) && (
                     <div style={{ fontFamily: FN, fontSize: 11, color: C.td, marginTop: 4 }}>
-                      {ex.tempo ? `tempo ${ex.tempo}` : ''}
+                      {ex.tempo ? t('detail.tempo.tmpl', { tempo: ex.tempo }) : ''}
                       {ex.tempo && ex.notes ? ' · ' : ''}
                       {ex.notes || ''}
                     </div>
@@ -429,16 +446,17 @@ function SampleWeek({ sampleWeek, accent }) {
 }
 
 function ProgramDetail({ program }) {
-  // Scroll to top when arriving at a detail page.
+  const t = useT();
   useEffect(() => { window.scrollTo(0, 0); }, [program.id]);
-
+  const weekCount = (program.duration || '').split(' ')[0] || '';
+  const currency = t('card.currency.' + program.currency) === 'card.currency.' + program.currency ? program.currency : t('card.currency.' + program.currency);
   return (
     <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px 80px' }}>
       <a href="#/" style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         fontFamily: FN, fontSize: 12, color: C.tm, marginBottom: 24, letterSpacing: 1,
       }}>
-        ← ALL PROGRAMS
+        {t('detail.back')}
       </a>
 
       <header style={{ marginBottom: 32 }}>
@@ -471,7 +489,7 @@ function ProgramDetail({ program }) {
           fontFamily: FN, fontSize: 11, color: program.accent, fontWeight: 700,
           letterSpacing: 3, marginBottom: 14,
         }}>
-          WHAT'S DIFFERENT
+          {t('detail.section.different')}
         </h2>
         <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12,
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' }}>
@@ -493,11 +511,10 @@ function ProgramDetail({ program }) {
           fontFamily: FN, fontSize: 11, color: program.accent, fontWeight: 700,
           letterSpacing: 3, marginBottom: 14,
         }}>
-          SAMPLE WEEK
+          {t('detail.section.sample')}
         </h2>
         <p style={{ fontFamily: FB, color: C.tm, fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
-          A look at one full microcycle. The full block escalates and varies these patterns
-          across {program.duration.split(' ')[0] || 'several'} weeks.
+          {t('detail.sample.body.tmpl', { weeks: weekCount })}
         </p>
         <SampleWeek sampleWeek={program.sampleWeek} accent={program.accent} />
       </section>
@@ -508,21 +525,21 @@ function ProgramDetail({ program }) {
         justifyContent: 'space-between', gap: 16,
       }}>
         <div>
-          <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, marginBottom: 4 }}>PRICE</div>
+          <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, marginBottom: 4 }}>{t('detail.price')}</div>
           <div style={{ fontFamily: FN, fontSize: 32, fontWeight: 700, color: C.tx, lineHeight: 1 }}>
-            {program.price} <span style={{ fontSize: 16, color: C.tm }}>{program.currency}</span>
+            {program.price} <span style={{ fontSize: 16, color: C.tm }}>{currency}</span>
           </div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 6 }}>
-            One-time payment · lifetime access in the EXPO portal
+            {t('detail.price.note')}
           </div>
         </div>
-        <a href={buyOnWhatsApp(program)} target="_blank" rel="noopener noreferrer"
+        <a href={buildBuyLink(program, t)} target="_blank" rel="noopener noreferrer"
           style={{
             background: program.accent, color: '#0a0a0b',
             padding: '14px 28px', borderRadius: 10,
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
           }}>
-          BUY VIA WHATSAPP →
+          {t('detail.cta.buy')}
         </a>
       </section>
     </main>
@@ -548,7 +565,6 @@ export default function App() {
     if (program) {
       body = <ProgramDetail program={program} />;
     } else {
-      // Unknown id — bounce back to catalog. Use replace so back button works.
       if (typeof window !== 'undefined') {
         window.history.replaceState(null, '', '#/');
       }
