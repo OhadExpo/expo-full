@@ -10,7 +10,7 @@ export default defineConfig({
       injectRegister: 'auto',
       includeAssets: ['icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'nord-fonts.css'],
       manifest: {
-        name: 'EXPO Training',
+        name: 'EXPO',
         short_name: 'EXPO',
         description: 'EXPO fitness coaching portal',
         theme_color: '#0a0a0b',

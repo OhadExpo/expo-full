@@ -237,7 +237,7 @@ export function LoginScreen() {
           >
             {showInstallHelp
               ? (isIOS
-                  ? 'Tap the Share button at the bottom of Safari, then choose "Add to Home Screen".'
+                  ? <>1. Tap <svg width="12" height="14" viewBox="0 0 16 20" style={{ verticalAlign: '-2px', margin: '0 2px' }}><path fill="none" stroke={C.tm} strokeWidth="1.5" d="M8 1v12M4 5l4-4 4 4M2 9h2v9h8V9h2v11H2z"/></svg> at the bottom of Safari<br/>2. Tap "Add to Home Screen"</>
                   : 'Open your browser menu and choose "Install app" or "Add to Home Screen".')
               : 'Add to Home Screen'}
           </button>
@@ -418,7 +418,7 @@ const wrapStyle = {
   // shifts the visual center ~152px above geometric center on every viewport
   // (~110px from the prior 240 + 2 line-heights of ~21px each per Ohad's last
   // '2 lines higher' note).
-  padding: '20px 20px 324px',
+  padding: '20px 20px 304px',
 };
 
 const cardStyle = {
