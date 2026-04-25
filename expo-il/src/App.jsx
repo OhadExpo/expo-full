@@ -1,6 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { C, FN, FB, CONTACT, buyOnWhatsApp } from './theme';
 import { PROGRAMS } from './programs';
+
+// ───────────────────────────────────────────────────────────────────────────
+// Hash-based routing
+//
+// We use the hash fragment so the SPA Vercel rewrite (everything → /index.html)
+// doesn't need to think about it, and so links are shareable. Only two views
+// for now:
+//   #/                         → catalog (Home)
+//   #/programs/<program-id>    → ProgramDetail
+//
+// Anything else falls back to Home.
+// ───────────────────────────────────────────────────────────────────────────
+
+function parseHash(hash) {
+  const h = (hash || '').replace(/^#\/?/, '');
+  if (!h) return { view: 'home' };
+  const m = h.match(/^programs\/([a-z0-9-]+)$/i);
+  if (m) return { view: 'detail', programId: m[1] };
+  return { view: 'home' };
+}
+
+function useHashRoute() {
+  const [route, setRoute] = useState(() =>
+    typeof window === 'undefined' ? { view: 'home' } : parseHash(window.location.hash)
+  );
+  useEffect(() => {
+    const onChange = () => setRoute(parseHash(window.location.hash));
+    window.addEventListener('hashchange', onChange);
+    return () => window.removeEventListener('hashchange', onChange);
+  }, []);
+  return route;
+}
+
+function nav(href) {
+  // window.location.hash assignment triggers hashchange
+  window.location.hash = href;
+}
 
 // Filter chips — derived from the catalog so adding a new program with a
 // new tag automatically gets a chip without code changes.
@@ -19,14 +56,14 @@ function Nav() {
       borderBottom: `1px solid ${C.bd}`,
       padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     }}>
-      <a href="#top" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <a href="#/" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <Logo size={26} />
         <span style={{ fontFamily: FN, fontWeight: 700, letterSpacing: 2, fontSize: 14 }}>EXPO</span>
       </a>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <a href="#programs" style={linkStyle}>PROGRAMS</a>
-        <a href="#how" style={linkStyle}>HOW IT WORKS</a>
-        <a href="#contact" style={linkStyle}>CONTACT</a>
+        <a href="#/" style={linkStyle}>PROGRAMS</a>
+        <a href="#/#how" style={linkStyle}>HOW IT WORKS</a>
+        <a href="#/#contact" style={linkStyle}>CONTACT</a>
       </div>
     </nav>
   );
@@ -88,6 +125,24 @@ function Hero() {
   );
 }
 
+function ProgramMeta({ p }) {
+  const meta = [];
+  if (p.level) meta.push(p.level);
+  if (Array.isArray(p.equipment) && p.equipment.length) meta.push(p.equipment.join(' · '));
+  if (meta.length === 0) return null;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      {meta.map((m, i) => (
+        <span key={i} style={{
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.5,
+          border: `1px solid ${C.bd}`, padding: '3px 8px', borderRadius: 6,
+          background: C.sf2,
+        }}>{m.toUpperCase()}</span>
+      ))}
+    </div>
+  );
+}
+
 function ProgramCard({ p }) {
   const [hover, setHover] = useState(false);
   return (
@@ -98,8 +153,9 @@ function ProgramCard({ p }) {
         background: C.sf, border: `1px solid ${hover ? p.accent : C.bd}`,
         borderRadius: 14, padding: 22,
         display: 'flex', flexDirection: 'column', gap: 14,
-        transition: 'border-color 150ms, transform 150ms',
+        transition: 'border-color 150ms, transform 150ms, box-shadow 150ms',
         transform: hover ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hover ? `0 12px 32px -16px ${p.accent}55` : 'none',
       }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{
@@ -110,7 +166,7 @@ function ProgramCard({ p }) {
         <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{p.duration}</span>
       </div>
       <div>
-        <h3 style={{ fontFamily: FB, fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{p.title}</h3>
+        <h3 style={{ fontFamily: FB, fontSize: 22, fontWeight: 700, marginBottom: 4, lineHeight: 1.15 }}>{p.title}</h3>
         <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{p.audience}</div>
       </div>
       <p style={{ fontFamily: FB, fontSize: 14, color: C.tx, opacity: 0.85, lineHeight: 1.55 }}>
@@ -127,10 +183,11 @@ function ProgramCard({ p }) {
           </li>
         ))}
       </ul>
+      <ProgramMeta p={p} />
       <div style={{ flex: 1 }} />
       <div style={{
         display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-        paddingTop: 12, borderTop: `1px solid ${C.bd}`,
+        paddingTop: 12, borderTop: `1px solid ${C.bd}`, gap: 12,
       }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>PRICE</div>
@@ -138,14 +195,24 @@ function ProgramCard({ p }) {
             {p.price} <span style={{ fontSize: 13, color: C.tm }}>{p.currency}</span>
           </div>
         </div>
-        <a href={buyOnWhatsApp(p)} target="_blank" rel="noopener noreferrer"
-          style={{
-            background: p.accent, color: '#0a0a0b',
-            padding: '10px 18px', borderRadius: 8,
-            fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
-          }}>
-          BUY →
-        </a>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <a href={`#/programs/${p.id}`}
+            style={{
+              background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`,
+              padding: '10px 14px', borderRadius: 8,
+              fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
+            }}>
+            VIEW
+          </a>
+          <a href={buyOnWhatsApp(p)} target="_blank" rel="noopener noreferrer"
+            style={{
+              background: p.accent, color: '#0a0a0b',
+              padding: '10px 18px', borderRadius: 8,
+              fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
+            }}>
+            BUY →
+          </a>
+        </div>
       </div>
     </div>
   );
@@ -294,14 +361,203 @@ function Footer() {
   );
 }
 
-export default function App() {
+// ───────────────────────────────────────────────────────────────────────────
+// ProgramDetail — lives at #/programs/<id>
+//
+// Renders the full pitch for one program plus a sample-week preview when
+// `program.sampleWeek` is filled in. The detail page is the place to send
+// people on Instagram / WhatsApp when they ask "what's actually in it?"
+// ───────────────────────────────────────────────────────────────────────────
+
+function SampleWeek({ sampleWeek, accent }) {
+  if (!sampleWeek) {
+    return (
+      <div style={{
+        background: C.sf, border: `1px dashed ${C.bd}`, borderRadius: 12,
+        padding: 28, textAlign: 'center', color: C.td,
+        fontFamily: FN, fontSize: 12, letterSpacing: 1,
+      }}>
+        SAMPLE WEEK COMING SOON
+      </div>
+    );
+  }
+  const days = Object.entries(sampleWeek);
+  return (
+    <div style={{
+      display: 'grid', gap: 14,
+      gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, 280px), 1fr))`,
+    }}>
+      {days.map(([dayKey, exercises]) => {
+        const label = dayKey.startsWith('day') ? `Day ${dayKey.replace('day', '').toUpperCase()}` : dayKey;
+        return (
+          <div key={dayKey} style={{
+            background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12, padding: 18,
+          }}>
+            <div style={{
+              fontFamily: FN, fontSize: 11, color: accent, fontWeight: 700,
+              letterSpacing: 2, marginBottom: 12,
+            }}>
+              {label.toUpperCase()}
+            </div>
+            <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {(exercises || []).map((ex, i) => (
+                <li key={i} style={{
+                  paddingBottom: 10, borderBottom: i < exercises.length - 1 ? `1px solid ${C.bd}` : 'none',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
+                    <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600 }}>{ex.title}</span>
+                    <span style={{ fontFamily: FN, fontSize: 12, color: C.tm, whiteSpace: 'nowrap' }}>{ex.prescribed}</span>
+                  </div>
+                  {(ex.tempo || ex.notes) && (
+                    <div style={{ fontFamily: FN, fontSize: 11, color: C.td, marginTop: 4 }}>
+                      {ex.tempo ? `tempo ${ex.tempo}` : ''}
+                      {ex.tempo && ex.notes ? ' · ' : ''}
+                      {ex.notes || ''}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProgramDetail({ program }) {
+  // Scroll to top when arriving at a detail page.
+  useEffect(() => { window.scrollTo(0, 0); }, [program.id]);
+
+  return (
+    <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 24px 80px' }}>
+      <a href="#/" style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        fontFamily: FN, fontSize: 12, color: C.tm, marginBottom: 24, letterSpacing: 1,
+      }}>
+        ← ALL PROGRAMS
+      </a>
+
+      <header style={{ marginBottom: 32 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center' }}>
+          <span style={{
+            fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+            background: `${program.accent}1a`, color: program.accent, padding: '4px 10px', borderRadius: 999,
+            border: `1px solid ${program.accent}40`,
+          }}>{program.tag.toUpperCase()}</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{program.duration}</span>
+        </div>
+        <h1 style={{
+          fontFamily: FB, fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 700,
+          lineHeight: 1.1, marginBottom: 10, letterSpacing: -0.5,
+        }}>
+          {program.title}
+        </h1>
+        <div style={{ fontFamily: FB, fontSize: 16, color: C.tm, marginBottom: 16 }}>{program.audience}</div>
+        <p style={{
+          fontFamily: FB, fontSize: 16, color: C.tx, lineHeight: 1.6,
+          maxWidth: 760, marginBottom: 18,
+        }}>
+          {program.summary}
+        </p>
+        <ProgramMeta p={program} />
+      </header>
+
+      <section style={{ marginBottom: 40 }}>
+        <h2 style={{
+          fontFamily: FN, fontSize: 11, color: program.accent, fontWeight: 700,
+          letterSpacing: 3, marginBottom: 14,
+        }}>
+          WHAT'S DIFFERENT
+        </h2>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))' }}>
+          {program.highlights.map((h, i) => (
+            <li key={i} style={{
+              background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10,
+              padding: 16, display: 'flex', gap: 12, alignItems: 'flex-start',
+              fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5,
+            }}>
+              <span style={{ color: program.accent, fontFamily: FN, fontWeight: 700, marginTop: 1 }}>›</span>
+              <span>{h}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section style={{ marginBottom: 40 }}>
+        <h2 style={{
+          fontFamily: FN, fontSize: 11, color: program.accent, fontWeight: 700,
+          letterSpacing: 3, marginBottom: 14,
+        }}>
+          SAMPLE WEEK
+        </h2>
+        <p style={{ fontFamily: FB, color: C.tm, fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+          A look at one full microcycle. The full block escalates and varies these patterns
+          across {program.duration.split(' ')[0] || 'several'} weeks.
+        </p>
+        <SampleWeek sampleWeek={program.sampleWeek} accent={program.accent} />
+      </section>
+
+      <section style={{
+        background: C.sf, border: `1px solid ${program.accent}40`, borderRadius: 14,
+        padding: 28, display: 'flex', flexWrap: 'wrap', alignItems: 'center',
+        justifyContent: 'space-between', gap: 16,
+      }}>
+        <div>
+          <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, marginBottom: 4 }}>PRICE</div>
+          <div style={{ fontFamily: FN, fontSize: 32, fontWeight: 700, color: C.tx, lineHeight: 1 }}>
+            {program.price} <span style={{ fontSize: 16, color: C.tm }}>{program.currency}</span>
+          </div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 6 }}>
+            One-time payment · lifetime access in the EXPO portal
+          </div>
+        </div>
+        <a href={buyOnWhatsApp(program)} target="_blank" rel="noopener noreferrer"
+          style={{
+            background: program.accent, color: '#0a0a0b',
+            padding: '14px 28px', borderRadius: 10,
+            fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
+          }}>
+          BUY VIA WHATSAPP →
+        </a>
+      </section>
+    </main>
+  );
+}
+
+function Home() {
   return (
     <>
-      <Nav />
       <Hero />
       <Catalog />
       <HowItWorks />
       <Contact />
+    </>
+  );
+}
+
+export default function App() {
+  const route = useHashRoute();
+  let body;
+  if (route.view === 'detail') {
+    const program = PROGRAMS.find(p => p.id === route.programId);
+    if (program) {
+      body = <ProgramDetail program={program} />;
+    } else {
+      // Unknown id — bounce back to catalog. Use replace so back button works.
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', '#/');
+      }
+      body = <Home />;
+    }
+  } else {
+    body = <Home />;
+  }
+  return (
+    <>
+      <Nav />
+      {body}
       <Footer />
     </>
   );

@@ -1,10 +1,47 @@
 // Catalog of training programs sold via the EXPO landing page.
-// Each entry maps to a plan template that lives in the main expo-app.co.il
-// Supabase. After payment, the trainee row is created (manually for now,
-// auto-onboarded later) and a copy of the matching template plan is assigned.
+// Editing this file is the canonical way to add / remove / rewrite offerings.
+// No DB migration needed for the catalog itself; after a purchase the matching
+// template plan from the main expo-app.co.il library is duplicated onto the
+// new trainee.
 //
-// Editing this file is the canonical way to add/remove offerings — no DB
-// migration needed for the catalog itself.
+// ───────────────────────────────────────────────────────────────────────────
+// Schema (every field is required unless marked optional):
+//
+//   id          string   Stable slug. Used in URLs (/programs/<id>) and in
+//                        the matching plan name on the main app side.
+//   tag         string   Chip label. Drives the filter pills at the top of
+//                        the catalog. Adding a new tag automatically adds
+//                        a chip.
+//   title       string   Card heading. Keep short — one or two words.
+//   duration    string   Free-form, displayed as e.g. "12 weeks · 3 days/week".
+//   audience    string   One-line "who is this for". Shows under the title.
+//   summary     string   1–2 sentence description. The pitch.
+//   highlights  string[] 2–4 bullet points. What's distinctive about this block.
+//   price       number   In NIS. Displayed as the bold price on the card.
+//   currency    string   Defaults to 'NIS'. Set explicitly in case you ever
+//                        sell in USD/EUR.
+//   accent      string   Hex colour for the chip + price + Buy button + card
+//                        hover border. Pick from the palette below for visual
+//                        consistency. Mixing freely also works.
+//
+// Optional (used by /programs/<id> sample-week page — when you add real
+// content, fill these in; cards work without them):
+//
+//   sampleWeek  object?  { dayA: [{title, prescribed, tempo?, notes?}, ...],
+//                          dayB: [...], dayC?: [...] }
+//                        Lets the sample-week preview page render the actual
+//                        first week so buyers see what they're getting.
+//   equipment   string[]?  e.g. ['Barbell', 'Dumbbells', 'Bench']
+//   level       string?    'Beginner' | 'Intermediate' | 'Advanced'
+//
+// ───────────────────────────────────────────────────────────────────────────
+// Accent palette (so cards stay visually coherent):
+//   '#3BA0FF'  primary blue (default for most)
+//   '#39BDFF'  brighter blue (variant)
+//   '#28d95b'  green   (rehab / mobility / wellness leaning)
+//   '#ff9c44'  orange  (specialty / niche)
+//   '#ff5e5e'  red     (rehab / load-management — caution-themed)
+// ───────────────────────────────────────────────────────────────────────────
 
 export const PROGRAMS = [
   {
@@ -23,23 +60,34 @@ export const PROGRAMS = [
     price: 290,
     currency: 'NIS',
     accent: '#3BA0FF',
-  },
-  {
-    id: 'fullbody-3day',
-    tag: 'General',
-    title: 'Full Body · 3-Day',
-    duration: '12 weeks · 3 days/week',
-    audience: 'Busy schedule, broad goals',
-    summary:
-      'Three full-body sessions hitting every primary pattern. Shortest path to a strong, capable body when time is tight.',
-    highlights: [
-      '~60 minutes per session',
-      'Each primary pattern hit 3× weekly',
-      'Cardio guidance for the off-days',
-    ],
-    price: 270,
-    currency: 'NIS',
-    accent: '#3BA0FF',
+    level: 'Beginner',
+    equipment: ['Barbell', 'Dumbbells', 'Bench'],
+    // Reference shape — replace these exercises with the real first-week
+    // microcycle once you decide the template content. The detail page at
+    // /#/programs/foundation-12 reads this to render the SAMPLE WEEK section.
+    sampleWeek: {
+      dayA: [
+        { title: 'Goblet Squat',          prescribed: '3 × 8',    tempo: '3-1-1' },
+        { title: 'DB Bench Press',        prescribed: '3 × 8',    tempo: '3-0-1' },
+        { title: 'Single-Arm DB Row',     prescribed: '3 × 10/side' },
+        { title: 'DB Romanian Deadlift',  prescribed: '3 × 8',    tempo: '3-1-1' },
+        { title: 'Plank',                 prescribed: '3 × 30s' },
+      ],
+      dayB: [
+        { title: 'Trap-Bar Deadlift',     prescribed: '3 × 5',    tempo: '2-1-1' },
+        { title: 'DB Overhead Press',     prescribed: '3 × 8' },
+        { title: 'Lat Pulldown',          prescribed: '3 × 10' },
+        { title: 'Walking DB Lunge',      prescribed: '3 × 10/leg' },
+        { title: 'Dead Bug',              prescribed: '3 × 8/side' },
+      ],
+      dayC: [
+        { title: 'Front-Foot-Elevated Split Squat', prescribed: '3 × 8/leg' },
+        { title: 'Push-Up',                prescribed: '3 × AMRAP', notes: 'stop 1–2 reps shy of failure' },
+        { title: 'Chest-Supported Row',    prescribed: '3 × 10' },
+        { title: 'DB Hip Thrust',          prescribed: '3 × 10' },
+        { title: 'Farmer Carry',           prescribed: '3 × 30m' },
+      ],
+    },
   },
   {
     id: 'hypertrophy-16',
@@ -57,6 +105,8 @@ export const PROGRAMS = [
     price: 390,
     currency: 'NIS',
     accent: '#39BDFF',
+    level: 'Intermediate',
+    equipment: ['Barbell', 'Dumbbells', 'Cables', 'Machines'],
   },
   {
     id: 'powerbuild-12',
@@ -65,7 +115,7 @@ export const PROGRAMS = [
     duration: '12 weeks · 4 days/week',
     audience: 'Want strength + size, no competing',
     summary:
-      'Heavy compound work followed by hypertrophy assistance. Hybrid template that doesn\'t force you to pick a lane.',
+      "Heavy compound work followed by hypertrophy assistance. Hybrid template that doesn't force you to pick a lane.",
     highlights: [
       'Top sets 80–90% 1RM on the main lifts',
       'Backoff sets for size',
@@ -74,74 +124,8 @@ export const PROGRAMS = [
     price: 350,
     currency: 'NIS',
     accent: '#3BA0FF',
-  },
-  {
-    id: 'glutes-8',
-    tag: 'Specialty',
-    title: 'Glutes Focused',
-    duration: '8 weeks · 3 days/week',
-    audience: 'Grow glutes without skipping the rest',
-    summary:
-      'Hinge-dominant training with hip thrust and abduction frequency. Upper body and core kept minimal but real.',
-    highlights: [
-      'Hip thrust + abduction 3×/week',
-      'Single-leg work each session',
-      'Bodyweight finishers',
-    ],
-    price: 240,
-    currency: 'NIS',
-    accent: '#ff9c44',
-  },
-  {
-    id: 'home-minimal',
-    tag: 'At-home',
-    title: 'Home · Minimal Kit',
-    duration: '12 weeks · 4 days/week',
-    audience: 'Dumbbells + a bench, that\'s it',
-    summary:
-      'No barbell required. Built around adjustable dumbbells (or any pair) and a stable surface.',
-    highlights: [
-      'Tempo + pause work to compensate for low load',
-      'No machines',
-      'Mobility integrated into warm-ups',
-    ],
-    price: 220,
-    currency: 'NIS',
-    accent: '#28d95b',
-  },
-  {
-    id: 'cut-lean-12',
-    tag: 'Cut',
-    title: 'Cut · Lean Phase',
-    duration: '12 weeks · 4 days/week',
-    audience: 'Training during a calorie deficit',
-    summary:
-      'Programming that respects the deficit: lower volume, intensity preserved, designed to keep your hard-earned muscle while you lose fat.',
-    highlights: [
-      'RPE-capped loads to manage fatigue',
-      'Intensity sustained, volume reduced',
-      'Step-loading deload every 4 weeks',
-    ],
-    price: 320,
-    currency: 'NIS',
-    accent: '#3BA0FF',
-  },
-  {
-    id: 'rehab-return',
-    tag: 'Rehab',
-    title: 'Return to Training',
-    duration: '8 weeks · variable days/week',
-    audience: 'Coming back from injury, cleared to load',
-    summary:
-      'Load-management hierarchy: ROM → Tempo → Intensity → Volume → Frequency. You log pain (0–10), the program adapts the load.',
-    highlights: [
-      'Per-exercise pain gate (0–3 OK, 4–5 modify, 6+ stop)',
-      'Two-week reassess windows',
-      'Coach-style cues built into each set',
-    ],
-    price: 320,
-    currency: 'NIS',
-    accent: '#ff5e5e',
+    level: 'Intermediate',
+    equipment: ['Barbell', 'Dumbbells'],
   },
   {
     id: 'couples-12',
@@ -159,40 +143,27 @@ export const PROGRAMS = [
     price: 540,
     currency: 'NIS',
     accent: '#39BDFF',
+    level: 'Intermediate',
+    equipment: ['Barbell', 'Dumbbells'],
   },
   {
-    id: 'strength-peak-10',
-    tag: 'Powerlifting',
-    title: 'Peak Strength 10',
-    duration: '10 weeks · 4 days/week',
-    audience: 'Powerlifting prep · meet in 10 weeks',
+    id: 'rehab-return',
+    tag: 'Rehab',
+    title: 'Return to Training',
+    duration: '8 weeks · variable days/week',
+    audience: 'Coming back from injury, cleared to load',
     summary:
-      'Volume → intensity → realisation peaking. Squat / bench / deadlift specialisation with minimal accessory.',
+      'Load-management hierarchy: ROM → Tempo → Intensity → Volume → Frequency. You log pain (0–10), the program adapts the load.',
     highlights: [
-      'Linear intensity ramp 70→95%',
-      'Mock meet at week 8',
-      'Dynamic effort day in the volume block',
+      'Per-exercise pain gate (0–3 OK, 4–5 modify, 6+ stop)',
+      'Two-week reassess windows',
+      'Coach-style cues built into each set',
     ],
-    price: 420,
+    price: 320,
     currency: 'NIS',
-    accent: '#3BA0FF',
-  },
-  {
-    id: 'mobility-strength-8',
-    tag: 'Mobility',
-    title: 'Mobility + Strength',
-    duration: '8 weeks · 3 days/week',
-    audience: 'Stiff, desk-bound, want to feel athletic again',
-    summary:
-      'Loaded mobility and tempo work as the primary tool — not stretching. End-range strength for the hips, ankles, thoracic spine, and shoulders.',
-    highlights: [
-      'CARs + tempo squat/hinge as the main work',
-      'Per-joint progressions you can keep using forever',
-      'Low equipment requirement',
-    ],
-    price: 250,
-    currency: 'NIS',
-    accent: '#28d95b',
+    accent: '#ff5e5e',
+    level: 'Beginner',
+    equipment: ['Bands', 'Dumbbells'],
   },
   {
     id: 'athlete-conditioning-12',
@@ -210,5 +181,42 @@ export const PROGRAMS = [
     price: 380,
     currency: 'NIS',
     accent: '#ff9c44',
+    level: 'Intermediate',
+    equipment: ['Barbell', 'Dumbbells', 'Track or open space'],
   },
 ];
+
+// ───────────────────────────────────────────────────────────────────────────
+// _TEMPLATE — copy this object as a starting point when adding a new program.
+// Not exported, so it doesn't render. Just here as a fill-in-the-blanks form
+// you can paste into PROGRAMS above.
+// ───────────────────────────────────────────────────────────────────────────
+//
+// const _TEMPLATE = {
+//   id: 'kebab-case-slug',
+//   tag: 'Hypertrophy',                        // Chip label — adds a filter pill
+//   title: 'Program Title',
+//   duration: 'N weeks · X days/week',
+//   audience: 'Who this is for, in one line',
+//   summary: 'One or two sentences. The hook.',
+//   highlights: [
+//     'Distinct point #1',
+//     'Distinct point #2',
+//     'Distinct point #3',
+//   ],
+//   price: 0,                                  // NIS
+//   currency: 'NIS',
+//   accent: '#3BA0FF',                         // From the palette in the header comment
+//   level: 'Intermediate',                     // 'Beginner' | 'Intermediate' | 'Advanced'
+//   equipment: ['Barbell', 'Dumbbells'],       // Free-form
+//   // Fill in once the program is real and you want a sample-week preview:
+//   // sampleWeek: {
+//   //   dayA: [
+//   //     { title: 'Back Squat',     prescribed: '4×6 @ RPE 7', tempo: '3-1-1', notes: '' },
+//   //     { title: 'Bench Press',    prescribed: '4×8 @ RPE 7' },
+//   //     { title: 'Pendlay Row',    prescribed: '3×10' },
+//   //   ],
+//   //   dayB: [ /* ... */ ],
+//   //   dayC: [ /* ... */ ],
+//   // },
+// };
