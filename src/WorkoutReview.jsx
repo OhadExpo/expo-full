@@ -596,7 +596,10 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       const fileset = await FilesetResolver.forVisionTasks(
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
       );
-      const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task';
+      // Lite variant is ~3x faster than full on mobile WASM with negligible
+      // accuracy loss for single-subject form-review footage. PC was already
+      // invisibly fast on full; lite makes phone usable, PC unchanged.
+      const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
       const opts = (delegate) => ({
         baseOptions: { modelAssetPath: modelUrl, delegate },
         runningMode: 'VIDEO',
@@ -654,6 +657,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     const ctx = c.getContext('2d');
     let lastTs = -1;
     let pendingAngles = {};
+    // Process every other rVFC tick: 30fps source → 15fps overlay. Cuts
+    // model invocations in half with no perceptible difference for form
+    // review (human eye reads 15fps overlay as smooth on slow-mo playback,
+    // and rep cycles span 15-45 ticks at 15fps = plenty of resolution).
+    let frameTick = 0;
     // Throttle the React HUD update — angle numbers don't need 60Hz.
     const hudInterval = setInterval(() => {
       if (!active) return;
@@ -666,6 +674,17 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
 
     const detect = () => {
       if (!active) return;
+      // 2x frame-skip: only process even ticks, just re-arm on odd ones so
+      // the rVFC loop keeps running.
+      const skip = (frameTick++ % 2) !== 0;
+      if (skip) {
+        if (typeof v.requestVideoFrameCallback === 'function') {
+          v.requestVideoFrameCallback(detect);
+        } else {
+          rafRef.current = requestAnimationFrame(detect);
+        }
+        return;
+      }
       const w = v.clientWidth, h = v.clientHeight;
       if (w > 0 && h > 0 && v.readyState >= 2) {
         if (c.width !== w) c.width = w;
