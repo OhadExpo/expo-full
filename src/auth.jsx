@@ -90,6 +90,35 @@ export function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  // PWA install. Chrome/Edge/Android fire `beforeinstallprompt` once engagement
+  // criteria are met; we capture it and replay on user click for one-tap install.
+  // iOS Safari has no programmatic install API — Apple requires the user to use
+  // the Share menu manually, so we fall back to inline instructions there.
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
+  const isStandalone = typeof window !== 'undefined' && (window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true);
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    const installed = () => setInstallPrompt(null);
+    window.addEventListener('appinstalled', installed);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installed);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      try { await installPrompt.userChoice; } catch {}
+      setInstallPrompt(null);
+      return;
+    }
+    setShowInstallHelp(true);
+  };
 
   const handleOAuth = async (provider) => {
     setError('');
@@ -201,6 +230,23 @@ export function LoginScreen() {
             Don't have an account? Contact your coach.
           </div>
         </div>
+        {!isStandalone && (
+          <>
+            <button
+              onClick={handleInstall}
+              style={{ width: '100%', marginTop: 16, padding: 12, borderRadius: 10, border: `1px solid ${C.bd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            >
+              Add to Home Screen
+            </button>
+            {showInstallHelp && (
+              <div style={{ marginTop: 10, padding: 12, background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10, fontSize: 12, color: C.tm, lineHeight: 1.5, textAlign: 'center' }}>
+                {isIOS
+                  ? 'Tap the Share button at the bottom of Safari, then choose "Add to Home Screen".'
+                  : 'Open your browser menu and choose "Install app" or "Add to Home Screen".'}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
