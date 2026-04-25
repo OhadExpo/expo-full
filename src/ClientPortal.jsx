@@ -748,7 +748,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         ) : (
           <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:14,marginBottom:16}}>
             <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:10}}>TREND</div>
-            <svg viewBox={`0 0 ${Math.max(bwData.length * 60, 300)} 175`} style={{width:'100%',height:175}}>
+            <svg viewBox={`0 -10 ${Math.max(bwData.length * 60, 300)} 185`} style={{width:'100%',height:185}}>
               {/* Grid lines */}
               {[0,0.25,0.5,0.75,1].map((p,i) => {
                 const y = 10 + p * 130;
@@ -775,8 +775,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 const nextY = i<bwData.length-1 ? 10 + ((maxBw - bwData[i+1].bw) / range) * 130 : null;
                 const isTrough = (prevY == null || prevY < y) && (nextY == null || nextY < y);
                 let labelAbove = !isTrough;
-                if (y < 22) labelAbove = false;
-                else if (y > 128) labelAbove = true;
+                if (y > 130) labelAbove = true;
                 const labelY = labelAbove ? y - 8 : y + 14;
                 return <g key={i}>
                   {blockChanged && <line x1={x-25} y1="10" x2={x-25} y2="140" stroke={C.bd2||C.bd} strokeWidth="0.5" strokeDasharray="2"/>}

@@ -241,6 +241,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       id: 'dr_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
       color: activeDrawColor,
       type: rulerMode ? 'line' : 'free',
+      coords: 'content',
       points: [p],
     });
   };
@@ -279,10 +280,17 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       const strokes = activeStroke ? [...currentStrokes, activeStroke] : currentStrokes;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      const px = (p) => p.x * w + offX;
-      const py = (p) => p.y * h + offY;
+      // New strokes (coords='content') are normalized to the actual video
+      // content rect — proportions hold across normal/FS. Legacy strokes
+      // without the flag were normalized to the full element box; we paint
+      // those element-relative so they stay correct in normal mode (where
+      // they were drawn). They may look slightly off in FS, but redrawing
+      // (now with the flag) fixes them permanently.
       for (const s of strokes) {
         if (!s || !Array.isArray(s.points) || s.points.length === 0) continue;
+        const useContent = s.coords === 'content';
+        const px = (p) => useContent ? p.x * w + offX : p.x * elW;
+        const py = (p) => useContent ? p.y * h + offY : p.y * elH;
         ctx.strokeStyle = s.color || '#ff4c4c';
         ctx.lineWidth = 3;
         ctx.beginPath();
