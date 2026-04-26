@@ -27,9 +27,28 @@ function overlapCount(a, b) {
   for (const t of ta) if (tb.has(t)) n++;
   return n;
 }
-const MOVEMENT_HINTS = ['squat','deadlift','press','bench','row','pulldown','pull-up','pullup','chinup','chin-up','curl','extension','fly','flye','raise','shrug','thrust','lunge','split','step-up','stepup','rdl','good morning','rotation','pallof','carry','farmer','dip','push-up','pushup','rear delt','lateral','face pull','pullover','kickback','crunch','sit-up','situp','plank','hip thrust','glute bridge','calf','hamstring','quad','chest','back','shoulder','tricep','bicep','core','abs','oblique'];
+const MOVEMENT_HINTS = ['squat','deadlift','press','bench','row','pulldown','pull-up','pullup','chinup','chin-up','curl','extension','fly','flye','raise','shrug','thrust','lunge','split','step-up','stepup','rdl','good morning','rotation','pallof','carry','farmer','dip','push-up','pushup','face pull','pullover','kickback','crunch','sit-up','situp','plank','hip thrust','glute bridge'];
+const BODYPART_HINTS = {
+  leg:      ['leg','squat','lunge','split-squat','split squat','pistol','sissy'],
+  hamstring:['hamstring','rdl','romanian','good morning','glute-ham','leg curl'],
+  glute:    ['glute','hip thrust','thrust','bridge','kickback','abduction'],
+  calf:     ['calf','tibialis'],
+  chest:    ['bench','chest','fly','flye','push-up','pushup','dip','incline','decline'],
+  back:     ['row','pulldown','pull-up','pullup','chin','pullover','lat'],
+  shoulder: ['press','shoulder','overhead','ohp','lateral','rear delt','face pull','shrug','raise','arnold'],
+  arm:      ['curl','tricep','bicep','kickback','extension'],
+  core:     ['plank','crunch','sit-up','situp','pallof','rotation','abs','oblique','dead-bug','dead bug'],
+};
+const BODYPART_PRIORITY = ['leg','hamstring','glute','calf','chest','back','shoulder','arm','core'];
 const EQUIPMENT_HINTS = ['bb','barbell','db','dumbbell','kb','kettlebell','cable','machine','smith','band','banded','bodyweight','bw','sled','trx','ring','sandbag','medball','medicine ball'];
 function findHints(title, hints) { const t=(title||'').toLowerCase(); const f=new Set(); for (const h of hints) if (t.includes(h)) f.add(h); return f; }
+function detectBodyParts(title) {
+  const t=(title||'').toLowerCase(); const f=new Set();
+  for (const part of BODYPART_PRIORITY) {
+    for (const hint of BODYPART_HINTS[part]) { if (t.includes(hint)) { f.add(part); break; } }
+  }
+  return f;
+}
 function setOverlap(a,b){let n=0;for(const x of a)if(b.has(x))n++;return n;}
 function setDifference(a,b){let n=0;for(const x of a)if(!b.has(x))n++;return n;}
 function scoreSimilarity(target, candidate) {
@@ -55,9 +74,14 @@ function scoreSimilarity(target, candidate) {
   const cMove = findHints(candidate.title, MOVEMENT_HINTS);
   const tEquip = findHints(target.title, EQUIPMENT_HINTS);
   const cEquip = findHints(candidate.title, EQUIPMENT_HINTS);
+  const tBody = detectBodyParts(target.title);
+  const cBody = detectBodyParts(candidate.title);
+  const bodyOverlap = setOverlap(tBody, cBody);
+  if (tBody.size > 0 && bodyOverlap === 0) return 0;
+  s += bodyOverlap * 30;
   s += Math.min(50, setOverlap(tMove, cMove) * 25);
   s += Math.min(20, setDifference(cEquip, tEquip) * 10);
-  if (!classSignal && setOverlap(tMove, cMove) === 0) return 0;
+  if (!classSignal && setOverlap(tMove, cMove) === 0 && bodyOverlap === 0) return 0;
   return s;
 }
 function findAlternates(target, library, n = 5) {

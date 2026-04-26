@@ -347,15 +347,34 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       }
     });
     if (fv.some(f => f.pendingBlobId)) drainBlobs();
+    // Capture per-session exercise substitutions so trainer review shows
+    // what the trainee actually did, not just what was prescribed. The
+    // workout exercise.title reflects the swap when one happened, and
+    // `substitution` carries the original eid + library id of the swap-in
+    // for downstream signals (which equipment is bottlenecking which
+    // programs, etc.).
+    const finishedAt = new Date().toISOString();
     onComplete({
       id: workoutId, clientId, planName: plan.name, dayName: day.name,
-      week: weekNum + 1, date: new Date().toISOString(), autoregulation: ar, notes,
+      week: weekNum + 1, date: finishedAt, autoregulation: ar, notes,
       formVideos,
-      exercises: day.ex.map((ex, i) => ({
-        eid: ex.eid, title: EX[ex.eid]?.t || '?',
-        prescribed: (ex.wk && ex.wk[weekNum]) || `${(ex.wkS && ex.wkS[weekNum]) || ex.s}x${(ex.wk && ex.wk[weekNum]) || ex.r}`,
-        sets: allSets[i],
-      })),
+      exercises: day.ex.map((ex, i) => {
+        const sub = substitutions[ex.eid];
+        const prescribedTitle = EX[ex.eid]?.t || '?';
+        return {
+          eid: ex.eid,
+          title: sub ? sub.title : prescribedTitle,
+          prescribed: (ex.wk && ex.wk[weekNum]) || `${(ex.wkS && ex.wkS[weekNum]) || ex.s}x${(ex.wk && ex.wk[weekNum]) || ex.r}`,
+          sets: allSets[i],
+          substitution: sub ? {
+            from: prescribedTitle,
+            fromEid: ex.eid,
+            to: sub.title,
+            toLibId: sub.id,
+            at: finishedAt,
+          } : null,
+        };
+      }),
     });
   };
 

@@ -56,15 +56,45 @@ const MOVEMENT_HINTS = [
   'squat', 'deadlift', 'press', 'bench', 'row', 'pulldown', 'pull-up', 'pullup', 'chinup', 'chin-up',
   'curl', 'extension', 'fly', 'flye', 'raise', 'shrug', 'thrust', 'lunge', 'split', 'step-up',
   'stepup', 'rdl', 'good morning', 'rotation', 'pallof', 'carry', 'farmer', 'dip', 'push-up',
-  'pushup', 'rear delt', 'lateral', 'face pull', 'pullover', 'kickback', 'crunch', 'sit-up',
-  'situp', 'plank', 'hip thrust', 'glute bridge', 'calf', 'hamstring', 'quad', 'chest', 'back',
-  'shoulder', 'tricep', 'bicep', 'core', 'abs', 'oblique',
+  'pushup', 'face pull', 'pullover', 'kickback', 'crunch', 'sit-up',
+  'situp', 'plank', 'hip thrust', 'glute bridge',
 ];
+
+// Body-part hints decisively split common-keyword conflicts ("press" alone is
+// ambiguous — "leg press" vs "bench press" share movement but hit different
+// muscles). Same body-part → strong boost. Target has a body part but
+// candidate has NONE in common → score zeroed out.
+const BODYPART_HINTS = {
+  leg:      ['leg', 'squat', 'lunge', 'split-squat', 'split squat', 'pistol', 'sissy'],
+  hamstring:['hamstring', 'rdl', 'romanian', 'good morning', 'glute-ham', 'leg curl'],
+  glute:    ['glute', 'hip thrust', 'thrust', 'bridge', 'kickback', 'abduction'],
+  calf:     ['calf', 'tibialis'],
+  chest:    ['bench', 'chest', 'fly', 'flye', 'push-up', 'pushup', 'dip', 'incline', 'decline'],
+  back:     ['row', 'pulldown', 'pull-up', 'pullup', 'chin', 'pullover', 'lat'],
+  shoulder: ['press', 'shoulder', 'overhead', 'ohp', 'lateral', 'rear delt', 'face pull', 'shrug', 'raise', 'arnold'],
+  arm:      ['curl', 'tricep', 'bicep', 'kickback', 'extension'],
+  core:     ['plank', 'crunch', 'sit-up', 'situp', 'pallof', 'rotation', 'abs', 'oblique', 'dead-bug', 'dead bug'],
+};
+// Disambiguation: when multiple body parts could match, prefer the more
+// specific signal. "leg press" → leg (because "leg" appears explicitly), even
+// though "press" also matches shoulder.
+const BODYPART_PRIORITY = ['leg', 'hamstring', 'glute', 'calf', 'chest', 'back', 'shoulder', 'arm', 'core'];
 
 const EQUIPMENT_HINTS = [
   'bb', 'barbell', 'db', 'dumbbell', 'kb', 'kettlebell', 'cable', 'machine', 'smith',
   'band', 'banded', 'bodyweight', 'bw', 'sled', 'trx', 'ring', 'sandbag', 'medball', 'medicine ball',
 ];
+
+function detectBodyParts(title) {
+  const t = (title || '').toLowerCase();
+  const found = new Set();
+  for (const part of BODYPART_PRIORITY) {
+    for (const hint of BODYPART_HINTS[part]) {
+      if (t.includes(hint)) { found.add(part); break; }
+    }
+  }
+  return found;
+}
 
 function findHints(title, hints) {
   const t = (title || '').toLowerCase();
@@ -136,14 +166,27 @@ export function scoreSimilarity(target, candidate) {
   const cMove = findHints(candidate.title, MOVEMENT_HINTS);
   const tEquip = findHints(target.title, EQUIPMENT_HINTS);
   const cEquip = findHints(candidate.title, EQUIPMENT_HINTS);
+  const tBody = detectBodyParts(target.title);
+  const cBody = detectBodyParts(candidate.title);
+
+  // Body-part match is the strongest title-only signal — same body part means
+  // we're hitting the same muscle group, which is what substitution needs.
+  // Without this, "Leg Press" would happily match "Bench Press" via "press".
+  const bodyOverlap = setOverlap(tBody, cBody);
+  if (tBody.size > 0 && bodyOverlap === 0) {
+    // Target has a body part we recognise but candidate has none in common
+    // (or has a different body part) → not a real alternate.
+    return 0;
+  }
+  score += bodyOverlap * 30;
 
   // Same movement keyword(s) → 25 per match (capped at 50).
   score += Math.min(50, setOverlap(tMove, cMove) * 25);
   // Different equipment keyword(s) on the candidate → 10 per (capped at 20).
   score += Math.min(20, setDifference(cEquip, tEquip) * 10);
   // Penalise candidates that share NO movement keyword with the target —
-  // unless classification gave us a strong signal.
-  if (!classificationSignal && setOverlap(tMove, cMove) === 0) {
+  // unless classification gave us a strong signal OR they share a body part.
+  if (!classificationSignal && setOverlap(tMove, cMove) === 0 && bodyOverlap === 0) {
     return 0;
   }
 

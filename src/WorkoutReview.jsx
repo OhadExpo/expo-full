@@ -1419,7 +1419,13 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
                     {ex.prescribed} · {doneSets}/{ex.sets.length} sets
                     {(formVideo?.has || formVideo?.cloudUrl) && <span style={{color:C.gn,marginLeft:6}}>📹</span>}
+                    {ex.substitution && <span style={{color:C.or,marginLeft:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={`Swapped from "${ex.substitution.from}"`}>⇄ SWAP</span>}
                   </div>
+                  {ex.substitution && (
+                    <div style={{fontSize:10,color:C.or,marginTop:3,fontFamily:FN,letterSpacing:0.5}}>
+                      replaced "{ex.substitution.from}" mid-session
+                    </div>
+                  )}
                 </div>
                 {nextFocus && <div style={{width:6,height:6,borderRadius:3,background:C.ac,flexShrink:0}} />}
                 <span style={{color:C.td,fontSize:11}}>{isExpanded?'▲':'▼'}</span>
