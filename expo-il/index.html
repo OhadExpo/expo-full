@@ -46,6 +46,34 @@
   <link rel="preload" href="/expo-hero-logo.png"       as="image" fetchpriority="high"/>
 
   <link rel="stylesheet" href="/nord-fonts.css"/>
+
+  <!-- Sitewide structured data — tells Google / WhatsApp this is a real
+       brand with a specific operator + locale. Per-program Product schema
+       is injected client-side from src/App.jsx on the /#/programs/<id>
+       route, AND server-side in the static /programs/<id>.html pages. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "EXPO",
+    "alternateName": "EXPO · Programmed Training",
+    "url": "https://expo-il.co.il",
+    "inLanguage": ["he", "en"]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "EXPO",
+    "url": "https://expo-il.co.il",
+    "logo": "https://expo-il.co.il/expo-hero-logo.png",
+    "founder": { "@type": "Person", "name": "Ohad Yossifoff" },
+    "sameAs": [
+      "https://www.instagram.com/ohadaptable/"
+    ]
+  }
+  </script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     html,body{background:#000000;color:#f0f0f4;font-family:'Nord','DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}

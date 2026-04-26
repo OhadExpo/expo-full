@@ -126,6 +126,43 @@ function buildSvg(p) {
 </svg>`;
 }
 
+function buildHomeSvg() {
+  const W = 1200, H = 630;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#000000"/>
+      <stop offset="100%" stop-color="#0a0a14"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#39BDFF" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#39BDFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="${W}" height="${H}" fill="url(#bg)"/>
+  <rect x="0" y="0" width="${W}" height="240" fill="url(#glow)"/>
+  <rect x="40" y="40" width="${W - 80}" height="${H - 80}" fill="none" stroke="#39BDFF" stroke-width="1" stroke-opacity="0.3" rx="20"/>
+
+  <!-- Centered EXPO mark with chevron -->
+  <polygon points="540,135 600,75 660,135" fill="#39BDFF"/>
+  <text x="${W / 2}" y="225" text-anchor="middle" font-family="sans-serif" font-size="92" font-weight="800" letter-spacing="-1" fill="#f0f0f4">EXPO</text>
+
+  <!-- Tagline -->
+  <text x="${W / 2}" y="330" text-anchor="middle" font-family="sans-serif" font-size="20" font-weight="700" letter-spacing="6" fill="#39BDFF">PROGRAMMED TRAINING</text>
+
+  <!-- Headline -->
+  <text x="${W / 2}" y="430" text-anchor="middle" font-family="sans-serif" font-size="58" font-weight="800" fill="#f0f0f4" letter-spacing="-1">Programs that actually work</text>
+
+  <!-- Subline -->
+  <text x="${W / 2}" y="490" text-anchor="middle" font-family="sans-serif" font-size="22" font-weight="400" fill="#7a7a88">Block-periodised templates by Ohad · expo-il.co.il</text>
+
+  <!-- Bottom social-proof strip -->
+  <text x="${W / 2}" y="${H - 65}" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="700" letter-spacing="3" fill="#444450">20+ PRIVATE CLIENTS  ·  90+ PROGRAMS  ·  500+ EXERCISES</text>
+</svg>`;
+}
+
 async function main() {
   if (!existsSync(srcPath)) {
     console.error('missing programs.js');
@@ -137,6 +174,7 @@ async function main() {
     process.exit(2);
   }
   mkdirSync(outDir, { recursive: true });
+  // Per-program cards.
   for (const p of programs) {
     const svg = Buffer.from(buildSvg(p));
     const out = resolve(outDir, `${p.id}.png`);
@@ -144,7 +182,14 @@ async function main() {
     const stat = readFileSync(out).length;
     console.log(`  ${p.id.padEnd(28)} ${(stat / 1024).toFixed(1)} KB`);
   }
-  console.log(`\nwrote ${programs.length} OG cards → public/og/`);
+  // Home card — replaces public/og-cover.png so the apex shares with the
+  // same visual ruling as the per-program cards.
+  const homeSvg = Buffer.from(buildHomeSvg());
+  const homeOut = resolve(root, 'public', 'og-cover.png');
+  await sharp(homeSvg).png({ quality: 90, compressionLevel: 9 }).toFile(homeOut);
+  const homeStat = readFileSync(homeOut).length;
+  console.log(`  ${'(home)'.padEnd(28)} ${(homeStat / 1024).toFixed(1)} KB`);
+  console.log(`\nwrote ${programs.length} program OG cards + 1 home OG card`);
 }
 
 main().catch((e) => { console.error(e); process.exit(3); });
