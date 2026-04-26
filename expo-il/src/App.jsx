@@ -99,10 +99,10 @@ function Nav() {
   // re-render, then scroll. We can't rely on the native browser anchor because
   // our hashes look like '#/' not '#contact', so id-based anchor scrolling never fires.
   const tabs = [
-    { key: 'programs', label: t('nav.programs'), count: null, anchor: 'top'     },
-    { key: 'about',    label: t('nav.about'),    count: null, anchor: 'about'   },
-    { key: 'how',      label: t('nav.how'),      count: null, anchor: 'how'     },
-    { key: 'contact',  label: t('nav.contact'),  count: null, anchor: 'contact' },
+    { key: 'programs', label: t('nav.programs'), count: PROGRAMS.length, anchor: 'top'     },
+    { key: 'about',    label: t('nav.about'),    count: null,            anchor: 'about'   },
+    { key: 'how',      label: t('nav.how'),      count: null,            anchor: 'how'     },
+    { key: 'contact',  label: t('nav.contact'),  count: null,            anchor: 'contact' },
   ];
   const [active, setActive] = useState('programs');
   // Scroll-spy: as the user scrolls, mark whichever section is closest to the
@@ -291,6 +291,63 @@ function Hero() {
   );
 }
 
+// ShareButton: uses the Web Share API on mobile (one-tap to system share
+// sheet — WhatsApp, Telegram, etc.) and falls back to copy-to-clipboard on
+// desktop browsers without it. The shared URL is the canonical clean
+// /programs/<id> path so the recipient lands on the per-program OG card.
+function ShareButton({ programId, programTitle, size = 'sm' }) {
+  const t = useT();
+  const [copied, setCopied] = useState(false);
+  const handleShare = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const url = `https://expo-il.co.il/programs/${programId}`;
+    const text = t('card.share.text.tmpl', { title: programTitle });
+    // Native share sheet on mobile if available.
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ title: programTitle, text, url });
+        trackAndOpen('program_share', { programId, channel: 'webshare' });
+        return;
+      } catch (err) {
+        // User cancelled or share failed — fall through to clipboard fallback.
+        if (err && err.name === 'AbortError') return;
+      }
+    }
+    // Clipboard fallback.
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+      trackAndOpen('program_share', { programId, channel: 'clipboard' });
+    } catch {}
+  };
+  const dim = size === 'lg' ? { padding: '8px 14px', fontSize: 12 } : { padding: '6px 10px', fontSize: 11 };
+  return (
+    <button onClick={handleShare} aria-label={t('card.share')} title={t('card.share')} style={{
+      ...baseBtn,
+      background: copied ? C.acD : 'transparent',
+      color: copied ? C.ac : C.tm,
+      border: `1px solid ${copied ? C.ac : C.bd}`,
+      borderRadius: 6, fontWeight: 700, letterSpacing: 1,
+      ...dim,
+    }}>
+      {copied ? (
+        <span>{t('card.share.copied')}</span>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 function ProgramMeta({ p }) {
   const meta = [];
   if (p.level) meta.push(p.level);
@@ -369,7 +426,8 @@ function ProgramCard({ p }) {
             {p.price} <span style={{ fontSize: 13, color: C.tm }}>{currency}</span>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <ShareButton programId={p.id} programTitle={p.title} />
           <a href={`#/programs/${p.id}`} style={{
             ...baseBtn,
             background: 'transparent', color: C.tm,
@@ -839,6 +897,38 @@ function AboutCoach() {
           </div>
         ))}
       </div>
+
+      {/* "What I value" — three philosophy tiles. Stronger credibility signal
+          than the credentials strip alone because they tell the buyer how
+          decisions get made inside the program. */}
+      <div style={{ marginTop: 36 }}>
+        <div style={{
+          fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+          marginBottom: 16, fontWeight: 700,
+        }}>{t('about.values.h')}</div>
+        <div style={{
+          display: 'grid', gap: 14,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+        }}>
+          {[
+            { t: t('about.values.t1'), d: t('about.values.d1') },
+            { t: t('about.values.t2'), d: t('about.values.d2') },
+            { t: t('about.values.t3'), d: t('about.values.d3') },
+          ].map((v, i) => (
+            <div key={i} style={{
+              background: C.sf, border: `0.25px solid ${C.ac4D}`,
+              borderRadius: 12, padding: 16,
+            }}>
+              <div style={{ fontFamily: FB, fontSize: 15, fontWeight: 700, color: C.tx, marginBottom: 6 }}>
+                {v.t}
+              </div>
+              <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.55 }}>
+                {v.d}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
@@ -1192,12 +1282,18 @@ function ProgramDetail({ program }) {
   const currency = t('card.currency.' + program.currency) === 'card.currency.' + program.currency ? program.currency : t('card.currency.' + program.currency);
   return (
     <article style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 16px 80px' }}>
-      <a href="#/" style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        fontFamily: FN, fontSize: 12, color: C.tm, marginBottom: 24, letterSpacing: 1,
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 12, marginBottom: 24, flexWrap: 'wrap',
       }}>
-        {t('detail.back')}
-      </a>
+        <a href="#/" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1,
+        }}>
+          {t('detail.back')}
+        </a>
+        <ShareButton programId={program.id} programTitle={program.title} size="lg" />
+      </div>
 
       <header style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center', justifyContent: 'center' }}>

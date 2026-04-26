@@ -57,6 +57,12 @@ const STRINGS = {
   'card.view':           { en: 'VIEW',           he: 'הצצה' },
   'card.buy':            { en: 'BUY →',          he: '← קנייה' },
   'card.currency.NIS':   { en: 'NIS',            he: '₪' },
+  'card.share':          { en: 'Share program',  he: 'שתף תוכנית' },
+  'card.share.copied':   { en: 'LINK COPIED',    he: 'הקישור הועתק' },
+  'card.share.text.tmpl': {
+    en: 'Check out {title} by EXPO',
+    he: 'תראה את {title} של EXPO',
+  },
 
   // ─── How it works ─────────────────────────────────────────────────
   'how.badge':           { en: 'HOW IT WORKS',   he: 'איך זה עובד' },
@@ -174,12 +180,33 @@ const STRINGS = {
     en: "EXPO templates exist because I can't take more 1:1 clients than my schedule allows, but the programming is good enough to deliver as standalone product. Same blocks, same auto-regulation, no waitlist.",
     he: 'תבניות EXPO קיימות כי אני לא יכול לקחת יותר לקוחות מכמה שהיום נותן לי. אבל התוכניות עצמן מספיק טובות לעמוד כמוצר עצמאי. אותם בלוקים. אותה אוטו-רגולציה. בלי רשימת המתנה.',
   },
+
+  // Existing 3-credential strip
   'about.cred1':         { en: 'Athletic Performance Coach',  he: 'מאמן יכולות אתלטיות' },
   'about.cred1.s':       { en: '@ Bnei Herzliya',             he: '@ בני הרצליה' },
   'about.cred2':         { en: 'NCAA football',               he: 'פוטבול NCAA' },
   'about.cred2.s':       { en: '4 yrs · CMU, OUI, TAU',       he: '4 שנים · CMU, OUI, TAU' },
   'about.cred3':         { en: 'Built the EXPO portal',       he: 'בניתי את פורטל EXPO' },
   'about.cred3.s':       { en: 'and use it daily',            he: 'משתמש בו כל יום' },
+
+  // Three deeper credibility tiles below the credentials strip
+  'about.values.h':      { en: 'WHAT I VALUE',                he: 'מה חשוב לי' },
+  'about.values.t1':     { en: 'Auto-regulation over heroics', he: 'אוטו-רגולציה לפני גבורה' },
+  'about.values.d1': {
+    en: 'Loads adjust to the RPE you log, not the number on a spreadsheet. The block respects what your body actually has on the day.',
+    he: 'העומס מתאים את עצמו ל-RPE שאתה מתעד, לא למספר בגיליון. הבלוק מכבד את מה שיש לך באמת באותו יום.',
+  },
+  'about.values.t2':     { en: 'Movement first, load second', he: 'תנועה לפני עומס' },
+  'about.values.d2': {
+    en: 'Tempo and ROM cues come before percentage charts. If the rep looks ugly, the weight comes off — no negotiation.',
+    he: 'מסרי טמפו וטווח תנועה באים לפני אחוזים. אם החזרה מכוערת, המשקל יורד — בלי משא ומתן.',
+  },
+  'about.values.t3':     { en: 'Build for the long run',      he: 'בונים לטווח הארוך' },
+  'about.values.d3': {
+    en: 'Pain check-ins, deload weeks, and reassess windows are baked into every block. You don\'t get strong by training through dysfunction.',
+    he: 'דיווחי כאב, שבועות דלואד וחלונות הערכה מחדש מובנים בכל בלוק. לא מתחזקים מהתאמנות דרך תפקוד לקוי.',
+  },
+
   'about.photo.note': {
     en: 'Photo coming soon',
     he: 'תמונה בקרוב',
