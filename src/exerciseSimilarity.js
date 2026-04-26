@@ -47,6 +47,46 @@ function overlapCount(a, b) {
   return n;
 }
 
+// Movement-suggesting tokens that appear in exercise titles. Used by the
+// title-fallback path when classification fields are empty (the current state
+// of ~all exercises in the Supabase library as of 2026-04-26 — until that
+// classification gets populated, we still need substitution to produce
+// reasonable alternates from title alone).
+const MOVEMENT_HINTS = [
+  'squat', 'deadlift', 'press', 'bench', 'row', 'pulldown', 'pull-up', 'pullup', 'chinup', 'chin-up',
+  'curl', 'extension', 'fly', 'flye', 'raise', 'shrug', 'thrust', 'lunge', 'split', 'step-up',
+  'stepup', 'rdl', 'good morning', 'rotation', 'pallof', 'carry', 'farmer', 'dip', 'push-up',
+  'pushup', 'rear delt', 'lateral', 'face pull', 'pullover', 'kickback', 'crunch', 'sit-up',
+  'situp', 'plank', 'hip thrust', 'glute bridge', 'calf', 'hamstring', 'quad', 'chest', 'back',
+  'shoulder', 'tricep', 'bicep', 'core', 'abs', 'oblique',
+];
+
+const EQUIPMENT_HINTS = [
+  'bb', 'barbell', 'db', 'dumbbell', 'kb', 'kettlebell', 'cable', 'machine', 'smith',
+  'band', 'banded', 'bodyweight', 'bw', 'sled', 'trx', 'ring', 'sandbag', 'medball', 'medicine ball',
+];
+
+function findHints(title, hints) {
+  const t = (title || '').toLowerCase();
+  const found = new Set();
+  for (const h of hints) {
+    if (t.includes(h)) found.add(h);
+  }
+  return found;
+}
+
+function setOverlap(a, b) {
+  let n = 0;
+  for (const x of a) if (b.has(x)) n++;
+  return n;
+}
+
+function setDifference(a, b) {
+  let n = 0;
+  for (const x of a) if (!b.has(x)) n++;
+  return n;
+}
+
 export function scoreSimilarity(target, candidate) {
   if (!target || !candidate) return 0;
   if (target.id === candidate.id) return -Infinity;
@@ -54,31 +94,57 @@ export function scoreSimilarity(target, candidate) {
 
   let score = 0;
 
+  // ─── Classification-based path (preferred when populated) ─────────
+  let classificationSignal = false;
   if (target.movementPattern && candidate.movementPattern === target.movementPattern) {
-    score += 40;
+    score += 40; classificationSignal = true;
   }
   if (target.category && candidate.category === target.category) {
-    score += 20;
+    score += 20; classificationSignal = true;
   }
   if (target.movementType && candidate.movementType === target.movementType) {
-    score += 15;
+    score += 15; classificationSignal = true;
   }
   // The whole point of substitution: prefer DIFFERENT equipment so the
   // trainee actually solves their busy-machine problem.
   if (target.resistanceType && candidate.resistanceType
       && candidate.resistanceType !== target.resistanceType) {
-    score += 15;
+    score += 15; classificationSignal = true;
   }
   if (target.bodyPosition && candidate.bodyPosition === target.bodyPosition) {
-    score += 10;
+    score += 10; classificationSignal = true;
   }
   if (target.laterality && candidate.laterality === target.laterality) {
-    score += 10;
+    score += 10; classificationSignal = true;
   }
-  score += overlapCount(target.primaryMuscles, candidate.primaryMuscles) * 10;
-  score += overlapCount(target.secondaryMuscles, candidate.secondaryMuscles) * 5;
+  if (target.primaryMuscles) {
+    const muscleHits = overlapCount(target.primaryMuscles, candidate.primaryMuscles);
+    if (muscleHits > 0) { score += muscleHits * 10; classificationSignal = true; }
+  }
+  if (target.secondaryMuscles) {
+    score += overlapCount(target.secondaryMuscles, candidate.secondaryMuscles) * 5;
+  }
   if (target.jointMovements && candidate.jointMovements === target.jointMovements) {
-    score += 5;
+    score += 5; classificationSignal = true;
+  }
+
+  // ─── Title-token fallback (always contributes a smaller weight) ───
+  // This makes the algorithm useful even when the library is unclassified.
+  // Same movement keyword in title = strong signal. Different equipment
+  // keyword in title = the substitution we want.
+  const tMove = findHints(target.title, MOVEMENT_HINTS);
+  const cMove = findHints(candidate.title, MOVEMENT_HINTS);
+  const tEquip = findHints(target.title, EQUIPMENT_HINTS);
+  const cEquip = findHints(candidate.title, EQUIPMENT_HINTS);
+
+  // Same movement keyword(s) → 25 per match (capped at 50).
+  score += Math.min(50, setOverlap(tMove, cMove) * 25);
+  // Different equipment keyword(s) on the candidate → 10 per (capped at 20).
+  score += Math.min(20, setDifference(cEquip, tEquip) * 10);
+  // Penalise candidates that share NO movement keyword with the target —
+  // unless classification gave us a strong signal.
+  if (!classificationSignal && setOverlap(tMove, cMove) === 0) {
+    return 0;
   }
 
   return score;

@@ -6,6 +6,19 @@ import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
 import { FormVideoPlayer } from './WorkoutReview';
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob } from './blobQueue';
+import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
+
+// Feature gate for the swap-exercise UI. The intent (per Ohad 2026-04-26) is
+// that substitution is ONLY for trainees on expo-il template-purchased plans —
+// his manually-coached private clients should never see this button because he
+// handles substitutions for them himself. Until plans carry an explicit
+// `is_template_purchase` column we detect template plans via name prefix
+// `[EXPO]`. Helper below; tighten once the column lands.
+function isTemplatePlan(plan) {
+  if (!plan) return false;
+  const n = (plan.name || '').toLowerCase();
+  return n.startsWith('[expo]') || n.startsWith('expo · ') || n.startsWith('expo - ');
+}
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -73,11 +86,17 @@ const bi = {background:C.sf2,border:`0.25px solid ${C.ac}4D`,borderRadius:6,padd
 const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,fontFamily:FN,background:`${color}18`,color,...s}}>{children}</span>;
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
-function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus}) {
+function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, allowSubstitution}) {
   // Steps: 'wu0','wu1',... → 'pre' → 0,1,2,... (group indices) → 'end'
   const warmup = plan.warmup || [];
   const wuCount = warmup.length;
   const exCount = day.ex.length;
+
+  // Per-session substitutions: { [originalEid]: libraryExercise }. Resets on
+  // workout finish or if the trainee navigates away from this day. The
+  // prescribed plan is never mutated — substitution lives only in this state.
+  const [substitutions, setSubstitutions] = useState({});
+  const [swapOpenForEid, setSwapOpenForEid] = useState(null);
 
   // Group consecutive exercises sharing the same superset letter.
   // groups[i] = { exIdxs: [0,1,...], superset: 'A' | '' }
@@ -449,7 +468,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
   // Render one complete exercise block: title → prescription → tempo → wave → notes → video → weekly focus → set log → form check
   const renderExerciseBlock = (g, blockIdx) => {
-    const { idx: ei, ex, d } = g;
+    const { idx: ei, ex, d: dPrescribed } = g;
+    // If the trainee swapped this exercise for an alternate this session,
+    // overlay the substituted exercise's title/video/cues on top of the
+    // prescribed one. ex.eid (the original) is preserved for logging.
+    const sub = substitutions[ex.eid];
+    const d = sub ? { ...dPrescribed, ...libExerciseToEx(sub) } : dPrescribed;
     const vid = ytId(d.vid);
     const hw = ex.wk?.length > 0;
     const wr = hw ? (ex.wk[weekNum] ?? ex.r) : null;
@@ -459,7 +483,36 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
     return <div key={ei} style={{marginBottom: blockIdx < groupExs.length - 1 ? 24 : 0, paddingBottom: blockIdx < groupExs.length - 1 ? 20 : 0, borderBottom: blockIdx < groupExs.length - 1 ? `2px dashed ${C.bd2}` : 'none'}}>
       {isSuperset && <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em',textAlign:'center',marginBottom:8}}>EXERCISE {blockIdx+1} OF {groupExs.length}</div>}
-      <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{d.t}</h2>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:6}}>
+        <h2 style={{margin:0,fontFamily:FN,fontSize:18,textAlign:'center'}}>{d.t}</h2>
+        {allowSubstitution && (
+          <button onClick={() => setSwapOpenForEid(ex.eid)} title="Swap for an alternate" aria-label="Swap exercise"
+            style={{background:'transparent',border:`1px solid ${sub?C.ac:C.bd}`,color:sub?C.ac:C.tm,
+              borderRadius:6,padding:'4px 8px',cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,
+              letterSpacing:0.5,display:'inline-flex',alignItems:'center',gap:4}}>
+            <span style={{fontSize:12,lineHeight:1}}>⇄</span>
+            <span>{sub ? 'SWAPPED' : 'SWAP'}</span>
+          </button>
+        )}
+      </div>
+      {sub && (
+        <div style={{textAlign:'center',marginBottom:6,fontFamily:FN,fontSize:10,color:C.td,letterSpacing:1}}>
+          REPLACES "{dPrescribed.t}" ·{' '}
+          <button onClick={() => setSubstitutions(s => { const n={...s}; delete n[ex.eid]; return n; })}
+            style={{background:'transparent',border:'none',color:C.tm,fontFamily:FN,fontSize:10,letterSpacing:1,cursor:'pointer',textDecoration:'underline',padding:0}}>
+            UNDO
+          </button>
+        </div>
+      )}
+      {swapOpenForEid === ex.eid && (
+        <ExerciseSubstitution
+          currentTitle={dPrescribed.t}
+          currentEx={dPrescribed}
+          library={trainerExercises || []}
+          onPick={(lib) => setSubstitutions(s => ({ ...s, [ex.eid]: lib }))}
+          onClose={() => setSwapOpenForEid(null)}
+        />
+      )}
       <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{wr || `${ex.s} × ${ex.r}`}</div>
       {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
 
@@ -722,7 +775,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
     for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
     if (!targetPlan) { setLg(null); return null; }
-    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus}/>; }
+    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} allowSubstitution={isTemplatePlan(targetPlan)}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
