@@ -561,12 +561,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{marginBottom:10}}>
             <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
             <div style={{display:'flex',gap:8,marginTop:6}}>
-              <label style={{flex:1,padding:8,borderRadius:6,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:12,textAlign:'center',cursor:'pointer'}}>
+              {/* Replace + Remove are both disabled while an upload is in
+                  flight — otherwise picking a new file mid-upload would race
+                  the previous upload's setFv against the new one's. */}
+              <label style={{flex:1,padding:8,borderRadius:6,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:12,textAlign:'center',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1,pointerEvents:f.uploading?'none':'auto'}}>
                 Replace
-                <input type="file" accept="video/*" capture="environment" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
+                <input type="file" accept="video/*" capture="environment" style={{display:'none'}} disabled={f.uploading} onChange={async e => { await handleVideoUpload(e, ei); }} />
               </label>
-              <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
-                style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>
+              <button disabled={f.uploading} onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
+                style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1}}>
                 Remove
               </button>
             </div>
