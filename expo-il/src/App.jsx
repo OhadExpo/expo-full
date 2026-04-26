@@ -1438,19 +1438,16 @@ export default function App() {
   }, [docTitleKey]);
 
   return (
-    <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB }}>
+    <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, textAlign: 'center' }}>
       {/* Stack the "what's inside" grid (phone + tiles) on narrow viewports,
           and hide the sticky CTA on tablet+ where the user can already see
           the nav + buy buttons without scrolling. */}
       <style>{`
         /* Offset section anchors so the sticky 56px header doesn't overlap them. */
         #programs, #inside, #about, #why, #how, #contact { scroll-margin-top: 64px; }
-        /* Centre every section's title block (accent badge + h2 + intro
-           paragraph). The structural body that follows (grids, tables) keeps
-           its own alignment because it's nested deeper. */
-        section > div:first-child { text-align: center; }
-        section > h2 { text-align: center; }
-        section > p { text-align: center; margin-left: auto; margin-right: auto; }
+        /* Center-align everything by default — root sets text-align:center
+           and only the few places that need otherwise (phone-mock inner
+           screens, which mimic a left-aligned mobile UI) override locally. */
         /* Scroll-fade: sections start invisible, fade + slide in once visible.
            Honors prefers-reduced-motion. */
         section { opacity: 0; transform: translateY(12px); transition: opacity 600ms ease, transform 600ms ease; }
