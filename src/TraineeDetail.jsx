@@ -245,14 +245,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <Btn onClick={()=>setShowPayForm(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Add Payment</Btn></div>
       {tPay.length===0?<div style={{color:C.td,fontSize:13}}>No payments recorded.</div>:(
         <div style={{overflowX:"auto",marginBottom:16}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
-          <thead><tr style={{borderBottom:`1px solid ${C.bd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"left",padding:"6px 10px",fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
+          <thead><tr style={{borderBottom:`1px solid ${C.bd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
           <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.bd}`}}>
-            <td style={{padding:"8px 10px",color:C.tm}}>{new Date(p.date).toLocaleDateString()}</td>
-            <td style={{padding:"8px 10px",color:C.gn,fontWeight:600}}>₪{parseFloat(p.amount).toLocaleString()}</td>
-            <td style={{padding:"8px 10px",color:C.tm}}>{p.method}</td>
-            <td style={{padding:"8px 10px"}}><Badge color={p.status==="Paid"?C.gn:p.status==="Overdue"?C.rd:C.or}>{p.status}</Badge></td>
-            <td style={{padding:"8px 10px",color:C.td}}>{p.notes||"—"}</td>
-            <td style={{padding:"8px 10px",whiteSpace:"nowrap"}}>
+            <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{new Date(p.date).toLocaleDateString()}</td>
+            <td style={{padding:"8px 10px",color:C.gn,fontWeight:600,textAlign:"center"}}>₪{parseFloat(p.amount).toLocaleString()}</td>
+            <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{p.method}</td>
+            <td style={{padding:"8px 10px",textAlign:"center"}}><Badge color={p.status==="Paid"?C.gn:p.status==="Overdue"?C.rd:C.or}>{p.status}</Badge></td>
+            <td style={{padding:"8px 10px",color:C.td,textAlign:"center"}}>{p.notes||"—"}</td>
+            <td style={{padding:"8px 10px",whiteSpace:"nowrap",textAlign:"center"}}>
               <button onClick={()=>handleEditPay(p)} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
               <button onClick={()=>handleDeletePay(p.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginLeft:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}

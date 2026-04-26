@@ -35,7 +35,7 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
 
   const toggleSort = (key) => { if (sort === key) setDir(d => d * -1); else { setSort(key); setDir(1); } };
   const SH = ({ k, label }) => (
-    <th onClick={() => toggleSort(k)} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: sort === k ? C.ac : C.td, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+    <th onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: sort === k ? C.ac : C.td, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
       {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
     </th>
   );
@@ -160,13 +160,13 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
               <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
                 <SH k="name" label="Client" />
                 <SH k="status" label="Status" />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Format</th>
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Package</th>
+                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Format</th>
+                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Package</th>
                 <SH k="sessions" label="Sessions" />
                 <SH k="paid" label="Total Paid" />
                 <SH k="lastPay" label="Last Payment" />
                 <SH k="workouts" label="Workouts" />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Programs</th>
+                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Programs</th>
               </tr>
             </thead>
             <tbody>
