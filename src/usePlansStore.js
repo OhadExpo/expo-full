@@ -55,6 +55,7 @@ export function usePlanIndex() {
             active: p.active,
             createdAt: p.created_at,
             updatedAt: p.updated_at,
+            weeks: p.data?.weeks || 4,
             dayCount: days.length,
             exerciseCount: days.reduce((a, d) => a + ((d.exercises || d.ex || []).length), 0),
             dayNames: days.map(d => d.name),

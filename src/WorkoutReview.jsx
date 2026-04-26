@@ -1316,7 +1316,18 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   if (selectedWo) {
     const wo = clientWorkouts.find(w => w.id === selectedWo);
     if (!wo) { setSelectedWo(null); return null; }
-    const nextWeek = (wo.week || 1) + 1 > 4 ? 4 : (wo.week || 1) + 1;
+    // Look up the plan's actual length (default 4 if we can't find it).
+    // Match by trainee + plan name so we don't pick up another trainee's
+    // plan with the same name.
+    const planRec = (planIndex || []).find(p => p.traineeId === wo.clientId && p.name === wo.planName)
+                 || (planIndex || []).find(p => p.name === wo.planName);
+    const planWeeks = planRec?.weeks || 4;
+    const currentWeek = wo.week || 1;
+    const isLastWeekOfBlock = currentWeek >= planWeeks;
+    // When on the last week of the block, there's no "next week" inside this
+    // block. The editor still shows so the trainer can capture an end-of-
+    // block takeaway, but it's labelled and aimed differently.
+    const nextWeek = isLastWeekOfBlock ? currentWeek : currentWeek + 1;
     const completedSets = wo.exercises.reduce((a, ex) => a + ex.sets.filter(s => s.done).length, 0);
     const totalSets = wo.exercises.reduce((a, ex) => a + ex.sets.length, 0);
 
@@ -1496,23 +1507,31 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     </div>
                   )}
 
-                  {/* Weekly Focus editor for NEXT week */}
+                  {/* Weekly Focus editor — for NEXT week of the same block,
+                      or an END-OF-BLOCK takeaway when this is the final week. */}
                   <div style={{background:C.acD,borderRadius:8,padding:12,border:`1px solid ${C.ac}20`}}>
                     <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,textAlign:'center'}}>
-                      WEEKLY FOCUS — W{nextWeek} (next)
+                      {isLastWeekOfBlock
+                        ? `END-OF-BLOCK NOTE — W${currentWeek}/${planWeeks}`
+                        : `WEEKLY FOCUS — W${nextWeek} OF ${planWeeks}`}
                     </div>
                     <textarea
                       value={nextFocus}
                       onChange={e => setFocus(wo.planName, wo.dayName, ex.eid, nextWeek, e.target.value)}
-                      placeholder={`Based on this performance, what should they focus on next week?`}
+                      placeholder={isLastWeekOfBlock
+                        ? `Last week of the block. Anything to carry into the next block? Load ceiling, pattern fixes, etc.`
+                        : `Based on this performance, what should they focus on next week?`}
                       style={{...bi,minHeight:50,resize:"vertical",borderColor:nextFocus?C.ac+'40':C.bd,fontSize:12}}
                     />
-                    {/* All 4 weeks mini-view */}
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:3,marginTop:6}}>
-                      {[1,2,3,4].map(w => {
+                    {/* Block weeks mini-view (W1..planWeeks) — adapts to the
+                        actual block length. Caps the visible columns at 8 to
+                        keep the row readable on long blocks (16w shows 8 then
+                        wraps via flex). */}
+                    <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(planWeeks, 8)},1fr)`,gap:3,marginTop:6}}>
+                      {Array.from({length: planWeeks}, (_, i) => i + 1).map(w => {
                         const f = getFocus(wo.planName, wo.dayName, ex.eid, w);
-                        const isCurrent = w === (wo.week||1);
-                        const isNext = w === nextWeek;
+                        const isCurrent = w === currentWeek;
+                        const isNext = !isLastWeekOfBlock && w === nextWeek;
                         return (
                           <div key={w} style={{padding:"3px 4px",borderRadius:3,
                             background:isNext?C.ac+'15':isCurrent?C.gn+'10':C.sf2,
