@@ -642,6 +642,52 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{wr || `${ex.s} × ${ex.r}`}</div>
       {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
 
+      {/* Last-time-at-this-exercise hint — pulls the most recent prior session
+          for this stableId from priorWorkouts and shows its top set inline.
+          Helps the trainee aim for progressive overload without flipping to
+          another tab. Honors substitutions: if the trainee swapped this
+          session's exercise, the hint looks up the swap-in's prior bests. */}
+      {(() => {
+        if (!priorWorkouts || priorWorkouts.length === 0) return null;
+        const stableId = sub ? (sub.id || `swap:${(sub.title||'').toLowerCase()}`) : ex.eid;
+        let bestPrior = null;
+        for (const w of priorWorkouts) {
+          for (const px of (w.exercises || [])) {
+            const pSub = px.substitution;
+            const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
+            if (pStableId !== stableId) continue;
+            for (const s of (px.sets || [])) {
+              if (!s.done) continue;
+              const load = parseFloat(s.load) || 0;
+              if (load <= 0) continue;
+              const reps = parseFloat(s.reps) || 0;
+              const rpe = s.rpe ?? null;
+              if (!bestPrior || load > bestPrior.load || (load === bestPrior.load && new Date(w.date) > new Date(bestPrior.date))) {
+                bestPrior = { load, reps, rpe, date: w.date };
+              }
+            }
+          }
+        }
+        if (!bestPrior) return null;
+        const days = Math.max(1, Math.round((Date.now() - new Date(bestPrior.date).getTime()) / 86400000));
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
+            <div style={{
+              padding: '6px 10px',
+              background: C.sf2, border: `0.25px solid ${C.bd}`, borderRadius: 6,
+              display: 'inline-flex', alignItems: 'baseline', gap: 8,
+              fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.4,
+            }}>
+              <span style={{ color: C.td, letterSpacing: 1, fontWeight: 700, fontSize: 9 }}>LAST</span>
+              <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.load}<span style={{ color: C.tm, fontWeight: 400 }}> kg</span></span>
+              <span style={{ color: C.tm }}>×{bestPrior.reps || '—'}</span>
+              {bestPrior.rpe != null && bestPrior.rpe !== '' && <span style={{ color: C.tm }}>· RPE {bestPrior.rpe}</span>}
+              <span style={{ color: C.td, fontSize: 10 }}>· {days}d ago</span>
+            </div>
+          </div>
+        );
+      })()}
+
       {hw && <div style={{background:C.sf2,borderRadius:10,padding:10,marginTop:12,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
           {ex.wk.map((w,i) => <div key={i} style={{background:weekNum===i?C.acD:C.sf3,border:`1px solid ${weekNum===i?C.ac+'60':C.bd}`,borderRadius:6,padding:6,textAlign:'center'}}>
@@ -917,6 +963,36 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
   // and History so the layout stays consistent across tabs.
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
+  // Workout streak: consecutive distinct days with at least one logged
+  // workout, counted backwards from today (or yesterday — gives the trainee
+  // until the end of the current day to add today's session without
+  // breaking the streak).
+  const streak = (() => {
+    if (!cw || cw.length === 0) return 0;
+    const days = new Set();
+    for (const w of cw) {
+      const d = new Date(w.date);
+      if (isNaN(d.getTime())) continue;
+      days.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+    }
+    let count = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Allow today itself OR yesterday to start the streak (trainee may not
+    // have worked out yet today but is still on a roll).
+    const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+    const yest = new Date(today.getTime() - 86400000);
+    const yestKey = `${yest.getFullYear()}-${yest.getMonth()}-${yest.getDate()}`;
+    let cursor = days.has(todayKey) ? today : (days.has(yestKey) ? yest : null);
+    while (cursor) {
+      const k = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+      if (days.has(k)) {
+        count++;
+        cursor = new Date(cursor.getTime() - 86400000);
+      } else break;
+    }
+    return count;
+  })();
   const renderTopHeader = () => (
     <>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
@@ -930,11 +1006,17 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>
         </div>
         <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx,textAlign:'center'}}>Hey {clientName.split(' ')[0]} 💪</h1>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end'}}>
-          <div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:14}}>
+          <div style={{flex:1,minWidth:0}}>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div>
           </div>
-          <div style={{textAlign:'right'}}>
+          {streak >= 2 && (
+            <div style={{textAlign:'right',flexShrink:0}} title={`${streak} consecutive days with a logged workout`}>
+              <div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:C.or}}>🔥{streak}</div>
+              <div style={{fontSize:9,color:C.tm,fontFamily:FN}}>STREAK</div>
+            </div>
+          )}
+          <div style={{textAlign:'right',flexShrink:0}}>
             <div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.gn}}>{sl}</div>
             <div style={{fontSize:9,color:C.tm,fontFamily:FN}}>SESSIONS</div>
           </div>

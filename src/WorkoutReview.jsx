@@ -1625,6 +1625,34 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         Review completed workouts, watch client form videos, and write focus notes for next week.
       </div>
 
+      {/* Review queue — pending unreviewed workouts (with priority for those that have form videos) */}
+      {(() => {
+        const queue = (clientWorkouts || []).filter(w => !w.reviewedAt);
+        if (queue.length === 0) return null;
+        const withVideo = queue.filter(w => w.formVideos?.some(f => f?.cloudUrl)).length;
+        return (
+          <div style={{
+            display:'flex',justifyContent:'space-between',alignItems:'center',
+            background:C.sf, border:`1px solid ${C.ac}40`, borderRadius:10,
+            padding:'10px 14px', marginBottom:14,
+          }}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <div style={{
+                width:28,height:28,borderRadius:8,background:C.acD,
+                display:'flex',alignItems:'center',justifyContent:'center',
+                fontFamily:FN,fontSize:12,fontWeight:700,color:C.ac,
+              }}>{queue.length}</div>
+              <div>
+                <div style={{fontFamily:FN,fontSize:11,color:C.ac,letterSpacing:1.2,fontWeight:700}}>REVIEW QUEUE</div>
+                <div style={{fontFamily:FB,fontSize:11,color:C.tm,marginTop:2}}>
+                  {queue.length} pending · {withVideo} with form video{withVideo === 1 ? '' : 's'}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Substitution insights — aggregates swaps logged by template trainees */}
       <SubstitutionInsights clientWorkouts={clientWorkouts} />
 
