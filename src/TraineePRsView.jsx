@@ -28,8 +28,10 @@ function topSetOfWorkoutEx(ex) {
 }
 
 function aggregate(clientWorkouts, traineeId) {
-  // For each exercise key (the ACTUAL title performed — substituted if
-  // swapped), build a chronological series of top-set load + reps.
+  // Group by stable id — eid for the prescribed exercise, or the swap-in's
+  // library id when this session was a swap. Falls back to title only when
+  // no id is available (very old workouts, or library-less swap entries).
+  // Title is just for display; id drives bucketing.
   const byKey = new Map();
   for (const w of clientWorkouts || []) {
     if (traineeId && w.clientId !== traineeId) continue;
@@ -37,12 +39,19 @@ function aggregate(clientWorkouts, traineeId) {
       const top = topSetOfWorkoutEx(ex);
       if (!top) continue;
       const wasSwapped = !!ex.substitution;
-      const performedTitle = wasSwapped ? ex.substitution.to : (ex.title || EX[ex.eid]?.t || '?');
-      const key = performedTitle;
-      if (!byKey.has(key)) {
-        byKey.set(key, { title: performedTitle, series: [], swappedFromAny: false });
+      const performedTitle = wasSwapped
+        ? (ex.substitution.to || ex.title || '?')
+        : (ex.title || EX[ex.eid]?.t || '?');
+      const stableId = wasSwapped
+        ? (ex.substitution.toLibId || `swap:${performedTitle.toLowerCase()}`)
+        : (ex.eid || `title:${performedTitle.toLowerCase()}`);
+      if (!byKey.has(stableId)) {
+        byKey.set(stableId, { title: performedTitle, series: [], swappedFromAny: false });
       }
-      const entry = byKey.get(key);
+      const entry = byKey.get(stableId);
+      // Keep the most-recent title as the display title (trainer might
+      // rename an exercise in the library — show the latest name).
+      entry.title = performedTitle;
       if (wasSwapped) entry.swappedFromAny = true;
       entry.series.push({
         date: w.date,
