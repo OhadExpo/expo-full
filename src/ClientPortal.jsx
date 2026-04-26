@@ -295,8 +295,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         publicUrl = urlData.publicUrl;
       }
 
+      // Switch the video element to the cloud URL BEFORE revoking the preview
+      // blob — otherwise the next replay would try to re-fetch a dead blob URL
+      // and the video would silently disappear from the player.
+      setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, videoUrl:publicUrl, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100, uploadError:null, pendingBlobId:null}; return n; });
       URL.revokeObjectURL(previewUrl);
-      setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:true, has:true, cloudUrl:publicUrl, compressProgress:100, uploadProgress:100, uploadError:null, pendingBlobId:null}; return n; });
     } catch(err) {
       console.error('Video upload error:', err);
       // If we appear to be offline (or this is a network-shaped error), persist
@@ -557,9 +560,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
             <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
-            <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
-              style={{width:'100%',marginTop:6,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>
-              Remove Video</button>
+            <div style={{display:'flex',gap:8,marginTop:6}}>
+              <label style={{flex:1,padding:8,borderRadius:6,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:12,textAlign:'center',cursor:'pointer'}}>
+                Replace
+                <input type="file" accept="video/*" capture="environment" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
+              </label>
+              <button onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
+                style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:'pointer'}}>
+                Remove
+              </button>
+            </div>
           </div>
         ) : (
           <div style={{display:'flex',gap:8}}>
