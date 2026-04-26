@@ -594,7 +594,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
-          {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:!h||h==='✓'?'center':'left'}}>{h}</div>)}</div>
+          {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => <div key={si} style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
           <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
           <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} placeholder="—" style={bi}/>

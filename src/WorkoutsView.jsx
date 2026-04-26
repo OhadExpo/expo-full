@@ -37,7 +37,7 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
             {ex.superset&&<Badge color={C.pu} style={{marginLeft:8}}>Group {ex.superset}</Badge>}
             <span style={{fontWeight:400,color:C.tm,fontSize:12,marginLeft:8}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span></div>
           <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
-            {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:10,fontFamily:FN,color:C.td}}>{h}</div>)}</div>
+            {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:10,fontFamily:FN,color:C.td,textAlign:"center"}}>{h}</div>)}</div>
           {ex.sets.map((set,sIdx)=>(
             <div key={sIdx} style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",padding:"4px 0",opacity:set.completed?.5:1}}>
               <span style={{fontFamily:FN,fontSize:13,color:C.tm,textAlign:"center"}}>{set.setNum}</span>
