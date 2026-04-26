@@ -719,6 +719,97 @@ function WhatsInside() {
   );
 }
 
+// About: short coach intro section. The portrait slot uses the EXPO mark as a
+// placeholder until Ohad ships a real photo into public/coach-portrait.jpg —
+// detection is via natural-load fallback. Three credentials in a strip below
+// give scannable credibility (background, athletic history, owner-operator).
+function AboutCoach() {
+  const t = useT();
+  const [hasPortrait, setHasPortrait] = useState(false);
+  const credentials = [
+    { t: t('about.cred1'), s: t('about.cred1.s') },
+    { t: t('about.cred2'), s: t('about.cred2.s') },
+    { t: t('about.cred3'), s: t('about.cred3.s') },
+  ];
+  return (
+    <section id="about" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 16px' }}>
+      <div style={{
+        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+        marginBottom: 8, fontWeight: 700,
+      }}>{t('about.badge')}</div>
+      <h2 style={{ fontFamily: FB, fontSize: 'clamp(24px, 3.6vw, 32px)', fontWeight: 700, marginBottom: 24, letterSpacing: -0.3, lineHeight: 1.2, maxWidth: 800 }}>
+        {t('about.h2')}
+      </h2>
+
+      <div className="fv-about-grid" style={{
+        display: 'grid', gap: 28, alignItems: 'start',
+        gridTemplateColumns: 'minmax(0, 220px) minmax(0, 1fr)',
+      }}>
+        {/* Portrait — real photo if present, otherwise a styled placeholder
+            with the EXPO mark behind a "PHOTO COMING" caption. */}
+        <div style={{
+          aspectRatio: '4 / 5', position: 'relative',
+          borderRadius: 16, overflow: 'hidden',
+          background: `linear-gradient(160deg, ${C.sf} 0%, ${C.sf2} 100%)`,
+          border: `1px solid ${C.bd}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <img src="/coach-portrait.jpg" alt="Ohad Yossifoff" loading="lazy"
+            onLoad={() => setHasPortrait(true)}
+            onError={() => setHasPortrait(false)}
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              objectFit: 'cover', display: hasPortrait ? 'block' : 'none',
+            }} />
+          {!hasPortrait && (
+            <div style={{ textAlign: 'center', padding: 16 }}>
+              <img src="/expo-hero-logo.png" alt="" aria-hidden="true"
+                style={{ height: 56, width: 'auto', opacity: 0.4, marginBottom: 12 }} />
+              <div style={{
+                fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 2, fontWeight: 700,
+              }}>
+                {t('about.photo.note')}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p style={{ fontFamily: FB, fontSize: 15, color: C.tx, lineHeight: 1.6 }}>
+            {t('about.p1')}
+          </p>
+          <p style={{ fontFamily: FB, fontSize: 15, color: C.tx, lineHeight: 1.6 }}>
+            {t('about.p2')}
+          </p>
+          <p style={{ fontFamily: FB, fontSize: 15, color: C.tx, lineHeight: 1.6 }}>
+            {t('about.p3')}
+          </p>
+        </div>
+      </div>
+
+      {/* Credentials strip */}
+      <div style={{
+        marginTop: 28, paddingTop: 20, borderTop: `1px solid ${C.bd}`,
+        display: 'grid', gap: 18,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+      }}>
+        {credentials.map((c, i) => (
+          <div key={i}>
+            <div style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx, marginBottom: 4 }}>
+              {c.t}
+            </div>
+            <div style={{
+              fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1,
+            }}>
+              {c.s}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // 3-column comparison: Self-coached vs EXPO templates vs Private coaching.
 // Frames the price by anchoring against the alternatives. Middle column is
 // emphasised (accent border) since it's the option being sold.
@@ -1173,6 +1264,7 @@ function Home() {
       <Hero />
       <Catalog />
       <WhatsInside />
+      <AboutCoach />
       <WhyTemplates />
       <HowItWorks />
       <Contact />
@@ -1307,7 +1399,7 @@ export default function App() {
           the nav + buy buttons without scrolling. */}
       <style>{`
         /* Offset section anchors so the sticky 56px header doesn't overlap them. */
-        #programs, #inside, #why, #how, #contact { scroll-margin-top: 64px; }
+        #programs, #inside, #about, #why, #how, #contact { scroll-margin-top: 64px; }
         @media (max-width: 980px) {
           .fv-inside-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
         }
@@ -1316,6 +1408,7 @@ export default function App() {
         }
         @media (max-width: 720px) {
           .fv-why-grid { grid-template-columns: 1fr !important; }
+          .fv-about-grid { grid-template-columns: 1fr !important; }
         }
         @media (min-width: 721px) {
           .fv-sticky-cta { display: none !important; }
