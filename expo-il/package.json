@@ -7,7 +7,7 @@
     "dev": "vite",
     "prebuild": "node scripts/generate-sitemap.mjs",
     "build": "vite build",
-    "postbuild": "node scripts/generate-program-pages.mjs",
+    "postbuild": "node scripts/generate-og-cards.mjs && node scripts/generate-program-pages.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "sharp": "^0.34.5",
     "vite": "^5.4.21"
   }
 }

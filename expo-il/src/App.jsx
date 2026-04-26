@@ -1191,7 +1191,7 @@ function ProgramDetail({ program }) {
       </a>
 
       <header style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center', justifyContent: 'center' }}>
           <span style={{
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             background: C.acD, color: C.ac, padding: '4px 10px', borderRadius: 999,
@@ -1208,11 +1208,13 @@ function ProgramDetail({ program }) {
         <div style={{ fontFamily: FB, fontSize: 15, color: C.tm, marginBottom: 16 }}>{program.audience}</div>
         <p style={{
           fontFamily: FB, fontSize: 15, color: C.tx, lineHeight: 1.6,
-          maxWidth: 760, marginBottom: 18,
+          maxWidth: 760, marginBottom: 18, marginLeft: 'auto', marginRight: 'auto',
         }}>
           {program.summary}
         </p>
-        <ProgramMeta p={program} />
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <ProgramMeta p={program} />
+        </div>
       </header>
 
       <section style={{ marginBottom: 32 }}>
@@ -1230,7 +1232,8 @@ function ProgramDetail({ program }) {
             <li key={i} style={{
               background: C.sf, border: `0.25px solid ${C.ac4D}`, borderRadius: 12,
               padding: 14, display: 'flex', gap: 10, alignItems: 'flex-start',
-              fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5,
+              justifyContent: 'center',
+              fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, textAlign: 'center',
             }}>
               <span style={{ color: C.ac, fontFamily: FN, fontWeight: 700, marginTop: 1 }}>›</span>
               <span>{h}</span>
@@ -1255,7 +1258,7 @@ function ProgramDetail({ program }) {
       <section style={{
         background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 12,
         padding: 22, display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-        justifyContent: 'space-between', gap: 16,
+        justifyContent: 'center', gap: 24,
       }}>
         <div>
           <div style={{
