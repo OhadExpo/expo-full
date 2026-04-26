@@ -18,6 +18,10 @@
   <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png"/>
   <link rel="shortcut icon" href="/favicon.ico"/>
   <title>EXPO</title>
+  <!-- Preload the two Nord weights actually used at first paint so the
+       UI shell isn't gated on a second roundtrip for woff2 fetch. -->
+  <link rel="preload" href="/fonts/Nord-Regular.woff2" as="font" type="font/woff2" crossorigin/>
+  <link rel="preload" href="/fonts/Nord-Bold.woff2"    as="font" type="font/woff2" crossorigin/>
   <link rel="stylesheet" href="/nord-fonts.css"/>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
