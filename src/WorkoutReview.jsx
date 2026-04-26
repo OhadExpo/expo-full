@@ -1445,19 +1445,19 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               {/* Expanded detail */}
               {isExpanded && (
                 <div style={{padding:"0 14px 14px",borderTop:`1px solid ${C.bd}`}}>
-                  {/* Set-by-set data */}
+                  {/* Set-by-set data — every column centered for visual symmetry */}
                   <div style={{marginTop:10,marginBottom:12}}>
                     <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,marginBottom:4}}>
                       {['SET','REPS','LOAD','RPE'].map(h =>
-                        <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:h==='SET'?'center':'left'}}>{h}</div>)}
+                        <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{h}</div>)}
                     </div>
                     {ex.sets.map((set, si) => (
                       <div key={si} style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"3px 0",
                         opacity:set.done?1:0.4,borderBottom:si<ex.sets.length-1?`1px solid ${C.bd}22`:'none'}}>
                         <div style={{fontFamily:FN,fontSize:12,color:set.done?C.gn:C.td,textAlign:"center"}}>{set.done?'✓':si+1}</div>
-                        <div style={{fontSize:12,color:C.tx}}>{set.reps||'—'}</div>
-                        <div style={{fontSize:12,color:C.tx}}>{set.load?set.load+'kg':'—'}</div>
-                        <div style={{fontSize:12,color:C.tx}}>{set.rpe||'—'}</div>
+                        <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.reps||'—'}</div>
+                        <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.load?set.load+'kg':'—'}</div>
+                        <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.rpe||'—'}</div>
                       </div>
                     ))}
                   </div>
