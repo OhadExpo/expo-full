@@ -3,7 +3,7 @@ import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 
-export default function DashboardView({ trainees, planCounts, workouts, payments, presence, onSelectTrainee }) {
+export default function DashboardView({ trainees, planCounts, workouts, clientWorkouts, payments, presence, onSelectTrainee }) {
   const [sort, setSort] = useState('name');
   const [dir, setDir] = useState(1);
   const [filter, setFilter] = useState('');
@@ -15,12 +15,17 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
     // (tr_xxx__0 / __1). Roll everything up to the parent for dashboard display.
     const ids = new Set(traineeIdsFor(t.id));
     const tPay = payments.filter(p => ids.has(p.traineeId));
-    const tWork = workouts.filter(w => ids.has(w.traineeId) && w.status === 'completed');
+    const tWorkInPerson = workouts.filter(w => ids.has(w.traineeId) && w.status === 'completed');
+    // Trainee-portal logged workouts (client-side) — counted alongside in-
+    // person sessions for "last activity" so the dropout signal doesn't
+    // false-positive on clients who train solo through the portal.
+    const tWorkPortal = (clientWorkouts || []).filter(w => ids.has(w.clientId));
+    const tWork = [...tWorkInPerson, ...tWorkPortal];
     const totalPaid = tPay.reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
     const lastPay = tPay.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
     const lastWorkout = tWork.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
     return { ...t, totalPaid, lastPay, lastWorkout, workoutCount: tWork.length, planCount: planCounts[t.id] || 0 };
-  }), [trainees, payments, workouts, planCounts]);
+  }), [trainees, payments, workouts, clientWorkouts, planCounts]);
 
   const filtered = enriched.filter(t => !filter || t.name.toLowerCase().includes(filter.toLowerCase()));
   const sorted = [...filtered].sort((a, b) => {
@@ -105,8 +110,8 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
         ))}
       </div>
 
-      {/* Alert sections (above table: online + expiring + overdue payments) */}
-      {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0) && (
+      {/* Alert sections (above table: online + expiring + overdue payments + dormant) */}
+      {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20 }}>
           {onlineNow.length > 0 && (
             <div style={{ background: C.sf, border: `1px solid ${C.gn}30`, borderRadius: 10, padding: '14px 18px' }}>
@@ -139,6 +144,20 @@ export default function DashboardView({ trainees, planCounts, workouts, payments
                   <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.neverPaid ? 'Never paid' : `${t.daysOverdue}d overdue`}</span>
                 </div>
               ))}
+            </div>
+          )}
+          {dropoutRisk.length > 0 && (
+            <div style={{ background: C.sf, border: `1px solid ${C.or}30`, borderRadius: 10, padding: '14px 18px' }}>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 8 }}>💤 Dormant ({dropoutRisk.length})</div>
+              {dropoutRisk.map(t => {
+                const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
+                return (
+                  <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                    <span style={{ color: C.tx }}>{t.name}</span>
+                    <span style={{ fontFamily: FN, color: C.or, fontSize: 11 }}>{days == null ? 'Never trained' : `${days}d ago`}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

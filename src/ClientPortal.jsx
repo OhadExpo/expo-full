@@ -105,7 +105,7 @@ const bi = {background:C.sf2,border:`0.25px solid ${C.ac}4D`,borderRadius:6,padd
 const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,fontFamily:FN,background:`${color}18`,color,...s}}>{children}</span>;
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
-function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, allowSubstitution}) {
+function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution}) {
   // Steps: 'wu0','wu1',... → 'pre' → 0,1,2,... (group indices) → 'end'
   const warmup = plan.warmup || [];
   const wuCount = warmup.length;
@@ -484,11 +484,79 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     </div></div>;
 
   // ===== FINISH =====
+  // Detect new PRs in this session — for each prescribed exercise, compute
+  // this session's top completed-set load and compare to the trainee's prior
+  // best for the same exercise (or for the swap-in if a swap happened).
+  // Surfaces as a celebration list above the notes textarea.
+  const newPRs = (() => {
+    const out = [];
+    for (let i = 0; i < day.ex.length; i++) {
+      const ex = day.ex[i];
+      const sets = (allSets[i] || []).filter(s => s.done && s.load !== '' && s.load != null)
+        .map(s => parseFloat(s.load) || 0).filter(n => n > 0);
+      if (sets.length === 0) continue;
+      const sessionTop = Math.max(...sets);
+      const sub = substitutions[ex.eid];
+      const stableId = sub ? (sub.id || `swap:${(sub.title||'').toLowerCase()}`) : ex.eid;
+      const displayTitle = sub ? sub.title : (EX[ex.eid]?.t || '?');
+      // Find prior best across all this trainee's prior workouts.
+      let priorBest = 0;
+      for (const w of (priorWorkouts || [])) {
+        for (const px of (w.exercises || [])) {
+          const pSub = px.substitution;
+          const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
+          if (pStableId !== stableId) continue;
+          for (const s of (px.sets || [])) {
+            if (!s.done) continue;
+            const v = parseFloat(s.load) || 0;
+            if (v > priorBest) priorBest = v;
+          }
+        }
+      }
+      if (sessionTop > priorBest && priorBest > 0) {
+        out.push({ title: displayTitle, prev: priorBest, now: sessionTop, delta: sessionTop - priorBest });
+      } else if (sessionTop > 0 && priorBest === 0) {
+        // First time logging this exercise — count as a debut, not a PR.
+        out.push({ title: displayTitle, prev: 0, now: sessionTop, delta: sessionTop, debut: true });
+      }
+    }
+    return out;
+  })();
   if (step === 'end') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20,textAlign:'center'}}>
       <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:24,marginBottom:16}} />
       <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
+
+      {/* New PRs from this session */}
+      {newPRs.length > 0 && (
+        <div style={{
+          background: `${C.gn}15`, border: `1px solid ${C.gn}40`, borderRadius: 12,
+          padding: '12px 14px', marginBottom: 16, textAlign: 'left',
+        }}>
+          <div style={{
+            fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: 2, fontWeight: 700,
+            marginBottom: 8, textAlign: 'center',
+          }}>
+            {newPRs.some(p => !p.debut) ? `🏆 ${newPRs.filter(p => !p.debut).length} NEW PR${newPRs.filter(p => !p.debut).length === 1 ? '' : 's'}` : `✨ FIRST LOGS`}
+            {newPRs.some(p => p.debut) && newPRs.some(p => !p.debut)
+              ? ` · ${newPRs.filter(p => p.debut).length} debut${newPRs.filter(p => p.debut).length === 1 ? '' : 's'}` : ''}
+          </div>
+          {newPRs.map((p, i) => (
+            <div key={i} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              padding: '4px 0',
+              borderBottom: i < newPRs.length - 1 ? `1px solid ${C.gn}20` : 'none',
+            }}>
+              <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 600 }}>{p.title}</span>
+              <span style={{ fontFamily: FN, fontSize: 12, color: C.gn, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                {p.debut ? `${p.now}kg` : `${p.prev}kg → ${p.now}kg (+${p.delta})`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did it feel? Pain? Modifications?" style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'center'}}/>
       {fv.some(f => f.uploading) ? (
         <button style={{width:'100%',padding:16,borderRadius:12,border:'none',background:C.sf3,color:C.td,fontFamily:FB,fontSize:16,fontWeight:700,cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
@@ -843,7 +911,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
     for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
     if (!targetPlan) { setLg(null); return null; }
-    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} allowSubstitution={isTemplatePlan(targetPlan) || isSubstitutionTestTrainee(trainee, ci)}/>; }
+    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={isTemplatePlan(targetPlan) || isSubstitutionTestTrainee(trainee, ci)}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
