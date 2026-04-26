@@ -20,6 +20,24 @@ function isTemplatePlan(plan) {
   return n.startsWith('[expo]') || n.startsWith('expo · ') || n.startsWith('expo - ');
 }
 
+// Test-fixture override: Ohad's own trainee account always sees the SWAP UI
+// regardless of plan-name prefix, so he can dog-food the substitution flow
+// before any real template purchase lands. Identified by trainee id (the
+// dual-role coach/trainee account, see memory project_auth_state.md) OR by
+// email match. Remove these IDs once a real template purchase has been
+// validated end-to-end.
+const SUBSTITUTION_TEST_TRAINEE_IDS = new Set(['tr_ylc4i7edmnxqyj3j']);
+const SUBSTITUTION_TEST_EMAILS = new Set(['ohadyproductions@gmail.com']);
+function isSubstitutionTestTrainee(trainee, clientId) {
+  if (clientId && SUBSTITUTION_TEST_TRAINEE_IDS.has(clientId)) return true;
+  if (!trainee) return false;
+  const emails = Array.isArray(trainee.email) ? trainee.email : [trainee.email];
+  for (const e of emails) {
+    if (e && SUBSTITUTION_TEST_EMAILS.has(String(e).trim().toLowerCase())) return true;
+  }
+  return false;
+}
+
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
 
@@ -807,7 +825,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
     for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
     if (!targetPlan) { setLg(null); return null; }
-    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} allowSubstitution={isTemplatePlan(targetPlan)}/>; }
+    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} allowSubstitution={isTemplatePlan(targetPlan) || isSubstitutionTestTrainee(trainee, ci)}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
