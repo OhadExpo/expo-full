@@ -7,6 +7,7 @@ import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
 import { FormVideoPlayer } from './WorkoutReview';
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob } from './blobQueue';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
+import TraineePRsView from './TraineePRsView';
 
 // Feature gate for the swap-exercise UI. The intent (per Ohad 2026-04-26) is
 // that substitution is ONLY for trainees on expo-il template-purchased plans —
@@ -872,7 +873,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         </div>
       </div>
       <div style={{padding:'14px 20px 0',display:'flex',gap:4}}>
-        {[['prog','Program'],['bwt','BW Graph'],['hist',`History (${cw.length})`]].map(([k,l]) =>
+        {[['prog','Program'],['bwt','BW'],['pr','PRs'],['hist',`History (${cw.length})`]].map(([k,l]) =>
           <button key={k} onClick={() => setVw(k)}
             style={{flex:1,padding:8,borderRadius:6,border:`${vw===k?'2px':'0.25px'} solid ${C.ac}${vw===k?'':'4D'}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer',position:'relative'}}>
             {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:2,right:6,background:C.rd,color:'#fff',fontSize:9,fontFamily:FN,fontWeight:700,padding:'1px 5px',borderRadius:8}}>{unreadCoachNotes}</span>}
@@ -1030,6 +1031,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         </div>
       </div>}
     </div>;
+  }
+
+  // PRs (per-exercise weight progression)
+  if (vw === 'pr' && trainee) {
+    return <TraineePRsView clientWorkouts={cw} traineeId={ci} header={renderTopHeader()} />;
   }
 
   // History
