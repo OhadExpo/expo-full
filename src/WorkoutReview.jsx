@@ -1513,7 +1513,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,textAlign:'center'}}>
                       {isLastWeekOfBlock
                         ? `END-OF-BLOCK NOTE — W${currentWeek}/${planWeeks}`
-                        : `WEEKLY FOCUS — W${nextWeek} OF ${planWeeks}`}
+                        : `W${currentWeek} → W${nextWeek} FOCUS`}
                     </div>
                     <textarea
                       value={nextFocus}
