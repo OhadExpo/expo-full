@@ -97,14 +97,18 @@ function aggregate(clientWorkouts, traineeId) {
   return rows;
 }
 
-// Inline SVG sparkline — load over time. Last point gets a larger dot,
-// coloured green if the line trends up vs the first session, red if down.
-function Sparkline({ series, width = 220, height = 44 }) {
+// Inline SVG sparkline — full-width, scales to its container via viewBox.
+// Trend colour: green if last session ≥ first, red if down. PR session
+// (max load across the series) gets a highlighted dot.
+function Sparkline({ series, height = 64 }) {
   if (!series || series.length === 0) return null;
+  const VW = 200; // virtual width used for viewBox; scales to 100% via CSS
+  const VH = height;
   if (series.length === 1) {
     return (
-      <svg width={width} height={height} style={{ display: 'block' }}>
-        <circle cx={width / 2} cy={height / 2} r="3" fill={C.ac} />
+      <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none"
+        style={{ display: 'block', width: '100%', height }}>
+        <circle cx={VW / 2} cy={VH / 2} r="4" fill={C.ac} />
       </svg>
     );
   }
@@ -112,23 +116,39 @@ function Sparkline({ series, width = 220, height = 44 }) {
   const min = Math.min(...loads);
   const max = Math.max(...loads);
   const range = max - min || 1;
-  const pad = 4;
-  const W = width - pad * 2;
-  const H = height - pad * 2;
+  const pad = 8;
+  const W = VW - pad * 2;
+  const H = VH - pad * 2;
+  const prValue = max;
   const points = series.map((s, i) => {
     const x = pad + (i / (series.length - 1)) * W;
     const y = pad + H - ((s.load - min) / range) * H;
-    return [x, y];
+    return [x, y, s.load];
   });
   const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  // Soft area fill under the line for visual weight.
+  const areaPath = `${path} L ${points[points.length - 1][0].toFixed(1)},${(VH - 1).toFixed(1)} L ${points[0][0].toFixed(1)},${(VH - 1).toFixed(1)} Z`;
   const trendColor = series[series.length - 1].load >= series[0].load ? C.gn : C.rd;
   return (
-    <svg width={width} height={height} style={{ display: 'block', width: '100%' }}>
-      <path d={path} stroke={trendColor} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      {points.map((p, i) => (
-        <circle key={i} cx={p[0]} cy={p[1]} r={i === points.length - 1 ? 3 : 1.6}
-          fill={i === points.length - 1 ? trendColor : C.tm} />
-      ))}
+    <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none"
+      style={{ display: 'block', width: '100%', height }}>
+      <defs>
+        <linearGradient id="fv-pr-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={trendColor} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={trendColor} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill="url(#fv-pr-fill)" />
+      <path d={path} stroke={trendColor} strokeWidth="1.5" vectorEffect="non-scaling-stroke" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {points.map((p, i) => {
+        const isLast = i === points.length - 1;
+        const isPr = p[2] === prValue;
+        return (
+          <circle key={i} cx={p[0]} cy={p[1]}
+            r={isLast ? 4 : (isPr ? 3 : 2)}
+            fill={isLast ? trendColor : (isPr ? C.ac : C.tm)} />
+        );
+      })}
     </svg>
   );
 }
@@ -195,58 +215,52 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header }) {
               }}>
                 <button onClick={() => setExpanded(isOpen ? null : r.id)} aria-expanded={isOpen} style={{
                   width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-                  padding: '12px 14px', textAlign: 'left',
+                  padding: '14px 14px 12px', textAlign: 'center',
                 }}>
+                  {/* Title — centered, single line */}
                   <div style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-                    gap: 8, marginBottom: 6,
+                    fontFamily: FB, fontSize: 15, fontWeight: 700, color: C.tx,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }} title={r.title}>{r.title}</div>
+
+                  {/* Sub: PR — single typographic line, all same size */}
+                  <div style={{
+                    fontFamily: FN, fontSize: 22, fontWeight: 700, color: C.ac,
+                    marginTop: 6, lineHeight: 1, letterSpacing: -0.5,
                   }}>
-                    <div style={{
-                      fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx,
-                      flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }} title={r.title}>{r.title}</div>
-                    <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 0.5, flex: '0 0 auto' }}>
-                      {r.sessionCount}× · {fmtDate(r.lastDate)}
-                    </div>
+                    {r.allTimePR}<span style={{ fontSize: 13, color: C.tm, fontWeight: 400, marginLeft: 4 }}>kg</span>
+                    {r.allTimePRReps > 0 && (
+                      <span style={{ fontSize: 13, color: C.tm, fontWeight: 400, marginLeft: 6 }}>× {r.allTimePRReps}</span>
+                    )}
+                    <span style={{ fontSize: 9, color: C.td, letterSpacing: 2, fontWeight: 700, marginLeft: 8, verticalAlign: 'middle' }}>PR</span>
                   </div>
+
+                  {/* Full-width sparkline below — guaranteed visible */}
+                  <div style={{ marginTop: 10 }}>
+                    <Sparkline series={r.series} />
+                  </div>
+
+                  {/* Bottom stats row — three equal items, justify-around for symmetry */}
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
+                    display: 'flex', justifyContent: 'space-around', alignItems: 'center',
+                    marginTop: 8, gap: 8,
                   }}>
-                    {/* PR */}
-                    <div style={{ flex: '0 0 auto' }}>
-                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.2, fontWeight: 700 }}>
-                        PR
-                      </div>
-                      <div style={{ fontFamily: FN, fontSize: 18, color: C.ac, fontWeight: 700, lineHeight: 1 }}>
-                        {r.allTimePR}
-                        <span style={{ fontSize: 10, color: C.tm, marginLeft: 3 }}>kg</span>
-                      </div>
-                      {r.allTimePRReps > 0 && (
-                        <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 0.5 }}>
-                          ×{r.allTimePRReps}
-                        </div>
-                      )}
+                    <div>
+                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.2, fontWeight: 700 }}>SESSIONS</div>
+                      <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, marginTop: 2 }}>{r.sessionCount}</div>
                     </div>
-                    {/* Sparkline */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <Sparkline series={r.series} />
-                    </div>
-                    {/* Δ */}
-                    <div style={{ flex: '0 0 auto', textAlign: 'right' }}>
-                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.2, fontWeight: 700 }}>
-                        Δ
-                      </div>
+                    <div>
+                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.2, fontWeight: 700 }}>Δ FROM FIRST</div>
                       <div style={{
-                        fontFamily: FN, fontSize: 13, fontWeight: 700, lineHeight: 1,
+                        fontFamily: FN, fontSize: 13, fontWeight: 700, marginTop: 2,
                         color: trendFlat ? C.tm : (trendUp ? C.gn : C.rd),
                       }}>
-                        {trendUp ? '+' : ''}{r.delta} <span style={{ fontSize: 9, color: C.tm }}>kg</span>
+                        {trendFlat ? '—' : `${trendUp ? '+' : ''}${r.delta} kg`}
                       </div>
-                      {r.deltaPct !== 0 && (
-                        <div style={{ fontFamily: FN, fontSize: 9, color: trendFlat ? C.tm : (trendUp ? C.gn : C.rd), letterSpacing: 0.5 }}>
-                          {trendUp ? '+' : ''}{r.deltaPct}%
-                        </div>
-                      )}
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.2, fontWeight: 700 }}>LAST</div>
+                      <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, marginTop: 2 }}>{fmtDate(r.lastDate)}</div>
                     </div>
                   </div>
                 </button>

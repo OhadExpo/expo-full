@@ -34,7 +34,13 @@
     ::-webkit-scrollbar-track{background:#0a0a0a}
     ::-webkit-scrollbar-thumb{background:#1a1a1e;border-radius:3px}
     ::-webkit-scrollbar-thumb:hover{background:#39BDFF40}
-    input,select,textarea{font-family:'Nord','DM Sans',system-ui,sans-serif}
+    input,select,textarea{font-family:'Nord','DM Sans',system-ui,sans-serif;text-align:center}
+    /* Hide spinner buttons on number inputs so the centered text stays
+       visually centered (otherwise the spinner area shifts the centered
+       glyph slightly to the left). */
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+    input[type=number]{-moz-appearance:textfield}
 
     /* Mobile responsive */
     @media(max-width:768px){
