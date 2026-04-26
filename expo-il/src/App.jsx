@@ -412,10 +412,13 @@ function Catalog() {
           {t('catalog.body')}
         </p>
       </div>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center' }}>
         {tags.map(tag => {
           const on = active === tag;
           const label = tag === '__all' ? t('catalog.chip.all') : tag.toUpperCase();
+          // Count of programs in this tag — gives the chip a data signal so
+          // the user knows how many they'll see when they filter.
+          const count = tag === '__all' ? PROGRAMS.length : PROGRAMS.filter(p => p.tag === tag).length;
           return (
             <button key={tag} onClick={() => setActive(tag)} style={{
               ...baseBtn,
@@ -424,8 +427,14 @@ function Catalog() {
               border: on ? `1px solid ${C.ac}` : `1px solid ${C.bd}`,
               padding: '6px 12px', borderRadius: 6,
               fontSize: 11, fontWeight: 700, letterSpacing: 1,
+              gap: 6,
             }}>
-              {label}
+              <span>{label}</span>
+              <span style={{
+                fontSize: 9, fontWeight: 700,
+                color: on ? C.ac : C.td,
+                opacity: 0.85,
+              }}>{count}</span>
             </button>
           );
         })}
