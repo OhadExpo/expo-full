@@ -12,7 +12,7 @@
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB } from './theme';
 
-function aggregate(clientWorkouts, traineesById) {
+function aggregate(clientWorkouts) {
   // Walk every workout's exercises, collect substitutions, group by `from`.
   const byFrom = new Map();
   let totalSubs = 0;
@@ -46,16 +46,11 @@ function aggregate(clientWorkouts, traineesById) {
   return { rows, totalSubs, totalWorkouts };
 }
 
-export default function SubstitutionInsights({ clientWorkouts, trainees }) {
+export default function SubstitutionInsights({ clientWorkouts }) {
   const [expanded, setExpanded] = useState(false);
-  const traineesById = useMemo(() => {
-    const m = new Map();
-    for (const t of trainees || []) m.set(t.id, t);
-    return m;
-  }, [trainees]);
   const { rows, totalSubs, totalWorkouts } = useMemo(
-    () => aggregate(clientWorkouts || [], traineesById),
-    [clientWorkouts, traineesById],
+    () => aggregate(clientWorkouts || []),
+    [clientWorkouts],
   );
 
   // Empty state — keep it short, tucked at the top so it doesn't dominate.

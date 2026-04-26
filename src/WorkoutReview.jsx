@@ -1626,7 +1626,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       </div>
 
       {/* Substitution insights — aggregates swaps logged by template trainees */}
-      <SubstitutionInsights clientWorkouts={clientWorkouts} trainees={trainees} />
+      <SubstitutionInsights clientWorkouts={clientWorkouts} />
 
       {/* Group by client */}
       {Object.entries(byClient).map(([cid, data]) => (

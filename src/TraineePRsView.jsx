@@ -46,12 +46,13 @@ function aggregate(clientWorkouts, traineeId) {
         ? (ex.substitution.toLibId || `swap:${performedTitle.toLowerCase()}`)
         : (ex.eid || `title:${performedTitle.toLowerCase()}`);
       if (!byKey.has(stableId)) {
-        byKey.set(stableId, { title: performedTitle, series: [], swappedFromAny: false });
+        byKey.set(stableId, { id: stableId, title: performedTitle, series: [], swappedFromAny: false });
       }
       const entry = byKey.get(stableId);
-      // Keep the most-recent title as the display title (trainer might
-      // rename an exercise in the library — show the latest name).
-      entry.title = performedTitle;
+      // Update the display title with the most-recent variant — but never
+      // downgrade a real title to the '?' placeholder if a later workout
+      // happens to have lost its title metadata.
+      if (performedTitle !== '?') entry.title = performedTitle;
       if (wasSwapped) entry.swappedFromAny = true;
       entry.series.push({
         date: w.date,
@@ -79,12 +80,13 @@ function aggregate(clientWorkouts, traineeId) {
     const delta = lastLoad - firstLoad;
     const deltaPct = firstLoad > 0 ? Math.round((delta / firstLoad) * 100) : 0;
     rows.push({
+      id: entry.id,
       title: entry.title,
       series: entry.series,
       sessionCount: entry.series.length,
       allTimePR,
       allTimePRDate: allTimePREntry?.date,
-      allTimePRReps: allTimePREntry?.reps || null,
+      allTimePRReps: allTimePREntry?.reps ?? null,
       firstLoad, lastLoad, delta, deltaPct,
       lastDate: entry.series[entry.series.length - 1].date,
       swappedAny: entry.swappedFromAny,
@@ -183,15 +185,15 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header }) {
         {/* Grid of cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map((r) => {
-            const isOpen = expanded === r.title;
+            const isOpen = expanded === r.id;
             const trendUp = r.delta > 0;
             const trendFlat = r.delta === 0;
             return (
-              <div key={r.title} style={{
+              <div key={r.id} style={{
                 background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 12,
                 overflow: 'hidden',
               }}>
-                <button onClick={() => setExpanded(isOpen ? null : r.title)} style={{
+                <button onClick={() => setExpanded(isOpen ? null : r.id)} aria-expanded={isOpen} style={{
                   width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
                   padding: '12px 14px', textAlign: 'left',
                 }}>
