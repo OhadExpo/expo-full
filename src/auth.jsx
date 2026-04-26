@@ -209,7 +209,7 @@ export function LoginScreen() {
             placeholder="your@email.com"
             type="email"
             autoComplete="email"
-            style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 8 }}
+            style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 8, textAlign: 'center' }}
           />
           <input
             value={password}
@@ -218,9 +218,9 @@ export function LoginScreen() {
             placeholder="password"
             type="password"
             autoComplete="current-password"
-            style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+            style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }}
           />
-          {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10 }}>{error}</div>}
+          {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
           <button
             onClick={handlePassword}
             disabled={!canSubmit}
@@ -290,18 +290,18 @@ export function PasswordChangeModal({ onClose }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12, padding: 24, maxWidth: 360, width: '100%' }}>
-        <div style={{ fontFamily: FN, fontSize: 13, color: C.td, marginBottom: 12 }}>CHANGE PASSWORD</div>
+        <div style={{ fontFamily: FN, fontSize: 13, color: C.td, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
         {ok ? (
           <div style={{ color: C.gn, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Password updated ✓</div>
         ) : (
           <>
             <input value={currentPw} onChange={e => { setCurrentPw(e.target.value); setError(''); }} type="password" placeholder="Current password" autoComplete="current-password" autoFocus
-              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
+              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             <input value={pw} onChange={e => { setPw(e.target.value); setError(''); }} type="password" placeholder="New password" autoComplete="new-password"
-              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
+              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             <input value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleSave()} type="password" placeholder="Confirm new password" autoComplete="new-password"
-              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
-            {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10 }}>{error}</div>}
+              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+            {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${C.bd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: (!saving && currentPw && pw && confirmPw) ? C.ac : C.sf3, color: (!saving && currentPw && pw && confirmPw) ? '#000' : C.td, fontFamily: FB, fontSize: 13, fontWeight: 700, cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>

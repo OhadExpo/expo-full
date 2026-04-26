@@ -10,6 +10,7 @@ export const baseInput = {
   outline: "none", width: "100%", boxSizing: "border-box",
   transition: "border-color 0.2s",
   fontWeight: 400, letterSpacing: "0.01em",
+  textAlign: "center",
 };
 export const baseBtn = {
   display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 18px",
@@ -27,7 +28,7 @@ export const Btn = ({ children, variant = "primary", onClick, style, ...rest }) 
 
 export const Input = ({ label, style: s, ...props }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-    {label && <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: FN }}>{label}</label>}
+    {label && <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
     <input style={{ ...baseInput, ...s }} {...props} />
   </div>
 );
@@ -38,7 +39,7 @@ export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, plac
   const arr = value && value.length ? value : [''];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FN }}>{label}</label>
+      <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FN, textAlign: 'center' }}>{label}</label>
       {arr.map((em, i) => (
         <div key={i} style={{ display: 'flex', gap: 4 }}>
           <input value={em} onChange={e => { const next = [...arr]; next[i] = e.target.value; onChange(next); }} placeholder={placeholder} style={{ ...baseInput, flex: 1 }} />
@@ -54,7 +55,7 @@ export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, plac
 
 export const Select = ({ label, options, value, onChange, placeholder }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-    {label && <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: FN }}>{label}</label>}
+    {label && <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
     <select value={value || ""} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance: "none", paddingRight: 30 }}>
       {placeholder && <option value="">{placeholder}</option>}
       {options.map(o => <option key={typeof o==="object"?o.value:o} value={typeof o==="object"?o.value:o}>{typeof o==="object"?o.label:o}</option>)}
@@ -63,7 +64,7 @@ export const Select = ({ label, options, value, onChange, placeholder }) => (
 );
 export const TextArea = ({ label, ...props }) => (
   <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-    {label && <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: FN }}>{label}</label>}
+    {label && <label style={{ fontSize: 10, fontWeight: 700, color: C.td, textTransform: "uppercase", letterSpacing: "0.08em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
     <textarea style={{ ...baseInput, minHeight: 60, resize: "vertical" }} {...props} />
   </div>
 );

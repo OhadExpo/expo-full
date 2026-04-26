@@ -283,12 +283,12 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
       {/* Permanent delete — type DELETE to confirm */}
       {deleteConfirm && <div style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.7)" }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("")}}>
         <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.rd}40`, borderRadius: 12, width: 420, padding: 24 }}>
-          <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd }}>⚠ Permanent Deletion</h3>
-          <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm }}>This will permanently delete <strong style={{color:C.tx}}>{deleteConfirm.name}</strong> and ALL their data (plans, workouts, payments).</p>
-          <p style={{ margin: "0 0 16px", fontSize: 13, color: C.rd, fontWeight: 600 }}>This cannot be undone.</p>
+          <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd, textAlign: "center" }}>⚠ Permanent Deletion</h3>
+          <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>This will permanently delete <strong style={{color:C.tx}}>{deleteConfirm.name}</strong> and ALL their data (plans, workouts, payments).</p>
+          <p style={{ margin: "0 0 16px", fontSize: 13, color: C.rd, fontWeight: 600, textAlign: "center" }}>This cannot be undone.</p>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: "uppercase", fontFamily: FN, display: "block", marginBottom: 4 }}>Type "DELETE" to confirm</label>
-            <input value={deleteTyped} onChange={e => setDeleteTyped(e.target.value)} style={{ background: C.sf2, border: `1px solid ${C.rd}40`, borderRadius: 6, padding: "8px 12px", color: C.tx, fontFamily: FN, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box", letterSpacing: "0.1em" }} placeholder="DELETE" autoComplete="off" />
+            <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: "uppercase", fontFamily: FN, display: "block", marginBottom: 4, textAlign: "center" }}>Type "DELETE" to confirm</label>
+            <input value={deleteTyped} onChange={e => setDeleteTyped(e.target.value)} style={{ background: C.sf2, border: `1px solid ${C.rd}40`, borderRadius: 6, padding: "8px 12px", color: C.tx, fontFamily: FN, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box", letterSpacing: "0.1em", textAlign: "center" }} placeholder="DELETE" autoComplete="off" />
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <Btn variant="ghost" onClick={() => {setDeleteConfirm(null);setDeleteTyped("")}}>Cancel</Btn>

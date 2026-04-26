@@ -1087,7 +1087,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       {/* Compose input (new comment or reply). Appears inline when composing is active. */}
       {composing && (
         <div style={{background:C.sf2,border:`1px solid ${C.ac}60`,borderRadius:8,padding:10,marginTop:8}}>
-          <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6}}>
+          <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,textAlign:'center'}}>
             {composing.replyToId ? '↳ REPLYING' : `💬 COMMENT AT ${fmtTs(composing.ts)}`}
           </div>
           <textarea value={composeText} autoFocus
@@ -1275,17 +1275,17 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
       <div onClick={e => e.stopPropagation()}
         style={{background:C.sf,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:12,padding:20,maxWidth:380,width:'100%'}}>
-        <div style={{fontFamily:FN,fontSize:13,color:C.rd||'#ff6b6b',marginBottom:6,fontWeight:700}}>DELETE WORKOUT</div>
-        <div style={{fontSize:13,color:C.tx,marginBottom:6}}>
+        <div style={{fontFamily:FN,fontSize:13,color:C.rd||'#ff6b6b',marginBottom:6,fontWeight:700,textAlign:'center'}}>DELETE WORKOUT</div>
+        <div style={{fontSize:13,color:C.tx,marginBottom:6,textAlign:'center'}}>
           {woForConfirm.dayName} · {woForConfirm.planName} · W{woForConfirm.week}
         </div>
-        <div style={{fontSize:12,color:C.tm,marginBottom:14}}>
+        <div style={{fontSize:12,color:C.tm,marginBottom:14,textAlign:'center'}}>
           This permanently removes the workout, its sets, form videos, and review notes. Type <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>delete</span> to confirm.
         </div>
         <input autoFocus value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && confirmOk) onDeleteConfirm(); }}
           placeholder='type "delete"'
-          style={{width:'100%',background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12}} />
+          style={{width:'100%',background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
         <div style={{display:'flex',gap:8}}>
           <button onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
             style={{flex:1,padding:'10px 0',borderRadius:8,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
@@ -1492,7 +1492,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
                   {/* Weekly Focus editor for NEXT week */}
                   <div style={{background:C.acD,borderRadius:8,padding:12,border:`1px solid ${C.ac}20`}}>
-                    <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6}}>
+                    <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,textAlign:'center'}}>
                       WEEKLY FOCUS — W{nextWeek} (next)
                     </div>
                     <textarea

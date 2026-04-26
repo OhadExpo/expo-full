@@ -848,9 +848,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}}>
             {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'6px 0',borderRadius:6,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
           </div>}
-          <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
+          <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8,textAlign:'center'}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:C.sf2,border:`0.25px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5}}/>
+            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:C.sf2,border:`0.25px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
             <button disabled={!activePlan} onClick={()=>{const val=bw||bwDisplay;if(val&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
               style={{padding:'10px 20px',borderRadius:8,border:'none',background:(bw&&activePlan)?C.ac:C.sf3,color:(bw&&activePlan)?'#fff':C.td,fontFamily:FB,fontSize:13,fontWeight:700,cursor:(bw&&activePlan)?'pointer':'default'}}>Save</button>
           </div>
