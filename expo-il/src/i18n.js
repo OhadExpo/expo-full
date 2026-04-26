@@ -18,6 +18,7 @@ const DEFAULT = 'he';
 const STRINGS = {
   // ─── Nav ──────────────────────────────────────────────────────────
   'nav.programs':        { en: 'PROGRAMS',       he: 'תוכניות' },
+  'nav.about':           { en: 'ABOUT',          he: 'מי אני' },
   'nav.how':             { en: 'HOW IT WORKS',   he: 'איך זה עובד' },
   'nav.contact':         { en: 'CONTACT',        he: 'דבר איתי' },
 
@@ -159,26 +160,26 @@ const STRINGS = {
   },
 
   // ─── About the coach ──────────────────────────────────────────────
-  'about.badge':         { en: 'WHO WRITES THESE', he: 'מי כותב את התוכניות' },
+  'about.badge':         { en: 'WHO WRITES THESE', he: 'מי אני' },
   'about.h2':            { en: "I'm Ohad. I've been programming this exact engine for years.", he: 'אני אוהד. שנים שאני בונה את השיטה הזאת.' },
   'about.p1': {
     en: "Athletic Performance Coach at Bnei Herzliya. Spent four years playing American football in the NCAA — CMU, then a couple of college teams in Israel (OUI, TAU). Trained as an athlete first, then started programming for athletes who needed someone who'd done the work.",
-    he: 'מאמן יכולות אתלטיות בבני הרצליה. ארבע שנים שיחקתי פוטבול אמריקאי ב-NCAA, ב-CMU. אחרי זה כמה עונות בקבוצות קולג\' בארץ — OUI ו-TAU. התאמנתי בעצמי קודם, אחרי זה התחלתי לכתוב תוכניות לאתלטים שצריכים מישהו שעבר את זה.',
+    he: 'מאמן יכולות אתלטיות בבני הרצליה. שיחקתי פוטבול ב-NCAA, ב-CMU. אחרי זה כמה עונות בקבוצות קולג\' בארץ — OUI, TAU. התאמנתי בעצמי קודם. אחרי זה התחלתי לכתוב תוכניות לאתלטים.',
   },
   'about.p2': {
     en: 'Today I work with private clients out of Herzliya — block-periodised training, progress logged on the phone, video reviewed every week. The portal you see here is the same one they use. I built it myself so I could stop juggling spreadsheets.',
-    he: 'היום אני עובד עם לקוחות פרטיים מהרצליה. תוכנית מבוססת בלוקים, מתעדים בטלפון, סרטונים נבדקים כל שבוע. הפורטל שאתה רואה פה הוא בדיוק אותו פורטל שהם משתמשים בו. בניתי אותו לבד כדי להפסיק לעבוד עם אקסלים.',
+    he: 'היום אני עובד עם לקוחות אישיים בהרצליה. תוכנית בבלוקים. תיעוד בטלפון. סרטונים נבדקים כל שבוע. הפורטל שאתה רואה פה הוא בדיוק זה שהם עובדים איתו. בניתי אותו לבד כדי להפסיק עם אקסלים.',
   },
   'about.p3': {
     en: "EXPO templates exist because I can't take more 1:1 clients than my schedule allows, but the programming is good enough to deliver as standalone product. Same blocks, same auto-regulation, no waitlist.",
-    he: 'תבניות EXPO קיימות כי אני לא יכול לקחת יותר לקוחות אישיים מכמה שהיום נותן לי. אבל התוכניות עצמן מספיק טובות בשביל למסור אותן כמוצר עצמאי. אותם בלוקים, אותה אוטו-רגולציה, בלי רשימת המתנה.',
+    he: 'תבניות EXPO קיימות כי אני לא יכול לקחת יותר לקוחות מכמה שהיום נותן לי. אבל התוכניות עצמן מספיק טובות לעמוד כמוצר עצמאי. אותם בלוקים. אותה אוטו-רגולציה. בלי רשימת המתנה.',
   },
   'about.cred1':         { en: 'Athletic Performance Coach',  he: 'מאמן יכולות אתלטיות' },
   'about.cred1.s':       { en: '@ Bnei Herzliya',             he: '@ בני הרצליה' },
   'about.cred2':         { en: 'NCAA football',               he: 'פוטבול NCAA' },
   'about.cred2.s':       { en: '4 yrs · CMU, OUI, TAU',       he: '4 שנים · CMU, OUI, TAU' },
   'about.cred3':         { en: 'Built the EXPO portal',       he: 'בניתי את פורטל EXPO' },
-  'about.cred3.s':       { en: 'and use it daily',            he: 'ומשתמש בו כל יום' },
+  'about.cred3.s':       { en: 'and use it daily',            he: 'משתמש בו כל יום' },
   'about.photo.note': {
     en: 'Photo coming soon',
     he: 'תמונה בקרוב',

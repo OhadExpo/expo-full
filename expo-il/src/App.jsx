@@ -100,10 +100,34 @@ function Nav() {
   // our hashes look like '#/' not '#contact', so id-based anchor scrolling never fires.
   const tabs = [
     { key: 'programs', label: t('nav.programs'), count: null, anchor: 'top'     },
+    { key: 'about',    label: t('nav.about'),    count: null, anchor: 'about'   },
     { key: 'how',      label: t('nav.how'),      count: null, anchor: 'how'     },
     { key: 'contact',  label: t('nav.contact'),  count: null, anchor: 'contact' },
   ];
   const [active, setActive] = useState('programs');
+  // Scroll-spy: as the user scrolls, mark whichever section is closest to the
+  // top of the viewport as the active tab. Same behavior as the coach app's
+  // observer-driven highlighting. Honors the 56px sticky header.
+  useEffect(() => {
+    const ids = ['programs', 'about', 'how', 'contact'];
+    const onScroll = () => {
+      let best = 'programs';
+      let bestDist = Infinity;
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top - 80;
+        if (top <= 0 && Math.abs(top) < bestDist) {
+          bestDist = Math.abs(top);
+          best = id;
+        }
+      }
+      setActive(best);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   const goToAnchor = (anchor) => {
     const onHome = location.hash === '' || location.hash === '#' || location.hash === '#/';
     const doScroll = () => {
@@ -1392,6 +1416,27 @@ export default function App() {
     document.title = t(docTitleKey, docTitleVars);
   }, [docTitleKey, docTitleVars && docTitleVars.title]);
 
+  // Scroll-fade: add .fv-visible to each <section> once it enters the viewport.
+  // Once visible, stay visible (no flicker on scroll-up). Disabled if the
+  // browser doesn't support IntersectionObserver — in that case the section
+  // stays at its initial transform, so we set the class up-front as fallback.
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') {
+      document.querySelectorAll('section').forEach((s) => s.classList.add('fv-visible'));
+      return;
+    }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add('fv-visible');
+          io.unobserve(e.target);
+        }
+      }
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.05 });
+    document.querySelectorAll('section').forEach((s) => io.observe(s));
+    return () => io.disconnect();
+  }, [docTitleKey]);
+
   return (
     <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB }}>
       {/* Stack the "what's inside" grid (phone + tiles) on narrow viewports,
@@ -1400,6 +1445,13 @@ export default function App() {
       <style>{`
         /* Offset section anchors so the sticky 56px header doesn't overlap them. */
         #programs, #inside, #about, #why, #how, #contact { scroll-margin-top: 64px; }
+        /* Scroll-fade: sections start invisible, fade + slide in once visible.
+           Honors prefers-reduced-motion. */
+        section { opacity: 0; transform: translateY(12px); transition: opacity 600ms ease, transform 600ms ease; }
+        section.fv-visible { opacity: 1; transform: translateY(0); }
+        @media (prefers-reduced-motion: reduce) {
+          section { opacity: 1 !important; transform: none !important; transition: none !important; }
+        }
         @media (max-width: 980px) {
           .fv-inside-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
         }

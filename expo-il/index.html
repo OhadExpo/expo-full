@@ -31,6 +31,20 @@
   <meta name="twitter:image" content="https://expo-il.co.il/og-cover.png"/>
 
   <title>EXPO · Programmed Training</title>
+
+  <!-- PWA manifest + iOS standalone hints so the page is installable to the
+       home screen, parity with the coach app's PWA. -->
+  <link rel="manifest" href="/manifest.webmanifest"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="EXPO"/>
+
+  <!-- Preload the assets that block first paint: Nord (text rendering) +
+       the hero EXPO mark (above-the-fold image). -->
+  <link rel="preload" href="/fonts/Nord-Regular.woff2" as="font" type="font/woff2" crossorigin/>
+  <link rel="preload" href="/fonts/Nord-Bold.woff2"    as="font" type="font/woff2" crossorigin/>
+  <link rel="preload" href="/expo-hero-logo.png"       as="image" fetchpriority="high"/>
+
   <link rel="stylesheet" href="/nord-fonts.css"/>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
