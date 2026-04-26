@@ -523,25 +523,40 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
     return <div key={ei} style={{marginBottom: blockIdx < groupExs.length - 1 ? 24 : 0, paddingBottom: blockIdx < groupExs.length - 1 ? 20 : 0, borderBottom: blockIdx < groupExs.length - 1 ? `2px dashed ${C.bd2}` : 'none'}}>
       {isSuperset && <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em',textAlign:'center',marginBottom:8}}>EXERCISE {blockIdx+1} OF {groupExs.length}</div>}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:6}}>
-        <h2 style={{margin:0,fontFamily:FN,fontSize:18,textAlign:'center'}}>{d.t}</h2>
-        {allowSubstitution && (
-          <button onClick={() => setSwapOpenForEid(ex.eid)} title="Swap for an alternate" aria-label="Swap exercise"
-            style={{background:'transparent',border:`1px solid ${sub?C.ac:C.bd}`,color:sub?C.ac:C.tm,
-              borderRadius:6,padding:'4px 8px',cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,
-              letterSpacing:0.5,display:'inline-flex',alignItems:'center',gap:4}}>
-            <span style={{fontSize:12,lineHeight:1}}>⇄</span>
-            <span>{sub ? 'SWAPPED' : 'SWAP'}</span>
+
+      {/* Title (now reflects swap if any) */}
+      <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{d.t}</h2>
+
+      {/* Substitution surface — only renders when allowSubstitution is true.
+          Two states:
+            (a) No swap yet → subtle text link "Equipment busy? Find alternate ⇄"
+            (b) Swapped → soft accent chip showing the prescribed title with an inline UNDO */}
+      {allowSubstitution && !sub && (
+        <div style={{textAlign:'center',marginBottom:6}}>
+          <button onClick={() => setSwapOpenForEid(ex.eid)} title="Find an alternate exercise"
+            style={{background:'transparent',border:'none',color:C.tm,fontFamily:FN,fontSize:10,letterSpacing:1.2,fontWeight:600,cursor:'pointer',padding:'2px 6px',display:'inline-flex',alignItems:'center',gap:4}}
+            onMouseEnter={e=>e.currentTarget.style.color=C.ac}
+            onMouseLeave={e=>e.currentTarget.style.color=C.tm}>
+            <span style={{opacity:0.6}}>⇄</span>
+            <span>EQUIPMENT BUSY? FIND ALTERNATE</span>
           </button>
-        )}
-      </div>
-      {sub && (
-        <div style={{textAlign:'center',marginBottom:6,fontFamily:FN,fontSize:10,color:C.td,letterSpacing:1}}>
-          REPLACES "{dPrescribed.t}" ·{' '}
-          <button onClick={() => setSubstitutions(s => { const n={...s}; delete n[ex.eid]; return n; })}
-            style={{background:'transparent',border:'none',color:C.tm,fontFamily:FN,fontSize:10,letterSpacing:1,cursor:'pointer',textDecoration:'underline',padding:0}}>
-            UNDO
-          </button>
+        </div>
+      )}
+      {allowSubstitution && sub && (
+        <div style={{display:'flex',justifyContent:'center',marginBottom:8}}>
+          <div style={{
+            display:'inline-flex',alignItems:'center',gap:8,
+            background:C.acD,border:`1px solid ${C.ac}40`,borderRadius:999,
+            padding:'4px 10px 4px 12px',
+          }}>
+            <span style={{fontFamily:FN,fontSize:9,color:C.ac,fontWeight:700,letterSpacing:1}}>⇄ SWAPPED FROM</span>
+            <span style={{fontFamily:FB,fontSize:11,color:C.tx,fontWeight:600,maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={dPrescribed.t}>{dPrescribed.t}</span>
+            <button onClick={() => setSubstitutions(s => { const n={...s}; delete n[ex.eid]; return n; })}
+              title="Undo swap"
+              style={{background:'transparent',border:'none',color:C.tm,fontFamily:FN,fontSize:9,letterSpacing:1,fontWeight:700,cursor:'pointer',padding:'2px 4px',borderLeft:`1px solid ${C.ac}30`,marginLeft:4}}>
+              UNDO
+            </button>
+          </div>
         </div>
       )}
       {swapOpenForEid === ex.eid && (

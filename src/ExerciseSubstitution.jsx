@@ -1,4 +1,4 @@
-// ExerciseSubstitution: modal picker for swapping a prescribed exercise mid-set
+// ExerciseSubstitution: bottom-sheet picker for swapping a prescribed exercise
 // when the trainee can't reach the equipment (busy machine, missing kit).
 //
 // Surfaced in ClientPortal next to each exercise title — only when the
@@ -11,7 +11,7 @@
 // (lives in ClientPortal state, never persisted) so the prescribed plan
 // stays untouched.
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { findAlternates } from './exerciseSimilarity';
 
@@ -25,73 +25,156 @@ export function libExerciseToEx(libEx) {
   };
 }
 
+// Pull a single equipment hint from a title for display on the alternate
+// row (DUMBBELL / CABLE / MACHINE / BARBELL / BANDED / ...). Lower-case
+// scan, returns the first hit. Pure UI hint — doesn't drive the score.
+function equipmentHintFor(title) {
+  const t = (title || '').toLowerCase();
+  const map = [
+    ['barbell', 'BARBELL'], ['bb ', 'BARBELL'], [' bb', 'BARBELL'],
+    ['dumbbell', 'DUMBBELL'], ['db ', 'DUMBBELL'], [' db', 'DUMBBELL'],
+    ['kettlebell', 'KETTLEBELL'], ['kb ', 'KETTLEBELL'], [' kb', 'KETTLEBELL'],
+    ['cable', 'CABLE'], ['machine', 'MACHINE'], ['smith', 'SMITH'],
+    ['banded', 'BAND'], ['band', 'BAND'],
+    ['bodyweight', 'BODYWEIGHT'], ['bw ', 'BODYWEIGHT'],
+    ['trx', 'TRX'], ['ring', 'RINGS'], ['sled', 'SLED'],
+  ];
+  for (const [needle, label] of map) if (t.includes(needle)) return label;
+  return null;
+}
+
 export default function ExerciseSubstitution({ currentTitle, currentEx, library, onPick, onClose }) {
-  // currentEx is the EX-shape entry; currentTitle is its title. We only need
-  // the title to score against the library (since everything else is empty
-  // for now until the library is classified).
+  // Esc closes the sheet. Mounted only while open so the listener is auto
+  // cleaned up when the parent unmounts (swapOpenForEid → null).
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   const target = { id: '__current__', title: currentTitle };
   const alternates = findAlternates(target, library || [], 5);
+  const targetEquip = equipmentHintFor(currentTitle);
 
   return (
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.78)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 16, zIndex: 1000,
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      zIndex: 1000, animation: 'fv-fade-in 180ms ease',
     }}>
+      <style>{`
+        @keyframes fv-fade-in { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes fv-slide-up { from { transform: translateY(24px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+      `}</style>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: C.bg, border: `1px solid ${C.bd2}`, borderRadius: 16,
-        maxWidth: 480, width: '100%', maxHeight: '90vh', overflowY: 'auto',
-        padding: 20,
+        background: C.sf, border: `1px solid ${C.bd2}`, borderTop: `2px solid ${C.ac}`,
+        borderTopLeftRadius: 18, borderTopRightRadius: 18,
+        width: '100%', maxWidth: 520, maxHeight: '88vh', overflowY: 'auto',
+        padding: '14px 16px 22px',
+        animation: 'fv-slide-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1)',
+        boxShadow: `0 -24px 64px -24px ${C.ac}40`,
       }}>
+        {/* Pull-tab + title row */}
         <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-          marginBottom: 14,
+          width: 40, height: 4, borderRadius: 2, background: C.bd2,
+          margin: '0 auto 14px',
+        }} />
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+          gap: 12, marginBottom: 4,
         }}>
-          <div>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700, marginBottom: 4 }}>
-              SWAP EXERCISE
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
+              marginBottom: 4,
+            }}>
+              FIND AN ALTERNATE
             </div>
-            <div style={{ fontFamily: FB, fontSize: 14, color: C.tm, lineHeight: 1.4 }}>
-              Replace <span style={{ color: C.tx, fontWeight: 700 }}>{currentTitle}</span> with one of these:
+            <div style={{
+              fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.4,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }} title={currentTitle}>
+              instead of <span style={{ color: C.tx, fontWeight: 700 }}>{currentTitle}</span>
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" style={{
             background: 'transparent', border: 'none', color: C.tm,
-            fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 4,
+            fontSize: 24, cursor: 'pointer', lineHeight: 1, padding: '0 4px',
+            flex: '0 0 auto',
           }}>×</button>
         </div>
 
+        <div style={{ height: 1, background: C.bd, margin: '12px -16px 14px' }} />
+
         {alternates.length === 0 && (
-          <div style={{ padding: 20, textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 12 }}>
-            No close alternates found in the library.
+          <div style={{ padding: '36px 20px', textAlign: 'center' }}>
+            <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1, marginBottom: 6 }}>
+              NO CLOSE MATCHES
+            </div>
+            <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
+              The library doesn't have an obvious alternate for this exercise. Stick with the prescribed one or skip the set.
+            </div>
           </div>
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {alternates.map(({ exercise, score }) => (
-            <button key={exercise.id} onClick={() => { onPick(exercise); onClose(); }} style={{
-              textAlign: 'left', background: C.sf, border: `1px solid ${C.bd}`,
-              borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
-              fontFamily: FB, color: C.tx, fontSize: 14, fontWeight: 600,
-              transition: 'border-color 120ms, background 120ms',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.acD; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.bd; e.currentTarget.style.background = C.sf; }}>
-              <div>{exercise.title}</div>
-              {(exercise.movementPattern || exercise.resistanceType) && (
-                <div style={{ marginTop: 4, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 400 }}>
-                  {[exercise.movementPattern, exercise.resistanceType].filter(Boolean).join(' · ')}
+          {alternates.map(({ exercise, score }, i) => {
+            const eq = equipmentHintFor(exercise.title);
+            const eqDifferent = eq && targetEquip && eq !== targetEquip;
+            return (
+              <button key={exercise.id} onClick={() => { onPick(exercise); onClose(); }} style={{
+                textAlign: 'left', background: C.sf, border: `1px solid ${C.bd}`,
+                borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 10,
+                transition: 'border-color 120ms, background 120ms, transform 120ms',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = C.ac;
+                e.currentTarget.style.background = C.acD;
+                e.currentTarget.style.transform = 'translateX(2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = C.bd;
+                e.currentTarget.style.background = C.sf;
+                e.currentTarget.style.transform = 'translateX(0)';
+              }}>
+                {/* Rank index */}
+                <div style={{
+                  flex: '0 0 auto', width: 24, height: 24, borderRadius: 6,
+                  background: C.acD, color: C.ac,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: FN, fontSize: 11, fontWeight: 700,
+                }}>
+                  {i + 1}
                 </div>
-              )}
-            </button>
-          ))}
+                {/* Title + equipment hint */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontFamily: FB, fontSize: 14, fontWeight: 600, color: C.tx, lineHeight: 1.3,
+                  }}>{exercise.title}</div>
+                  {eq && (
+                    <div style={{
+                      marginTop: 4, fontFamily: FN, fontSize: 9, letterSpacing: 1, fontWeight: 700,
+                      color: eqDifferent ? C.ac : C.tm,
+                    }}>
+                      {eqDifferent && '⇄ '}{eq}
+                    </div>
+                  )}
+                </div>
+                {/* Tap-to-pick affordance */}
+                <div style={{
+                  flex: '0 0 auto', color: C.td, fontSize: 18,
+                }}>›</div>
+              </button>
+            );
+          })}
         </div>
 
         <div style={{
           marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.bd}`,
-          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.8, textAlign: 'center',
+          fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8, textAlign: 'center',
         }}>
-          The prescribed plan stays intact — this is just for today's session.
+          Just for today's session — the prescribed plan stays intact.
         </div>
       </div>
     </div>
