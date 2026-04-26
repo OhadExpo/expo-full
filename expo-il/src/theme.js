@@ -47,10 +47,15 @@ export const CONTACT = {
 };
 
 // Build a wa.me link with a pre-filled buy message. Caller passes the
-// localised text (built from the i18n 'wa.buy.tmpl' key).
+// localised text (built from the i18n 'wa.buy.tmpl' key). The message also
+// includes the canonical clean URL — that URL is served by a static page
+// with program-specific OG meta, so the WhatsApp recipient sees the right
+// preview card (title, summary, price) when the link is forwarded on.
 export function buyOnWhatsApp(program, text) {
   const fallback = `Hi Ohad, I want to buy "${program.title}" (${program.id}).`;
-  return `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(text || fallback)}`;
+  const cleanUrl = `https://expo-il.co.il/programs/${program.id}`;
+  const body = `${text || fallback}\n${cleanUrl}`;
+  return `https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(body)}`;
 }
 
 // EXPO brand mark — copied verbatim from the coach app's src/theme.js so

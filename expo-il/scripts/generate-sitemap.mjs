@@ -30,7 +30,10 @@ while ((m = re.exec(src))) {
 console.log(`found ${ids.length} program ids: ${ids.join(', ')}`);
 
 const today = new Date().toISOString().slice(0, 10);
-const urls = ['/', ...ids.map((id) => `/#/programs/${id}`)];
+// Use the clean /programs/<id> URLs (served by the static program pages)
+// so search engines + social scrapers land on the page that actually has
+// program-specific meta. The page itself redirects into the SPA route.
+const urls = ['/', ...ids.map((id) => `/programs/${id}`)];
 
 const lines = [
   '<?xml version="1.0" encoding="UTF-8"?>',

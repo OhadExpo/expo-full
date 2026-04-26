@@ -1,0 +1,151 @@
+// Generate dist/programs/<id>.html for each program — minimal HTML with
+// program-specific OG meta + a JS redirect to /#/programs/<id>. Runs as the
+// `postbuild` hook so it lands inside dist/ after Vite has cleared it.
+//
+// Why this hack: the SPA uses hash routes (/#/programs/<id>), so social
+// scrapers (WhatsApp, IG, FB, Twitter) only ever see the static index.html
+// and render the same generic OG card no matter which program was shared.
+// By generating one tiny HTML file per program, link previews render the
+// right title + price + summary, and visitors get bounced into the SPA
+// the moment they click through.
+
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+
+const BASE = 'https://expo-il.co.il';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const root = resolve(here, '..');
+const srcPath = resolve(root, 'src', 'programs.js');
+const distDir = resolve(root, 'dist');
+const outDir = resolve(distDir, 'programs');
+
+// Crude programs.js parser — enough for our schema. Avoids needing to spin
+// up a full module loader for the script.
+function parsePrograms(src) {
+  const programs = [];
+  // Match each top-level program object: { id: '...', tag: '...', ..., }
+  // Find each id-anchored block and extract the fields we need by regex.
+  const blockRe = /\{\s*id:\s*'([a-z0-9-]+)',[\s\S]*?\n\s*\},/g;
+  let m;
+  while ((m = blockRe.exec(src))) {
+    const id = m[1];
+    if (id.startsWith('_') || id === 'kebab-case-slug') continue;
+    const block = m[0];
+    const grab = (key) => {
+      const re = new RegExp(`${key}:\\s*'((?:\\\\.|[^'])*)'`);
+      const mm = re.exec(block);
+      return mm ? mm[1].replace(/\\'/g, "'") : '';
+    };
+    const grabNum = (key) => {
+      const re = new RegExp(`${key}:\\s*(\\d+)`);
+      const mm = re.exec(block);
+      return mm ? Number(mm[1]) : null;
+    };
+    programs.push({
+      id,
+      title: grab('title'),
+      audience: grab('audience'),
+      summary: grab('summary'),
+      duration: grab('duration'),
+      price: grabNum('price'),
+      currency: grab('currency') || 'NIS',
+    });
+  }
+  return programs;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function pageHtml(p) {
+  const url = `${BASE}/programs/${p.id}`;
+  const hashUrl = `${BASE}/#/programs/${p.id}`;
+  const title = `${p.title} · EXPO`;
+  const description = p.summary || `${p.title} — ${p.duration}. ${p.audience}.`;
+  const ld = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: p.title,
+    description,
+    sku: p.id,
+    brand: { '@type': 'Brand', name: 'EXPO' },
+    category: 'Training Program',
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: p.currency,
+      price: p.price,
+      availability: 'https://schema.org/InStock',
+      url,
+    },
+  };
+  return `<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}" />
+  <link rel="canonical" href="${hashUrl}" />
+
+  <meta property="og:type" content="product" />
+  <meta property="og:site_name" content="EXPO" />
+  <meta property="og:title" content="${escapeHtml(title)}" />
+  <meta property="og:description" content="${escapeHtml(description)}" />
+  <meta property="og:url" content="${url}" />
+  <meta property="og:image" content="${BASE}/og-cover.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="he_IL" />
+  <meta property="og:locale:alternate" content="en_US" />
+  <meta property="product:price:amount" content="${p.price}" />
+  <meta property="product:price:currency" content="${p.currency}" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(title)}" />
+  <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta name="twitter:image" content="${BASE}/og-cover.png" />
+
+  <script type="application/ld+json">${JSON.stringify(ld)}</script>
+
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+  <meta http-equiv="refresh" content="0; url=/#/programs/${p.id}" />
+  <script>location.replace('/#/programs/${p.id}');</script>
+  <style>
+    html,body{background:#000;color:#f0f0f4;font-family:system-ui,sans-serif;margin:0;padding:24px;text-align:center}
+    a{color:#39BDFF}
+  </style>
+</head>
+<body>
+  <p>Redirecting to <a href="/#/programs/${p.id}">${escapeHtml(p.title)}</a>…</p>
+</body>
+</html>
+`;
+}
+
+function main() {
+  const src = readFileSync(srcPath, 'utf8');
+  const programs = parsePrograms(src);
+  if (programs.length === 0) {
+    console.error('no programs parsed — check the regex against programs.js');
+    process.exit(1);
+  }
+  mkdirSync(outDir, { recursive: true });
+  for (const p of programs) {
+    const out = resolve(outDir, `${p.id}.html`);
+    writeFileSync(out, pageHtml(p), 'utf8');
+  }
+  console.log(`wrote ${programs.length} program pages → dist/programs/`);
+}
+
+main();
