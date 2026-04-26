@@ -1445,6 +1445,12 @@ export default function App() {
       <style>{`
         /* Offset section anchors so the sticky 56px header doesn't overlap them. */
         #programs, #inside, #about, #why, #how, #contact { scroll-margin-top: 64px; }
+        /* Centre every section's title block (accent badge + h2 + intro
+           paragraph). The structural body that follows (grids, tables) keeps
+           its own alignment because it's nested deeper. */
+        section > div:first-child { text-align: center; }
+        section > h2 { text-align: center; }
+        section > p { text-align: center; margin-left: auto; margin-right: auto; }
         /* Scroll-fade: sections start invisible, fade + slide in once visible.
            Honors prefers-reduced-motion. */
         section { opacity: 0; transform: translateY(12px); transition: opacity 600ms ease, transform 600ms ease; }
