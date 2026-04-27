@@ -8,15 +8,21 @@ import { FormVideoPlayer } from './WorkoutReview';
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob } from './blobQueue';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
+import { toast, confirmToast } from './ui';
 
-// Feature gate for the swap-exercise UI. The intent (per Ohad 2026-04-26) is
-// that substitution is ONLY for trainees on expo-il template-purchased plans —
-// his manually-coached private clients should never see this button because he
-// handles substitutions for them himself. Until plans carry an explicit
-// `is_template_purchase` column we detect template plans via name prefix
-// `[EXPO]`. Helper below; tighten once the column lands.
+// Feature gate for the swap-exercise UI. Substitution is ONLY for trainees on
+// expo-il template-purchased plans — Ohad's manually-coached private clients
+// should never see this button (he handles substitutions for them himself).
+//
+// Read precedence:
+//   1. plan.isTemplatePurchase — typed flag from the plans table column
+//      (or data JSONB until the SQL migration runs). Set on import for
+//      template plans and on the trainer plan editor.
+//   2. Legacy name-prefix detection — kept as a safety net for any plan
+//      that pre-dates the typed flag.
 function isTemplatePlan(plan) {
   if (!plan) return false;
+  if (plan.isTemplatePurchase === true) return true;
   const n = (plan.name || '').toLowerCase();
   return n.startsWith('[expo]') || n.startsWith('expo · ') || n.startsWith('expo - ');
 }
@@ -141,8 +147,67 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (Number.isFinite(perWeek) && perWeek > 0) return perWeek;
     return typeof ex.s === 'number' ? ex.s : 3;
   };
-  const [allSets, setAllSets] = useState(() => day.ex.map(ex => Array.from({length:setCountFor(ex)}, () => ({reps:'',load:'',rpe:'',done:false}))));
+  // Find the most recent prior top set (by load) for a given stableId so the
+  // first-set inputs can prefill last session's numbers — saves the trainee
+  // the keystrokes for "match last week" + makes progressive overload visible
+  // (you see what you did and can bump it). Honors substitutions on the prior
+  // session side. Returns { reps, load, rpe } or null.
+  const priorTopFor = (stableId) => {
+    if (!priorWorkouts || priorWorkouts.length === 0) return null;
+    let best = null;
+    for (const w of priorWorkouts) {
+      for (const px of (w.exercises || [])) {
+        const pSub = px.substitution;
+        const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
+        if (pStableId !== stableId) continue;
+        for (const s of (px.sets || [])) {
+          if (!s.done) continue;
+          const load = parseFloat(s.load) || 0;
+          if (load <= 0) continue;
+          if (!best || load > best.load || (load === best.load && new Date(w.date) > new Date(best.date))) {
+            best = { load, reps: s.reps ?? '', rpe: s.rpe ?? '', date: w.date };
+          }
+        }
+      }
+    }
+    return best;
+  };
+  const [allSets, setAllSets] = useState(() => day.ex.map(ex => {
+    const count = setCountFor(ex);
+    const prior = priorTopFor(ex.eid);
+    // Only the first set carries the prior numbers; subsequent sets stay blank
+    // so the trainee makes a deliberate call set-by-set instead of robotically
+    // copying last session across all four sets.
+    return Array.from({ length: count }, (_, i) => i === 0 && prior
+      ? { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false }
+      : { reps: '', load: '', rpe: '', done: false });
+  }));
   const [fv, setFv] = useState(() => day.ex.map(() => ({note:'',has:false})));
+
+  // When the trainee swaps to a different exercise mid-session, prefill the
+  // first set with that exercise's prior top — same behavior as initial mount,
+  // just for the swapped-in exercise. Skips if the trainee already started
+  // typing into the row.
+  useEffect(() => {
+    setAllSets(prev => {
+      let changed = false;
+      const next = prev.map((rows, ei) => {
+        const ex = day.ex[ei];
+        const sub = substitutions[ex.eid];
+        if (!sub) return rows;
+        const stableId = sub.id || `swap:${(sub.title||'').toLowerCase()}`;
+        const first = rows[0];
+        if (!first || first.reps || first.load || first.rpe || first.done) return rows;
+        const prior = priorTopFor(stableId);
+        if (!prior) return rows;
+        changed = true;
+        const newFirst = { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false };
+        const out = [...rows]; out[0] = newFirst; return out;
+      });
+      return changed ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [substitutions]);
   const [wuDone, setWuDone] = useState(() => warmup.map(() => false));
   const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
 
@@ -256,10 +321,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (!file) return;
     e.target.value = '';
 
-    // Warn if file is very large on Safari (no compression available)
+    // Warn if file is very large on Safari (no compression available).
+    // Use the async confirmToast instead of window.confirm — the latter
+    // halts the iOS video element while the prompt is up.
     if (isSafari && file.size > 50 * 1024 * 1024) {
       const sizeMB = Math.round(file.size / 1e6);
-      if (!confirm(`This video is ${sizeMB}MB. Large videos may take a while to upload. For faster uploads, try recording a shorter clip (under 30 seconds) or select from your photo library instead of recording new.\n\nContinue upload?`)) return;
+      const ok = await confirmToast(`This video is ${sizeMB}MB. Continue upload?\n\nFor faster uploads, record a shorter clip (under 30 seconds) or pick from your library instead of recording new.`, { okLabel: 'Upload', cancelLabel: 'Cancel' });
+      if (!ok) return;
     }
 
     // If a previously-recorded clip on this slot was queued for offline
@@ -343,7 +411,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       }
       URL.revokeObjectURL(previewUrl);
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:msg}; return n; });
-      alert(`Video upload failed: ${msg}\n\nPlease try again or pick a shorter clip.`);
+      toast(`Video upload failed: ${msg}\nTry again or pick a shorter clip.`, 'error', { ttl: 7000 });
     }
   };
 

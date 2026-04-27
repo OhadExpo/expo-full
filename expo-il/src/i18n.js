@@ -321,6 +321,20 @@ const STRINGS = {
     en: 'Hi Ohad, I want to buy "{title}" ({id}). What are the next steps?',
     he: 'היי אוהד, אני רוצה את "{title}" ({id}). מה הצעד הבא?',
   },
+
+  // ─── Lead capture (hero + footer email forms) ─────────────────────
+  'lead.label':       { en: 'NOT READY YET? LEAVE YOUR EMAIL.', he: 'עוד לא בטוח? תשאיר אימייל.' },
+  'lead.placeholder': { en: 'your@email.com', he: 'אימייל@שלך.com' },
+  'lead.cta':         { en: 'NOTIFY ME', he: 'עדכן אותי' },
+  'lead.sending':     { en: 'SENDING…', he: 'שולח…' },
+  'lead.thanks':      { en: '✓ THANKS — I\'LL BE IN TOUCH.', he: '✓ קיבלתי. אדבר איתך בקרוב.' },
+  'lead.err.invalid': { en: 'That email looks off — try again.', he: 'האימייל לא נראה תקין. תנסה שוב.' },
+  'lead.err.generic': { en: 'Save failed. Try again or DM me on WhatsApp.', he: 'לא נשמר. תנסה שוב או שלח וואטסאפ.' },
+
+  // ─── Testimonials ─────────────────────────────────────────────────
+  'testi.badge':      { en: 'CLIENT VOICES',  he: 'מהלקוחות' },
+  'testi.h2':         { en: 'What people say after a block', he: 'מה אומרים אחרי בלוק' },
+  'testi.empty':      { en: 'Quotes coming soon — placeholder slots until I clear photo + permission with each client.', he: 'ציטוטים בקרוב. שומר מקום עד שאסגור צילום והרשאה עם כל לקוח.' },
 };
 
 function format(template, vars) {

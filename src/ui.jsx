@@ -107,3 +107,75 @@ export const EmptyState = ({ icon, message }) => (
     <p style={{ fontFamily: FB, fontSize: 14, fontWeight: 400 }}>{message}</p>
   </div>
 );
+
+// Toast bus. Use `toast(msg, kind?)` from anywhere; mount <ToastHost/> once
+// near the app root. Keeps mid-workout messaging non-blocking — alert()
+// freezes the camera-record flow on iOS, toasts don't.
+const _listeners = new Set();
+let _seq = 0;
+export function toast(message, kind = 'info', opts = {}) {
+  const id = ++_seq;
+  const item = { id, message, kind, ttl: opts.ttl ?? 4500, actions: opts.actions || null };
+  _listeners.forEach(fn => fn({ type: 'add', item }));
+  if (item.ttl > 0) setTimeout(() => _listeners.forEach(fn => fn({ type: 'remove', id })), item.ttl);
+  return id;
+}
+export function dismissToast(id) {
+  _listeners.forEach(fn => fn({ type: 'remove', id }));
+}
+// Async confirm dialog returning a promise<boolean>. Replaces window.confirm()
+// without blocking the JS thread (window.confirm halts video element on iOS).
+export function confirmToast(message, { okLabel = 'OK', cancelLabel = 'Cancel' } = {}) {
+  return new Promise(resolve => {
+    const id = toast(message, 'confirm', {
+      ttl: 0,
+      actions: [
+        { label: cancelLabel, variant: 'ghost', value: false },
+        { label: okLabel, variant: 'primary', value: true },
+      ],
+      onAction: v => resolve(v),
+    });
+    // patch the just-created item with onAction (toast() doesn't accept it as-is)
+    _listeners.forEach(fn => fn({ type: 'patch', id, patch: { onAction: v => { resolve(v); dismissToast(id); } } }));
+  });
+}
+
+export function ToastHost() {
+  const [items, setItems] = React.useState([]);
+  React.useEffect(() => {
+    const fn = (ev) => {
+      if (ev.type === 'add') setItems(prev => [...prev, ev.item]);
+      else if (ev.type === 'remove') setItems(prev => prev.filter(x => x.id !== ev.id));
+      else if (ev.type === 'patch') setItems(prev => prev.map(x => x.id === ev.id ? { ...x, ...ev.patch } : x));
+    };
+    _listeners.add(fn);
+    return () => { _listeners.delete(fn); };
+  }, []);
+  if (!items.length) return null;
+  const palette = {
+    info:    { bg: C.sf2,  fg: C.tx,  bd: `${C.ac}66` },
+    success: { bg: C.gnD,  fg: C.gn,  bd: `${C.gn}66` },
+    error:   { bg: C.rdD,  fg: C.rd,  bd: `${C.rd}66` },
+    warn:    { bg: C.orD,  fg: C.or,  bd: `${C.or}66` },
+    confirm: { bg: C.sf2,  fg: C.tx,  bd: `${C.ac}99` },
+  };
+  return (
+    <div style={{ position: 'fixed', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 1300, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', pointerEvents: 'none', maxWidth: 'calc(100vw - 32px)' }}>
+      {items.map(it => {
+        const p = palette[it.kind] || palette.info;
+        return (
+          <div key={it.id} style={{ pointerEvents: 'auto', background: p.bg, color: p.fg, border: `1px solid ${p.bd}`, borderRadius: 10, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: '0 8px 24px rgba(0,0,0,0.5)', minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{it.message}</div>
+            {it.actions && (
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+                {it.actions.map((a, i) => (
+                  <Btn key={i} variant={a.variant || 'ghost'} onClick={() => { if (it.onAction) it.onAction(a.value); dismissToast(it.id); }}>{a.label}</Btn>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

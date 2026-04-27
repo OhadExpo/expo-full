@@ -4,9 +4,10 @@ import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInpu
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
+import TraineePRsView from './TraineePRsView';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId } from './traineeUtils';
 
-export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, payments, setPayments, onBack, onOpenPlan, portalVis, setPortalVis }) {
+export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, onBack, onOpenPlan, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
   // For couples: plans assigned to parent ID are shared, plans to sub-IDs are per-member
   const traineeIds = traineeIdsFor(trainee);
@@ -16,6 +17,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const _allIds = new Set(traineeIds);
   const tw=workouts.filter(w=>_allIds.has(w.traineeId)&&w.status==="completed");
   const tPay=payments.filter(p=>_allIds.has(p.traineeId));
+  // Filter client portal workouts down to this trainee (parent + sub-member ids
+  // for couples). Powers the Records section below.
+  const tcw = (clientWorkouts || []).filter(w => _allIds.has(w.clientId));
+  const [recordsSort, setRecordsSort] = useState('recent'); // 'recent' | 'jump'
   const [showPayForm,setShowPayForm]=useState(false);
   const [showEdit,setShowEdit]=useState(false);
   const [editForm,setEditForm]=useState(null);
@@ -268,6 +273,22 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tw.length})</h3>
       {tw.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
         tw.slice().reverse().slice(0,10).map(w=><Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</div><span style={{fontSize:12,color:C.tm}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
+
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px"}}>
+        <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Records</h3>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          <button onClick={()=>setRecordsSort(s=>s==='recent'?'jump':'recent')}
+            title={recordsSort==='recent' ? 'Sort by biggest jump' : 'Sort by most recent'}
+            style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"4px 10px",color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>
+            {recordsSort==='recent' ? '↕ RECENT' : '↕ BIGGEST JUMP'}
+          </button>
+        </div>
+      </div>
+      {tcw.length === 0 ? (
+        <div style={{color:C.td,fontSize:13}}>No portal-logged sessions yet — Records appear once the trainee logs workouts from their portal.</div>
+      ) : (
+        <TraineePRsView clientWorkouts={tcw} traineeId={null} embedded sortMode={recordsSort} />
+      )}
 
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Progressive Overload</h3>
       <OverloadChart workouts={tw} exercises={exercises} />

@@ -10,6 +10,27 @@ import {
 const bi = {background:C.sf2,border:`1px solid ${C.bd}`,padding:"8px 10px",borderRadius:6,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
 
+// Cmd/Ctrl + Enter shortcut for the "mark reviewed & next" CTA. Bound at the
+// detail-screen level so the shortcut only fires while a workout is actually
+// open, never on the list view. Skips when the user is typing into a textarea
+// (so it doesn't fire while the trainer is composing a review note).
+function SaveAndNextHotkey({ enabled, onFire }) {
+  useEffect(() => {
+    if (!enabled) return;
+    const handler = (e) => {
+      const isModEnter = (e.metaKey || e.ctrlKey) && e.key === 'Enter';
+      if (!isModEnter) return;
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'textarea' || tag === 'input') return;
+      e.preventDefault();
+      onFire();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [enabled, onFire]);
+  return null;
+}
+
 // MediaPipe Pose landmark indices for skeleton drawing + joint-angle calc.
 const POSE_CONNECTIONS = [
   [11,12],[11,23],[12,24],[23,24],   // torso
@@ -1317,6 +1338,29 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   if (selectedWo) {
     const wo = clientWorkouts.find(w => w.id === selectedWo);
     if (!wo) { setSelectedWo(null); return null; }
+
+    // Save-and-next: after marking the current workout reviewed, jump to the
+    // next unreviewed one in the queue (oldest-first so the trainer works
+    // through the backlog) instead of returning to the list. Falls back to
+    // the list when the queue is empty. Same flow is bound to Cmd/Ctrl+Enter.
+    const findNextUnreviewed = () => {
+      const queue = (clientWorkouts || [])
+        .filter(w => w.id !== wo.id && !w.reviewedAt)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      return queue[0]?.id || null;
+    };
+    const saveAndNext = () => {
+      markReviewed && markReviewed(wo.id, true);
+      const nextId = findNextUnreviewed();
+      if (nextId) {
+        setSelectedWo(nextId);
+        setExpandedEx(null);
+        window.scrollTo(0, 0);
+      } else {
+        setSelectedWo(null); setExpandedEx(null); window.scrollTo(0, 0);
+      }
+    };
+    const remainingAfter = (clientWorkouts || []).filter(w => w.id !== wo.id && !w.reviewedAt).length;
     // Look up the plan's actual length (default 4 if we can't find it).
     // Match by trainee + plan name so we don't pick up another trainee's
     // plan with the same name.
@@ -1555,7 +1599,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           );
         })}
 
-        {/* Done — delete (with text-typed confirm), mark reviewed / unmark, back. */}
+        {/* Done — delete (with text-typed confirm), mark reviewed / unmark, back.
+            Save & next: the primary CTA below jumps to the next pending workout
+            (oldest-first) once the trainer marks the current one reviewed.
+            Cmd/Ctrl+Enter is bound to the same action so a keyboard-driven
+            review pass doesn't require any clicks. */}
+        <SaveAndNextHotkey enabled={!wo.reviewedAt && !deleteConfirmFor} onFire={saveAndNext} />
         <div style={{display:"flex",gap:8,marginTop:20,marginBottom:8}}>
           {deleteWorkout && (
             <button onClick={() => { setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
@@ -1574,22 +1623,30 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   cursor:"pointer"}}>
                 UNMARK
               </button>
-              <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
-                style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.gn}`,
-                  background:C.gn,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
-                  letterSpacing:0.5,cursor:"pointer"}}>
-                ✓ REVIEWED — BACK TO LIST
-              </button>
+              {findNextUnreviewed() ? (
+                <button onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}
+                  title="Jump to next pending workout"
+                  style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.ac}`,
+                    background:C.ac,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
+                    letterSpacing:0.5,cursor:"pointer"}}>
+                  → NEXT PENDING ({remainingAfter})
+                </button>
+              ) : (
+                <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
+                  style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.gn}`,
+                    background:C.gn,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
+                    letterSpacing:0.5,cursor:"pointer"}}>
+                  ✓ REVIEWED — BACK TO LIST
+                </button>
+              )}
             </>
           ) : (
-            <button onClick={() => {
-                markReviewed && markReviewed(wo.id, true);
-                setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0);
-              }}
+            <button onClick={saveAndNext}
+              title="Mark reviewed and jump to the next pending workout (⌘/Ctrl + Enter)"
               style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.ac}`,
                 background:C.ac,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
                 letterSpacing:0.5,cursor:"pointer"}}>
-              ✓ DONE — MARK REVIEWED
+              ✓ MARK REVIEWED {remainingAfter > 0 ? `& NEXT (${remainingAfter} LEFT)` : '— BACK TO LIST'}
             </button>
           )}
         </div>

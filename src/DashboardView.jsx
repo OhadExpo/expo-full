@@ -3,6 +3,58 @@ import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 
+// Strip non-digits and prepend Israeli country code if the user typed a local
+// 0XX-XXX-XXXX style number. WhatsApp's wa.me deeplink wants raw E.164
+// without a +, so "972548124381" not "+972 54 812-4381".
+function normalizePhoneIL(raw) {
+  const digits = String(raw || '').replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('972')) return digits;
+  if (digits.startsWith('0')) return '972' + digits.slice(1);
+  // Assume already country-coded if not starting with 0 and not 972 — let
+  // wa.me sort it out (will fail open; nothing destructive).
+  return digits;
+}
+
+// Dormant alert action: tap → opens WhatsApp with a prefilled dugri Hebrew
+// check-in. For couples (td.members.length===2) we pick the member whose
+// phone is set; if both have phones, message the first member only (spreading
+// across two conversations would duplicate the nudge). Hidden when no phone
+// is on file — better to silently skip than surface a dead button.
+function DormantWhatsAppButton({ trainee, days }) {
+  const target = (() => {
+    if (trainee.members && trainee.members.length === 2) {
+      const m = trainee.members.find(mm => normalizePhoneIL(mm?.phone));
+      return m ? { name: m.name || trainee.name, phone: normalizePhoneIL(m.phone) } : null;
+    }
+    const phone = normalizePhoneIL(trainee.phone);
+    return phone ? { name: trainee.name, phone } : null;
+  })();
+  if (!target) return null;
+  const handleClick = (e) => {
+    e.stopPropagation();
+    const firstName = (target.name || '').split(/\s+/)[0] || target.name || '';
+    const ago = days == null ? '' : `${days} ימים`;
+    const msg = days == null
+      ? `היי ${firstName}. לא ראיתי אותך מתאמן לאחרונה. הכל טוב? מתי קופצים לאימון?`
+      : `היי ${firstName}. עברו ${ago} מאז האימון האחרון. הכל בסדר? בוא נתאם משהו השבוע.`;
+    const url = `https://wa.me/${target.phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank', 'noopener');
+  };
+  return (
+    <button onClick={handleClick}
+      title={`Send WhatsApp check-in to ${target.name}`}
+      style={{
+        background: '#25d36620', border: `1px solid #25d36655`, color: '#25d366',
+        borderRadius: 6, padding: '4px 8px', fontFamily: FN, fontSize: 10,
+        fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+      }}>
+      WA
+    </button>
+  );
+}
+
 export default function DashboardView({ trainees, planCounts, workouts, clientWorkouts, payments, presence, onSelectTrainee }) {
   const [sort, setSort] = useState('name');
   const [dir, setDir] = useState(1);
@@ -152,9 +204,10 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
               {dropoutRisk.map(t => {
                 const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                 return (
-                  <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
-                    <span style={{ color: C.tx }}>{t.name}</span>
-                    <span style={{ fontFamily: FN, color: C.or, fontSize: 11 }}>{days == null ? 'Never trained' : `${days}d ago`}</span>
+                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
+                    <span onClick={() => onSelectTrainee(t.id)} style={{ color: C.tx, cursor: 'pointer', flex: 1 }}>{t.name}</span>
+                    <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginRight: 8 }}>{days == null ? 'Never trained' : `${days}d ago`}</span>
+                    <DormantWhatsAppButton trainee={t} days={days} />
                   </div>
                 );
               })}
@@ -227,11 +280,13 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         <div style={{ marginTop: 20, background: C.sf, border: `1px solid ${C.rd}30`, borderRadius: 10, padding: '14px 18px' }}>
           <div style={{ fontSize: 10, fontFamily: FN, color: C.rd, textTransform: 'uppercase', marginBottom: 8 }}>🔻 Dropout Risk — 14+ days ({dropoutRisk.length})</div>
           {dropoutRisk.map(t => {
-            const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : '∞';
+            const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
+            const daysLabel = days == null ? 'Never trained' : `${days}d ago`;
             return (
-              <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
-                <span style={{ color: C.tx }}>{t.name}</span>
-                <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{days === '∞' ? 'Never trained' : `${days}d ago`}</span>
+              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
+                <span onClick={() => onSelectTrainee(t.id)} style={{ color: C.tx, cursor: 'pointer', flex: 1 }}>{t.name}</span>
+                <span style={{ fontFamily: FN, color: C.rd, fontSize: 11, marginRight: 8 }}>{daysLabel}</span>
+                <DormantWhatsAppButton trainee={t} days={days} />
               </div>
             );
           })}

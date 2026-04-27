@@ -79,6 +79,22 @@ function aggregate(clientWorkouts, traineeId) {
     const lastLoad = entry.series[entry.series.length - 1].load;
     const delta = lastLoad - firstLoad;
     const deltaPct = firstLoad > 0 ? Math.round((delta / firstLoad) * 100) : 0;
+    // Group sessions by planName ("block"). The "current" block is the one
+    // containing the most recent session; "previous" is whichever block ran
+    // immediately before that. Used by the compare-blocks toggle.
+    const blockMap = new Map();
+    for (const s of entry.series) {
+      const k = s.planName || '?';
+      if (!blockMap.has(k)) blockMap.set(k, []);
+      blockMap.get(k).push(s);
+    }
+    const blocks = [...blockMap.entries()].map(([name, list]) => ({
+      name,
+      list,
+      lastDate: list[list.length - 1].date,
+    })).sort((a, b) => new Date(a.lastDate) - new Date(b.lastDate));
+    const currentBlock = blocks[blocks.length - 1] || null;
+    const previousBlock = blocks.length >= 2 ? blocks[blocks.length - 2] : null;
     rows.push({
       id: entry.id,
       title: entry.title,
@@ -90,6 +106,7 @@ function aggregate(clientWorkouts, traineeId) {
       firstLoad, lastLoad, delta, deltaPct,
       lastDate: entry.series[entry.series.length - 1].date,
       swappedAny: entry.swappedFromAny,
+      currentBlock, previousBlock,
     });
   }
   // Sort: most-recently-trained first.
@@ -100,11 +117,15 @@ function aggregate(clientWorkouts, traineeId) {
 // Inline SVG sparkline — full-width, scales to its container via viewBox.
 // Trend colour: green if last session ≥ first, red if down. PR session
 // (max load across the series) gets a highlighted dot.
-function Sparkline({ series, height = 64 }) {
+//
+// Two-series mode (`overlay` prop): renders the primary series in C.ac and
+// an overlay series in C.tm (dashed). Both share the same y-axis so the
+// reader can eyeball block-vs-block delta. Used by the compare-blocks toggle.
+function Sparkline({ series, overlay, height = 64, overlayUid }) {
   if (!series || series.length === 0) return null;
   const VW = 200; // virtual width used for viewBox; scales to 100% via CSS
   const VH = height;
-  if (series.length === 1) {
+  if (series.length === 1 && !overlay) {
     return (
       <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none"
         style={{ display: 'block', width: '100%', height }}>
@@ -112,41 +133,55 @@ function Sparkline({ series, height = 64 }) {
       </svg>
     );
   }
-  const loads = series.map(s => s.load);
-  const min = Math.min(...loads);
-  const max = Math.max(...loads);
+  const allLoads = [...series.map(s => s.load), ...(overlay ? overlay.map(s => s.load) : [])];
+  const min = Math.min(...allLoads);
+  const max = Math.max(...allLoads);
   const range = max - min || 1;
   const pad = 8;
   const W = VW - pad * 2;
   const H = VH - pad * 2;
-  const prValue = max;
-  const points = series.map((s, i) => {
-    const x = pad + (i / (series.length - 1)) * W;
-    const y = pad + H - ((s.load - min) / range) * H;
-    return [x, y, s.load];
+  const buildPoints = (s) => s.map((p, i) => {
+    const x = pad + (s.length === 1 ? W / 2 : (i / (s.length - 1)) * W);
+    const y = pad + H - ((p.load - min) / range) * H;
+    return [x, y, p.load];
   });
-  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
-  // Soft area fill under the line for visual weight.
-  const areaPath = `${path} L ${points[points.length - 1][0].toFixed(1)},${(VH - 1).toFixed(1)} L ${points[0][0].toFixed(1)},${(VH - 1).toFixed(1)} Z`;
+  const buildPath = (pts) => pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const points = buildPoints(series);
+  const path = buildPath(points);
   const trendColor = series[series.length - 1].load >= series[0].load ? C.gn : C.rd;
+  const primaryColor = overlay ? C.ac : trendColor;
+  const areaPath = `${path} L ${points[points.length - 1][0].toFixed(1)},${(VH - 1).toFixed(1)} L ${points[0][0].toFixed(1)},${(VH - 1).toFixed(1)} Z`;
+  const overlayPoints = overlay && overlay.length ? buildPoints(overlay) : null;
+  const overlayPath = overlayPoints ? buildPath(overlayPoints) : null;
+  const prValue = Math.max(...series.map(s => s.load));
+  const gradId = `fv-pr-fill-${overlayUid || 'x'}`;
   return (
     <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none"
       style={{ display: 'block', width: '100%', height }}>
       <defs>
-        <linearGradient id="fv-pr-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={trendColor} stopOpacity="0.18" />
-          <stop offset="100%" stopColor={trendColor} stopOpacity="0" />
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={primaryColor} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={primaryColor} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={areaPath} fill="url(#fv-pr-fill)" />
-      <path d={path} stroke={trendColor} strokeWidth="1.5" vectorEffect="non-scaling-stroke" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      {/* Overlay first so it sits behind the current-block line */}
+      {overlayPath && (
+        <>
+          <path d={overlayPath} stroke={C.tm} strokeWidth="1.2" vectorEffect="non-scaling-stroke" fill="none" strokeDasharray="3 3" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
+          {overlayPoints.map((p, i) => (
+            <circle key={`ov-${i}`} cx={p[0]} cy={p[1]} r="1.8" fill={C.tm} opacity="0.7" />
+          ))}
+        </>
+      )}
+      <path d={path} stroke={primaryColor} strokeWidth="1.5" vectorEffect="non-scaling-stroke" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       {points.map((p, i) => {
         const isLast = i === points.length - 1;
-        const isPr = p[2] === prValue;
+        const isPr = !overlay && p[2] === prValue;
         return (
           <circle key={i} cx={p[0]} cy={p[1]}
             r={isLast ? 4 : (isPr ? 3 : 2)}
-            fill={isLast ? trendColor : (isPr ? C.ac : C.tm)} />
+            fill={isLast ? primaryColor : (isPr ? C.ac : C.tm)} />
         );
       })}
     </svg>
@@ -159,24 +194,45 @@ function fmtDate(iso) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-export default function TraineePRsView({ clientWorkouts, traineeId, header }) {
+export default function TraineePRsView({ clientWorkouts, traineeId, header, embedded = false, sortMode: extSortMode }) {
   const [expanded, setExpanded] = useState(null); // exercise title
   const rows = useMemo(() => aggregate(clientWorkouts, traineeId), [clientWorkouts, traineeId]);
   const [filter, setFilter] = useState('');
+  const [compareBlocks, setCompareBlocks] = useState(false);
+  // Sort mode: 'recent' = most recently trained (default), 'jump' = biggest
+  // delta from first → last load. Trainer Records tab can override via prop;
+  // trainee portal still defaults to 'recent'.
+  const [internalSortMode, setInternalSortMode] = useState(extSortMode || 'recent');
+  const sortMode = extSortMode || internalSortMode;
   const filtered = useMemo(() => {
     const s = filter.trim().toLowerCase();
-    if (!s) return rows;
-    return rows.filter(r => r.title.toLowerCase().includes(s));
-  }, [rows, filter]);
+    let r = rows;
+    if (s) r = r.filter(x => x.title.toLowerCase().includes(s));
+    if (sortMode === 'jump') {
+      r = [...r].sort((a, b) => (b.delta || 0) - (a.delta || 0));
+    }
+    return r;
+  }, [rows, filter, sortMode]);
+  // Only worth showing the toggle if there's actually >1 block of history.
+  const anyHasTwoBlocks = rows.some(r => r.previousBlock);
+
+  const wrapStyle = embedded
+    ? { color: C.tx, fontFamily: FB }
+    : { background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' };
+  const innerStyle = embedded ? { padding: 0 } : { padding: 20 };
 
   return (
-    <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
+    <div style={wrapStyle}>
       {header}
-      <div style={{ padding: 20 }}>
-        <h2 style={{ fontFamily: FN, fontSize: 18, margin: '0 0 4px', textAlign: 'center' }}>Records</h2>
-        <div style={{ color: C.tm, fontSize: 12, marginBottom: 14, textAlign: 'center' }}>
-          Top set per session, by exercise.
-        </div>
+      <div style={innerStyle}>
+        {!embedded && (
+          <>
+            <h2 style={{ fontFamily: FN, fontSize: 18, margin: '0 0 4px', textAlign: 'center' }}>Records</h2>
+            <div style={{ color: C.tm, fontSize: 12, marginBottom: 14, textAlign: 'center' }}>
+              Top set per session, by exercise.
+            </div>
+          </>
+        )}
 
         {rows.length > 5 && (
           <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Search exercise…"
@@ -185,6 +241,21 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header }) {
               borderRadius: 8, padding: '10px 12px', color: C.tx, fontFamily: FB, fontSize: 14,
               outline: 'none', boxSizing: 'border-box', marginBottom: 14, textAlign: 'center',
             }} />
+        )}
+
+        {anyHasTwoBlocks && (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+            <button onClick={() => setCompareBlocks(v => !v)}
+              style={{
+                background: compareBlocks ? C.acD : 'transparent',
+                border: `1px solid ${compareBlocks ? C.ac : C.bd}`,
+                color: compareBlocks ? C.ac : C.tm,
+                borderRadius: 999, padding: '6px 14px', fontFamily: FN, fontSize: 10,
+                fontWeight: 700, letterSpacing: 1.4, cursor: 'pointer',
+              }}>
+              {compareBlocks ? '✓ COMPARING BLOCKS' : 'COMPARE BLOCKS'}
+            </button>
+          </div>
         )}
 
         {rows.length === 0 && (
@@ -235,10 +306,27 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header }) {
                     <span style={{ fontSize: 9, color: C.td, letterSpacing: 2, fontWeight: 700, marginLeft: 8, verticalAlign: 'middle' }}>PR</span>
                   </div>
 
-                  {/* Full-width sparkline below — guaranteed visible */}
+                  {/* Full-width sparkline below — guaranteed visible.
+                      In compareBlocks mode we render the current block as
+                      the primary line and overlay the previous block dashed
+                      behind it, sharing the same y-axis. */}
                   <div style={{ marginTop: 10 }}>
-                    <Sparkline series={r.series} />
+                    {compareBlocks && r.previousBlock ? (
+                      <Sparkline
+                        series={r.currentBlock.list}
+                        overlay={r.previousBlock.list}
+                        overlayUid={`${r.id}-cmp`}
+                      />
+                    ) : (
+                      <Sparkline series={r.series} overlayUid={r.id} />
+                    )}
                   </div>
+                  {compareBlocks && r.previousBlock && (
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 6, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1 }}>
+                      <span><span style={{ display: 'inline-block', width: 10, height: 2, background: C.ac, marginRight: 4, verticalAlign: 'middle' }} />{r.currentBlock.name}</span>
+                      <span><span style={{ display: 'inline-block', width: 10, height: 2, background: C.tm, marginRight: 4, verticalAlign: 'middle', borderTop: `1px dashed ${C.tm}` }} />{r.previousBlock.name}</span>
+                    </div>
+                  )}
 
                   {/* Bottom stats row — three equal items, justify-around for symmetry */}
                   <div style={{

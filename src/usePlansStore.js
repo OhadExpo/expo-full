@@ -39,12 +39,15 @@ export function usePlanIndex() {
 
   const reload = useCallback(async () => {
     try {
+      // is_template_purchase is selected via "*" so the read path doesn't break
+      // before the SQL migration runs (Postgres ignores unknown columns in
+      // SELECT *; an explicit column would 400 on a pre-migration DB). The
+      // gate falls back to data.isTemplatePurchase + name prefix below.
       const { data } = await supabase
         .from('plans')
-        .select('id, name, trainee_id, phase, active, created_at, updated_at, data')
+        .select('*')
         .order('created_at', { ascending: false });
       if (data) {
-        // Compute day/exercise counts from data without storing full nested arrays in state
         const enriched = data.map(p => {
           const days = p.data?.days || [];
           return {
@@ -56,6 +59,14 @@ export function usePlanIndex() {
             createdAt: p.created_at,
             updatedAt: p.updated_at,
             weeks: p.data?.weeks || 4,
+            // Template-purchase flag: prefer the typed column once the
+            // migration has run, fall back to JSONB blob, then to the
+            // legacy name-prefix detection so behaviour is stable across
+            // the rollout window.
+            isTemplatePurchase:
+              p.is_template_purchase === true
+              || p.data?.isTemplatePurchase === true
+              || /^(\[expo\]|expo · |expo - )/i.test(p.name || ''),
             dayCount: days.length,
             exerciseCount: days.reduce((a, d) => a + ((d.exercises || d.ex || []).length), 0),
             dayNames: days.map(d => d.name),
@@ -98,6 +109,11 @@ export function useFullPlan() {
           days: normalizeDays(data.data?.days),
           warmup: data.data?.warmup || [],
           weeks: data.data?.weeks || 4,
+          // Template-purchase flag — same precedence as in usePlanIndex.
+          isTemplatePurchase:
+            data.is_template_purchase === true
+            || data.data?.isTemplatePurchase === true
+            || /^(\[expo\]|expo · |expo - )/i.test(data.name || ''),
         });
       }
     } catch (e) { console.error('useFullPlan load error:', e); }
@@ -109,9 +125,18 @@ export function useFullPlan() {
   return { plan, loading, load, clear, setPlan };
 }
 
-// Save plan to Supabase plans table
+// Save plan to Supabase plans table.
+//
+// Template-purchase flag: written into data JSONB so the read path works on
+// any DB regardless of whether the SQL migration has run. Once the column
+// exists (see scripts/migrations/2026-04-27-plans-is-template-purchase.sql)
+// we also try to write the typed column; if that 400s on an unmigrated DB
+// we retry without the column so coach saves never break.
 export async function savePlan(plan) {
-  const row = {
+  const isTemplate =
+    plan.isTemplatePurchase === true
+    || /^(\[expo\]|expo · |expo - )/i.test(plan.name || '');
+  const baseRow = {
     id: plan.id,
     name: plan.name || '',
     trainee_id: plan.traineeId || '',
@@ -120,9 +145,19 @@ export async function savePlan(plan) {
     active: plan.active !== false,
     created_at: plan.createdAt || new Date().toISOString(),
     updated_at: new Date().toISOString(),
-    data: { days: plan.days || [], warmup: plan.warmup || [], weeks: plan.weeks || 4 },
+    data: {
+      days: plan.days || [],
+      warmup: plan.warmup || [],
+      weeks: plan.weeks || 4,
+      isTemplatePurchase: isTemplate,
+    },
   };
-  const { error } = await supabase.from('plans').upsert(row);
+  const rowWithCol = { ...baseRow, is_template_purchase: isTemplate };
+  let { error } = await supabase.from('plans').upsert(rowWithCol);
+  if (error && /column .*is_template_purchase/i.test(error.message || '')) {
+    // Pre-migration DB — fall back to JSONB-only write.
+    ({ error } = await supabase.from('plans').upsert(baseRow));
+  }
   if (error) console.error('savePlan error:', error);
   return !error;
 }

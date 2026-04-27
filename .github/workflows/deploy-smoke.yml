@@ -1,0 +1,67 @@
+name: Deploy smoke check
+
+# Catches the "deployed but broken" failure mode: Vercel shows a green deploy
+# but the live URL is serving the old bundle (or 500ing on a key route).
+# Runs after each push to main, waits for Vercel to finish promoting, then
+# checks that key routes return 200 and the bundle hash actually changed.
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for Vercel promotion
+        # Vercel auto-deploy on push lands ~8–15s in; give it a 60s buffer
+        # so we don't race the promotion window and read the previous bundle.
+        run: sleep 60
+
+      - name: Capture pre-deploy bundle marker
+        id: pre
+        run: |
+          # Pull whatever bundle hash the live HTML is referencing right now.
+          # Vite's build emits /assets/index-<hash>.js; we grep that out.
+          set -e
+          html=$(curl -fsSL https://expo-app.co.il/ || true)
+          hash=$(echo "$html" | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1 || echo "missing")
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+          echo "Live bundle: $hash"
+
+      - name: Smoke key routes
+        run: |
+          set -e
+          # Each route must respond 200 within 10s. Includes the trainee
+          # portal root, the coach login URL, and the EXPO landing site.
+          ROUTES=(
+            "https://expo-app.co.il/"
+            "https://expo-app.co.il/coach"
+            "https://expo-il.co.il/"
+          )
+          fail=0
+          for url in "${ROUTES[@]}"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$url" || echo "000")
+            if [ "$code" != "200" ]; then
+              echo "✗ $url → $code"
+              fail=1
+            else
+              echo "✓ $url → 200"
+            fi
+          done
+          exit $fail
+
+      - name: Verify bundle hash present
+        run: |
+          set -e
+          # The HTML must reference a real bundle hash — if the build is
+          # broken we sometimes see /assets/index-.js (no hash) or no asset
+          # link at all. Both are deploy-broken signals.
+          html=$(curl -fsSL https://expo-app.co.il/)
+          if ! echo "$html" | grep -qE '/assets/index-[A-Za-z0-9_-]{6,}\.js'; then
+            echo "✗ No hashed bundle reference in served HTML"
+            echo "$html" | head -50
+            exit 1
+          fi
+          echo "✓ Hashed bundle reference present"

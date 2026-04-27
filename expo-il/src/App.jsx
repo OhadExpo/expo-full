@@ -66,7 +66,121 @@ const baseBtn = {
 function BrandMark({ height = 50 }) {
   return (
     <img src={EXPO_LOGO_NAV} alt="EXPO"
+      decoding="async"
       style={{ height, width: 'auto', display: 'block' }} />
+  );
+}
+
+// Lead capture: posts {email, context} directly to the Supabase REST API.
+// No SDK dependency — keeps the landing-site bundle thin. The `leads` table
+// + RLS policy live in scripts/migrations/2026-04-27-leads-table.sql.
+//
+// `compact` mode = single inline row (hero use); full mode = block layout
+// with a label (footer use). Both share the same submit + state machine.
+const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
+const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+function LeadCapture({ context = 'hero', compact = false }) {
+  const t = useT();
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState('idle'); // 'idle' | 'sending' | 'done' | 'error'
+  const [errMsg, setErrMsg] = useState('');
+  const submit = async (e) => {
+    e.preventDefault();
+    if (state === 'sending' || state === 'done') return;
+    const trimmed = email.trim();
+    // Cheap client-side check — server policy enforces this too.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setState('error'); setErrMsg(t('lead.err.invalid')); return;
+    }
+    setState('sending'); setErrMsg('');
+    try {
+      const res = await fetch(`${SUPA_URL}/rest/v1/leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPA_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          email: trimmed,
+          source: 'expo-il',
+          context,
+          user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : null,
+        }),
+      });
+      // 409 = unique-constraint violation on (lower(email), source) — treat
+      // a re-submit as success so the visitor sees "thanks" instead of an
+      // error. We can't use Prefer: resolution=merge-duplicates because that
+      // turns the POST into an UPSERT and our anon RLS policy only grants
+      // INSERT (UPDATE is restricted to is_trainer()).
+      if (!res.ok && res.status !== 409) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}${txt ? ': ' + txt.slice(0, 80) : ''}`);
+      }
+      track && track('lead_capture', { context });
+      setState('done');
+    } catch (err) {
+      console.error('Lead capture failed:', err);
+      setState('error');
+      setErrMsg(t('lead.err.generic'));
+    }
+  };
+  if (state === 'done') {
+    return (
+      <div style={{
+        fontFamily: FN, color: C.gn || '#28d95b', fontSize: compact ? 12 : 13,
+        letterSpacing: 1.2, fontWeight: 700, textAlign: 'center',
+        padding: compact ? '8px 12px' : '14px 18px',
+        border: `1px solid ${(C.gn || '#28d95b') + '40'}`, borderRadius: 8,
+      }}>
+        {t('lead.thanks')}
+      </div>
+    );
+  }
+  const inputStyle = {
+    background: '#0d0d10', border: `1px solid ${C.bd}`,
+    borderRadius: 8, padding: '10px 14px', color: C.tx,
+    fontFamily: FB, fontSize: 14, outline: 'none',
+    flex: 1, minWidth: 0, textAlign: 'center',
+  };
+  const btnStyle = {
+    background: state === 'sending' ? C.bd : C.ac,
+    color: state === 'sending' ? C.tm : '#000',
+    border: 'none', borderRadius: 8,
+    padding: '10px 18px', fontFamily: FN, fontSize: 12, fontWeight: 700,
+    letterSpacing: 1.5, cursor: state === 'sending' ? 'wait' : 'pointer',
+  };
+  return (
+    <form onSubmit={submit} style={{
+      display: 'flex', flexDirection: 'column', gap: 8,
+      maxWidth: compact ? 420 : 480, margin: '0 auto', width: '100%',
+    }}>
+      {!compact && (
+        <div style={{
+          fontFamily: FN, color: C.tm, fontSize: 11, letterSpacing: 2,
+          textAlign: 'center', fontWeight: 700,
+        }}>
+          {t('lead.label')}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input type="email" required value={email}
+          onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
+          placeholder={t('lead.placeholder')}
+          aria-label={t('lead.label')}
+          style={inputStyle} />
+        <button type="submit" disabled={state === 'sending'} style={btnStyle}>
+          {state === 'sending' ? t('lead.sending') : t('lead.cta')}
+        </button>
+      </div>
+      {state === 'error' && (
+        <div style={{
+          fontFamily: FN, color: C.rd || '#ff5e5e', fontSize: 11, letterSpacing: 1,
+          textAlign: 'center', marginTop: 2,
+        }}>{errMsg}</div>
+      )}
+    </form>
   );
 }
 
@@ -225,6 +339,7 @@ function Hero() {
             bundle (the EXPO mark inside is ~30KB of base64 otherwise). The
             file is regenerated by scripts/sync-brand-from-coach.py. */}
         <img src="/expo-hero-logo.png" alt="EXPO" width="320" height="92"
+          fetchpriority="high" decoding="async"
           style={{ height: 92, width: 'auto', display: 'block' }} />
       </div>
       <div style={{
@@ -286,6 +401,12 @@ function Hero() {
         }}>
           {t('hero.cta.how')}
         </a>
+      </div>
+
+      {/* Email capture for visitors who aren't ready to buy today. Posts to
+          the Supabase `leads` table — see scripts/migrations/2026-04-27-leads-table.sql. */}
+      <div style={{ marginTop: 28 }}>
+        <LeadCapture context="hero" compact />
       </div>
     </section>
   );
@@ -551,16 +672,45 @@ function PhoneFrame({ children, tag, height = 360 }) {
   );
 }
 
-// PoseScreen: stick-figure squat with key-joint markers + skeleton lines, the
-// way the live portal renders a MediaPipe Pose Landmarker overlay on top of a
-// trainee's clip. Dot positions roughly match a mid-depth squat pose.
+// PoseScreen: stick-figure squat with key-joint markers + skeleton lines.
+// Animates a 2.2s squat cycle (down → bottom → up) via React state so the
+// joint coordinates re-render — same MediaPipe-style overlay the portal
+// renders on a real trainee clip, just running on a synthetic skeleton.
 function PoseScreen() {
   const t = useT();
-  // Coords are inside a 100x140 viewBox, scaled to fit.
+  const [phase, setPhase] = useState(0.5); // 0..1 squat phase (mid-default for reduced-motion)
+  useEffect(() => {
+    // Honour prefers-reduced-motion — leave the figure parked at mid-squat
+    // (phase 0.5) instead of cycling. Better for vestibular-sensitive users
+    // and Lighthouse accessibility score.
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let raf, t0;
+    const tick = (now) => {
+      if (!t0) t0 = now;
+      const elapsed = ((now - t0) % 2200) / 2200; // 2.2s loop
+      const tri = elapsed < 0.5 ? elapsed * 2 : (1 - elapsed) * 2;
+      const eased = tri < 0.5 ? 2 * tri * tri : 1 - Math.pow(-2 * tri + 2, 2) / 2;
+      setPhase(eased);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  // Squat depth: hip drops up to 18 units, knee drops up to 10 units.
+  // Knee tracks slightly forward (toes) at the bottom — the small x offset
+  // makes the side-on read "this is a squat" instead of "this is a sit".
+  const hipDrop = phase * 18;
+  const kneeDrop = phase * 10;
+  const kneeFwd = phase * 2;
+  // Knee/hip angles change with depth — surfaced in the floating badges.
+  const kneeAngle = Math.round(170 - phase * 80); // 170° standing → 90° bottom
+  const hipAngle = Math.round(170 - phase * 90);  // 170° standing → 80° bottom
+  const depthLabel = phase < 0.3 ? 'TOP' : phase > 0.7 ? 'BOTTOM' : 'MID';
   const joints = {
     head:   [50, 22], shoulderL:[40, 38], shoulderR:[60, 38],
     elbowL: [34, 58], elbowR:   [66, 58], wristL:   [30, 78], wristR: [70, 78],
-    hipL:   [44, 78], hipR:     [56, 78], kneeL:    [42, 102], kneeR:  [58, 102],
+    hipL:   [44, 78 + hipDrop], hipR: [56, 78 + hipDrop],
+    kneeL:  [42 - kneeFwd, 102 + kneeDrop], kneeR: [58 + kneeFwd, 102 + kneeDrop],
     ankleL: [40, 128], ankleR:  [60, 128],
   };
   const lines = [
@@ -579,38 +729,33 @@ function PoseScreen() {
       }}>
         <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
           style={{ display: 'block' }}>
-          {/* Subtle silhouette hint behind the skeleton */}
           <ellipse cx="50" cy="72" rx="22" ry="50" fill={C.bd} opacity="0.25" />
-          {/* Skeleton lines */}
           {lines.map(([a, b], i) => (
             <line key={i} x1={joints[a][0]} y1={joints[a][1]}
               x2={joints[b][0]} y2={joints[b][1]}
               stroke={C.ac} strokeWidth="0.8" strokeLinecap="round" opacity="0.85" />
           ))}
-          {/* Head */}
           <circle cx={joints.head[0]} cy={joints.head[1]} r="6" fill="none" stroke={C.ac} strokeWidth="0.8" />
-          {/* Joint dots */}
           {Object.values(joints).map(([x, y], i) => (
             <circle key={i} cx={x} cy={y} r="1.6" fill={C.ac} />
           ))}
-          {/* Highlighted knee + hip with crosshair */}
-          <circle cx={joints.kneeL[0]} cy={joints.kneeL[1]} r="3.2" fill="none" stroke={C.ac} strokeWidth="0.7" />
-          <circle cx={joints.hipL[0]} cy={joints.hipL[1]} r="3.2" fill="none" stroke={C.ac} strokeWidth="0.7" />
+          {/* Crosshair on knee + hip pulses with the squat — wider at depth */}
+          <circle cx={joints.kneeL[0]} cy={joints.kneeL[1]} r={3.2 + phase * 1.2} fill="none" stroke={C.ac} strokeWidth="0.7" opacity={0.5 + phase * 0.5} />
+          <circle cx={joints.hipL[0]} cy={joints.hipL[1]} r={3.2 + phase * 1.2} fill="none" stroke={C.ac} strokeWidth="0.7" opacity={0.5 + phase * 0.5} />
         </svg>
 
-        {/* Floating angle/depth badges */}
         <div style={{
           position: 'absolute', top: 8, left: 8, padding: '3px 6px',
           fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
           background: C.acD, color: C.ac, borderRadius: 4,
           border: `1px solid ${C.ac4D}`,
-        }}>{t('inside.pose.angle')}</div>
+        }}>KNEE {kneeAngle}°</div>
         <div style={{
           position: 'absolute', bottom: 8, right: 8, padding: '3px 6px',
           fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
           background: C.acD, color: C.ac, borderRadius: 4,
           border: `1px solid ${C.ac4D}`,
-        }}>{t('inside.pose.depth')}</div>
+        }}>{depthLabel}</div>
       </div>
       <div style={{
         fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
@@ -620,19 +765,40 @@ function PoseScreen() {
   );
 }
 
-// RepCounterScreen: video-thumb-style tile with the big "8/8 REPS" overlay
-// the portal shows when the count completes, plus a trough-detection sparkline
-// underneath (the prominence=25 trough algorithm noted in memory).
+// RepCounterScreen: video-thumb-style tile with a counter that ticks up to
+// 8 over ~3.2s, troughs lighting up one by one in sync with the count. Loops
+// back to 0 with a 1s pause at full so the "8/8" reads as an arrival before
+// resetting. Mirrors the prominence=25 trough algorithm the portal runs on
+// real clips.
 function RepCounterScreen() {
   const t = useT();
-  // 8 troughs across a 200-wide sparkline.
-  const troughs = [16, 40, 65, 90, 114, 138, 162, 186];
+  const TROUGH_X = [16, 40, 65, 90, 114, 138, 162, 186];
+  const TARGET = TROUGH_X.length;
+  // Reduced-motion: park the counter at full so the static screenshot still
+  // reads "completed set" without animating every 4 seconds.
+  const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [count, setCount] = useState(reducedMotion ? TARGET : 0);
+  useEffect(() => {
+    if (reducedMotion) return;
+    let timer;
+    const step = () => {
+      setCount(c => {
+        if (c >= TARGET) {
+          timer = setTimeout(() => setCount(0), 1000);
+          return c;
+        }
+        timer = setTimeout(step, 380);
+        return c + 1;
+      });
+    };
+    timer = setTimeout(step, 700);
+    return () => clearTimeout(timer);
+  }, [count === 0 ? 'restart' : 'ticking']);
   // Sine-ish path with dips at each trough x.
   const pathPoints = [];
   for (let x = 0; x <= 200; x += 2) {
-    // Build a soft wave that dips at each trough x.
     let y = 18;
-    for (const tx of troughs) {
+    for (const tx of TROUGH_X) {
       const d = Math.abs(x - tx);
       if (d < 12) y += (12 - d) * 1.4;
     }
@@ -647,18 +813,18 @@ function RepCounterScreen() {
         border: `1px solid ${C.bd}`, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {/* Faux play triangle behind the count, very dim */}
         <svg viewBox="0 0 100 100" width="56" height="56"
           style={{ position: 'absolute', opacity: 0.12 }}>
           <polygon points="35,25 35,75 78,50" fill={C.tx} />
         </svg>
-        {/* Big rep count */}
         <div style={{ position: 'relative', textAlign: 'center' }}>
           <div style={{
             fontFamily: FN, fontWeight: 700, fontSize: 42,
             color: C.ac, lineHeight: 1, letterSpacing: -1,
             textShadow: `0 0 24px ${C.ac}66`,
-          }}>{t('inside.rep.big')}</div>
+            transition: 'transform 120ms ease',
+            transform: count === TARGET ? 'scale(1.08)' : 'scale(1)',
+          }}>{count}/{TARGET}</div>
           <div style={{
             fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 3,
             fontWeight: 700, marginTop: 4,
@@ -666,7 +832,6 @@ function RepCounterScreen() {
         </div>
       </div>
 
-      {/* Trough-detection sparkline */}
       <div style={{
         background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 8,
         padding: '6px 8px',
@@ -674,9 +839,14 @@ function RepCounterScreen() {
         <svg viewBox="0 0 200 32" width="100%" height="32"
           preserveAspectRatio="none" style={{ display: 'block' }}>
           <path d={pathStr} fill="none" stroke={C.tm} strokeWidth="1" />
-          {troughs.map((x, i) => (
-            <circle key={i} cx={x} cy="32" r="2.2" fill={C.ac} />
-          ))}
+          {TROUGH_X.map((x, i) => {
+            const lit = i < count;
+            return (
+              <circle key={i} cx={x} cy="32" r={lit ? 2.6 : 1.6}
+                fill={lit ? C.ac : C.bd2}
+                style={{ transition: 'fill 200ms ease, r 200ms ease' }} />
+            );
+          })}
         </svg>
       </div>
 
@@ -703,6 +873,7 @@ function CompareScreen() {
       overflow: 'hidden', minHeight: 0,
       display: 'flex', alignItems: 'flex-end', padding: 8,
       opacity: dimmed ? 0.7 : 1,
+      transition: 'opacity 350ms ease, border-color 350ms ease, background 350ms ease',
     }}>
       {/* Faux play triangle */}
       <svg viewBox="0 0 100 100" width="22" height="22"
@@ -720,6 +891,7 @@ function CompareScreen() {
             width: 5, height: 5, borderRadius: '50%',
             background: repsOk[i] ? C.ac : 'transparent',
             border: `1px solid ${repsOk[i] ? C.ac : C.bd2}`,
+            transition: 'background 220ms ease, border-color 220ms ease',
           }} />
         ))}
       </div>
@@ -735,15 +907,46 @@ function CompareScreen() {
       </div>
     </div>
   );
+  // Animate the "now" tile's rep dots filling left-to-right, then briefly
+  // flip the focus highlight onto the "last" tile so the eye reads "compare,
+  // not just play". Loop runs ~3.6s.
+  // Reduced-motion: render the "now" tile fully filled and skip the cycle.
+  const reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [nowReps, setNowReps] = useState(reducedMotion ? 5 : 0);
+  const [activeTop, setActiveTop] = useState(false);
+  useEffect(() => {
+    if (reducedMotion) return;
+    let timer;
+    const cycle = () => {
+      setActiveTop(false);
+      setNowReps(0);
+      const fillStep = (i) => {
+        if (i > 5) {
+          timer = setTimeout(() => {
+            setActiveTop(true);
+            timer = setTimeout(() => { cycle(); }, 1100);
+          }, 700);
+          return;
+        }
+        setNowReps(i);
+        timer = setTimeout(() => fillStep(i + 1), 280);
+      };
+      fillStep(1);
+    };
+    cycle();
+    return () => clearTimeout(timer);
+  }, []);
+  const lastReps = [1, 1, 1, 0];
+  const nowRepsArr = Array.from({ length: 5 }, (_, i) => i < nowReps ? 1 : 0);
   return (
     <>
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column', gap: 6,
       }}>
         <Tile title={t('inside.cmp.last.t')} sub={t('inside.cmp.last.s')}
-          dimmed repsOk={[1, 1, 1, 0]} />
+          dimmed={!activeTop} repsOk={lastReps} />
         <Tile title={t('inside.cmp.now.t')} sub={t('inside.cmp.now.s')}
-          dimmed={false} repsOk={[1, 1, 1, 1, 1]} />
+          dimmed={activeTop} repsOk={nowRepsArr} />
       </div>
       <div style={{
         fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: 1.2,
@@ -846,6 +1049,7 @@ function AboutCoach() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <img src="/coach-portrait.jpg" alt="Ohad Yossifoff" loading="lazy"
+            decoding="async" width="800" height="1000"
             onLoad={() => setHasPortrait(true)}
             onError={() => setHasPortrait(false)}
             style={{
@@ -855,6 +1059,7 @@ function AboutCoach() {
           {!hasPortrait && (
             <div style={{ textAlign: 'center', padding: 16 }}>
               <img src="/expo-hero-logo.png" alt="" aria-hidden="true"
+                width="320" height="92" decoding="async" loading="lazy"
                 style={{ height: 56, width: 'auto', opacity: 0.4, marginBottom: 12 }} />
               <div style={{
                 fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 2, fontWeight: 700,
@@ -1041,8 +1246,24 @@ function HowItWorks() {
     { q: t('how.faq.q3'), a: t('how.faq.a3') },
     { q: t('how.faq.q4'), a: t('how.faq.a4') },
   ];
+  // FAQPage structured data — eligible for Google's rich-result FAQ accordion
+  // in search. Strings come from the same i18n source as the visible FAQ so
+  // crawler view + visible view stay in sync (Google penalises divergent
+  // visible/structured FAQ content). Injected once per render via dangerously-
+  // SetInnerHTML to keep React from escaping the JSON.
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map(f => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  };
   return (
     <section id="how" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 16px' }}>
+      <script type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
@@ -1161,30 +1382,141 @@ function Contact() {
   );
 }
 
+// Testimonials: 3 placeholder slots wired up so we can drop real client
+// quotes (with photo + permission) without touching component structure
+// later. Each entry below has an `empty: true` flag — the renderer shows a
+// "coming soon" plate for empty entries so the layout still reads as
+// finished. Replace `empty: true` with `quote / who / role / photoSrc`
+// once a real testimonial is cleared.
+const TESTIMONIALS = [
+  // Example shape (uncomment + fill once you have permission):
+  // {
+  //   quote: 'הראשון בלוק אחרי כמה שנים בלי תוכנית. כל אימון ידעתי בדיוק מה לעשות.',
+  //   who: 'Diego Day',
+  //   role: 'Hypertrophy 16',
+  //   photoSrc: '/testimonials/diego.jpg',
+  // },
+  { empty: true },
+  { empty: true },
+  { empty: true },
+];
+
+function Testimonials() {
+  const t = useT();
+  const realCount = TESTIMONIALS.filter(x => !x.empty).length;
+  return (
+    <section id="testimonials" style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 16px' }}>
+      <div style={{
+        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+        marginBottom: 8, fontWeight: 700, textAlign: 'center',
+      }}>{t('testi.badge')}</div>
+      <h2 style={{ fontFamily: FB, fontSize: 'clamp(22px, 3.2vw, 28px)', fontWeight: 700, marginBottom: 24, letterSpacing: -0.3, textAlign: 'center' }}>
+        {t('testi.h2')}
+      </h2>
+      {realCount === 0 && (
+        <p style={{
+          fontFamily: FB, color: C.tm, fontSize: 13, lineHeight: 1.55,
+          maxWidth: 560, margin: '0 auto 24px', textAlign: 'center',
+        }}>
+          {t('testi.empty')}
+        </p>
+      )}
+      <div style={{
+        display: 'grid', gap: 14,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+      }}>
+        {TESTIMONIALS.map((q, i) => (
+          <div key={i} style={{
+            background: C.sf, border: `0.25px solid ${C.ac4D}`,
+            borderRadius: 12, padding: 18,
+            display: 'flex', flexDirection: 'column', gap: 12,
+            minHeight: 200,
+          }}>
+            {q.empty ? (
+              <>
+                <div style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1.5,
+                  fontWeight: 700, textAlign: 'center', minHeight: 90,
+                  border: `1px dashed ${C.bd}`, borderRadius: 8,
+                }}>
+                  QUOTE · COMING SOON
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: C.sf2, border: `1px solid ${C.bd}`,
+                  }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1, fontWeight: 700 }}>NAME</div>
+                    <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.6, marginTop: 2 }}>PROGRAM</div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{
+                  flex: 1, fontFamily: FB, fontSize: 14, color: C.tx,
+                  lineHeight: 1.55,
+                }}>
+                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginRight: 4, verticalAlign: '-2px' }}>“</span>
+                  {q.quote}
+                  <span style={{ color: C.ac, fontFamily: FN, fontSize: 18, marginLeft: 4, verticalAlign: '-2px' }}>”</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img src={q.photoSrc} alt={q.who} loading="lazy" decoding="async"
+                    width="72" height="72"
+                    style={{
+                      width: 36, height: 36, borderRadius: '50%',
+                      objectFit: 'cover', border: `1px solid ${C.bd}`,
+                    }}
+                    onError={e => { e.currentTarget.style.display = 'none'; }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 700 }}>{q.who}</div>
+                    <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 0.6, marginTop: 2 }}>{q.role}</div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function Footer() {
   const t = useT();
   return (
     <footer style={{
-      borderTop: `1px solid ${C.bd}`, padding: '24px 16px',
+      borderTop: `1px solid ${C.bd}`, padding: '40px 16px 24px',
       maxWidth: 1200, margin: '40px auto 0',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      flexWrap: 'wrap', gap: 14,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <BrandMark height={20} />
-        <span style={{ fontFamily: FN, color: C.td, fontSize: 11 }}>
-          {t('footer.copy.tmpl', { year: new Date().getFullYear() })}
-        </span>
+      {/* Footer lead capture — second touch point for the visitor who scrolled
+          past the hero without subscribing. */}
+      <div style={{ marginBottom: 32, paddingBottom: 32, borderBottom: `1px solid ${C.bd}` }}>
+        <LeadCapture context="footer" />
       </div>
-      <div style={{ display: 'flex', gap: 14 }}>
-        <a href="https://expo-app.co.il" target="_blank" rel="noopener noreferrer"
-          style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
-          {t('footer.portal')}
-        </a>
-        <a href={CONTACT.instagram} target="_blank" rel="noopener noreferrer"
-          style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
-          {t('footer.instagram')}
-        </a>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: 14,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <BrandMark height={20} />
+          <span style={{ fontFamily: FN, color: C.td, fontSize: 11 }}>
+            {t('footer.copy.tmpl', { year: new Date().getFullYear() })}
+          </span>
+        </div>
+        <div style={{ display: 'flex', gap: 14 }}>
+          <a href="https://expo-app.co.il" target="_blank" rel="noopener noreferrer"
+            style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
+            {t('footer.portal')}
+          </a>
+          <a href={CONTACT.instagram} target="_blank" rel="noopener noreferrer"
+            style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
+            {t('footer.instagram')}
+          </a>
+        </div>
       </div>
     </footer>
   );
@@ -1398,6 +1730,7 @@ function Home() {
       <WhatsInside />
       <AboutCoach />
       <WhyTemplates />
+      <Testimonials />
       <HowItWorks />
       <Contact />
     </>
