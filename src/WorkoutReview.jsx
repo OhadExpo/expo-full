@@ -1034,20 +1034,18 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
         </div>
         <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
-          {(notes.length > 0 || role === 'trainer') && (
+          {notes.length > 0 && (
             <button onClick={toggleComments}
-              title={role === 'trainer'
-                ? (commentsEnabled ? 'Drawing & comment auto-pause ON — click to disable' : 'Drawing & comments hidden — click to enable')
-                : (commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause')}
+              title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
               style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
                 background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-              {role === 'trainer' ? '✏️' : '💬'} {commentsEnabled ? 'ON' : 'OFF'}
+              💬 {commentsEnabled ? 'ON' : 'OFF'}
             </button>
           )}
           {onReviewNotesChange && role === 'trainer' && (
-            <button onClick={addComment} title="Add a timestamped comment at the current video time"
+            <button onClick={addComment} title="Comment & draw at this timestamp — color swatches appear once a comment is open"
               style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.ac}40`,
-                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬 COMMENT</button>
+                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬✏️ COMMENT</button>
           )}
         </div>
         <div style={{flex:1,display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end'}}>
