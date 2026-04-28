@@ -20,7 +20,9 @@ const STRINGS = {
   'nav.programs':        { en: 'PROGRAMS',       he: 'תוכניות' },
   'nav.about':           { en: 'ABOUT',          he: 'מי אני' },
   'nav.how':             { en: 'HOW IT WORKS',   he: 'איך זה עובד' },
+  'nav.faq':             { en: 'FAQ',            he: 'שאלות' },
   'nav.contact':         { en: 'CONTACT',        he: 'דבר איתי' },
+  'nav.quiz':            { en: 'FIND MY PROGRAM', he: 'מצא לי תוכנית' },
 
   // ─── Hero ─────────────────────────────────────────────────────────
   'hero.badge':          { en: 'PROGRAMMED TRAINING', he: 'אימון לפי תוכנית' },
@@ -32,6 +34,7 @@ const STRINGS = {
   },
   'hero.cta.browse':     { en: 'BROWSE PROGRAMS ↓', he: 'תוכניות ↓' },
   'hero.cta.how':        { en: 'HOW IT WORKS',      he: 'איך זה עובד' },
+  'hero.cta.quiz':       { en: 'FIND MY PROGRAM',   he: 'מצא לי תוכנית' },
 
   // Hero social-proof strip — three quick credibility numbers under the subhead.
   // Numbers seeded from the coach app (CLAUDE.md). Update when reality moves.
@@ -93,28 +96,8 @@ const STRINGS = {
     he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומציגה פוקוס שבועי. אותה שיטה כמו של לקוחות אישיים שלי. בלי לחכות להודעות.',
   },
 
-  // ─── How it works — FAQ block ─────────────────────────────────────
-  'how.faq.h':           { en: 'COMMON QUESTIONS', he: 'שאלות נפוצות' },
-  'how.faq.q1':          { en: 'What if the program is too hard or too easy?', he: 'התוכנית קשה או קלה מדי. מה עכשיו?' },
-  'how.faq.a1': {
-    en: 'Each block has built-in regression and progression rules — load drops or climbs based on the RPE you log. If you still need a manual tweak, message me on WhatsApp and I will adjust it for you.',
-    he: 'בכל בלוק יש כללי ירידה ועלייה מובנים. העומס מתאים את עצמו ל-RPE שאתה מתעד. אם בכל זאת צריך התאמה ידנית — תכתוב לי בוואטסאפ ואני אסדר.',
-  },
-  'how.faq.q2':          { en: 'Do I need a gym?', he: 'צריך חדר כושר?' },
-  'how.faq.a2': {
-    en: "Depends on the program — every card lists the exact equipment (HOME, FULL GYM, MINIMAL). Filter the catalog by tag to see only what fits your setup.",
-    he: 'תלוי בתוכנית. בכל כרטיס יש את הציוד המדויק. תסנן את הקטלוג לפי תגית כדי לראות רק מה שמתאים לסטאפ שלך.',
-  },
-  'how.faq.q3':          { en: 'Can I get a refund?', he: 'יש החזר?' },
-  'how.faq.a3': {
-    en: 'If the program is not what you expected within the first 7 days and you have logged at most one session, full refund — no friction. After that, the block is yours to keep.',
-    he: 'אם תוך 7 ימים גילית שזה לא בשבילך ולא רשמת יותר מאימון אחד — החזר מלא, בלי שאלות. אחרי זה הבלוק שלך לתמיד.',
-  },
-  'how.faq.q4':          { en: 'Will my data carry over if I buy another program?', he: 'הנתונים שלי נשמרים אם אקנה תוכנית נוספת?' },
-  'how.faq.a4': {
-    en: "Yes — the portal is a single account. Everything you've logged (weights, RPE, bodyweight) stays. New programs slot in alongside the previous block's history.",
-    he: 'כן. הפורטל זה חשבון אחד. כל מה שתיעדת — משקלים, RPE, משקל גוף — נשאר. תוכניות חדשות נכנסות לצד ההיסטוריה של הבלוק הקודם.',
-  },
+  // (Old in-line how.faq.* keys removed — FAQ now lives in its own section,
+  // see faq.* keys further down.)
 
   // ─── What's inside the portal ─────────────────────────────────────
   'inside.badge':        { en: 'INSIDE THE PORTAL', he: 'בתוך הפורטל' },
@@ -335,6 +318,172 @@ const STRINGS = {
   'testi.badge':      { en: 'CLIENT VOICES',  he: 'מהלקוחות' },
   'testi.h2':         { en: 'What people say after a block', he: 'מה אומרים אחרי בלוק' },
   'testi.empty':      { en: 'Quotes coming soon — placeholder slots until I clear photo + permission with each client.', he: 'ציטוטים בקרוב. שומר מקום עד שאסגור צילום והרשאה עם כל לקוח.' },
+
+  // ─── Israeli trust signals strip ──────────────────────────────────
+  'trust.badge':      { en: 'WHY IT IS SAFE TO BUY', he: 'למה זה בטוח לקנות' },
+  'trust.bit.t':      { en: 'Pay via Bit',           he: 'תשלום בביט' },
+  'trust.bit.s':      { en: 'Israeli mobile payment, no card details exchanged', he: 'תשלום ישראלי בנייד, בלי פרטי כרטיס אשראי' },
+  'trust.invoice.t':  { en: 'חשבונית מס דיגיטלית',   he: 'חשבונית מס דיגיטלית' },
+  'trust.invoice.s':  { en: 'Issued via Green Invoice the same day. עוסק מורשה.', he: 'נשלחת דרך חשבונית ירוקה באותו יום. עוסק מורשה.' },
+  'trust.vat.t':      { en: 'VAT included',          he: 'כולל מע״מ' },
+  'trust.vat.s':      { en: 'Every price on the catalog already includes 18% VAT — no surprises at checkout.', he: 'כל מחיר בקטלוג כבר כולל 18% מע״מ. בלי הפתעות.' },
+  'trust.refund.t':   { en: '7-day refund',          he: 'החזר תוך 7 ימים' },
+  'trust.refund.s':   { en: 'If it is not what you expected and you logged at most one session, full refund — no friction.', he: 'אם זה לא מה שציפית ולא רשמת יותר מאימון אחד — החזר מלא, בלי שאלות.' },
+  'trust.he.t':       { en: 'Hebrew support',        he: 'תמיכה בעברית' },
+  'trust.he.s':       { en: 'WhatsApp answered in Hebrew, same day, by me.', he: 'וואטסאפ בעברית, אותו יום, אישי על ידי.' },
+
+  // ─── FAQ section (8 questions, dedicated) ─────────────────────────
+  'faq.badge':        { en: 'QUESTIONS BEFORE BUYING', he: 'שאלות לפני שקונים' },
+  'faq.h2':           { en: "Eight questions I get on WhatsApp every week.", he: 'שמונה שאלות שאני מקבל בוואטסאפ כל שבוע.' },
+  'faq.body': {
+    en: "If yours is not here, message me on WhatsApp — I answer in the same day, in Hebrew or English.",
+    he: 'אם השאלה שלך לא פה, תכתוב לי בוואטסאפ. אני עונה באותו יום, בעברית או באנגלית.',
+  },
+  'faq.q1':           { en: 'Can I get a refund if it is not for me?', he: 'יש החזר אם זה לא בשבילי?' },
+  'faq.a1': {
+    en: 'Yes. Within the first 7 days and at most one logged session, full refund — no questions, no friction. After that the block stays yours forever in the portal.',
+    he: 'כן. תוך 7 ימים ועד אימון אחד שתיעדת — החזר מלא, בלי שאלות. אחרי זה הבלוק שלך לתמיד בפורטל.',
+  },
+  'faq.q2':           { en: 'Do I need a gym, or can I run this at home?', he: 'צריך חדר כושר או שאפשר בבית?' },
+  'faq.a2': {
+    en: 'Depends on the program — every card lists the equipment (HOME, FULL GYM, MINIMAL). Filter the catalog by tag or use the quiz to see only what fits your setup.',
+    he: 'תלוי בתוכנית. בכל כרטיס יש את הציוד המדויק. תסנן בקטלוג לפי תגית או תעבור על הקווויז ותראה רק מה שמתאים לסטאפ שלך.',
+  },
+  'faq.q3':           { en: "I'm a complete beginner. Will this be over my head?", he: 'אני מתחיל לגמרי. זה יהיה גבוה מדי בשבילי?' },
+  'faq.a3': {
+    en: 'Foundation Block is built exactly for that. Three days a week, dumbbells + barbell, no machines required. Tempo and ROM cues come before any heavy load — you learn the seven primary patterns first, weight comes after.',
+    he: 'בלוק היסודות מיועד בדיוק לזה. שלושה ימים בשבוע, מוט ומשקלות, בלי מכונות. דגש על טמפו ועל טווח תנועה לפני העומס — לומדים את שבעת תבניות התנועה קודם, המשקל בא אחרי.',
+  },
+  'faq.q4':           { en: 'I am rehabbing an injury. Is the Rehab block right for me?', he: 'אני בשיקום אחרי פציעה. הבלוק שיקום מתאים לי?' },
+  'faq.a4': {
+    en: 'Only if your physiotherapist or doctor cleared you to load. The block uses a per-exercise pain gate (0–3 OK, 4–5 modify, 6+ stop) and load-management hierarchy: ROM → Tempo → Intensity → Volume → Frequency. If you are still in active rehab without clearance, do not buy — message me first.',
+    he: 'רק אם הפיזיותרפיסט או הרופא אישרו לך לעמוס. הבלוק עובד עם שער כאב לכל תרגיל (0–3 בסדר, 4–5 התאם, 6+ עצור) והיררכיית עומס: טווח → טמפו → עוצמה → נפח → תדירות. אם אתה עוד בשיקום פעיל בלי אישור — אל תקנה, תכתוב לי קודם.',
+  },
+  'faq.q5':           { en: 'Can I customise the block once I get it?', he: 'אפשר להתאים את הבלוק אחרי שאני מקבל?' },
+  'faq.a5': {
+    en: "Inside the portal you swap any exercise for an alternative from the EXPO library (500+ exercises with the same movement pattern). For deeper changes — different days per week, different priorities — message me on WhatsApp and I will adjust manually. That is included in the one-time price.",
+    he: 'בתוך הפורטל אתה מחליף כל תרגיל באלטרנטיבה מספריית EXPO (500+ תרגילים עם אותה תבנית תנועה). לשינויים יותר עמוקים — מספר ימים בשבוע, סדר עדיפויות — תכתוב לי בוואטסאפ ואני אסדר ידנית. זה כלול במחיר החד-פעמי.',
+  },
+  'faq.q6':           { en: 'How do I get the program after I pay?', he: 'איך אני מקבל את התוכנית אחרי התשלום?' },
+  'faq.a6': {
+    en: "Within a few hours of receiving your Bit confirmation you get an email with a sign-in link to expo-app.co.il. Your purchased program is already loaded onto a private account. No app to install, no subscription — runs in any browser, on phone or laptop.",
+    he: 'תוך כמה שעות מקבלת אישור הביט מגיע אימייל עם קישור התחברות ל-expo-app.co.il. התוכנית כבר טעונה לחשבון פרטי שלך. בלי אפליקציה להתקין, בלי מנוי — רץ בכל דפדפן, בטלפון או במחשב.',
+  },
+  'faq.q7':           { en: 'How is this different from a free workout app?', he: 'מה ההבדל בין זה לבין אפליקציה חינמית?' },
+  'faq.a7': {
+    en: "Free apps give you a list of exercises. They do not auto-regulate against your RPE, they do not run pose detection on your video, they do not count reps from the bar path, and there is no real coach answering your WhatsApp. EXPO templates are the same engine my private clients use — programmed by me, not generated.",
+    he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות לפי מסלול המוט, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה לקוחות אישיים שלי — אני כותב, לא AI.',
+  },
+  'faq.q8':           { en: 'Can I message you for support after I buy?', he: 'אפשר לדבר איתך לתמיכה אחרי הקנייה?' },
+  'faq.a8': {
+    en: 'Yes — WhatsApp is open. I am not a 24/7 hotline, but I read everything and reply same-day Sun–Thu, slower on Fri/Sat. The portal answers most things on its own (load progressions, exercise swaps, pain gating), so messaging is for the harder cases — and that is included in the one-time price.',
+    he: 'כן. וואטסאפ פתוח. אני לא קו חם 24/7, אבל אני קורא הכל ועונה באותו יום א׳–ה׳, איטי יותר בשישי-שבת. הפורטל פותר את רוב הדברים לבד (עליות עומס, החלפת תרגילים, ניטור כאב), אז הודעות זה למקרים יותר מורכבים — וזה כלול במחיר החד-פעמי.',
+  },
+
+  // ─── Quiz (routing questionnaire) ─────────────────────────────────
+  'quiz.badge':       { en: 'NOT SURE WHICH BLOCK?', he: 'לא בטוח איזה בלוק?' },
+  'quiz.h2':          { en: 'Six questions. Get matched.', he: 'שש שאלות. תקבל התאמה.' },
+  'quiz.body': {
+    en: "I built this from the same intake form I use with private clients — just shorter. Takes about a minute. The full assessment lives behind it for when you are ready.",
+    he: 'בניתי את זה מאותו טופס היכרות שאני משתמש בו עם לקוחות אישיים — רק קצר יותר. דקה. ההערכה המלאה ממתינה מאחור לכשתהיה מוכן.',
+  },
+  'quiz.cta':         { en: 'START QUIZ →',          he: '← התחל קווויז' },
+  'quiz.modal.title': { en: 'Find your program',     he: 'מצא לך תוכנית' },
+  'quiz.modal.close': { en: 'Close',                 he: 'סגירה' },
+  'quiz.step.tmpl':   { en: 'STEP {n} OF {total}',   he: 'שלב {n} מתוך {total}' },
+  'quiz.next':        { en: 'NEXT →',                he: '← הבא' },
+  'quiz.back':        { en: '← BACK',                he: 'חזור →' },
+  'quiz.see':         { en: 'SEE MY MATCHES →',      he: '← הצג התאמות' },
+  'quiz.restart':     { en: '↺ RESTART',             he: '↺ התחל מחדש' },
+
+  // Q1 — couple
+  'quiz.q1':          { en: 'Are you buying for one person or for two?', he: 'אתה קונה ליחיד או לשניים?' },
+  'quiz.q1.solo':     { en: 'Just me',               he: 'רק אני' },
+  'quiz.q1.couple':   { en: 'Two of us, same gym',   he: 'שניים, אותה חדר כושר' },
+
+  // Q2 — first-timer
+  'quiz.q2':          { en: 'Have you trained in a gym before?', he: 'התאמנת בעבר בחדר כושר?' },
+  'quiz.q2.never':    { en: 'No — total beginner',   he: 'לא, מתחיל לגמרי' },
+  'quiz.q2.before':   { en: 'Yes — I have a base',   he: 'כן, יש לי בסיס' },
+
+  // Q3 — experience length (only if Q2=before)
+  'quiz.q3':          { en: 'How long was your longest continuous training stretch?', he: 'מה התקופה הכי ארוכה ברצף שהתאמנת?' },
+  'quiz.q3.lt6':      { en: 'Less than 6 months',    he: 'פחות מ-6 חודשים' },
+  'quiz.q3.6to12':    { en: '6 to 12 months',        he: '6 עד 12 חודשים' },
+  'quiz.q3.1to3':     { en: '1 to 3 years',          he: '1 עד 3 שנים' },
+  'quiz.q3.gt3':      { en: '3+ years',              he: '3+ שנים' },
+
+  // Q4 — current physical state
+  'quiz.q4':          { en: 'What is your body telling you right now?', he: 'מה הגוף שלך אומר לך עכשיו?' },
+  'quiz.q4.fine':     { en: 'I feel great',          he: 'מרגיש מצוין' },
+  'quiz.q4.minor':    { en: 'A few minor pains',     he: 'כאבים נקודתיים קלים' },
+  'quiz.q4.rom':      { en: 'Limited range of motion', he: 'טווח תנועה מוגבל' },
+  'quiz.q4.rehab':    { en: 'Returning from injury (cleared by physio)', he: 'חוזר מפציעה (אישור פיזיותרפיסט)' },
+
+  // Q5 — primary goal
+  'quiz.q5':          { en: 'Primary goal for the next block?', he: 'מטרה ראשית לבלוק הקרוב?' },
+  'quiz.q5.lose':     { en: 'Lose weight / lean out', he: 'חיטוב / הרזיה' },
+  'quiz.q5.muscle':   { en: 'Build muscle (hypertrophy)', he: 'מסת שריר (היפרטרופיה)' },
+  'quiz.q5.strength': { en: 'Get stronger',          he: 'להיות יותר חזק' },
+  'quiz.q5.health':   { en: 'General health & consistency', he: 'בריאות כללית והתמדה' },
+  'quiz.q5.sport':    { en: 'A specific sport',      he: 'ענף ספורט מסוים' },
+
+  // Q6 — frequency
+  'quiz.q6':          { en: 'How many days a week can you actually train?', he: 'כמה ימים בשבוע אתה באמת יכול להתאמן?' },
+  'quiz.q6.2':        { en: '2 days',                he: 'יומיים' },
+  'quiz.q6.3':        { en: '3 days',                he: '3 ימים' },
+  'quiz.q6.4':        { en: '4 days',                he: '4 ימים' },
+  'quiz.q6.5':        { en: '5+ days',               he: '5+ ימים' },
+
+  // Result screen
+  'quiz.r.h':         { en: 'Your match',            he: 'ההתאמה שלך' },
+  'quiz.r.body': {
+    en: "Based on your answers — closest fit first. Each is a real product you can buy now. If none reads right, hit RESTART or message me on WhatsApp and I'll point you manually.",
+    he: 'על פי התשובות שלך — ההתאמה הכי קרובה קודם. כל אחת היא מוצר אמיתי שאפשר לקנות עכשיו. אם אף אחת לא נשמעת לך — תלחץ "התחל מחדש" או תכתוב לי בוואטסאפ ואני אכוון אותך ידנית.',
+  },
+  'quiz.r.empty': {
+    en: "Nothing matches your filters cleanly — your case looks specific. Message me on WhatsApp and I'll match you to the right block manually (or build a custom one).",
+    he: 'אין התאמה נקייה לפי הסינון שלך — נראה שהמקרה שלך ספציפי. תכתוב לי בוואטסאפ ואני אכוון אותך ידנית לבלוק הנכון (או אבנה מותאם).',
+  },
+  'quiz.r.fit.high':   { en: 'BEST MATCH',           he: 'ההתאמה הטובה ביותר' },
+  'quiz.r.fit.med':    { en: 'ALSO WORKS',           he: 'גם מתאים' },
+  'quiz.r.full.h':     { en: 'Want me to look at this personally?', he: 'רוצה שאני אסתכל על זה אישית?' },
+  'quiz.r.full.body': {
+    en: 'The full intake form is the same one I use with private clients — body history, sleep, stress, training history, goals. Fills in 6 minutes. After you submit it I will reply with a personalised recommendation.',
+    he: 'טופס ההיכרות המלא זה אותו אחד שאני עובד איתו עם לקוחות אישיים — היסטוריה גופנית, שינה, לחץ, ניסיון אימוני, מטרות. ממלאים תוך 6 דקות. אחרי שאתה שולח אני חוזר עם המלצה אישית.',
+  },
+  'quiz.r.full.cta':   { en: 'OPEN FULL ASSESSMENT →', he: '← פתח טופס מלא' },
+  'quiz.r.wa.cta':     { en: 'OR ASK ON WHATSAPP →', he: '← או שאל בוואטסאפ' },
+
+  // ─── Exit-intent / scroll-50% modal ───────────────────────────────
+  'exit.title':       { en: 'Before you go —',      he: 'לפני שאתה הולך —' },
+  'exit.body': {
+    en: "Leave your email and I will send you one free sample week from the Foundation Block. No spam, no sales sequence — one email, one workout, see if the format works for you.",
+    he: 'תשאיר אימייל ואני אשלח לך שבוע אחד חינם מתוך בלוק היסודות. בלי ספאם, בלי משפך מכירות — מייל אחד, אימון אחד, תראה אם הפורמט עובד לך.',
+  },
+  'exit.dismiss':     { en: 'NO THANKS',            he: 'לא, תודה' },
+  'exit.close':       { en: 'Close',                he: 'סגירה' },
+
+  // ─── Interactive demo modals (clickable PhoneFrame) ───────────────
+  'demo.tap':         { en: '↗ TAP TO TRY',         he: '↗ לחץ לנסות' },
+  'demo.close':       { en: 'Close demo',           he: 'סגור הדגמה' },
+  'demo.pose.h':      { en: 'Pose detection · interactive', he: 'זיהוי תנוחה · אינטראקטיבי' },
+  'demo.pose.body': {
+    en: 'Drag the slider to scrub through the squat — knee + hip angles update in real time, same as the portal does on a real clip.',
+    he: 'גרור את הסליידר כדי לעבור לאורך הסקוואט — זוויות הברך והירך מתעדכנות בזמן אמת, בדיוק כמו שהפורטל עושה על קליפ אמיתי.',
+  },
+  'demo.pose.scrub':  { en: 'SQUAT PHASE',          he: 'שלב הסקוואט' },
+  'demo.rep.h':       { en: 'Rep counter · interactive', he: 'ספירת חזרות · אינטראקטיבי' },
+  'demo.rep.body': {
+    en: "Tap the bar to add a rep. The path lights a trough at each tap — that's exactly how the portal counts off your real video.",
+    he: 'לחץ על הסרגל להוסיף חזרה. המסלול מאיר ירידה בכל לחיצה — בדיוק ככה הפורטל סופר על הסרטון האמיתי שלך.',
+  },
+  'demo.rep.reset':   { en: '↺ RESET',              he: '↺ אפס' },
+  'demo.cmp.h':       { en: 'Side-by-side · interactive', he: 'השוואה צד-לצד · אינטראקטיבי' },
+  'demo.cmp.body': {
+    en: 'Tap a tile to focus it — same UI as the portal when you compare today against your last attempt at the same load.',
+    he: 'לחץ על אריח כדי להתמקד בו — אותה ממשק כמו בפורטל כשמשווים את היום מול הסט הקודם באותו עומס.',
+  },
 };
 
 function format(template, vars) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Analytics, track } from '@vercel/analytics/react';
 import { C, FN, FB, CONTACT, buyOnWhatsApp, EXPO_LOGO_NAV } from './theme';
 import { PROGRAMS } from './programs';
@@ -58,6 +58,62 @@ const baseBtn = {
   borderRadius: 8, border: 'none', fontFamily: FB, fontSize: 13, fontWeight: 600,
   cursor: 'pointer', letterSpacing: '0.02em', transition: 'all 0.15s',
 };
+
+// Generic modal shell used by the quiz, exit-intent capture, and the
+// interactive demo screens. Locks body scroll while open, closes on
+// backdrop click + Escape. Stays accessible (role=dialog, focus trap to
+// the close button on open).
+function Modal({ open, onClose, children, title, maxWidth = 560 }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label={title}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16, animation: 'fv-fade 180ms ease',
+      }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
+        width: '100%', maxWidth, maxHeight: '92vh', overflow: 'auto',
+        boxShadow: `0 28px 80px -24px ${C.ac}33`,
+        position: 'relative', textAlign: 'start',
+        animation: 'fv-pop 180ms ease',
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModalCloseBtn({ onClose, label }) {
+  return (
+    <button onClick={onClose} aria-label={label} title={label} style={{
+      position: 'absolute', top: 10, insetInlineEnd: 10,
+      width: 32, height: 32, borderRadius: 8,
+      background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`,
+      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: FN, fontSize: 16, lineHeight: 1, padding: 0,
+    }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    </button>
+  );
+}
 
 // EXPO brand marks — pulled from the coach app's brand system (src/theme.js)
 // via expo-il/scripts/sync-brand-from-coach.py so the landing site reads as
@@ -216,6 +272,7 @@ function Nav() {
     { key: 'programs', label: t('nav.programs'), count: PROGRAMS.length, anchor: 'top'     },
     { key: 'about',    label: t('nav.about'),    count: null,            anchor: 'about'   },
     { key: 'how',      label: t('nav.how'),      count: null,            anchor: 'how'     },
+    { key: 'faq',      label: t('nav.faq'),      count: null,            anchor: 'faq'     },
     { key: 'contact',  label: t('nav.contact'),  count: null,            anchor: 'contact' },
   ];
   const [active, setActive] = useState('programs');
@@ -223,7 +280,7 @@ function Nav() {
   // top of the viewport as the active tab. Same behavior as the coach app's
   // observer-driven highlighting. Honors the 56px sticky header.
   useEffect(() => {
-    const ids = ['programs', 'about', 'how', 'contact'];
+    const ids = ['programs', 'about', 'how', 'faq', 'contact'];
     const onScroll = () => {
       let best = 'programs';
       let bestDist = Infinity;
@@ -327,7 +384,7 @@ function Nav() {
   );
 }
 
-function Hero() {
+function Hero({ onOpenQuiz }) {
   const t = useT();
   return (
     <section id="top" style={{
@@ -393,6 +450,14 @@ function Hero() {
         }}>
           {t('hero.cta.browse')}
         </a>
+        <button onClick={onOpenQuiz} style={{
+          ...baseBtn,
+          background: 'transparent', color: C.tx,
+          border: `1px solid ${C.ac4D}`, padding: '12px 24px',
+          fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
+        }}>
+          {t('hero.cta.quiz')}
+        </button>
         <a href="#how" style={{
           ...baseBtn,
           background: 'transparent', color: C.tm,
@@ -636,15 +701,41 @@ function Catalog() {
 // PhoneFrame: shared chrome (rounded body, notch bar, dark inner canvas).
 // The interesting bits live in `children` — each WhatsInside feature renders a
 // different inner panel inside the same frame so the row reads as one product.
-function PhoneFrame({ children, tag, height = 360 }) {
+//
+// When `onClick` is supplied, the frame becomes a button (keyboard + screen
+// reader friendly) and a "TAP TO TRY" badge appears on hover/focus. The badge
+// is positioned outside the frame's inner canvas so it doesn't clutter the
+// mock and disappears once the modal opens.
+function PhoneFrame({ children, tag, height = 360, onClick, label }) {
+  const t = useT();
+  const interactive = typeof onClick === 'function';
+  const [hot, setHot] = useState(false);
   return (
-    <div style={{
-      width: 220, maxWidth: '100%', margin: '0 auto',
-      borderRadius: 28, padding: 7,
-      background: '#0d0d10', border: `1px solid ${C.bd2}`,
-      boxShadow: `0 24px 64px -32px ${C.ac}55, 0 0 0 0.5px ${C.ac4D}`,
-      position: 'relative',
-    }}>
+    <div
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={interactive ? (label || t('demo.tap')) : undefined}
+      onClick={interactive ? onClick : undefined}
+      onKeyDown={interactive ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
+      } : undefined}
+      onMouseEnter={() => setHot(true)}
+      onMouseLeave={() => setHot(false)}
+      onFocus={() => setHot(true)}
+      onBlur={() => setHot(false)}
+      style={{
+        width: 220, maxWidth: '100%', margin: '0 auto',
+        borderRadius: 28, padding: 7,
+        background: '#0d0d10',
+        border: interactive && hot ? `1px solid ${C.ac}` : `1px solid ${C.bd2}`,
+        boxShadow: interactive && hot
+          ? `0 32px 80px -24px ${C.ac}88, 0 0 0 0.5px ${C.ac}`
+          : `0 24px 64px -32px ${C.ac}55, 0 0 0 0.5px ${C.ac4D}`,
+        position: 'relative',
+        cursor: interactive ? 'pointer' : 'default',
+        transform: interactive && hot ? 'translateY(-2px)' : 'translateY(0)',
+        transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
+      }}>
       <div style={{
         position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
         width: 50, height: 4, borderRadius: 2, background: '#1a1a1f', zIndex: 2,
@@ -668,6 +759,20 @@ function PhoneFrame({ children, tag, height = 360 }) {
         </div>
         {children}
       </div>
+      {interactive && (
+        <div aria-hidden="true" style={{
+          position: 'absolute', bottom: -10, left: '50%',
+          transform: `translateX(-50%) translateY(${hot ? 0 : 4}px)`,
+          background: C.ac, color: '#000',
+          fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1.5,
+          padding: '5px 12px', borderRadius: 999,
+          opacity: hot ? 1 : 0.85,
+          transition: 'opacity 200ms ease, transform 200ms ease',
+          whiteSpace: 'nowrap', pointerEvents: 'none',
+        }}>
+          {t('demo.tap')}
+        </div>
+      )}
     </div>
   );
 }
@@ -956,12 +1061,277 @@ function CompareScreen() {
   );
 }
 
+// PoseDemoInteractive: scrubable squat. The user drags the slider; the same
+// joint coordinates the read-only PoseScreen animates live update from the
+// slider value instead of from a requestAnimationFrame loop. Same maths, same
+// look — but the user controls it.
+function PoseDemoInteractive() {
+  const t = useT();
+  const [phase, setPhase] = useState(0.5);
+  const hipDrop = phase * 18;
+  const kneeDrop = phase * 10;
+  const kneeFwd = phase * 2;
+  const kneeAngle = Math.round(170 - phase * 80);
+  const hipAngle = Math.round(170 - phase * 90);
+  const depthLabel = phase < 0.3 ? 'TOP' : phase > 0.7 ? 'BOTTOM' : 'MID';
+  const joints = {
+    head:   [50, 22], shoulderL:[40, 38], shoulderR:[60, 38],
+    elbowL: [34, 58], elbowR:   [66, 58], wristL:   [30, 78], wristR: [70, 78],
+    hipL:   [44, 78 + hipDrop], hipR: [56, 78 + hipDrop],
+    kneeL:  [42 - kneeFwd, 102 + kneeDrop], kneeR: [58 + kneeFwd, 102 + kneeDrop],
+    ankleL: [40, 128], ankleR:  [60, 128],
+  };
+  const lines = [
+    ['shoulderL','shoulderR'], ['shoulderL','elbowL'], ['elbowL','wristL'],
+    ['shoulderR','elbowR'], ['elbowR','wristR'],
+    ['shoulderL','hipL'], ['shoulderR','hipR'], ['hipL','hipR'],
+    ['hipL','kneeL'], ['kneeL','ankleL'],
+    ['hipR','kneeR'], ['kneeR','ankleR'],
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{
+        position: 'relative', borderRadius: 10, height: 280,
+        background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
+        border: `1px solid ${C.bd}`, overflow: 'hidden',
+      }}>
+        <svg viewBox="0 0 100 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"
+          style={{ display: 'block' }}>
+          <ellipse cx="50" cy="72" rx="22" ry="50" fill={C.bd} opacity="0.25" />
+          {lines.map(([a, b], i) => (
+            <line key={i} x1={joints[a][0]} y1={joints[a][1]}
+              x2={joints[b][0]} y2={joints[b][1]}
+              stroke={C.ac} strokeWidth="0.8" strokeLinecap="round" opacity="0.85" />
+          ))}
+          <circle cx={joints.head[0]} cy={joints.head[1]} r="6" fill="none" stroke={C.ac} strokeWidth="0.8" />
+          {Object.values(joints).map(([x, y], i) => (
+            <circle key={i} cx={x} cy={y} r="1.6" fill={C.ac} />
+          ))}
+          <circle cx={joints.kneeL[0]} cy={joints.kneeL[1]} r={3.2 + phase * 1.2} fill="none" stroke={C.ac} strokeWidth="0.7" opacity={0.5 + phase * 0.5} />
+          <circle cx={joints.hipL[0]} cy={joints.hipL[1]} r={3.2 + phase * 1.2} fill="none" stroke={C.ac} strokeWidth="0.7" opacity={0.5 + phase * 0.5} />
+        </svg>
+        <div style={{
+          position: 'absolute', top: 10, left: 12, padding: '4px 8px',
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
+          background: C.acD, color: C.ac, borderRadius: 6,
+          border: `1px solid ${C.ac4D}`,
+        }}>KNEE {kneeAngle}°</div>
+        <div style={{
+          position: 'absolute', top: 10, right: 12, padding: '4px 8px',
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
+          background: C.acD, color: C.ac, borderRadius: 6,
+          border: `1px solid ${C.ac4D}`,
+        }}>HIP {hipAngle}°</div>
+        <div style={{
+          position: 'absolute', bottom: 10, right: 12, padding: '4px 8px',
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
+          background: C.acD, color: C.ac, borderRadius: 6,
+          border: `1px solid ${C.ac4D}`,
+        }}>{depthLabel}</div>
+      </div>
+      <div style={{
+        background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 10, padding: 12,
+      }}>
+        <div style={{
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 2,
+          fontWeight: 700, marginBottom: 8,
+        }}>
+          {t('demo.pose.scrub')} — {Math.round(phase * 100)}%
+        </div>
+        <input type="range" min={0} max={100} value={Math.round(phase * 100)}
+          onChange={e => setPhase(Number(e.target.value) / 100)}
+          aria-label={t('demo.pose.scrub')}
+          style={{ width: '100%', accentColor: C.ac, cursor: 'pointer' }} />
+      </div>
+    </div>
+  );
+}
+
+// RepDemoInteractive: tap the bar to add a rep. Each tap lights another
+// trough — same trough-detection visualisation the read-only RepCounterScreen
+// shows, but the user is the input source.
+function RepDemoInteractive() {
+  const t = useT();
+  const TROUGH_X = [16, 40, 65, 90, 114, 138, 162, 186];
+  const TARGET = TROUGH_X.length;
+  const [count, setCount] = useState(0);
+  const pathPoints = [];
+  for (let x = 0; x <= 200; x += 2) {
+    let y = 18;
+    for (const tx of TROUGH_X) {
+      const d = Math.abs(x - tx);
+      if (d < 12) y += (12 - d) * 1.4;
+    }
+    pathPoints.push(`${x},${y}`);
+  }
+  const pathStr = 'M ' + pathPoints.join(' L ');
+  const inc = () => setCount(c => Math.min(c + 1, TARGET));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{
+        height: 200, borderRadius: 10,
+        background: 'linear-gradient(135deg, #0d0d11 0%, #14141a 50%, #0a0a0c 100%)',
+        border: `1px solid ${C.bd}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        position: 'relative',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            fontFamily: FN, fontWeight: 700, fontSize: 56,
+            color: C.ac, lineHeight: 1, letterSpacing: -1,
+            textShadow: `0 0 24px ${C.ac}66`,
+            transition: 'transform 120ms ease',
+            transform: count === TARGET ? 'scale(1.08)' : 'scale(1)',
+          }}>{count}/{TARGET}</div>
+          <div style={{
+            fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 3,
+            fontWeight: 700, marginTop: 8,
+          }}>{t('inside.rep.label')}</div>
+        </div>
+      </div>
+      <button onClick={inc} aria-label="Add rep" style={{
+        background: C.sf2, border: `1px solid ${C.ac4D}`, borderRadius: 10,
+        padding: '10px 12px', cursor: 'pointer',
+        transition: 'border-color 150ms ease',
+      }}>
+        <svg viewBox="0 0 200 32" width="100%" height="40"
+          preserveAspectRatio="none" style={{ display: 'block' }}>
+          <path d={pathStr} fill="none" stroke={C.tm} strokeWidth="1" />
+          {TROUGH_X.map((x, i) => {
+            const lit = i < count;
+            return (
+              <circle key={i} cx={x} cy="32" r={lit ? 3.2 : 1.8}
+                fill={lit ? C.ac : C.bd2}
+                style={{ transition: 'fill 200ms ease, r 200ms ease' }} />
+            );
+          })}
+        </svg>
+      </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
+        }}>
+          {t('inside.rep.foot')}
+        </div>
+        <button onClick={() => setCount(0)} style={{
+          ...baseBtn,
+          background: 'transparent', color: C.tm,
+          border: `1px solid ${C.bd}`, padding: '6px 12px',
+          fontSize: 10, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+        }}>
+          {t('demo.rep.reset')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// CompareDemoInteractive: tap a tile to focus it. Same dim/active treatment
+// the read-only CompareScreen cycles, with the user driving the swap.
+function CompareDemoInteractive() {
+  const t = useT();
+  const [focus, setFocus] = useState('now');
+  const Tile = ({ id, title, sub, repsOk }) => {
+    const active = focus === id;
+    return (
+      <button onClick={() => setFocus(id)} aria-pressed={active} style={{
+        flex: 1, position: 'relative', padding: 12, minHeight: 110,
+        borderRadius: 10,
+        border: active ? `2px solid ${C.ac}` : `1px solid ${C.bd}`,
+        background: active
+          ? 'linear-gradient(135deg, #101018 0%, #181826 100%)'
+          : 'linear-gradient(135deg, #0d0d11 0%, #14141a 100%)',
+        opacity: active ? 1 : 0.65,
+        textAlign: 'start', cursor: 'pointer',
+        transition: 'opacity 250ms ease, border-color 250ms ease',
+      }}>
+        <svg viewBox="0 0 100 100" width="22" height="22"
+          style={{ position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)', opacity: 0.18 }}>
+          <polygon points="35,25 35,75 78,50" fill={C.tx} />
+        </svg>
+        <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
+          {repsOk.map((ok, i) => (
+            <div key={i} style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: ok ? C.ac : 'transparent',
+              border: `1px solid ${ok ? C.ac : C.bd2}`,
+            }} />
+          ))}
+        </div>
+        <div style={{
+          position: 'absolute', bottom: 10, left: 12, right: 12,
+        }}>
+          <div style={{
+            fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1.2,
+            color: active ? C.ac : C.tm,
+          }}>{title}</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginTop: 2 }}>{sub}</div>
+        </div>
+      </button>
+    );
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <Tile id="last" title={t('inside.cmp.last.t')} sub={t('inside.cmp.last.s')}
+        repsOk={[1, 1, 1, 0]} />
+      <Tile id="now" title={t('inside.cmp.now.t')} sub={t('inside.cmp.now.s')}
+        repsOk={[1, 1, 1, 1, 1]} />
+      <div style={{
+        fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.2,
+        textAlign: 'center', fontWeight: 700, marginTop: 4,
+      }}>
+        {t('inside.cmp.foot')}
+      </div>
+    </div>
+  );
+}
+
+const DEMOS = {
+  pose: { titleKey: 'demo.pose.h', bodyKey: 'demo.pose.body', Body: PoseDemoInteractive },
+  rep:  { titleKey: 'demo.rep.h',  bodyKey: 'demo.rep.body',  Body: RepDemoInteractive  },
+  cmp:  { titleKey: 'demo.cmp.h',  bodyKey: 'demo.cmp.body',  Body: CompareDemoInteractive },
+};
+
+function DemoModal({ which, onClose }) {
+  const t = useT();
+  const open = !!which;
+  const cfg = which ? DEMOS[which] : null;
+  if (!cfg) return <Modal open={false} onClose={onClose} />;
+  const Body = cfg.Body;
+  return (
+    <Modal open={open} onClose={onClose} title={t(cfg.titleKey)} maxWidth={460}>
+      <ModalCloseBtn onClose={onClose} label={t('demo.close')} />
+      <div style={{ padding: '22px 22px 26px' }}>
+        <div style={{
+          fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+          marginBottom: 6, fontWeight: 700,
+        }}>{t('inside.badge')}</div>
+        <div style={{
+          fontFamily: FB, fontSize: 18, fontWeight: 700, color: C.tx,
+          marginBottom: 10, letterSpacing: -0.2, paddingInlineEnd: 36,
+        }}>
+          {t(cfg.titleKey)}
+        </div>
+        <p style={{
+          fontFamily: FB, color: C.tm, fontSize: 13, lineHeight: 1.55,
+          marginBottom: 18,
+        }}>
+          {t(cfg.bodyKey)}
+        </p>
+        <Body />
+      </div>
+    </Modal>
+  );
+}
+
 function WhatsInside() {
   const t = useT();
+  const [demo, setDemo] = useState(null); // 'pose' | 'rep' | 'cmp' | null
   const cards = [
-    { tag: t('inside.pose.tag'), h: t('inside.pose.h'), d: t('inside.pose.d'), Inner: PoseScreen        },
-    { tag: t('inside.rep.tag'),  h: t('inside.rep.h'),  d: t('inside.rep.d'),  Inner: RepCounterScreen  },
-    { tag: t('inside.cmp.tag'),  h: t('inside.cmp.h'),  d: t('inside.cmp.d'),  Inner: CompareScreen     },
+    { key: 'pose', tag: t('inside.pose.tag'), h: t('inside.pose.h'), d: t('inside.pose.d'), Inner: PoseScreen        },
+    { key: 'rep',  tag: t('inside.rep.tag'),  h: t('inside.rep.h'),  d: t('inside.rep.d'),  Inner: RepCounterScreen  },
+    { key: 'cmp',  tag: t('inside.cmp.tag'),  h: t('inside.cmp.h'),  d: t('inside.cmp.d'),  Inner: CompareScreen     },
   ];
   return (
     <section id="inside" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 16px' }}>
@@ -983,13 +1353,19 @@ function WhatsInside() {
         display: 'grid', gap: 28, alignItems: 'start',
         gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
       }}>
-        {cards.map((card, i) => {
+        {cards.map((card) => {
           const Inner = card.Inner;
           return (
-            <div key={i} style={{
+            <div key={card.key} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+              paddingBottom: 14, // room for the floating "TAP TO TRY" badge
             }}>
-              <PhoneFrame tag={card.tag}><Inner /></PhoneFrame>
+              <PhoneFrame tag={card.tag}
+                onClick={() => { setDemo(card.key); trackAndOpen('demo_open', { which: card.key }); }}
+                label={t(`demo.${card.key}.h`)}
+              >
+                <Inner />
+              </PhoneFrame>
               <div style={{ textAlign: 'center', maxWidth: 280 }}>
                 <div style={{
                   fontFamily: FB, fontSize: 15, fontWeight: 700, color: C.tx, marginBottom: 6,
@@ -1009,6 +1385,8 @@ function WhatsInside() {
       }}>
         {t('inside.note')}
       </p>
+
+      <DemoModal which={demo} onClose={() => setDemo(null)} />
     </section>
   );
 }
@@ -1240,30 +1618,11 @@ function HowItWorks() {
     { n: '03', t: t('how.03.t'), d: t('how.03.d') },
     { n: '04', t: t('how.04.t'), d: t('how.04.d') },
   ];
-  const faq = [
-    { q: t('how.faq.q1'), a: t('how.faq.a1') },
-    { q: t('how.faq.q2'), a: t('how.faq.a2') },
-    { q: t('how.faq.q3'), a: t('how.faq.a3') },
-    { q: t('how.faq.q4'), a: t('how.faq.a4') },
-  ];
-  // FAQPage structured data — eligible for Google's rich-result FAQ accordion
-  // in search. Strings come from the same i18n source as the visible FAQ so
-  // crawler view + visible view stay in sync (Google penalises divergent
-  // visible/structured FAQ content). Injected once per render via dangerously-
-  // SetInnerHTML to keep React from escaping the JSON.
-  const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: faq.map(f => ({
-      '@type': 'Question',
-      name: f.q,
-      acceptedAnswer: { '@type': 'Answer', text: f.a },
-    })),
-  };
+  // FAQ block lives in a dedicated section now (FAQ component); this used to
+  // host an inline 4-question version + JSON-LD which we removed to avoid
+  // duplicate FAQPage structured data + back-to-back FAQ feel.
   return (
     <section id="how" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 16px' }}>
-      <script type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
@@ -1296,33 +1655,6 @@ function HowItWorks() {
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>{s.d}</div>
           </div>
         ))}
-      </div>
-
-      <div style={{
-        marginTop: 40, paddingTop: 28, borderTop: `1px solid ${C.bd}`,
-      }}>
-        <div style={{
-          fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
-          marginBottom: 16, fontWeight: 700,
-        }}>{t('how.faq.h')}</div>
-        <div style={{
-          display: 'grid', gap: 12,
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
-        }}>
-          {faq.map((f, i) => (
-            <div key={i} style={{
-              background: C.sf, border: `0.25px solid ${C.ac4D}`,
-              borderRadius: 12, padding: 14,
-            }}>
-              <div style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx, marginBottom: 6, lineHeight: 1.4 }}>
-                {f.q}
-              </div>
-              <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.55 }}>
-                {f.a}
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </section>
   );
@@ -1479,6 +1811,541 @@ function Testimonials() {
               </>
             )}
           </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// Quiz scoring — given the user's answers, score every program and return
+// the matches sorted by fit. Distilled from the full Initial Assessment Google
+// Form so the public-side surface stays short (6 Q vs 25). Real follow-up
+// (sleep, stress, body history, injury detail) lives behind the deep-link to
+// the actual form on the result screen.
+//
+// Scoring rules:
+//   • Hard filter: rehab state.
+//       answer 'rehab' → only programs with forRehab='only' survive
+//       answer 'fine'/'minor'/'rom' → drop programs with forRehab='only'
+//   • Hard filter: couples.
+//       answer 'couple' → only couples programs
+//       answer 'solo' → drop couples programs
+//   • Soft score:
+//       +3 if level matches (mapped from q2 + q3)
+//       +3 if goal in program.quiz.goals
+//       +2 if daysPerWeek covers the user's chosen frequency
+// Best 1 = 'BEST MATCH'; second is shown if score ≥ 5 ('ALSO WORKS').
+function scoreQuiz(answers) {
+  const level = quizLevel(answers);
+  const goal  = answers.goal;
+  const days  = answers.days;
+  const isCouple = answers.who === 'couple';
+  const isRehab  = answers.body === 'rehab';
+  const survivors = PROGRAMS.filter(p => {
+    const q = p.quiz; if (!q) return false;
+    if (isCouple && !q.couplesOnly) return false;
+    if (!isCouple && q.couplesOnly) return false;
+    if (isRehab && q.forRehab !== 'only') return false;
+    if (!isRehab && q.forRehab === 'only') return false;
+    return true;
+  });
+  const scored = survivors.map(p => {
+    let s = 0;
+    if (level && p.quiz.levels.includes(level)) s += 3;
+    if (goal && p.quiz.goals.includes(goal)) s += 3;
+    if (days && p.quiz.daysPerWeek.includes(days)) s += 2;
+    return { p, s };
+  });
+  scored.sort((a, b) => b.s - a.s);
+  return scored.filter(x => x.s > 0);
+}
+
+function quizLevel(a) {
+  if (a.first === 'never') return 'beginner';
+  if (a.exp === 'lt6')   return 'beginner';
+  if (a.exp === '6to12') return 'beginner';
+  if (a.exp === '1to3')  return 'intermediate';
+  if (a.exp === 'gt3')   return 'advanced';
+  return 'intermediate';
+}
+
+// Build the deep-link to the full Initial Assessment Google Form, pre-filling
+// what we already know from the quiz so the buyer doesn't re-answer the same
+// six things. The form's prefill keys come from the form itself — these are
+// stable per question once the form is published. If Ohad reorders the form,
+// these IDs need updating; currently they map to the request-edit-access
+// fallback URL (Google forces signin for /edit), so until we generate a real
+// public viewform URL with entry IDs, we link to the form's normal /viewform
+// endpoint without pre-fill.
+const FULL_FORM_VIEWFORM = 'https://docs.google.com/forms/d/1KtA2M5yQZYM9JFwUm5eQRD6QED8jBrd8bJjJTqp58Mk/viewform';
+
+function QuizModal({ open, onClose }) {
+  const t = useT();
+  const STEPS = ['who', 'first', 'exp', 'body', 'goal', 'days', 'result'];
+  const [answers, setAnswers] = useState({});
+  const [step, setStep] = useState(0);
+  // Q3 (experience length) is skipped if the user is a total beginner.
+  const stepsForRun = answers.first === 'never'
+    ? STEPS.filter(s => s !== 'exp')
+    : STEPS;
+  const totalQuestions = stepsForRun.length - 1; // exclude 'result' from the X/N count
+
+  // Reset state every time the modal is reopened, so a second visit doesn't
+  // resume a half-finished run.
+  useEffect(() => {
+    if (open) { setAnswers({}); setStep(0); }
+  }, [open]);
+
+  const setAns = (key, val) => {
+    setAnswers(a => ({ ...a, [key]: val }));
+    // Auto-advance: clicking an option moves to the next step. Feels more
+    // natural than tapping NEXT for every question.
+    setTimeout(() => setStep(s => Math.min(s + 1, stepsForRun.length - 1)), 140);
+  };
+
+  const goBack = () => setStep(s => Math.max(s - 1, 0));
+  const restart = () => { setAnswers({}); setStep(0); };
+
+  const currentKey = stepsForRun[step];
+  const stepNum = Math.min(step + 1, totalQuestions);
+
+  // ───── question registry ─────
+  // Each entry: { q: i18n key, opts: [{value, label}] }
+  const Q = {
+    who: {
+      q: 'quiz.q1',
+      key: 'who',
+      opts: [
+        { v: 'solo',   l: 'quiz.q1.solo' },
+        { v: 'couple', l: 'quiz.q1.couple' },
+      ],
+    },
+    first: {
+      q: 'quiz.q2',
+      key: 'first',
+      opts: [
+        { v: 'never',  l: 'quiz.q2.never' },
+        { v: 'before', l: 'quiz.q2.before' },
+      ],
+    },
+    exp: {
+      q: 'quiz.q3',
+      key: 'exp',
+      opts: [
+        { v: 'lt6',   l: 'quiz.q3.lt6' },
+        { v: '6to12', l: 'quiz.q3.6to12' },
+        { v: '1to3',  l: 'quiz.q3.1to3' },
+        { v: 'gt3',   l: 'quiz.q3.gt3' },
+      ],
+    },
+    body: {
+      q: 'quiz.q4',
+      key: 'body',
+      opts: [
+        { v: 'fine',  l: 'quiz.q4.fine' },
+        { v: 'minor', l: 'quiz.q4.minor' },
+        { v: 'rom',   l: 'quiz.q4.rom' },
+        { v: 'rehab', l: 'quiz.q4.rehab' },
+      ],
+    },
+    goal: {
+      q: 'quiz.q5',
+      key: 'goal',
+      opts: [
+        { v: 'lose_weight',    l: 'quiz.q5.lose' },
+        { v: 'muscle',         l: 'quiz.q5.muscle' },
+        { v: 'strength',       l: 'quiz.q5.strength' },
+        { v: 'general_health', l: 'quiz.q5.health' },
+        { v: 'sport',          l: 'quiz.q5.sport' },
+      ],
+    },
+    days: {
+      q: 'quiz.q6',
+      key: 'days',
+      opts: [
+        { v: 2, l: 'quiz.q6.2' },
+        { v: 3, l: 'quiz.q6.3' },
+        { v: 4, l: 'quiz.q6.4' },
+        { v: 5, l: 'quiz.q6.5' },
+      ],
+    },
+  };
+
+  // ───── result rendering ─────
+  let body;
+  if (currentKey === 'result') {
+    const matches = scoreQuiz(answers).slice(0, 2);
+    body = (
+      <div>
+        <div style={{
+          fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+          marginBottom: 6, fontWeight: 700,
+        }}>{t('quiz.r.h')}</div>
+        <p style={{
+          fontFamily: FB, color: C.tm, fontSize: 13, lineHeight: 1.55,
+          marginBottom: 18,
+        }}>
+          {t('quiz.r.body')}
+        </p>
+        {matches.length === 0 ? (
+          <div style={{
+            background: C.sf2, border: `0.25px solid ${C.ac4D}`,
+            borderRadius: 12, padding: 16, marginBottom: 18,
+            fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.55,
+          }}>
+            {t('quiz.r.empty')}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
+            {matches.map((m, i) => {
+              const isBest = i === 0;
+              return (
+                <a key={m.p.id} href={`#/programs/${m.p.id}`} onClick={onClose}
+                  style={{
+                    display: 'block', textDecoration: 'none',
+                    background: isBest ? C.sf2 : C.sf,
+                    border: isBest ? `2px solid ${C.ac}` : `0.25px solid ${C.ac4D}`,
+                    borderRadius: 12, padding: 14,
+                    boxShadow: isBest ? `0 12px 32px -16px ${C.ac}55` : 'none',
+                    color: 'inherit',
+                  }}>
+                  <div style={{
+                    fontFamily: FN, fontSize: 9, letterSpacing: 2, fontWeight: 700,
+                    color: C.ac, marginBottom: 6,
+                  }}>
+                    {isBest ? t('quiz.r.fit.high') : t('quiz.r.fit.med')}
+                  </div>
+                  <div style={{
+                    fontFamily: FB, fontSize: 16, fontWeight: 700, color: C.tx, marginBottom: 4,
+                  }}>{m.p.title}</div>
+                  <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5 }}>
+                    {m.p.summary}
+                  </div>
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.bd}`,
+                  }}>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{m.p.duration}</span>
+                    <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, color: C.ac }}>
+                      {m.p.price} ₪
+                    </span>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        )}
+
+        <div style={{
+          background: C.sf2, border: `0.25px solid ${C.ac4D}`,
+          borderRadius: 12, padding: 14, marginBottom: 14,
+        }}>
+          <div style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx, marginBottom: 6 }}>
+            {t('quiz.r.full.h')}
+          </div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.55, marginBottom: 12 }}>
+            {t('quiz.r.full.body')}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <a href={FULL_FORM_VIEWFORM} target="_blank" rel="noopener noreferrer"
+              onClick={() => trackAndOpen('quiz_full_form', answers)}
+              style={{
+                ...baseBtn,
+                background: C.ac, color: '#000', padding: '10px 16px',
+                fontSize: 12, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+              }}>
+              {t('quiz.r.full.cta')}
+            </a>
+            <a href={`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(t('contact.wa.prefill'))}`}
+              target="_blank" rel="noopener noreferrer"
+              onClick={() => trackAndOpen('contact_click', { channel: 'whatsapp', source: 'quiz_result' })}
+              style={{
+                ...baseBtn,
+                background: 'transparent', color: C.tm,
+                border: `1px solid ${C.bd}`, padding: '10px 16px',
+                fontSize: 12, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+              }}>
+              {t('quiz.r.wa.cta')}
+            </a>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+          <button onClick={restart} style={{
+            ...baseBtn,
+            background: 'transparent', color: C.tm,
+            border: `1px solid ${C.bd}`, padding: '8px 14px',
+            fontSize: 11, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+          }}>
+            {t('quiz.restart')}
+          </button>
+        </div>
+      </div>
+    );
+  } else {
+    const cur = Q[currentKey];
+    const selected = answers[cur.key];
+    body = (
+      <div>
+        <div style={{
+          fontFamily: FN, color: C.td, fontSize: 10, letterSpacing: 2, fontWeight: 700,
+          marginBottom: 12,
+        }}>
+          {t('quiz.step.tmpl', { n: stepNum, total: totalQuestions })}
+        </div>
+        <div style={{
+          fontFamily: FB, fontSize: 18, fontWeight: 700, color: C.tx, marginBottom: 18,
+          lineHeight: 1.3,
+        }}>
+          {t(cur.q)}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
+          {cur.opts.map(o => {
+            const on = selected === o.v;
+            return (
+              <button key={String(o.v)} onClick={() => setAns(cur.key, o.v)}
+                style={{
+                  ...baseBtn,
+                  display: 'block', width: '100%', textAlign: 'start',
+                  background: on ? C.acD : C.sf2,
+                  color: on ? C.ac : C.tx,
+                  border: on ? `2px solid ${C.ac}` : `0.25px solid ${C.ac4D}`,
+                  padding: '12px 14px', borderRadius: 10,
+                  fontFamily: FB, fontSize: 14, fontWeight: on ? 700 : 500,
+                  letterSpacing: 0,
+                }}>
+                {t(o.l)}
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <button onClick={goBack} disabled={step === 0} style={{
+            ...baseBtn,
+            background: 'transparent', color: step === 0 ? C.td : C.tm,
+            border: `1px solid ${C.bd}`, padding: '8px 14px',
+            fontSize: 11, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+            opacity: step === 0 ? 0.4 : 1,
+          }}>
+            {t('quiz.back')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={t('quiz.modal.title')} maxWidth={520}>
+      <ModalCloseBtn onClose={onClose} label={t('quiz.modal.close')} />
+      <div style={{ padding: '22px 22px 22px' }}>
+        <div style={{
+          fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+          marginBottom: 4, fontWeight: 700,
+        }}>{t('quiz.badge')}</div>
+        <div style={{
+          fontFamily: FB, fontSize: 20, fontWeight: 700, color: C.tx, marginBottom: 22,
+          letterSpacing: -0.2, paddingInlineEnd: 36,
+        }}>{t('quiz.modal.title')}</div>
+        {body}
+      </div>
+    </Modal>
+  );
+}
+
+// QuizSection: a small home-page section that pitches the quiz and opens the
+// modal. Lives between the catalog and the WhatsInside section so the user
+// who scrolled the catalog without clicking has a guided next move.
+function QuizSection({ onOpen }) {
+  const t = useT();
+  return (
+    <section id="quiz" style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 16px' }}>
+      <div style={{
+        background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
+        border: `1px solid ${C.ac4D}`, borderRadius: 14,
+        padding: '28px 22px', textAlign: 'center',
+      }}>
+        <div style={{
+          fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+          marginBottom: 8, fontWeight: 700,
+        }}>{t('quiz.badge')}</div>
+        <h2 style={{
+          fontFamily: FB, fontSize: 'clamp(22px, 3.2vw, 28px)', fontWeight: 700,
+          marginBottom: 12, letterSpacing: -0.3,
+        }}>{t('quiz.h2')}</h2>
+        <p style={{
+          fontFamily: FB, color: C.tm, fontSize: 14, lineHeight: 1.55,
+          maxWidth: 620, margin: '0 auto 18px',
+        }}>{t('quiz.body')}</p>
+        <button onClick={onOpen} style={{
+          ...baseBtn,
+          background: C.ac, color: '#000', padding: '12px 24px',
+          fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+        }}>
+          {t('quiz.cta')}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// Israeli trust signals — five tiles that pre-empt the wallet-out moment.
+// Bit, Green Invoice, מע״מ included, 7-day refund, Hebrew WhatsApp. Lives
+// between WhyTemplates and Testimonials so it follows the price comparison
+// directly. Icon glyphs are stroke-only SVG to stay within the design system.
+function TrustStrip() {
+  const t = useT();
+  // Icons inline so the tiles read at a glance without the cognitive cost of
+  // switching to text-only credibility blocks. Stroke-only matches the rest
+  // of the site (header external-link icon, share, 404).
+  const stroke = {
+    fill: 'none', stroke: C.ac, strokeWidth: 1.6,
+    strokeLinecap: 'round', strokeLinejoin: 'round',
+  };
+  const items = [
+    { t: t('trust.bit.t'), s: t('trust.bit.s'), icon: (
+      <svg viewBox="0 0 24 24" width="22" height="22" {...stroke} aria-hidden="true">
+        <rect x="3" y="6" width="18" height="13" rx="3" />
+        <path d="M7 10v5M11 10v5M15 10v5" />
+      </svg>
+    ) },
+    { t: t('trust.invoice.t'), s: t('trust.invoice.s'), icon: (
+      <svg viewBox="0 0 24 24" width="22" height="22" {...stroke} aria-hidden="true">
+        <path d="M6 3h9l4 4v14a0 0 0 0 1 0 0H6a0 0 0 0 1 0 0V3z" />
+        <path d="M14 3v5h5" />
+        <path d="M9 13h7M9 17h5" />
+      </svg>
+    ) },
+    { t: t('trust.vat.t'), s: t('trust.vat.s'), icon: (
+      <svg viewBox="0 0 24 24" width="22" height="22" {...stroke} aria-hidden="true">
+        <path d="M5 8h14l-1.5 11a2 2 0 0 1-2 1.7H8.5A2 2 0 0 1 6.5 19L5 8z" />
+        <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+        <path d="M9 13l3 3 3-3" />
+      </svg>
+    ) },
+    { t: t('trust.refund.t'), s: t('trust.refund.s'), icon: (
+      <svg viewBox="0 0 24 24" width="22" height="22" {...stroke} aria-hidden="true">
+        <path d="M21 12a9 9 0 1 1-3.5-7.1" />
+        <path d="M21 4v5h-5" />
+      </svg>
+    ) },
+    { t: t('trust.he.t'), s: t('trust.he.s'), icon: (
+      <svg viewBox="0 0 24 24" width="22" height="22" {...stroke} aria-hidden="true">
+        <path d="M21 12a9 9 0 1 1-3-6.7L21 4l-1 4-3.6-1" />
+        <path d="M8 11h8M8 15h5" />
+      </svg>
+    ) },
+  ];
+  return (
+    <section id="trust" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 16px' }}>
+      <div style={{
+        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+        marginBottom: 18, fontWeight: 700,
+      }}>{t('trust.badge')}</div>
+      <div style={{
+        display: 'grid', gap: 12,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))',
+      }}>
+        {items.map((it, i) => (
+          <div key={i} style={{
+            background: C.sf, border: `0.25px solid ${C.ac4D}`,
+            borderRadius: 12, padding: 14,
+            display: 'flex', flexDirection: 'column', gap: 8,
+            alignItems: 'flex-start', textAlign: 'start',
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 8,
+              background: C.acD, border: `1px solid ${C.ac4D}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {it.icon}
+            </div>
+            <div style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx }}>
+              {it.t}
+            </div>
+            <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5 }}>
+              {it.s}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// FAQ — eight common pre-buy questions, expandable details. Lives in its own
+// section so it can be linked from nav + scroll-spied. Each item is a real
+// <details> element so it works without JS, gets free keyboard support, and
+// lands in the FAQPage structured data block below for Google rich results.
+function FAQ() {
+  const t = useT();
+  const items = Array.from({ length: 8 }, (_, i) => ({
+    q: t(`faq.q${i + 1}`),
+    a: t(`faq.a${i + 1}`),
+  }));
+  const ld = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map(it => ({
+      '@type': 'Question', name: it.q,
+      acceptedAnswer: { '@type': 'Answer', text: it.a },
+    })),
+  };
+  return (
+    <section id="faq" style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 16px' }}>
+      <script type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <div style={{
+        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+        marginBottom: 8, fontWeight: 700,
+      }}>{t('faq.badge')}</div>
+      <h2 style={{ fontFamily: FB, fontSize: 'clamp(24px, 3.6vw, 32px)', fontWeight: 700, marginBottom: 12, letterSpacing: -0.3 }}>
+        {t('faq.h2')}
+      </h2>
+      <p style={{
+        fontFamily: FB, color: C.tm, fontSize: 14, maxWidth: 720,
+        lineHeight: 1.55, marginBottom: 24,
+      }}>
+        {t('faq.body')}
+      </p>
+      {/* Native <details>: keyboard-accessible, no JS needed, indexable.
+          Tweaked summary styling (no default arrow, custom + → × glyph). */}
+      <style>{`
+        .fv-faq-item summary { list-style: none; cursor: pointer; }
+        .fv-faq-item summary::-webkit-details-marker { display: none; }
+        .fv-faq-item .fv-faq-glyph { transition: transform 200ms ease; }
+        .fv-faq-item[open] .fv-faq-glyph { transform: rotate(45deg); }
+      `}</style>
+      <div style={{
+        display: 'grid', gap: 10,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))',
+      }}>
+        {items.map((it, i) => (
+          <details key={i} className="fv-faq-item" style={{
+            background: C.sf, border: `0.25px solid ${C.ac4D}`,
+            borderRadius: 12, padding: '14px 16px',
+          }}>
+            <summary style={{
+              display: 'flex', justifyContent: 'space-between', gap: 10,
+              alignItems: 'flex-start',
+            }}>
+              <span style={{
+                fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx,
+                lineHeight: 1.4, flex: 1,
+              }}>
+                {it.q}
+              </span>
+              <span className="fv-faq-glyph" aria-hidden="true" style={{
+                fontFamily: FN, fontSize: 18, fontWeight: 700, color: C.ac,
+                lineHeight: 1, marginTop: 2, flex: '0 0 auto',
+              }}>+</span>
+            </summary>
+            <div style={{
+              fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.65,
+              paddingTop: 10, marginTop: 10, borderTop: `1px solid ${C.bd}`,
+            }}>
+              {it.a}
+            </div>
+          </details>
         ))}
       </div>
     </section>
@@ -1722,16 +2589,19 @@ function ProgramDetail({ program }) {
   );
 }
 
-function Home() {
+function Home({ onOpenQuiz }) {
   return (
     <>
-      <Hero />
+      <Hero onOpenQuiz={onOpenQuiz} />
       <Catalog />
+      <QuizSection onOpen={onOpenQuiz} />
       <WhatsInside />
       <AboutCoach />
       <WhyTemplates />
+      <TrustStrip />
       <Testimonials />
       <HowItWorks />
+      <FAQ />
       <Contact />
     </>
   );
@@ -1771,6 +2641,99 @@ function NotFound() {
         {t('notfound.cta')}
       </a>
     </section>
+  );
+}
+
+// ExitIntentModal: a single-shot lead capture that fires at the first of
+//   • mouse leaves the viewport top (desktop intent-to-leave)
+//   • user scrolls past 50% of the page
+// once per session (sessionStorage flag). Reuses LeadCapture under the hood
+// so the email lands in the same Supabase `leads` table with a different
+// context tag ('exit_intent') the trainer panel can filter on later.
+function ExitIntentModal() {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const fired = useRef(false);
+  useEffect(() => {
+    // Don't re-trigger once it has fired in this session, even if the user
+    // doesn't submit. Closing via × counts as "seen" and the modal stays gone
+    // until the visitor opens a new tab.
+    if (typeof window === 'undefined') return;
+    try {
+      if (sessionStorage.getItem('expo-il-exit-seen') === '1') {
+        fired.current = true;
+        return;
+      }
+    } catch {}
+
+    const trigger = () => {
+      if (fired.current) return;
+      fired.current = true;
+      try { sessionStorage.setItem('expo-il-exit-seen', '1'); } catch {}
+      // Small grace window so the modal doesn't fight a click the user is
+      // already mid-action on (e.g. tapping a card).
+      setTimeout(() => setOpen(true), 120);
+    };
+
+    // Mouse-leave-top: only fire when the cursor leaves through the top edge
+    // (intent to switch tab / close), not when the cursor leaves sideways.
+    const onMouseOut = (e) => {
+      if (e.clientY > 0) return;
+      if (e.relatedTarget || e.toElement) return;
+      trigger();
+    };
+
+    let lastScrollFire = 0;
+    const onScroll = () => {
+      // Throttle: scroll fires constantly; we only need the first time we
+      // cross 50% of the document height.
+      if (fired.current) return;
+      const now = Date.now();
+      if (now - lastScrollFire < 200) return;
+      lastScrollFire = now;
+      const docH = document.documentElement.scrollHeight;
+      const winH = window.innerHeight;
+      const y = window.scrollY || 0;
+      if (docH <= winH) return;
+      const pct = (y + winH) / docH;
+      if (pct >= 0.5) trigger();
+    };
+
+    document.addEventListener('mouseout', onMouseOut);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      document.removeEventListener('mouseout', onMouseOut);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, []);
+
+  return (
+    <Modal open={open} onClose={() => setOpen(false)} title={t('exit.title')} maxWidth={460}>
+      <ModalCloseBtn onClose={() => setOpen(false)} label={t('exit.close')} />
+      <div style={{ padding: '24px 22px' }}>
+        <div style={{
+          fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+          marginBottom: 8, fontWeight: 700,
+        }}>{t('exit.title')}</div>
+        <p style={{
+          fontFamily: FB, color: C.tx, fontSize: 14, lineHeight: 1.6,
+          marginBottom: 18,
+        }}>
+          {t('exit.body')}
+        </p>
+        <LeadCapture context="exit_intent" compact />
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14 }}>
+          <button onClick={() => setOpen(false)} style={{
+            ...baseBtn,
+            background: 'transparent', color: C.td,
+            border: 'none', padding: '6px 10px',
+            fontSize: 11, fontWeight: 700, letterSpacing: 1.2,
+          }}>
+            {t('exit.dismiss')}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -1830,6 +2793,10 @@ function StickyCTA() {
 export default function App() {
   const route = useHashRoute();
   const t = useT();
+  // Quiz modal state lives at the App root so the hero, the dedicated
+  // QuizSection, and the nav can all open it from anywhere on the page.
+  const [quizOpen, setQuizOpen] = useState(false);
+  const openQuiz = () => { setQuizOpen(true); trackAndOpen('quiz_open', {}); };
   let body;
   let isHome = false;
   let docTitleKey = 'doc.title.home';
@@ -1847,7 +2814,7 @@ export default function App() {
       docTitleKey = 'doc.title.notfound';
     }
   } else {
-    body = <Home />;
+    body = <Home onOpenQuiz={openQuiz} />;
     isHome = true;
   }
 
@@ -1885,7 +2852,13 @@ export default function App() {
           the nav + buy buttons without scrolling. */}
       <style>{`
         /* Offset section anchors so the sticky 56px header doesn't overlap them. */
-        #programs, #inside, #about, #why, #how, #contact { scroll-margin-top: 64px; }
+        #programs, #quiz, #inside, #about, #why, #trust, #how, #faq, #contact { scroll-margin-top: 64px; }
+        /* Modal entrance animations — opacity + subtle pop. */
+        @keyframes fv-fade { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes fv-pop  { from { opacity: 0; transform: translateY(8px) scale(0.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
+        @media (prefers-reduced-motion: reduce) {
+          [role="dialog"] > * { animation: none !important; }
+        }
         /* Center-align everything by default — root sets text-align:center
            and only the few places that need otherwise (phone-mock inner
            screens, which mimic a left-aligned mobile UI) override locally. */
@@ -1933,6 +2906,8 @@ export default function App() {
       </main>
       <Footer />
       {isHome && <StickyCTA />}
+      {isHome && <ExitIntentModal />}
+      <QuizModal open={quizOpen} onClose={() => setQuizOpen(false)} />
       <Analytics />
     </div>
   );

@@ -34,6 +34,16 @@
 //   equipment   string[]?  e.g. ['Barbell', 'Dumbbells', 'Bench']
 //   level       string?    'Beginner' | 'Intermediate' | 'Advanced'
 //
+//   quiz        object?    Routing tags consumed by the on-site quiz.
+//                          {
+//                            levels: ['beginner'|'intermediate'|'advanced'],
+//                            goals:  ['general_health'|'lose_weight'|'muscle'|
+//                                     'strength'|'sport'|'rehab'],
+//                            daysPerWeek: [3, 4, ...],
+//                            forRehab: 'no' | 'either' | 'only',
+//                            couplesOnly?: boolean,
+//                          }
+//
 // ───────────────────────────────────────────────────────────────────────────
 // Accent palette (so cards stay visually coherent):
 //   '#3BA0FF'  primary blue (default for most)
@@ -66,6 +76,12 @@ export const PROGRAMS = [
     accent: '#3BA0FF',
     level: 'Beginner',
     equipment: ['Barbell', 'Dumbbells', 'Bench'],
+    quiz: {
+      levels: ['beginner'],
+      goals: ['general_health', 'lose_weight', 'muscle'],
+      daysPerWeek: [3],
+      forRehab: 'either',
+    },
     // Reference shape — replace these exercises with the real first-week
     // microcycle once you decide the template content. The detail page at
     // /#/programs/foundation-12 reads this to render the SAMPLE WEEK section.
@@ -115,6 +131,12 @@ export const PROGRAMS = [
     accent: '#39BDFF',
     level: 'Intermediate',
     equipment: ['Barbell', 'Dumbbells', 'Cables', 'Machines'],
+    quiz: {
+      levels: ['intermediate', 'advanced'],
+      goals: ['muscle'],
+      daysPerWeek: [4],
+      forRehab: 'no',
+    },
   },
   {
     id: 'powerbuild-12',
@@ -138,6 +160,12 @@ export const PROGRAMS = [
     accent: '#3BA0FF',
     level: 'Intermediate',
     equipment: ['Barbell', 'Dumbbells'],
+    quiz: {
+      levels: ['intermediate', 'advanced'],
+      goals: ['strength', 'muscle'],
+      daysPerWeek: [4],
+      forRehab: 'no',
+    },
   },
   {
     id: 'couples-12',
@@ -161,6 +189,13 @@ export const PROGRAMS = [
     accent: '#39BDFF',
     level: 'Intermediate',
     equipment: ['Barbell', 'Dumbbells'],
+    quiz: {
+      levels: ['beginner', 'intermediate', 'advanced'],
+      goals: ['general_health', 'muscle', 'strength', 'lose_weight'],
+      daysPerWeek: [3],
+      forRehab: 'no',
+      couplesOnly: true,
+    },
   },
   {
     id: 'rehab-return',
@@ -184,6 +219,12 @@ export const PROGRAMS = [
     accent: '#ff5e5e',
     level: 'Beginner',
     equipment: ['Bands', 'Dumbbells'],
+    quiz: {
+      levels: ['beginner', 'intermediate', 'advanced'],
+      goals: ['rehab', 'general_health'],
+      daysPerWeek: [3, 4],
+      forRehab: 'only',
+    },
   },
   {
     id: 'athlete-conditioning-12',
@@ -207,6 +248,12 @@ export const PROGRAMS = [
     accent: '#ff9c44',
     level: 'Intermediate',
     equipment: ['Barbell', 'Dumbbells', 'Track or open space'],
+    quiz: {
+      levels: ['intermediate', 'advanced'],
+      goals: ['sport', 'strength'],
+      daysPerWeek: [4],
+      forRehab: 'no',
+    },
   },
 ];
 
