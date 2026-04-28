@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import WorkoutsView from './WorkoutsView';
-import SubstitutionInsights from './SubstitutionInsights';
 import { C, FN, FB, ytId, EXPO_ICON } from './theme';
 import { EX } from './exerciseData';
 import {
@@ -1740,9 +1739,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           </div>
         );
       })()}
-
-      {/* Substitution insights — aggregates swaps logged by template trainees */}
-      <SubstitutionInsights clientWorkouts={clientWorkouts} />
 
       {/* Group by client */}
       {Object.entries(byClient).map(([cid, data]) => (
