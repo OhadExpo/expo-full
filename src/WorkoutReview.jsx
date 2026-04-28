@@ -1468,7 +1468,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           const nextFocus = getFocus(wo.planName, wo.dayName, ex.eid, nextWeek);
 
           return (
-            <div key={i} style={{background:C.sf,border:`1px solid ${isExpanded?C.ac+'40':C.bd}`,borderRadius:10,marginBottom:8,overflow:"hidden"}}>
+            <div key={i} data-ex-idx={i} style={{background:C.sf,border:`1px solid ${isExpanded?C.ac+'40':C.bd}`,borderRadius:10,marginBottom:8,overflow:"hidden"}}>
               {/* Header row — click to expand */}
               <div onClick={() => setExpandedEx(isExpanded?null:i)}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
@@ -1597,6 +1597,32 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         );
                       })}
                     </div>
+                  </div>
+
+                  {/* Per-exercise advance: collapse this card and jump to the
+                      next one (or finish review on the last). Notes already
+                      auto-save on change so this is purely a navigation
+                      shortcut for working through a workout exercise-by-
+                      exercise without scrolling. */}
+                  <div style={{display:'flex',justifyContent:'center',marginTop:10}}>
+                    <button onClick={() => {
+                      const nextIdx = i + 1;
+                      if (nextIdx < wo.exercises.length) {
+                        setExpandedEx(nextIdx);
+                        setTimeout(() => {
+                          const el = document.querySelector(`[data-ex-idx="${nextIdx}"]`);
+                          el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 50);
+                      } else {
+                        setExpandedEx(null);
+                        setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
+                      }
+                    }}
+                      style={{padding:'8px 18px',borderRadius:6,border:`1px solid ${C.ac}`,
+                        background:C.acD,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,
+                        letterSpacing:0.5,cursor:'pointer'}}>
+                      {i < wo.exercises.length - 1 ? '✓ NEXT EXERCISE →' : '✓ DONE — FINISH REVIEW ↓'}
+                    </button>
                   </div>
                 </div>
               )}
