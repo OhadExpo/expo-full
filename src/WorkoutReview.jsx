@@ -937,12 +937,14 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         <canvas ref={canvasRef}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
             pointerEvents:'none',display:poseOn?'block':'none'}} />
-        {/* Drawing overlay: visible whenever the comments are enabled AND
-            we're in a drawing context (composing OR paused-at-a-comment).
-            Pointer events only flow to the canvas when a draw color is
-            active, so when inactive the video native controls are still
-            reachable. */}
-        {commentsEnabled && (composing || pausedAtCommentId) && (
+        {/* Drawing overlay: visible only while the video is PAUSED, comments
+            are enabled, and we're in a drawing context (composing OR paused-
+            at-a-comment). The videoPaused gate is the important bit — if the
+            user resumes playback mid-compose, strokes vanish so they don't
+            obscure subsequent frames. Pointer events only flow to the canvas
+            when a draw color is active, so when inactive the video native
+            controls are still reachable. */}
+        {commentsEnabled && videoPaused && (composing || pausedAtCommentId) && (
           <canvas ref={drawCanvasRef}
             onPointerDown={onCanvasPointerDown}
             onPointerMove={onCanvasPointerMove}
@@ -1034,7 +1036,10 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
         </div>
         <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
-          {notes.length > 0 && (
+          {/* Auto-pause-at-comment toggle. Trainee-only: the trainer always
+              wants comments visible (drawing is part of commenting on the
+              coach side), so hiding the toggle removes a useless control. */}
+          {notes.length > 0 && role !== 'trainer' && (
             <button onClick={toggleComments}
               title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
               style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
@@ -1112,7 +1117,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,textAlign:'center'}}>
             {composing.replyToId ? '↳ REPLYING' : `💬 COMMENT AT ${fmtTs(composing.ts)}`}
           </div>
-          <textarea value={composeText} autoFocus
+          <textarea value={composeText} autoFocus dir="auto"
             onChange={e => setComposeText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitCompose(); } }}
             placeholder={composing.replyToId ? 'Type your reply…' : 'What should the client focus on at this moment?'}
@@ -1560,13 +1565,13 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         ? `END-OF-BLOCK NOTE — W${currentWeek}/${planWeeks}`
                         : `W${currentWeek} → W${nextWeek} FOCUS`}
                     </div>
-                    <textarea
+                    <textarea dir="auto"
                       value={nextFocus}
                       onChange={e => setFocus(wo.planName, wo.dayName, ex.eid, nextWeek, e.target.value)}
                       placeholder={isLastWeekOfBlock
                         ? `Last week of the block. Anything to carry into the next block? Load ceiling, pattern fixes, etc.`
                         : `Based on this performance, what should they focus on next week?`}
-                      style={{...bi,minHeight:50,resize:"vertical",borderColor:nextFocus?C.ac+'40':C.bd,fontSize:12}}
+                      style={{...bi,minHeight:50,resize:"vertical",borderColor:nextFocus?C.ac+'40':C.bd,fontSize:12,textAlign:'center'}}
                     />
                     {/* Block weeks mini-view (W1..planWeeks) — adapts to the
                         actual block length. Caps the visible columns at 8 to
