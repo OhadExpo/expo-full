@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput } from './ui';
 import { traineeIdsFor } from './traineeUtils';
+import { supabase } from './supabase';
 
 // Strip non-digits and prepend Israeli country code if the user typed a local
 // 0XX-XXX-XXXX style number. WhatsApp's wa.me deeplink wants raw E.164
@@ -143,6 +144,33 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
     return null;
   }).filter(Boolean).sort((a, b) => (b.daysOverdue || 9999) - (a.daysOverdue || 9999));
 
+  // Inbound landing-site leads (expo-il LeadCapture form). Only show
+  // unconsumed rows — once Ohad clicks "mark contacted" we set consumed_at
+  // and drop the row from the panel.
+  const [leads, setLeads] = useState(null);
+  const reloadLeads = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id,email,source,context,created_at')
+        .is('consumed_at', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (!error) setLeads(data || []);
+    } catch {}
+  }, []);
+  useEffect(() => { reloadLeads(); }, [reloadLeads]);
+
+  const markLeadContacted = async (id) => {
+    setLeads(curr => (curr || []).filter(l => l.id !== id));
+    try { await supabase.from('leads').update({ consumed_at: new Date().toISOString() }).eq('id', id); } catch {}
+  };
+  const deleteLead = async (id) => {
+    if (!confirm('Delete this lead?')) return;
+    setLeads(curr => (curr || []).filter(l => l.id !== id));
+    try { await supabase.from('leads').delete().eq('id', id); } catch {}
+  };
+
   return (
     <div>
       {/* Summary cards */}
@@ -162,8 +190,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         ))}
       </div>
 
-      {/* Alert sections (above table: online + expiring + overdue payments + dormant) */}
-      {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0) && (
+      {/* Alert sections (above table: online + expiring + overdue payments + dormant + leads) */}
+      {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20 }}>
           {onlineNow.length > 0 && (
             <div style={{ background: C.sf, border: `1px solid ${C.gn}30`, borderRadius: 10, padding: '14px 18px' }}>
@@ -196,6 +224,26 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                   <span style={{ fontFamily: FN, color: C.rd, fontSize: 11 }}>{t.neverPaid ? 'Never paid' : `${t.daysOverdue}d overdue`}</span>
                 </div>
               ))}
+            </div>
+          )}
+          {leads && leads.length > 0 && (
+            <div style={{ background: C.sf, border: `1px solid ${C.ac}30`, borderRadius: 10, padding: '14px 18px' }}>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, textTransform: 'uppercase', marginBottom: 8 }}>📩 New Leads ({leads.length})</div>
+              {leads.map(l => {
+                const ageMs = now - new Date(l.created_at);
+                const days = Math.floor(ageMs / 86400000);
+                const hours = Math.floor(ageMs / 3600000);
+                const ago = days >= 1 ? `${days}d` : hours >= 1 ? `${hours}h` : 'just now';
+                const mailto = `mailto:${l.email}?subject=${encodeURIComponent('היי מ-EXPO')}&body=${encodeURIComponent('היי, ראיתי שהשארת מייל ב-expo-il.co.il.\n')}`;
+                return (
+                  <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 13 }}>
+                    <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${l.context} · ${l.source}`}>{l.email}</a>
+                    <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>
+                    <button onClick={() => markLeadContacted(l.id)} title="Mark contacted" style={{ background: `${C.gn}20`, border: `1px solid ${C.gn}55`, color: C.gn, borderRadius: 6, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
+                    <button onClick={() => deleteLead(l.id)} title="Delete" style={{ background: `${C.rd}20`, border: `1px solid ${C.rd}55`, color: C.rd, borderRadius: 6, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                  </div>
+                );
+              })}
             </div>
           )}
           {dropoutRisk.length > 0 && (
