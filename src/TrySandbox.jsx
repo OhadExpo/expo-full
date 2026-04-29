@@ -97,7 +97,7 @@ export default function TrySandbox() {
       <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />
       <main style={{ flex:1, padding:'24px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
         {step === 'exercise' && <ExercisePicker onPick={onPickExercise} />}
-        {step === 'upload'   && <UploadStep exercise={exercise} onUpload={onUpload} onSkipToAnalyze={() => setStep('analyze')} />}
+        {step === 'upload'   && <UploadStep exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
         {step === 'analyze'  && <AnalyzeStep exercise={exercise} videoUrl={videoUrl}
                                   onChangeVideo={() => setStep('upload')}
                                   onCompare={() => setStep('compare')} />}
@@ -134,18 +134,21 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
       background: C.sf, borderBottom: `1px solid ${C.bd}`,
       position:'sticky', top:0, zIndex:50,
     }}>
+      <style>{`@media (max-width: 720px){.try-sandbox-badge{display:none}}`}</style>
       <div style={{
         maxWidth: 1180, margin:'0 auto', padding:'0 16px',
         display:'flex', alignItems:'center', height: 60, gap: 14,
       }}>
-        <a href="https://expo-il.co.il/" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none' }}>
-          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height:30 }} />
+        <a href="https://expo-il.co.il/" title="Back to EXPO" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flex:'0 0 auto' }}>
+          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display:'block', height:28 }} />
         </a>
-        <div style={{
+        {/* SANDBOX badge — hidden on narrow screens via the .try-sandbox-badge
+            class so the step nav has room to breathe on phones. */}
+        <span className="try-sandbox-badge" style={{
           fontFamily:FN, fontSize:10, color: C.ac, letterSpacing:2, fontWeight:700,
           padding:'4px 8px', background: C.acD, borderRadius:6,
           border:`1px solid rgba(57,189,255,0.30)`, whiteSpace:'nowrap',
-        }}>TRY THE PLATFORM · SANDBOX</div>
+        }}>SANDBOX</span>
         <nav style={{
           display:'flex', gap:4, flex:1, justifyContent:'center',
           overflowX:'auto', minWidth:0,
@@ -196,7 +199,7 @@ function ExercisePicker({ onPick }) {
         marginBottom: 10, letterSpacing:-0.3,
       }}>What did you film?</h1>
       <p style={{
-        fontFamily:FB, color: C.tm, fontSize: 14, lineHeight:1.55, maxWidth: 640,
+        fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 28,
       }}>
         Pick the closest match. The rep counter routes to the right joint channel —
@@ -229,7 +232,7 @@ function ExercisePicker({ onPick }) {
 }
 
 // ─── Step 2 · upload your clip ────────────────────────────────────────────
-function UploadStep({ exercise, onUpload, onSkipToAnalyze }) {
+function UploadStep({ exercise, onUpload, onChangeExercise }) {
   const [drag, setDrag] = useState(false);
   const inputRef = useRef(null);
   const onDrop = (e) => {
@@ -252,7 +255,7 @@ function UploadStep({ exercise, onUpload, onSkipToAnalyze }) {
         marginBottom: 10, letterSpacing:-0.3,
       }}>Drop in a clip of your <span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</h1>
       <p style={{
-        fontFamily:FB, color: C.tm, fontSize: 14, lineHeight:1.55, maxWidth: 640,
+        fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 24,
       }}>
         Side-on phone clip works best. The video stays in your browser — no upload,
@@ -292,9 +295,17 @@ function UploadStep({ exercise, onUpload, onSkipToAnalyze }) {
         marginTop: 20, fontFamily:FN, fontSize: 11, color: C.td,
         letterSpacing: 1, textAlign:'center',
       }}>
-        TIP: PHONE CLIPS RECORD AT 30FPS. THE COUNTER LOOKS FOR ANGLE TROUGHS,
-        SO PAUSED OR GRINDY REPS STILL COUNT.
+        TIP · 30FPS PHONE CLIPS WORK GREAT · SLOW & GRINDY REPS STILL COUNT
       </p>
+      {onChangeExercise && (
+        <div style={{ marginTop: 14, textAlign:'center' }}>
+          <button onClick={onChangeExercise} style={{
+            ...baseBtn, background:'transparent', color: C.tm,
+            border:`1px solid ${C.bd}`, padding:'8px 16px',
+            fontSize: 11, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+          }}>← CHANGE EXERCISE</button>
+        </div>
+      )}
     </section>
   );
 }
@@ -329,7 +340,7 @@ function AnalyzeStep({ exercise, videoUrl, onChangeVideo, onCompare }) {
         marginBottom: 10, letterSpacing:-0.3,
       }}>Pose detection on your <span style={{ color: C.ac }}>{exercise?.label}</span>.</h1>
       <p style={{
-        fontFamily:FB, color: C.tm, fontSize: 14, lineHeight:1.55, maxWidth: 720,
+        fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 720, opacity: 0.85,
         marginBottom: 18,
       }}>
         Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to
@@ -375,7 +386,7 @@ function CompareStep({ exercise, primaryUrl, secondUrl, onUploadSecond, onBack }
         marginBottom: 10, letterSpacing:-0.3,
       }}>Compare two attempts at the same lift.</h1>
       <p style={{
-        fontFamily:FB, color: C.tm, fontSize: 14, lineHeight:1.55, maxWidth: 720,
+        fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 720, opacity: 0.85,
         marginBottom: 18,
       }}>
         Upload a second clip — last week's set, a heavier set, or your warm-up.
@@ -709,6 +720,18 @@ function SandboxPlayer({ url, exerciseTitle, compact = false }) {
       )}
 
       <div style={{ position:'relative', borderRadius: 10, overflow:'hidden', background: '#000' }}>
+        {/* First-mount: MediaPipe is fetching ~6MB. Show a subtle banner so
+            the visitor knows the canvas isn't broken — pose lines simply
+            haven't started drawing yet. */}
+        {poseLoading && !landmarkerRef.current && (
+          <div style={{
+            position:'absolute', top: 10, left: '50%', transform:'translateX(-50%)',
+            background: C.acD, color: C.ac,
+            border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 6,
+            padding:'4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+            zIndex: 5, pointerEvents:'none',
+          }}>LOADING POSE MODEL…</div>
+        )}
         <video ref={videoRef} src={url} controls preload="metadata" playsInline
           style={{
             display:'block', width:'100%',
@@ -819,14 +842,14 @@ function BuyCallToAction() {
           background: C.ac, color:'#000',
           padding:'11px 22px', fontWeight:700, letterSpacing:1.5, borderRadius: 6, fontSize: 12,
           textDecoration: 'none',
-        }}>BROWSE PROGRAMS →</a>
-        <a href="https://expo-il.co.il/" style={{
+        }}>SEE PROGRAMS →</a>
+        <a href="https://expo-il.co.il/#about" style={{
           ...baseBtn,
-          background:'transparent', color: C.tm,
-          border:`1px solid ${C.bd}`, padding:'11px 22px', fontWeight:700,
+          background:'transparent', color: C.tx,
+          border:`1px solid ${C.bd2}`, padding:'11px 22px', fontWeight:700,
           letterSpacing: 1.2, borderRadius: 6, fontSize: 12,
           textDecoration: 'none',
-        }}>← BACK TO EXPO-IL</a>
+        }}>WHO I AM →</a>
       </div>
     </div>
   );

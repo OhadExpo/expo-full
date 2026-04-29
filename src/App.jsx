@@ -476,8 +476,7 @@ function AuthedApp() {
       <header style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,position:"sticky",top:0,zIndex:100}}>
         <style>{`.hdr-scroll::-webkit-scrollbar{display:none}`}</style>
         <div className="hdr-scroll" style={{maxWidth:1200,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
-          <div style={{flex:"0 0 auto",position:"relative",width:83,height:56,marginRight:12,overflow:"hidden"}}>
-            <img src={EXPO_LOGO} alt="EXPO" style={{height:56,position:"absolute",left:0,bottom:16}}/></div>
+          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{flex:"0 0 auto",display:"block",height:32,marginRight:12}}/>
           <nav style={{display:"flex",gap:2,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:"max-content"}}>
             {tabs.map(t=>(<button key={t.key} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,background:tab===t.key?C.acD:"transparent",color:tab===t.key?C.ac:C.tm,borderRadius:6,padding:"6px 10px",fontSize:12,fontWeight:tab===t.key?700:500,whiteSpace:"nowrap"}}>
               <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}</nav>
