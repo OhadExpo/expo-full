@@ -107,8 +107,8 @@ export default function TrySandbox({ pov = 'coach' } = {}) {
       <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />
       <POVBanner pov={pov} />
       <main style={{ flex:1, padding:'18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
-        {step === 'exercise' && <ExercisePicker onPick={onPickExercise} />}
-        {step === 'upload'   && <UploadStep exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
+        {step === 'exercise' && <ExercisePicker pov={pov} onPick={onPickExercise} />}
+        {step === 'upload'   && <UploadStep pov={pov} exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
         {step === 'analyze'  && <AnalyzeStep pov={pov} exercise={exercise} videoUrl={videoUrl}
                                   onChangeVideo={() => setStep('upload')}
                                   onCompare={() => setStep('compare')} />}
@@ -205,40 +205,52 @@ function POVBanner({ pov }) {
   const isCoach = pov === 'coach';
   return (
     <div style={{
-      borderBottom: `1px solid ${C.bd}`, background: 'transparent',
+      borderBottom: `1px solid ${C.bd}`,
+      background: `linear-gradient(180deg, ${C.sf} 0%, ${C.bg} 100%)`,
     }}>
       <div style={{
-        maxWidth: 1180, margin:'0 auto', padding:'10px 16px',
+        maxWidth: 1180, margin:'0 auto', padding:'12px 16px',
         display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap',
       }}>
+        {/* POV chip — eye glyph + label */}
         <div style={{
-          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
-        }}>VIEWING AS</div>
-        <div style={{ display:'flex', gap: 6 }}>
-          <a href="/try" style={{
-            ...baseBtn,
-            background: isCoach ? C.acD : 'transparent',
-            color: isCoach ? C.ac : C.tm,
-            border: `1px solid ${isCoach ? C.ac : C.bd}`,
-            padding:'5px 12px', fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
-            borderRadius: 6, textDecoration: 'none',
-          }}>COACH</a>
-          <a href="/demo" style={{
-            ...baseBtn,
-            background: !isCoach ? C.acD : 'transparent',
-            color: !isCoach ? C.ac : C.tm,
-            border: `1px solid ${!isCoach ? C.ac : C.bd}`,
-            padding:'5px 12px', fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
-            borderRadius: 6, textDecoration: 'none',
-          }}>TRAINEE</a>
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
+          background: C.acD, border: `1px solid rgba(57,189,255,0.30)`,
+          borderRadius: 6, padding: '4px 9px', whiteSpace: 'nowrap',
+        }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          {isCoach ? 'COACH VIEW' : 'TRAINEE VIEW'}
         </div>
         <div style={{
-          fontFamily: FB, fontSize: 12, color: C.tx, opacity: 0.78, lineHeight: 1.45,
+          fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45,
           flex: '1 1 auto', minWidth: 200,
         }}>
           {isCoach
-            ? 'You\'re seeing the engine the way YOU\'D use it — scrubbing client clips, drawing on form, leaving timestamped notes.'
-            : 'You\'re seeing the engine the way YOUR CLIENT uses it — film a set, get a pose-overlay analysis, send it back for your review.'}
+            ? <>The review tool <b style={{ opacity: 1 }}>you</b> sit down to. Pose, rep count, draw on form, timestamped notes, reply video.</>
+            : <>What <b style={{ opacity: 1 }}>your client</b> uses. Film a set, see the analysis, one-tap send to the coach.</>}
+        </div>
+        <div style={{
+          display:'inline-flex', gap: 0,
+          background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 6, overflow: 'hidden',
+          flex: '0 0 auto',
+        }}>
+          <a href="/try" style={{
+            background: isCoach ? C.ac : 'transparent',
+            color: isCoach ? '#000' : C.tm,
+            padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+            textDecoration: 'none',
+          }}>COACH</a>
+          <a href="/demo" style={{
+            background: !isCoach ? C.ac : 'transparent',
+            color: !isCoach ? '#000' : C.tm,
+            padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+            textDecoration: 'none',
+          }}>TRAINEE</a>
         </div>
       </div>
     </div>
@@ -246,24 +258,25 @@ function POVBanner({ pov }) {
 }
 
 // ─── Step 1 · pick an exercise ────────────────────────────────────────────
-function ExercisePicker({ onPick }) {
+function ExercisePicker({ pov, onPick }) {
+  const isCoach = pov === 'coach';
   return (
     <section>
       <div style={{
         fontFamily:FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>STEP 1 · PICK YOUR LIFT</div>
+      }}>STEP 1 · {isCoach ? 'PICK THE LIFT TO REVIEW' : 'PICK WHAT YOU FILMED'}</div>
       <h1 style={{
         fontFamily:FB, fontSize:'clamp(24px, 3.5vw, 30px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
-      }}>What did you film?</h1>
+      }}>{isCoach ? "What's your client's clip of?" : 'What did you film?'}</h1>
       <p style={{
         fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 28,
       }}>
-        Pick the closest match. The rep counter routes to the right joint channel —
-        squat → knee, hinge → hip, press → elbow — same logic the EXPO portal uses
-        on real client clips. If yours isn't here, pick the closest movement pattern.
+        {isCoach
+          ? "Pick the lift. The rep counter routes to the right joint channel — squat → knee, hinge → hip, press → elbow — so your reps are counted correctly the moment the client uploads. You don't tag exercises; the engine inherits it from the plan."
+          : "Pick the closest match. The rep counter routes to the right joint channel — squat → knee, hinge → hip, press → elbow — same logic the EXPO portal uses on real client clips. If yours isn't here, pick the closest movement pattern."}
       </p>
       <div style={{
         display:'grid', gap: 10,
@@ -291,7 +304,8 @@ function ExercisePicker({ onPick }) {
 }
 
 // ─── Step 2 · upload your clip ────────────────────────────────────────────
-function UploadStep({ exercise, onUpload, onChangeExercise }) {
+function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
+  const isCoach = pov === 'coach';
   const [drag, setDrag] = useState(false);
   const inputRef = useRef(null);
   const onDrop = (e) => {
@@ -308,17 +322,20 @@ function UploadStep({ exercise, onUpload, onChangeExercise }) {
       <div style={{
         fontFamily:FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>STEP 2 · UPLOAD A SET</div>
+      }}>STEP 2 · {isCoach ? 'LOAD THE CLIENT CLIP' : 'UPLOAD A SET'}</div>
       <h1 style={{
         fontFamily:FB, fontSize:'clamp(24px, 3.5vw, 30px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
-      }}>Drop in a clip of your <span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</h1>
+      }}>{isCoach
+        ? <>Drop in your client's <span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</>
+        : <>Drop in a clip of your <span style={{ color: C.ac }}>{exercise?.label || 'set'}</span>.</>}</h1>
       <p style={{
         fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 640, opacity: 0.85,
         marginBottom: 24,
       }}>
-        Side-on phone clip works best. The video stays in your browser — no upload,
-        no account, nothing leaves your device. MP4, MOV, or WebM, ideally 5–60 seconds.
+        {isCoach
+          ? 'For this demo, drop in any of your client\'s side-on training clips. In production, the clip arrives in your review queue automatically — you click it from the trainee detail and it loads here.'
+          : 'Side-on phone clip works best. The video stays in your browser — no upload, no account, nothing leaves your device. MP4, MOV, or WebM, ideally 5–60 seconds.'}
       </p>
 
       <div
@@ -397,16 +414,20 @@ function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare }) {
       <h1 style={{
         fontFamily:FB, fontSize:'clamp(22px, 3.2vw, 28px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
-      }}>Pose detection on your <span style={{ color: C.ac }}>{exercise?.label}</span>.</h1>
+      }}>{pov === 'coach'
+        ? <>Reviewing your client's <span style={{ color: C.ac }}>{exercise?.label}</span>.</>
+        : <>Pose detection on your <span style={{ color: C.ac }}>{exercise?.label}</span>.</>}</h1>
       <p style={{
         fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 720, opacity: 0.85,
         marginBottom: 18,
       }}>
-        Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to
-        count reps from angle troughs. Press play to start counting; the count
-        tracks playback so scrubbing back drops it.
+        {pov === 'coach'
+          ? "Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to count reps from angle troughs. In production you'd also draw on the frame, drop timestamped notes, and queue a video reply — that panel is mocked below the player."
+          : "Toggle POSE for the skeleton overlay + live joint angles. Toggle REPS to count reps from angle troughs. Press play to start counting; the count tracks playback so scrubbing back drops it."}
       </p>
       <SandboxPlayer url={videoUrl} exerciseTitle={exercise?.sample || ''} />
+
+      <NextStepPanel pov={pov} exercise={exercise} />
 
       <div style={{
         marginTop: 22, display:'flex', gap: 10, flexWrap:'wrap', justifyContent:'center',
@@ -424,6 +445,107 @@ function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare }) {
 
       <BuyCallToAction pov={pov} />
     </section>
+  );
+}
+
+// ─── NextStepPanel ────────────────────────────────────────────────────────
+// A POV-specific mock of "what comes after the analysis" — purely illustrative,
+// non-interactive. Coach POV shows the review-tools surface (drawing, comments,
+// reply video). Trainee POV shows the trainee's outbound flow (send for review,
+// "your coach will reply" inline). Glued onto Step 3 + Step 4 so each POV has
+// a meaningfully different shape, not just different copy.
+function NextStepPanel({ pov, exercise }) {
+  const isCoach = pov === 'coach';
+  return (
+    <div style={{
+      marginTop: 22,
+      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 14,
+      padding: 16,
+    }}>
+      <div style={{
+        fontFamily: FN, color: C.ac, fontSize: 10, letterSpacing: 2.5, fontWeight: 700,
+        marginBottom: 12,
+      }}>{isCoach ? 'COACH · NEXT — REVIEW TOOLS' : 'TRAINEE · NEXT — SEND FOR REVIEW'}</div>
+      {isCoach ? <CoachReviewMock exercise={exercise} /> : <TraineeSendMock exercise={exercise} />}
+    </div>
+  );
+}
+
+function CoachReviewMock({ exercise }) {
+  return (
+    <div style={{
+      display: 'grid', gap: 14,
+      gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+    }}>
+      <MockTile
+        title="Draw on form"
+        body="Tap on any frame, draw a line on the bar path, knee track, or torso angle. Strokes are saved with the timestamp and replay when the client opens the review."
+        chips={['BAR PATH', 'KNEE TRACK', 'TORSO ANGLE']}
+      />
+      <MockTile
+        title="Timestamped comments"
+        body="Pause at the bottom of rep 3, type a note. The client sees it pop in at the same frame on their side. Voice notes too if you'd rather speak it."
+        chips={['00:08 · "knees caving"', '00:12 · "hips fast — slow it"']}
+      />
+      <MockTile
+        title="Send a reply video"
+        body="Record a 30s video reply with your phone — coaching cues, demo of the correction, mood check. Lands in the trainee's portal next to the review."
+        chips={['REPLY · 0:24', 'SENT']}
+      />
+    </div>
+  );
+}
+
+function TraineeSendMock({ exercise }) {
+  return (
+    <div style={{
+      display: 'grid', gap: 14,
+      gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+    }}>
+      <MockTile
+        title="One tap to send"
+        body={`Hit "send for review" — the clip lands in your coach's review queue with the rep count, joint angles, and tempo already attached. No DM, no email, no compression.`}
+        chips={[`${exercise?.label || 'Set'} · queued`, 'COACH NOTIFIED']}
+      />
+      <MockTile
+        title="Coach reply lands here"
+        body="When your coach reviews the clip, their drawings + timestamped notes + reply video appear right back on this screen. No app-switching."
+        chips={['COMMENTS · 2', 'REPLY VIDEO · 0:24']}
+      />
+      <MockTile
+        title="In your plan context"
+        body="The clip is auto-linked to the right exercise on the right day so you (and your coach) can compare against last week's set on the same lift."
+        chips={['BLOCK #3 · DAY A', 'WEEK 2 OF 4']}
+      />
+    </div>
+  );
+}
+
+function MockTile({ title, body, chips }) {
+  return (
+    <div style={{
+      background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 10,
+      padding: 14, textAlign: 'left',
+    }}>
+      <div style={{
+        fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx,
+        marginBottom: 6, letterSpacing: -0.1,
+      }}>{title}</div>
+      <p style={{
+        fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 12.5, lineHeight: 1.5,
+        margin: '0 0 10px',
+      }}>{body}</p>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {chips.map((c, i) => (
+          <span key={i} style={{
+            fontFamily: FN, fontSize: 9, letterSpacing: 1.2, fontWeight: 700,
+            color: C.ac, background: C.acD,
+            border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 4,
+            padding: '3px 6px',
+          }}>{c}</span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -487,6 +609,8 @@ function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onB
           )}
         </div>
       </div>
+
+      <NextStepPanel pov={pov} exercise={exercise} />
 
       <div style={{
         marginTop: 22, display:'flex', gap: 10, flexWrap:'wrap', justifyContent:'center',
