@@ -129,24 +129,53 @@ function BootSplash() {
   );
 }
 
+// True only when the page was launched from an installed PWA (Add-to-Home
+// on Android / iOS). We use this to hide every marketing surface when the
+// user is inside the installed app — they should only see Sign in → Portal.
+// Browser visitors still get the full marketing site at the same URLs.
+function isStandalonePwa() {
+  if (typeof window === 'undefined') return false;
+  if (window.matchMedia?.('(display-mode: standalone)').matches) return true;
+  if (window.navigator.standalone === true) return true; // iOS Safari
+  return false;
+}
+
 function AuthGate() {
   const auth = useAuth();
   const path = typeof window !== 'undefined' ? window.location.pathname : '/';
-  // Public unauthenticated demo routes — both pitch the coach buyer, but
-  // showcase the engine from a different point of view:
+  const inPwa = isStandalonePwa();
+
+  // PWA-mode: marketing surfaces are off-limits. Anyone who lands on /coaches,
+  // /try, /demo, or the EntryChooser inside the installed app gets bounced
+  // into the product flow (LoginScreen for unauthed → portal/dashboard for
+  // authed). The marketing site remains live in regular browser tabs.
+  const isMarketingPath = path === '/' || path === ''
+    || path.startsWith('/coaches')
+    || path.startsWith('/try')
+    || path.startsWith('/demo');
+  useEffect(() => {
+    if (!inPwa) return;
+    if (!isMarketingPath) return;
+    // Replace (don't push) so back-button doesn't return to the chooser.
+    if (window.location.pathname !== '/login' && window.location.pathname !== '/portal') {
+      window.history.replaceState(null, '', '/');
+    }
+  }, [inPwa, isMarketingPath]);
+
+  // Browser-mode public demo routes — pitch the coach buyer from two angles:
   //   /try   → COACH POV  ("the review tool you'd use")
   //   /demo  → TRAINEE POV ("what your client experiences")
-  // Both end-CTAs converge at /coaches#waitlist.
-  if (path.startsWith('/try')) {
-    return <Suspense fallback={<BootSplash />}><TrySandbox pov="coach" /></Suspense>;
+  // Both end-CTAs converge at /coaches#waitlist. Hidden in PWA mode.
+  if (!inPwa) {
+    if (path.startsWith('/try')) {
+      return <Suspense fallback={<BootSplash />}><TrySandbox pov="coach" /></Suspense>;
+    }
+    if (path.startsWith('/demo')) {
+      return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
+    }
   }
-  if (path.startsWith('/demo')) {
-    return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
-  }
-  // Signed-out visitors land at / on the coach-sales marketing page (the
-  // app sells itself). /login holds the actual sign-in form. /coach also
-  // bounces to /login since it's the trainer portal entry. Anything else
-  // signed-out also lands on /login as a safe fallback.
+
+  // Signed-out /coach entry bounces to /login (the trainer portal needs auth).
   useEffect(() => {
     if (!auth || auth.loading || auth.session) return;
     if (path.startsWith('/coach')) {
@@ -155,12 +184,15 @@ function AuthGate() {
   }, [auth, path]);
   if (!auth || auth.loading) return <BootSplash />;
   if (!auth.session) {
-    // Front door: / shows the EntryChooser (Sign In vs For Coaches).
+    // PWA mode: every path that isn't already /login renders the LoginScreen
+    // directly so the user can authenticate without seeing the marketing
+    // chooser or landing page.
+    if (inPwa) return <LoginScreen />;
+    // Browser mode: front door at / is the EntryChooser; /coaches is the
+    // marketing landing; everything else falls through to LoginScreen.
     if (path === '/' || path === '') {
       return <Suspense fallback={<BootSplash />}><EntryChooser /></Suspense>;
     }
-    // /coaches is the marketing landing — moved here from / so the front
-    // door can serve both audiences without a hard funnel.
     if (path.startsWith('/coaches')) {
       return <Suspense fallback={<BootSplash />}><CoachLanding /></Suspense>;
     }
