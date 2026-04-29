@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput } from './ui';
 import { emailsToArr, emailsToStore, emailsDisplay, subMemberId } from './traineeUtils';
+import { WhatsAppCheckInButton } from './whatsappButton';
 
 const isCouple = (t) => t.members && t.members.length === 2;
 
@@ -136,7 +137,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                       <React.Fragment key={mi}>
                         {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
                         <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontWeight:600,fontSize:13,color:C.tx,textAlign:'left',overflowWrap:'anywhere'}}>{m.name || `Member ${mi+1}`}</div>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <div style={{fontWeight:600,fontSize:13,color:C.tx,textAlign:'left',overflowWrap:'anywhere',flex:1,minWidth:0}}>{m.name || `Member ${mi+1}`}</div>
+                            <WhatsAppCheckInButton name={m.name || t.name} phone={m.phone} />
+                          </div>
                           <div style={{fontSize:12,color:C.tm,marginTop:2,minHeight:16,textAlign:'left',overflowWrap:'anywhere'}}>{emailsDisplay(m.email)}</div>
                           <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
                             {mpc[mi] > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{mpc[mi]} PROGRAMS</span>}
@@ -175,7 +179,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                     {(()=>{const pc=planCounts?.[t.id]||0;if(!pc)return null;return <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{pc} PROGRAMS</span>})()}
                   </div>
                 </div>
-                <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge></div>
+                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
+                  <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
+                  <WhatsAppCheckInButton name={t.name} phone={t.phone} />
+                </div></div>
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
