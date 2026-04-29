@@ -22,6 +22,9 @@ const WorkoutReview = lazy(() => import('./WorkoutReview'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazy(() => import('./TrySandbox'));
+// Public coach-sales marketing landing at / for unauthed visitors. Authed
+// users at / continue to the role picker / portal as before.
+const CoachLanding = lazy(() => import('./CoachLanding'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
 const MemoPlans = React.memo(PlansView);
@@ -126,23 +129,30 @@ function BootSplash() {
 
 function AuthGate() {
   const auth = useAuth();
+  const path = typeof window !== 'undefined' ? window.location.pathname : '/';
   // /try is the public unauthenticated sandbox — short-circuit before any
   // auth checks so a logged-out visitor can hit the demo without bouncing
-  // through LoginScreen. Must run before the /coach → / redirect effect.
-  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/try')) {
+  // through LoginScreen. Must run before the auth redirects.
+  if (path.startsWith('/try')) {
     return <Suspense fallback={<BootSplash />}><TrySandbox /></Suspense>;
   }
-  // Single-login-URL: anyone hitting /coach without a session gets bounced
-  // to / so the LoginScreen lives at exactly one address. The post-login
-  // routing (and the role picker for dual-role accounts) lands them in the
-  // right portal anyway, so the old /coach login mirror was redundant.
+  // Signed-out visitors land at / on the coach-sales marketing page (the
+  // app sells itself). /login holds the actual sign-in form. /coach also
+  // bounces to /login since it's the trainer portal entry. Anything else
+  // signed-out also lands on /login as a safe fallback.
   useEffect(() => {
-    if (auth && !auth.loading && !auth.session && window.location.pathname.startsWith('/coach')) {
-      window.history.replaceState(null, '', '/');
+    if (!auth || auth.loading || auth.session) return;
+    if (path.startsWith('/coach')) {
+      window.history.replaceState(null, '', '/login');
     }
-  }, [auth]);
+  }, [auth, path]);
   if (!auth || auth.loading) return <BootSplash />;
-  if (!auth.session) return <LoginScreen />;
+  if (!auth.session) {
+    if (path === '/' || path === '') {
+      return <Suspense fallback={<BootSplash />}><CoachLanding /></Suspense>;
+    }
+    return <LoginScreen />;
+  }
   // SaveErrorToast rides alongside AuthedApp so a failed write from any
   // hook (useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus)
   // surfaces as a red card bottom-right instead of being swallowed.
@@ -249,12 +259,16 @@ function AuthedApp() {
   const [showPwModal,setShowPwModal]=useState(false);
   const fileRef=useRef(null);
 
-  // Send a client who landed on /coach back to /, and a trainer on / to /coach/dashboard.
+  // Send a client who landed on /coach (or /login) back to /, and a trainer
+  // on / or /login to /coach/dashboard. Covers the post-sign-in case where
+  // the form lives at /login: after auth flips, this redirect routes the
+  // user to the right surface so the URL reflects their role.
   useEffect(() => {
     if (!tL) return;
     const p = window.location.pathname;
     const onCoach = p.startsWith('/coach');
-    if (isClient && onCoach) window.history.replaceState(null, '', '/');
+    const onLogin = p.startsWith('/login');
+    if (isClient && (onCoach || onLogin)) window.history.replaceState(null, '', '/');
     else if (isTrainer && !onCoach) { window.history.replaceState(null, '', '/coach/dashboard'); setTab('dashboard'); }
   }, [tL, isClient, isTrainer]);
 

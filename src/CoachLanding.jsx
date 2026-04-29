@@ -1,0 +1,343 @@
+// Coach-acquisition marketing landing at expo-app.co.il/ (unauthed visitors).
+// Authed visitors at / continue to AuthedApp's role-picker / portal flow.
+//
+// Pitch: a working coach's video-driven training platform — pose detection,
+// auto rep counter, side-by-side compare, dormant-WhatsApp nudges, plan
+// authoring, client portals. Same engine the visitor can try on /try.
+// CTAs: try the demo (/try), join waitlist (Supabase `leads` row with
+// source='coach_waitlist'), sign in (/login for existing users).
+//
+// No checkout, no signup, no multi-tenancy yet — this is a waitlist page.
+// Stripe + the trainers table get built once the waitlist proves demand.
+import React, { useState } from 'react';
+import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+
+const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
+const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+
+const baseBtn = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+  padding: '12px 22px', borderRadius: 8, border: 'none',
+  fontFamily: FB, fontSize: 13, fontWeight: 700,
+  cursor: 'pointer', letterSpacing: 1.2, transition: 'all 0.15s',
+  textDecoration: 'none',
+};
+
+function WaitlistForm() {
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState('idle'); // idle | sending | done | error
+  const [err, setErr] = useState('');
+  const submit = async (e) => {
+    e.preventDefault();
+    if (state === 'sending' || state === 'done') return;
+    const trimmed = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      setState('error'); setErr('Enter a valid email'); return;
+    }
+    setState('sending'); setErr('');
+    try {
+      const res = await fetch(`${SUPA_URL}/rest/v1/leads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPA_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          email: trimmed,
+          source: 'expo-app',
+          context: 'coach_waitlist',
+          user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : null,
+        }),
+      });
+      // 409 = duplicate (already on the waitlist) — treat as success so the
+      // visitor sees confirmation instead of a confusing error.
+      if (!res.ok && res.status !== 409) {
+        const txt = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}${txt ? ': ' + txt.slice(0, 80) : ''}`);
+      }
+      setState('done');
+    } catch (e2) {
+      console.error('Waitlist submit failed:', e2);
+      setState('error'); setErr('Something went wrong. Try again in a minute.');
+    }
+  };
+  if (state === 'done') {
+    return (
+      <div style={{
+        fontFamily: FN, color: C.gn, fontSize: 13, letterSpacing: 1.2, fontWeight: 700,
+        padding: '14px 20px', border: `1px solid ${C.gn}40`, borderRadius: 10,
+        textAlign: 'center', maxWidth: 460, margin: '0 auto',
+      }}>
+        ✓ YOU'RE ON THE LIST. I'LL EMAIL YOU AS COACH SLOTS OPEN.
+      </div>
+    );
+  }
+  return (
+    <form onSubmit={submit} style={{
+      display: 'flex', flexDirection: 'column', gap: 8,
+      maxWidth: 460, margin: '0 auto', width: '100%',
+    }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input type="email" autoComplete="email" value={email}
+          onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
+          placeholder="your@email.com"
+          style={{
+            background: C.sf, border: `1px solid ${C.bd2}`,
+            borderRadius: 8, padding: '12px 14px', color: C.tx,
+            fontFamily: FB, fontSize: 14, outline: 'none',
+            flex: '1 1 220px', minWidth: 0,
+          }} />
+        <button type="submit" disabled={state === 'sending'} style={{
+          ...baseBtn,
+          background: state === 'sending' ? C.bd : C.ac,
+          color: state === 'sending' ? C.tm : '#000',
+          padding: '12px 20px',
+        }}>{state === 'sending' ? '…' : 'JOIN WAITLIST'}</button>
+      </div>
+      {state === 'error' && (
+        <div style={{
+          fontFamily: FN, color: C.rd, fontSize: 11, letterSpacing: 1, textAlign: 'center',
+        }}>{err}</div>
+      )}
+    </form>
+  );
+}
+
+function FeatureCard({ tag, title, body }) {
+  return (
+    <div style={{
+      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 14,
+      padding: 22, textAlign: 'left',
+    }}>
+      <div style={{
+        fontFamily: FN, color: C.ac, fontSize: 10, letterSpacing: 2, fontWeight: 700,
+        marginBottom: 10,
+      }}>{tag}</div>
+      <h3 style={{
+        fontFamily: FB, fontSize: 17, fontWeight: 700, margin: '0 0 8px',
+        letterSpacing: -0.2, color: C.tx,
+      }}>{title}</h3>
+      <p style={{
+        fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 13.5, lineHeight: 1.55, margin: 0,
+      }}>{body}</p>
+    </div>
+  );
+}
+
+export default function CoachLanding() {
+  return (
+    <div style={{
+      background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <style>{`
+        @keyframes fade-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
+        a:focus-visible, button:focus-visible {
+          outline: 2px solid ${C.ac}; outline-offset: 2px; border-radius: 4px;
+        }
+      `}</style>
+
+      {/* Header */}
+      <header style={{
+        background: C.sf, borderBottom: `1px solid ${C.bd}`,
+        position: 'sticky', top: 0, zIndex: 50,
+      }}>
+        <div style={{
+          maxWidth: 1180, margin: '0 auto', padding: '0 16px',
+          display: 'flex', alignItems: 'center', height: 60, gap: 14,
+        }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
+            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32 }} />
+          </a>
+          <span style={{
+            fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
+            padding: '4px 8px', background: C.acD, borderRadius: 6,
+            border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
+          }}>FOR COACHES</span>
+          <div style={{ flex: 1 }} />
+          <a href="/try" style={{
+            ...baseBtn, background: 'transparent', color: C.tx,
+            border: `1px solid ${C.bd2}`, padding: '8px 14px', fontSize: 11,
+          }}>SEE THE DEMO</a>
+          <a href="/login" style={{
+            ...baseBtn, background: 'transparent', color: C.tm,
+            padding: '8px 14px', fontSize: 11,
+          }}>SIGN IN →</a>
+        </div>
+      </header>
+
+      <main style={{ flex: 1 }}>
+        {/* Hero */}
+        <section style={{
+          maxWidth: 920, margin: '0 auto', padding: '64px 20px 40px', textAlign: 'center',
+        }}>
+          <div style={{
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            marginBottom: 14,
+          }}>EXPO · COACHING PLATFORM</div>
+          <h1 style={{
+            fontFamily: FB, fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 700,
+            margin: '0 0 16px', letterSpacing: -0.6, lineHeight: 1.08,
+          }}>Run your roster on the same engine your clients film with.</h1>
+          <p style={{
+            fontFamily: FB, color: C.tx, opacity: 0.85, fontSize: 16, lineHeight: 1.55,
+            maxWidth: 680, margin: '0 auto 32px',
+          }}>
+            Pose detection, auto rep counter, side-by-side video review, plan authoring,
+            client portals, and a dormant-client WhatsApp nudge — built by a working coach,
+            running live on real clients.
+          </p>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 28 }}>
+            <a href="/try" style={{
+              ...baseBtn, background: C.ac, color: '#000', padding: '13px 26px', fontSize: 13,
+            }}>TRY THE ENGINE →</a>
+            <a href="#waitlist" style={{
+              ...baseBtn, background: 'transparent', color: C.tx,
+              border: `1px solid ${C.bd2}`, padding: '13px 26px', fontSize: 13,
+            }}>JOIN THE WAITLIST</a>
+          </div>
+          <div style={{
+            fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
+          }}>NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP</div>
+        </section>
+
+        {/* Live demo — embed /try */}
+        <section style={{
+          maxWidth: 1180, margin: '0 auto', padding: '8px 16px 40px',
+        }}>
+          <div style={{
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            marginBottom: 14, textAlign: 'center',
+          }}>LIVE · NOT A SCREENSHOT</div>
+          <h2 style={{
+            fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
+            margin: '0 0 14px', letterSpacing: -0.3, textAlign: 'center',
+          }}>The engine, running in this page.</h2>
+          <p style={{
+            fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14.5, lineHeight: 1.55,
+            maxWidth: 680, margin: '0 auto 22px', textAlign: 'center',
+          }}>
+            Upload one of your client's clips. Watch the skeleton track. Watch the
+            counter tick at angle troughs. This is exactly what every paying client gets.
+          </p>
+          <div style={{
+            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
+            overflow: 'hidden', maxWidth: 1180, margin: '0 auto',
+            boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
+          }}>
+            <iframe src="/try" title="EXPO live demo"
+              style={{
+                display: 'block', width: '100%', height: 720, border: 'none',
+              }} />
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 14 }}>
+            <a href="/try" target="_blank" rel="noopener" style={{
+              fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700,
+              textDecoration: 'none',
+            }}>OPEN THE DEMO IN A FULL TAB →</a>
+          </div>
+        </section>
+
+        {/* What you get */}
+        <section style={{
+          maxWidth: 1180, margin: '0 auto', padding: '60px 16px 20px',
+        }}>
+          <div style={{
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            marginBottom: 12, textAlign: 'center',
+          }}>WHAT YOU GET</div>
+          <h2 style={{
+            fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
+            margin: '0 0 28px', letterSpacing: -0.3, textAlign: 'center',
+          }}>The whole stack — not just video review.</h2>
+          <div style={{
+            display: 'grid', gap: 14,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+          }}>
+            <FeatureCard tag="VIDEO ENGINE" title="Pose + auto rep counter"
+              body="MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side." />
+            <FeatureCard tag="PROGRAMMING" title="Block-based plan authoring"
+              body="Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Bulk import from xlsx." />
+            <FeatureCard tag="CLIENT PORTAL" title="Branded portal per client"
+              body="Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in." />
+            <FeatureCard tag="OPS" title="Dormant nudges via WhatsApp"
+              body="Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record." />
+            <FeatureCard tag="REVIEW" title="Per-rep video review"
+              body="Pause on any frame, draw on the video, leave timestamped voice + text comments. The client sees the review from the same portal — no email back-and-forth." />
+            <FeatureCard tag="NO LOCK-IN" title="Your data, your rules"
+              body="Export every plan, exercise, and workout log to xlsx anytime. Bring your existing exercise library (xlsx, sheets, Trainerize export) — bulk import is part of onboarding." />
+          </div>
+        </section>
+
+        {/* Why I'm building this */}
+        <section style={{
+          maxWidth: 920, margin: '0 auto', padding: '60px 16px 30px', textAlign: 'center',
+        }}>
+          <div style={{
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            marginBottom: 12,
+          }}>WHO BUILDS IT</div>
+          <h2 style={{
+            fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 28px)', fontWeight: 700,
+            margin: '0 0 14px', letterSpacing: -0.3,
+          }}>Built by a working coach for working coaches.</h2>
+          <p style={{
+            fontFamily: FB, color: C.tx, opacity: 0.85, fontSize: 15, lineHeight: 1.6,
+            maxWidth: 660, margin: '0 auto',
+          }}>
+            I'm Ohad. I run my own roster on this exact platform — every line of it
+            exists because I needed it on a Tuesday morning between sessions. Nothing
+            in here is theoretical. If a feature doesn't survive contact with real
+            clients, it gets cut.
+          </p>
+        </section>
+
+        {/* Waitlist CTA */}
+        <section id="waitlist" style={{
+          maxWidth: 720, margin: '0 auto', padding: '40px 16px 80px', textAlign: 'center',
+        }}>
+          <div style={{
+            background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
+            border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 14,
+            padding: '36px 24px',
+          }}>
+            <div style={{
+              fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+              marginBottom: 10,
+            }}>FOUNDING COACH WAITLIST</div>
+            <h2 style={{
+              fontFamily: FB, fontSize: 'clamp(22px, 3.4vw, 28px)', fontWeight: 700,
+              margin: '0 0 12px', letterSpacing: -0.3,
+            }}>Get early access at founding-coach pricing.</h2>
+            <p style={{
+              fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14.5, lineHeight: 1.6,
+              maxWidth: 540, margin: '0 auto 22px',
+            }}>
+              Multi-coach access opens slot-by-slot. Drop your email — I'll reach out
+              personally when it's your turn. No card. No commitment.
+            </p>
+            <WaitlistForm />
+          </div>
+        </section>
+      </main>
+
+      <footer style={{
+        borderTop: `1px solid ${C.bd}`, padding: '20px 16px',
+        maxWidth: 1180, margin: '0 auto', width: '100%',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        gap: 12, flexWrap: 'wrap',
+      }}>
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
+          EXPO · COACHING PLATFORM · BUILT IN TEL AVIV
+        </span>
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
+          <a href="/try" style={{ color: C.td, textDecoration: 'none' }}>DEMO</a>
+          <span style={{ margin: '0 8px' }}>·</span>
+          <a href="/login" style={{ color: C.td, textDecoration: 'none' }}>SIGN IN</a>
+        </span>
+      </footer>
+    </div>
+  );
+}
