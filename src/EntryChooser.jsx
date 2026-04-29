@@ -9,6 +9,7 @@
 // RolePicker / portal flow before EntryChooser can render.
 import React from 'react';
 import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+import { EXPOMark } from './expoMark';
 
 const tileBase = {
   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -105,9 +106,9 @@ export default function EntryChooser() {
           marginTop: 28, fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
           textAlign: 'center',
         }}>
-          <a href="/try" style={{ color: C.td, textDecoration: 'none' }}>TRY THE ENGINE</a>
+          <a href="/try" style={{ color: C.td, textDecoration: 'none' }}>COACH VIEW</a>
           <span style={{ margin: '0 8px' }}>·</span>
-          <a href="/demo" style={{ color: C.td, textDecoration: 'none' }}>CLIENT DEMO</a>
+          <a href="/demo" style={{ color: C.td, textDecoration: 'none' }}>TRAINEE VIEW</a>
           <span style={{ margin: '0 8px' }}>·</span>
           <a href="https://expo-il.co.il/" style={{ color: C.td, textDecoration: 'none' }}>BUY A PROGRAM</a>
         </div>
@@ -116,8 +117,12 @@ export default function EntryChooser() {
       <footer style={{
         borderTop: `1px solid ${C.bd}`, padding: '14px 16px', textAlign: 'center',
       }}>
-        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          EXPO · COACHING PLATFORM
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
+        }}>
+          <EXPOMark height={11} style={{ opacity: 0.55 }} />
+          <span>· COACHING PLATFORM</span>
         </span>
       </footer>
     </div>

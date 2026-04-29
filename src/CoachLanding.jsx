@@ -11,6 +11,7 @@
 // Stripe + the trainers table get built once the waitlist proves demand.
 import React, { useState } from 'react';
 import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+import { EXPOMark } from './expoMark';
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -102,6 +103,47 @@ function WaitlistForm() {
         }}>{err}</div>
       )}
     </form>
+  );
+}
+
+function DemoTabs() {
+  const [tab, setTab] = useState('coach');
+  const src = tab === 'coach' ? '/try' : '/demo';
+  return (
+    <div>
+      <div style={{
+        display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap',
+      }}>
+        <button onClick={() => setTab('coach')} style={{
+          ...baseBtn,
+          background: tab === 'coach' ? C.acD : 'transparent',
+          color: tab === 'coach' ? C.ac : C.tm,
+          border: `1px solid ${tab === 'coach' ? C.ac : C.bd2}`,
+          padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
+        }}>COACH VIEW</button>
+        <button onClick={() => setTab('trainee')} style={{
+          ...baseBtn,
+          background: tab === 'trainee' ? C.acD : 'transparent',
+          color: tab === 'trainee' ? C.ac : C.tm,
+          border: `1px solid ${tab === 'trainee' ? C.ac : C.bd2}`,
+          padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
+        }}>TRAINEE VIEW</button>
+      </div>
+      <div style={{
+        background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
+        overflow: 'hidden', maxWidth: 1180, margin: '0 auto',
+        boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
+      }}>
+        <iframe key={tab} src={src} title="EXPO live demo"
+          style={{ display: 'block', width: '100%', height: 760, border: 'none' }} />
+      </div>
+      <div style={{ textAlign: 'center', marginTop: 14 }}>
+        <a href={src} target="_blank" rel="noopener" style={{
+          fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700,
+          textDecoration: 'none',
+        }}>OPEN {tab === 'coach' ? 'COACH' : 'TRAINEE'} VIEW IN A FULL TAB →</a>
+      </div>
+    </div>
   );
 }
 
@@ -230,9 +272,13 @@ export default function CoachLanding() {
           maxWidth: 920, margin: '0 auto', padding: '64px 20px 40px', textAlign: 'center',
         }}>
           <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8,
             fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
             marginBottom: 14,
-          }}>EXPO · COACHING PLATFORM</div>
+          }}>
+            <EXPOMark height={14} />
+            <span>· COACHING PLATFORM</span>
+          </div>
           <h1 style={{
             fontFamily: FB, fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 700,
             margin: '0 0 16px', letterSpacing: -0.6, lineHeight: 1.08,
@@ -245,21 +291,25 @@ export default function CoachLanding() {
             client portals, and a dormant-client WhatsApp nudge — built by a working coach,
             running live on real clients.
           </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 28 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 14 }}>
             <a href="/try" style={{
               ...baseBtn, background: C.ac, color: '#000', padding: '13px 26px', fontSize: 13,
-            }}>TRY THE ENGINE →</a>
-            <a href="#waitlist" style={{
+            }}>SEE COACH VIEW →</a>
+            <a href="/demo" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, padding: '13px 26px', fontSize: 13,
-            }}>JOIN THE WAITLIST</a>
+            }}>SEE TRAINEE VIEW →</a>
+            <a href="#waitlist" style={{
+              ...baseBtn, background: 'transparent', color: C.tm,
+              padding: '13px 18px', fontSize: 13,
+            }}>OR JOIN WAITLIST</a>
           </div>
           <div style={{
             fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
           }}>NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP</div>
         </section>
 
-        {/* Live demo — embed /try */}
+        {/* Live demo — two-tab embed of /try (coach POV) and /demo (trainee POV) */}
         <section style={{
           maxWidth: 1180, margin: '0 auto', padding: '8px 16px 40px',
         }}>
@@ -270,30 +320,16 @@ export default function CoachLanding() {
           <h2 style={{
             fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
             margin: '0 0 14px', letterSpacing: -0.3, textAlign: 'center',
-          }}>The engine, running in this page.</h2>
+          }}>Try both sides of the table.</h2>
           <p style={{
             fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14.5, lineHeight: 1.55,
             maxWidth: 680, margin: '0 auto 22px', textAlign: 'center',
           }}>
-            Upload one of your client's clips. Watch the skeleton track. Watch the
-            counter tick at angle troughs. This is exactly what every paying client gets.
+            Upload your own clip. Switch the COACH / TRAINEE toggle inside the demo
+            to see how the same engine looks from each side — the tool you'd use
+            and the experience your client gets.
           </p>
-          <div style={{
-            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
-            overflow: 'hidden', maxWidth: 1180, margin: '0 auto',
-            boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
-          }}>
-            <iframe src="/try" title="EXPO live demo"
-              style={{
-                display: 'block', width: '100%', height: 720, border: 'none',
-              }} />
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 14 }}>
-            <a href="/try" target="_blank" rel="noopener" style={{
-              fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700,
-              textDecoration: 'none',
-            }}>OPEN THE DEMO IN A FULL TAB →</a>
-          </div>
+          <DemoTabs />
         </section>
 
         {/* What you get */}
@@ -466,8 +502,12 @@ export default function CoachLanding() {
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         gap: 12, flexWrap: 'wrap',
       }}>
-        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          EXPO · COACHING PLATFORM · BUILT IN TEL AVIV
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
+        }}>
+          <EXPOMark height={11} style={{ opacity: 0.55 }} />
+          <span>· COACHING PLATFORM · BUILT IN TEL AVIV</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
           <a href="/try" style={{ color: C.td, textDecoration: 'none' }}>DEMO</a>

@@ -9,6 +9,7 @@
 // production rep counter is tuned the sandbox tracks automatically.
 import React, { useEffect, useRef, useState } from 'react';
 import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+import { EXPOMark } from './expoMark';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
@@ -51,10 +52,16 @@ const baseBtn = {
   cursor:'pointer', letterSpacing:'0.02em', transition:'all 0.15s',
 };
 
-// audience='client' → CTAs aim a program-buyer back at expo-il/#programs.
-// audience='coach'  → CTAs aim a coach prospect back at the waitlist on /.
-// Default 'client' keeps the original /try semantics (athlete-buyer demo).
-export default function TrySandbox({ audience = 'client' } = {}) {
+// pov='coach'   → the COACH'S view of the engine ("the review tool you'd use
+//                  to scrub a client's clip") — /try
+// pov='trainee' → the TRAINEE'S view ("what your client experiences when
+//                  they upload their set") — /demo
+// Both POVs end-CTA at /coaches#waitlist — the entire /try and /demo pair
+// is pitched at the prospective coach buyer ("see what you get + see what
+// they get"). Visitors arriving from expo-il (athlete buyers) still land on
+// /demo with copy that reads naturally to them, but the closing CTA is the
+// coach-waitlist because the coach buyer is the audience for this property.
+export default function TrySandbox({ pov = 'coach' } = {}) {
   // step: 'exercise' → 'upload' → 'analyze' → 'compare'
   // We don't gate forward steps — you can land on 'analyze' with no video and
   // it'll show the empty state. The header stepper is the canonical UI path.
@@ -98,13 +105,14 @@ export default function TrySandbox({ audience = 'client' } = {}) {
       fontFamily: FB, display:'flex', flexDirection:'column',
     }}>
       <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />
-      <main style={{ flex:1, padding:'24px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
+      <POVBanner pov={pov} />
+      <main style={{ flex:1, padding:'18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
         {step === 'exercise' && <ExercisePicker onPick={onPickExercise} />}
         {step === 'upload'   && <UploadStep exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
-        {step === 'analyze'  && <AnalyzeStep audience={audience} exercise={exercise} videoUrl={videoUrl}
+        {step === 'analyze'  && <AnalyzeStep pov={pov} exercise={exercise} videoUrl={videoUrl}
                                   onChangeVideo={() => setStep('upload')}
                                   onCompare={() => setStep('compare')} />}
-        {step === 'compare'  && <CompareStep audience={audience} exercise={exercise} primaryUrl={videoUrl} secondUrl={secondUrl}
+        {step === 'compare'  && <CompareStep pov={pov} exercise={exercise} primaryUrl={videoUrl} secondUrl={secondUrl}
                                   onUploadSecond={onUploadSecond}
                                   onBack={() => setStep('analyze')} />}
       </main>
@@ -186,6 +194,54 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
         }}>↺ RESTART</button>
       </div>
     </header>
+  );
+}
+
+// ─── POV banner ───────────────────────────────────────────────────────────
+// Sits under the header on /try and /demo so the visitor knows which side
+// of the table they're sitting at — coach (review tool) vs trainee (what
+// the client uploads + sees). One-tap toggle to the other POV.
+function POVBanner({ pov }) {
+  const isCoach = pov === 'coach';
+  return (
+    <div style={{
+      borderBottom: `1px solid ${C.bd}`, background: 'transparent',
+    }}>
+      <div style={{
+        maxWidth: 1180, margin:'0 auto', padding:'10px 16px',
+        display:'flex', alignItems:'center', gap: 12, flexWrap:'wrap',
+      }}>
+        <div style={{
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
+        }}>VIEWING AS</div>
+        <div style={{ display:'flex', gap: 6 }}>
+          <a href="/try" style={{
+            ...baseBtn,
+            background: isCoach ? C.acD : 'transparent',
+            color: isCoach ? C.ac : C.tm,
+            border: `1px solid ${isCoach ? C.ac : C.bd}`,
+            padding:'5px 12px', fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
+            borderRadius: 6, textDecoration: 'none',
+          }}>COACH</a>
+          <a href="/demo" style={{
+            ...baseBtn,
+            background: !isCoach ? C.acD : 'transparent',
+            color: !isCoach ? C.ac : C.tm,
+            border: `1px solid ${!isCoach ? C.ac : C.bd}`,
+            padding:'5px 12px', fontSize: 11, fontWeight: 700, letterSpacing: 1.5,
+            borderRadius: 6, textDecoration: 'none',
+          }}>TRAINEE</a>
+        </div>
+        <div style={{
+          fontFamily: FB, fontSize: 12, color: C.tx, opacity: 0.78, lineHeight: 1.45,
+          flex: '1 1 auto', minWidth: 200,
+        }}>
+          {isCoach
+            ? 'You\'re seeing the engine the way YOU\'D use it — scrubbing client clips, drawing on form, leaving timestamped notes.'
+            : 'You\'re seeing the engine the way YOUR CLIENT uses it — film a set, get a pose-overlay analysis, send it back for your review.'}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -314,7 +370,7 @@ function UploadStep({ exercise, onUpload, onChangeExercise }) {
 }
 
 // ─── Step 3 · analyze (pose overlay + rep count) ──────────────────────────
-function AnalyzeStep({ audience, exercise, videoUrl, onChangeVideo, onCompare }) {
+function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare }) {
   if (!videoUrl) {
     return (
       <div style={{
@@ -366,13 +422,13 @@ function AnalyzeStep({ audience, exercise, videoUrl, onChangeVideo, onCompare })
         }}>COMPARE WITH ANOTHER CLIP →</button>
       </div>
 
-      <BuyCallToAction audience={audience} />
+      <BuyCallToAction pov={pov} />
     </section>
   );
 }
 
 // ─── Step 4 · compare two clips side by side ──────────────────────────────
-function CompareStep({ audience, exercise, primaryUrl, secondUrl, onUploadSecond, onBack }) {
+function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onBack }) {
   const inputRef = useRef(null);
   const onFile = (e) => {
     const f = e.target.files?.[0];
@@ -441,7 +497,7 @@ function CompareStep({ audience, exercise, primaryUrl, secondUrl, onUploadSecond
           letterSpacing: 1.2, borderRadius: 6, fontSize: 12,
         }}>← BACK TO SINGLE-CLIP VIEW</button>
       </div>
-      <BuyCallToAction audience={audience} />
+      <BuyCallToAction pov={pov} />
     </section>
   );
 }
@@ -815,22 +871,23 @@ function Toggle({ on, loading, onClick, label }) {
 }
 
 // ─── BuyCallToAction shown after analyze + compare ────────────────────────
-// Same engine, two audiences:
-//   client → program-buyer back to expo-il/#programs (B2C funnel)
-//   coach  → SaaS prospect back to /#waitlist on expo-app (B2B funnel)
-function BuyCallToAction({ audience = 'client' }) {
-  const isCoach = audience === 'coach';
-  const tag   = isCoach ? 'WHAT YOU JUST USED' : 'WHAT YOU JUST USED';
-  const head  = isCoach
-    ? 'This is the engine your roster will run on.'
-    : 'This is the same engine inside every EXPO program.';
-  const body  = isCoach
-    ? 'Every paying client gets pose detection + auto rep count + side-by-side compare in a branded portal. Build the plan, push it; the toolkit shows up automatically — no extra plumbing.'
-    : 'Pose detection + auto rep count + side-by-side compare are bundled with every block. Buy a program once and you keep the toolkit forever in the EXPO portal — no subscription, no monthly fee, no upsell.';
-  const primaryHref = isCoach ? '/coaches#waitlist' : 'https://expo-il.co.il/#programs';
-  const primaryLbl  = isCoach ? 'JOIN THE WAITLIST' : 'SEE PROGRAMS →';
-  const secondHref  = isCoach ? '/coaches' : 'https://expo-il.co.il/#about';
-  const secondLbl   = isCoach ? '← BACK TO THE PITCH' : 'WHO I AM →';
+// Both POVs convert at /coaches#waitlist — /try and /demo are two angles of
+// the same coach-buyer pitch ("here's your tool" + "here's your client's tool").
+// The cross-link sends the visitor to the OTHER POV so they get the full
+// picture before deciding.
+function BuyCallToAction({ pov = 'coach' }) {
+  const isCoach = pov === 'coach';
+  const tag = 'WHAT YOU JUST USED';
+  const head = isCoach
+    ? 'This is the review tool you sit down to every morning.'
+    : 'This is what every one of your clients gets.';
+  const body = isCoach
+    ? 'Same engine, your side of the table. Pose overlay, rep count, side-by-side compare on any uploaded client clip — no exporting to QuickTime, no scrubbing through DMs. Comments, drawings, and timestamped notes go back to the client through the portal.'
+    : 'When your client films a set on their phone, this is the screen they see. Pose lines, rep count, tempo, and a one-tap path to send it for your review. No app install, no account they have to manage — they tap the link in your message and they\'re in.';
+  const primaryHref = '/coaches#waitlist';
+  const primaryLbl  = 'JOIN THE WAITLIST';
+  const secondHref  = isCoach ? '/demo' : '/try';
+  const secondLbl   = isCoach ? 'NOW SEE THE TRAINEE VIEW →' : 'NOW SEE THE COACH VIEW →';
   return (
     <div style={{
       marginTop: 28,
@@ -877,8 +934,12 @@ function Footer() {
       display:'flex', justifyContent:'space-between', alignItems:'center', gap: 12,
       flexWrap:'wrap',
     }}>
-      <span style={{ fontFamily:FN, fontSize:10, color: C.td, letterSpacing: 1 }}>
-        EXPO · TRY THE PLATFORM · NO ACCOUNT REQUIRED
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        fontFamily:FN, fontSize:10, color: C.td, letterSpacing: 1,
+      }}>
+        <EXPOMark height={11} style={{ opacity: 0.55 }} />
+        <span>· TRY THE PLATFORM · NO ACCOUNT REQUIRED</span>
       </span>
       <span style={{ fontFamily:FN, fontSize:10, color: C.td, letterSpacing: 1 }}>
         VIDEO STAYS ON YOUR DEVICE
