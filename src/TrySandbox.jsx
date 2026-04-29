@@ -51,7 +51,10 @@ const baseBtn = {
   cursor:'pointer', letterSpacing:'0.02em', transition:'all 0.15s',
 };
 
-export default function TrySandbox() {
+// audience='client' → CTAs aim a program-buyer back at expo-il/#programs.
+// audience='coach'  → CTAs aim a coach prospect back at the waitlist on /.
+// Default 'client' keeps the original /try semantics (athlete-buyer demo).
+export default function TrySandbox({ audience = 'client' } = {}) {
   // step: 'exercise' → 'upload' → 'analyze' → 'compare'
   // We don't gate forward steps — you can land on 'analyze' with no video and
   // it'll show the empty state. The header stepper is the canonical UI path.
@@ -98,10 +101,10 @@ export default function TrySandbox() {
       <main style={{ flex:1, padding:'24px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
         {step === 'exercise' && <ExercisePicker onPick={onPickExercise} />}
         {step === 'upload'   && <UploadStep exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
-        {step === 'analyze'  && <AnalyzeStep exercise={exercise} videoUrl={videoUrl}
+        {step === 'analyze'  && <AnalyzeStep audience={audience} exercise={exercise} videoUrl={videoUrl}
                                   onChangeVideo={() => setStep('upload')}
                                   onCompare={() => setStep('compare')} />}
-        {step === 'compare'  && <CompareStep exercise={exercise} primaryUrl={videoUrl} secondUrl={secondUrl}
+        {step === 'compare'  && <CompareStep audience={audience} exercise={exercise} primaryUrl={videoUrl} secondUrl={secondUrl}
                                   onUploadSecond={onUploadSecond}
                                   onBack={() => setStep('analyze')} />}
       </main>
@@ -311,7 +314,7 @@ function UploadStep({ exercise, onUpload, onChangeExercise }) {
 }
 
 // ─── Step 3 · analyze (pose overlay + rep count) ──────────────────────────
-function AnalyzeStep({ exercise, videoUrl, onChangeVideo, onCompare }) {
+function AnalyzeStep({ audience, exercise, videoUrl, onChangeVideo, onCompare }) {
   if (!videoUrl) {
     return (
       <div style={{
@@ -363,13 +366,13 @@ function AnalyzeStep({ exercise, videoUrl, onChangeVideo, onCompare }) {
         }}>COMPARE WITH ANOTHER CLIP →</button>
       </div>
 
-      <BuyCallToAction />
+      <BuyCallToAction audience={audience} />
     </section>
   );
 }
 
 // ─── Step 4 · compare two clips side by side ──────────────────────────────
-function CompareStep({ exercise, primaryUrl, secondUrl, onUploadSecond, onBack }) {
+function CompareStep({ audience, exercise, primaryUrl, secondUrl, onUploadSecond, onBack }) {
   const inputRef = useRef(null);
   const onFile = (e) => {
     const f = e.target.files?.[0];
@@ -438,7 +441,7 @@ function CompareStep({ exercise, primaryUrl, secondUrl, onUploadSecond, onBack }
           letterSpacing: 1.2, borderRadius: 6, fontSize: 12,
         }}>← BACK TO SINGLE-CLIP VIEW</button>
       </div>
-      <BuyCallToAction />
+      <BuyCallToAction audience={audience} />
     </section>
   );
 }
@@ -812,7 +815,22 @@ function Toggle({ on, loading, onClick, label }) {
 }
 
 // ─── BuyCallToAction shown after analyze + compare ────────────────────────
-function BuyCallToAction() {
+// Same engine, two audiences:
+//   client → program-buyer back to expo-il/#programs (B2C funnel)
+//   coach  → SaaS prospect back to /#waitlist on expo-app (B2B funnel)
+function BuyCallToAction({ audience = 'client' }) {
+  const isCoach = audience === 'coach';
+  const tag   = isCoach ? 'WHAT YOU JUST USED' : 'WHAT YOU JUST USED';
+  const head  = isCoach
+    ? 'This is the engine your roster will run on.'
+    : 'This is the same engine inside every EXPO program.';
+  const body  = isCoach
+    ? 'Every paying client gets pose detection + auto rep count + side-by-side compare in a branded portal. Build the plan, push it; the toolkit shows up automatically — no extra plumbing.'
+    : 'Pose detection + auto rep count + side-by-side compare are bundled with every block. Buy a program once and you keep the toolkit forever in the EXPO portal — no subscription, no monthly fee, no upsell.';
+  const primaryHref = isCoach ? '/#waitlist' : 'https://expo-il.co.il/#programs';
+  const primaryLbl  = isCoach ? 'JOIN THE WAITLIST' : 'SEE PROGRAMS →';
+  const secondHref  = isCoach ? '/' : 'https://expo-il.co.il/#about';
+  const secondLbl   = isCoach ? '← BACK TO THE PITCH' : 'WHO I AM →';
   return (
     <div style={{
       marginTop: 28,
@@ -823,33 +841,29 @@ function BuyCallToAction() {
       <div style={{
         fontFamily:FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>WHAT YOU JUST USED</div>
+      }}>{tag}</div>
       <h2 style={{
         fontFamily:FB, fontSize:'clamp(20px, 2.6vw, 24px)', fontWeight: 700,
         marginBottom: 10, letterSpacing: -0.2,
-      }}>This is the same engine inside every EXPO program.</h2>
+      }}>{head}</h2>
       <p style={{
-        fontFamily: FB, color: C.tm, fontSize: 14, lineHeight: 1.55,
+        fontFamily: FB, color: C.tx, opacity: 0.85, fontSize: 14, lineHeight: 1.55,
         maxWidth: 620, margin:'0 auto 18px',
-      }}>
-        Pose detection + auto rep count + side-by-side compare are bundled with
-        every block. Buy a program once and you keep the toolkit forever in the
-        EXPO portal — no subscription, no monthly fee, no upsell.
-      </p>
+      }}>{body}</p>
       <div style={{ display:'flex', gap: 10, flexWrap:'wrap', justifyContent:'center' }}>
-        <a href="https://expo-il.co.il/#programs" style={{
+        <a href={primaryHref} style={{
           ...baseBtn,
           background: C.ac, color:'#000',
           padding:'11px 22px', fontWeight:700, letterSpacing:1.5, borderRadius: 6, fontSize: 12,
           textDecoration: 'none',
-        }}>SEE PROGRAMS →</a>
-        <a href="https://expo-il.co.il/#about" style={{
+        }}>{primaryLbl}</a>
+        <a href={secondHref} style={{
           ...baseBtn,
           background:'transparent', color: C.tx,
           border:`1px solid ${C.bd2}`, padding:'11px 22px', fontWeight:700,
           letterSpacing: 1.2, borderRadius: 6, fontSize: 12,
           textDecoration: 'none',
-        }}>WHO I AM →</a>
+        }}>{secondLbl}</a>
       </div>
     </div>
   );

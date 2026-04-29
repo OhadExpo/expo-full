@@ -1386,12 +1386,13 @@ function WhatsInside() {
         {t('inside.note')}
       </p>
 
-      {/* Outbound CTA → public sandbox at expo-app.co.il/try. The PhoneFrame
-          mocks above are for browse-engagement; this button is the conversion
-          lever — visitor lands on the live engine with their own clip. */}
+      {/* Outbound CTA → public client-framed demo at expo-app.co.il/demo.
+          The PhoneFrame mocks above are for browse-engagement; this button
+          is the conversion lever — visitor lands on the live engine with
+          their own clip and gets routed back to the program catalog. */}
       <div style={{ textAlign: 'center', marginTop: 22 }}>
-        <a href="https://expo-app.co.il/try"
-           onClick={() => trackAndOpen('try_sandbox_click', { from: 'whats_inside' })}
+        <a href="https://expo-app.co.il/demo"
+           onClick={() => trackAndOpen('client_demo_click', { from: 'whats_inside' })}
            target="_blank" rel="noopener"
            style={{
              display: 'inline-block',

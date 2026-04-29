@@ -130,11 +130,15 @@ function BootSplash() {
 function AuthGate() {
   const auth = useAuth();
   const path = typeof window !== 'undefined' ? window.location.pathname : '/';
-  // /try is the public unauthenticated sandbox — short-circuit before any
-  // auth checks so a logged-out visitor can hit the demo without bouncing
-  // through LoginScreen. Must run before the auth redirects.
+  // Public unauthenticated demo routes — short-circuit before any auth
+  // checks. Two audience-specific URLs share the same engine:
+  //   /try   → coach prospect (B2B funnel — CTAs back to /#waitlist)
+  //   /demo  → program buyer  (B2C funnel — CTAs back to expo-il programs)
   if (path.startsWith('/try')) {
-    return <Suspense fallback={<BootSplash />}><TrySandbox /></Suspense>;
+    return <Suspense fallback={<BootSplash />}><TrySandbox audience="coach" /></Suspense>;
+  }
+  if (path.startsWith('/demo')) {
+    return <Suspense fallback={<BootSplash />}><TrySandbox audience="client" /></Suspense>;
   }
   // Signed-out visitors land at / on the coach-sales marketing page (the
   // app sells itself). /login holds the actual sign-in form. /coach also
