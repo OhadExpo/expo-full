@@ -140,15 +140,15 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
         display:'flex', alignItems:'center', height: 60, gap: 14,
       }}>
         <a href="https://expo-il.co.il/" title="Back to EXPO" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flex:'0 0 auto' }}>
-          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display:'block', height:28 }} />
+          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display:'block', height:32 }} />
         </a>
-        {/* SANDBOX badge — hidden on narrow screens via the .try-sandbox-badge
+        {/* DEMO badge — hidden on narrow screens via the .try-sandbox-badge
             class so the step nav has room to breathe on phones. */}
         <span className="try-sandbox-badge" style={{
           fontFamily:FN, fontSize:10, color: C.ac, letterSpacing:2, fontWeight:700,
           padding:'4px 8px', background: C.acD, borderRadius:6,
           border:`1px solid rgba(57,189,255,0.30)`, whiteSpace:'nowrap',
-        }}>SANDBOX</span>
+        }}>DEMO</span>
         <nav style={{
           display:'flex', gap:4, flex:1, justifyContent:'center',
           overflowX:'auto', minWidth:0,
