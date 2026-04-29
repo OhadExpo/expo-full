@@ -148,6 +148,14 @@ const STRINGS = {
     he: 'שלושתם נכללים בכל תוכנית. בלי תוסף, בלי תשלום נוסף.',
   },
 
+  // CTA from WhatsInside section to the public sandbox at expo-app.co.il/try.
+  // Clicking opens the live engine — pose detection + rep counter on the visitor's
+  // own clip — without account, login, or any backend touch.
+  'inside.tryCta': {
+    en: 'Try the platform on your own clip →',
+    he: 'נסה את הפלטפורמה על קליפ משלך →',
+  },
+
   // ─── About the coach ──────────────────────────────────────────────
   'about.badge':         { en: 'WHO WRITES THESE', he: 'מי אני' },
   'about.h2':            { en: "I'm Ohad. I've been programming this exact engine for years.", he: 'אני אוהד. שנים שאני בונה את השיטה הזאת.' },

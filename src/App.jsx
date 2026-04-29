@@ -19,6 +19,9 @@ const WorkoutsView = lazy(() => import('./WorkoutsView'));
 const ClientPortal = lazy(() => import('./ClientPortal'));
 const DashboardView = lazy(() => import('./DashboardView'));
 const WorkoutReview = lazy(() => import('./WorkoutReview'));
+// Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
+// so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
+const TrySandbox = lazy(() => import('./TrySandbox'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
 const MemoPlans = React.memo(PlansView);
@@ -123,6 +126,12 @@ function BootSplash() {
 
 function AuthGate() {
   const auth = useAuth();
+  // /try is the public unauthenticated sandbox — short-circuit before any
+  // auth checks so a logged-out visitor can hit the demo without bouncing
+  // through LoginScreen. Must run before the /coach → / redirect effect.
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/try')) {
+    return <Suspense fallback={<BootSplash />}><TrySandbox /></Suspense>;
+  }
   // Single-login-URL: anyone hitting /coach without a session gets bounced
   // to / so the LoginScreen lives at exactly one address. The post-login
   // routing (and the role picker for dual-role accounts) lands them in the
