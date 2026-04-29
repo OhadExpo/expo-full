@@ -105,6 +105,52 @@ function WaitlistForm() {
   );
 }
 
+function PricingTier({ name, slots, popular, features, cta }) {
+  return (
+    <div style={{
+      background: popular ? `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)` : C.sf,
+      border: popular ? `1px solid rgba(57,189,255,0.40)` : `1px solid ${C.bd}`,
+      borderRadius: 14, padding: '24px 20px', textAlign: 'left',
+      position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 360,
+    }}>
+      {popular && (
+        <div style={{
+          position: 'absolute', top: -10, right: 14,
+          fontFamily: FN, fontSize: 9, color: '#000', background: C.ac,
+          letterSpacing: 1.5, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+        }}>FOUNDER FAVOURITE</div>
+      )}
+      <div style={{
+        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 2.5, fontWeight: 700,
+        marginBottom: 10,
+      }}>{name}</div>
+      <div style={{
+        fontFamily: FB, fontSize: 22, fontWeight: 700, color: C.tx,
+        marginBottom: 6, letterSpacing: -0.2,
+      }}>{slots}</div>
+      <ul style={{
+        listStyle: 'none', padding: 0, margin: '14px 0 18px',
+        fontFamily: FB, fontSize: 13.5, lineHeight: 1.65, color: C.tx, opacity: 0.85,
+      }}>
+        {features.map((f, i) => (
+          <li key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 4 }}>
+            <span style={{ color: C.ac, flex: '0 0 auto' }}>✓</span><span>{f}</span>
+          </li>
+        ))}
+      </ul>
+      <div style={{ marginTop: 'auto' }}>
+        <a href="#waitlist" style={{
+          ...baseBtn, width: '100%',
+          background: popular ? C.ac : 'transparent',
+          color: popular ? '#000' : C.tx,
+          border: popular ? 'none' : `1px solid ${C.bd2}`,
+          padding: '11px 16px', fontSize: 12,
+        }}>{cta}</a>
+      </div>
+    </div>
+  );
+}
+
 function FeatureCard({ tag, title, body }) {
   return (
     <div style={{
@@ -136,6 +182,16 @@ export default function CoachLanding() {
         @keyframes fade-up { from { opacity: 0; transform: translateY(10px) } to { opacity: 1; transform: translateY(0) } }
         a:focus-visible, button:focus-visible {
           outline: 2px solid ${C.ac}; outline-offset: 2px; border-radius: 4px;
+        }
+        /* Sticky bottom CTA bar — only on phones/small tablets where the
+           hero buttons scroll out of view. Desktop already shows them in
+           the header + hero, so the sticky bar would be redundant noise. */
+        .cl-sticky-cta { display: none; }
+        @media (max-width: 720px) {
+          .cl-sticky-cta { display: flex; }
+          /* Reserve room at the bottom of the page so the sticky bar
+             doesn't cover the footer or last form. */
+          main { padding-bottom: 76px; }
         }
       `}</style>
 
@@ -294,6 +350,70 @@ export default function CoachLanding() {
           </p>
         </section>
 
+        {/* Pricing tiers — placeholder slots, exact prices set on a founding-coach call */}
+        <section id="pricing" style={{
+          maxWidth: 1180, margin: '0 auto', padding: '60px 16px 20px',
+        }}>
+          <div style={{
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            marginBottom: 12, textAlign: 'center',
+          }}>FOUNDING-COACH PRICING</div>
+          <h2 style={{
+            fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
+            margin: '0 0 14px', letterSpacing: -0.3, textAlign: 'center',
+          }}>Pick the slot count that fits your roster.</h2>
+          <p style={{
+            fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14.5, lineHeight: 1.6,
+            maxWidth: 620, margin: '0 auto 32px', textAlign: 'center',
+          }}>
+            Pricing is per-coach, flat monthly — no per-client fees, no transaction cuts.
+            Founding-coach numbers get locked on a 20-minute intake call before your account opens.
+          </p>
+          <div style={{
+            display: 'grid', gap: 14,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+          }}>
+            <PricingTier
+              name="STARTER"
+              slots="Up to 10 active clients"
+              cta="JOIN WAITLIST"
+              features={[
+                'Full video review engine',
+                'Plan authoring + xlsx import',
+                'Client portals + couple cards',
+                'Dormant-WhatsApp nudges',
+              ]}
+            />
+            <PricingTier
+              name="GROWTH"
+              slots="Up to 30 active clients"
+              popular
+              cta="JOIN WAITLIST"
+              features={[
+                'Everything in Starter',
+                'Bulk plan duplication across clients',
+                'Bodyweight + session payment tracking',
+                'Priority email support',
+              ]}
+            />
+            <PricingTier
+              name="SCALE"
+              slots="Unlimited clients"
+              cta="JOIN WAITLIST"
+              features={[
+                'Everything in Growth',
+                'Multi-coach org (assistants / sub-coaches)',
+                'Branded portal subdomain',
+                'Direct line for product requests',
+              ]}
+            />
+          </div>
+          <div style={{
+            marginTop: 18, textAlign: 'center',
+            fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
+          }}>NO CARD NOW · WAITLIST ONLY · I'LL REACH OUT TO LOCK PRICING</div>
+        </section>
+
         {/* Waitlist CTA */}
         <section id="waitlist" style={{
           maxWidth: 720, margin: '0 auto', padding: '40px 16px 80px', textAlign: 'center',
@@ -322,6 +442,23 @@ export default function CoachLanding() {
           </div>
         </section>
       </main>
+
+      {/* Sticky mobile-only CTA bar — see <style> block at top of component. */}
+      <div className="cl-sticky-cta" style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60,
+        background: C.sf, borderTop: `1px solid ${C.bd}`,
+        padding: '10px 12px', gap: 8, alignItems: 'stretch',
+        boxShadow: '0 -8px 24px rgba(0,0,0,0.4)',
+      }}>
+        <a href="/try" style={{
+          ...baseBtn, flex: 1, background: 'transparent', color: C.tx,
+          border: `1px solid ${C.bd2}`, padding: '12px 14px', fontSize: 12,
+        }}>TRY THE ENGINE</a>
+        <a href="#waitlist" style={{
+          ...baseBtn, flex: 1, background: C.ac, color: '#000',
+          padding: '12px 14px', fontSize: 12,
+        }}>WAITLIST →</a>
+      </div>
 
       <footer style={{
         borderTop: `1px solid ${C.bd}`, padding: '20px 16px',
