@@ -827,9 +827,9 @@ function BuyCallToAction({ audience = 'client' }) {
   const body  = isCoach
     ? 'Every paying client gets pose detection + auto rep count + side-by-side compare in a branded portal. Build the plan, push it; the toolkit shows up automatically — no extra plumbing.'
     : 'Pose detection + auto rep count + side-by-side compare are bundled with every block. Buy a program once and you keep the toolkit forever in the EXPO portal — no subscription, no monthly fee, no upsell.';
-  const primaryHref = isCoach ? '/#waitlist' : 'https://expo-il.co.il/#programs';
+  const primaryHref = isCoach ? '/coaches#waitlist' : 'https://expo-il.co.il/#programs';
   const primaryLbl  = isCoach ? 'JOIN THE WAITLIST' : 'SEE PROGRAMS →';
-  const secondHref  = isCoach ? '/' : 'https://expo-il.co.il/#about';
+  const secondHref  = isCoach ? '/coaches' : 'https://expo-il.co.il/#about';
   const secondLbl   = isCoach ? '← BACK TO THE PITCH' : 'WHO I AM →';
   return (
     <div style={{

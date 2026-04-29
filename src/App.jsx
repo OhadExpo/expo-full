@@ -22,9 +22,11 @@ const WorkoutReview = lazy(() => import('./WorkoutReview'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazy(() => import('./TrySandbox'));
-// Public coach-sales marketing landing at / for unauthed visitors. Authed
-// users at / continue to the role picker / portal as before.
+// Public coach-sales marketing landing at /coaches for unauthed visitors.
 const CoachLanding = lazy(() => import('./CoachLanding'));
+// Front-door chooser at / for unauthed visitors — splits Sign In vs the
+// coach-sales landing so existing users aren't dumped into a marketing pitch.
+const EntryChooser = lazy(() => import('./EntryChooser'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
 const MemoPlans = React.memo(PlansView);
@@ -152,7 +154,13 @@ function AuthGate() {
   }, [auth, path]);
   if (!auth || auth.loading) return <BootSplash />;
   if (!auth.session) {
+    // Front door: / shows the EntryChooser (Sign In vs For Coaches).
     if (path === '/' || path === '') {
+      return <Suspense fallback={<BootSplash />}><EntryChooser /></Suspense>;
+    }
+    // /coaches is the marketing landing — moved here from / so the front
+    // door can serve both audiences without a hard funnel.
+    if (path.startsWith('/coaches')) {
       return <Suspense fallback={<BootSplash />}><CoachLanding /></Suspense>;
     }
     return <LoginScreen />;
