@@ -606,11 +606,15 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
           <div style={{ height: 14 }} />
 
           {(() => {
+            // Honor the trainee's payment status — overdue clients get
+            // a missing latest entry so the OVERDUE badge on their card
+            // is consistent with the payment ledger inside their detail.
+            const isOverdue = trainee.payment === 'OVERDUE';
             const payments = [
-              { date: '2026-04-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
+              !isOverdue && { date: '2026-04-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
               { date: '2026-03-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
               { date: '2026-02-01', amount: trainee.monthly || 800, method: 'Cash',          status: 'Paid' },
-            ];
+            ].filter(Boolean);
             const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
             return (
               <Panel
