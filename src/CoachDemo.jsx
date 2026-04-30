@@ -234,22 +234,56 @@ function FakeWaButton() {
 
 // ─── Tab: Trainees ────────────────────────────────────────────────────────
 function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
+  const [search, setSearch] = useState('');
   if (selected) {
     const t = MOCK_TRAINEES.find(x => x.id === selected);
     if (!t) return null;
     return <DemoTraineeDetail trainee={t} onBack={onClear} backLabel={returnTab && returnTab !== 'trainees' ? `← BACK TO ${returnTab.toUpperCase()}` : '← BACK TO TRAINEES'} />;
   }
+  const q = search.trim().toLowerCase();
+  const filtered = MOCK_TRAINEES.filter(t => {
+    if (!q) return true;
+    const haystack = `${t.name || ''} ${t.email || ''} ${t.format || ''}`.toLowerCase();
+    return haystack.includes(q);
+  });
   return (
     <section>
       <SectionHeader tag="TRAINEES" title="Your roster" body="Card per client. Phone, plan count, sessions left, dormant flag, status — all visible at a glance. Couples render as one card with both members." />
       <div style={{
-        display: 'grid', gap: 12,
-        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
+        display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14,
       }}>
-        {MOCK_TRAINEES.map(t => (
-          <TraineeCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
-        ))}
+        <input
+          type="search" value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name, email, format…"
+          style={{
+            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 8,
+            padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
+            outline: 'none', minWidth: 240, flex: '1 1 240px', maxWidth: 400,
+          }}
+        />
+        <span style={{
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, marginLeft: 'auto',
+        }}>{filtered.length} / {MOCK_TRAINEES.length}</span>
       </div>
+      {filtered.length === 0 ? (
+        <div style={{
+          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 12,
+          padding: 40, textAlign: 'center',
+        }}>
+          <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>NO MATCHES</div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>No trainee matches "<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>". Clear the search to see the full roster.</div>
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid', gap: 12,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
+        }}>
+          {filtered.map(t => (
+            <TraineeCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -537,7 +571,7 @@ function DemoPrograms() {
           <h3 style={{ fontFamily: FB, fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>Block #4 — Push/Pull Volume</h3>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>נועה לוי · WEEK 2 OF 4</span>
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {MOCK_DAYS.map((d, i) => (
             <button key={i} onClick={() => setSelectedDayIdx(i)} style={{
               ...baseBtn,
@@ -548,6 +582,28 @@ function DemoPrograms() {
             }}>{d.name}</button>
           ))}
         </div>
+
+        {/* Day-summary chips: ex count, superset count, est duration. The
+            duration estimate is rough — sum of (sets × ~45s working set + 90s
+            rest), capped to whole minutes. Not load-bearing math, just gives
+            the visitor a feel for the workout's shape. */}
+        {(() => {
+          const exCount = day.exercises.length;
+          const ssCount = new Set(day.exercises.filter(e => e.superset).map(e => e.superset)).size;
+          const estSec = day.exercises.reduce((acc, e) => {
+            const sets = parseInt(e.sets) || 3;
+            return acc + sets * (45 + 90);
+          }, 0);
+          const estMin = Math.round(estSec / 60);
+          return (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+              <DayChip>{exCount} EXERCISES</DayChip>
+              <DayChip>{ssCount} SUPERSET{ssCount === 1 ? '' : 'S'}</DayChip>
+              <DayChip>~{estMin} MIN</DayChip>
+              <DayChip muted>EST · BASED ON 90s REST</DayChip>
+            </div>
+          );
+        })()}
 
         <div className="cd-prog-table-wrap"><table className="cd-prog-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <thead>
@@ -620,6 +676,18 @@ const tdStyle = () => ({
   padding: '10px', fontFamily: FB, fontSize: 13, color: C.tm,
   borderBottom: `1px solid ${C.bd}`, verticalAlign: 'middle',
 });
+
+function DayChip({ children, muted }) {
+  return (
+    <span style={{
+      fontFamily: FN, fontSize: 9, letterSpacing: 1.5, fontWeight: 700,
+      color: muted ? C.td : C.ac,
+      background: muted ? 'transparent' : C.acD,
+      border: `1px solid ${muted ? C.bd : 'rgba(57,189,255,0.30)'}`,
+      borderRadius: 4, padding: '3px 8px', whiteSpace: 'nowrap',
+    }}>{children}</span>
+  );
+}
 
 // Per-exercise inline action chip — Watch / Swap / Note / Progression.
 // Non-functional in the demo; click bubbles back up to the row toggle so
@@ -715,11 +783,11 @@ function DemoExercises() {
 }
 
 // ─── Tab: Review ──────────────────────────────────────────────────────────
+// The /demo iframe pulls ~6MB of MediaPipe wasm + lite model on first mount.
+// CoachDemo always-mounts DemoReview (hidden via display:none on other tabs)
+// so the iframe starts loading the moment the visitor lands on Dashboard. By
+// the time they click Review, the wasm + model are usually already warm.
 function DemoReview() {
-  // The /demo iframe pulls ~6MB of MediaPipe wasm + lite model on first
-  // mount so the visitor stares at black for a few seconds. Skeleton sits
-  // *behind* the iframe (positioned absolutely under it) and fades when the
-  // iframe fires onLoad.
   const [iframeLoaded, setIframeLoaded] = useState(false);
   return (
     <section>
@@ -765,7 +833,6 @@ function DemoReview() {
             overflow: 'hidden', position: 'relative', minHeight: 660,
             boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
           }}>
-            {/* Loading skeleton — sits behind the iframe; fades when onLoad fires */}
             {!iframeLoaded && (
               <div style={{
                 position: 'absolute', inset: 0,
@@ -784,9 +851,6 @@ function DemoReview() {
                 <style>{`@keyframes cd-spin { to { transform: rotate(360deg) } }`}</style>
               </div>
             )}
-            {/* embed=1 strips TrySandbox's own header / banner / footer so the
-                engine slots cleanly inside CoachDemo's review tab without
-                nested chrome. */}
             <iframe src="/demo?embed=1" title="Live engine"
               onLoad={() => setIframeLoaded(true)}
               style={{
@@ -890,7 +954,6 @@ export default function CoachDemo() {
   // Track where the trainee-detail view was reached from so the back button
   // returns to the source surface instead of always landing on the Trainees tab.
   const [returnTab, setReturnTab] = useState('trainees');
-
   const onJumpToTrainee = (id, sourceTab = 'trainees') => {
     setReturnTab(sourceTab);
     setSelectedTrainee(id);
@@ -904,6 +967,7 @@ export default function CoachDemo() {
       setReturnTab('trainees');
     }
   };
+
 
   return (
     <div style={{
@@ -1037,7 +1101,13 @@ export default function CoachDemo() {
         {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={setSelectedTrainee} onClear={onClearTrainee} returnTab={returnTab} />}
         {tab === 'programs'  && <DemoPrograms />}
         {tab === 'exercises' && <DemoExercises />}
-        {tab === 'review'    && <DemoReview />}
+        {/* Review is ALWAYS mounted — display:none on other tabs — so the
+            /demo iframe loads its wasm + pose model in the background while
+            the visitor explores. By the time they click Review, the engine
+            is usually warm. */}
+        <div style={{ display: tab === 'review' ? 'block' : 'none' }}>
+          <DemoReview />
+        </div>
 
         {/* End CTA — every tab funnels back to the waitlist */}
         <div style={{

@@ -113,20 +113,44 @@ function WaitlistForm() {
 // embed=1 strips TrySandbox's own header/footer so the engine slots cleanly
 // inside the marketing page.
 function DemoEmbed() {
+  const [loaded, setLoaded] = useState(false);
   return (
     <div>
       <div className="cl-embed" style={{
         background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
-        overflow: 'hidden', maxWidth: 1180, margin: '0 auto',
+        overflow: 'hidden', maxWidth: 1180, margin: '0 auto', position: 'relative',
         boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
       }}>
         <style>{`
+          .cl-embed { min-height: 720px; }
           .cl-embed iframe { height: 720px; }
-          @media (max-width: 720px) { .cl-embed iframe { height: 560px; } }
-          @media (max-width: 480px) { .cl-embed iframe { height: 480px; } }
+          @media (max-width: 720px) { .cl-embed { min-height: 560px; } .cl-embed iframe { height: 560px; } }
+          @media (max-width: 480px) { .cl-embed { min-height: 480px; } .cl-embed iframe { height: 480px; } }
+          @keyframes cl-spin { to { transform: rotate(360deg); } }
         `}</style>
+        {!loaded && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            gap: 14,
+            background: `linear-gradient(180deg, ${C.sf2} 0%, ${C.sf} 100%)`,
+            color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1.8,
+          }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%',
+              border: `2px solid ${C.bd}`, borderTopColor: C.ac,
+              animation: 'cl-spin 0.9s linear infinite',
+            }} />
+            <div>LOADING ENGINE…</div>
+            <div style={{ fontSize: 9, color: C.td, letterSpacing: 1.5 }}>POSE MODEL · ~6MB · FIRST LOAD ONLY</div>
+          </div>
+        )}
         <iframe src="/demo?embed=1" title="EXPO live engine"
-          style={{ display: 'block', width: '100%', border: 'none' }} />
+          onLoad={() => setLoaded(true)}
+          style={{
+            display: 'block', width: '100%', border: 'none', position: 'relative', zIndex: 1,
+            opacity: loaded ? 1 : 0, transition: 'opacity 0.3s',
+          }} />
       </div>
       <div style={{
         textAlign: 'center', marginTop: 16,
