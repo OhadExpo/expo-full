@@ -144,7 +144,7 @@ function DemoEmbed() {
   );
 }
 
-function PricingTier({ name, slots, popular, features, cta }) {
+function PricingTier({ name, slots, popular, features, cta, price, priceSub }) {
   return (
     <div style={{
       background: popular ? `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)` : C.sf,
@@ -163,9 +163,23 @@ function PricingTier({ name, slots, popular, features, cta }) {
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 2.5, fontWeight: 700,
         marginBottom: 10,
       }}>{name}</div>
+      {price && (
+        <div style={{
+          display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6,
+        }}>
+          <span style={{
+            fontFamily: FB, fontSize: 30, fontWeight: 700, color: C.tx, letterSpacing: -0.6,
+          }}>{price}</span>
+          {priceSub && (
+            <span style={{
+              fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1,
+            }}>{priceSub}</span>
+          )}
+        </div>
+      )}
       <div style={{
-        fontFamily: FB, fontSize: 22, fontWeight: 700, color: C.tx,
-        marginBottom: 6, letterSpacing: -0.2,
+        fontFamily: FB, fontSize: 14, fontWeight: 600, color: C.tm, opacity: 0.85,
+        marginBottom: 6,
       }}>{slots}</div>
       <ul style={{
         listStyle: 'none', padding: 0, margin: '14px 0 18px',
@@ -403,8 +417,9 @@ export default function CoachLanding() {
             fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14.5, lineHeight: 1.6,
             maxWidth: 620, margin: '0 auto 32px', textAlign: 'center',
           }}>
-            Pricing is per-coach, flat monthly — no per-client fees, no transaction cuts.
-            Founding-coach numbers get locked on a 20-minute intake call before your account opens.
+            Per-coach, flat monthly — no per-client fees, no transaction cuts. Numbers
+            below are indicative; founding-coach pricing gets locked one tier lower
+            on a 20-minute intake call before your account opens.
           </p>
           <div style={{
             display: 'grid', gap: 14,
@@ -412,6 +427,8 @@ export default function CoachLanding() {
           }}>
             <PricingTier
               name="STARTER"
+              price="₪149"
+              priceSub="/ MONTH"
               slots="Up to 10 active clients"
               cta="JOIN WAITLIST"
               features={[
@@ -423,6 +440,8 @@ export default function CoachLanding() {
             />
             <PricingTier
               name="GROWTH"
+              price="₪249"
+              priceSub="/ MONTH"
               slots="Up to 30 active clients"
               popular
               cta="JOIN WAITLIST"
@@ -435,6 +454,8 @@ export default function CoachLanding() {
             />
             <PricingTier
               name="SCALE"
+              price="₪399"
+              priceSub="/ MONTH"
               slots="Unlimited clients"
               cta="JOIN WAITLIST"
               features={[

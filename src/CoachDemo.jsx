@@ -16,12 +16,13 @@ import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
 
 // ─── Mock data ────────────────────────────────────────────────────────────
+// Three mock trainees — one per format type (Online / Gym Single / Gym Couple)
+// with Israeli names. Enough variety to show every kind of card + filter
+// without padding the demo to feel like marketing fluff.
 const MOCK_TRAINEES = [
-  { id: 't1', name: 'Maya Cohen', short: 'Maya', email: 'maya@example.com', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', programs: 3, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
-  { id: 't2', name: 'Daniel Levy',   short: 'Daniel', email: 'danl@example.com', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 800, format: 'Online', startDate: '2024-11-15', dormantDays: null, lastWorkout: 'today', programs: 5, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', plans: ['Block #6 — Pull Specialization', 'Block #5 — Volume', 'Block #4 — Hypertrophy'] },
-  { id: 't3', name: 'Yuval & Tom Ronen', short: 'Yuval+Tom', email: 'yuval@example.com', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', programs: 4, injuries: 'None', goals: 'Both — body comp', isCouple: true, plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base'] },
-  { id: 't4', name: 'Roei HaTzvi',  short: 'Roei', email: 'roei@example.com', phone: '+35796120865', status: 'Active', sessionsLeft: 4, monthly: 800, format: 'Online', startDate: '2025-07-01', dormantDays: 18, lastWorkout: '18 days ago', programs: 2, injuries: 'Chronic R knee', goals: 'Return to running', plans: ['Block #2 — Rehab Return', 'Block #1 — Foundations'] },
-  { id: 't5', name: 'Frederic Bourdillon', short: 'Frederic', email: 'frederic@example.com', phone: '+33624823195', status: 'Active', sessionsLeft: 3, monthly: 800, format: 'Online', startDate: '2024-11-10', dormantDays: 76, lastWorkout: '76 days ago', programs: 4, injuries: 'L5-S1', goals: 'Off-season hypertrophy', plans: ['Block #4 — Hypertrophy', 'Block #3 — Push/Pull', 'Block #2 — Reset', 'Block #1 — Intake'] },
+  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', programs: 3, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
+  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', programs: 4, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
+  { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', programs: 4, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', isCouple: true, plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
 ];
 
 const MOCK_DAYS = [
@@ -121,16 +122,16 @@ function StatCard({ label, value, sub, accent = C.ac }) {
 // ─── Tab: Dashboard ───────────────────────────────────────────────────────
 function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
-  const overdue = MOCK_TRAINEES.slice(0, 2); // mock 2 overdue
+  const overdue = MOCK_TRAINEES.slice(0, 1); // mock 1 overdue
   return (
     <section>
       <SectionHeader tag="DASHBOARD" title="The morning view" body="Stat cards on top, action queues below. Everything that needs your attention surfaces here — overdue payments, dormant clients, pending reviews — without you opening 5 tabs." />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
-        <StatCard label="ACTIVE CLIENTS" value="5 / 7" sub="2 INACTIVE" />
+        <StatCard label="ACTIVE CLIENTS" value="3 / 4" sub="1 INACTIVE" />
         <StatCard label="LOW SESSIONS" value="1" sub="≤ 2 LEFT" accent={C.or} />
-        <StatCard label="ESTIMATED MONTHLY" value="₪5,200" />
-        <StatCard label="COLLECTED THIS MONTH" value="₪3,400" sub="65% OF EXP." accent={C.gn} />
+        <StatCard label="ESTIMATED MONTHLY" value="₪2,800" />
+        <StatCard label="COLLECTED THIS MONTH" value="₪1,800" sub="64% OF EXP." accent={C.gn} />
       </div>
 
       <div style={{
@@ -170,13 +171,12 @@ function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
 
         {/* Pending review */}
         <Panel
-          title={<span><span style={{ color: C.ac }}>🎬</span> PENDING REVIEW (3)</span>}
+          title={<span><span style={{ color: C.ac }}>🎬</span> PENDING REVIEW (2)</span>}
           tint={C.ac}
         >
           {[
-            { who: 'Maya Cohen',   what: 'BB Bench · 60kg × 6', when: '12 min ago' },
-            { who: 'Daniel Levy',  what: 'Pull-Up · BW × 8',    when: '2 hr ago' },
-            { who: 'Yuval Ronen',  what: 'Back Squat · 100kg × 5', when: '6 hr ago' },
+            { who: 'נועה לוי',  what: 'BB Bench · 60kg × 6',   when: '12 min ago' },
+            { who: 'יעל כהן',   what: 'Pull-Up · BW × 8',      when: '2 hr ago' },
           ].map((r, i) => (
             <Row key={i} onClick={onJumpToReview}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -378,7 +378,7 @@ function DemoPrograms() {
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
           <h3 style={{ fontFamily: FB, fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>Block #4 — Push/Pull Volume</h3>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>MAYA COHEN · WEEK 2 OF 4</span>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>נועה לוי · WEEK 2 OF 4</span>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
           {MOCK_DAYS.map((d, i) => (
@@ -503,10 +503,10 @@ function DemoReview() {
               background: C.acD, border: `1px solid ${C.ac}40`, color: C.ac,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontFamily: FB, fontWeight: 700, fontSize: 12, flex: '0 0 auto',
-            }}>MC</div>
+            }}>NL</div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 13, color: C.tx }}>
-                REVIEWING — Maya Cohen
+                REVIEWING — נועה לוי
               </div>
               <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1 }}>
                 BB BENCH · 60kg × 6 · TODAY 09:14
@@ -541,9 +541,9 @@ function DemoReview() {
                 background: C.acD, border: `1px solid ${C.ac}40`, color: C.ac,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontFamily: FB, fontWeight: 700, fontSize: 13,
-              }}>MC</div>
+              }}>NL</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, color: C.tx }}>Maya Cohen</div>
+                <div style={{ fontWeight: 700, color: C.tx }}>נועה לוי</div>
                 <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>BB BENCH · 60kg × 6 · TODAY 09:14</div>
               </div>
             </Row>
