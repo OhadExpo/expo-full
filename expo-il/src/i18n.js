@@ -148,7 +148,7 @@ const STRINGS = {
     he: 'שלושתם נכללים בכל תוכנית. בלי תוסף, בלי תשלום נוסף.',
   },
 
-  // CTA from WhatsInside section to the public sandbox at expo-app.co.il/try.
+  // CTA from WhatsInside section to the public sandbox at expo-app.co.il/coaches/demo.
   // Clicking opens the live engine — pose detection + rep counter on the visitor's
   // own clip — without account, login, or any backend touch.
   'inside.tryCta': {

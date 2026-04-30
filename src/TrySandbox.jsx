@@ -300,13 +300,13 @@ function POVBanner({ pov }) {
           background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 6, overflow: 'hidden',
           flex: '0 0 auto',
         }}>
-          <a href="/try" style={{
+          <a href="/coaches/try" style={{
             background: isCoach ? C.ac : 'transparent',
             color: isCoach ? '#000' : C.tm,
             padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             textDecoration: 'none',
           }}>COACH</a>
-          <a href="/demo" style={{
+          <a href="/coaches/demo" style={{
             background: !isCoach ? C.ac : 'transparent',
             color: !isCoach ? '#000' : C.tm,
             padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,

@@ -1399,7 +1399,7 @@ function WhatsInside() {
           is the conversion lever — visitor lands on the live engine with
           their own clip and gets routed back to the program catalog. */}
       <div style={{ textAlign: 'center', marginTop: 22 }}>
-        <a href="https://expo-app.co.il/demo"
+        <a href="https://expo-app.co.il/coaches/demo"
            onClick={() => trackAndOpen('client_demo_click', { from: 'whats_inside' })}
            target="_blank" rel="noopener"
            style={{

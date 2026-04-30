@@ -158,33 +158,41 @@ function AuthGate() {
   const path = typeof window !== 'undefined' ? window.location.pathname : '/';
   const inPwa = isStandalonePwa();
 
-  // PWA-mode: marketing surfaces are off-limits. Anyone who lands on /coaches,
-  // /try, /demo, or the EntryChooser inside the installed app gets bounced
-  // into the product flow (LoginScreen for unauthed → portal/dashboard for
-  // authed). The marketing site remains live in regular browser tabs.
+  // PWA-mode: marketing surfaces are off-limits. Anyone who lands on /coaches/*
+  // or the EntryChooser inside the installed app gets bounced into the product
+  // flow (LoginScreen for unauthed → portal/dashboard for authed). The
+  // marketing site stays live in regular browser tabs. Old /try and /demo
+  // paths also count as marketing (legacy redirect targets — see below).
   const isMarketingPath = path === '/' || path === ''
     || path.startsWith('/coaches')
-    || path.startsWith('/try')
-    || path.startsWith('/demo');
+    || path === '/try' || path === '/demo';
   useEffect(() => {
     if (!inPwa) return;
     if (!isMarketingPath) return;
-    // Replace (don't push) so back-button doesn't return to the chooser.
     if (window.location.pathname !== '/login' && window.location.pathname !== '/portal') {
       window.history.replaceState(null, '', '/');
     }
   }, [inPwa, isMarketingPath]);
 
-  // Browser-mode public demo routes:
-  //   /try   → CoachDemo (full coach-side interactive tour — Dashboard,
-  //            Trainees, Programs, Exercises, Review tabs with mock data)
-  //   /demo  → TrySandbox pov="trainee" (the trainee engine sandbox)
+  // Backward-compat: legacy /try and /demo URLs (pre-2026-05-01 namespace
+  // move) redirect to their /coaches/ canonical homes. External links from
+  // social posts / expo-il / chat shares keep working without 404s.
+  useEffect(() => {
+    if (inPwa) return;
+    if (path === '/try')  window.history.replaceState(null, '', '/coaches/try');
+    if (path === '/demo') window.history.replaceState(null, '', '/coaches/demo');
+  }, [inPwa, path]);
+
+  // Browser-mode public demo routes — nested under /coaches/ so they read
+  // as part of the coach-acquisition funnel:
+  //   /coaches/try   → CoachDemo (full coach-side tour)
+  //   /coaches/demo  → TrySandbox pov="trainee" (engine sandbox)
   // Both end-CTAs converge at /coaches#waitlist. Hidden in PWA mode.
   if (!inPwa) {
-    if (path.startsWith('/try')) {
+    if (path === '/coaches/try' || path === '/try') {
       return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
     }
-    if (path.startsWith('/demo')) {
+    if (path === '/coaches/demo' || path === '/demo') {
       return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
     }
   }

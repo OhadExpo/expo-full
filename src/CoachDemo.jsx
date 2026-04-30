@@ -1081,7 +1081,7 @@ function DemoReview() {
                 <style>{`@keyframes cd-spin { to { transform: rotate(360deg) } }`}</style>
               </div>
             )}
-            <iframe src="/demo?embed=1" title="Live engine"
+            <iframe src="/coaches/demo?embed=1" title="Live engine"
               onLoad={() => setIframeLoaded(true)}
               style={{
                 display: 'block', width: '100%', height: 660, border: 'none',
@@ -1399,7 +1399,7 @@ export default function CoachDemo() {
           }}>
             <b style={{ opacity: 1 }}>Your</b> side of the platform. Click through the tabs above. Mock data — nothing here writes to your account.
           </div>
-          <a href="/demo" style={{
+          <a href="/coaches/demo" style={{
             ...baseBtn,
             background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, letterSpacing: 1.5,
@@ -1441,7 +1441,7 @@ export default function CoachDemo() {
             <a href="/coaches#waitlist" style={{
               ...baseBtn, background: C.ac, color: '#000', padding: '11px 22px', fontSize: 12,
             }}>JOIN THE WAITLIST</a>
-            <a href="/demo" style={{
+            <a href="/coaches/demo" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
             }}>NOW SEE THE TRAINEE VIEW →</a>
