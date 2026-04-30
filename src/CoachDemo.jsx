@@ -408,10 +408,33 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
   })();
   return (
     <section>
-      <button onClick={onBack} style={{
-        ...baseBtn, background: 'transparent', color: C.tm,
-        border: `1px solid ${C.bd}`, marginBottom: 18,
-      }}>{backLabel}</button>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 18 }}>
+        <button onClick={onBack} style={{
+          ...baseBtn, background: 'transparent', color: C.tm,
+          border: `1px solid ${C.bd}`,
+        }}>{backLabel}</button>
+        <div style={{ flex: 1 }} />
+        {/* Action affordances on the trainee detail. Same set of operations
+            as the real coach app's TraineeDetail (Assign Plan / Add Payment /
+            Edit / Archive). Demo-only — clicks are no-ops, button.disabled
+            tooltips them as "demo-only" so the visitor knows. */}
+        <button title="Demo only" style={{
+          ...baseBtn, background: C.ac, color: '#000',
+          padding: '8px 14px', fontSize: 11,
+        }}>+ ASSIGN PLAN</button>
+        <button title="Demo only" style={{
+          ...baseBtn, background: 'transparent', color: C.tx,
+          border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
+        }}>+ ADD PAYMENT</button>
+        <button title="Demo only" style={{
+          ...baseBtn, background: 'transparent', color: C.tm,
+          border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
+        }}>✏️ EDIT</button>
+        <button title="Demo only" style={{
+          ...baseBtn, background: 'transparent', color: C.rd,
+          border: `1px solid ${C.rd}40`, padding: '8px 14px', fontSize: 11,
+        }}>📦 ARCHIVE</button>
+      </div>
 
       {isCouple && coupleSplit && (
         <>
@@ -623,7 +646,10 @@ function DemoPrograms() {
               const isOpen = openExIdx === i;
               return (
                 <React.Fragment key={i}>
-                  <tr onClick={() => setOpenExIdx(isOpen ? null : i)} style={{
+                  <tr onClick={() => setOpenExIdx(isOpen ? null : i)}
+                    onMouseEnter={ev => { if (!isOpen) ev.currentTarget.style.background = C.sf2; }}
+                    onMouseLeave={ev => { if (!isOpen) ev.currentTarget.style.background = 'transparent'; }}
+                    style={{
                     cursor: 'pointer',
                     background: isOpen ? C.sf2 : 'transparent',
                     transition: 'background 0.15s',
@@ -761,23 +787,35 @@ function DemoExercises() {
         }}>{filtered.length} / {MOCK_EXERCISES.length}</span>
       </div>
 
-      <div style={{
-        display: 'grid', gap: 8,
-        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
-      }}>
-        {filtered.map((e, i) => (
-          <div key={i} style={{
-            background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8,
-            padding: '12px 14px',
-          }}>
-            <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, marginBottom: 4 }}>{e.name}</div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              <Badge color={C.ac}>{e.category}</Badge>
-              <Badge color={C.tm}>{e.pattern}</Badge>
-            </div>
+      {filtered.length === 0 ? (
+        <div style={{
+          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 12,
+          padding: 40, textAlign: 'center',
+        }}>
+          <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>NO MATCHES</div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
+            Nothing matches {q ? <>"<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>"</> : 'this filter'}. Clear search or pick another category.
           </div>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid', gap: 8,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+        }}>
+          {filtered.map((e, i) => (
+            <div key={i} style={{
+              background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8,
+              padding: '12px 14px',
+            }}>
+              <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, marginBottom: 4 }}>{e.name}</div>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                <Badge color={C.ac}>{e.category}</Badge>
+                <Badge color={C.tm}>{e.pattern}</Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
