@@ -403,6 +403,53 @@ function TraineeCard({ t, onClick }) {
   );
 }
 
+// 8-week bodyweight sparkline — mocked relative-to-baseline so the curve is
+// proportionate to the trainee's actual weight. Real app pulls from bw_logs.
+function BWSparkline({ weight }) {
+  // Generate 8 deterministic points around the baseline weight: small wobble
+  // ±1.5kg with a gentle downward trend over the 8 weeks. Deterministic so
+  // re-renders don't reshuffle the chart.
+  const seed = Math.floor(weight);
+  const W = 8;
+  const points = Array.from({ length: W }, (_, i) => {
+    const trend = -i * 0.18; // gentle cut over 8w
+    const wobble = Math.sin(seed + i * 1.7) * 1.2;
+    return weight + trend + wobble;
+  });
+  const min = Math.min(...points) - 0.5;
+  const max = Math.max(...points) + 0.5;
+  const span = max - min || 1;
+  const w = 320, h = 80, pad = 8;
+  const xStep = (w - pad * 2) / (W - 1);
+  const polyline = points.map((v, i) => {
+    const x = pad + i * xStep;
+    const y = h - pad - ((v - min) / span) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = points[points.length - 1];
+  const lastX = pad + (W - 1) * xStep;
+  const lastY = h - pad - ((last - min) / span) * (h - pad * 2);
+  const delta = (last - points[0]).toFixed(1);
+  return (
+    <div style={{ padding: 14 }}>
+      <div style={{
+        display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6,
+      }}>
+        <span style={{ fontFamily: FB, fontSize: 22, fontWeight: 700, color: C.tx, letterSpacing: -0.3 }}>
+          {last.toFixed(1)}<span style={{ fontSize: 13, color: C.tm, marginLeft: 2 }}>kg</span>
+        </span>
+        <span style={{
+          fontFamily: FN, fontSize: 11, color: parseFloat(delta) <= 0 ? C.gn : C.or, letterSpacing: 1, fontWeight: 700,
+        }}>{parseFloat(delta) > 0 ? '+' : ''}{delta} kg / 8W</span>
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height: 80, display: 'block' }} aria-label="Bodyweight 8-week sparkline">
+        <polyline fill="none" stroke={C.ac} strokeWidth="2" points={polyline} strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={lastX} cy={lastY} r="3.5" fill={C.ac} />
+      </svg>
+    </div>
+  );
+}
+
 function CoupleCard({ t, onClick }) {
   // Split "יעל ועידן כהן" → ["יעל", "עידן", surname "כהן"]. Falls back to a
   // single column if the name doesn't parse — better to show one row than
@@ -602,6 +649,12 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SINCE</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SESSIONS</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft} LEFT</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>MONTHLY</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
+          </Panel>
+
+          <div style={{ height: 14 }} />
+
+          <Panel title="BODYWEIGHT · 8W" tint={C.tm}>
+            <BWSparkline weight={trainee.weight || 70} />
           </Panel>
 
           <div style={{ height: 14 }} />
