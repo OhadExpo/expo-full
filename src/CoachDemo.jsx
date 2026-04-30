@@ -134,6 +134,7 @@ function StatCard({ label, value, sub, accent = C.ac }) {
 // ─── Tab: Dashboard ───────────────────────────────────────────────────────
 function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
+  const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
   const overdue = MOCK_TRAINEES.slice(0, 1); // mock 1 overdue
   return (
     <section>
@@ -180,6 +181,26 @@ function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
             </Row>
           ))}
         </Panel>
+
+        {/* Expiring sessions — clients with sessionsRemaining 1-2.
+            Surfaces the conversion lever: "this client is one workout away
+            from churn — sell them the next package now." Same filter shape
+            as the real DashboardView.expiring computation. */}
+        {expiring.length > 0 && (
+          <Panel
+            title={<span><span style={{ color: C.or }}>⏳</span> EXPIRING SESSIONS ({expiring.length})</span>}
+            tint={C.or}
+          >
+            {expiring.map(t => (
+              <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
+                <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.or, fontWeight: 700, letterSpacing: 1 }}>
+                  {t.sessionsLeft} LEFT
+                </span>
+              </Row>
+            ))}
+          </Panel>
+        )}
 
         {/* Inbound leads — same shape as the real coach Dashboard's
             "📩 New Leads" panel, populated from expo-il's LeadCapture form
