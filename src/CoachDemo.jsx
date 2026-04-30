@@ -998,8 +998,58 @@ const TABS = [
   { key: 'trainees',  label: 'TRAINEES' },
   { key: 'programs',  label: 'PROGRAMS' },
   { key: 'exercises', label: 'EXERCISES' },
+  { key: 'workouts',  label: 'WORKOUTS' },
   { key: 'review',    label: 'REVIEW' },
 ];
+
+// Recent workout logs across all clients — mirrors what a trainer sees in
+// the real WorkoutsView, just with mock data. Volume + intensity per
+// session so the visitor reads it as "real workout, real numbers".
+const MOCK_WORKOUTS = [
+  { who: 'נועה לוי',     day: 'Day A · Push',    when: 'Today 09:14',   vol: '4,820 kg', topSet: 'BB Bench · 60kg × 6', flagged: 'pending review' },
+  { who: 'יעל כהן',      day: 'Day B · Pull',    when: 'Today 08:02',   vol: '4,180 kg', topSet: 'Pull-Up · BW × 8',     flagged: 'pending review' },
+  { who: 'גל מזרחי',     day: 'Day C · Legs',    when: 'Yesterday',     vol: '6,210 kg', topSet: 'Back Squat · 100kg × 5' },
+  { who: 'נועה לוי',     day: 'Day C · Legs',    when: '5 days ago',    vol: '6,010 kg', topSet: 'Back Squat · 95kg × 5' },
+  { who: 'עידן כהן',     day: 'Day A · Push',    when: '6 days ago',    vol: '5,420 kg', topSet: 'BB Bench · 80kg × 5' },
+  { who: 'יעל כהן',      day: 'Day A · Push',    when: '6 days ago',    vol: '3,180 kg', topSet: 'BB Bench · 35kg × 8' },
+  { who: 'נועה לוי',     day: 'Day B · Pull',    when: '1 week ago',    vol: '4,180 kg', topSet: 'BB Row · 50kg × 8' },
+];
+
+function DemoWorkouts() {
+  return (
+    <section>
+      <SectionHeader tag="WORKOUTS" title="Every set every client logged" body="When your client finishes a workout in their portal, it lands here — date, volume, top set, and any clip they sent for review. One tap into the row to scrub their video, log a session, or pull the data into a CSV." />
+
+      <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12, overflow: 'hidden' }}>
+        {MOCK_WORKOUTS.map((w, i) => (
+          <div key={i} style={{
+            padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+            borderBottom: i < MOCK_WORKOUTS.length - 1 ? `1px solid ${C.bd}` : 'none',
+            transition: 'background 0.15s', cursor: 'pointer',
+          }}
+            onMouseEnter={e => e.currentTarget.style.background = C.sf2}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <span style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx }}>{w.who}</span>
+                {w.flagged && <Badge color={C.ac}>🎬 {w.flagged.toUpperCase()}</Badge>}
+              </div>
+              <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{w.day}</div>
+            </div>
+            <div style={{ flex: '1 1 200px', minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85 }}>
+              <span style={{ color: C.ac, fontFamily: FN, fontSize: 10, letterSpacing: 1.5, marginRight: 6 }}>TOP SET</span>{w.topSet}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flex: '0 0 auto' }}>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700 }}>{w.vol}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{w.when}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function CoachDemo() {
   const [tab, setTab] = useState('dashboard');
@@ -1154,6 +1204,7 @@ export default function CoachDemo() {
         {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={setSelectedTrainee} onClear={onClearTrainee} returnTab={returnTab} />}
         {tab === 'programs'  && <DemoPrograms />}
         {tab === 'exercises' && <DemoExercises />}
+        {tab === 'workouts'  && <DemoWorkouts />}
         {/* Review is ALWAYS mounted — display:none on other tabs — so the
             /demo iframe loads its wasm + pose model in the background while
             the visitor explores. By the time they click Review, the engine
