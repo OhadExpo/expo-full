@@ -738,6 +738,10 @@ function DemoPrograms() {
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
           <h3 style={{ fontFamily: FB, fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>Block #4 — Push/Pull Volume</h3>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>נועה לוי · WEEK 2 OF 4</span>
+          <span style={{ flex: 1 }} />
+          <span style={{
+            fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: 1.5, fontWeight: 700,
+          }}>✓ SAVED · 12 MIN AGO</span>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {MOCK_DAYS.map((d, i) => (
