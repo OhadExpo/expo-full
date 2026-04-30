@@ -181,7 +181,7 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub }) {
           position: 'absolute', top: -10, right: 14,
           fontFamily: FN, fontSize: 9, color: '#000', background: C.ac,
           letterSpacing: 1.5, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
-        }}>FOUNDER FAVOURITE</div>
+        }}>MOST POPULAR</div>
       )}
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 2.5, fontWeight: 700,
@@ -476,14 +476,16 @@ export default function CoachLanding() {
               ]}
             />
             <PricingTier
-              name="SCALE"
+              name="FOUNDING PARTNER"
               price="₪399"
               priceSub="/ MONTH"
-              slots="Unlimited clients"
+              slots="Unlimited clients · roadmap influence"
               cta="JOIN WAITLIST"
               features={[
                 'Everything in Growth',
                 'Direct line for product requests + roadmap input',
+                'Quarterly product strategy call',
+                'First access to features as they ship',
               ]}
             />
           </div>
