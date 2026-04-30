@@ -108,7 +108,7 @@ export default function EntryChooser() {
           marginTop: 28, fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
           textAlign: 'center',
         }}>
-          <a href="/try" style={{ color: C.td, textDecoration: 'none' }}>COACH VIEW</a>
+          <a href="/try" style={{ color: C.td, textDecoration: 'none' }}>FULL COACH DEMO</a>
           <span style={{ margin: '0 8px' }}>·</span>
           <a href="/demo" style={{ color: C.td, textDecoration: 'none' }}>TRAINEE VIEW</a>
           <span style={{ margin: '0 8px' }}>·</span>

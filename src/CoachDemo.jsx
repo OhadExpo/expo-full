@@ -367,6 +367,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
 // ─── Tab: Programs ────────────────────────────────────────────────────────
 function DemoPrograms() {
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+  const [openExIdx, setOpenExIdx] = useState(null);
   const day = MOCK_DAYS[selectedDayIdx];
   return (
     <section>
@@ -406,17 +407,44 @@ function DemoPrograms() {
             </tr>
           </thead>
           <tbody>
-            {day.exercises.map((e, i) => (
-              <tr key={i}>
-                <td style={tdStyle()}>{i + 1}{e.superset ? e.superset.toLowerCase() : ''}</td>
-                <td style={{ ...tdStyle(), color: C.tx, fontWeight: 600, borderLeft: e.superset ? `3px solid ${e.superset === 'A' ? C.ac : C.pu}` : 'none', paddingLeft: e.superset ? 7 : 10 }}>{e.name}</td>
-                <td style={tdStyle()}>{e.sets}</td>
-                <td style={tdStyle()}>{e.reps}</td>
-                <td style={tdStyle()}>{e.tempo || '—'}</td>
-                <td style={{ ...tdStyle(), color: e.superset === 'A' ? C.ac : e.superset === 'B' ? C.pu : C.tm, fontWeight: 700 }}>{e.superset || '—'}</td>
-                <td style={tdStyle()}><span style={{ color: C.ac }}>▶</span></td>
-              </tr>
-            ))}
+            {day.exercises.map((e, i) => {
+              const isOpen = openExIdx === i;
+              return (
+                <React.Fragment key={i}>
+                  <tr onClick={() => setOpenExIdx(isOpen ? null : i)} style={{
+                    cursor: 'pointer',
+                    background: isOpen ? C.sf2 : 'transparent',
+                    transition: 'background 0.15s',
+                  }}>
+                    <td style={tdStyle()}>{i + 1}{e.superset ? e.superset.toLowerCase() : ''}</td>
+                    <td style={{ ...tdStyle(), color: C.tx, fontWeight: 600, borderLeft: e.superset ? `3px solid ${e.superset === 'A' ? C.ac : C.pu}` : 'none', paddingLeft: e.superset ? 7 : 10 }}>{e.name}</td>
+                    <td style={tdStyle()}>{e.sets}</td>
+                    <td style={tdStyle()}>{e.reps}</td>
+                    <td style={tdStyle()}>{e.tempo || '—'}</td>
+                    <td style={{ ...tdStyle(), color: e.superset === 'A' ? C.ac : e.superset === 'B' ? C.pu : C.tm, fontWeight: 700 }}>{e.superset || '—'}</td>
+                    <td style={tdStyle()}><span style={{ color: C.ac }}>{isOpen ? '▼' : '▶'}</span></td>
+                  </tr>
+                  {isOpen && (
+                    <tr>
+                      <td colSpan={7} style={{
+                        padding: '10px 14px 14px',
+                        background: C.sf2,
+                        borderBottom: `1px solid ${C.bd}`,
+                      }}>
+                        <div style={{
+                          display: 'flex', gap: 8, flexWrap: 'wrap',
+                        }}>
+                          <ExerciseAction icon="▶"  label="WATCH DEMO"   sub={`${e.name} · 0:24`} />
+                          <ExerciseAction icon="🔄" label="SWAP EXERCISE" sub="Suggest similar movement pattern" />
+                          <ExerciseAction icon="🗒"  label="ADD NOTE"     sub="Cue, regression, contraindication…" />
+                          <ExerciseAction icon="📈" label="PROGRESSION"  sub={`Last week: ${e.sets}×${e.reps} · keep ↗ next`} />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table></div>
       </div>
@@ -435,6 +463,33 @@ const tdStyle = () => ({
   padding: '10px', fontFamily: FB, fontSize: 13, color: C.tm,
   borderBottom: `1px solid ${C.bd}`, verticalAlign: 'middle',
 });
+
+// Per-exercise inline action chip — Watch / Swap / Note / Progression.
+// Non-functional in the demo; click bubbles back up to the row toggle so
+// the visitor doesn't double-click and accidentally collapse the panel.
+function ExerciseAction({ icon, label, sub }) {
+  return (
+    <button onClick={e => e.stopPropagation()} style={{
+      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8,
+      padding: '8px 12px', textAlign: 'left',
+      cursor: 'pointer', display: 'flex', flexDirection: 'column',
+      gap: 3, minWidth: 180, transition: 'border-color 0.15s',
+    }}
+      onMouseEnter={ev => ev.currentTarget.style.borderColor = C.ac}
+      onMouseLeave={ev => ev.currentTarget.style.borderColor = C.bd}
+    >
+      <div style={{
+        fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700,
+        display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        <span>{icon}</span>{label}
+      </div>
+      <div style={{
+        fontFamily: FB, fontSize: 11.5, color: C.tx, opacity: 0.72,
+      }}>{sub}</div>
+    </button>
+  );
+}
 
 // ─── Tab: Exercises ───────────────────────────────────────────────────────
 function DemoExercises() {
