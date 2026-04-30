@@ -1155,12 +1155,12 @@ function SectionHeader({ tag, title, body }) {
 }
 
 const TABS = [
-  { key: 'dashboard', label: 'DASHBOARD' },
-  { key: 'trainees',  label: 'TRAINEES' },
-  { key: 'programs',  label: 'PROGRAMS' },
-  { key: 'exercises', label: 'EXERCISES' },
-  { key: 'workouts',  label: 'WORKOUTS' },
-  { key: 'review',    label: 'REVIEW' },
+  { key: 'dashboard', label: 'DASHBOARD', count: null },
+  { key: 'trainees',  label: 'TRAINEES',  count: MOCK_TRAINEES.length },
+  { key: 'programs',  label: 'PROGRAMS',  count: 12 },
+  { key: 'exercises', label: 'EXERCISES', count: MOCK_EXERCISES.length },
+  { key: 'workouts',  label: 'WORKOUTS',  count: MOCK_WORKOUTS.length },
+  { key: 'review',    label: 'REVIEW',    count: null },
 ];
 
 // Recent workout logs across all clients — mirrors what a trainer sees in
@@ -1338,8 +1338,13 @@ export default function CoachDemo() {
                   background: tab === t.key ? C.acD : 'transparent',
                   color: tab === t.key ? C.ac : C.tm,
                   padding: '6px 12px', fontSize: 11, letterSpacing: 1.5,
-                  whiteSpace: 'nowrap',
-                }}>{t.label}</button>
+                  whiteSpace: 'nowrap', gap: 4,
+                }}>
+                <span>{t.label}</span>
+                {t.count != null && (
+                  <span style={{ fontSize: 10, color: tab === t.key ? C.ac : C.td, fontFamily: FN }}>{t.count}</span>
+                )}
+              </button>
             ))}
           </nav>
           <a href="/coaches#waitlist" className="cd-cta-waitlist" style={{
