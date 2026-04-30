@@ -1193,8 +1193,8 @@ export default function CoachDemo() {
                 wordmark portion, which then centers cleanly via the parent
                 flex's alignItems:center. */}
             <div style={{
-              height: 22, width: 76, overflow: 'hidden',
-              display: 'flex', alignItems: 'flex-end',
+              height: 22, overflow: 'hidden',
+              display: 'inline-flex', alignItems: 'flex-end',
             }}>
               <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32 }} />
             </div>

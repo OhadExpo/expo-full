@@ -1,0 +1,15 @@
+# expo-app.co.il — running product surface.
+# Marketing pages (/, /coaches, /try, /demo, /login) are crawlable so the
+# coach-acquisition funnel surfaces in search. Auth-gated routes are
+# blocked: indexing them is pointless (search engines hit a login screen)
+# and surfaces internal URL shape unnecessarily.
+
+User-agent: *
+Allow: /
+Allow: /coaches
+Allow: /try
+Allow: /demo
+Allow: /login
+Disallow: /coach
+Disallow: /coach/
+Disallow: /portal

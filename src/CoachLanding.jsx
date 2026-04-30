@@ -283,7 +283,7 @@ export default function CoachLanding() {
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
             {/* Wrapper-clip — see CoachDemo header for the explanation. */}
-            <div style={{ height: 22, width: 76, overflow: 'hidden', display: 'flex', alignItems: 'flex-end' }}>
+            <div style={{ height: 22, overflow: 'hidden', display: 'inline-flex', alignItems: 'flex-end' }}>
               <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32 }} />
             </div>
           </a>
@@ -552,7 +552,7 @@ export default function CoachLanding() {
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
         }}>
           <EXPOMark height={11} style={{ opacity: 0.55 }} />
-          <span>· COACHING PLATFORM · BUILT IN TEL AVIV</span>
+          <span>· COACHING PLATFORM · BUILT IN TEL AVIV · © {new Date().getFullYear()} ALL RIGHTS RESERVED</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
           <a href="/try" style={{ color: C.td, textDecoration: 'none' }}>DEMO</a>

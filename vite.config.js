@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // No source maps in prod — keeps the readable JS off the public CDN.
+  // Doesn't make the bundle uncopyable (anything served to a browser can be
+  // read), but raises the bar from "literal source" to "minified bundle".
+  build: { sourcemap: false },
   plugins: [
     react(),
     VitePWA({

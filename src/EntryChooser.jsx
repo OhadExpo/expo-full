@@ -65,7 +65,7 @@ export default function EntryChooser() {
           display: 'flex', alignItems: 'center', height: 60,
         }}>
           {/* Wrapper-clip — see CoachDemo header for the explanation. */}
-          <div style={{ height: 22, width: 76, overflow: 'hidden', display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ height: 22, overflow: 'hidden', display: 'inline-flex', alignItems: 'flex-end' }}>
             <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32 }} />
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function EntryChooser() {
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
         }}>
           <EXPOMark height={11} style={{ opacity: 0.55 }} />
-          <span>· COACHING PLATFORM</span>
+          <span>· COACHING PLATFORM · © {new Date().getFullYear()} ALL RIGHTS RESERVED</span>
         </span>
       </footer>
     </div>
