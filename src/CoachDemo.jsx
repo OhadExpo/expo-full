@@ -132,10 +132,11 @@ function StatCard({ label, value, sub, accent = C.ac }) {
 }
 
 // ─── Tab: Dashboard ───────────────────────────────────────────────────────
-function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
+function DemoDashboard({ onJumpToTrainee }) {
   const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
   const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
-  const overdue = MOCK_TRAINEES.slice(0, 1); // mock 1 overdue
+  const onlineNow = MOCK_TRAINEES.filter(t => t.online);
+  const overdue = MOCK_TRAINEES.filter(t => t.payment === 'OVERDUE');
   return (
     <section>
       <SectionHeader tag="DASHBOARD" title="The morning view" body="Stat cards on top, action queues below. Everything that needs your attention surfaces here — overdue payments, dormant clients, pending reviews — without you opening 5 tabs." />
@@ -224,24 +225,26 @@ function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
           ))}
         </Panel>
 
-        {/* Pending review */}
-        <Panel
-          title={<span><span style={{ color: C.ac }}>🎬</span> PENDING REVIEW (2)</span>}
-          tint={C.ac}
-        >
-          {[
-            { who: 'נועה לוי',  what: 'BB Bench · 60kg × 6',   when: '12 min ago' },
-            { who: 'יעל כהן',   what: 'Pull-Up · BW × 8',      when: '2 hr ago' },
-          ].map((r, i) => (
-            <Row key={i} onClick={onJumpToReview}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, color: C.tx }}>{r.who}</div>
-                <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1 }}>{r.what}</div>
-              </div>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{r.when}</span>
-            </Row>
-          ))}
-        </Panel>
+        {/* Online now — clients currently signed into their portal.
+            Real DashboardView surfaces them with a green dot; same shape
+            here. Conversion lever: one-tap WhatsApp them while they're
+            actively using the app. */}
+        {onlineNow.length > 0 && (
+          <Panel
+            title={<span><span style={{ color: C.gn }}>🟢</span> ONLINE NOW ({onlineNow.length})</span>}
+            tint={C.gn}
+          >
+            {onlineNow.map(t => (
+              <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
+                <span style={{ fontWeight: 600, color: C.tx, flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {t.name}<OnlineDot />
+                </span>
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>IN PORTAL</span>
+                <FakeWaButton />
+              </Row>
+            ))}
+          </Panel>
+        )}
       </div>
     </section>
   );
@@ -1155,7 +1158,6 @@ export default function CoachDemo() {
     setSelectedTrainee(id);
     setTab('trainees');
   };
-  const onJumpToReview = () => setTab('review');
   const onClearTrainee = () => {
     setSelectedTrainee(null);
     if (returnTab !== 'trainees') {
@@ -1308,7 +1310,7 @@ export default function CoachDemo() {
       </div>
 
       <main style={{ flex: 1, padding: '28px 16px 80px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
-        {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} onJumpToReview={onJumpToReview} />}
+        {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} />}
         {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={setSelectedTrainee} onClear={onClearTrainee} returnTab={returnTab} />}
         {tab === 'programs'  && <DemoPrograms />}
         {tab === 'exercises' && <DemoExercises />}
