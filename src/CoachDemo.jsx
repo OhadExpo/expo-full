@@ -143,7 +143,7 @@ function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
           tint={C.rd}
         >
           {overdue.map((t, i) => (
-            <Row key={t.id} onClick={() => onJumpToTrainee(t.id)}>
+            <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
               <span style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>
                 {i === 0 ? 'NEVER PAID' : `${(i+1)*32}D OVERDUE`}
@@ -158,7 +158,7 @@ function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
           tint={C.tm}
         >
           {dormant.map(t => (
-            <Row key={t.id} onClick={() => onJumpToTrainee(t.id)}>
+            <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
               <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
               <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>
                 {t.dormantDays}D
@@ -233,11 +233,11 @@ function FakeWaButton() {
 }
 
 // ─── Tab: Trainees ────────────────────────────────────────────────────────
-function DemoTrainees({ selected, onSelect, onClear }) {
+function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   if (selected) {
     const t = MOCK_TRAINEES.find(x => x.id === selected);
     if (!t) return null;
-    return <DemoTraineeDetail trainee={t} onBack={onClear} />;
+    return <DemoTraineeDetail trainee={t} onBack={onClear} backLabel={returnTab && returnTab !== 'trainees' ? `← BACK TO ${returnTab.toUpperCase()}` : '← BACK TO TRAINEES'} />;
   }
   return (
     <section>
@@ -294,13 +294,13 @@ function TraineeCard({ t, onClick }) {
   );
 }
 
-function DemoTraineeDetail({ trainee, onBack }) {
+function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES' }) {
   return (
     <section>
       <button onClick={onBack} style={{
         ...baseBtn, background: 'transparent', color: C.tm,
         border: `1px solid ${C.bd}`, marginBottom: 18,
-      }}>← BACK TO TRAINEES</button>
+      }}>{backLabel}</button>
 
       <div style={{
         display: 'grid', gap: 14,
@@ -591,9 +591,23 @@ const TABS = [
 export default function CoachDemo() {
   const [tab, setTab] = useState('dashboard');
   const [selectedTrainee, setSelectedTrainee] = useState(null);
+  // Track where the trainee-detail view was reached from so the back button
+  // returns to the source surface instead of always landing on the Trainees tab.
+  const [returnTab, setReturnTab] = useState('trainees');
 
-  const onJumpToTrainee = (id) => { setSelectedTrainee(id); setTab('trainees'); };
+  const onJumpToTrainee = (id, sourceTab = 'trainees') => {
+    setReturnTab(sourceTab);
+    setSelectedTrainee(id);
+    setTab('trainees');
+  };
   const onJumpToReview = () => setTab('review');
+  const onClearTrainee = () => {
+    setSelectedTrainee(null);
+    if (returnTab !== 'trainees') {
+      setTab(returnTab);
+      setReturnTab('trainees');
+    }
+  };
 
   return (
     <div style={{
@@ -699,7 +713,7 @@ export default function CoachDemo() {
 
       <main style={{ flex: 1, padding: '28px 16px 80px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} onJumpToReview={onJumpToReview} />}
-        {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={setSelectedTrainee} onClear={() => setSelectedTrainee(null)} />}
+        {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={setSelectedTrainee} onClear={onClearTrainee} returnTab={returnTab} />}
         {tab === 'programs'  && <DemoPrograms />}
         {tab === 'exercises' && <DemoExercises />}
         {tab === 'review'    && <DemoReview />}

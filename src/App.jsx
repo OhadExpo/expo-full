@@ -120,8 +120,17 @@ function parseSpreadsheet(data, fileName) {
 
 // Root. Wraps in Supabase auth context; AuthGate shows LoginScreen until
 // there's a live session, then hands off to AuthedApp (the old App body).
+// SwUpdateBanner uses the virtual:pwa-register/react hook — kept lazy so
+// the banner module + workbox shim don't pull into chunks that don't need it.
+const SwUpdateBanner = lazy(() => import('./SwUpdateBanner'));
+
 export default function App() {
-  return <AuthProvider clientList={[]}><AuthGate /></AuthProvider>;
+  return (
+    <AuthProvider clientList={[]}>
+      <AuthGate />
+      <Suspense fallback={null}><SwUpdateBanner /></Suspense>
+    </AuthProvider>
+  );
 }
 
 function BootSplash() {

@@ -52,16 +52,15 @@ const baseBtn = {
   cursor:'pointer', letterSpacing:'0.02em', transition:'all 0.15s',
 };
 
-// pov='coach'   → the COACH'S view of the engine ("the review tool you'd use
-//                  to scrub a client's clip") — /try (LEGACY — /try now
-//                  renders CoachDemo. This branch only fires if the prop is
-//                  passed manually by some other route.)
-// pov='trainee' → the TRAINEE'S view ("what your client experiences when
-//                  they upload their set") — /demo
+// /demo — the trainee POV engine sandbox. /try used to mount this with
+// pov='coach' but now mounts CoachDemo instead, so the only live caller is
+// the trainee POV. The pov prop and isCoach branches stay for now in case
+// the coach POV gets reused as a focused single-screen demo later, but they
+// are unreachable from the live router.
 //
 // `?embed=1` in the URL hides the header, POV banner, and footer so the
 // engine can be iframe'd into CoachLanding / CoachDemo without nested chrome.
-export default function TrySandbox({ pov = 'coach' } = {}) {
+export default function TrySandbox({ pov = 'trainee' } = {}) {
   const isEmbedded = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('embed') === '1';
   // step: 'exercise' → 'upload' → 'analyze' → 'compare'

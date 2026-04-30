@@ -6,8 +6,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      // prompt: don't auto-activate a new SW; let SwUpdateBanner show a
+      // refresh toast first so users on the installed PWA know to refresh
+      // (autoUpdate would silently swap on next load — fine for browsers,
+      // bad for the Add-to-Home Screen experience that rarely closes).
+      registerType: 'prompt',
+      // Registration is handled by useRegisterSW inside SwUpdateBanner — no
+      // auto-injected script tag, no double registration.
+      injectRegister: false,
       includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon-48x48.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'nord-fonts.css'],
       manifest: {
         name: 'EXPO',

@@ -115,13 +115,18 @@ function WaitlistForm() {
 function DemoEmbed() {
   return (
     <div>
-      <div style={{
+      <div className="cl-embed" style={{
         background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
         overflow: 'hidden', maxWidth: 1180, margin: '0 auto',
         boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
       }}>
+        <style>{`
+          .cl-embed iframe { height: 720px; }
+          @media (max-width: 720px) { .cl-embed iframe { height: 560px; } }
+          @media (max-width: 480px) { .cl-embed iframe { height: 480px; } }
+        `}</style>
         <iframe src="/demo?embed=1" title="EXPO live engine"
-          style={{ display: 'block', width: '100%', height: 720, border: 'none' }} />
+          style={{ display: 'block', width: '100%', border: 'none' }} />
       </div>
       <div style={{
         textAlign: 'center', marginTop: 16,
