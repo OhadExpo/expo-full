@@ -153,8 +153,8 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
       }}>
         <a href="https://expo-il.co.il/" title="Back to EXPO" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flex:'0 0 auto' }}>
           {/* Wrapper-clip — see CoachDemo header for the explanation. */}
-          <div style={{ height: 22, overflow: 'hidden', display: 'inline-flex', alignItems: 'flex-end' }}>
-            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display:'block', height:32 }} />
+          <div style={{ height: 16, overflow: 'hidden', display: 'inline-flex', alignItems: 'flex-end' }}>
+            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display:'block', height:23 }} />
           </div>
         </a>
         {/* DEMO badge — hidden on narrow screens via the .try-sandbox-badge

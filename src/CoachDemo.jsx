@@ -1193,10 +1193,14 @@ export default function CoachDemo() {
                 wordmark portion, which then centers cleanly via the parent
                 flex's alignItems:center. */}
             <div style={{
-              height: 22, overflow: 'hidden',
+              height: 16, overflow: 'hidden',
               display: 'inline-flex', alignItems: 'flex-end',
             }}>
-              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32 }} />
+              {/* Image at height 23 means the wordmark portion (bottom ~70%
+                  of a chevron-on-top PNG) renders at ~16px tall, matching
+                  the surrounding nav text scale. The 16px wrapper clips the
+                  chevron above. */}
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 23 }} />
             </div>
           </a>
           <span className="cd-badge" style={{

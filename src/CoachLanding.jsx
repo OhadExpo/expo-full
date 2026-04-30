@@ -283,8 +283,8 @@ export default function CoachLanding() {
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
             {/* Wrapper-clip — see CoachDemo header for the explanation. */}
-            <div style={{ height: 22, overflow: 'hidden', display: 'inline-flex', alignItems: 'flex-end' }}>
-              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32 }} />
+            <div style={{ height: 16, overflow: 'hidden', display: 'inline-flex', alignItems: 'flex-end' }}>
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 23 }} />
             </div>
           </a>
           <span style={{
@@ -483,7 +483,6 @@ export default function CoachLanding() {
               cta="JOIN WAITLIST"
               features={[
                 'Everything in Growth',
-                'Multi-coach org (assistants / sub-coaches)',
                 'Branded portal subdomain',
                 'Direct line for product requests',
               ]}
