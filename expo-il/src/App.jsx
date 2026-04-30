@@ -565,6 +565,8 @@ function ProgramMeta({ p }) {
 // rounds up to 1px, which still reads as a hairline against the dark surface.
 function ProgramCard({ p }) {
   const t = useT();
+  const [lang] = useLang();
+  const isHe = lang === 'he';
   const [hover, setHover] = useState(false);
   const currency = t('card.currency.' + p.currency) === 'card.currency.' + p.currency ? p.currency : t('card.currency.' + p.currency);
   return (
@@ -585,18 +587,18 @@ function ProgramCard({ p }) {
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
           background: C.acD, color: C.ac, padding: '4px 10px', borderRadius: 999,
           border: `1px solid ${C.ac4D}`,
-        }}>{p.tag.toUpperCase()}</span>
-        <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{p.duration}</span>
+        }}>{(isHe && p.tagHe ? p.tagHe : p.tag).toUpperCase()}</span>
+        <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{isHe ? (p.durationHe || p.duration) : p.duration}</span>
       </div>
       <div>
-        <h3 style={{ fontFamily: FB, fontSize: 20, fontWeight: 700, marginBottom: 4, lineHeight: 1.15 }}>{p.title}</h3>
-        <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{p.audience}</div>
+        <h3 style={{ fontFamily: FB, fontSize: 20, fontWeight: 700, marginBottom: 4, lineHeight: 1.15 }}>{isHe ? (p.titleHe || p.title) : p.title}</h3>
+        <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>{isHe ? (p.audienceHe || p.audience) : p.audience}</div>
       </div>
       <p style={{ fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.55 }}>
-        {p.summary}
+        {isHe ? (p.summaryHe || p.summary) : p.summary}
       </p>
       <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {p.highlights.map((h, i) => (
+        {(isHe && p.highlightsHe ? p.highlightsHe : p.highlights).map((h, i) => (
           <li key={i} style={{
             display: 'flex', alignItems: 'flex-start', gap: 10,
             fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.45,

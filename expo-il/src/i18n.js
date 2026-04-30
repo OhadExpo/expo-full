@@ -152,8 +152,8 @@ const STRINGS = {
   // Clicking opens the live engine — pose detection + rep counter on the visitor's
   // own clip — without account, login, or any backend touch.
   'inside.tryCta': {
-    en: 'Try the platform on your own clip →',
-    he: 'נסה את הפלטפורמה על קליפ משלך →',
+    en: 'See your own set analysed live →',
+    he: 'ראה את הסט שלך מנותח חי →',
   },
 
   // ─── About the coach ──────────────────────────────────────────────
