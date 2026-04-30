@@ -1186,7 +1186,18 @@ export default function CoachDemo() {
           display: 'flex', alignItems: 'center', height: 60, gap: 12, overflowX: 'auto',
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
-            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32, marginTop: -4 }} />
+            {/* Wrapper-clip: the EXPO_LOGO_NAV PNG has ~40% chevron above
+                the wordmark, so geometric-center positioning leaves the
+                wordmark below the menu's centerline. The 22px-tall wrapper
+                with overflow:hidden + image bottom-aligned shows only the
+                wordmark portion, which then centers cleanly via the parent
+                flex's alignItems:center. */}
+            <div style={{
+              height: 22, width: 76, overflow: 'hidden',
+              display: 'flex', alignItems: 'flex-end',
+            }}>
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32 }} />
+            </div>
           </a>
           <span className="cd-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,

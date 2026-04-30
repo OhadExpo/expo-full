@@ -282,11 +282,10 @@ export default function CoachLanding() {
           display: 'flex', alignItems: 'center', height: 60, gap: 14,
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
-            {/* The EXPO_LOGO_NAV PNG places the wordmark in the lower portion
-                with the chevron on top, so geometric-center alignment leaves
-                the visible wordmark sitting ~4px below the menu's centerline.
-                Negative marginTop lifts it to match optical center. */}
-            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32, marginTop: -4 }} />
+            {/* Wrapper-clip — see CoachDemo header for the explanation. */}
+            <div style={{ height: 22, width: 76, overflow: 'hidden', display: 'flex', alignItems: 'flex-end' }}>
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32 }} />
+            </div>
           </a>
           <span style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
