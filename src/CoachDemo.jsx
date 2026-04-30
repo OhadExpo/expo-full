@@ -605,20 +605,29 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
 
           <div style={{ height: 14 }} />
 
-          <Panel title="PAYMENTS" tint={C.ac}>
-            {[
+          {(() => {
+            const payments = [
               { date: '2026-04-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
               { date: '2026-03-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
               { date: '2026-02-01', amount: trainee.monthly || 800, method: 'Cash',          status: 'Paid' },
-            ].map((p, i) => (
-              <Row key={i}>
-                <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>₪{p.amount}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.method.toUpperCase()}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.date}</span>
-                <Badge color={C.gn}>{p.status.toUpperCase()}</Badge>
-              </Row>
-            ))}
-          </Panel>
+            ];
+            const totalPaid = payments.reduce((a, p) => a + p.amount, 0);
+            return (
+              <Panel
+                title={<span>PAYMENTS ({payments.length}) <span style={{ color: C.gn, marginLeft: 8 }}>₪{totalPaid.toLocaleString()} TOTAL</span></span>}
+                tint={C.ac}
+              >
+                {payments.map((p, i) => (
+                  <Row key={i}>
+                    <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>₪{p.amount}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.method.toUpperCase()}</span>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.date}</span>
+                    <Badge color={C.gn}>{p.status.toUpperCase()}</Badge>
+                  </Row>
+                ))}
+              </Panel>
+            );
+          })()}
 
           <div style={{ height: 14 }} />
 
@@ -646,9 +655,12 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
               </Row>
             )}
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>FORMAT</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SINCE</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PACKAGE</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.isCouple ? '12 Sessions' : '8 Sessions'}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SESSIONS</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft} LEFT</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>MONTHLY</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PER SESSION</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / (trainee.isCouple ? 12 : 8))}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>LAST PAYMENT</span><span style={{ color: C.tx, fontWeight: 600 }}>2026-04-01</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SINCE</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
           </Panel>
 
           <div style={{ height: 14 }} />
