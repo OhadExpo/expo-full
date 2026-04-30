@@ -107,6 +107,7 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
     }}>
       {!isEmbedded && <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />}
       {!isEmbedded && <POVBanner pov={pov} />}
+      {!isEmbedded && pov === 'trainee' && <TraineeContextStrip />}
       <main style={{ flex:1, padding: isEmbedded ? '14px 16px 24px' : '18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
         {step === 'exercise' && <ExercisePicker pov={pov} onPick={onPickExercise} />}
         {step === 'upload'   && <UploadStep pov={pov} exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
@@ -198,6 +199,40 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
         }}>↺ RESTART</button>
       </div>
     </header>
+  );
+}
+
+// Plan-context strip that sits under the POV banner on /demo (trainee
+// POV). Frames the engine as "inside today's workout, exercise 1 of 8"
+// rather than a standalone upload tool — same shape as ClientPortal's
+// header line which shows "DAY A · W2" plus the current exercise.
+function TraineeContextStrip() {
+  return (
+    <div style={{
+      borderBottom: `1px solid ${C.bd}`,
+      background: C.sf,
+    }}>
+      <div style={{
+        maxWidth: 1180, margin: '0 auto', padding: '10px 16px',
+        display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+      }}>
+        <span style={{
+          fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
+          background: C.acD, padding: '3px 8px', borderRadius: 4,
+          border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
+        }}>BLOCK #4 · DAY A</span>
+        <span style={{
+          fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
+        }}>WEEK 2 OF 4 · EXERCISE 1 OF 8</span>
+        <span style={{ flex: '1 1 auto' }} />
+        <span style={{
+          fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 700,
+        }}>BB Bench Press</span>
+        <span style={{
+          fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700,
+        }}>4 × 6-8 · 60kg</span>
+      </div>
+    </div>
   );
 }
 
