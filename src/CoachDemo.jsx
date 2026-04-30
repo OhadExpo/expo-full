@@ -127,10 +127,10 @@ function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
       <SectionHeader tag="DASHBOARD" title="The morning view" body="Stat cards on top, action queues below. Everything that needs your attention surfaces here — overdue payments, dormant clients, pending reviews — without you opening 5 tabs." />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
-        <StatCard label="ACTIVE CLIENTS" value="17 / 19" sub="2 INACTIVE" />
-        <StatCard label="LOW SESSIONS" value="2" sub="≤ 2 LEFT" accent={C.or} />
-        <StatCard label="ESTIMATED MONTHLY" value="₪14,200" />
-        <StatCard label="COLLECTED THIS MONTH" value="₪8,440" sub="59% OF EXP." accent={C.gn} />
+        <StatCard label="ACTIVE CLIENTS" value="5 / 7" sub="2 INACTIVE" />
+        <StatCard label="LOW SESSIONS" value="1" sub="≤ 2 LEFT" accent={C.or} />
+        <StatCard label="ESTIMATED MONTHLY" value="₪5,200" />
+        <StatCard label="COLLECTED THIS MONTH" value="₪3,400" sub="65% OF EXP." accent={C.gn} />
       </div>
 
       <div style={{
@@ -489,16 +489,47 @@ function DemoReview() {
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
       }}>
         {/* Live engine via /demo iframe */}
-        <div style={{
-          background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
-          overflow: 'hidden',
-          boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
-        }}>
-          {/* embed=1 strips TrySandbox's own header / banner / footer so the
-              engine slots cleanly inside CoachDemo's review tab without
-              nested chrome. */}
-          <iframe src="/demo?embed=1" title="Live engine"
-            style={{ display: 'block', width: '100%', height: 720, border: 'none' }} />
+        <div>
+          {/* Client identifier strip above the iframe so the visitor knows
+              what they're looking at the moment the engine loads, instead
+              of having to read the right-side sidebar first. */}
+          <div style={{
+            background: C.sf, border: `1px solid ${C.bd}`, borderTopLeftRadius: 12, borderTopRightRadius: 12,
+            borderBottom: 'none', padding: '10px 14px',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: '50%',
+              background: C.acD, border: `1px solid ${C.ac}40`, color: C.ac,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: FB, fontWeight: 700, fontSize: 12, flex: '0 0 auto',
+            }}>MC</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 13, color: C.tx }}>
+                REVIEWING — Maya Cohen
+              </div>
+              <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1 }}>
+                BB BENCH · 60kg × 6 · TODAY 09:14
+              </div>
+            </div>
+            <span style={{
+              fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700,
+              background: C.gnD, border: `1px solid ${C.gn}40`,
+              borderRadius: 4, padding: '3px 8px',
+            }}>NEW · 12 MIN AGO</span>
+          </div>
+          <div style={{
+            background: C.sf, border: `1px solid ${C.bd2}`,
+            borderTop: 'none', borderBottomLeftRadius: 14, borderBottomRightRadius: 14,
+            overflow: 'hidden',
+            boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
+          }}>
+            {/* embed=1 strips TrySandbox's own header / banner / footer so the
+                engine slots cleanly inside CoachDemo's review tab without
+                nested chrome. */}
+            <iframe src="/demo?embed=1" title="Live engine"
+              style={{ display: 'block', width: '100%', height: 660, border: 'none' }} />
+          </div>
         </div>
 
         {/* Fake review sidebar */}
