@@ -1170,18 +1170,10 @@ function SectionHeader({ tag, title, body }) {
   );
 }
 
-const TABS = [
-  { key: 'dashboard', label: 'DASHBOARD', count: null },
-  { key: 'trainees',  label: 'TRAINEES',  count: MOCK_TRAINEES.length },
-  { key: 'programs',  label: 'PROGRAMS',  count: 12 },
-  { key: 'exercises', label: 'EXERCISES', count: MOCK_EXERCISES.length },
-  { key: 'workouts',  label: 'WORKOUTS',  count: MOCK_WORKOUTS.length },
-  { key: 'review',    label: 'REVIEW',    count: null },
-];
-
 // Recent workout logs across all clients — mirrors what a trainer sees in
 // the real WorkoutsView, just with mock data. Volume + intensity per
 // session so the visitor reads it as "real workout, real numbers".
+// Declared BEFORE TABS so the tab-count initializer doesn't trip the TDZ.
 const MOCK_WORKOUTS = [
   { who: 'נועה לוי',     day: 'Day A · Push',    when: 'Today 09:14',   vol: '4,820 kg', topSet: 'BB Bench · 60kg × 6', flagged: 'pending review' },
   { who: 'יעל כהן',      day: 'Day B · Pull',    when: 'Today 08:02',   vol: '4,180 kg', topSet: 'Pull-Up · BW × 8',     flagged: 'pending review' },
@@ -1190,6 +1182,15 @@ const MOCK_WORKOUTS = [
   { who: 'עידן כהן',     day: 'Day A · Push',    when: '6 days ago',    vol: '5,420 kg', topSet: 'BB Bench · 80kg × 5' },
   { who: 'יעל כהן',      day: 'Day A · Push',    when: '6 days ago',    vol: '3,180 kg', topSet: 'BB Bench · 35kg × 8' },
   { who: 'נועה לוי',     day: 'Day B · Pull',    when: '1 week ago',    vol: '4,180 kg', topSet: 'BB Row · 50kg × 8' },
+];
+
+const TABS = [
+  { key: 'dashboard', label: 'DASHBOARD', count: null },
+  { key: 'trainees',  label: 'TRAINEES',  count: MOCK_TRAINEES.length },
+  { key: 'programs',  label: 'PROGRAMS',  count: 12 },
+  { key: 'exercises', label: 'EXERCISES', count: MOCK_EXERCISES.length },
+  { key: 'workouts',  label: 'WORKOUTS',  count: MOCK_WORKOUTS.length },
+  { key: 'review',    label: 'REVIEW',    count: null },
 ];
 
 function DemoWorkouts() {
