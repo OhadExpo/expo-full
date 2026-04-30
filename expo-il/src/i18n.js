@@ -271,7 +271,7 @@ const STRINGS = {
   'contact.wa.prefill':   { en: 'Hi Ohad, I have a question about the programs', he: 'היי אוהד, יש לי שאלה על התוכניות' },
 
   // ─── Footer ───────────────────────────────────────────────────────
-  'footer.copy.tmpl':     { en: '© {year} EXPO · Ohad Yossifoff', he: '© {year} EXPO · אוהד יוסיפוף' },
+  'footer.copy.tmpl':     { en: '© {year} EXPO · Ohad Yossifoff · All rights reserved', he: '© {year} EXPO · אוהד יוסיפוף · כל הזכויות שמורות' },
   'footer.portal':        { en: 'PORTAL ↗',     he: 'פורטל ↗' },
   'footer.instagram':     { en: 'INSTAGRAM ↗',  he: 'אינסטגרם ↗' },
 
