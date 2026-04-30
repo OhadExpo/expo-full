@@ -27,10 +27,10 @@ const MOCK_TRAINEES = [
 
 const MOCK_DAYS = [
   { name: 'Day A · Push', exercises: [
-    { name: 'BB Bench Press',          sets: 4, reps: '6-8',  tempo: '3-1-1', superset: '' },
+    { name: 'BB Bench Press',          sets: 4, reps: '6-8',  tempo: '3-1-1', superset: '', wk: ['57.5kg', '60kg', '62.5kg', '65kg'] },
     { name: 'DB Incline Press',        sets: 3, reps: '8-10', tempo: '',      superset: 'A' },
     { name: 'Cable Fly',               sets: 3, reps: '12',   tempo: '',      superset: 'A' },
-    { name: 'Standing OHP',            sets: 4, reps: '6-8',  tempo: '',      superset: '' },
+    { name: 'Standing OHP',            sets: 4, reps: '6-8',  tempo: '',      superset: '', wk: ['32.5kg', '35kg', '37.5kg', '40kg'] },
     { name: 'Lateral Raise',           sets: 3, reps: '12-15',tempo: '',      superset: 'B' },
     { name: 'Tricep Pushdown',         sets: 3, reps: '12',   tempo: '',      superset: 'B' },
   ]},
@@ -43,7 +43,7 @@ const MOCK_DAYS = [
     { name: 'Hammer Curl',             sets: 3, reps: '10',   tempo: '',      superset: '' },
   ]},
   { name: 'Day C · Legs', exercises: [
-    { name: 'Back Squat',              sets: 5, reps: '5',    tempo: '3-0-X', superset: '' },
+    { name: 'Back Squat',              sets: 5, reps: '5',    tempo: '3-0-X', superset: '', wk: ['90kg', '95kg', '100kg', '105kg'] },
     { name: 'Romanian Deadlift',       sets: 4, reps: '8',    tempo: '',      superset: 'A' },
     { name: 'Walking Lunge',           sets: 3, reps: '10 E', tempo: '',      superset: 'A' },
     { name: 'Leg Curl',                sets: 3, reps: '12',   tempo: '',      superset: 'B' },
@@ -684,13 +684,40 @@ function DemoPrograms() {
                         background: C.sf2,
                         borderBottom: `1px solid ${C.bd}`,
                       }}>
+                        {/* Wave log (per-week loads) when present — same
+                            data shape as the real Plans editor's `ex.wk`
+                            array. Shown as W1/W2/W3/W4 cells with the active
+                            week highlighted. */}
+                        {e.wk && (
+                          <div style={{
+                            display: 'flex', gap: 6, flexWrap: 'wrap',
+                            marginBottom: 10, alignItems: 'center',
+                          }}>
+                            <span style={{
+                              fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
+                              marginRight: 4,
+                            }}>WAVE</span>
+                            {e.wk.map((load, wi) => {
+                              const isCurrent = wi === 1; // mock: week 2 active
+                              return (
+                                <span key={wi} style={{
+                                  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
+                                  color: isCurrent ? C.ac : C.tx, opacity: isCurrent ? 1 : 0.65,
+                                  background: isCurrent ? C.acD : C.sf,
+                                  border: `1px solid ${isCurrent ? C.ac : C.bd}`,
+                                  borderRadius: 4, padding: '3px 8px',
+                                }}>W{wi + 1} · {load}</span>
+                              );
+                            })}
+                          </div>
+                        )}
                         <div style={{
                           display: 'flex', gap: 8, flexWrap: 'wrap',
                         }}>
                           <ExerciseAction icon="▶"  label="WATCH DEMO"   sub={`${e.name} · 0:24`} />
                           <ExerciseAction icon="🔄" label="SWAP EXERCISE" sub="Suggest similar movement pattern" />
                           <ExerciseAction icon="🗒"  label="ADD NOTE"     sub="Cue, regression, contraindication…" />
-                          <ExerciseAction icon="📈" label="PROGRESSION"  sub={`Last week: ${e.sets}×${e.reps} · keep ↗ next`} />
+                          <ExerciseAction icon="📈" label="PROGRESSION"  sub={e.wk ? `Wave · ${e.wk.join(' / ')}` : `Last week: ${e.sets}×${e.reps} · keep ↗ next`} />
                         </div>
                       </td>
                     </tr>
