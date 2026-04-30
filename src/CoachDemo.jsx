@@ -1144,9 +1144,21 @@ function DemoWorkouts() {
             <div style={{ flex: '1 1 200px', minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85 }}>
               <span style={{ color: C.ac, fontFamily: FN, fontSize: 10, letterSpacing: 1.5, marginRight: 6 }}>TOP SET</span>{w.topSet}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flex: '0 0 auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flex: '0 0 auto', gap: 2 }}>
               <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700 }}>{w.vol}</span>
               <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{w.when}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flex: '0 0 auto' }}>
+              {w.flagged && (
+                <button title="Demo only" onClick={e => e.stopPropagation()} style={{
+                  ...baseBtn, background: 'transparent', color: C.ac,
+                  border: `1px solid ${C.ac}40`, padding: '5px 10px', fontSize: 10,
+                }}>🎬 OPEN</button>
+              )}
+              <button title="Demo only · decrement sessionsRemaining" onClick={e => e.stopPropagation()} style={{
+                ...baseBtn, background: 'transparent', color: C.tm,
+                border: `1px solid ${C.bd}`, padding: '5px 10px', fontSize: 10,
+              }}>✓ MARK SESSION</button>
             </div>
           </div>
         ))}
