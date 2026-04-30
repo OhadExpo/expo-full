@@ -181,6 +181,28 @@ function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
           ))}
         </Panel>
 
+        {/* Inbound leads — same shape as the real coach Dashboard's
+            "📩 New Leads" panel, populated from expo-il's LeadCapture form
+            via the leads Supabase table. */}
+        <Panel
+          title={<span><span style={{ color: C.ac }}>📩</span> NEW LEADS (3)</span>}
+          tint={C.ac}
+        >
+          {[
+            { email: 'avi.shahar@example.co.il',  source: 'expo-il',  context: 'hero',         when: '32 min ago' },
+            { email: 'maor.k@example.co.il',      source: 'expo-il',  context: 'exit-intent',  when: '4 hr ago' },
+            { email: 'tomer.ben@example.co.il',   source: 'expo-il',  context: 'quiz-finish',  when: 'Yesterday' },
+          ].map((l, i) => (
+            <Row key={i}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
+              </div>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{l.when}</span>
+            </Row>
+          ))}
+        </Panel>
+
         {/* Pending review */}
         <Panel
           title={<span><span style={{ color: C.ac }}>🎬</span> PENDING REVIEW (2)</span>}
