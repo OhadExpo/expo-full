@@ -263,10 +263,11 @@ function TraineeCard({ t, onClick }) {
   return (
     <div onClick={onClick} style={{
       background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
-      padding: 16, cursor: 'pointer', transition: 'border-color 0.15s',
+      padding: 16, cursor: 'pointer',
+      transition: 'border-color 0.15s, transform 0.15s, box-shadow 0.15s',
     }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
-      onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px -8px rgba(57,189,255,0.20)`; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = C.bd; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div style={{ flex: 1 }}>
@@ -312,10 +313,11 @@ function CoupleCard({ t, onClick }) {
   return (
     <div onClick={onClick} style={{
       background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
-      padding: 16, cursor: 'pointer', transition: 'border-color 0.15s',
+      padding: 16, cursor: 'pointer',
+      transition: 'border-color 0.15s, transform 0.15s, box-shadow 0.15s',
     }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
-      onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px -8px rgba(57,189,255,0.20)`; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = C.bd; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, flex: 1 }}>{t.name}</div>
@@ -358,6 +360,18 @@ function CoupleCard({ t, onClick }) {
 }
 
 function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES' }) {
+  // Couple detail: split each member into their own card column instead of
+  // jamming both names into a single profile. Real app shows it this way.
+  const isCouple = !!trainee.isCouple;
+  const coupleSplit = (() => {
+    if (!isCouple) return null;
+    const m = (trainee.name || '').match(/^(.+?)\s+ו(.+?)\s+(\S+)$/);
+    if (!m) return null;
+    return [
+      { first: m[1], surname: m[3], email: 'yael.cohen@example.co.il',  goals: 'First chin-up by August' },
+      { first: m[2], surname: m[3], email: 'idan.cohen@example.co.il',  goals: 'Body comp + bench plateau break' },
+    ];
+  })();
   return (
     <section>
       <button onClick={onBack} style={{
@@ -365,13 +379,47 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
         border: `1px solid ${C.bd}`, marginBottom: 18,
       }}>{backLabel}</button>
 
+      {isCouple && coupleSplit && (
+        <>
+          <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
+          <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.format} · {trainee.phone}</div>
+          <div style={{
+            display: 'grid', gap: 14, marginBottom: 14,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+          }}>
+            {coupleSplit.map((m, i) => (
+              <div key={i} style={{
+                background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+                padding: 14,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 16, color: C.tx }}>
+                    {m.first} {m.surname}
+                  </div>
+                  <FakeWaButton />
+                </div>
+                <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginBottom: 10 }}>
+                  {m.email}
+                </div>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.5, fontWeight: 700, marginBottom: 4 }}>GOAL</div>
+                <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45 }}>{m.goals}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       <div style={{
         display: 'grid', gap: 14,
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
       }}>
         <div>
-          <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
-          <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.email} · {trainee.phone}</div>
+          {!isCouple && (
+            <>
+              <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
+              <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.email} · {trainee.phone}</div>
+            </>
+          )}
 
           <Panel title="PROGRAMS" tint={C.ac}>
             {trainee.plans.map((name, i) => (
@@ -603,22 +651,46 @@ function ExerciseAction({ icon, label, sub }) {
 // ─── Tab: Exercises ───────────────────────────────────────────────────────
 function DemoExercises() {
   const [filter, setFilter] = useState('All');
+  const [search, setSearch] = useState('');
   const cats = ['All', ...Array.from(new Set(MOCK_EXERCISES.map(e => e.category)))];
-  const filtered = filter === 'All' ? MOCK_EXERCISES : MOCK_EXERCISES.filter(e => e.category === filter);
+  const q = search.trim().toLowerCase();
+  const filtered = MOCK_EXERCISES.filter(e => {
+    if (filter !== 'All' && e.category !== filter) return false;
+    if (q && !e.name.toLowerCase().includes(q) && !e.pattern.toLowerCase().includes(q)) return false;
+    return true;
+  });
   return (
     <section>
       <SectionHeader tag="EXERCISE LIBRARY" title="Your taxonomy, your rules" body="Every exercise is tagged with category + movement pattern. The rep counter routes joint channels off the pattern. Bring your existing library — bulk import is xlsx, sheets, or a Trainerize export." />
 
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
-        {cats.map(c => (
-          <button key={c} onClick={() => setFilter(c)} style={{
-            ...baseBtn,
-            background: filter === c ? C.acD : 'transparent',
-            color: filter === c ? C.ac : C.tm,
-            border: `1px solid ${filter === c ? C.ac : C.bd}`,
-            padding: '5px 12px', fontSize: 11,
-          }}>{c.toUpperCase()}</button>
-        ))}
+      <div style={{
+        display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14,
+      }}>
+        <input
+          type="search"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search exercises…"
+          style={{
+            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 8,
+            padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
+            outline: 'none', minWidth: 200, flex: '1 1 200px', maxWidth: 320,
+          }}
+        />
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {cats.map(c => (
+            <button key={c} onClick={() => setFilter(c)} style={{
+              ...baseBtn,
+              background: filter === c ? C.acD : 'transparent',
+              color: filter === c ? C.ac : C.tm,
+              border: `1px solid ${filter === c ? C.ac : C.bd}`,
+              padding: '5px 12px', fontSize: 11,
+            }}>{c.toUpperCase()}</button>
+          ))}
+        </div>
+        <span style={{
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, marginLeft: 'auto',
+        }}>{filtered.length} / {MOCK_EXERCISES.length}</span>
       </div>
 
       <div style={{
@@ -644,6 +716,11 @@ function DemoExercises() {
 
 // ─── Tab: Review ──────────────────────────────────────────────────────────
 function DemoReview() {
+  // The /demo iframe pulls ~6MB of MediaPipe wasm + lite model on first
+  // mount so the visitor stares at black for a few seconds. Skeleton sits
+  // *behind* the iframe (positioned absolutely under it) and fades when the
+  // iframe fires onLoad.
+  const [iframeLoaded, setIframeLoaded] = useState(false);
   return (
     <section>
       <SectionHeader tag="REVIEW TOOL" title="Where you actually coach" body="Client clip arrives, pose overlay + rep count auto-attach. You scrub, draw on the bar path, drop timestamped comments, and queue a reply video. The trainee sees all of it in their portal — no email, no DMs." />
@@ -685,14 +762,38 @@ function DemoReview() {
           <div style={{
             background: C.sf, border: `1px solid ${C.bd2}`,
             borderTop: 'none', borderBottomLeftRadius: 14, borderBottomRightRadius: 14,
-            overflow: 'hidden',
+            overflow: 'hidden', position: 'relative', minHeight: 660,
             boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
           }}>
+            {/* Loading skeleton — sits behind the iframe; fades when onLoad fires */}
+            {!iframeLoaded && (
+              <div style={{
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: 14,
+                background: `linear-gradient(180deg, ${C.sf2} 0%, ${C.sf} 100%)`,
+                color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1.8,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  border: `2px solid ${C.bd}`, borderTopColor: C.ac,
+                  animation: 'cd-spin 0.9s linear infinite',
+                }} />
+                <div>LOADING REVIEW TOOL…</div>
+                <div style={{ fontSize: 9, color: C.td, letterSpacing: 1.5 }}>POSE MODEL · ~6MB · FIRST LOAD ONLY</div>
+                <style>{`@keyframes cd-spin { to { transform: rotate(360deg) } }`}</style>
+              </div>
+            )}
             {/* embed=1 strips TrySandbox's own header / banner / footer so the
                 engine slots cleanly inside CoachDemo's review tab without
                 nested chrome. */}
             <iframe src="/demo?embed=1" title="Live engine"
-              style={{ display: 'block', width: '100%', height: 660, border: 'none' }} />
+              onLoad={() => setIframeLoaded(true)}
+              style={{
+                display: 'block', width: '100%', height: 660, border: 'none',
+                position: 'relative', zIndex: 1,
+                opacity: iframeLoaded ? 1 : 0, transition: 'opacity 0.3s',
+              }} />
           </div>
         </div>
 
@@ -853,18 +954,38 @@ export default function CoachDemo() {
             padding: '4px 8px', background: C.acD, borderRadius: 6,
             border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
           }}>COACH DEMO</span>
-          <nav style={{
+          <nav role="tablist" aria-label="Coach demo tabs" style={{
             display: 'flex', gap: 2, flex: '1 1 auto', justifyContent: 'center',
             minWidth: 'max-content',
           }}>
-            {TABS.map(t => (
-              <button key={t.key} onClick={() => { setTab(t.key); setSelectedTrainee(null); }} style={{
-                ...baseBtn,
-                background: tab === t.key ? C.acD : 'transparent',
-                color: tab === t.key ? C.ac : C.tm,
-                padding: '6px 12px', fontSize: 11, letterSpacing: 1.5,
-                whiteSpace: 'nowrap',
-              }}>{t.label}</button>
+            {TABS.map((t, i) => (
+              <button key={t.key} role="tab" aria-selected={tab === t.key}
+                tabIndex={tab === t.key ? 0 : -1}
+                onClick={() => { setTab(t.key); setSelectedTrainee(null); }}
+                onKeyDown={e => {
+                  if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
+                  e.preventDefault();
+                  let nextIdx = i;
+                  if (e.key === 'ArrowRight') nextIdx = (i + 1) % TABS.length;
+                  else if (e.key === 'ArrowLeft') nextIdx = (i - 1 + TABS.length) % TABS.length;
+                  else if (e.key === 'Home') nextIdx = 0;
+                  else if (e.key === 'End') nextIdx = TABS.length - 1;
+                  const nextKey = TABS[nextIdx].key;
+                  setTab(nextKey); setSelectedTrainee(null);
+                  // focus moves to the newly-active tab so screen-readers track
+                  setTimeout(() => {
+                    const el = document.querySelector(`[role="tab"][data-key="${nextKey}"]`);
+                    if (el) el.focus();
+                  }, 0);
+                }}
+                data-key={t.key}
+                style={{
+                  ...baseBtn,
+                  background: tab === t.key ? C.acD : 'transparent',
+                  color: tab === t.key ? C.ac : C.tm,
+                  padding: '6px 12px', fontSize: 11, letterSpacing: 1.5,
+                  whiteSpace: 'nowrap',
+                }}>{t.label}</button>
             ))}
           </nav>
           <a href="/coaches#waitlist" className="cd-cta-waitlist" style={{
