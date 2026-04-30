@@ -10,7 +10,7 @@
 // No checkout, no signup, no multi-tenancy yet — this is a waitlist page.
 // Stripe + the trainers table get built once the waitlist proves demand.
 import React, { useState } from 'react';
-import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
@@ -282,10 +282,7 @@ export default function CoachLanding() {
           display: 'flex', alignItems: 'center', height: 60, gap: 14,
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
-            {/* Wrapper-clip — see CoachDemo header for the explanation. */}
-            <div style={{ height: 16, overflow: 'hidden', display: 'inline-flex', alignItems: 'flex-end' }}>
-              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 23 }} />
-            </div>
+            <EXPOMark height={22} style={{ marginBottom: 0 }} />
           </a>
           <span style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,

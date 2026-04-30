@@ -8,7 +8,7 @@
 // Authed visitors never see this. AuthGate short-circuits to AuthedApp's
 // RolePicker / portal flow before EntryChooser can render.
 import React from 'react';
-import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
 
 const tileBase = {
@@ -64,10 +64,7 @@ export default function EntryChooser() {
           maxWidth: 1180, margin: '0 auto', padding: '0 16px',
           display: 'flex', alignItems: 'center', height: 60,
         }}>
-          {/* Wrapper-clip — see CoachDemo header for the explanation. */}
-          <div style={{ height: 16, overflow: 'hidden', display: 'inline-flex', alignItems: 'flex-end' }}>
-            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 23 }} />
-          </div>
+          <EXPOMark height={22} style={{ marginBottom: 0 }} />
         </div>
       </header>
 
