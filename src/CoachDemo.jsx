@@ -255,6 +255,11 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
 }
 
 function TraineeCard({ t, onClick }) {
+  // Couples render with two member columns separated by a vertical divider —
+  // matches the real coach-app TraineeCard layout. Each member gets their
+  // own name, "first name" derived from the combined "X ו/and Y Surname"
+  // name, plus their own WhatsApp button.
+  if (t.isCouple) return <CoupleCard t={t} onClick={onClick} />;
   return (
     <div onClick={onClick} style={{
       background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
@@ -289,6 +294,64 @@ function TraineeCard({ t, onClick }) {
             DORMANT · {t.dormantDays}D
           </span>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CoupleCard({ t, onClick }) {
+  // Split "יעל ועידן כהן" → ["יעל", "עידן", surname "כהן"]. Falls back to a
+  // single column if the name doesn't parse — better to show one row than
+  // crash on an unfamiliar name shape.
+  const parseCouple = (full) => {
+    const m = (full || '').match(/^(.+?)\s+ו(.+?)\s+(\S+)$/);
+    if (!m) return null;
+    return { a: m[1], b: m[2], surname: m[3] };
+  };
+  const parsed = parseCouple(t.name);
+  return (
+    <div onClick={onClick} style={{
+      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+      padding: 16, cursor: 'pointer', transition: 'border-color 0.15s',
+    }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
+      onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, flex: 1 }}>{t.name}</div>
+        <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
+      </div>
+      {parsed && (
+        <div style={{ display: 'flex', marginTop: 12 }}>
+          {[parsed.a, parsed.b].map((member, mi) => (
+            <React.Fragment key={mi}>
+              {mi === 1 && <div style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flex: 1, minWidth: 0 }}>
+                    {member} {parsed.surname}
+                  </div>
+                  <FakeWaButton />
+                </div>
+                <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
+                  {mi === 0 ? 'yael.cohen@example.co.il' : 'idan.cohen@example.co.il'}
+                </div>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700, marginTop: 6 }}>
+                  {t.programs} PROGRAMS
+                </div>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+      )}
+      <div style={{
+        fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 600,
+        textTransform: 'uppercase', marginTop: 14,
+      }}>{t.format}</div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>
+          {t.sessionsLeft} SESSIONS LEFT
+        </span>
       </div>
     </div>
   );
@@ -368,14 +431,59 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
 function DemoPrograms() {
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
   const [openExIdx, setOpenExIdx] = useState(null);
+  const [activeBlock, setActiveBlock] = useState('Block #4');
   const day = MOCK_DAYS[selectedDayIdx];
+  const BLOCK_HISTORY = [
+    { name: 'Block #4', tag: 'Push/Pull Volume', when: 'Active · Week 2/4' },
+    { name: 'Block #3', tag: 'Strength Base',    when: 'Apr · 4 weeks'    },
+    { name: 'Block #2', tag: 'Reset',            when: 'Mar · 3 weeks'    },
+    { name: 'Block #1', tag: 'Intake',           when: 'Feb · 2 weeks'    },
+  ];
   return (
     <section>
       <SectionHeader tag="PROGRAMS" title="Block-based plan editor" body="Each block is a phase of training. Days are tabs. Each row = sets, reps, tempo, video link, superset letter. Bulk import from xlsx; bulk duplicate to clone a plan onto a new client." />
 
+      <div className="cd-prog-grid" style={{
+        display: 'grid', gap: 14, marginBottom: 14,
+        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 3fr)',
+      }}>
+        {/* Block-history sidebar */}
+        <div style={{
+          background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+          padding: 14, alignSelf: 'start',
+        }}>
+          <div style={{
+            fontFamily: FN, color: C.tm, fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
+            marginBottom: 10,
+          }}>BLOCK HISTORY</div>
+          {BLOCK_HISTORY.map((b, i) => {
+            const on = b.name === activeBlock;
+            return (
+              <div key={i} onClick={() => setActiveBlock(b.name)} style={{
+                padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                marginBottom: 4,
+                background: on ? C.acD : 'transparent',
+                border: `1px solid ${on ? C.ac : 'transparent'}`,
+                transition: 'all 0.15s',
+              }}>
+                <div style={{
+                  fontFamily: FB, fontSize: 13, fontWeight: 700,
+                  color: on ? C.ac : C.tx,
+                }}>{b.name}</div>
+                <div style={{
+                  fontFamily: FB, fontSize: 11.5, color: C.tx, opacity: 0.7,
+                }}>{b.tag}</div>
+                <div style={{
+                  fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, marginTop: 2,
+                }}>{b.when}</div>
+              </div>
+            );
+          })}
+        </div>
+
       <div style={{
         background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
-        padding: 18, marginBottom: 14,
+        padding: 18,
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
           <h3 style={{ fontFamily: FB, fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>Block #4 — Push/Pull Volume</h3>
@@ -447,6 +555,7 @@ function DemoPrograms() {
             })}
           </tbody>
         </table></div>
+      </div>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -719,6 +828,11 @@ export default function CoachDemo() {
         @media (max-width: 540px) {
           .cd-prog-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
           .cd-prog-table { min-width: 520px; }
+        }
+        /* Programs block-history sidebar collapses to a single row on phones
+           so the editor still gets full width. */
+        @media (max-width: 720px) {
+          .cd-prog-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
