@@ -317,11 +317,19 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
           style={{
             background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 8,
             padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
-            outline: 'none', minWidth: 240, flex: '1 1 240px', maxWidth: 400,
+            outline: 'none', minWidth: 200, flex: '1 1 200px', maxWidth: 320,
           }}
         />
+        <button title="Demo only" style={{
+          ...baseBtn, background: 'transparent', color: C.tm,
+          border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
+        }}>📦 ARCHIVE (0)</button>
+        <button title="Demo only" style={{
+          ...baseBtn, background: C.ac, color: '#000',
+          padding: '8px 14px', fontSize: 11,
+        }}>+ ADD TRAINEE ▾</button>
         <span style={{
-          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, marginLeft: 'auto',
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
         }}>{filtered.length} / {MOCK_TRAINEES.length}</span>
       </div>
       {filtered.length === 0 ? (
