@@ -181,9 +181,11 @@ function AuthGate() {
   }
 
   // Signed-out /coach entry bounces to /login (the trainer portal needs auth).
+  // Match `/coach` or `/coach/...` exactly — NOT /coaches (the marketing
+  // landing), which incidentally also starts with "coach".
   useEffect(() => {
     if (!auth || auth.loading || auth.session) return;
-    if (path.startsWith('/coach')) {
+    if (path === '/coach' || path.startsWith('/coach/')) {
       window.history.replaceState(null, '', '/login');
     }
   }, [auth, path]);
@@ -262,12 +264,14 @@ function AuthedApp() {
     // on first pick (useState's initializer runs once, before portalChoice
     // exists), leaving no active tab highlighted until the user clicked.
     if (side === 'trainer') {
-      if (!window.location.pathname.startsWith('/coach')) {
+      const p = window.location.pathname;
+      if (!(p === '/coach' || p.startsWith('/coach/'))) {
         window.history.replaceState(null, '', '/coach/dashboard');
       }
       setTab('dashboard');
     } else if (side === 'client') {
-      if (window.location.pathname.startsWith('/coach')) {
+      const p = window.location.pathname;
+      if (p === '/coach' || p.startsWith('/coach/')) {
         window.history.replaceState(null, '', '/');
       }
       setTab('client');
@@ -285,10 +289,12 @@ function AuthedApp() {
   const isClient = isBoth ? portalChoice === 'client' : hasClientRow;
   const clientId = clientTrainee?.id || null;
 
-  // Routing: / = portal, /coach = trainer, /coach/tab = specific tab
+  // Routing: / = portal, /coach = trainer, /coach/tab = specific tab.
+  // Anchor on `/coach` exactly or `/coach/` so /coaches (the marketing
+  // landing) doesn't get pulled into the trainer router.
   const getRoute = () => {
     const p = window.location.pathname;
-    if (p.startsWith('/coach')) {
+    if (p === '/coach' || p.startsWith('/coach/')) {
       const sub = p.replace('/coach','').replace(/^\//,'');
       if (sub.startsWith('trainees/')) return { mode:'coach', tab:'trainees', traineeId:sub.split('/')[1] };
       const tabMap = {dashboard:'dashboard',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts'};
@@ -316,7 +322,8 @@ function AuthedApp() {
   useEffect(() => {
     if (!tL) return;
     const p = window.location.pathname;
-    const onCoach = p.startsWith('/coach');
+    // Match /coach exactly or /coach/... — NOT /coaches (the marketing page).
+    const onCoach = p === '/coach' || p.startsWith('/coach/');
     const onLogin = p.startsWith('/login');
     if (isClient && (onCoach || onLogin)) window.history.replaceState(null, '', '/');
     else if (isTrainer && !onCoach) { window.history.replaceState(null, '', '/coach/dashboard'); setTab('dashboard'); }
