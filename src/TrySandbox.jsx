@@ -107,7 +107,7 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
     }}>
       {!isEmbedded && <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />}
       {!isEmbedded && <POVBanner pov={pov} />}
-      {!isEmbedded && pov === 'trainee' && <TraineeContextStrip />}
+      {!isEmbedded && pov === 'trainee' && <TraineeContextStrip exercise={exercise} />}
       <main style={{ flex:1, padding: isEmbedded ? '14px 16px 24px' : '18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
         {step === 'exercise' && <ExercisePicker pov={pov} onPick={onPickExercise} />}
         {step === 'upload'   && <UploadStep pov={pov} exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
@@ -206,7 +206,27 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
 // POV). Frames the engine as "inside today's workout, exercise 1 of 8"
 // rather than a standalone upload tool — same shape as ClientPortal's
 // header line which shows "DAY A · W2" plus the current exercise.
-function TraineeContextStrip() {
+function TraineeContextStrip({ exercise }) {
+  // Per-lift mock prescription — what would have been pulled from the
+  // trainee's plan in production. Falls back to a default for picks that
+  // don't have a specific entry, and to "Pick a lift" when nothing's chosen.
+  const PRESCRIPTIONS = {
+    'Back Squat':       { sets: 5, reps: '5',     load: '95kg' },
+    'Goblet Squat':     { sets: 3, reps: '8-10',  load: '24kg' },
+    'Walking Lunge':    { sets: 3, reps: '10 E',  load: '2×16kg' },
+    'Romanian Deadlift':{ sets: 4, reps: '8',     load: '70kg' },
+    'Deadlift':         { sets: 5, reps: '3',     load: '110kg' },
+    'Hip Thrust':       { sets: 4, reps: '10',    load: '80kg' },
+    'Bench Press':      { sets: 4, reps: '6-8',   load: '60kg' },
+    'Overhead Press':   { sets: 4, reps: '6-8',   load: '35kg' },
+    'Push-Up':          { sets: 3, reps: '12-15', load: 'BW' },
+    'Pull-Up':          { sets: 4, reps: '6-8',   load: 'BW' },
+    'DB Row':           { sets: 3, reps: '10 E',  load: '20kg' },
+    'DB Curl':          { sets: 3, reps: '12',    load: '12.5kg' },
+    'Lateral Raise':    { sets: 3, reps: '12-15', load: '7.5kg' },
+  };
+  const liftLabel = exercise?.label || 'Pick a lift to film';
+  const rx = exercise ? (PRESCRIPTIONS[exercise.label] || { sets: 4, reps: '8-10', load: '—' }) : null;
   return (
     <div style={{
       borderBottom: `1px solid ${C.bd}`,
@@ -226,11 +246,13 @@ function TraineeContextStrip() {
         }}>WEEK 2 OF 4 · EXERCISE 1 OF 8</span>
         <span style={{ flex: '1 1 auto' }} />
         <span style={{
-          fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 700,
-        }}>BB Bench Press</span>
-        <span style={{
-          fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700,
-        }}>4 × 6-8 · 60kg</span>
+          fontFamily: FB, fontSize: 13, color: exercise ? C.tx : C.tm, fontWeight: 700,
+        }}>{liftLabel}</span>
+        {rx && (
+          <span style={{
+            fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700,
+          }}>{rx.sets} × {rx.reps}{rx.load && rx.load !== '—' ? ` · ${rx.load}` : ''}</span>
+        )}
       </div>
     </div>
   );
