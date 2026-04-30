@@ -179,7 +179,9 @@ export function LoginScreen() {
     <div style={wrapStyle}>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div style={{ textAlign: 'center', marginBottom: 16, padding: '0 28px', boxSizing: 'border-box' }}>
-          <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '20vh', objectFit: 'contain', marginBottom: 77 }} />
+          <a href="https://expo-il.co.il/" title="EXPO" style={{ display: 'block', textDecoration: 'none' }}>
+            <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '20vh', objectFit: 'contain', marginBottom: 77 }} />
+          </a>
           <div style={{ color: C.tm, fontSize: 15 }}>Sign<span style={{ color: C.td }}>-</span>in</div>
         </div>
         <div style={cardStyle}>

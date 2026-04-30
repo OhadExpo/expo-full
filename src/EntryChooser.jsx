@@ -1,6 +1,6 @@
 // Front door at expo-app.co.il/ for unauthenticated visitors. Two tiles:
 //   • Sign in       → /login  (existing user — coach OR client portal account)
-//   • For coaches   → /coaches (marketing landing for prospective SaaS buyers)
+//   • For coaches   → /demo (marketing landing for prospective SaaS buyers)
 // The /try and /demo public routes stay reachable directly without going
 // through this screen — they're entry points for visitors arriving from
 // expo-il (athletes) or social posts (coaches).
@@ -97,7 +97,7 @@ export default function EntryChooser() {
             sub="Coach or client account — pick up where you left off."
           />
           <Tile
-            href="/coaches"
+            href="/demo"
             badge="NEW HERE"
             title="For coaches"
             sub="See how EXPO helps you run your roster — pose detection, rep counter, branded client portals."
@@ -109,9 +109,9 @@ export default function EntryChooser() {
           marginTop: 28, fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
           textAlign: 'center',
         }}>
-          <a href="/coaches/try" style={{ color: C.td, textDecoration: 'none' }}>FULL COACH DEMO</a>
+          <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>FULL COACH DEMO</a>
           <span style={{ margin: '0 8px' }}>·</span>
-          <a href="/coaches/demo" style={{ color: C.td, textDecoration: 'none' }}>TRAINEE VIEW</a>
+          <a href="/demo/trainee" style={{ color: C.td, textDecoration: 'none' }}>TRAINEE VIEW</a>
           <span style={{ margin: '0 8px' }}>·</span>
           <a href="https://expo-il.co.il/" style={{ color: C.td, textDecoration: 'none' }}>BUY A PROGRAM</a>
         </div>

@@ -22,7 +22,7 @@ const WorkoutReview = lazy(() => import('./WorkoutReview'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazy(() => import('./TrySandbox'));
-// Public coach-sales marketing landing at /coaches for unauthed visitors.
+// Public coach-sales marketing landing at /demo for unauthed visitors.
 const CoachLanding = lazy(() => import('./CoachLanding'));
 // Front-door chooser at / for unauthed visitors — splits Sign In vs the
 // coach-sales landing so existing users aren't dumped into a marketing pitch.
@@ -158,14 +158,15 @@ function AuthGate() {
   const path = typeof window !== 'undefined' ? window.location.pathname : '/';
   const inPwa = isStandalonePwa();
 
-  // PWA-mode: marketing surfaces are off-limits. Anyone who lands on /coaches/*
-  // or the EntryChooser inside the installed app gets bounced into the product
-  // flow (LoginScreen for unauthed → portal/dashboard for authed). The
-  // marketing site stays live in regular browser tabs. Old /try and /demo
-  // paths also count as marketing (legacy redirect targets — see below).
+  // PWA-mode: marketing surfaces are off-limits. Anyone who lands on /demo*
+  // or /coaches* (legacy) or the EntryChooser inside the installed app gets
+  // bounced into the product flow (LoginScreen for unauthed → portal/dashboard
+  // for authed). The marketing site stays live in regular browser tabs.
+  // Old /try paths also count as marketing (legacy redirect targets).
   const isMarketingPath = path === '/' || path === ''
+    || path.startsWith('/demo')
     || path.startsWith('/coaches')
-    || path === '/try' || path === '/demo';
+    || path === '/try';
   useEffect(() => {
     if (!inPwa) return;
     if (!isMarketingPath) return;
@@ -174,25 +175,35 @@ function AuthGate() {
     }
   }, [inPwa, isMarketingPath]);
 
-  // Backward-compat: legacy /try and /demo URLs (pre-2026-05-01 namespace
-  // move) redirect to their /coaches/ canonical homes. External links from
-  // social posts / expo-il / chat shares keep working without 404s.
+  // Backward-compat: legacy /try, /coaches, /coaches/try, /coaches/demo,
+  // /coaches/demo/* URLs redirect to /demo* canonical homes. External links
+  // from social posts / expo-il / chat shares keep working without 404s.
   useEffect(() => {
     if (inPwa) return;
-    if (path === '/try')  window.history.replaceState(null, '', '/coaches/try');
-    if (path === '/demo') window.history.replaceState(null, '', '/coaches/demo');
+    if (path === '/coaches' || path === '/coaches/') {
+      window.history.replaceState(null, '', '/demo' + (window.location.hash || ''));
+      return;
+    }
+    if (path === '/try' || path === '/coaches/try' || path === '/coaches/demo/coach') {
+      window.history.replaceState(null, '', '/demo/coach');
+      return;
+    }
+    if (path === '/coaches/demo' || path === '/coaches/demo/trainee') {
+      window.history.replaceState(null, '', '/demo/trainee');
+      return;
+    }
   }, [inPwa, path]);
 
-  // Browser-mode public demo routes — nested under /coaches/ so they read
-  // as part of the coach-acquisition funnel:
-  //   /coaches/try   → CoachDemo (full coach-side tour)
-  //   /coaches/demo  → TrySandbox pov="trainee" (engine sandbox)
-  // Both end-CTAs converge at /coaches#waitlist. Hidden in PWA mode.
+  // Browser-mode public demo routes:
+  //   /demo          → CoachLanding (marketing pitch + waitlist)
+  //   /demo/coach    → CoachDemo (full coach-side tour)
+  //   /demo/trainee  → TrySandbox pov="trainee" (engine sandbox)
+  // Both end-CTAs converge at /demo#waitlist. Hidden in PWA mode.
   if (!inPwa) {
-    if (path === '/coaches/try' || path === '/try') {
+    if (path === '/demo/coach' || path === '/coaches/demo/coach' || path === '/coaches/try' || path === '/try') {
       return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
     }
-    if (path === '/coaches/demo' || path === '/demo') {
+    if (path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
       return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
     }
   }
@@ -212,12 +223,13 @@ function AuthGate() {
     // directly so the user can authenticate without seeing the marketing
     // chooser or landing page.
     if (inPwa) return <LoginScreen />;
-    // Browser mode: front door at / is the EntryChooser; /coaches is the
-    // marketing landing; everything else falls through to LoginScreen.
+    // Browser mode: front door at / is the EntryChooser; /demo is the
+    // coach-marketing landing (legacy /coaches still resolves); everything
+    // else falls through to LoginScreen.
     if (path === '/' || path === '') {
       return <Suspense fallback={<BootSplash />}><EntryChooser /></Suspense>;
     }
-    if (path.startsWith('/coaches')) {
+    if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
       return <Suspense fallback={<BootSplash />}><CoachLanding /></Suspense>;
     }
     return <LoginScreen />;
@@ -580,8 +592,8 @@ function AuthedApp() {
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
           {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)}/>}
-          {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)}/>}
-          {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} setPayments={setPayments} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
+          {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)}/>}
+          {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} setPayments={setPayments} bwLog={bwLog} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
           {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
           {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout}/>}
           {tab==="plans"&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)}/>}

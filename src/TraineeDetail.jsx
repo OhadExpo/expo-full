@@ -4,10 +4,9 @@ import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInpu
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
-import TraineePRsView from './TraineePRsView';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId } from './traineeUtils';
 
-export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, onBack, onOpenPlan, portalVis, setPortalVis }) {
+export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
   // For couples: plans assigned to parent ID are shared, plans to sub-IDs are per-member
   const traineeIds = traineeIdsFor(trainee);
@@ -17,10 +16,21 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const _allIds = new Set(traineeIds);
   const tw=workouts.filter(w=>_allIds.has(w.traineeId)&&w.status==="completed");
   const tPay=payments.filter(p=>_allIds.has(p.traineeId));
-  // Filter client portal workouts down to this trainee (parent + sub-member ids
-  // for couples). Powers the Records section below.
+  // Portal-logged workouts (the trainee's own session logs from their portal).
+  // We merge these with in-person `tw` for the Recent Workouts feed below —
+  // without that merge, clients who train solo from the portal (Amit, Roey)
+  // looked totally inactive in their detail view.
   const tcw = (clientWorkouts || []).filter(w => _allIds.has(w.clientId));
-  const [recordsSort, setRecordsSort] = useState('recent'); // 'recent' | 'jump'
+  const tAllWorkouts = [
+    ...tw.map(w => ({ id: w.id, date: w.date, dayName: w.dayName, source: 'coach' })),
+    ...tcw.map(w => ({ id: w.id, date: w.date, dayName: w.dayName || w.planName || 'Session', source: 'portal' })),
+  ].sort((a,b) => new Date(b.date) - new Date(a.date));
+  // Bodyweight log entries that belong to this trainee, oldest → newest so
+  // the sparkline reads left-to-right as time-forward.
+  const tBw = (bwLog || [])
+    .filter(b => _allIds.has(b.clientId) && Number.isFinite(parseFloat(b.bw)))
+    .map(b => ({ ...b, bw: parseFloat(b.bw) }))
+    .sort((a,b) => new Date(a.date) - new Date(b.date));
   const [showPayForm,setShowPayForm]=useState(false);
   const [showEdit,setShowEdit]=useState(false);
   const [editForm,setEditForm]=useState(null);
@@ -123,8 +133,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     );
   };
 
-  // Helper: render a member column (body stats, injuries, goals, programs)
-  const renderMemberColumn = (m, mi) => {
+  // Helper: render a member column (body stats, injuries, goals, optionally programs)
+  const renderMemberColumn = (m, mi, showPrograms = true) => {
     const memberPlans = tpMember(mi);
     const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
     const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
@@ -143,6 +153,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {m.goals&&<div style={{marginTop:6,padding:8,background:C.acD,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,textAlign:'center'}}>{m.goals}</div></div>}
           {m.notes&&<div style={{marginTop:6,padding:8,background:C.sf2,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,textAlign:'center'}}>{m.notes}</div></div>}
         </Card>
+        {showPrograms && <>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'12px 0 6px',gap:8}}>
           <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600}}>{m.name} — PROGRAMS ({sorted.length})</div>
           {bulkToggleBtn(sorted, memberVisKey)}
@@ -163,6 +174,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 </div>
               </div>
             </Card>)})}
+        </>}
       </div>
     );
   };
@@ -194,24 +206,18 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             Shared · {td.format} · <Badge color={statusColor[td.status]}>{td.status}</Badge>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(100px, 1fr))',gap:10}}>
-            {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',td.lastPayment||'—'],['Since',td.startDate]].map(([l,v])=>
+            {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',td.lastPayment||'—'],['Since',td.startDate],['Workouts',tAllWorkouts.length]].map(([l,v])=>
               <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
         </Card>
 
-        {/* Two-column member split */}
+        {/* Two-column member split — body stats / injuries / goals only.
+            Programs render at the bottom of the page (after Overload chart),
+            grouped per member, instead of inline inside each column. */}
         <div style={{display:'flex',gap:12}}>
-          {renderMemberColumn(td.members[0], 0)}
+          {renderMemberColumn(td.members[0], 0, false)}
           <div style={{width:1,background:C.bd,alignSelf:'stretch',flexShrink:0}} />
-          {renderMemberColumn(td.members[1], 1)}
-        </div>
-
-        {/* Program sort + assign (shared) */}
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'20px 0 12px'}}>
-          <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"4px 10px",color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-          </div>
-          <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn>
+          {renderMemberColumn(td.members[1], 1, false)}
         </div>
       </> : <>
 
@@ -222,7 +228,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <div style={{display:"flex",alignItems:"center",gap:8,position:"absolute",right:16,top:16}}>
           <Badge color={statusColor[td.status]}>{td.status}</Badge></div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:16,textAlign:"center"}}>
-          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",td.lastPayment||"—"],["Since",td.startDate],["Workouts",tw.length]].map(([l,v])=>
+          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",td.lastPayment||"—"],["Since",td.startDate],["Workouts",tAllWorkouts.length]].map(([l,v])=>
             <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
       </Card>
@@ -235,13 +241,6 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         {td.goals&&<div style={{marginTop:8,padding:10,background:C.acD,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center'}}>{td.goals}</div></div>}
         {td.notes&&<div style={{marginTop:8,padding:10,background:C.sf2,borderRadius:6}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center'}}>{td.notes}</div></div>}
       </Card>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px"}}>
-        <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
-        <div style={{display:'flex',gap:6,alignItems:'center'}}>
-          {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
-          <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"4px 10px",color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-          <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn></div></div>
-      {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
       </>}
 
       {/* === SHARED SECTIONS (billing, workouts, modals) === */}
@@ -270,28 +269,72 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <div style={{gridColumn:"1 / -1"}}><Input label="Notes" value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})} /></div></div>
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
           <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tw.length})</h3>
-      {tw.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
-        tw.slice().reverse().slice(0,10).map(w=><Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between"}}><div style={{fontWeight:600,color:C.tx,fontSize:13}}>{w.dayName}</div><span style={{fontSize:12,color:C.tm}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
+      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tAllWorkouts.length})</h3>
+      {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
+        tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span><Badge color={w.source==='portal'?C.ac:C.gn}>{w.source==='portal'?'PORTAL':'COACH'}</Badge></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
 
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px"}}>
-        <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Records</h3>
-        <div style={{display:'flex',gap:6,alignItems:'center'}}>
-          <button onClick={()=>setRecordsSort(s=>s==='recent'?'jump':'recent')}
-            title={recordsSort==='recent' ? 'Sort by biggest jump' : 'Sort by most recent'}
-            style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"4px 10px",color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>
-            {recordsSort==='recent' ? '↕ RECENT' : '↕ BIGGEST JUMP'}
-          </button>
-        </div>
-      </div>
-      {tcw.length === 0 ? (
-        <div style={{color:C.td,fontSize:13}}>No portal-logged sessions yet — Records appear once the trainee logs workouts from their portal.</div>
-      ) : (
-        <TraineePRsView clientWorkouts={tcw} traineeId={null} embedded sortMode={recordsSort} />
-      )}
+      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Bodyweight ({tBw.length})</h3>
+      <BWChart entries={tBw} />
 
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Progressive Overload</h3>
       <OverloadChart workouts={tw} exercises={exercises} />
+
+      {/* === ASSIGNED PROGRAMS — last section on the page so the coach can
+          scan billing / workouts / charts before drilling into plan structure. */}
+      {couple ? <>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"28px 0 12px"}}>
+          <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"4px 10px",color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn>
+          </div>
+        </div>
+        <div style={{display:'flex',gap:12}}>
+          {[0,1].map(mi => {
+            const m = td.members[mi];
+            const memberPlans = tpMember(mi);
+            const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
+            const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
+            return (
+              <React.Fragment key={mi}>
+                {mi === 1 && <div style={{width:1,background:C.bd,alignSelf:'stretch',flexShrink:0}} />}
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'6px 0',gap:8}}>
+                    <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600}}>{m.name} — {sorted.length}</div>
+                    {bulkToggleBtn(sorted, memberVisKey)}
+                  </div>
+                  {sorted.length===0?<div style={{color:C.td,fontSize:12}}>No programs assigned.</div>:
+                    sorted.map(p=>{const visKey=memberVisKey(p);const isVis=portalVis?.[visKey]!==false;return(
+                      <Card key={p.id} style={{marginBottom:6,padding:10}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                          <div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}>
+                            <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
+                            <div style={{fontSize:11,color:C.tm,marginTop:2}}>{p.dayCount||0} days · {p.exerciseCount||0} ex</div>
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button>
+                            <button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
+                              <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
+                            </button>
+                          </div>
+                        </div>
+                      </Card>)})}
+                </div>
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </> : <>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"28px 0 12px"}}>
+          <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
+          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:6,padding:"4px 10px",color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn>
+          </div>
+        </div>
+        {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
+      </>}
 
       <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null)}} title="Assign Program">
         {pendingAssignPlan && couple ? (
@@ -441,4 +484,60 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <Btn variant="ghost" onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("")}}>Cancel</Btn>
             <Btn variant="danger" onClick={()=>{if(deleteTyped.trim().toUpperCase()==="DELETE")handlePermanentDelete()}} style={{opacity:deleteTyped.trim().toUpperCase()==="DELETE"?1:0.3,pointerEvents:deleteTyped.trim().toUpperCase()==="DELETE"?"auto":"none"}}>Delete Permanently</Btn></div></div></div>}
     </div>);
+}
+
+// Bodyweight sparkline + delta. Plots one point per bw_log entry, oldest →
+// newest. Shows the absolute first/current/min/max values plus a Δ from the
+// first logged weight so the coach gets net change at a glance.
+function BWChart({ entries }) {
+  if (!entries || entries.length === 0) {
+    return <Card style={{textAlign:'center',padding:'18px 16px',color:C.td,fontSize:13}}>No bodyweight logged yet — appears once the trainee logs weight from their portal.</Card>;
+  }
+  const W = 800, H = 140, PAD_X = 14, PAD_TOP = 18, PAD_BOTTOM = 24;
+  const values = entries.map(e => e.bw);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = (max - min) || 1;
+  const first = values[0];
+  const last = values[values.length - 1];
+  const delta = last - first;
+  const xStep = entries.length === 1 ? 0 : (W - PAD_X * 2) / (entries.length - 1);
+  const points = entries.map((e, i) => {
+    const x = entries.length === 1 ? W / 2 : PAD_X + i * xStep;
+    const y = PAD_TOP + (1 - (e.bw - min) / span) * (H - PAD_TOP - PAD_BOTTOM);
+    return { x, y, bw: e.bw, date: e.date };
+  });
+  const polyline = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const areaPath = `M${points[0].x},${H - PAD_BOTTOM} L${polyline.replace(/ /g, ' L')} L${points[points.length - 1].x},${H - PAD_BOTTOM} Z`;
+  const deltaColor = delta < 0 ? C.gn : delta > 0 ? C.or : C.tm;
+  const fmt = v => `${v.toFixed(1)}kg`;
+  return (
+    <Card style={{padding:14}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:10,marginBottom:10}}>
+        <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
+          <div><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>Current</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(last)}</div></div>
+          <div><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>Δ from first</div><div style={{fontSize:18,fontWeight:700,color:deltaColor,fontFamily:FN}}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}kg</div></div>
+          <div><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>Range</div><div style={{fontSize:13,color:C.tm,fontFamily:FN,marginTop:3}}>{fmt(min)} – {fmt(max)}</div></div>
+        </div>
+        <div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>{entries.length} ENTR{entries.length === 1 ? 'Y' : 'IES'}</div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:140,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="bwAreaGrad" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor={C.ac} stopOpacity="0.35"/>
+            <stop offset="100%" stopColor={C.ac} stopOpacity="0"/>
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill="url(#bwAreaGrad)" />
+        <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        {points.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="3" fill={C.ac} stroke={C.bg} strokeWidth="1.5">
+            <title>{`${new Date(p.date).toLocaleDateString()} · ${fmt(p.bw)}`}</title>
+          </circle>
+        ))}
+        <text x={PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td}>{new Date(entries[0].date).toLocaleDateString()}</text>
+        <text x={W - PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td} textAnchor="end">{new Date(entries[entries.length-1].date).toLocaleDateString()}</text>
+      </svg>
+    </Card>
+  );
 }

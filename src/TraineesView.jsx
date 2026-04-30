@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput } from './ui';
-import { emailsToArr, emailsToStore, emailsDisplay, subMemberId } from './traineeUtils';
+import { emailsToArr, emailsToStore, emailsDisplay, subMemberId, traineeIdsFor } from './traineeUtils';
 import { WhatsAppCheckInButton } from './whatsappButton';
 
 const isCouple = (t) => t.members && t.members.length === 2;
@@ -11,11 +11,93 @@ const isOnline = (tid, presence) => {
   if (!presence || !presence[tid]) return false;
   return (Date.now() - presence[tid]) < ONLINE_THRESHOLD;
 };
+
+// Roll the trainee's (and their sub-member rows for couples) payment ledger
+// into a single status pill: PAID / OVERDUE / NEVER PAID / NO PLAN. Mirrors
+// DashboardView's overdue logic so the card and the dashboard never disagree.
+const OVERDUE_DAYS = 30;
+const getPaymentStatus = (t, payments) => {
+  const monthly = parseFloat(t.monthly) || 0;
+  if (monthly <= 0) return null; // not a recurring-billing client — don't show
+  const ids = new Set(traineeIdsFor(t.id));
+  const tPay = (payments || []).filter(p => ids.has(p.traineeId) && p.status === 'Paid');
+  const latest = tPay.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+  const fallback = t.lastPayment ? new Date(t.lastPayment) : null;
+  const latestDate = latest ? new Date(latest.date) : (fallback && !isNaN(fallback.getTime()) ? fallback : null);
+  if (!latestDate) return { label: 'NEVER PAID', color: C.rd, sub: null };
+  const days = Math.floor((Date.now() - latestDate.getTime()) / 86400000);
+  if (days >= OVERDUE_DAYS) return { label: `OVERDUE · ${days}D`, color: C.rd, sub: latestDate.toLocaleDateString() };
+  return { label: `PAID · ${days}D AGO`, color: C.gn, sub: latestDate.toLocaleDateString() };
+};
+
+// Last workout label for the card: pulls from BOTH coach-logged workouts and
+// portal-logged client_workouts so a trainee who only trains via portal
+// (Amit) still surfaces activity. Returns null when the trainee has no logs.
+const getLastWorkoutLabel = (t, workouts, clientWorkouts) => {
+  const ids = new Set(traineeIdsFor(t.id));
+  const all = [
+    ...(workouts || []).filter(w => ids.has(w.traineeId) && w.status === 'completed'),
+    ...(clientWorkouts || []).filter(w => ids.has(w.clientId)),
+  ];
+  if (all.length === 0) return null;
+  const latest = all.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+  const days = Math.floor((Date.now() - new Date(latest.date).getTime()) / 86400000);
+  if (days <= 0) return 'TODAY';
+  if (days === 1) return 'YESTERDAY';
+  return `${days}D AGO`;
+};
+
+// Tiny BW sparkline for the trainee card. Plots up to the last 8 bw_log
+// entries oldest→newest. Returns null when fewer than 2 points exist
+// (a single dot has no shape).
+function CardBWSparkline({ entries }) {
+  if (!entries || entries.length < 2) return null;
+  const W = 96, H = 22, PAD = 2;
+  const values = entries.map(e => e.bw);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = (max - min) || 1;
+  const xStep = (W - PAD * 2) / (entries.length - 1);
+  const polyline = entries.map((e, i) => {
+    const x = PAD + i * xStep;
+    const y = PAD + (1 - (e.bw - min) / span) * (H - PAD * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = entries[entries.length - 1].bw;
+  const first = entries[0].bw;
+  const delta = last - first;
+  const deltaColor = delta < 0 ? C.gn : delta > 0 ? C.or : C.tm;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: 'block', flexShrink: 0 }} aria-label="Bodyweight trend">
+        <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx }}>
+        {last.toFixed(1)}<span style={{ color: C.tm }}>kg</span>
+      </span>
+      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor }}>
+        {delta > 0 ? '+' : ''}{delta.toFixed(1)}
+      </span>
+    </div>
+  );
+}
+
+const getBwEntries = (t, bwLog) => {
+  const ids = new Set(traineeIdsFor(t.id));
+  return (bwLog || [])
+    .filter(b => ids.has(b.clientId) && Number.isFinite(parseFloat(b.bw)))
+    .map(b => ({ ...b, bw: parseFloat(b.bw) }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(-8);
+};
 const OnlineDot = () => (
   <span style={{display:'inline-block',width:8,height:8,borderRadius:'50%',background:C.gn,boxShadow:`0 0 6px ${C.gn}`,flexShrink:0}} />
 );
 
-// Get plan counts per member for couples: parent ID plans count for both, sub-ID plans count for that member only
+// Get plan counts per member for couples: parent ID plans count for both
+// (shared assignment), sub-ID plans count for that member only. Returns
+// per-member totals — the shared count is added to BOTH members on
+// purpose because a plan assigned to the parent ID is visible to both.
 const getMemberPlanCounts = (t, planCounts) => {
   if (!isCouple(t)) return [planCounts?.[t.id] || 0];
   const shared = planCounts?.[t.id] || 0;
@@ -32,7 +114,7 @@ const defaultTrainee = () => ({
   notes: "", packagePrice: "",
 });
 
-export default function TraineesView({ trainees, setTrainees, planCounts, portalVis, presence, onSelect }) {
+export default function TraineesView({ trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");
@@ -124,16 +206,36 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
             if (couple) {
               const [m0, m1] = t.members;
               const online = isOnline(t.id, presence);
+              const pay = getPaymentStatus(t, payments);
+              const lastWk = getLastWorkoutLabel(t, workouts, clientWorkouts);
+              // Per-member BW for couples — sub-IDs (parent__0 / __1) so each
+              // member's curve is their own, not the household average.
+              const bwM0 = (bwLog || [])
+                .filter(b => b.clientId === subMemberId(t.id, 0) && Number.isFinite(parseFloat(b.bw)))
+                .map(b => ({ ...b, bw: parseFloat(b.bw) }))
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(-8);
+              const bwM1 = (bwLog || [])
+                .filter(b => b.clientId === subMemberId(t.id, 1) && Number.isFinite(parseFloat(b.bw)))
+                .map(b => ({ ...b, bw: parseFloat(b.bw) }))
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .slice(-8);
               return (
                 <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:15,color:C.tx,textAlign:'left',display:'flex',alignItems:'center',gap:6}}>{t.name}{online && <OnlineDot />}</div>
                     </div>
-                    <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
+                      <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
+                      {pay && <Badge color={pay.color}>{pay.label}</Badge>}
+                      {lastWk && <span style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>LAST · {lastWk}</span>}
+                    </div>
                   </div>
                   <div style={{display:'flex',marginTop:10}}>
-                    {[m0, m1].map((m, mi) => (
+                    {[m0, m1].map((m, mi) => {
+                      const memberBw = mi === 0 ? bwM0 : bwM1;
+                      return (
                       <React.Fragment key={mi}>
                         {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
                         <div style={{flex:1,minWidth:0}}>
@@ -145,9 +247,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
                           <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
                             {mpc[mi] > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{mpc[mi]} PROGRAMS</span>}
                           </div>
+                          {memberBw.length >= 2 && <div style={{marginTop:8}}><CardBWSparkline entries={memberBw} /></div>}
                         </div>
                       </React.Fragment>
-                    ))}
+                      );
+                    })}
                   </div>
                   <div style={{fontSize:11,color:C.tm,marginTop:14,fontFamily:FN,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em'}}>{t.format}</div>
                   <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap',minHeight:22}}>
@@ -165,22 +269,29 @@ export default function TraineesView({ trainees, setTrainees, planCounts, portal
               );
             }
 
-            // Solo trainee card (unchanged)
+            // Solo trainee card
             const online = isOnline(t.id, presence);
+            const pay = getPaymentStatus(t, payments);
+            const lastWk = getLastWorkoutLabel(t, workouts, clientWorkouts);
+            const bwEntries = getBwEntries(t, bwLog);
             return (
             <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {}}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div style={{flex:1}}>
+                <div style={{flex:1,minWidth:0}}>
                   <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, textAlign:'left', display:'flex', alignItems:'center', gap:6 }}>{t.name}{online && <OnlineDot />}</div>
                   <div style={{ fontSize: 12, color: C.tm, marginTop: 2, minHeight: 16, textAlign:'left' }}>{emailsDisplay(t.email)}{t.phone ? ` · ${t.phone}` : ""}</div>
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 18, fontFamily: FN, fontWeight: 600, textTransform:'uppercase', letterSpacing:'0.04em' }}>{t.format}</div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", minHeight: 22 }}>
+                  <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", minHeight: 22, alignItems: 'center' }}>
                     {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:t.sessionsRemaining<=2?C.rd:C.gn}}>{t.sessionsRemaining} SESSIONS LEFT</span>}
                     {(()=>{const pc=planCounts?.[t.id]||0;if(!pc)return null;return <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{pc} PROGRAMS</span>})()}
+                    {t.monthly > 0 && <span style={{fontSize:11,fontFamily:FN,color:C.td}}>₪{t.monthly}/MO</span>}
                   </div>
+                  {bwEntries.length >= 2 && <div style={{marginTop:10}}><CardBWSparkline entries={bwEntries} /></div>}
                 </div>
                 <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
                   <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
+                  {pay && <Badge color={pay.color}>{pay.label}</Badge>}
+                  {lastWk && <span style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>LAST · {lastWk}</span>}
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} />
                 </div></div>
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>

@@ -145,7 +145,7 @@ function DemoEmbed() {
             <div style={{ fontSize: 9, color: C.td, letterSpacing: 1.5 }}>POSE MODEL · ~6MB · FIRST LOAD ONLY</div>
           </div>
         )}
-        <iframe src="/coaches/demo?embed=1" title="EXPO live engine"
+        <iframe src="/demo/trainee?embed=1" title="EXPO live engine"
           onLoad={() => setLoaded(true)}
           style={{
             display: 'block', width: '100%', border: 'none', position: 'relative', zIndex: 1,
@@ -156,10 +156,10 @@ function DemoEmbed() {
         textAlign: 'center', marginTop: 16,
         display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap',
       }}>
-        <a href="/coaches/try" target="_blank" rel="noopener" style={{
+        <a href="/demo/coach" target="_blank" rel="noopener" style={{
           ...baseBtn, background: C.ac, color: '#000', padding: '11px 22px', fontSize: 12,
         }}>OPEN THE FULL COACH DEMO →</a>
-        <a href="/coaches/demo" target="_blank" rel="noopener" style={{
+        <a href="/demo/trainee" target="_blank" rel="noopener" style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
         }}>OPEN THE TRAINEE VIEW →</a>
@@ -293,7 +293,7 @@ export default function CoachLanding() {
             border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
           }}>FOR COACHES</span>
           <div style={{ flex: 1 }} />
-          <a href="/coaches/try" style={{
+          <a href="/demo/coach" style={{
             ...baseBtn, background: 'transparent', color: C.tx,
             border: `1px solid ${C.bd2}`, padding: '8px 14px', fontSize: 11,
           }}>SEE THE DEMO</a>
@@ -330,10 +330,10 @@ export default function CoachLanding() {
             running live on real clients.
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 14 }}>
-            <a href="/coaches/try" style={{
+            <a href="/demo/coach" style={{
               ...baseBtn, background: C.ac, color: '#000', padding: '13px 26px', fontSize: 13,
             }}>SEE COACH VIEW →</a>
-            <a href="/coaches/demo" style={{
+            <a href="/demo/trainee" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, padding: '13px 26px', fontSize: 13,
             }}>SEE TRAINEE VIEW →</a>
@@ -531,7 +531,7 @@ export default function CoachLanding() {
         padding: '10px 12px', gap: 8, alignItems: 'stretch',
         boxShadow: '0 -8px 24px rgba(0,0,0,0.4)',
       }}>
-        <a href="/coaches/try" style={{
+        <a href="/demo/coach" style={{
           ...baseBtn, flex: 1, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd2}`, padding: '12px 14px', fontSize: 12,
         }}>TRY THE ENGINE</a>
@@ -555,7 +555,7 @@ export default function CoachLanding() {
           <span>· COACHING PLATFORM · BUILT IN TEL AVIV · © {new Date().getFullYear()} ALL RIGHTS RESERVED</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/coaches/try" style={{ color: C.td, textDecoration: 'none' }}>DEMO</a>
+          <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>DEMO</a>
           <span style={{ margin: '0 8px' }}>·</span>
           <a href="/login" style={{ color: C.td, textDecoration: 'none' }}>SIGN IN</a>
         </span>

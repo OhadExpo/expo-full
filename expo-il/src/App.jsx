@@ -693,7 +693,12 @@ function Catalog() {
       </div>
       <div style={{
         display: 'grid', gap: 14,
-        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
+        // auto-fit collapses empty tracks AND `justifyContent: center`
+        // pushes the surviving tracks to the middle, so a single-result
+        // filter (e.g. POWERBUILD → 1 program) renders centered instead
+        // of pinned to the start (right edge in RTL Hebrew).
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 320px))',
+        justifyContent: 'center',
       }}>
         {list.map(p => <ProgramCard key={p.id} p={p} />)}
       </div>
@@ -1399,7 +1404,7 @@ function WhatsInside() {
           is the conversion lever — visitor lands on the live engine with
           their own clip and gets routed back to the program catalog. */}
       <div style={{ textAlign: 'center', marginTop: 22 }}>
-        <a href="https://expo-app.co.il/coaches/demo"
+        <a href="https://expo-app.co.il/demo/trainee"
            onClick={() => trackAndOpen('client_demo_click', { from: 'whats_inside' })}
            target="_blank" rel="noopener"
            style={{

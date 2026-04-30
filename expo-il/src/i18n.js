@@ -148,7 +148,7 @@ const STRINGS = {
     he: 'שלושתם נכללים בכל תוכנית. בלי תוסף, בלי תשלום נוסף.',
   },
 
-  // CTA from WhatsInside section to the public sandbox at expo-app.co.il/coaches/demo.
+  // CTA from WhatsInside section to the public sandbox at expo-app.co.il/demo/trainee.
   // Clicking opens the live engine — pose detection + rep counter on the visitor's
   // own clip — without account, login, or any backend touch.
   'inside.tryCta': {
@@ -315,7 +315,7 @@ const STRINGS = {
 
   // ─── Lead capture (hero + footer email forms) ─────────────────────
   'lead.label':       { en: 'NOT READY YET? LEAVE YOUR EMAIL.', he: 'עוד לא בטוח? תשאיר אימייל.' },
-  'lead.placeholder': { en: 'your@email.com', he: 'אימייל@שלך.com' },
+  'lead.placeholder': { en: 'Your@Email.com', he: 'Your@Email.com' },
   'lead.cta':         { en: 'NOTIFY ME', he: 'עדכן אותי' },
   'lead.sending':     { en: 'SENDING…', he: 'שולח…' },
   'lead.thanks':      { en: '✓ THANKS — I\'LL BE IN TOUCH.', he: '✓ קיבלתי. אדבר איתך בקרוב.' },

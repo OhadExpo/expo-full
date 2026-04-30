@@ -8,7 +8,7 @@
 // the app depends on. Reuses src/repCounter.js for the math so when the
 // production rep counter is tuned the sandbox tracks automatically.
 import React, { useEffect, useRef, useState } from 'react';
-import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
@@ -109,7 +109,9 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
       {!isEmbedded && <POVBanner pov={pov} />}
       {!isEmbedded && pov === 'trainee' && <TraineeContextStrip exercise={exercise} />}
       <main style={{ flex:1, padding: isEmbedded ? '14px 16px 24px' : '18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
-        {step === 'exercise' && <ExercisePicker pov={pov} onPick={onPickExercise} />}
+        {step === 'exercise' && (pov === 'trainee' && !isEmbedded
+          ? <TraineeHomeMock onPick={onPickExercise} />
+          : <ExercisePicker pov={pov} onPick={onPickExercise} />)}
         {step === 'upload'   && <UploadStep pov={pov} exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
         {step === 'analyze'  && <AnalyzeStep pov={pov} exercise={exercise} videoUrl={videoUrl}
                                   onChangeVideo={() => setStep('upload')}
@@ -152,11 +154,8 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
         maxWidth: 1180, margin:'0 auto', padding:'0 16px',
         display:'flex', alignItems:'center', height: 60, gap: 14,
       }}>
-        <a href="https://expo-il.co.il/" title="Back to EXPO" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flex:'0 0 auto' }}>
-          {/* Wrapper-clip — see CoachDemo header for the explanation. */}
-          <div style={{ height: 16, overflow: 'hidden', display: 'inline-flex', alignItems: 'flex-end' }}>
-            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display:'block', height:23 }} />
-          </div>
+        <a href="/" title="Back to EXPO" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flex:'0 0 auto' }}>
+          <EXPOMark height={22} style={{ marginBottom: 0 }} />
         </a>
         {/* DEMO badge — hidden on narrow screens via the .try-sandbox-badge
             class so the step nav has room to breathe on phones. */}
@@ -300,13 +299,13 @@ function POVBanner({ pov }) {
           background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 6, overflow: 'hidden',
           flex: '0 0 auto',
         }}>
-          <a href="/coaches/try" style={{
+          <a href="/demo/coach" style={{
             background: isCoach ? C.ac : 'transparent',
             color: isCoach ? '#000' : C.tm,
             padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             textDecoration: 'none',
           }}>COACH</a>
-          <a href="/coaches/demo" style={{
+          <a href="/demo/trainee" style={{
             background: !isCoach ? C.ac : 'transparent',
             color: !isCoach ? '#000' : C.tm,
             padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
@@ -315,6 +314,276 @@ function POVBanner({ pov }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Trainee POV homepage (mock of ClientPortal) ──────────────────────────
+// Replaces the bare exercise-picker on /demo/trainee with a fuller home
+// surface that mirrors what the real client app shows: today's workout,
+// per-exercise prescriptions, plan progress, BW logger, recent history.
+// Tapping "📹 FILM SET" on any exercise enters the engine sandbox with
+// that lift pre-selected, so the upload/analyze/compare flow lands in
+// the same place but feels like it came from inside the app.
+function TraineeHomeMock({ onPick }) {
+  const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+  const [bwInput, setBwInput] = useState('');
+  const [bwLog, setBwLog] = useState([
+    { date: '2026-04-01', bw: 64.8 },
+    { date: '2026-04-08', bw: 64.4 },
+    { date: '2026-04-15', bw: 64.1 },
+    { date: '2026-04-22', bw: 63.7 },
+  ]);
+  const [logged, setLogged] = useState({}); // {`${dayIdx}:${exIdx}`: true}
+  const TRAINEE = { name: 'נועה לוי', firstName: 'Noa', block: 'Block #4 — Push/Pull Volume', week: 2, totalWeeks: 4 };
+  const DAYS = [
+    { name: 'Day A · Push', exercises: [
+      { key: 'bench',  label: 'Bench Press',          sample: 'Bench Press',         sets: 4, reps: '6-8',    load: '60kg',   note: 'Pause 1s on chest, drive heels.' },
+      { key: 'ohp',    label: 'Overhead Press',       sample: 'Overhead Press',      sets: 4, reps: '6-8',    load: '35kg',   note: 'Glutes locked, ribs down.' },
+      { key: 'lateral',label: 'Lateral Raise',        sample: 'Lateral Raise',       sets: 3, reps: '12-15',  load: '7.5kg',  note: 'Lead with elbows, soft thumb.' },
+      { key: 'pushup', label: 'Push-Up',              sample: 'Push-Up',             sets: 3, reps: '12',     load: 'BW',     note: '2-1-1 tempo. Plank from heel to crown.' },
+    ]},
+    { name: 'Day B · Pull', exercises: [
+      { key: 'pullup', label: 'Pull-Up',              sample: 'Pull-Up',             sets: 4, reps: '6-8',    load: 'BW',     note: 'Chin clears bar, no kip.' },
+      { key: 'row',    label: 'DB Row',               sample: 'DB Row',              sets: 3, reps: '10 E',   load: '20kg',   note: 'Pull to hip, not chest.' },
+      { key: 'curl',   label: 'DB Curl',              sample: 'DB Curl',             sets: 3, reps: '12',     load: '12.5kg', note: 'No swing — count from full hang.' },
+    ]},
+    { name: 'Day C · Legs', exercises: [
+      { key: 'squat',  label: 'Back Squat',           sample: 'Back Squat',          sets: 5, reps: '5',      load: '95kg',   note: 'Brace BEFORE unrack. Tempo 3-1-1.' },
+      { key: 'rdl',    label: 'Romanian Deadlift',    sample: 'Romanian Deadlift',   sets: 4, reps: '8',      load: '70kg',   note: 'Push hips back, soft knees.' },
+      { key: 'lunge',  label: 'Walking Lunge',        sample: 'Walking Lunge',       sets: 3, reps: '10 E',   load: '2×16kg', note: 'Knee tracks toe. Drive through front heel.' },
+      { key: 'hipthrust',label: 'Hip Thrust',         sample: 'Hip Thrust',          sets: 3, reps: '10',     load: '80kg',   note: 'Chin tucked, lock at the top.' },
+    ]},
+  ];
+  const RECENT = [
+    { date: '2026-04-26', dayName: 'Day C · Legs', completed: 4, total: 4 },
+    { date: '2026-04-23', dayName: 'Day B · Pull', completed: 3, total: 3 },
+    { date: '2026-04-21', dayName: 'Day A · Push', completed: 4, total: 4 },
+    { date: '2026-04-19', dayName: 'Day C · Legs', completed: 3, total: 4 },
+  ];
+  const day = DAYS[selectedDayIdx];
+  const completedCount = Object.entries(logged).filter(([k]) => k.startsWith(`${selectedDayIdx}:`)).length;
+  const progressPct = Math.round((completedCount / day.exercises.length) * 100);
+  const submitBw = () => {
+    const v = parseFloat(bwInput);
+    if (!Number.isFinite(v)) return;
+    const today = new Date().toISOString().slice(0, 10);
+    setBwLog(arr => [...arr.filter(b => b.date !== today), { date: today, bw: v }].sort((a, b) => a.date.localeCompare(b.date)));
+    setBwInput('');
+  };
+  const lastBw = bwLog[bwLog.length - 1]?.bw;
+  const firstBw = bwLog[0]?.bw;
+  const bwDelta = (lastBw && firstBw) ? (lastBw - firstBw) : 0;
+  return (
+    <section>
+      <div style={{
+        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+        marginBottom: 8, fontWeight: 700,
+      }}>YOUR PORTAL · MOCK DATA</div>
+      <h1 style={{
+        fontFamily: FB, fontSize: 'clamp(22px, 3.4vw, 28px)', fontWeight: 700,
+        margin: 0, letterSpacing: -0.3,
+      }}>Hi {TRAINEE.firstName}, ready for {day.name.split('·')[0].trim()}?</h1>
+      <p style={{
+        fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14, lineHeight: 1.55,
+        margin: '6px 0 22px', maxWidth: 720,
+      }}>
+        This is what your client sees when they sign in. Today's plan, sets &amp; reps,
+        coach cues, bodyweight log, and a film-button on every exercise that opens
+        the live form-analysis engine you'll see next.
+      </p>
+
+      {/* Today header card — block + week + day picker + progress bar */}
+      <div style={{
+        background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+        padding: '16px 18px', marginBottom: 14,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+          <h2 style={{ fontFamily: FB, fontSize: 16, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>{TRAINEE.block}</h2>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>WEEK {TRAINEE.week} OF {TRAINEE.totalWeeks}</span>
+          <span style={{ flex: 1 }} />
+          <span style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: 1.5, fontWeight: 700 }}>● ON TRACK</span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          {DAYS.map((d, i) => (
+            <button key={i} onClick={() => setSelectedDayIdx(i)} style={{
+              ...baseBtn,
+              background: i === selectedDayIdx ? C.acD : 'transparent',
+              color: i === selectedDayIdx ? C.ac : C.tm,
+              border: `1px solid ${i === selectedDayIdx ? C.ac : C.bd}`,
+              padding: '6px 12px', fontSize: 11, letterSpacing: 1,
+            }}>{d.name}</button>
+          ))}
+        </div>
+        <div style={{
+          height: 6, borderRadius: 3, background: C.sf2, overflow: 'hidden',
+        }}>
+          <div style={{
+            width: `${progressPct}%`, height: '100%',
+            background: progressPct === 100 ? C.gn : C.ac,
+            transition: 'width 0.25s',
+          }} />
+        </div>
+        <div style={{
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
+          marginTop: 6,
+        }}>{completedCount} OF {day.exercises.length} EXERCISES LOGGED · {progressPct}%</div>
+      </div>
+
+      {/* Exercise rows — sets × reps × load + coach note + Film CTA */}
+      <div style={{ display: 'grid', gap: 10, marginBottom: 18 }}>
+        {day.exercises.map((ex, ei) => {
+          const key = `${selectedDayIdx}:${ei}`;
+          const isLogged = !!logged[key];
+          return (
+            <div key={ei} style={{
+              background: C.sf, border: `1px solid ${isLogged ? C.gn : C.bd}`, borderRadius: 10,
+              padding: '14px 16px',
+              display: 'grid', gap: 10, gridTemplateColumns: '1fr',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{
+                  fontFamily: FN, fontSize: 10, color: isLogged ? C.gn : C.tm, letterSpacing: 1.5, fontWeight: 700,
+                  background: isLogged ? `${C.gn}20` : C.sf2, border: `1px solid ${isLogged ? `${C.gn}55` : C.bd}`,
+                  borderRadius: 4, padding: '2px 7px',
+                }}>{isLogged ? '✓ DONE' : `EX ${ei + 1}`}</span>
+                <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx }}>{ex.label}</span>
+                <span style={{ flex: 1 }} />
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
+                  {ex.sets} × {ex.reps}{ex.load && ex.load !== '—' ? ` · ${ex.load}` : ''}
+                </span>
+              </div>
+              <div style={{
+                fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.5,
+                background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 6,
+                padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8,
+              }}>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: 1.5, fontWeight: 700, flexShrink: 0 }}>COACH</span>
+                <span>{ex.note}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button onClick={() => onPick(ex)} style={{
+                  ...baseBtn, background: C.ac, color: '#000',
+                  padding: '8px 14px', fontSize: 12,
+                }}>📹 FILM SET</button>
+                <button onClick={() => setLogged(L => ({ ...L, [key]: !L[key] }))} style={{
+                  ...baseBtn, background: 'transparent', color: isLogged ? C.gn : C.tm,
+                  border: `1px solid ${isLogged ? C.gn : C.bd}`,
+                  padding: '8px 14px', fontSize: 12,
+                }}>{isLogged ? '✓ LOGGED' : 'MARK DONE'}</button>
+                <button style={{
+                  ...baseBtn, background: 'transparent', color: C.tm,
+                  border: `1px solid ${C.bd}`,
+                  padding: '8px 14px', fontSize: 12,
+                }}>↻ SWAP</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Two-up: BW logger + Recent history — mirrors ClientPortal layout */}
+      <div style={{
+        display: 'grid', gap: 14, marginBottom: 18,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+      }}>
+        <div style={{
+          background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+          padding: '14px 16px',
+        }}>
+          <div style={{
+            fontFamily: FN, color: C.tm, fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
+            marginBottom: 8,
+          }}>BODYWEIGHT</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+            <span style={{ fontFamily: FB, fontSize: 26, fontWeight: 700, color: C.tx, letterSpacing: -0.4 }}>
+              {lastBw?.toFixed(1)}<span style={{ fontSize: 13, color: C.tm, marginLeft: 2 }}>kg</span>
+            </span>
+            <span style={{
+              fontFamily: FN, fontSize: 11, color: bwDelta <= 0 ? C.gn : C.or, letterSpacing: 1, fontWeight: 700,
+            }}>{bwDelta > 0 ? '+' : ''}{bwDelta.toFixed(1)} kg / {bwLog.length}W</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            <input type="number" step="0.1" placeholder="Today's weight (kg)"
+              value={bwInput} onChange={e => setBwInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') submitBw(); }}
+              style={{
+                flex: 1, background: C.sf2, border: `1px solid ${C.bd}`,
+                borderRadius: 6, padding: '8px 10px', color: C.tx,
+                fontFamily: FB, fontSize: 13, outline: 'none',
+              }} />
+            <button onClick={submitBw} style={{
+              ...baseBtn, background: C.ac, color: '#000',
+              padding: '8px 14px', fontSize: 12,
+            }}>LOG</button>
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'flex-end', gap: 4,
+            height: 40, padding: '0 2px',
+          }}>
+            {bwLog.map((b, i) => {
+              const min = Math.min(...bwLog.map(x => x.bw)) - 0.3;
+              const max = Math.max(...bwLog.map(x => x.bw)) + 0.3;
+              const pct = ((b.bw - min) / (max - min)) * 100;
+              return (
+                <div key={i} title={`${b.date} · ${b.bw}kg`} style={{
+                  flex: 1, background: C.ac, borderRadius: 2,
+                  height: `${pct}%`, opacity: 0.4 + (i / bwLog.length) * 0.6,
+                }} />
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{
+          background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+          padding: '14px 16px',
+        }}>
+          <div style={{
+            fontFamily: FN, color: C.tm, fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
+            marginBottom: 8,
+          }}>RECENT WORKOUTS</div>
+          {RECENT.map((w, i) => {
+            const fullyDone = w.completed === w.total;
+            return (
+              <div key={i} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: '8px 0',
+                borderBottom: i < RECENT.length - 1 ? `1px solid ${C.bd}` : 'none',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 600 }}>{w.dayName}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginTop: 2 }}>
+                    {new Date(w.date).toLocaleDateString()} · {w.completed}/{w.total} EXERCISES
+                  </div>
+                </div>
+                <span style={{
+                  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
+                  color: fullyDone ? C.gn : C.or,
+                }}>{fullyDone ? '✓ COMPLETE' : 'PARTIAL'}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Weekly focus from coach — non-functional in demo, mirrors the
+          real ClientPortal weekly_focus card pattern. */}
+      <div style={{
+        background: `linear-gradient(135deg, ${C.acD} 0%, ${C.sf} 100%)`,
+        border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 12,
+        padding: '14px 18px', marginBottom: 8,
+      }}>
+        <div style={{
+          fontFamily: FN, color: C.ac, fontSize: 10, letterSpacing: 2, fontWeight: 700,
+          marginBottom: 6,
+        }}>THIS WEEK'S FOCUS · FROM YOUR COACH</div>
+        <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5 }}>
+          Push volume is up this week — pace your bench work, hit the lateral-raise back-off
+          sets even when they feel light. Film at least one bench set so I can call out the
+          touch point.
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -1056,7 +1325,7 @@ function Toggle({ on, loading, onClick, label }) {
 }
 
 // ─── BuyCallToAction shown after analyze + compare ────────────────────────
-// Both POVs convert at /coaches#waitlist — /try and /demo are two angles of
+// Both POVs convert at /demo#waitlist — /try and /demo are two angles of
 // the same coach-buyer pitch ("here's your tool" + "here's your client's tool").
 // The cross-link sends the visitor to the OTHER POV so they get the full
 // picture before deciding.
@@ -1069,7 +1338,7 @@ function BuyCallToAction({ pov = 'coach' }) {
   const body = isCoach
     ? 'Same engine, your side of the table. Pose overlay, rep count, side-by-side compare on any uploaded client clip — no exporting to QuickTime, no scrubbing through DMs. Comments, drawings, and timestamped notes go back to the client through the portal.'
     : 'When your client films a set on their phone, this is the screen they see. Pose lines, rep count, tempo, and a one-tap path to send it for your review. No app install, no account they have to manage — they tap the link in your message and they\'re in.';
-  const primaryHref = '/coaches#waitlist';
+  const primaryHref = '/demo#waitlist';
   const primaryLbl  = 'JOIN THE WAITLIST';
   const secondHref  = isCoach ? '/demo' : '/try';
   const secondLbl   = isCoach ? 'NOW SEE THE TRAINEE VIEW →' : 'NOW SEE THE COACH VIEW →';

@@ -9,10 +9,10 @@
 // comments sidebar around it that hints at the production review surface.
 //
 // Companion to /demo (TrySandbox pov="trainee") which stays as the simple
-// trainee-side engine sandbox. Both end-CTAs converge at /coaches#waitlist.
+// trainee-side engine sandbox. Both end-CTAs converge at /demo#waitlist.
 
 import React, { useState } from 'react';
-import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
 
 // ─── Mock data ────────────────────────────────────────────────────────────
@@ -25,31 +25,91 @@ const MOCK_TRAINEES = [
   { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', programs: 4, payment: 'PAID', online: false, isCouple: true, age: 35, weight: 72, height: 175, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
 ];
 
-const MOCK_DAYS = [
-  { name: 'Day A · Push', exercises: [
-    { name: 'BB Bench Press',          sets: 4, reps: '6-8',  tempo: '3-1-1', superset: '', wk: ['57.5kg', '60kg', '62.5kg', '65kg'] },
-    { name: 'DB Incline Press',        sets: 3, reps: '8-10', tempo: '',      superset: 'A' },
-    { name: 'Cable Fly',               sets: 3, reps: '12',   tempo: '',      superset: 'A' },
-    { name: 'Standing OHP',            sets: 4, reps: '6-8',  tempo: '',      superset: '', wk: ['32.5kg', '35kg', '37.5kg', '40kg'] },
-    { name: 'Lateral Raise',           sets: 3, reps: '12-15',tempo: '',      superset: 'B' },
-    { name: 'Tricep Pushdown',         sets: 3, reps: '12',   tempo: '',      superset: 'B' },
-  ]},
-  { name: 'Day B · Pull', exercises: [
-    { name: 'BB Deadlift',             sets: 4, reps: '5',    tempo: '',      superset: '' },
-    { name: 'Pull-Up',                 sets: 4, reps: '6-8',  tempo: '',      superset: 'A' },
-    { name: 'Bent-Over BB Row',        sets: 4, reps: '8',    tempo: '',      superset: 'A' },
-    { name: 'Face Pull',               sets: 3, reps: '15',   tempo: '',      superset: 'B' },
-    { name: 'DB Bicep Curl',           sets: 3, reps: '10-12',tempo: '',      superset: 'B' },
-    { name: 'Hammer Curl',             sets: 3, reps: '10',   tempo: '',      superset: '' },
-  ]},
-  { name: 'Day C · Legs', exercises: [
-    { name: 'Back Squat',              sets: 5, reps: '5',    tempo: '3-0-X', superset: '', wk: ['90kg', '95kg', '100kg', '105kg'] },
-    { name: 'Romanian Deadlift',       sets: 4, reps: '8',    tempo: '',      superset: 'A' },
-    { name: 'Walking Lunge',           sets: 3, reps: '10 E', tempo: '',      superset: 'A' },
-    { name: 'Leg Curl',                sets: 3, reps: '12',   tempo: '',      superset: 'B' },
-    { name: 'Standing Calf Raise',     sets: 4, reps: '15',   tempo: '',      superset: 'B' },
-  ]},
-];
+// Per-block plan content. Block #4 is the active block (Week 2 of 4 wave);
+// older blocks are completed and shown read-only when picked from the
+// sidebar. Each block has its own day list + exercises so clicking through
+// the block-history actually swaps the editor pane (not just styling).
+const BLOCK_DATA = {
+  'Block #4': {
+    title: 'Block #4 — Push/Pull Volume',
+    when: 'WEEK 2 OF 4',
+    days: [
+      { name: 'Day A · Push', exercises: [
+        { name: 'BB Bench Press',          sets: 4, reps: '6-8',  tempo: '3-1-1', superset: '', wk: ['57.5kg', '60kg', '62.5kg', '65kg'] },
+        { name: 'DB Incline Press',        sets: 3, reps: '8-10', tempo: '',      superset: 'A' },
+        { name: 'Cable Fly',               sets: 3, reps: '12',   tempo: '',      superset: 'A' },
+        { name: 'Standing OHP',            sets: 4, reps: '6-8',  tempo: '',      superset: '', wk: ['32.5kg', '35kg', '37.5kg', '40kg'] },
+        { name: 'Lateral Raise',           sets: 3, reps: '12-15',tempo: '',      superset: 'B' },
+        { name: 'Tricep Pushdown',         sets: 3, reps: '12',   tempo: '',      superset: 'B' },
+      ]},
+      { name: 'Day B · Pull', exercises: [
+        { name: 'BB Deadlift',             sets: 4, reps: '5',    tempo: '',      superset: '' },
+        { name: 'Pull-Up',                 sets: 4, reps: '6-8',  tempo: '',      superset: 'A' },
+        { name: 'Bent-Over BB Row',        sets: 4, reps: '8',    tempo: '',      superset: 'A' },
+        { name: 'Face Pull',               sets: 3, reps: '15',   tempo: '',      superset: 'B' },
+        { name: 'DB Bicep Curl',           sets: 3, reps: '10-12',tempo: '',      superset: 'B' },
+        { name: 'Hammer Curl',             sets: 3, reps: '10',   tempo: '',      superset: '' },
+      ]},
+      { name: 'Day C · Legs', exercises: [
+        { name: 'Back Squat',              sets: 5, reps: '5',    tempo: '3-0-X', superset: '', wk: ['90kg', '95kg', '100kg', '105kg'] },
+        { name: 'Romanian Deadlift',       sets: 4, reps: '8',    tempo: '',      superset: 'A' },
+        { name: 'Walking Lunge',           sets: 3, reps: '10 E', tempo: '',      superset: 'A' },
+        { name: 'Leg Curl',                sets: 3, reps: '12',   tempo: '',      superset: 'B' },
+        { name: 'Standing Calf Raise',     sets: 4, reps: '15',   tempo: '',      superset: 'B' },
+      ]},
+    ],
+  },
+  'Block #3': {
+    title: 'Block #3 — Strength Base',
+    when: 'COMPLETED · APR · 4 WEEKS',
+    days: [
+      { name: 'Day A · Lower', exercises: [
+        { name: 'Back Squat',              sets: 5, reps: '5',    tempo: '3-1-1', superset: '', wk: ['80kg', '82.5kg', '85kg', '87.5kg'] },
+        { name: 'Romanian Deadlift',       sets: 4, reps: '6',    tempo: '',      superset: '', wk: ['70kg', '75kg', '80kg', '82.5kg'] },
+        { name: 'Bulgarian Split Squat',   sets: 3, reps: '8 E',  tempo: '',      superset: 'A' },
+        { name: 'Hip Thrust',              sets: 3, reps: '10',   tempo: '',      superset: 'A' },
+        { name: 'Standing Calf Raise',     sets: 4, reps: '12',   tempo: '',      superset: '' },
+      ]},
+      { name: 'Day B · Upper', exercises: [
+        { name: 'BB Bench Press',          sets: 5, reps: '5',    tempo: '3-1-1', superset: '', wk: ['52.5kg', '55kg', '57.5kg', '60kg'] },
+        { name: 'Bent-Over BB Row',        sets: 5, reps: '5',    tempo: '',      superset: '', wk: ['50kg', '52.5kg', '55kg', '57.5kg'] },
+        { name: 'Standing OHP',            sets: 4, reps: '6',    tempo: '',      superset: 'A' },
+        { name: 'Pull-Up',                 sets: 4, reps: '5-6',  tempo: '',      superset: 'A' },
+        { name: 'Hanging Leg Raise',       sets: 3, reps: '8',    tempo: '',      superset: '' },
+      ]},
+    ],
+  },
+  'Block #2': {
+    title: 'Block #2 — Reset',
+    when: 'COMPLETED · MAR · 3 WEEKS',
+    days: [
+      { name: 'Day A · Full Body', exercises: [
+        { name: 'Goblet Squat',            sets: 3, reps: '10',   tempo: '3-0-2', superset: '' },
+        { name: 'DB Bench Press',          sets: 3, reps: '10',   tempo: '',      superset: 'A' },
+        { name: 'Lat Pulldown',            sets: 3, reps: '10',   tempo: '',      superset: 'A' },
+        { name: 'Plank',                   sets: 3, reps: '30s',  tempo: '',      superset: '' },
+      ]},
+      { name: 'Day B · Mobility', exercises: [
+        { name: 'KB Deadlift',             sets: 3, reps: '8',    tempo: '',      superset: '' },
+        { name: 'Cable Row',               sets: 3, reps: '12',   tempo: '',      superset: 'A' },
+        { name: 'Push-Up',                 sets: 3, reps: '10',   tempo: '',      superset: 'A' },
+        { name: 'Cable Pallof Press',      sets: 3, reps: '10 E', tempo: '',      superset: '' },
+      ]},
+    ],
+  },
+  'Block #1': {
+    title: 'Block #1 — Intake',
+    when: 'COMPLETED · FEB · 2 WEEKS',
+    days: [
+      { name: 'Day A · Movement Screen', exercises: [
+        { name: 'Bodyweight Squat',        sets: 2, reps: '10',   tempo: '',      superset: '' },
+        { name: 'Hip Hinge (Dowel)',       sets: 2, reps: '10',   tempo: '',      superset: '' },
+        { name: 'Wall Push-Up',            sets: 2, reps: '10',   tempo: '',      superset: '' },
+        { name: 'Dead Bug',                sets: 2, reps: '8 E',  tempo: '',      superset: '' },
+      ]},
+    ],
+  },
+};
 
 const MOCK_EXERCISES = [
   { name: 'BB Bench Press',         category: 'Chest',     pattern: 'Horizontal Push' },
@@ -110,22 +170,26 @@ function Badge({ color = C.tm, children }) {
   );
 }
 
-function StatCard({ label, value, sub, accent = C.ac }) {
+// Matches the real DashboardView summary card spec: 0.25px ac-dimmed
+// border, 10px radius, 14px×18px padding, 22px value, 10px FN label.
+function StatCard({ label, value, sub, accent = C.ac, total }) {
   return (
     <div style={{
-      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
-      padding: '16px 18px', flex: '1 1 200px', minWidth: 180,
+      background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+      padding: '14px 18px', flex: '1 1 170px', minWidth: 170,
     }}>
       <div style={{
-        fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
-        textTransform: 'uppercase', marginBottom: 8,
+        fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase',
+        letterSpacing: '0.06em', marginBottom: 6,
       }}>{label}</div>
       <div style={{
-        fontFamily: FB, fontSize: 28, fontWeight: 700, color: accent, letterSpacing: -0.4,
-        marginBottom: 2,
-      }}>{value}</div>
+        fontSize: 22, fontWeight: 700, fontFamily: FN, color: accent,
+      }}>
+        {value}
+        {total !== undefined && <span style={{ fontSize: 12, color: C.td, fontWeight: 400 }}> / {total}</span>}
+      </div>
       {sub && (
-        <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 0.5 }}>{sub}</div>
+        <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginTop: 4 }}>{sub}</div>
       )}
     </div>
   );
@@ -141,94 +205,25 @@ function DemoDashboard({ onJumpToTrainee }) {
     <section>
       <SectionHeader tag="DASHBOARD" title="The morning view" body="Stat cards on top, action queues below. Everything that needs your attention surfaces here — overdue payments, dormant clients, pending reviews — without you opening 5 tabs." />
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
-        <StatCard label="ACTIVE CLIENTS" value="3 / 4" sub="1 INACTIVE" />
-        <StatCard label="LOW SESSIONS" value="1" sub="≤ 2 LEFT" accent={C.or} />
-        <StatCard label="ESTIMATED MONTHLY" value="₪2,800" />
-        <StatCard label="COLLECTED THIS MONTH" value="₪1,800" sub="64% OF EXP." accent={C.gn} />
+      {/* Summary card grid — same shape as the real DashboardView's
+          repeat(auto-fit, minmax(170px, 1fr)) at 10px gap. */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+        gap: 10, marginBottom: 20,
+      }}>
+        <StatCard label="Active Clients" value="3" total="4" accent={C.gn} />
+        <StatCard label="Low Sessions" value="1" sub="≤ 2 LEFT" accent={C.or} />
+        <StatCard label="Estimated Monthly" value="₪2,800" accent={C.ac} />
+        <StatCard label="Collected This Month" value="₪1,800" sub="+12% vs last month" accent={C.gn} />
       </div>
 
+      {/* Alert grid — same shape as the real DashboardView. Overdue + Leads
+          are stacked vertically as one cell so leads sits directly beneath
+          overdue; dormant + online + expiring fill the remaining tracks. */}
       <div style={{
-        display: 'grid', gap: 14,
+        display: 'grid', gap: 14, marginBottom: 20, alignItems: 'start',
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
       }}>
-        {/* Overdue */}
-        <Panel
-          title={<span><span style={{ color: C.rd }}>💰</span> OVERDUE PAYMENT ({overdue.length})</span>}
-          tint={C.rd}
-        >
-          {overdue.map((t, i) => (
-            <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
-              <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>
-                {i === 0 ? 'NEVER PAID' : `${(i+1)*32}D OVERDUE`}
-              </span>
-            </Row>
-          ))}
-        </Panel>
-
-        {/* Dormant */}
-        <Panel
-          title={<span><span style={{ color: C.tm }}>💤</span> DORMANT ({dormant.length})</span>}
-          tint={C.tm}
-        >
-          {dormant.map(t => (
-            <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
-              <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>
-                {t.dormantDays}D
-              </span>
-              <FakeWaButton />
-            </Row>
-          ))}
-        </Panel>
-
-        {/* Expiring sessions — clients with sessionsRemaining 1-2.
-            Surfaces the conversion lever: "this client is one workout away
-            from churn — sell them the next package now." Same filter shape
-            as the real DashboardView.expiring computation. */}
-        {expiring.length > 0 && (
-          <Panel
-            title={<span><span style={{ color: C.or }}>⏳</span> EXPIRING SESSIONS ({expiring.length})</span>}
-            tint={C.or}
-          >
-            {expiring.map(t => (
-              <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
-                <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, color: C.or, fontWeight: 700, letterSpacing: 1 }}>
-                  {t.sessionsLeft} LEFT
-                </span>
-              </Row>
-            ))}
-          </Panel>
-        )}
-
-        {/* Inbound leads — same shape as the real coach Dashboard's
-            "📩 New Leads" panel, populated from expo-il's LeadCapture form
-            via the leads Supabase table. */}
-        <Panel
-          title={<span><span style={{ color: C.ac }}>📩</span> NEW LEADS (3)</span>}
-          tint={C.ac}
-        >
-          {[
-            { email: 'avi.shahar@example.co.il',  source: 'expo-il',  context: 'hero',         when: '32 min ago' },
-            { email: 'maor.k@example.co.il',      source: 'expo-il',  context: 'exit-intent',  when: '4 hr ago' },
-            { email: 'tomer.ben@example.co.il',   source: 'expo-il',  context: 'quiz-finish',  when: 'Yesterday' },
-          ].map((l, i) => (
-            <Row key={i}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
-                <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
-              </div>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{l.when}</span>
-            </Row>
-          ))}
-        </Panel>
-
-        {/* Online now — clients currently signed into their portal.
-            Real DashboardView surfaces them with a green dot; same shape
-            here. Conversion lever: one-tap WhatsApp them while they're
-            actively using the app. */}
         {onlineNow.length > 0 && (
           <Panel
             title={<span><span style={{ color: C.gn }}>🟢</span> ONLINE NOW ({onlineNow.length})</span>}
@@ -245,33 +240,151 @@ function DemoDashboard({ onJumpToTrainee }) {
             ))}
           </Panel>
         )}
+
+        {expiring.length > 0 && (
+          <Panel
+            title={<span><span style={{ color: C.or }}>⏳</span> EXPIRING SESSIONS ({expiring.length})</span>}
+            tint={C.or}
+          >
+            {expiring.map(t => (
+              <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
+                <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.or, fontWeight: 700, letterSpacing: 1 }}>
+                  {t.sessionsLeft} LEFT
+                </span>
+              </Row>
+            ))}
+          </Panel>
+        )}
+
+        {/* Stacked column: overdue on top, leads directly below — mirrors
+            the real DashboardView grouping so the inbound funnel lives
+            next to the money-out queue. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Panel
+            title={<span><span style={{ color: C.rd }}>💰</span> OVERDUE PAYMENT ({overdue.length})</span>}
+            tint={C.rd}
+          >
+            {overdue.map((t, i) => (
+              <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
+                <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>
+                  {i === 0 ? 'NEVER PAID' : `${(i+1)*32}D OVERDUE`}
+                </span>
+              </Row>
+            ))}
+          </Panel>
+
+          <Panel
+            title={<span><span style={{ color: C.ac }}>📩</span> NEW LEADS (3)</span>}
+            tint={C.ac}
+          >
+            {[
+              { email: 'avi.shahar@example.co.il',  source: 'expo-il',  context: 'hero',         when: '32 min ago' },
+              { email: 'maor.k@example.co.il',      source: 'expo-il',  context: 'exit-intent',  when: '4 hr ago' },
+              { email: 'tomer.ben@example.co.il',   source: 'expo-il',  context: 'quiz-finish',  when: 'Yesterday' },
+            ].map((l, i) => (
+              <Row key={i}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
+                </div>
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{l.when}</span>
+              </Row>
+            ))}
+          </Panel>
+        </div>
+
+        <Panel
+          title={<span><span style={{ color: C.tm }}>💤</span> DORMANT ({dormant.length})</span>}
+          tint={C.tm}
+        >
+          {dormant.map(t => (
+            <Row key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}>
+              <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>
+                {t.dormantDays}D
+              </span>
+              <FakeWaButton />
+            </Row>
+          ))}
+        </Panel>
+      </div>
+
+      {/* Client roster table — same shape as the real DashboardView's
+          sortable client list. Border is 0.25px ac-dimmed, headers are
+          10px FN with 0.05em tracking, body rows hover-tinted. */}
+      <div style={{
+        background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+        overflowX: 'auto', marginBottom: 8,
+      }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
+                {['Client', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
+                  <th key={h} style={{
+                    textAlign: 'center', padding: '10px 12px',
+                    fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase', letterSpacing: '0.05em',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {MOCK_TRAINEES.map((t, i) => {
+                const totalPaid = (t.monthly || 0) * (t.payment === 'OVERDUE' ? 2 : 3);
+                const lastPay = t.payment === 'OVERDUE' ? '2026-03-01' : '2026-04-01';
+                const workouts = t.dormantDays != null ? 4 : 12;
+                return (
+                  <tr key={t.id} onClick={() => onJumpToTrainee(t.id, 'dashboard')}
+                    onMouseEnter={e => e.currentTarget.style.background = C.sf2}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    style={{ borderBottom: `1px solid ${C.bd}`, cursor: 'pointer', transition: 'background 0.1s' }}>
+                    <td style={{ padding: '12px', fontWeight: 600, color: C.tx }}>{t.name}</td>
+                    <td style={{ padding: '12px' }}><Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge></td>
+                    <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{t.format}</td>
+                    <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{t.isCouple ? '12 Sessions' : '8 Sessions'}</td>
+                    <td style={{ padding: '12px' }}><span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsLeft <= 2 ? C.rd : C.gn }}>{t.sessionsLeft}</span></td>
+                    <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: C.gn }}>₪{totalPaid.toLocaleString()}</td>
+                    <td style={{ padding: '12px', color: t.payment === 'OVERDUE' ? C.rd : C.tm, fontSize: 12 }}>{lastPay}</td>
+                    <td style={{ padding: '12px', fontFamily: FN, color: C.ac }}>{workouts}</td>
+                    <td style={{ padding: '12px', fontFamily: FN, color: C.ac }}>{t.programs}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
       </div>
     </section>
   );
 }
 
+// Matches real DashboardView alert panel: tinted hairline border, 10px
+// radius, no separate header band — title is just an FN line at the top
+// of the panel padding so the panel feels lighter and matches the real
+// DashboardView's `border: 1px solid {tint}30` style.
 function Panel({ title, tint, children }) {
   return (
     <div style={{
-      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
-      overflow: 'hidden',
+      background: C.sf, border: `1px solid ${tint}30`, borderRadius: 10,
+      padding: '14px 18px',
     }}>
       <div style={{
-        padding: '12px 16px', borderBottom: `1px solid ${C.bd}`,
-        background: tint + '10',
-        fontFamily: FN, color: tint, fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
+        fontSize: 10, fontFamily: FN, color: tint, textTransform: 'uppercase',
+        letterSpacing: '0.05em', fontWeight: 700, marginBottom: 8,
       }}>{title}</div>
       <div>{children}</div>
     </div>
   );
 }
 
+// Real DashboardView alert rows are flat 6px-padded lines with no separator
+// — the panel itself is the bounded chrome. Mirror that here so the demo
+// panels read identically to the real ones.
 function Row({ onClick, children }) {
   return (
     <div onClick={onClick} style={{
-      padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8,
-      borderBottom: `1px solid ${C.bd}`, cursor: onClick ? 'pointer' : 'default',
-      fontSize: 13,
+      padding: '6px 0', display: 'flex', alignItems: 'center', gap: 8,
+      cursor: onClick ? 'pointer' : 'default', fontSize: 13,
     }}>{children}</div>
   );
 }
@@ -354,20 +467,61 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   );
 }
 
+// Tiny BW sparkline for cards — same shape as the real-app card sparkline.
+// Generates 8 deterministic points off the trainee's baseline weight so
+// each card has a stable trend without backing data. Real app pulls from
+// bw_logs.
+function MiniBWSparkline({ weight }) {
+  if (!weight) return null;
+  const seed = Math.floor(weight);
+  const points = Array.from({ length: 8 }, (_, i) => {
+    const trend = -i * 0.18;
+    const wobble = Math.sin(seed + i * 1.7) * 1.2;
+    return weight + trend + wobble;
+  });
+  const W = 96, H = 22, PAD = 2;
+  const min = Math.min(...points) - 0.3;
+  const max = Math.max(...points) + 0.3;
+  const span = max - min;
+  const xStep = (W - PAD * 2) / (points.length - 1);
+  const polyline = points.map((v, i) => {
+    const x = PAD + i * xStep;
+    const y = PAD + (1 - (v - min) / span) * (H - PAD * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const last = points[points.length - 1];
+  const delta = last - points[0];
+  const deltaColor = delta < 0 ? C.gn : delta > 0 ? C.or : C.tm;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: 'block', flexShrink: 0 }} aria-hidden="true">
+        <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx }}>
+        {last.toFixed(1)}<span style={{ color: C.tm }}>kg</span>
+      </span>
+      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor }}>
+        {delta > 0 ? '+' : ''}{delta.toFixed(1)}
+      </span>
+    </div>
+  );
+}
+
 function TraineeCard({ t, onClick }) {
   // Couples render with two member columns separated by a vertical divider —
   // matches the real coach-app TraineeCard layout. Each member gets their
   // own name, "first name" derived from the combined "X ו/and Y Surname"
   // name, plus their own WhatsApp button.
   if (t.isCouple) return <CoupleCard t={t} onClick={onClick} />;
+  // Match the real ui.jsx Card spec: 0.25px ac-dimmed border, 10px radius,
+  // 18px padding, hover bumps to full-opacity ac border + sf2 background.
   return (
     <div onClick={onClick} style={{
-      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
-      padding: 16, cursor: 'pointer',
-      transition: 'border-color 0.15s, transform 0.15s, box-shadow 0.15s',
+      background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+      padding: 18, cursor: 'pointer', transition: 'all 0.2s',
     }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px -8px rgba(57,189,255,0.20)`; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = C.bd; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div style={{ flex: 1 }}>
@@ -378,7 +532,10 @@ function TraineeCard({ t, onClick }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
           <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
-          {t.payment === 'OVERDUE' && <Badge color={C.rd}>OVERDUE</Badge>}
+          {t.payment === 'OVERDUE'
+            ? <Badge color={C.rd}>OVERDUE · 34D</Badge>
+            : <Badge color={C.gn}>PAID · 12D AGO</Badge>}
+          <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>LAST · {t.lastWorkout?.toUpperCase() || '—'}</span>
           <FakeWaButton />
         </div>
       </div>
@@ -386,19 +543,25 @@ function TraineeCard({ t, onClick }) {
         fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 600,
         textTransform: 'uppercase', marginTop: 14,
       }}>{t.format}</div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>
           {t.sessionsLeft} SESSIONS LEFT
         </span>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>
           {t.programs} PROGRAMS
         </span>
+        {t.monthly > 0 && (
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 600 }}>
+            ₪{t.monthly}/MO
+          </span>
+        )}
         {t.dormantDays != null && (
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700 }}>
             DORMANT · {t.dormantDays}D
           </span>
         )}
       </div>
+      <div style={{ marginTop: 10 }}><MiniBWSparkline weight={t.weight} /></div>
     </div>
   );
 }
@@ -462,16 +625,21 @@ function CoupleCard({ t, onClick }) {
   const parsed = parseCouple(t.name);
   return (
     <div onClick={onClick} style={{
-      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
-      padding: 16, cursor: 'pointer',
-      transition: 'border-color 0.15s, transform 0.15s, box-shadow 0.15s',
+      background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+      padding: 18, cursor: 'pointer', transition: 'all 0.2s',
     }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px -8px rgba(57,189,255,0.20)`; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = C.bd; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, flex: 1 }}>{t.name}</div>
-        <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, flex: 1, minWidth: 0 }}>{t.name}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+          <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
+          {t.payment === 'OVERDUE'
+            ? <Badge color={C.rd}>OVERDUE</Badge>
+            : <Badge color={C.gn}>PAID</Badge>}
+          <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>LAST · {t.lastWorkout?.toUpperCase() || '—'}</span>
+        </div>
       </div>
       {parsed && (
         <div style={{ display: 'flex', marginTop: 12 }}>
@@ -491,6 +659,12 @@ function CoupleCard({ t, onClick }) {
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700, marginTop: 6 }}>
                   {t.programs} PROGRAMS
                 </div>
+                {/* Per-member BW — Yael ~62kg, Idan ~82kg per the household
+                    member split in DemoTraineeDetail. Each gets their own
+                    curve so the card mirrors the real-app per-clientId BW. */}
+                <div style={{ marginTop: 8 }}>
+                  <MiniBWSparkline weight={mi === 0 ? 62 : 82} />
+                </div>
               </div>
             </React.Fragment>
           ))}
@@ -500,26 +674,34 @@ function CoupleCard({ t, onClick }) {
         fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 600,
         textTransform: 'uppercase', marginTop: 14,
       }}>{t.format}</div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>
           {t.sessionsLeft} SESSIONS LEFT
         </span>
+        {t.monthly > 0 && (
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 600 }}>
+            ₪{t.monthly}/MO
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
 function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES' }) {
-  // Couple detail: split each member into their own card column instead of
-  // jamming both names into a single profile. Real app shows it this way.
+  // Couple detail: split each member into their own card column. Real app's
+  // ruling — SHARED for the household: format, package, sessions, monthly,
+  // per-session, last payment, since, payments ledger, programs (assigned
+  // to parent), recent in-person workouts. PER MEMBER: name, email, phone,
+  // age/weight/height, BW log, goals, injuries.
   const isCouple = !!trainee.isCouple;
   const coupleSplit = (() => {
     if (!isCouple) return null;
     const m = (trainee.name || '').match(/^(.+?)\s+ו(.+?)\s+(\S+)$/);
     if (!m) return null;
     return [
-      { first: m[1], surname: m[3], email: 'yael.cohen@example.co.il',  goals: 'First chin-up by August' },
-      { first: m[2], surname: m[3], email: 'idan.cohen@example.co.il',  goals: 'Body comp + bench plateau break' },
+      { first: m[1], surname: m[3], email: 'yael.cohen@example.co.il', phone: '+972503334455', age: 33, weight: 62, height: 168, goals: 'First chin-up by August',          injuries: 'None' },
+      { first: m[2], surname: m[3], email: 'idan.cohen@example.co.il', phone: '+972503334456', age: 37, weight: 82, height: 182, goals: 'Body comp + bench plateau break', injuries: 'L knee — meniscus 2024' },
     ];
   })();
   return (
@@ -552,47 +734,110 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
         }}>📦 ARCHIVE</button>
       </div>
 
-      {isCouple && coupleSplit && (
-        <>
-          <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
-          <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.format} · {trainee.phone}</div>
-          <div style={{
-            display: 'grid', gap: 14, marginBottom: 14,
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-          }}>
-            {coupleSplit.map((m, i) => (
-              <div key={i} style={{
+      {/* Couple branch: per-member columns first (name/email/phone/age/
+          weight/height/goals/injuries/BW), then a row of SHARED panels
+          below (Household terms, Programs, Payments, Recent Workouts). */}
+      {isCouple && coupleSplit ? <>
+        <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
+        <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.format} · {trainee.phone}</div>
+
+        <div style={{
+          display: 'grid', gap: 14, marginBottom: 14,
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+        }}>
+          {coupleSplit.map((m, i) => (
+            <div key={i}>
+              <div style={{
                 background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
-                padding: 14,
+                padding: 14, marginBottom: 14,
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 16, color: C.tx }}>
-                    {m.first} {m.surname}
-                  </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 16, color: C.tx }}>{m.first} {m.surname}</div>
                   <FakeWaButton />
                 </div>
-                <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginBottom: 10 }}>
-                  {m.email}
+                <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginBottom: 12 }}>{m.email} · {m.phone}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, textAlign: 'center', marginBottom: 12 }}>
+                  {[['AGE', `${m.age}y`], ['WEIGHT', `${m.weight}kg`], ['HEIGHT', `${m.height}cm`]].map(([l, v]) => (
+                    <div key={l}>
+                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.5, fontWeight: 700 }}>{l}</div>
+                      <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, marginTop: 2 }}>{v}</div>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.5, fontWeight: 700, marginBottom: 4 }}>GOAL</div>
-                <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45 }}>{m.goals}</div>
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.5, fontWeight: 700, marginBottom: 4 }}>GOAL</div>
+                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45 }}>{m.goals}</div>
+                </div>
+                <div>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.or, letterSpacing: 1.5, fontWeight: 700, marginBottom: 4 }}>INJURIES</div>
+                  <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45 }}>{m.injuries}</div>
+                </div>
               </div>
-            ))}
-          </div>
-        </>
-      )}
+              <Panel title={`${m.first.toUpperCase()} · BODYWEIGHT · 8W`} tint={C.tm}>
+                <BWSparkline weight={m.weight} />
+              </Panel>
+            </div>
+          ))}
+        </div>
 
+        {/* SHARED panels — one row, full width */}
+        <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))' }}>
+          <Panel title="SHARED · HOUSEHOLD TERMS" tint={C.tm}>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>FORMAT</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PACKAGE</span><span style={{ color: C.tx, fontWeight: 600 }}>12 Sessions</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SESSIONS</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft} LEFT</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>MONTHLY</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PER SESSION</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / 12)}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>LAST PAYMENT</span><span style={{ color: C.tx, fontWeight: 600 }}>2026-04-01</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SINCE</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
+          </Panel>
+
+          <Panel title="SHARED · PROGRAMS" tint={C.ac}>
+            {trainee.plans.map((name, i) => (
+              <Row key={i}>
+                <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{name}</span>
+                <Badge color={i === 0 ? C.gn : C.td}>{i === 0 ? 'ACTIVE' : 'ARCHIVED'}</Badge>
+              </Row>
+            ))}
+          </Panel>
+
+          <Panel title={<span>SHARED · PAYMENTS (3) <span style={{ color: C.gn, marginLeft: 8 }}>₪{(trainee.monthly * 3).toLocaleString()} TOTAL</span></span>} tint={C.ac}>
+            {[
+              { date: '2026-04-01', method: 'Bank Transfer' },
+              { date: '2026-03-01', method: 'Bank Transfer' },
+              { date: '2026-02-01', method: 'Cash' },
+            ].map((p, i) => (
+              <Row key={i}>
+                <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.method.toUpperCase()}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.date}</span>
+                <Badge color={C.gn}>PAID</Badge>
+              </Row>
+            ))}
+          </Panel>
+
+          <Panel title="SHARED · RECENT WORKOUTS" tint={C.ac}>
+            {[
+              { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
+              { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
+              { day: 'Day B · Pull', date: '1 week ago', vol: '4,180 kg' },
+            ].map((w, i) => (
+              <Row key={i}>
+                <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{w.day}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{w.date}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700, letterSpacing: 1 }}>{w.vol}</span>
+              </Row>
+            ))}
+          </Panel>
+        </div>
+      </> : (
       <div style={{
         display: 'grid', gap: 14,
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
       }}>
         <div>
-          {!isCouple && (
-            <>
-              <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
-              <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.email} · {trainee.phone}</div>
-            </>
-          )}
+          <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
+          <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.email} · {trainee.phone}</div>
 
           <Panel title="PROGRAMS" tint={C.ac}>
             {trainee.plans.map((name, i) => (
@@ -606,9 +851,6 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
           <div style={{ height: 14 }} />
 
           {(() => {
-            // Honor the trainee's payment status — overdue clients get
-            // a missing latest entry so the OVERDUE badge on their card
-            // is consistent with the payment ledger inside their detail.
             const isOverdue = trainee.payment === 'OVERDUE';
             const payments = [
               !isOverdue && { date: '2026-04-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
@@ -659,10 +901,10 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
               </Row>
             )}
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>FORMAT</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PACKAGE</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.isCouple ? '12 Sessions' : '8 Sessions'}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PACKAGE</span><span style={{ color: C.tx, fontWeight: 600 }}>8 Sessions</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SESSIONS</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft} LEFT</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>MONTHLY</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
-            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PER SESSION</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / (trainee.isCouple ? 12 : 8))}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>PER SESSION</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{Math.round(trainee.monthly / 8)}</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>LAST PAYMENT</span><span style={{ color: C.tx, fontWeight: 600 }}>2026-04-01</span></Row>
             <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SINCE</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
           </Panel>
@@ -689,6 +931,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
           </Panel>
         </div>
       </div>
+      )}
     </section>
   );
 }
@@ -698,13 +941,19 @@ function DemoPrograms() {
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
   const [openExIdx, setOpenExIdx] = useState(null);
   const [activeBlock, setActiveBlock] = useState('Block #4');
-  const day = MOCK_DAYS[selectedDayIdx];
+  const block = BLOCK_DATA[activeBlock];
+  // Clamp the selected-day index when the active block changes — older
+  // blocks have fewer days, so without this the user can fall off the end
+  // and crash on `day.exercises`.
+  const dayIdx = Math.min(selectedDayIdx, block.days.length - 1);
+  const day = block.days[dayIdx];
   const BLOCK_HISTORY = [
     { name: 'Block #4', tag: 'Push/Pull Volume', when: 'Active · Week 2/4' },
     { name: 'Block #3', tag: 'Strength Base',    when: 'Apr · 4 weeks'    },
     { name: 'Block #2', tag: 'Reset',            when: 'Mar · 3 weeks'    },
     { name: 'Block #1', tag: 'Intake',           when: 'Feb · 2 weeks'    },
   ];
+  const isActiveBlock = activeBlock === 'Block #4';
   return (
     <section>
       <SectionHeader tag="PROGRAMS" title="Block-based plan editor" body="Each block is a phase of training. Days are tabs. Each row = sets, reps, tempo, video link, superset letter. Bulk import from xlsx; bulk duplicate to clone a plan onto a new client." />
@@ -725,7 +974,7 @@ function DemoPrograms() {
           {BLOCK_HISTORY.map((b, i) => {
             const on = b.name === activeBlock;
             return (
-              <div key={i} onClick={() => setActiveBlock(b.name)} style={{
+              <div key={i} onClick={() => { setActiveBlock(b.name); setSelectedDayIdx(0); setOpenExIdx(null); }} style={{
                 padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
                 marginBottom: 4,
                 background: on ? C.acD : 'transparent',
@@ -752,20 +1001,20 @@ function DemoPrograms() {
         padding: 18,
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-          <h3 style={{ fontFamily: FB, fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>Block #4 — Push/Pull Volume</h3>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>נועה לוי · WEEK 2 OF 4</span>
+          <h3 style={{ fontFamily: FB, fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>{block.title}</h3>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>נועה לוי · {block.when}</span>
           <span style={{ flex: 1 }} />
           <span style={{
-            fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: 1.5, fontWeight: 700,
-          }}>✓ SAVED · 12 MIN AGO</span>
+            fontFamily: FN, fontSize: 10, color: isActiveBlock ? C.gn : C.td, letterSpacing: 1.5, fontWeight: 700,
+          }}>{isActiveBlock ? '✓ SAVED · 12 MIN AGO' : '🔒 ARCHIVED · READ-ONLY'}</span>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {MOCK_DAYS.map((d, i) => (
-            <button key={i} onClick={() => setSelectedDayIdx(i)} style={{
+          {block.days.map((d, i) => (
+            <button key={i} onClick={() => { setSelectedDayIdx(i); setOpenExIdx(null); }} style={{
               ...baseBtn,
-              background: i === selectedDayIdx ? C.acD : 'transparent',
-              color: i === selectedDayIdx ? C.ac : C.tm,
-              border: `1px solid ${i === selectedDayIdx ? C.ac : C.bd}`,
+              background: i === dayIdx ? C.acD : 'transparent',
+              color: i === dayIdx ? C.ac : C.tm,
+              border: `1px solid ${i === dayIdx ? C.ac : C.bd}`,
               padding: '6px 14px', fontSize: 11,
             }}>{d.name}</button>
           ))}
@@ -1081,7 +1330,7 @@ function DemoReview() {
                 <style>{`@keyframes cd-spin { to { transform: rotate(360deg) } }`}</style>
               </div>
             )}
-            <iframe src="/coaches/demo?embed=1" title="Live engine"
+            <iframe src="/demo/trainee?embed=1" title="Live engine"
               onLoad={() => setIframeLoaded(true)}
               style={{
                 display: 'block', width: '100%', height: 660, border: 'none',
@@ -1303,22 +1552,7 @@ export default function CoachDemo() {
           display: 'flex', alignItems: 'center', height: 60, gap: 12, overflowX: 'auto',
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
-            {/* Wrapper-clip: the EXPO_LOGO_NAV PNG has ~40% chevron above
-                the wordmark, so geometric-center positioning leaves the
-                wordmark below the menu's centerline. The 22px-tall wrapper
-                with overflow:hidden + image bottom-aligned shows only the
-                wordmark portion, which then centers cleanly via the parent
-                flex's alignItems:center. */}
-            <div style={{
-              height: 16, overflow: 'hidden',
-              display: 'inline-flex', alignItems: 'flex-end',
-            }}>
-              {/* Image at height 23 means the wordmark portion (bottom ~70%
-                  of a chevron-on-top PNG) renders at ~16px tall, matching
-                  the surrounding nav text scale. The 16px wrapper clips the
-                  chevron above. */}
-              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 23 }} />
-            </div>
+            <EXPOMark height={22} style={{ marginBottom: 0 }} />
           </a>
           <span className="cd-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
@@ -1364,7 +1598,7 @@ export default function CoachDemo() {
               </button>
             ))}
           </nav>
-          <a href="/coaches#waitlist" className="cd-cta-waitlist" style={{
+          <a href="/demo#waitlist" className="cd-cta-waitlist" style={{
             ...baseBtn, background: C.ac, color: '#000',
             padding: '6px 14px', fontSize: 11, flex: '0 0 auto',
           }}>JOIN WAITLIST →</a>
@@ -1399,7 +1633,7 @@ export default function CoachDemo() {
           }}>
             <b style={{ opacity: 1 }}>Your</b> side of the platform. Click through the tabs above. Mock data — nothing here writes to your account.
           </div>
-          <a href="/coaches/demo" style={{
+          <a href="/demo/trainee" style={{
             ...baseBtn,
             background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, letterSpacing: 1.5,
@@ -1438,10 +1672,10 @@ export default function CoachDemo() {
             margin: '0 0 10px', letterSpacing: -0.2,
           }}>Run your roster on this stack. Locked-in pricing for the first wave.</h3>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <a href="/coaches#waitlist" style={{
+            <a href="/demo#waitlist" style={{
               ...baseBtn, background: C.ac, color: '#000', padding: '11px 22px', fontSize: 12,
             }}>JOIN THE WAITLIST</a>
-            <a href="/coaches/demo" style={{
+            <a href="/demo/trainee" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
             }}>NOW SEE THE TRAINEE VIEW →</a>
@@ -1462,7 +1696,7 @@ export default function CoachDemo() {
           <span>· COACH DEMO · MOCK DATA · NOTHING WRITES BACK</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/coaches" style={{ color: C.td, textDecoration: 'none' }}>BACK TO PITCH</a>
+          <a href="/demo" style={{ color: C.td, textDecoration: 'none' }}>BACK TO PITCH</a>
         </span>
       </footer>
     </div>
