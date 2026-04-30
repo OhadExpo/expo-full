@@ -20,9 +20,9 @@ import { EXPOMark } from './expoMark';
 // with Israeli names. Enough variety to show every kind of card + filter
 // without padding the demo to feel like marketing fluff.
 const MOCK_TRAINEES = [
-  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', programs: 3, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
-  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', programs: 4, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
-  { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', programs: 4, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', isCouple: true, plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
+  { id: 't1', name: 'נועה לוי', short: 'Noa', email: 'noa.levi@example.co.il', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', programs: 3, payment: 'PAID', online: true, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
+  { id: 't2', name: 'גל מזרחי', short: 'Gal', email: 'gal.mizrahi@example.co.il', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 800, format: 'Online', startDate: '2024-11-15', dormantDays: 18, lastWorkout: '18 days ago', programs: 4, payment: 'OVERDUE', online: false, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', plans: ['Block #4 — Pull Specialization', 'Block #3 — Volume', 'Block #2 — Hypertrophy', 'Block #1 — Intake'] },
+  { id: 't3', name: 'יעל ועידן כהן', short: 'Yael+Idan', email: 'yael.cohen@example.co.il', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', programs: 4, payment: 'PAID', online: false, isCouple: true, injuries: 'None', goals: 'Body comp + first chin-up (Yael)', plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base', 'Block #2 — Onboarding', 'Block #1 — Intake'] },
 ];
 
 const MOCK_DAYS = [
@@ -87,6 +87,18 @@ const baseBtn = {
   fontFamily: FB, fontSize: 12, fontWeight: 700, letterSpacing: 1.2,
   cursor: 'pointer', transition: 'all 0.15s', textDecoration: 'none',
 };
+
+// Glowing dot identical to the real coach app's OnlineDot — pulses green
+// when a trainee is currently signed into their portal. Demo shows it on
+// the one trainee whose `online: true` flag is set in the mock data.
+function OnlineDot() {
+  return (
+    <span style={{
+      display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+      background: C.gn, boxShadow: `0 0 6px ${C.gn}`, flexShrink: 0,
+    }} />
+  );
+}
 
 function Badge({ color = C.tm, children }) {
   return (
@@ -305,11 +317,14 @@ function TraineeCard({ t, onClick }) {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx }}>{t.name}</div>
+          <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', gap: 6 }}>
+            {t.name}{t.online && <OnlineDot />}
+          </div>
           <div style={{ fontSize: 12, color: C.tm, marginTop: 2 }}>{t.email}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
           <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
+          {t.payment === 'OVERDUE' && <Badge color={C.rd}>OVERDUE</Badge>}
           <FakeWaButton />
         </div>
       </div>
