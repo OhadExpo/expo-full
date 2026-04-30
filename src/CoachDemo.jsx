@@ -504,6 +504,23 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES'
 
           <div style={{ height: 14 }} />
 
+          <Panel title="PAYMENTS" tint={C.ac}>
+            {[
+              { date: '2026-04-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
+              { date: '2026-03-01', amount: trainee.monthly || 800, method: 'Bank Transfer', status: 'Paid' },
+              { date: '2026-02-01', amount: trainee.monthly || 800, method: 'Cash',          status: 'Paid' },
+            ].map((p, i) => (
+              <Row key={i}>
+                <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>₪{p.amount}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.method.toUpperCase()}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{p.date}</span>
+                <Badge color={C.gn}>{p.status.toUpperCase()}</Badge>
+              </Row>
+            ))}
+          </Panel>
+
+          <div style={{ height: 14 }} />
+
           <Panel title="RECENT WORKOUTS" tint={C.ac}>
             {[
               { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
