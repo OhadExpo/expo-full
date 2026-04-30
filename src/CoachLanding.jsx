@@ -483,8 +483,7 @@ export default function CoachLanding() {
               cta="JOIN WAITLIST"
               features={[
                 'Everything in Growth',
-                'Branded portal subdomain',
-                'Direct line for product requests',
+                'Direct line for product requests + roadmap input',
               ]}
             />
           </div>
