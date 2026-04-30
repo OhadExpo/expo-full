@@ -106,42 +106,34 @@ function WaitlistForm() {
   );
 }
 
-function DemoTabs() {
-  const [tab, setTab] = useState('coach');
-  const src = tab === 'coach' ? '/try' : '/demo';
+// Single embedded engine on the marketing page. The visitor uploads a clip,
+// sees pose detection + rep count instantly. For the deep dives — the full
+// coach surface (dashboard, trainees, plans, review) and the trainee POV
+// engine — they click out to /try or /demo via the buttons under the embed.
+// embed=1 strips TrySandbox's own header/footer so the engine slots cleanly
+// inside the marketing page.
+function DemoEmbed() {
   return (
     <div>
-      <div style={{
-        display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap',
-      }}>
-        <button onClick={() => setTab('coach')} style={{
-          ...baseBtn,
-          background: tab === 'coach' ? C.acD : 'transparent',
-          color: tab === 'coach' ? C.ac : C.tm,
-          border: `1px solid ${tab === 'coach' ? C.ac : C.bd2}`,
-          padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
-        }}>COACH VIEW</button>
-        <button onClick={() => setTab('trainee')} style={{
-          ...baseBtn,
-          background: tab === 'trainee' ? C.acD : 'transparent',
-          color: tab === 'trainee' ? C.ac : C.tm,
-          border: `1px solid ${tab === 'trainee' ? C.ac : C.bd2}`,
-          padding: '8px 16px', fontSize: 12, fontWeight: 700, letterSpacing: 1.5,
-        }}>TRAINEE VIEW</button>
-      </div>
       <div style={{
         background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
         overflow: 'hidden', maxWidth: 1180, margin: '0 auto',
         boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
       }}>
-        <iframe key={tab} src={src} title="EXPO live demo"
-          style={{ display: 'block', width: '100%', height: 760, border: 'none' }} />
+        <iframe src="/demo?embed=1" title="EXPO live engine"
+          style={{ display: 'block', width: '100%', height: 720, border: 'none' }} />
       </div>
-      <div style={{ textAlign: 'center', marginTop: 14 }}>
-        <a href={src} target="_blank" rel="noopener" style={{
-          fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700,
-          textDecoration: 'none',
-        }}>OPEN {tab === 'coach' ? 'COACH' : 'TRAINEE'} VIEW IN A FULL TAB →</a>
+      <div style={{
+        textAlign: 'center', marginTop: 16,
+        display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap',
+      }}>
+        <a href="/try" target="_blank" rel="noopener" style={{
+          ...baseBtn, background: C.ac, color: '#000', padding: '11px 22px', fontSize: 12,
+        }}>OPEN THE FULL COACH DEMO →</a>
+        <a href="/demo" target="_blank" rel="noopener" style={{
+          ...baseBtn, background: 'transparent', color: C.tx,
+          border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
+        }}>OPEN THE TRAINEE VIEW →</a>
       </div>
     </div>
   );
@@ -324,16 +316,16 @@ export default function CoachLanding() {
           <h2 style={{
             fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
             margin: '0 0 14px', letterSpacing: -0.3, textAlign: 'center',
-          }}>Try both sides of the table.</h2>
+          }}>Upload a clip. Watch the engine work.</h2>
           <p style={{
             fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14.5, lineHeight: 1.55,
             maxWidth: 680, margin: '0 auto 22px', textAlign: 'center',
           }}>
-            Upload your own clip. Switch the COACH / TRAINEE toggle inside the demo
-            to see how the same engine looks from each side — the tool you'd use
-            and the experience your client gets.
+            The full engine, running below — same code your clients film with.
+            For the deeper tour (dashboard, plan editor, review tool), open the
+            full coach demo in a new tab.
           </p>
-          <DemoTabs />
+          <DemoEmbed />
         </section>
 
         {/* What you get */}

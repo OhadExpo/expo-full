@@ -53,15 +53,17 @@ const baseBtn = {
 };
 
 // pov='coach'   → the COACH'S view of the engine ("the review tool you'd use
-//                  to scrub a client's clip") — /try
+//                  to scrub a client's clip") — /try (LEGACY — /try now
+//                  renders CoachDemo. This branch only fires if the prop is
+//                  passed manually by some other route.)
 // pov='trainee' → the TRAINEE'S view ("what your client experiences when
 //                  they upload their set") — /demo
-// Both POVs end-CTA at /coaches#waitlist — the entire /try and /demo pair
-// is pitched at the prospective coach buyer ("see what you get + see what
-// they get"). Visitors arriving from expo-il (athlete buyers) still land on
-// /demo with copy that reads naturally to them, but the closing CTA is the
-// coach-waitlist because the coach buyer is the audience for this property.
+//
+// `?embed=1` in the URL hides the header, POV banner, and footer so the
+// engine can be iframe'd into CoachLanding / CoachDemo without nested chrome.
 export default function TrySandbox({ pov = 'coach' } = {}) {
+  const isEmbedded = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('embed') === '1';
   // step: 'exercise' → 'upload' → 'analyze' → 'compare'
   // We don't gate forward steps — you can land on 'analyze' with no video and
   // it'll show the empty state. The header stepper is the canonical UI path.
@@ -104,19 +106,19 @@ export default function TrySandbox({ pov = 'coach' } = {}) {
       background: C.bg, color: C.tx, minHeight:'100vh',
       fontFamily: FB, display:'flex', flexDirection:'column',
     }}>
-      <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />
-      <POVBanner pov={pov} />
-      <main style={{ flex:1, padding:'18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
+      {!isEmbedded && <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />}
+      {!isEmbedded && <POVBanner pov={pov} />}
+      <main style={{ flex:1, padding: isEmbedded ? '14px 16px 24px' : '18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
         {step === 'exercise' && <ExercisePicker pov={pov} onPick={onPickExercise} />}
         {step === 'upload'   && <UploadStep pov={pov} exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
         {step === 'analyze'  && <AnalyzeStep pov={pov} exercise={exercise} videoUrl={videoUrl}
                                   onChangeVideo={() => setStep('upload')}
-                                  onCompare={() => setStep('compare')} />}
+                                  onCompare={() => setStep('compare')} hideEndCTA={isEmbedded} />}
         {step === 'compare'  && <CompareStep pov={pov} exercise={exercise} primaryUrl={videoUrl} secondUrl={secondUrl}
                                   onUploadSecond={onUploadSecond}
-                                  onBack={() => setStep('analyze')} />}
+                                  onBack={() => setStep('analyze')} hideEndCTA={isEmbedded} />}
       </main>
-      <Footer />
+      {!isEmbedded && <Footer />}
     </div>
   );
 }
@@ -387,7 +389,7 @@ function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
 }
 
 // ─── Step 3 · analyze (pose overlay + rep count) ──────────────────────────
-function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare }) {
+function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare, hideEndCTA }) {
   if (!videoUrl) {
     return (
       <div style={{
@@ -427,7 +429,7 @@ function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare }) {
       </p>
       <SandboxPlayer url={videoUrl} exerciseTitle={exercise?.sample || ''} />
 
-      <NextStepPanel pov={pov} exercise={exercise} />
+      {!hideEndCTA && <NextStepPanel pov={pov} exercise={exercise} />}
 
       <div style={{
         marginTop: 22, display:'flex', gap: 10, flexWrap:'wrap', justifyContent:'center',
@@ -443,7 +445,7 @@ function AnalyzeStep({ pov, exercise, videoUrl, onChangeVideo, onCompare }) {
         }}>COMPARE WITH ANOTHER CLIP →</button>
       </div>
 
-      <BuyCallToAction pov={pov} />
+      {!hideEndCTA && <BuyCallToAction pov={pov} />}
     </section>
   );
 }
@@ -550,7 +552,7 @@ function MockTile({ title, body, chips }) {
 }
 
 // ─── Step 4 · compare two clips side by side ──────────────────────────────
-function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onBack }) {
+function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onBack, hideEndCTA }) {
   const inputRef = useRef(null);
   const onFile = (e) => {
     const f = e.target.files?.[0];
@@ -610,7 +612,7 @@ function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onB
         </div>
       </div>
 
-      <NextStepPanel pov={pov} exercise={exercise} />
+      {!hideEndCTA && <NextStepPanel pov={pov} exercise={exercise} />}
 
       <div style={{
         marginTop: 22, display:'flex', gap: 10, flexWrap:'wrap', justifyContent:'center',
@@ -621,7 +623,7 @@ function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onB
           letterSpacing: 1.2, borderRadius: 6, fontSize: 12,
         }}>← BACK TO SINGLE-CLIP VIEW</button>
       </div>
-      <BuyCallToAction pov={pov} />
+      {!hideEndCTA && <BuyCallToAction pov={pov} />}
     </section>
   );
 }

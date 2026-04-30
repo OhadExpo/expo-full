@@ -304,7 +304,7 @@ function DemoTraineeDetail({ trainee, onBack }) {
 
       <div style={{
         display: 'grid', gap: 14,
-        gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
       }}>
         <div>
           <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
@@ -392,7 +392,7 @@ function DemoPrograms() {
           ))}
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <div className="cd-prog-table-wrap"><table className="cd-prog-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
           <thead>
             <tr>
               {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'SS', 'VID'].map((h, i) => (
@@ -418,7 +418,7 @@ function DemoPrograms() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -486,7 +486,7 @@ function DemoReview() {
 
       <div style={{
         display: 'grid', gap: 14,
-        gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
       }}>
         {/* Live engine via /demo iframe */}
         <div style={{
@@ -494,7 +494,10 @@ function DemoReview() {
           overflow: 'hidden',
           boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
         }}>
-          <iframe src="/demo" title="Live engine"
+          {/* embed=1 strips TrySandbox's own header / banner / footer so the
+              engine slots cleanly inside CoachDemo's review tab without
+              nested chrome. */}
+          <iframe src="/demo?embed=1" title="Live engine"
             style={{ display: 'block', width: '100%', height: 720, border: 'none' }} />
         </div>
 
@@ -601,6 +604,22 @@ export default function CoachDemo() {
         a:focus-visible, button:focus-visible {
           outline: 2px solid ${C.ac}; outline-offset: 2px; border-radius: 4px;
         }
+        /* Hide horizontal scrollbar on the header so the tab strip glides
+           on phones without showing a chunky scrollbar track. */
+        .cd-hdr::-webkit-scrollbar { display: none; }
+        .cd-hdr { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Hide the COACH DEMO badge under 640px — the EXPO logo + tab labels
+           already convey context, and the badge takes valuable phone width. */
+        @media (max-width: 640px) {
+          .cd-badge { display: none !important; }
+          .cd-cta-waitlist { padding: 6px 10px !important; }
+        }
+        /* Programs table on phones — let it scroll horizontally instead of
+           cramping every column. */
+        @media (max-width: 540px) {
+          .cd-prog-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          .cd-prog-table { min-width: 520px; }
+        }
       `}</style>
 
       {/* Header */}
@@ -608,14 +627,14 @@ export default function CoachDemo() {
         background: C.sf, borderBottom: `1px solid ${C.bd}`,
         position: 'sticky', top: 0, zIndex: 50,
       }}>
-        <div style={{
+        <div className="cd-hdr" style={{
           maxWidth: 1280, margin: '0 auto', padding: '0 16px',
           display: 'flex', alignItems: 'center', height: 60, gap: 12, overflowX: 'auto',
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
             <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32, marginTop: -4 }} />
           </a>
-          <span style={{
+          <span className="cd-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
             padding: '4px 8px', background: C.acD, borderRadius: 6,
             border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
@@ -634,7 +653,7 @@ export default function CoachDemo() {
               }}>{t.label}</button>
             ))}
           </nav>
-          <a href="/coaches#waitlist" style={{
+          <a href="/coaches#waitlist" className="cd-cta-waitlist" style={{
             ...baseBtn, background: C.ac, color: '#000',
             padding: '6px 14px', fontSize: 11, flex: '0 0 auto',
           }}>JOIN WAITLIST →</a>
