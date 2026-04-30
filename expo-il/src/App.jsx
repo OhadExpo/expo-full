@@ -120,10 +120,16 @@ function ModalCloseBtn({ onClose, label }) {
 // the same product, not a generic re-skin. Never inline alternate cropped PNGs
 // in expo-il/public/ — those drifted from the canonical mark before.
 function BrandMark({ height = 50 }) {
+  // The EXPO_LOGO_NAV PNG has the chevron on top + wordmark below, so the
+  // visible wordmark sits in the bottom ~70% of the image. Geometric-center
+  // alignment in a flex row leaves the wordmark optically below the menu's
+  // centerline. Negative marginTop ≈ 12% of height lifts the wordmark to
+  // match optical center; tuned per-height so it scales with the logo.
+  const lift = Math.max(3, Math.round(height * 0.12));
   return (
     <img src={EXPO_LOGO_NAV} alt="EXPO"
       decoding="async"
-      style={{ height, width: 'auto', display: 'block' }} />
+      style={{ height, width: 'auto', display: 'block', marginTop: -lift }} />
   );
 }
 

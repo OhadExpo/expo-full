@@ -27,6 +27,10 @@ const CoachLanding = lazy(() => import('./CoachLanding'));
 // Front-door chooser at / for unauthed visitors — splits Sign In vs the
 // coach-sales landing so existing users aren't dumped into a marketing pitch.
 const EntryChooser = lazy(() => import('./EntryChooser'));
+// /try is the full COACH-side interactive demo (Dashboard, Trainees,
+// Programs, Exercises, Review tabs with mock data). /demo stays as the
+// trainee-side engine sandbox.
+const CoachDemo = lazy(() => import('./CoachDemo'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
 const MemoPlans = React.memo(PlansView);
@@ -162,13 +166,14 @@ function AuthGate() {
     }
   }, [inPwa, isMarketingPath]);
 
-  // Browser-mode public demo routes — pitch the coach buyer from two angles:
-  //   /try   → COACH POV  ("the review tool you'd use")
-  //   /demo  → TRAINEE POV ("what your client experiences")
+  // Browser-mode public demo routes:
+  //   /try   → CoachDemo (full coach-side interactive tour — Dashboard,
+  //            Trainees, Programs, Exercises, Review tabs with mock data)
+  //   /demo  → TrySandbox pov="trainee" (the trainee engine sandbox)
   // Both end-CTAs converge at /coaches#waitlist. Hidden in PWA mode.
   if (!inPwa) {
     if (path.startsWith('/try')) {
-      return <Suspense fallback={<BootSplash />}><TrySandbox pov="coach" /></Suspense>;
+      return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
     }
     if (path.startsWith('/demo')) {
       return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;

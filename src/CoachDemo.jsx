@@ -1,0 +1,733 @@
+// Full-coverage COACH-side interactive demo at expo-app.co.il/try.
+// Replaces the earlier engine-sandbox-with-banner approach. A coach prospect
+// can click through every major surface of the platform — Dashboard, Trainees,
+// Programs, Exercises, Review — with plausible mock data, no backend.
+//
+// All state is local React state. No Supabase, no useStore, nothing that the
+// running product depends on. The Review tab embeds the existing /demo engine
+// in an iframe to show the rep counter + pose overlay live, with a fake
+// comments sidebar around it that hints at the production review surface.
+//
+// Companion to /demo (TrySandbox pov="trainee") which stays as the simple
+// trainee-side engine sandbox. Both end-CTAs converge at /coaches#waitlist.
+
+import React, { useState } from 'react';
+import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+import { EXPOMark } from './expoMark';
+
+// ─── Mock data ────────────────────────────────────────────────────────────
+const MOCK_TRAINEES = [
+  { id: 't1', name: 'Maya Cohen', short: 'Maya', email: 'maya@example.com', phone: '+972544123456', status: 'Active', sessionsLeft: 6, monthly: 800, format: 'Gym, Single', startDate: '2025-09-01', dormantDays: null, lastWorkout: '2 days ago', programs: 3, injuries: 'L4-L5 disc bulge', goals: 'Stronger bench, fix overhead', plans: ['Block #4 — Push/Pull Volume', 'Block #3 — Strength Base', 'Block #2 — Reset'] },
+  { id: 't2', name: 'Daniel Levy',   short: 'Daniel', email: 'danl@example.com', phone: '+972526789012', status: 'Active', sessionsLeft: 2, monthly: 800, format: 'Online', startDate: '2024-11-15', dormantDays: null, lastWorkout: 'today', programs: 5, injuries: 'R shoulder impingement', goals: 'First muscle-up by summer', plans: ['Block #6 — Pull Specialization', 'Block #5 — Volume', 'Block #4 — Hypertrophy'] },
+  { id: 't3', name: 'Yuval & Tom Ronen', short: 'Yuval+Tom', email: 'yuval@example.com', phone: '+972503334455', status: 'Active', sessionsLeft: 8, monthly: 1200, format: 'Gym, Couple', startDate: '2025-01-15', dormantDays: null, lastWorkout: '4 days ago', programs: 4, injuries: 'None', goals: 'Both — body comp', isCouple: true, plans: ['Block #4 — Couple Volume', 'Block #3 — Couple Base'] },
+  { id: 't4', name: 'Roei HaTzvi',  short: 'Roei', email: 'roei@example.com', phone: '+35796120865', status: 'Active', sessionsLeft: 4, monthly: 800, format: 'Online', startDate: '2025-07-01', dormantDays: 18, lastWorkout: '18 days ago', programs: 2, injuries: 'Chronic R knee', goals: 'Return to running', plans: ['Block #2 — Rehab Return', 'Block #1 — Foundations'] },
+  { id: 't5', name: 'Frederic Bourdillon', short: 'Frederic', email: 'frederic@example.com', phone: '+33624823195', status: 'Active', sessionsLeft: 3, monthly: 800, format: 'Online', startDate: '2024-11-10', dormantDays: 76, lastWorkout: '76 days ago', programs: 4, injuries: 'L5-S1', goals: 'Off-season hypertrophy', plans: ['Block #4 — Hypertrophy', 'Block #3 — Push/Pull', 'Block #2 — Reset', 'Block #1 — Intake'] },
+];
+
+const MOCK_DAYS = [
+  { name: 'Day A · Push', exercises: [
+    { name: 'BB Bench Press',          sets: 4, reps: '6-8',  tempo: '3-1-1', superset: '' },
+    { name: 'DB Incline Press',        sets: 3, reps: '8-10', tempo: '',      superset: 'A' },
+    { name: 'Cable Fly',               sets: 3, reps: '12',   tempo: '',      superset: 'A' },
+    { name: 'Standing OHP',            sets: 4, reps: '6-8',  tempo: '',      superset: '' },
+    { name: 'Lateral Raise',           sets: 3, reps: '12-15',tempo: '',      superset: 'B' },
+    { name: 'Tricep Pushdown',         sets: 3, reps: '12',   tempo: '',      superset: 'B' },
+  ]},
+  { name: 'Day B · Pull', exercises: [
+    { name: 'BB Deadlift',             sets: 4, reps: '5',    tempo: '',      superset: '' },
+    { name: 'Pull-Up',                 sets: 4, reps: '6-8',  tempo: '',      superset: 'A' },
+    { name: 'Bent-Over BB Row',        sets: 4, reps: '8',    tempo: '',      superset: 'A' },
+    { name: 'Face Pull',               sets: 3, reps: '15',   tempo: '',      superset: 'B' },
+    { name: 'DB Bicep Curl',           sets: 3, reps: '10-12',tempo: '',      superset: 'B' },
+    { name: 'Hammer Curl',             sets: 3, reps: '10',   tempo: '',      superset: '' },
+  ]},
+  { name: 'Day C · Legs', exercises: [
+    { name: 'Back Squat',              sets: 5, reps: '5',    tempo: '3-0-X', superset: '' },
+    { name: 'Romanian Deadlift',       sets: 4, reps: '8',    tempo: '',      superset: 'A' },
+    { name: 'Walking Lunge',           sets: 3, reps: '10 E', tempo: '',      superset: 'A' },
+    { name: 'Leg Curl',                sets: 3, reps: '12',   tempo: '',      superset: 'B' },
+    { name: 'Standing Calf Raise',     sets: 4, reps: '15',   tempo: '',      superset: 'B' },
+  ]},
+];
+
+const MOCK_EXERCISES = [
+  { name: 'BB Bench Press',         category: 'Chest',     pattern: 'Horizontal Push' },
+  { name: 'DB Incline Press',       category: 'Chest',     pattern: 'Horizontal Push' },
+  { name: 'Cable Fly',              category: 'Chest',     pattern: 'Isolation' },
+  { name: 'Standing OHP',           category: 'Shoulders', pattern: 'Vertical Push' },
+  { name: 'Lateral Raise',          category: 'Shoulders', pattern: 'Isolation' },
+  { name: 'BB Deadlift',            category: 'Legs',      pattern: 'Hip Hinge' },
+  { name: 'Romanian Deadlift',      category: 'Legs',      pattern: 'Hip Hinge' },
+  { name: 'Pull-Up',                category: 'Back',      pattern: 'Vertical Pull' },
+  { name: 'Bent-Over BB Row',       category: 'Back',      pattern: 'Horizontal Pull' },
+  { name: 'Back Squat',             category: 'Legs',      pattern: 'Squat' },
+  { name: 'Front Squat',            category: 'Legs',      pattern: 'Squat' },
+  { name: 'Walking Lunge',          category: 'Legs',      pattern: 'Lunge' },
+  { name: 'Leg Curl',               category: 'Legs',      pattern: 'Isolation' },
+  { name: 'Hip Thrust',             category: 'Glutes',    pattern: 'Hip Hinge' },
+  { name: 'Face Pull',              category: 'Back',      pattern: 'Horizontal Pull' },
+  { name: 'DB Bicep Curl',          category: 'Arms',      pattern: 'Curl' },
+  { name: 'Tricep Pushdown',        category: 'Arms',      pattern: 'Extend' },
+  { name: 'Hanging Leg Raise',      category: 'Core',      pattern: 'Anti-Extension' },
+  { name: 'Plank',                  category: 'Core',      pattern: 'Anti-Extension' },
+  { name: 'Cable Pallof Press',     category: 'Core',      pattern: 'Anti-Rotation' },
+];
+
+const MOCK_REVIEW_COMMENTS = [
+  { time: '00:04', body: 'Bar path drifting forward — pull elbows under more.', voice: false },
+  { time: '00:11', body: 'Knees caving on rep 3. Cue "spread the floor" before next set.', voice: false },
+  { time: '00:18', body: 'Tempo OK, but you\'re holding breath at the top. Reset before each rep.', voice: true },
+];
+
+// ─── Shared bits ──────────────────────────────────────────────────────────
+const baseBtn = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+  padding: '8px 14px', borderRadius: 6, border: 'none',
+  fontFamily: FB, fontSize: 12, fontWeight: 700, letterSpacing: 1.2,
+  cursor: 'pointer', transition: 'all 0.15s', textDecoration: 'none',
+};
+
+function Badge({ color = C.tm, children }) {
+  return (
+    <span style={{
+      fontFamily: FN, fontSize: 9, letterSpacing: 1.2, fontWeight: 700,
+      color, background: color + '20', border: `1px solid ${color}40`,
+      borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap',
+    }}>{children}</span>
+  );
+}
+
+function StatCard({ label, value, sub, accent = C.ac }) {
+  return (
+    <div style={{
+      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+      padding: '16px 18px', flex: '1 1 200px', minWidth: 180,
+    }}>
+      <div style={{
+        fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
+        textTransform: 'uppercase', marginBottom: 8,
+      }}>{label}</div>
+      <div style={{
+        fontFamily: FB, fontSize: 28, fontWeight: 700, color: accent, letterSpacing: -0.4,
+        marginBottom: 2,
+      }}>{value}</div>
+      {sub && (
+        <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 0.5 }}>{sub}</div>
+      )}
+    </div>
+  );
+}
+
+// ─── Tab: Dashboard ───────────────────────────────────────────────────────
+function DemoDashboard({ onJumpToTrainee, onJumpToReview }) {
+  const dormant = MOCK_TRAINEES.filter(t => t.dormantDays != null);
+  const overdue = MOCK_TRAINEES.slice(0, 2); // mock 2 overdue
+  return (
+    <section>
+      <SectionHeader tag="DASHBOARD" title="The morning view" body="Stat cards on top, action queues below. Everything that needs your attention surfaces here — overdue payments, dormant clients, pending reviews — without you opening 5 tabs." />
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
+        <StatCard label="ACTIVE CLIENTS" value="17 / 19" sub="2 INACTIVE" />
+        <StatCard label="LOW SESSIONS" value="2" sub="≤ 2 LEFT" accent={C.or} />
+        <StatCard label="ESTIMATED MONTHLY" value="₪14,200" />
+        <StatCard label="COLLECTED THIS MONTH" value="₪8,440" sub="59% OF EXP." accent={C.gn} />
+      </div>
+
+      <div style={{
+        display: 'grid', gap: 14,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
+      }}>
+        {/* Overdue */}
+        <Panel
+          title={<span><span style={{ color: C.rd }}>💰</span> OVERDUE PAYMENT ({overdue.length})</span>}
+          tint={C.rd}
+        >
+          {overdue.map((t, i) => (
+            <Row key={t.id} onClick={() => onJumpToTrainee(t.id)}>
+              <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>
+                {i === 0 ? 'NEVER PAID' : `${(i+1)*32}D OVERDUE`}
+              </span>
+            </Row>
+          ))}
+        </Panel>
+
+        {/* Dormant */}
+        <Panel
+          title={<span><span style={{ color: C.tm }}>💤</span> DORMANT ({dormant.length})</span>}
+          tint={C.tm}
+        >
+          {dormant.map(t => (
+            <Row key={t.id} onClick={() => onJumpToTrainee(t.id)}>
+              <span style={{ fontWeight: 600, color: C.tx, flex: 1 }}>{t.name}</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>
+                {t.dormantDays}D
+              </span>
+              <FakeWaButton />
+            </Row>
+          ))}
+        </Panel>
+
+        {/* Pending review */}
+        <Panel
+          title={<span><span style={{ color: C.ac }}>🎬</span> PENDING REVIEW (3)</span>}
+          tint={C.ac}
+        >
+          {[
+            { who: 'Maya Cohen',   what: 'BB Bench · 60kg × 6', when: '12 min ago' },
+            { who: 'Daniel Levy',  what: 'Pull-Up · BW × 8',    when: '2 hr ago' },
+            { who: 'Yuval Ronen',  what: 'Back Squat · 100kg × 5', when: '6 hr ago' },
+          ].map((r, i) => (
+            <Row key={i} onClick={onJumpToReview}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, color: C.tx }}>{r.who}</div>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1 }}>{r.what}</div>
+              </div>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{r.when}</span>
+            </Row>
+          ))}
+        </Panel>
+      </div>
+    </section>
+  );
+}
+
+function Panel({ title, tint, children }) {
+  return (
+    <div style={{
+      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        padding: '12px 16px', borderBottom: `1px solid ${C.bd}`,
+        background: tint + '10',
+        fontFamily: FN, color: tint, fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
+      }}>{title}</div>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+function Row({ onClick, children }) {
+  return (
+    <div onClick={onClick} style={{
+      padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8,
+      borderBottom: `1px solid ${C.bd}`, cursor: onClick ? 'pointer' : 'default',
+      fontSize: 13,
+    }}>{children}</div>
+  );
+}
+
+function FakeWaButton() {
+  return (
+    <button onClick={e => { e.stopPropagation(); }} title="Send WhatsApp check-in" style={{
+      background: '#25d36620', border: `1px solid #25d36655`, color: '#25d366',
+      borderRadius: 6, padding: '4px 6px', cursor: 'pointer',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366" aria-hidden="true">
+        <path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.91-7.01zM12.04 20.15h-.01a8.23 8.23 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23z"/>
+      </svg>
+    </button>
+  );
+}
+
+// ─── Tab: Trainees ────────────────────────────────────────────────────────
+function DemoTrainees({ selected, onSelect, onClear }) {
+  if (selected) {
+    const t = MOCK_TRAINEES.find(x => x.id === selected);
+    if (!t) return null;
+    return <DemoTraineeDetail trainee={t} onBack={onClear} />;
+  }
+  return (
+    <section>
+      <SectionHeader tag="TRAINEES" title="Your roster" body="Card per client. Phone, plan count, sessions left, dormant flag, status — all visible at a glance. Couples render as one card with both members." />
+      <div style={{
+        display: 'grid', gap: 12,
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
+      }}>
+        {MOCK_TRAINEES.map(t => (
+          <TraineeCard key={t.id} t={t} onClick={() => onSelect(t.id)} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TraineeCard({ t, onClick }) {
+  return (
+    <div onClick={onClick} style={{
+      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+      padding: 16, cursor: 'pointer', transition: 'border-color 0.15s',
+    }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
+      onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx }}>{t.name}</div>
+          <div style={{ fontSize: 12, color: C.tm, marginTop: 2 }}>{t.email}</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+          <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
+          <FakeWaButton />
+        </div>
+      </div>
+      <div style={{
+        fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 600,
+        textTransform: 'uppercase', marginTop: 14,
+      }}>{t.format}</div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>
+          {t.sessionsLeft} SESSIONS LEFT
+        </span>
+        <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>
+          {t.programs} PROGRAMS
+        </span>
+        {t.dormantDays != null && (
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700 }}>
+            DORMANT · {t.dormantDays}D
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DemoTraineeDetail({ trainee, onBack }) {
+  return (
+    <section>
+      <button onClick={onBack} style={{
+        ...baseBtn, background: 'transparent', color: C.tm,
+        border: `1px solid ${C.bd}`, marginBottom: 18,
+      }}>← BACK TO TRAINEES</button>
+
+      <div style={{
+        display: 'grid', gap: 14,
+        gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)',
+      }}>
+        <div>
+          <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 700, margin: '0 0 4px', letterSpacing: -0.3 }}>{trainee.name}</h2>
+          <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1, marginBottom: 14 }}>{trainee.email} · {trainee.phone}</div>
+
+          <Panel title="PROGRAMS" tint={C.ac}>
+            {trainee.plans.map((name, i) => (
+              <Row key={i}>
+                <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{name}</span>
+                <Badge color={i === 0 ? C.gn : C.td}>{i === 0 ? 'ACTIVE' : 'ARCHIVED'}</Badge>
+              </Row>
+            ))}
+          </Panel>
+
+          <div style={{ height: 14 }} />
+
+          <Panel title="RECENT WORKOUTS" tint={C.ac}>
+            {[
+              { day: 'Day A · Push', date: trainee.lastWorkout || '2 days ago', vol: '4,820 kg' },
+              { day: 'Day C · Legs', date: '5 days ago', vol: '6,210 kg' },
+              { day: 'Day B · Pull', date: '1 week ago', vol: '4,180 kg' },
+            ].map((w, i) => (
+              <Row key={i}>
+                <span style={{ flex: 1, color: C.tx, fontWeight: 600 }}>{w.day}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{w.date}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700, letterSpacing: 1 }}>{w.vol}</span>
+              </Row>
+            ))}
+          </Panel>
+        </div>
+
+        <div>
+          <Panel title="PROFILE" tint={C.tm}>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>FORMAT</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.format}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SINCE</span><span style={{ color: C.tx, fontWeight: 600 }}>{trainee.startDate}</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>SESSIONS</span><span style={{ color: trainee.sessionsLeft <= 2 ? C.rd : C.tx, fontWeight: 700 }}>{trainee.sessionsLeft} LEFT</span></Row>
+            <Row><span style={{ flex: 1, color: C.tm, fontSize: 11, fontFamily: FN, letterSpacing: 1 }}>MONTHLY</span><span style={{ color: C.tx, fontWeight: 600 }}>₪{trainee.monthly}</span></Row>
+          </Panel>
+
+          <div style={{ height: 14 }} />
+
+          <Panel title="GOALS / INJURIES" tint={C.tm}>
+            <div style={{ padding: 14, fontSize: 13, lineHeight: 1.55, color: C.tx, opacity: 0.85 }}>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, marginBottom: 4 }}>GOALS</div>
+                {trainee.goals}
+              </div>
+              <div>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, marginBottom: 4 }}>INJURIES</div>
+                {trainee.injuries}
+              </div>
+            </div>
+          </Panel>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Tab: Programs ────────────────────────────────────────────────────────
+function DemoPrograms() {
+  const [selectedDayIdx, setSelectedDayIdx] = useState(0);
+  const day = MOCK_DAYS[selectedDayIdx];
+  return (
+    <section>
+      <SectionHeader tag="PROGRAMS" title="Block-based plan editor" body="Each block is a phase of training. Days are tabs. Each row = sets, reps, tempo, video link, superset letter. Bulk import from xlsx; bulk duplicate to clone a plan onto a new client." />
+
+      <div style={{
+        background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+        padding: 18, marginBottom: 14,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+          <h3 style={{ fontFamily: FB, fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>Block #4 — Push/Pull Volume</h3>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>MAYA COHEN · WEEK 2 OF 4</span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+          {MOCK_DAYS.map((d, i) => (
+            <button key={i} onClick={() => setSelectedDayIdx(i)} style={{
+              ...baseBtn,
+              background: i === selectedDayIdx ? C.acD : 'transparent',
+              color: i === selectedDayIdx ? C.ac : C.tm,
+              border: `1px solid ${i === selectedDayIdx ? C.ac : C.bd}`,
+              padding: '6px 14px', fontSize: 11,
+            }}>{d.name}</button>
+          ))}
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <thead>
+            <tr>
+              {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'SS', 'VID'].map((h, i) => (
+                <th key={i} style={{
+                  padding: '8px 10px', textAlign: 'left',
+                  fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
+                  borderBottom: `1px solid ${C.bd}`,
+                  width: i === 1 ? 'auto' : i === 0 ? 32 : 70,
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {day.exercises.map((e, i) => (
+              <tr key={i}>
+                <td style={tdStyle()}>{i + 1}{e.superset ? e.superset.toLowerCase() : ''}</td>
+                <td style={{ ...tdStyle(), color: C.tx, fontWeight: 600, borderLeft: e.superset ? `3px solid ${e.superset === 'A' ? C.ac : C.pu}` : 'none', paddingLeft: e.superset ? 7 : 10 }}>{e.name}</td>
+                <td style={tdStyle()}>{e.sets}</td>
+                <td style={tdStyle()}>{e.reps}</td>
+                <td style={tdStyle()}>{e.tempo || '—'}</td>
+                <td style={{ ...tdStyle(), color: e.superset === 'A' ? C.ac : e.superset === 'B' ? C.pu : C.tm, fontWeight: 700 }}>{e.superset || '—'}</td>
+                <td style={tdStyle()}><span style={{ color: C.ac }}>▶</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button style={{ ...baseBtn, background: C.ac, color: '#000' }}>+ ADD EXERCISE</button>
+        <button style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📋 DUPLICATE BLOCK</button>
+        <button style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📥 IMPORT XLSX</button>
+        <button style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📤 EXPORT</button>
+      </div>
+    </section>
+  );
+}
+
+const tdStyle = () => ({
+  padding: '10px', fontFamily: FB, fontSize: 13, color: C.tm,
+  borderBottom: `1px solid ${C.bd}`, verticalAlign: 'middle',
+});
+
+// ─── Tab: Exercises ───────────────────────────────────────────────────────
+function DemoExercises() {
+  const [filter, setFilter] = useState('All');
+  const cats = ['All', ...Array.from(new Set(MOCK_EXERCISES.map(e => e.category)))];
+  const filtered = filter === 'All' ? MOCK_EXERCISES : MOCK_EXERCISES.filter(e => e.category === filter);
+  return (
+    <section>
+      <SectionHeader tag="EXERCISE LIBRARY" title="Your taxonomy, your rules" body="Every exercise is tagged with category + movement pattern. The rep counter routes joint channels off the pattern. Bring your existing library — bulk import is xlsx, sheets, or a Trainerize export." />
+
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+        {cats.map(c => (
+          <button key={c} onClick={() => setFilter(c)} style={{
+            ...baseBtn,
+            background: filter === c ? C.acD : 'transparent',
+            color: filter === c ? C.ac : C.tm,
+            border: `1px solid ${filter === c ? C.ac : C.bd}`,
+            padding: '5px 12px', fontSize: 11,
+          }}>{c.toUpperCase()}</button>
+        ))}
+      </div>
+
+      <div style={{
+        display: 'grid', gap: 8,
+        gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
+      }}>
+        {filtered.map((e, i) => (
+          <div key={i} style={{
+            background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8,
+            padding: '12px 14px',
+          }}>
+            <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, marginBottom: 4 }}>{e.name}</div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <Badge color={C.ac}>{e.category}</Badge>
+              <Badge color={C.tm}>{e.pattern}</Badge>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Tab: Review ──────────────────────────────────────────────────────────
+function DemoReview() {
+  return (
+    <section>
+      <SectionHeader tag="REVIEW TOOL" title="Where you actually coach" body="Client clip arrives, pose overlay + rep count auto-attach. You scrub, draw on the bar path, drop timestamped comments, and queue a reply video. The trainee sees all of it in their portal — no email, no DMs." />
+
+      <div style={{
+        display: 'grid', gap: 14,
+        gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)',
+      }}>
+        {/* Live engine via /demo iframe */}
+        <div style={{
+          background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
+          overflow: 'hidden',
+          boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
+        }}>
+          <iframe src="/demo" title="Live engine"
+            style={{ display: 'block', width: '100%', height: 720, border: 'none' }} />
+        </div>
+
+        {/* Fake review sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <Panel title="CLIENT" tint={C.ac}>
+            <Row>
+              <div style={{
+                width: 32, height: 32, borderRadius: '50%',
+                background: C.acD, border: `1px solid ${C.ac}40`, color: C.ac,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: FB, fontWeight: 700, fontSize: 13,
+              }}>MC</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, color: C.tx }}>Maya Cohen</div>
+                <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>BB BENCH · 60kg × 6 · TODAY 09:14</div>
+              </div>
+            </Row>
+          </Panel>
+
+          <Panel title={`COMMENTS (${MOCK_REVIEW_COMMENTS.length})`} tint={C.ac}>
+            {MOCK_REVIEW_COMMENTS.map((c, i) => (
+              <div key={i} style={{
+                padding: '12px 14px', borderBottom: `1px solid ${C.bd}`,
+              }}>
+                <div style={{
+                  display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6,
+                }}>
+                  <span style={{
+                    fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1, fontWeight: 700,
+                    background: C.acD, padding: '2px 6px', borderRadius: 4,
+                  }}>{c.time}</span>
+                  {c.voice && (
+                    <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1 }}>🎙️ VOICE</span>
+                  )}
+                </div>
+                <div style={{ color: C.tx, opacity: 0.85, fontSize: 13, lineHeight: 1.45 }}>{c.body}</div>
+              </div>
+            ))}
+            <div style={{ padding: 12 }}>
+              <div style={{
+                background: C.sf2, border: `1px dashed ${C.bd2}`, borderRadius: 8,
+                padding: '10px 12px', color: C.tm, fontSize: 12,
+              }}>+ Tap any frame in the player to drop a comment / draw on the form</div>
+            </div>
+          </Panel>
+
+          <Panel title="REPLY VIDEO" tint={C.ac}>
+            <div style={{ padding: 14 }}>
+              <div style={{
+                background: '#000', border: `1px solid ${C.bd}`, borderRadius: 8,
+                aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
+              }}>RECORD A 30s REPLY</div>
+            </div>
+          </Panel>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ─── Layout ───────────────────────────────────────────────────────────────
+function SectionHeader({ tag, title, body }) {
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{
+        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+        marginBottom: 8,
+      }}>{tag}</div>
+      <h1 style={{
+        fontFamily: FB, fontSize: 'clamp(22px, 3.2vw, 28px)', fontWeight: 700,
+        margin: '0 0 10px', letterSpacing: -0.3,
+      }}>{title}</h1>
+      <p style={{
+        fontFamily: FB, color: C.tx, opacity: 0.85, fontSize: 14.5, lineHeight: 1.55,
+        maxWidth: 720, margin: 0,
+      }}>{body}</p>
+    </div>
+  );
+}
+
+const TABS = [
+  { key: 'dashboard', label: 'DASHBOARD' },
+  { key: 'trainees',  label: 'TRAINEES' },
+  { key: 'programs',  label: 'PROGRAMS' },
+  { key: 'exercises', label: 'EXERCISES' },
+  { key: 'review',    label: 'REVIEW' },
+];
+
+export default function CoachDemo() {
+  const [tab, setTab] = useState('dashboard');
+  const [selectedTrainee, setSelectedTrainee] = useState(null);
+
+  const onJumpToTrainee = (id) => { setSelectedTrainee(id); setTab('trainees'); };
+  const onJumpToReview = () => setTab('review');
+
+  return (
+    <div style={{
+      background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
+      display: 'flex', flexDirection: 'column',
+    }}>
+      <style>{`
+        a:focus-visible, button:focus-visible {
+          outline: 2px solid ${C.ac}; outline-offset: 2px; border-radius: 4px;
+        }
+      `}</style>
+
+      {/* Header */}
+      <header style={{
+        background: C.sf, borderBottom: `1px solid ${C.bd}`,
+        position: 'sticky', top: 0, zIndex: 50,
+      }}>
+        <div style={{
+          maxWidth: 1280, margin: '0 auto', padding: '0 16px',
+          display: 'flex', alignItems: 'center', height: 60, gap: 12, overflowX: 'auto',
+        }}>
+          <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
+            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ display: 'block', height: 32, marginTop: -4 }} />
+          </a>
+          <span style={{
+            fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
+            padding: '4px 8px', background: C.acD, borderRadius: 6,
+            border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
+          }}>COACH DEMO</span>
+          <nav style={{
+            display: 'flex', gap: 2, flex: '1 1 auto', justifyContent: 'center',
+            minWidth: 'max-content',
+          }}>
+            {TABS.map(t => (
+              <button key={t.key} onClick={() => { setTab(t.key); setSelectedTrainee(null); }} style={{
+                ...baseBtn,
+                background: tab === t.key ? C.acD : 'transparent',
+                color: tab === t.key ? C.ac : C.tm,
+                padding: '6px 12px', fontSize: 11, letterSpacing: 1.5,
+                whiteSpace: 'nowrap',
+              }}>{t.label}</button>
+            ))}
+          </nav>
+          <a href="/coaches#waitlist" style={{
+            ...baseBtn, background: C.ac, color: '#000',
+            padding: '6px 14px', fontSize: 11, flex: '0 0 auto',
+          }}>JOIN WAITLIST →</a>
+        </div>
+      </header>
+
+      {/* POV banner — same shape as the engine sandbox to keep UX coherent */}
+      <div style={{
+        borderBottom: `1px solid ${C.bd}`,
+        background: `linear-gradient(180deg, ${C.sf} 0%, ${C.bg} 100%)`,
+      }}>
+        <div style={{
+          maxWidth: 1280, margin: '0 auto', padding: '12px 16px',
+          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+        }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
+            background: C.acD, border: `1px solid rgba(57,189,255,0.30)`,
+            borderRadius: 6, padding: '4px 9px', whiteSpace: 'nowrap',
+          }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            COACH VIEW
+          </div>
+          <div style={{
+            fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45,
+            flex: '1 1 auto', minWidth: 200,
+          }}>
+            <b style={{ opacity: 1 }}>Your</b> side of the platform. Click through the tabs above. Mock data — nothing here writes to your account.
+          </div>
+          <a href="/demo" style={{
+            ...baseBtn,
+            background: 'transparent', color: C.tm,
+            border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, letterSpacing: 1.5,
+            flex: '0 0 auto',
+          }}>SEE TRAINEE VIEW →</a>
+        </div>
+      </div>
+
+      <main style={{ flex: 1, padding: '28px 16px 80px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
+        {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} onJumpToReview={onJumpToReview} />}
+        {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={setSelectedTrainee} onClear={() => setSelectedTrainee(null)} />}
+        {tab === 'programs'  && <DemoPrograms />}
+        {tab === 'exercises' && <DemoExercises />}
+        {tab === 'review'    && <DemoReview />}
+
+        {/* End CTA — every tab funnels back to the waitlist */}
+        <div style={{
+          marginTop: 48,
+          background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
+          border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 14,
+          padding: '24px 20px', textAlign: 'center',
+        }}>
+          <div style={{
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            marginBottom: 8,
+          }}>FOUNDING-COACH WAITLIST</div>
+          <h3 style={{
+            fontFamily: FB, fontSize: 'clamp(20px, 2.6vw, 24px)', fontWeight: 700,
+            margin: '0 0 10px', letterSpacing: -0.2,
+          }}>Run your roster on this stack. Locked-in pricing for the first wave.</h3>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <a href="/coaches#waitlist" style={{
+              ...baseBtn, background: C.ac, color: '#000', padding: '11px 22px', fontSize: 12,
+            }}>JOIN THE WAITLIST</a>
+            <a href="/demo" style={{
+              ...baseBtn, background: 'transparent', color: C.tx,
+              border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
+            }}>NOW SEE THE TRAINEE VIEW →</a>
+          </div>
+        </div>
+      </main>
+
+      <footer style={{
+        borderTop: `1px solid ${C.bd}`, padding: '18px 16px',
+        maxWidth: 1280, margin: '0 auto', width: '100%',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+      }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
+        }}>
+          <EXPOMark height={11} style={{ opacity: 0.55 }} />
+          <span>· COACH DEMO · MOCK DATA · NOTHING WRITES BACK</span>
+        </span>
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
+          <a href="/coaches" style={{ color: C.td, textDecoration: 'none' }}>BACK TO PITCH</a>
+        </span>
+      </footer>
+    </div>
+  );
+}
