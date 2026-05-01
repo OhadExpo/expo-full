@@ -36,13 +36,28 @@ setBlobOnError((e) => emitSaveError({ key: 'form_video', op: 'upload-drop', msg:
 // and eventually gets dropped via MAX_ATTEMPTS.
 function isTransient(err) {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  const code = err?.code || '';
+  // Permanent Postgres / PostgREST errors — retrying never helps. Surface a
+  // toast on the first failure so the user knows the write didn't land,
+  // instead of letting the queue burn 5 attempts × 30s in silence.
+  //   23xxx — integrity constraint violations (unique, FK, NOT NULL, check)
+  //   42501 — insufficient_privilege (RLS denied)
+  //   PGRST* — PostgREST request errors (auth, schema, malformed)
+  if (typeof code === 'string') {
+    if (/^23\d{3}$/.test(code)) return false;
+    if (code === '42501') return false;
+    if (code.startsWith('PGRST')) return false;
+  }
   const msg = (err?.message || String(err || '')).toLowerCase();
   if (!msg) return true;
+  if (msg.includes('row-level security') || msg.includes('permission denied') ||
+      msg.includes('not authorized') || msg.includes('unauthorized') ||
+      msg.includes('jwt expired') || msg.includes('invalid jwt') ||
+      msg.includes('duplicate key') || msg.includes('violates') ||
+      msg.includes('check constraint') || msg.includes('foreign key')) return false;
   if (msg.includes('network') || msg.includes('failed to fetch') || msg.includes('timeout') ||
       msg.includes('aborted') || msg.includes('offline') || msg.includes('econnreset') ||
       msg.includes('refused')) return true;
-  // Postgrest constraint codes start with PG; treat as permanent.
-  if (err?.code && /^P/.test(err.code)) return false;
   return true; // default: queue
 }
 
@@ -67,7 +82,12 @@ registerHandler('client_workouts.delete', async ({ id }) => {
   if (error) throw error;
 });
 registerHandler('bw_logs.upsert', async ({ row }) => {
-  const { error } = await supabase.from('bw_logs').upsert(row);
+  // onConflict matches the table's (client_id, block_name, week) unique
+  // constraint. Without it, replaying a queued bw upsert for an existing
+  // (client, block, week) tuple fails with 23505 — same class as the
+  // weekly_focus bug. The direct save path in useSupaBwLog already passes
+  // this; the queue handler did not until now.
+  const { error } = await supabase.from('bw_logs').upsert(row, { onConflict: 'client_id,block_name,week' });
   if (error) throw error;
 });
 registerHandler('bw_logs.delete', async ({ filter }) => {
@@ -77,7 +97,14 @@ registerHandler('bw_logs.delete', async ({ filter }) => {
   if (error) throw error;
 });
 registerHandler('weekly_focus.upsert', async ({ k, v }) => {
-  const { error } = await supabase.from('weekly_focus').upsert({ focus_key: k, value: v, updated_at: new Date().toISOString() });
+  // onConflict: focus_key — table has serial id PK + unique focus_key. Without
+  // this, every re-write of an existing focus_key tried to INSERT and failed
+  // with 23505 (unique violation). The first save for a key worked; every
+  // subsequent edit was silently lost.
+  const { error } = await supabase.from('weekly_focus').upsert(
+    { focus_key: k, value: v, updated_at: new Date().toISOString() },
+    { onConflict: 'focus_key' }
+  );
   if (error) throw error;
 });
 
@@ -434,13 +461,27 @@ export function useSupaWeeklyFocus(initial = {}) {
     (async () => {
       try {
         const { data: rows } = await supabase.from('weekly_focus').select('*');
-        if (rows && rows.length > 0) {
-          const obj = {};
-          rows.forEach(r => { obj[r.focus_key] = r.value; });
-          setData(obj);
-          dataRef.current = obj;
-          localStorage.setItem('expo-weekly-focus', JSON.stringify(obj));
-        }
+        if (!rows) return;
+        // Build merged state: cloud first, then overlay any unsynced writes
+        // still sitting in the offline queue (e.g. last session typed a longer
+        // value but the upsert hadn't drained yet). Without this overlay, a
+        // page reload would replace the local cache with the older cloud
+        // value and silently nuke the in-flight typing.
+        const cloud = {};
+        rows.forEach(r => { cloud[r.focus_key] = r.value; });
+        let pending = {};
+        try {
+          const queued = JSON.parse(localStorage.getItem('expo-offline-queue') || '[]');
+          for (const item of queued) {
+            if (item?.type !== 'weekly_focus.upsert') continue;
+            const { k, v } = item.payload || {};
+            if (k != null) pending[k] = v;
+          }
+        } catch {}
+        const merged = { ...cloud, ...pending };
+        setData(merged);
+        dataRef.current = merged;
+        try { localStorage.setItem('expo-weekly-focus', JSON.stringify(merged)); } catch {}
       } catch {}
     })();
   }, []);
@@ -453,7 +494,10 @@ export function useSupaWeeklyFocus(initial = {}) {
     timerRef.current = null;
     for (const [k, v] of Object.entries(pending)) {
       try {
-        const { error } = await supabase.from('weekly_focus').upsert({ focus_key: k, value: v, updated_at: new Date().toISOString() });
+        const { error } = await supabase.from('weekly_focus').upsert(
+          { focus_key: k, value: v, updated_at: new Date().toISOString() },
+          { onConflict: 'focus_key' }
+        );
         if (error) {
           if (isTransient(error)) enqueue({ type: 'weekly_focus.upsert', payload: { k, v }, dedupeKey: k });
           else emitSaveError({ key: 'weekly_focus', op: 'save', msg: error.message || String(error) });

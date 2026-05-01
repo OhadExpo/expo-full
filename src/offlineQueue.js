@@ -78,6 +78,24 @@ export function setOnError(fn) {
   onErrorHook = fn;
 }
 
+// Permanent errors — RLS, auth, constraint violations — never succeed on retry.
+// Drop them on the first failure so the user sees a toast immediately instead
+// of waiting MAX_ATTEMPTS × DRAIN_INTERVAL_MS (~150s) of silent looping.
+function isPermanent(err) {
+  const code = err?.code || '';
+  if (typeof code === 'string') {
+    if (/^23\d{3}$/.test(code)) return true;     // integrity constraints
+    if (code === '42501') return true;            // RLS
+    if (code.startsWith('PGRST')) return true;    // PostgREST request errors
+  }
+  const msg = (err?.message || String(err || '')).toLowerCase();
+  return msg.includes('row-level security') || msg.includes('permission denied') ||
+         msg.includes('not authorized') || msg.includes('unauthorized') ||
+         msg.includes('jwt expired') || msg.includes('invalid jwt') ||
+         msg.includes('duplicate key') || msg.includes('violates') ||
+         msg.includes('check constraint') || msg.includes('foreign key');
+}
+
 export async function drain() {
   if (draining) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
@@ -107,13 +125,15 @@ export async function drain() {
         if (target) {
           target.attempts = (target.attempts || 0) + 1;
           target.lastError = e?.message || String(e);
-          if (target.attempts >= MAX_ATTEMPTS) {
+          // Permanent errors: drop now, surface a toast, and keep draining the
+          // rest of the queue — don't let a bad payload hold up unrelated work.
+          if (isPermanent(e) || target.attempts >= MAX_ATTEMPTS) {
             const filtered = cur.filter(x => x.id !== next.id);
             write(filtered);
             if (onErrorHook) {
               try { onErrorHook({ type: next.type, payload: next.payload, msg: target.lastError }); } catch {}
             }
-            continue; // try the next entry
+            continue;
           } else {
             write(cur);
           }
@@ -128,7 +148,18 @@ export async function drain() {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => { drain(); });
-  setInterval(() => { if (getCount() > 0) drain(); }, DRAIN_INTERVAL_MS);
+  // Skip the periodic wake-up while the tab is backgrounded — battery
+  // friendly, especially on mobile PWAs where this can otherwise wake
+  // every 30s for hours. The visibilitychange handler below catches up
+  // immediately when the tab returns to foreground so the user never
+  // waits for the next tick.
+  setInterval(() => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    if (getCount() > 0) drain();
+  }, DRAIN_INTERVAL_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && getCount() > 0) drain();
+  });
   // Best-effort initial drain on app load — handles the case where a tab
   // was last closed offline and reopened with network already up.
   setTimeout(() => { drain(); }, 1500);

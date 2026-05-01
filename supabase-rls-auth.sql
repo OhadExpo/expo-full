@@ -29,6 +29,16 @@ CREATE POLICY "trainer_all" ON store
   USING (is_trainer())
   WITH CHECK (is_trainer());
 
+-- Step 3b: Presence-key carve-out (added 2026-05-02 via
+-- scripts/migrations/2026-05-02-presence-rls.sql).
+-- ClientPortal writes store[key='expo-presence'] every 30s as a heartbeat.
+-- Non-trainer clients hit RLS without this; the carve-out is scoped to a
+-- single key, every other store row stays trainer-only.
+CREATE POLICY "auth_presence_rw" ON store
+  FOR ALL
+  USING (key = 'expo-presence' AND auth.uid() IS NOT NULL)
+  WITH CHECK (key = 'expo-presence' AND auth.uid() IS NOT NULL);
+
 -- Step 4: CLIENT_WORKOUTS — clients write their own, trainer reads all
 -- Clients can insert and read their own workouts
 CREATE POLICY "client_insert_own" ON client_workouts

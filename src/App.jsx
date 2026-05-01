@@ -284,8 +284,20 @@ function AuthedApp() {
   // what we want (refresh keeps you in, fresh Chrome = re-pick).
   const [portalChoice, setPortalChoice] = useState(() => {
     if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem(PORTAL_CHOICE_KEY);
+    try { return sessionStorage.getItem(PORTAL_CHOICE_KEY); } catch { return null; }
   });
+  // If the auth user changes mid-session (e.g. user A signs out, user B
+  // signs in via OAuth on the same tab — sessionStorage survives the
+  // redirect), drop user A's portal choice so user B re-picks. Without
+  // this, a dual-role User B inherits A's "trainer"/"client" preference.
+  const lastEmailRef = useRef(email);
+  useEffect(() => {
+    if (lastEmailRef.current && email && lastEmailRef.current !== email) {
+      try { sessionStorage.removeItem(PORTAL_CHOICE_KEY); } catch {}
+      setPortalChoice(null);
+    }
+    lastEmailRef.current = email;
+  }, [email]);
   const pickPortal = useCallback((side) => {
     sessionStorage.setItem(PORTAL_CHOICE_KEY, side);
     setPortalChoice(side);

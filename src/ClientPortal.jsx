@@ -954,15 +954,28 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // foreground we beat immediately so the coach sees them as online.
   React.useEffect(() => {
     if (!ci) return;
+    let consecutiveFailures = 0;
     const beat = async () => {
       if (document.visibilityState !== 'visible') return;
       try {
         const { supabase: sb } = await import('./supabase');
-        const { data: existing } = await sb.from('store').select('value').eq('key', 'expo-presence').maybeSingle();
+        const { data: existing, error: readErr } = await sb.from('store').select('value').eq('key', 'expo-presence').maybeSingle();
+        if (readErr) throw readErr;
         const presence = existing?.value || {};
         presence[ci] = Date.now();
-        await sb.from('store').upsert({ key: 'expo-presence', value: presence });
-      } catch (e) { /* silent */ }
+        const { error: writeErr } = await sb.from('store').upsert({ key: 'expo-presence', value: presence });
+        if (writeErr) throw writeErr;
+        consecutiveFailures = 0;
+      } catch (e) {
+        // Don't toast on every 30s tick — heartbeat is best-effort and the
+        // coach's online panel is non-critical. But if it fails 3 ticks in a
+        // row, log to console so a regression (e.g. RLS policy reverted)
+        // doesn't go invisible the way it did before the 2026-05-02 carve-out.
+        consecutiveFailures += 1;
+        if (consecutiveFailures === 3) {
+          console.warn('[presence] heartbeat failing:', e?.message || e);
+        }
+      }
     };
     beat();
     const iv = setInterval(beat, 30000);

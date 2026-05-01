@@ -390,18 +390,24 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   {exData.primaryMuscles&&<span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
                 </div>:exTitle?<div style={{fontSize:11,color:C.or,marginTop:4}}>📝 {exTitle}</div>:null}
                 <Input value={ex.notes} onChange={e=>updateEx(exIdx,{notes:e.target.value})} placeholder="Notes, modifications..." style={{marginTop:6}} />
-                {plan.name && day && (
-                  <div style={{marginTop:6,background:C.acD,borderRadius:6,padding:"8px 10px",border:`1px solid ${C.ac}20`}}>
-                    <div style={{fontSize:9,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:4}}>WEEKLY FOCUS</div>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:4}}>
-                      {[1,2,3,4].map(w => {
-                        const fk = `${plan.name}|${day.name}|${ex.exerciseId}|W${w}`;
-                        return <input key={w} value={weeklyFocus?.[fk]||""} onChange={e=>{const v=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:v}))}}
-                          placeholder={`W${w}`} style={{background:C.sf2,border:`1px solid ${weeklyFocus?.[fk]?C.ac+"40":C.bd}`,borderRadius:4,padding:"4px 6px",color:C.tx,fontFamily:FB,fontSize:11,outline:"none",boxSizing:"border-box"}} />;
-                      })}
+                {plan.name && day && (() => {
+                  // Match the plan's actual week count — the per-week sets/reps
+                  // grids above use plan.weeks, but this used to be hardcoded
+                  // to 4, hiding focus inputs for weeks 5+ on longer plans.
+                  const weeks = plan.weeks || 4;
+                  return (
+                    <div style={{marginTop:6,background:C.acD,borderRadius:6,padding:"8px 10px",border:`1px solid ${C.ac}20`}}>
+                      <div style={{fontSize:9,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:4}}>WEEKLY FOCUS</div>
+                      <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},1fr)`,gap:4}}>
+                        {Array.from({length:weeks}, (_, i) => i + 1).map(w => {
+                          const fk = `${plan.name}|${day.name}|${ex.exerciseId}|W${w}`;
+                          return <input key={w} value={weeklyFocus?.[fk]||""} onChange={e=>{const v=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:v}))}}
+                            placeholder={`W${w}`} style={{background:C.sf2,border:`1px solid ${weeklyFocus?.[fk]?C.ac+"40":C.bd}`,borderRadius:4,padding:"4px 6px",color:C.tx,fontFamily:FB,fontSize:11,outline:"none",boxSizing:"border-box"}} />;
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div></div></div>);
         })}
         <Btn variant="ghost" onClick={()=>setAddExerciseOpen(true)} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>

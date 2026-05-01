@@ -263,6 +263,17 @@ export async function drainBlobs() {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => { drainBlobs(); });
-  setInterval(() => { getCount().then(n => { if (n > 0) drainBlobs(); }); }, DRAIN_INTERVAL_MS);
+  // Skip the wake-up while the tab is backgrounded; the visibilitychange
+  // handler picks up any pending uploads as soon as it returns to
+  // foreground. Saves battery on long PWA sessions.
+  setInterval(() => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    getCount().then(n => { if (n > 0) drainBlobs(); });
+  }, DRAIN_INTERVAL_MS);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      getCount().then(n => { if (n > 0) drainBlobs(); });
+    }
+  });
   setTimeout(() => { drainBlobs(); }, 2000);
 }
