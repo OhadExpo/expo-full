@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
+import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
 import { PasswordChangeModal } from './auth';
@@ -494,7 +495,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Progress bar with EXPO icon
   const bar = <div style={{padding:'10px 16px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',height:32}}>
-      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:24,display:'block',flexShrink:0}} />
+      <EXPOMark height={22} style={{flexShrink:0}} />
       <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
       <button onClick={onBack} style={{marginLeft:'auto',background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
@@ -592,7 +593,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   })();
   if (step === 'end') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20,textAlign:'center'}}>
-      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:24,marginBottom:16}} />
+      <EXPOMark height={22} style={{marginBottom:16}} />
       <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
 
@@ -1065,7 +1066,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     <>
       <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:28,display:'block',marginLeft:3}} />
+          <EXPOMark height={22} style={{marginLeft:3}} />
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>

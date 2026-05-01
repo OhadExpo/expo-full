@@ -548,7 +548,7 @@ export default function CoachLanding() {
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
         }}>
-          <EXPOMark height={11} style={{ opacity: 0.55 }} />
+          <EXPOMark height={14} style={{ opacity: 0.55 }} />
           <span>· COACHING PLATFORM · BUILT IN TEL AVIV · © {new Date().getFullYear()} ALL RIGHTS RESERVED</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>

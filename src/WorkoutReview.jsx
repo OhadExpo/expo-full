@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import WorkoutsView from './WorkoutsView';
 import { C, FN, FB, ytId, EXPO_ICON } from './theme';
+import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
@@ -1732,7 +1733,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         Review completed workouts, watch client form videos, and set weekly focus for next week.
       </div>
       <div style={{textAlign:"center",padding:60,color:C.td}}>
-        <img src={EXPO_ICON} alt="" style={{height:32,opacity:0.2,marginBottom:12}} />
+        <EXPOMark height={22} style={{opacity:0.2,marginBottom:12}} />
         <div style={{fontSize:14}}>No completed workouts yet</div>
         <div style={{fontSize:12,marginTop:4}}>Workouts logged in the Client Portal will appear here</div>
       </div>

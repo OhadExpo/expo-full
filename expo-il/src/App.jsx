@@ -119,11 +119,15 @@ function ModalCloseBtn({ onClose, label }) {
 // via expo-il/scripts/sync-brand-from-coach.py so the landing site reads as
 // the same product, not a generic re-skin. Never inline alternate cropped PNGs
 // in expo-il/public/ — those drifted from the canonical mark before.
-function BrandMark({ height = 50 }) {
+function BrandMark({ height = 22 }) {
+  // The nav PNG sits with its wordmark in the lower ~63% of the image (caret
+  // + buffer occupy the top). Lift the rendered mark by 13% of its height so
+  // the wordmark aligns with the line's optical center; uses transform (not
+  // negative margin) so the caret tip never gets clipped by the layout box.
   return (
     <img src={EXPO_LOGO_NAV} alt="EXPO"
       decoding="async"
-      style={{ height, width: 'auto', display: 'block' }} />
+      style={{ height, width: 'auto', display: 'block', transform: 'translateY(-13%)' }} />
   );
 }
 
@@ -333,7 +337,7 @@ function Nav() {
           flex: '0 0 auto', display: 'flex', alignItems: 'center',
           marginRight: 12, height: 56,
         }}>
-          <BrandMark height={36} />
+          <BrandMark height={22} />
         </a>
         <nav style={{
           display: 'flex', gap: 2, alignItems: 'center',
@@ -2395,7 +2399,7 @@ function Footer() {
         flexWrap: 'wrap', gap: 14,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <BrandMark height={20} />
+          <BrandMark height={14} />
           <span style={{ fontFamily: FN, color: C.td, fontSize: 11 }}>
             {t('footer.copy.tmpl', { year: new Date().getFullYear() })}
           </span>
