@@ -188,12 +188,19 @@ export function useSupaClientWorkouts(initial = []) {
     try { const s = localStorage.getItem('expo-cw'); return s ? JSON.parse(s) : initial; } catch { return initial; }
   });
   const dataRef = useRef(data);
+  // Becomes true the moment the user mutates local state (new workout,
+  // form-video patch, reviewed toggle, delete). Guards the initial Supabase
+  // fetch below so a slow SELECT can't overwrite edits the user already made
+  // — e.g. a review-comment saved during page load no longer gets wiped by
+  // the (now stale) snapshot the server returns a moment later.
+  const mutatedRef = useRef(false);
 
   useEffect(() => {
     (async () => {
       try {
         const { data: rows } = await supabase.from('client_workouts').select('*').order('date', { ascending: false });
         if (rows && rows.length > 0) {
+          if (mutatedRef.current) return;
           const mapped = rows.map(r => ({
             id: r.id, clientId: r.client_id, planName: r.plan_name,
             dayName: r.day_name, week: r.week, date: r.date,
@@ -221,6 +228,7 @@ export function useSupaClientWorkouts(initial = []) {
         const s = localStorage.getItem('expo-cw');
         if (!s) return;
         const parsed = JSON.parse(s);
+        mutatedRef.current = true;
         setData(parsed);
         dataRef.current = parsed;
       } catch {}
@@ -232,6 +240,7 @@ export function useSupaClientWorkouts(initial = []) {
   const save = useCallback(async (next) => {
     const prev = dataRef.current;
     const val = typeof next === 'function' ? next(prev) : next;
+    mutatedRef.current = true;
     setData(val);
     dataRef.current = val;
     try { localStorage.setItem('expo-cw', JSON.stringify(val)); } catch {}
@@ -263,6 +272,7 @@ export function useSupaClientWorkouts(initial = []) {
   const markReviewed = useCallback(async (id, reviewed = true) => {
     const ts = reviewed ? new Date().toISOString() : null;
     const next = dataRef.current.map(w => w.id === id ? { ...w, reviewedAt: ts } : w);
+    mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
     try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
@@ -284,6 +294,7 @@ export function useSupaClientWorkouts(initial = []) {
   // surface via emitSaveError and get shown in the save-error toast.
   const updateFormVideos = useCallback(async (id, formVideos) => {
     const next = dataRef.current.map(w => w.id === id ? { ...w, formVideos } : w);
+    mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
     try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}
@@ -303,6 +314,7 @@ export function useSupaClientWorkouts(initial = []) {
   // the row owns those columns). Optimistic local removal, then DB delete.
   const deleteWorkout = useCallback(async (id) => {
     const next = dataRef.current.filter(w => w.id !== id);
+    mutatedRef.current = true;
     setData(next);
     dataRef.current = next;
     try { localStorage.setItem('expo-cw', JSON.stringify(next)); } catch {}

@@ -148,10 +148,33 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     setComposeText('');
   };
   const cancelCompose = () => { setComposing(null); setComposeText(''); setComposeDrawings([]); };
+  const startEdit = (note, isReply = false, parentId = null) => {
+    try { videoRef.current?.pause(); } catch {}
+    setComposing({ ts: note.ts ?? null, replyToId: null, editId: note.id, isReply, parentId });
+    setComposeText(note.text || '');
+    setComposeDrawings(Array.isArray(note.drawings) ? note.drawings : []);
+  };
   const submitCompose = () => {
     const text = composeText.trim();
     if (!text || !composing) { cancelCompose(); return; }
     const nowIso = new Date().toISOString();
+    if (composing.editId) {
+      // Edit path: replace text + drawings on the existing note (or just text
+      // on a reply, since replies don't carry drawings).
+      if (composing.isReply) {
+        const next = notes.map(n => n.id === composing.parentId
+          ? { ...n, replies: (n.replies || []).map(r => r.id === composing.editId ? { ...r, text, editedAt: nowIso } : r) }
+          : n);
+        writeNotes(next);
+      } else {
+        const next = notes.map(n => n.id === composing.editId
+          ? { ...n, text, drawings: composeDrawings, editedAt: nowIso }
+          : n);
+        writeNotes(next);
+      }
+      cancelCompose();
+      return;
+    }
     const newId = 'rn_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
     if (composing.replyToId) {
       const next = notes.map(n => n.id === composing.replyToId
@@ -1114,7 +1137,9 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       {composing && (
         <div style={{background:C.sf2,border:`1px solid ${C.ac}60`,borderRadius:8,padding:10,marginTop:8}}>
           <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,textAlign:'center'}}>
-            {composing.replyToId ? '↳ REPLYING' : `💬 COMMENT AT ${fmtTs(composing.ts)}`}
+            {composing.editId
+              ? (composing.isReply ? '✏️ EDITING REPLY' : `✏️ EDITING COMMENT AT ${fmtTs(composing.ts)}`)
+              : (composing.replyToId ? '↳ REPLYING' : `💬 COMMENT AT ${fmtTs(composing.ts)}`)}
           </div>
           <textarea value={composeText} autoFocus dir="auto"
             onChange={e => setComposeText(e.target.value)}
@@ -1149,6 +1174,9 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                   <button onClick={() => seekTo(n.ts)} style={{background:C.acD,border:`1px solid ${C.ac}40`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
                   <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
                   <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
+                  {(n.author === role) && onReviewNotesChange && (
+                    <button onClick={() => startEdit(n, false, null)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:4}}>✏️</button>
+                  )}
                   {(n.author === role) && (
                     <button onClick={() => deleteNote(n.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:12,padding:0,marginLeft:4}}>✕</button>
                   )}
@@ -1161,8 +1189,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                         <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
                           <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
                           <span style={{fontSize:10,color:C.td}}>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
+                          {(r.author === role) && onReviewNotesChange && (
+                            <button onClick={() => startEdit(r, true, n.id)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginLeft:'auto'}}>✏️</button>
+                          )}
                           {(r.author === role) && (
-                            <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:'auto'}}>✕</button>
+                            <button onClick={() => deleteNote(r.id)} title="Delete" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:r.author===role&&onReviewNotesChange?4:'auto'}}>✕</button>
                           )}
                         </div>
                         <div style={{fontSize:12,color:C.tx,whiteSpace:'pre-wrap',textAlign:'center'}}>{r.text}</div>
@@ -1256,7 +1287,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     const fk = `${planName}|${dayName}|${eid}|W${week}`;
     setWeeklyFocus(prev => {
       const next = { ...prev };
-      if (val.trim()) next[fk] = val.trim();
+      // Persist the user's text verbatim. Trimming on every keystroke would
+      // strip the trailing space React just rendered, so the space key never
+      // visibly registers in the controlled textarea — and you can't extend
+      // existing text by appending a word either.
+      if (val.length > 0) next[fk] = val;
       else delete next[fk];
       return next;
     });
