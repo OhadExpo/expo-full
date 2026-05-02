@@ -151,6 +151,42 @@ export const PROGRAMS = [
       daysPerWeek: [4],
       forRehab: 'no',
     },
+    // Week 1 — volume escalation starts at ~60%. Week 4 hits 90% before
+    // a deload week. PPL/Upper-Lower hybrid with BFR finishers optional.
+    sampleWeek: {
+      dayA: [
+        { title: 'Bench Press',                 prescribed: '4 × 8 @ RPE 7' },
+        { title: 'Standing Overhead Press',     prescribed: '3 × 10' },
+        { title: 'Incline DB Press',            prescribed: '3 × 12' },
+        { title: 'Cable Fly',                   prescribed: '3 × 15', notes: 'last set drop' },
+        { title: 'Tricep Pushdown',             prescribed: '3 × 12-15' },
+        { title: 'Lateral Raise',               prescribed: '3 × 15', notes: 'BFR optional' },
+      ],
+      dayB: [
+        { title: 'Pull-Up',                     prescribed: '4 × AMRAP', notes: 'stop 1 rep shy' },
+        { title: 'Bent-Over BB Row',            prescribed: '3 × 10' },
+        { title: 'Lat Pulldown',                prescribed: '3 × 12' },
+        { title: 'Chest-Supported Row',         prescribed: '3 × 12' },
+        { title: 'DB Bicep Curl',               prescribed: '3 × 12' },
+        { title: 'Face Pull',                   prescribed: '3 × 15' },
+      ],
+      dayC: [
+        { title: 'Back Squat',                  prescribed: '4 × 8 @ RPE 7', tempo: '3-1-1' },
+        { title: 'Romanian Deadlift',           prescribed: '3 × 10' },
+        { title: 'Walking DB Lunge',            prescribed: '3 × 10/leg' },
+        { title: 'Leg Curl',                    prescribed: '3 × 12' },
+        { title: 'Standing Calf Raise',         prescribed: '4 × 12-15' },
+        { title: 'Hanging Leg Raise',           prescribed: '3 × 8-10' },
+      ],
+      dayD: [
+        { title: 'Incline Bench Press',         prescribed: '4 × 8' },
+        { title: 'Seated Cable Row',            prescribed: '4 × 10' },
+        { title: 'DB Shoulder Press',           prescribed: '3 × 10' },
+        { title: 'EZ-Bar Curl',                 prescribed: '3 × 10' },
+        { title: 'Cable Tricep Extension',      prescribed: '3 × 12' },
+        { title: 'Cable Pallof Press',          prescribed: '3 × 10/side' },
+      ],
+    },
   },
   {
     id: 'powerbuild-12',
@@ -186,6 +222,38 @@ export const PROGRAMS = [
       goals: ['strength', 'muscle'],
       daysPerWeek: [4],
       forRehab: 'no',
+    },
+    // Top set at 80-90% 1RM, then 3 backoff sets at 70% for hypertrophy.
+    // 4-day split, one main lift per day. Built-in deload at W6 + W12.
+    sampleWeek: {
+      dayA: [
+        { title: 'Back Squat',                  prescribed: '1 × 3 @ 85% · 3 × 6 @ 70%', tempo: '3-1-1', notes: 'top + 3 backoffs' },
+        { title: 'Bulgarian Split Squat',       prescribed: '3 × 8/leg' },
+        { title: 'Leg Press',                   prescribed: '3 × 10-12' },
+        { title: 'Standing Calf Raise',         prescribed: '4 × 12' },
+        { title: 'Cable Pallof Press',          prescribed: '3 × 10/side' },
+      ],
+      dayB: [
+        { title: 'Bench Press',                 prescribed: '1 × 3 @ 85% · 3 × 6 @ 70%', tempo: '3-1-1', notes: 'top + 3 backoffs' },
+        { title: 'Weighted Pull-Up',            prescribed: '3 × 6' },
+        { title: 'Incline DB Press',            prescribed: '3 × 8-10' },
+        { title: 'Seated Cable Row',            prescribed: '3 × 10' },
+        { title: 'Tricep Pushdown',             prescribed: '3 × 12' },
+      ],
+      dayC: [
+        { title: 'Conventional Deadlift',       prescribed: '1 × 3 @ 85% · 2 × 5 @ 70%', tempo: '2-0-1', notes: 'top + 2 backoffs' },
+        { title: 'Front Squat',                 prescribed: '3 × 6' },
+        { title: 'Romanian Deadlift',           prescribed: '3 × 8' },
+        { title: 'Hip Thrust',                  prescribed: '3 × 10' },
+        { title: 'Hanging Leg Raise',           prescribed: '3 × 8' },
+      ],
+      dayD: [
+        { title: 'Standing Overhead Press',     prescribed: '1 × 3 @ 85% · 3 × 6 @ 70%', tempo: '3-1-1', notes: 'top + 3 backoffs' },
+        { title: 'Bent-Over BB Row',            prescribed: '4 × 6-8' },
+        { title: 'Push-Up',                     prescribed: '3 × AMRAP', notes: 'stop 1 rep shy' },
+        { title: 'EZ-Bar Curl',                 prescribed: '3 × 10' },
+        { title: 'Lateral Raise',               prescribed: '3 × 12-15' },
+      ],
     },
   },
   {
@@ -224,6 +292,32 @@ export const PROGRAMS = [
       forRehab: 'no',
       couplesOnly: true,
     },
+    // 3 days/week each, both copies run the same template at different
+    // absolute loads. Synchronised supersets (A1/A2) where both partners
+    // can share or swap equipment cleanly.
+    sampleWeek: {
+      dayA: [
+        { title: 'Goblet Squat',                prescribed: '4 × 8',     tempo: '3-1-1', notes: 'A1 — alternate with partner' },
+        { title: 'DB Bench Press',              prescribed: '4 × 10',                   notes: 'A2 — alternate with partner' },
+        { title: 'Single-Arm DB Row',           prescribed: '3 × 10/side',               notes: 'B1' },
+        { title: 'Hip Thrust',                  prescribed: '3 × 10',                   notes: 'B2' },
+        { title: 'Plank',                       prescribed: '3 × 30s' },
+      ],
+      dayB: [
+        { title: 'Trap-Bar Deadlift',           prescribed: '4 × 5',     tempo: '2-1-1' },
+        { title: 'DB Overhead Press',           prescribed: '3 × 8',                    notes: 'A1' },
+        { title: 'Lat Pulldown',                prescribed: '3 × 10',                   notes: 'A2' },
+        { title: 'Walking DB Lunge',            prescribed: '3 × 10/leg' },
+        { title: 'Dead Bug',                    prescribed: '3 × 8/side' },
+      ],
+      dayC: [
+        { title: 'Front-Foot-Elevated Split Squat', prescribed: '3 × 10/leg', notes: 'A1' },
+        { title: 'Push-Up',                     prescribed: '3 × AMRAP',                notes: 'A2 — stop 2 reps shy' },
+        { title: 'Chest-Supported Row',         prescribed: '3 × 12' },
+        { title: 'DB Romanian Deadlift',        prescribed: '3 × 10' },
+        { title: 'Farmer Carry',                prescribed: '3 × 30m',                  notes: 'race or relay 😉' },
+      ],
+    },
   },
   {
     id: 'rehab-return',
@@ -260,6 +354,31 @@ export const PROGRAMS = [
       daysPerWeek: [3, 4],
       forRehab: 'only',
     },
+    // Pain-gated, ROM-first work. Bands + DBs only. Pain ≥4 on any set
+    // pulls the load regression hierarchy automatically (ROM → Tempo →
+    // Intensity → Volume). 0-3 OK, 4-5 modify, 6+ stop and reassess.
+    sampleWeek: {
+      dayA: [
+        { title: 'Bodyweight Box Squat',        prescribed: '3 × 10', tempo: '3-1-1', notes: 'pain gate ≤3/10' },
+        { title: 'Wall Push-Up',                prescribed: '3 × 12', tempo: '3-1-1' },
+        { title: 'Band Row',                    prescribed: '3 × 12',                 notes: 'pinch shoulder blades, hold 1s' },
+        { title: 'Glute Bridge',                prescribed: '3 × 10', tempo: '2-2-2' },
+        { title: 'Dead Bug',                    prescribed: '3 × 6/side',             notes: 'breathe, don\'t brace hard' },
+      ],
+      dayB: [
+        { title: 'DB Romanian Deadlift',        prescribed: '3 × 10', tempo: '3-1-1', notes: 'light · feel hamstrings' },
+        { title: 'Half-Kneeling DB Press',      prescribed: '3 × 8/arm' },
+        { title: 'Band Pull-Apart',             prescribed: '3 × 15' },
+        { title: 'Side Plank',                  prescribed: '3 × 20s/side' },
+        { title: 'Suitcase Carry',              prescribed: '3 × 20m/side',           notes: 'rib stack, no lean' },
+      ],
+      dayC: [
+        { title: 'Walk',                        prescribed: '20-30 min',              notes: 'easy pace, nasal breathing' },
+        { title: 'Goblet Squat',                prescribed: '3 × 8', tempo: '3-1-1' },
+        { title: 'Bird Dog',                    prescribed: '3 × 6/side' },
+        { title: 'Farmer Carry',                prescribed: '3 × 30m' },
+      ],
+    },
   },
   {
     id: 'athlete-conditioning-12',
@@ -295,6 +414,38 @@ export const PROGRAMS = [
       goals: ['sport', 'strength'],
       daysPerWeek: [4],
       forRehab: 'no',
+    },
+    // 2 strength + 2 conditioning days per week. Sport-day RPE caps
+    // when in-season (lift only at RPE ≤7). Sprint and change-of-direction
+    // blocks rotate every 2 weeks.
+    sampleWeek: {
+      dayA: [
+        { title: 'Box Jump',                    prescribed: '5 × 3',                  notes: 'soft landings, full reset' },
+        { title: 'Trap-Bar Deadlift',           prescribed: '4 × 5 @ RPE 7' },
+        { title: 'Bulgarian Split Squat',       prescribed: '3 × 6/leg' },
+        { title: 'Single-Leg RDL',              prescribed: '3 × 8/leg' },
+        { title: 'Cable Pallof Press',          prescribed: '3 × 8/side' },
+      ],
+      dayB: [
+        { title: 'A-Skip + High-Knee Drill',    prescribed: '3 × 20m',                notes: 'warm-up' },
+        { title: '20m Sprint',                  prescribed: '6 × 20m',                notes: 'full recovery between reps' },
+        { title: '5-10-5 Pro Agility',          prescribed: '6 reps',                 notes: 'change-of-direction' },
+        { title: 'Sled Push',                   prescribed: '4 × 20m',                notes: 'moderate load' },
+        { title: 'Side Plank',                  prescribed: '3 × 30s/side' },
+      ],
+      dayC: [
+        { title: 'Push Press',                  prescribed: '4 × 5 @ RPE 7' },
+        { title: 'Bench Press',                 prescribed: '4 × 6' },
+        { title: 'Weighted Pull-Up',            prescribed: '4 × 5' },
+        { title: 'DB Row',                      prescribed: '3 × 10/arm' },
+        { title: 'Hanging Leg Raise',           prescribed: '3 × 8' },
+      ],
+      dayD: [
+        { title: 'Easy Bike or Run',            prescribed: '20 min @ Z2',            notes: 'aerobic base, can hold conversation' },
+        { title: 'Tempo Intervals',             prescribed: '6 × 1 min @ Z3 / 1 min walk' },
+        { title: 'Farmer Carry',                prescribed: '4 × 40m' },
+        { title: 'Dead Bug',                    prescribed: '3 × 8/side' },
+      ],
     },
   },
 ];
