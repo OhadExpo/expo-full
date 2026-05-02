@@ -294,14 +294,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 20, alignItems: "center" }}>
-        <div style={{ flex: 1 }}><input placeholder="Search trainees..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12 }} /></div>
+        <div style={{ flex: 1 }}><input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12 }} /></div>
         <button onClick={() => setShowArchived(!showArchived)} style={{ background: showArchived ? C.rdD : "transparent", border: `1px solid ${showArchived ? C.rd : C.bd}`, borderRadius: 6, padding: "8px 14px", color: showArchived ? C.rd : C.tm, fontFamily: FB, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
           {showArchived ? `Archive (${archived.length})` : `Archive (${archived.length})`}
         </button>
         <div ref={addMenuRef} style={{position:'relative'}}>
-          <Btn onClick={() => setAddMenuOpen(!addMenuOpen)}>+ Add Trainee ▾</Btn>
+          <Btn onClick={() => setAddMenuOpen(!addMenuOpen)}>+ Add Athlete ▾</Btn>
           {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:8,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.4)'}}>
-            {[['Online Client','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple']].map(([label,format])=>(
+            {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple']].map(([label,format])=>(
               <button key={format} onClick={()=>{
                 const f = {...defaultTrainee(), format};
                 if(format==='Gym, Couple') f.members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''}];
@@ -315,7 +315,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         </div>
       </div>
 
-      {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived clients." : "No trainees yet. Add your first client."} /> : (
+      {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived athletes." : "No athletes yet. Add your first one."} /> : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
           {filtered.map(t => {
             const couple = isCouple(t);
@@ -474,7 +474,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         </div>)}
 
       {/* Edit/Create Modal */}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Trainee" : "New Trainee"} wide>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Athlete" : "New Athlete"} wide>
         {form._members ? <>
           {/* COUPLE EDIT */}
           <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>Shared</div>
@@ -556,15 +556,15 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         </div>
         </>}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-          {editId && <Btn variant="danger" onClick={() => setArchiveConfirm(editId)} style={{ marginRight: "auto" }}>📦 Archive Client</Btn>}
+          {editId && <Btn variant="danger" onClick={() => setArchiveConfirm(editId)} style={{ marginRight: "auto" }}>📦 Archive Athlete</Btn>}
           <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
           <Btn onClick={handleSave}>{editId ? "Update" : "Create"}</Btn>
         </div>
       </Modal>
 
       {/* Archive confirmation */}
-      <ConfirmDialog open={!!archiveConfirm} title="Archive This Client?"
-        message="Client will be moved to the archive. You can restore them anytime. Their plans, workouts, and payments will be preserved."
+      <ConfirmDialog open={!!archiveConfirm} title="Archive This Athlete?"
+        message="Athlete will be moved to the archive. You can restore them anytime. Their plans, workouts, and payments will be preserved."
         onConfirm={() => handleArchive(archiveConfirm)}
         onCancel={() => setArchiveConfirm(null)} />
 

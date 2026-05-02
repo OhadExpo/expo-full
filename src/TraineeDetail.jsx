@@ -189,7 +189,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     <div>
       {/* Back + actions bar */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back to Trainees</button>
+        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back to Athletes</button>
         <div style={{display:"flex",gap:6}}>
           <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px"}}>✏ Edit</Btn>
           {td.status==="Archived" ? <>
@@ -354,7 +354,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             {unassigned.map(p=><div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
               <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>)}</>}
-            {others.length>0&&<><div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8,marginTop:12}}>FROM OTHER CLIENTS (will duplicate)</div>
+            {others.length>0&&<><div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8,marginTop:12}}>FROM OTHER ATHLETES (will duplicate)</div>
             {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.bd}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name} <span style={{fontWeight:400,color:C.tm}}>— {owner?.name||'?'}</span></div>
               <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>})}</>}

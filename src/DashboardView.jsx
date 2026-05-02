@@ -140,7 +140,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
-          { label: 'Active Clients', value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
+          { label: 'Active Athletes', value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
           { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
           { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
@@ -249,7 +249,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
-                <SH k="name" label="Client" />
+                <SH k="name" label="Athlete" />
                 <SH k="status" label="Status" />
                 <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Format</th>
                 <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Package</th>

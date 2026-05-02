@@ -108,7 +108,7 @@ export default function EntryChooser() {
         }}>
           <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>FULL COACH DEMO</a>
           <span style={{ margin: '0 8px' }}>·</span>
-          <a href="/demo/trainee" style={{ color: C.td, textDecoration: 'none' }}>TRAINEE VIEW</a>
+          <a href="/demo/trainee" style={{ color: C.td, textDecoration: 'none' }}>ATHLETE VIEW</a>
           <span style={{ margin: '0 8px' }}>·</span>
           <a href="https://expo-il.co.il/" style={{ color: C.td, textDecoration: 'none' }}>BUY A PROGRAM</a>
         </div>

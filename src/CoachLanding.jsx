@@ -162,7 +162,7 @@ function DemoEmbed() {
         <a href="/demo/trainee" target="_blank" rel="noopener" style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
-        }}>OPEN THE TRAINEE VIEW →</a>
+        }}>OPEN THE ATHLETE VIEW →</a>
       </div>
     </div>
   );
@@ -333,7 +333,7 @@ export default function CoachLanding() {
             <a href="/demo/trainee" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, padding: '13px 26px', fontSize: 13,
-            }}>SEE TRAINEE VIEW →</a>
+            }}>SEE ATHLETE VIEW →</a>
             <a href="#waitlist" style={{
               ...baseBtn, background: 'transparent', color: C.tm,
               padding: '13px 18px', fontSize: 13,
@@ -387,7 +387,7 @@ export default function CoachLanding() {
               body="MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side." />
             <FeatureCard tag="PROGRAMMING" title="Block-based plan authoring"
               body="Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Bulk import from xlsx." />
-            <FeatureCard tag="CLIENT PORTAL" title="Branded portal per client"
+            <FeatureCard tag="ATHLETE PORTAL" title="Branded portal per athlete"
               body="Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in." />
             <FeatureCard tag="OPS" title="Dormant nudges via WhatsApp"
               body="Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record." />
@@ -454,7 +454,7 @@ export default function CoachLanding() {
               features={[
                 'Full video review engine',
                 'Plan authoring + xlsx import',
-                'Client portals + couple cards',
+                'Athlete portals + couple cards',
                 'Dormant-WhatsApp nudges',
               ]}
             />

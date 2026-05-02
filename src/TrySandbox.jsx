@@ -284,7 +284,7 @@ function POVBanner({ pov }) {
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          {isCoach ? 'COACH VIEW' : 'TRAINEE VIEW'}
+          {isCoach ? 'COACH VIEW' : 'ATHLETE VIEW'}
         </div>
         <div style={{
           fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85, lineHeight: 1.45,
@@ -310,7 +310,7 @@ function POVBanner({ pov }) {
             color: !isCoach ? '#000' : C.tm,
             padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             textDecoration: 'none',
-          }}>TRAINEE</a>
+          }}>ATHLETE</a>
         </div>
       </div>
     </div>
@@ -605,7 +605,7 @@ function ExercisePicker({ pov, onPick }) {
         marginBottom: 28,
       }}>
         {isCoach
-          ? "Pick the lift. The rep counter routes to the right joint channel — squat → knee, hinge → hip, press → elbow — so your reps are counted correctly the moment the client uploads. You don't tag exercises; the engine inherits it from the plan."
+          ? "Pick the lift. The rep counter routes to the right joint channel — squat → knee, hinge → hip, press → elbow — so your reps are counted correctly the moment the athlete uploads. You don't tag exercises; the engine inherits it from the plan."
           : "Pick the closest match. The rep counter routes to the right joint channel — squat → knee, hinge → hip, press → elbow — same logic the EXPO portal uses on real client clips. If yours isn't here, pick the closest movement pattern."}
       </p>
       <div style={{
@@ -652,7 +652,7 @@ function UploadStep({ pov, exercise, onUpload, onChangeExercise }) {
       <div style={{
         fontFamily:FN, color: C.ac, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>STEP 2 · {isCoach ? 'LOAD THE CLIENT CLIP' : 'UPLOAD A SET'}</div>
+      }}>STEP 2 · {isCoach ? 'LOAD THE ATHLETE CLIP' : 'UPLOAD A SET'}</div>
       <h1 style={{
         fontFamily:FB, fontSize:'clamp(24px, 3.5vw, 30px)', fontWeight:700,
         marginBottom: 10, letterSpacing:-0.3,
@@ -795,7 +795,7 @@ function NextStepPanel({ pov, exercise }) {
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 10, letterSpacing: 2.5, fontWeight: 700,
         marginBottom: 12,
-      }}>{isCoach ? 'COACH · NEXT — REVIEW TOOLS' : 'TRAINEE · NEXT — SEND FOR REVIEW'}</div>
+      }}>{isCoach ? 'COACH · NEXT — REVIEW TOOLS' : 'ATHLETE · NEXT — SEND FOR REVIEW'}</div>
       {isCoach ? <CoachReviewMock exercise={exercise} /> : <TraineeSendMock exercise={exercise} />}
     </div>
   );
@@ -809,7 +809,7 @@ function CoachReviewMock({ exercise }) {
     }}>
       <MockTile
         title="Draw on form"
-        body="Tap on any frame, draw a line on the bar path, knee track, or torso angle. Strokes are saved with the timestamp and replay when the client opens the review."
+        body="Tap on any frame, draw a line on the bar path, knee track, or torso angle. Strokes are saved with the timestamp and replay when the athlete opens the review."
         chips={['BAR PATH', 'KNEE TRACK', 'TORSO ANGLE']}
       />
       <MockTile
@@ -1336,12 +1336,12 @@ function BuyCallToAction({ pov = 'coach' }) {
     ? 'This is the review tool you sit down to every morning.'
     : 'This is what every one of your clients gets.';
   const body = isCoach
-    ? 'Same engine, your side of the table. Pose overlay, rep count, side-by-side compare on any uploaded client clip — no exporting to QuickTime, no scrubbing through DMs. Comments, drawings, and timestamped notes go back to the client through the portal.'
+    ? 'Same engine, your side of the table. Pose overlay, rep count, side-by-side compare on any uploaded athlete clip — no exporting to QuickTime, no scrubbing through DMs. Comments, drawings, and timestamped notes go back to the athlete through the portal.'
     : 'When your client films a set on their phone, this is the screen they see. Pose lines, rep count, tempo, and a one-tap path to send it for your review. No app install, no account they have to manage — they tap the link in your message and they\'re in.';
   const primaryHref = '/demo#waitlist';
   const primaryLbl  = 'JOIN THE WAITLIST';
   const secondHref  = isCoach ? '/demo' : '/try';
-  const secondLbl   = isCoach ? 'NOW SEE THE TRAINEE VIEW →' : 'NOW SEE THE COACH VIEW →';
+  const secondLbl   = isCoach ? 'NOW SEE THE ATHLETE VIEW →' : 'NOW SEE THE COACH VIEW →';
   return (
     <div style={{
       marginTop: 28,

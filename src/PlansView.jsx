@@ -246,7 +246,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
-        <Select label="Assign to Trainee" options={[{value:"",label:"Unassigned"}, ...trainees.flatMap(t => {
+        <Select label="Assign to Athlete" options={[{value:"",label:"Unassigned"}, ...trainees.flatMap(t => {
           if (t.members && t.members.length === 2) {
             return t.members.map((m, i) => ({ value: t.id + '__' + i, label: m.name || ('Member ' + (i+1)) }));
           }
@@ -505,7 +505,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"center",flexWrap:"wrap"}}>
         <div style={{flex:1,minWidth:180}}><input placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,paddingLeft:12}} /></div>
         <select value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,width:180}}>
-          <option value="">All Clients ({planIndex.length})</option>
+          <option value="">All Athletes ({planIndex.length})</option>
           {traineeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
         <Btn onClick={handleNewPlan}>+ New Program</Btn>

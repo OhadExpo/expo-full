@@ -29,8 +29,8 @@ const STRINGS = {
   'hero.h1.line1':       { en: 'Programs that',  he: 'תוכניות' },
   'hero.h1.line2':       { en: 'actually work',  he: 'שעובדות' },
   'hero.subhead': {
-    en: 'Block-periodised templates for hypertrophy, strength, rehab, and time-poor schedules. Same engine I use with private clients — now available as standalone purchases you can run yourself.',
-    he: 'תבניות מחולקות לבלוקים. היפרטרופיה, כוח, שיקום, ולמי שאין זמן. אותה שיטה שאני עובד איתה עם לקוחות אישיים — עכשיו אתה מקבל אותה לבד.',
+    en: 'Block-periodised templates for hypertrophy, strength, rehab, and time-poor schedules. Same engine I use with private athletes — now available as standalone purchases you can run yourself.',
+    he: 'תבניות מחולקות לבלוקים. היפרטרופיה, כוח, שיקום, ולמי שאין זמן. אותה שיטה שאני עובד איתה עם ספורטאים אישיים — עכשיו אתה מקבל אותה לבד.',
   },
   'hero.cta.browse':     { en: 'BROWSE PROGRAMS ↓', he: 'תוכניות ↓' },
   'hero.cta.how':        { en: 'HOW IT WORKS',      he: 'איך זה עובד' },
@@ -39,7 +39,7 @@ const STRINGS = {
   // Hero social-proof strip — three quick credibility numbers under the subhead.
   // Numbers seeded from the coach app (CLAUDE.md). Update when reality moves.
   'hero.stat1.n':        { en: '20+',                he: '20+' },
-  'hero.stat1.l':        { en: 'private clients trained', he: 'לקוחות אישיים' },
+  'hero.stat1.l':        { en: 'private athletes trained', he: 'ספורטאים אישיים' },
   'hero.stat2.n':        { en: '90+',                he: '90+' },
   'hero.stat2.l':        { en: 'programs delivered', he: 'תוכניות שכתבתי' },
   'hero.stat3.n':        { en: '500+',               he: '500+' },
@@ -49,8 +49,8 @@ const STRINGS = {
   'catalog.badge':       { en: 'CATALOG',        he: 'קטלוג' },
   'catalog.h2':          { en: 'Pick the block that matches where you are.', he: 'תבחר את הבלוק שמתאים לך עכשיו.' },
   'catalog.body': {
-    en: 'Every program ships as a 4-week block (or longer) inside the EXPO portal — log sets on your phone, watch your bodyweight trend, and follow the same auto-regulation rules I use with private clients.',
-    he: 'כל תוכנית היא בלוק של 4 שבועות ומעלה. בתוך פורטל EXPO. מתעד סטים בטלפון, רואה את משקל הגוף לאורך זמן, ועובד לפי אותה אוטו-רגולציה שאני עובד עם לקוחות אישיים.',
+    en: 'Every program ships as a 4-week block (or longer) inside the EXPO portal — log sets on your phone, watch your bodyweight trend, and follow the same auto-regulation rules I use with private athletes.',
+    he: 'כל תוכנית היא בלוק של 4 שבועות ומעלה. בתוך פורטל EXPO. מתעד סטים בטלפון, רואה את משקל הגוף לאורך זמן, ועובד לפי אותה אוטו-רגולציה שאני עובד עם ספורטאים אישיים.',
   },
   'catalog.chip.all':    { en: 'ALL',            he: 'הכל' },
   'catalog.empty':       { en: 'NO PROGRAMS IN THIS CATEGORY', he: 'אין תוכניות בקטגוריה הזאת' },
@@ -92,8 +92,8 @@ const STRINGS = {
   },
   'how.04.t':            { en: 'Train',               he: 'תתאמן' },
   'how.04.d': {
-    en: 'Log every set on your phone. The program tracks your bodyweight trend, session RPE, and pain check-ins, and surfaces a weekly focus — same engine as my private clients, no coach DMs in the way.',
-    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומציגה פוקוס שבועי. אותה שיטה כמו של לקוחות אישיים שלי. בלי לחכות להודעות.',
+    en: 'Log every set on your phone. The program tracks your bodyweight trend, session RPE, and pain check-ins, and surfaces a weekly focus — same engine as my private athletes, no coach DMs in the way.',
+    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומציגה פוקוס שבועי. אותה שיטה כמו של ספורטאים אישיים שלי. בלי לחכות להודעות.',
   },
 
   // (Old in-line how.faq.* keys removed — FAQ now lives in its own section,
@@ -103,8 +103,8 @@ const STRINGS = {
   'inside.badge':        { en: 'INSIDE THE PORTAL', he: 'בתוך הפורטל' },
   'inside.h2':           { en: 'Your phone counts the reps. You focus on the lift.', he: 'הטלפון סופר חזרות. אתה מתרכז במשקל.' },
   'inside.body': {
-    en: 'Film any set with your phone. The portal runs pose detection on the clip, counts the reps automatically, and lets you compare the new attempt with your last set at the same weight — same engine I use with private clients, no manual stopwatch.',
-    he: 'תצלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ומאפשר להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה כמו של לקוחות אישיים. בלי סטופר.',
+    en: 'Film any set with your phone. The portal runs pose detection on the clip, counts the reps automatically, and lets you compare the new attempt with your last set at the same weight — same engine I use with private athletes, no manual stopwatch.',
+    he: 'תצלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ומאפשר להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה כמו של ספורטאים אישיים. בלי סטופר.',
   },
 
   // Phone 1 — pose landmarker
@@ -164,12 +164,12 @@ const STRINGS = {
     he: 'מאמן יכולות אתלטיות בבני הרצליה. שיחקתי פוטבול ב-NCAA, ב-CMU. אחרי זה כמה עונות בקבוצות קולג\' בארץ — OUI, TAU. התאמנתי בעצמי קודם. אחרי זה התחלתי לכתוב תוכניות לאתלטים.',
   },
   'about.p2': {
-    en: 'Today I work with private clients out of Herzliya — block-periodised training, progress logged on the phone, video reviewed every week. The portal you see here is the same one they use. I built it myself so I could stop juggling spreadsheets.',
-    he: 'היום אני עובד עם לקוחות אישיים בהרצליה. תוכנית בבלוקים. תיעוד בטלפון. סרטונים נבדקים כל שבוע. הפורטל שאתה רואה פה הוא בדיוק זה שהם עובדים איתו. בניתי אותו לבד כדי להפסיק עם אקסלים.',
+    en: 'Today I work with private athletes out of Herzliya — block-periodised training, progress logged on the phone, video reviewed every week. The portal you see here is the same one they use. I built it myself so I could stop juggling spreadsheets.',
+    he: 'היום אני עובד עם ספורטאים אישיים בהרצליה. תוכנית בבלוקים. תיעוד בטלפון. סרטונים נבדקים כל שבוע. הפורטל שאתה רואה פה הוא בדיוק זה שהם עובדים איתו. בניתי אותו לבד כדי להפסיק עם אקסלים.',
   },
   'about.p3': {
-    en: "EXPO templates exist because I can't take more 1:1 clients than my schedule allows, but the programming is good enough to deliver as standalone product. Same blocks, same auto-regulation, no waitlist.",
-    he: 'תבניות EXPO קיימות כי אני לא יכול לקחת יותר לקוחות מכמה שהיום נותן לי. אבל התוכניות עצמן מספיק טובות לעמוד כמוצר עצמאי. אותם בלוקים. אותה אוטו-רגולציה. בלי רשימת המתנה.',
+    en: "EXPO templates exist because I can't take more 1:1 athletes than my schedule allows, but the programming is good enough to deliver as standalone product. Same blocks, same auto-regulation, no waitlist.",
+    he: 'תבניות EXPO קיימות כי אני לא יכול לקחת יותר ספורטאים מכמה שהיום נותן לי. אבל התוכניות עצמן מספיק טובות לעמוד כמוצר עצמאי. אותם בלוקים. אותה אוטו-רגולציה. בלי רשימת המתנה.',
   },
 
   // Existing 3-credential strip
@@ -207,8 +207,8 @@ const STRINGS = {
   'why.badge':           { en: 'WHY TEMPLATES',   he: 'למה תבניות' },
   'why.h2':              { en: 'Programmed, without paying for a private coach.', he: 'אימון לפי תוכנית, בלי המחיר של מאמן אישי.' },
   'why.body': {
-    en: "Most lifters end up in one of three buckets. Templates are the middle option — almost everything a private client gets, at a fraction of the price, with you as the operator.",
-    he: 'רוב המתאמנים מתחלקים לשלוש קטגוריות. תבניות הן האמצע — מקבל כמעט הכל מה שלקוח אישי מקבל, חלק קטן מהמחיר, רק שאתה זה שמפעיל.',
+    en: "Most lifters end up in one of three buckets. Templates are the middle option — almost everything a private athlete gets, at a fraction of the price, with you as the operator.",
+    he: 'רוב המתאמנים מתחלקים לשלוש קטגוריות. תבניות הן האמצע — מקבל כמעט הכל מה שספורטאי אישי מקבל, חלק קטן מהמחיר, רק שאתה זה שמפעיל.',
   },
 
   // Column headers
@@ -323,9 +323,9 @@ const STRINGS = {
   'lead.err.generic': { en: 'Save failed. Try again or DM me on WhatsApp.', he: 'לא נשמר. תנסה שוב או שלח וואטסאפ.' },
 
   // ─── Testimonials ─────────────────────────────────────────────────
-  'testi.badge':      { en: 'CLIENT VOICES',  he: 'מהלקוחות' },
+  'testi.badge':      { en: 'ATHLETE VOICES',  he: 'מהספורטאים' },
   'testi.h2':         { en: 'What people say after a block', he: 'מה אומרים אחרי בלוק' },
-  'testi.empty':      { en: 'Quotes coming soon — placeholder slots until I clear photo + permission with each client.', he: 'ציטוטים בקרוב. שומר מקום עד שאסגור צילום והרשאה עם כל לקוח.' },
+  'testi.empty':      { en: 'Quotes coming soon — placeholder slots until I clear photo + permission with each athlete.', he: 'ציטוטים בקרוב. שומר מקום עד שאסגור צילום והרשאה עם כל ספורטאי.' },
 
   // ─── Israeli trust signals strip ──────────────────────────────────
   'trust.badge':      { en: 'WHY IT IS SAFE TO BUY', he: 'למה זה בטוח לקנות' },
@@ -379,8 +379,8 @@ const STRINGS = {
   },
   'faq.q7':           { en: 'How is this different from a free workout app?', he: 'מה ההבדל בין זה לבין אפליקציה חינמית?' },
   'faq.a7': {
-    en: "Free apps give you a list of exercises. They do not auto-regulate against your RPE, they do not run pose detection on your video, they do not count reps from the bar path, and there is no real coach answering your WhatsApp. EXPO templates are the same engine my private clients use — programmed by me, not generated.",
-    he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות לפי מסלול המוט, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה לקוחות אישיים שלי — אני כותב, לא AI.',
+    en: "Free apps give you a list of exercises. They do not auto-regulate against your RPE, they do not run pose detection on your video, they do not count reps from the bar path, and there is no real coach answering your WhatsApp. EXPO templates are the same engine my private athletes use — programmed by me, not generated.",
+    he: 'אפליקציות חינמיות נותנות לך רשימת תרגילים. הן לא מתאימות עומס ל-RPE שלך, לא מריצות זיהוי תנוחה על הסרטון, לא סופרות חזרות לפי מסלול המוט, ואין מאמן אמיתי שעונה בוואטסאפ. תבניות EXPO הן אותה שיטה שעובדים איתה ספורטאים אישיים שלי — אני כותב, לא AI.',
   },
   'faq.q8':           { en: 'Can I message you for support after I buy?', he: 'אפשר לדבר איתך לתמיכה אחרי הקנייה?' },
   'faq.a8': {
@@ -392,8 +392,8 @@ const STRINGS = {
   'quiz.badge':       { en: 'NOT SURE WHICH BLOCK?', he: 'לא בטוח איזה בלוק?' },
   'quiz.h2':          { en: 'Six questions. Get matched.', he: 'שש שאלות. תקבל התאמה.' },
   'quiz.body': {
-    en: "I built this from the same intake form I use with private clients — just shorter. Takes about a minute. The full assessment lives behind it for when you are ready.",
-    he: 'בניתי את זה מאותו טופס היכרות שאני משתמש בו עם לקוחות אישיים — רק קצר יותר. דקה. ההערכה המלאה ממתינה מאחור לכשתהיה מוכן.',
+    en: "I built this from the same intake form I use with private athletes — just shorter. Takes about a minute. The full assessment lives behind it for when you are ready.",
+    he: 'בניתי את זה מאותו טופס היכרות שאני משתמש בו עם ספורטאים אישיים — רק קצר יותר. דקה. ההערכה המלאה ממתינה מאחור לכשתהיה מוכן.',
   },
   'quiz.cta':         { en: 'START QUIZ →',          he: '← התחל קווויז' },
   'quiz.modal.title': { en: 'Find your program',     he: 'מצא לך תוכנית' },
@@ -457,8 +457,8 @@ const STRINGS = {
   'quiz.r.fit.med':    { en: 'ALSO WORKS',           he: 'גם מתאים' },
   'quiz.r.full.h':     { en: 'Want me to look at this personally?', he: 'רוצה שאני אסתכל על זה אישית?' },
   'quiz.r.full.body': {
-    en: 'The full intake form is the same one I use with private clients — body history, sleep, stress, training history, goals. Fills in 6 minutes. After you submit it I will reply with a personalised recommendation.',
-    he: 'טופס ההיכרות המלא זה אותו אחד שאני עובד איתו עם לקוחות אישיים — היסטוריה גופנית, שינה, לחץ, ניסיון אימוני, מטרות. ממלאים תוך 6 דקות. אחרי שאתה שולח אני חוזר עם המלצה אישית.',
+    en: 'The full intake form is the same one I use with private athletes — body history, sleep, stress, training history, goals. Fills in 6 minutes. After you submit it I will reply with a personalised recommendation.',
+    he: 'טופס ההיכרות המלא זה אותו אחד שאני עובד איתו עם ספורטאים אישיים — היסטוריה גופנית, שינה, לחץ, ניסיון אימוני, מטרות. ממלאים תוך 6 דקות. אחרי שאתה שולח אני חוזר עם המלצה אישית.',
   },
   'quiz.r.full.cta':   { en: 'OPEN FULL ASSESSMENT →', he: '← פתח טופס מלא' },
   'quiz.r.wa.cta':     { en: 'OR ASK ON WHATSAPP →', he: '← או שאל בוואטסאפ' },

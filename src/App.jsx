@@ -477,7 +477,7 @@ function AuthedApp() {
               return result;
             });
             if(data.payments){setPayments(prev=>[...prev,...data.payments]);}
-            setImportMsg(`✓ Trainees: ${added} added, ${updated} updated${data.payments?`, ${data.payments.length} payments`:''}`);
+            setImportMsg(`✓ Athletes: ${added} added, ${updated} updated${data.payments?`, ${data.payments.length} payments`:''}`);
           } else if(data.exportDate){
             if(data.trainees)setTrainees(data.trainees); if(data.exercises)setExercises(data.exercises);
             if(data.plans && Array.isArray(data.plans)){ for(const p of data.plans){ await savePlan(p); } await reloadPlanIndex(); }
@@ -525,7 +525,7 @@ function AuthedApp() {
     setImportSelectedTrainees(prev=>prev.includes(tid)?prev.filter(x=>x!==tid):[...prev,tid]);
   };
 
-  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Trainees",count:trainees.filter(t=>t.status!=='Archived').length},{key:"plans",label:"Programs",count:planIndex.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Portal",count:null}];
+  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Athletes",count:trainees.filter(t=>t.status!=='Archived').length},{key:"plans",label:"Programs",count:planIndex.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"client",label:"Portal",count:null}];
 
   // Pre-compute plan counts per trainee. Counts roll up to the parent ID:
   // a plan on tr_xxx__0 or __1 (couple sub-members) also increments tr_xxx so
@@ -641,7 +641,7 @@ function AuthedApp() {
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
             <Btn variant="ghost" onClick={()=>setPendingImport(null)}>Cancel</Btn>
             <Btn onClick={handleConfirmImport} style={{opacity:importSelectedTrainees.length?1:0.4,pointerEvents:importSelectedTrainees.length?"auto":"none"}}>
-              Import to {importSelectedTrainees.length||0} trainee{importSelectedTrainees.length!==1?'s':''}</Btn>
+              Import to {importSelectedTrainees.length||0} athlete{importSelectedTrainees.length!==1?'s':''}</Btn>
           </div>
         </div>
       </div>}

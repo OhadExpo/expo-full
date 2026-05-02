@@ -203,7 +203,7 @@ function DemoDashboard({ onJumpToTrainee }) {
   const overdue = MOCK_TRAINEES.filter(t => t.payment === 'OVERDUE');
   return (
     <section>
-      <SectionHeader tag="DASHBOARD" title="The morning view" body="Stat cards on top, action queues below. Everything that needs your attention surfaces here — overdue payments, dormant clients, pending reviews — without you opening 5 tabs." />
+      <SectionHeader tag="DASHBOARD" title="The morning view" body="Stat cards on top, action queues below. Everything that needs your attention surfaces here — overdue payments, dormant athletes, pending reviews — without you opening 5 tabs." />
 
       {/* Summary card grid — same shape as the real DashboardView's
           repeat(auto-fit, minmax(170px, 1fr)) at 10px gap. */}
@@ -211,7 +211,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
         gap: 10, marginBottom: 20,
       }}>
-        <StatCard label="Active Clients" value="3" total="4" accent={C.gn} />
+        <StatCard label="Active Athletes" value="3" total="4" accent={C.gn} />
         <StatCard label="Low Sessions" value="1" sub="≤ 2 LEFT" accent={C.or} />
         <StatCard label="Estimated Monthly" value="₪2,800" accent={C.ac} />
         <StatCard label="Collected This Month" value="₪1,800" sub="+12% vs last month" accent={C.gn} />
@@ -321,7 +321,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
-                {['Client', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
+                {['Athlete', 'Status', 'Format', 'Package', 'Sessions', 'Total Paid', 'Last Payment', 'Workouts', 'Programs'].map(h => (
                   <th key={h} style={{
                     textAlign: 'center', padding: '10px 12px',
                     fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase', letterSpacing: '0.05em',
@@ -409,7 +409,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   if (selected) {
     const t = MOCK_TRAINEES.find(x => x.id === selected);
     if (!t) return null;
-    return <DemoTraineeDetail trainee={t} onBack={onClear} backLabel={returnTab && returnTab !== 'trainees' ? `← BACK TO ${returnTab.toUpperCase()}` : '← BACK TO TRAINEES'} />;
+    return <DemoTraineeDetail trainee={t} onBack={onClear} backLabel={returnTab && returnTab !== 'trainees' ? `← BACK TO ${returnTab.toUpperCase()}` : '← BACK TO ATHLETES'} />;
   }
   const q = search.trim().toLowerCase();
   const filtered = MOCK_TRAINEES.filter(t => {
@@ -419,7 +419,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   });
   return (
     <section>
-      <SectionHeader tag="TRAINEES" title="Your roster" body="Card per client. Phone, plan count, sessions left, dormant flag, status — all visible at a glance. Couples render as one card with both members." />
+      <SectionHeader tag="ATHLETES" title="Your roster" body="Card per athlete. Phone, plan count, sessions left, dormant flag, status — all visible at a glance. Couples render as one card with both members." />
       <div style={{
         display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14,
       }}>
@@ -440,7 +440,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
         <button title="Demo only" style={{
           ...baseBtn, background: C.ac, color: '#000',
           padding: '8px 14px', fontSize: 11,
-        }}>+ ADD TRAINEE ▾</button>
+        }}>+ ADD ATHLETE ▾</button>
         <span style={{
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
         }}>{filtered.length} / {MOCK_TRAINEES.length}</span>
@@ -451,7 +451,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
           padding: 40, textAlign: 'center',
         }}>
           <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>NO MATCHES</div>
-          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>No trainee matches "<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>". Clear the search to see the full roster.</div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>No athlete matches "<span style={{ color: C.tx, fontWeight: 700 }}>{search}</span>". Clear the search to see the full roster.</div>
         </div>
       ) : (
         <div style={{
@@ -782,7 +782,7 @@ function CoupleCard({ t, onClick }) {
   );
 }
 
-function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO TRAINEES' }) {
+function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES' }) {
   // Couple detail: split each member into their own card column. Real app's
   // ruling — SHARED for the household: format, package, sessions, monthly,
   // per-session, last payment, since, payments ledger, programs (assigned
@@ -1050,7 +1050,7 @@ function DemoPrograms() {
   const isActiveBlock = activeBlock === 'Block #4';
   return (
     <section>
-      <SectionHeader tag="PROGRAMS" title="Block-based plan editor" body="Each block is a phase of training. Days are tabs. Each row = sets, reps, tempo, video link, superset letter. Bulk import from xlsx; bulk duplicate to clone a plan onto a new client." />
+      <SectionHeader tag="PROGRAMS" title="Block-based plan editor" body="Each block is a phase of training. Days are tabs. Each row = sets, reps, tempo, video link, superset letter. Bulk import from xlsx; bulk duplicate to clone a plan onto a new athlete." />
 
       <div className="cd-prog-grid" style={{
         display: 'grid', gap: 14, marginBottom: 14,
@@ -1364,7 +1364,7 @@ function DemoReview() {
   const [iframeLoaded, setIframeLoaded] = useState(false);
   return (
     <section>
-      <SectionHeader tag="REVIEW TOOL" title="Where you actually coach" body="Client clip arrives, pose overlay + rep count auto-attach. You scrub, draw on the bar path, drop timestamped comments, and queue a reply video. The trainee sees all of it in their portal — no email, no DMs." />
+      <SectionHeader tag="REVIEW TOOL" title="Where you actually coach" body="Athlete clip arrives, pose overlay + rep count auto-attach. You scrub, draw on the bar path, drop timestamped comments, and queue a reply video. The athlete sees all of it in their portal — no email, no DMs." />
 
       <div style={{
         display: 'grid', gap: 14,
@@ -1436,7 +1436,7 @@ function DemoReview() {
 
         {/* Fake review sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Panel title="CLIENT" tint={C.ac}>
+          <Panel title="ATHLETE" tint={C.ac}>
             <Row>
               <div style={{
                 width: 32, height: 32, borderRadius: '50%',
@@ -1529,7 +1529,7 @@ const MOCK_WORKOUTS = [
 
 const TABS = [
   { key: 'dashboard', label: 'DASHBOARD', count: null },
-  { key: 'trainees',  label: 'TRAINEES',  count: MOCK_TRAINEES.length },
+  { key: 'trainees',  label: 'ATHLETES',  count: MOCK_TRAINEES.length },
   { key: 'programs',  label: 'PROGRAMS',  count: 12 },
   { key: 'exercises', label: 'EXERCISES', count: MOCK_EXERCISES.length },
   { key: 'workouts',  label: 'WORKOUTS',  count: MOCK_WORKOUTS.length },
@@ -1539,7 +1539,7 @@ const TABS = [
 function DemoWorkouts() {
   return (
     <section>
-      <SectionHeader tag="WORKOUTS" title="Every set every client logged" body="When your client finishes a workout in their portal, it lands here — date, volume, top set, and any clip they sent for review. One tap into the row to scrub their video, log a session, or pull the data into a CSV." />
+      <SectionHeader tag="WORKOUTS" title="Every set every athlete logged" body="When your athlete finishes a workout in their portal, it lands here — date, volume, top set, and any clip they sent for review. One tap into the row to scrub their video, log a session, or pull the data into a CSV." />
 
       <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12, overflow: 'hidden' }}>
         {MOCK_WORKOUTS.map((w, i) => (
@@ -1765,7 +1765,7 @@ export default function CoachDemo() {
             background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, letterSpacing: 1.5,
             flex: '0 0 auto',
-          }}>SEE TRAINEE VIEW →</a>
+          }}>SEE ATHLETE VIEW →</a>
         </div>
       </div>
 
@@ -1805,7 +1805,7 @@ export default function CoachDemo() {
             <a href="/demo/trainee" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
-            }}>NOW SEE THE TRAINEE VIEW →</a>
+            }}>NOW SEE THE ATHLETE VIEW →</a>
           </div>
         </div>
       </main>

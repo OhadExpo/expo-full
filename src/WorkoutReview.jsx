@@ -1159,7 +1159,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           <textarea value={composeText} autoFocus dir="auto"
             onChange={e => setComposeText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitCompose(); } }}
-            placeholder={composing.replyToId ? 'Type your reply…' : 'What should the client focus on at this moment?'}
+            placeholder={composing.replyToId ? 'Type your reply…' : 'What should the athlete focus on at this moment?'}
             style={{width:'100%',minHeight:60,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:6,padding:8,color:C.tx,fontFamily:FB,fontSize:13,boxSizing:'border-box',resize:'vertical',textAlign:'center'}}/>
           <div style={{display:'flex',gap:6,justifyContent:'flex-end',marginTop:6}}>
             <button onClick={cancelCompose} style={{padding:'4px 10px',borderRadius:4,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>Cancel</button>
@@ -1187,7 +1187,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               <div key={n.id} style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderLeft:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:6,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
                   <button onClick={() => seekTo(n.ts)} style={{background:C.acD,border:`1px solid ${C.ac}40`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
-                  <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
+                  <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
                   <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
                     <button onClick={() => startEdit(n, false, null)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:4}}>✏️</button>
@@ -1202,7 +1202,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                     {n.replies.map(r => (
                       <div key={r.id}>
                         <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
-                          <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'CLIENT'}</span>
+                          <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
                           <span style={{fontSize:10,color:C.td}}>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
                           {(r.author === role) && onReviewNotesChange && (
                             <button onClick={() => startEdit(r, true, n.id)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginLeft:'auto'}}>✏️</button>
@@ -1320,7 +1320,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // ===== SUB-NAV =====
   const subNav = (
     <div style={{display:"flex",gap:4,marginBottom:16}}>
-      {[["review","Review Client Workouts"],["log","Log In-Person Session"]].map(([k,l]) => (
+      {[["review","Review Athlete Workouts"],["log","Log In-Person Session"]].map(([k,l]) => (
         <button key={k} onClick={() => {setSubTab(k);setSelectedWo(null);setExpandedEx(null)}}
           style={{flex:1,padding:"10px 0",borderRadius:8,border:`1px solid ${subTab===k?C.ac:C.bd}`,
             background:subTab===k?C.acD:"transparent",color:subTab===k?C.ac:C.tm,
@@ -1501,7 +1501,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           )}
           {wo.notes && (
             <div style={{marginTop:10,background:C.sf2,borderRadius:6,padding:10}}>
-              <div style={{fontSize:9,fontFamily:FN,color:C.td,marginBottom:4}}>CLIENT NOTES</div>
+              <div style={{fontSize:9,fontFamily:FN,color:C.td,marginBottom:4}}>ATHLETE NOTES</div>
               <div style={{fontSize:13,color:C.tx}}>{wo.notes}</div>
             </div>
           )}
@@ -1751,7 +1751,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       <div style={{textAlign:"center",padding:60,color:C.td}}>
         <EXPOMark height={22} style={{opacity:0.2,marginBottom:12}} />
         <div style={{fontSize:14}}>No completed workouts yet</div>
-        <div style={{fontSize:12,marginTop:4}}>Workouts logged in the Client Portal will appear here</div>
+        <div style={{fontSize:12,marginTop:4}}>Workouts logged in the Athlete Portal will appear here</div>
       </div>
     </div>
   );
