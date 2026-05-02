@@ -513,88 +513,128 @@ function MiniBWSparkline({ weight }) {
   );
 }
 
-// Bottom strip shared by both single and couple cards: format · sessions ·
-// programs · ₪/mo · dormant. Lives below the personal-details block so the
-// card reads top-to-bottom as "who they are → their numbers". Singles get
-// it left-aligned; couples get it center-aligned because the metrics here
-// are shared between both members.
-function TraineeMetaStrip({ t, center = false }) {
-  const items = [];
-  items.push(
-    <span key="fmt" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{t.format}</span>
-  );
-  items.push(
-    <span key="sl" style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{t.sessionsLeft} SESSIONS LEFT</span>
-  );
-  if (!t.isCouple) {
-    items.push(
-      <span key="pr" style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{t.programs} PROGRAMS</span>
-    );
-  }
-  if (t.monthly > 0) {
-    items.push(
-      <span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 600 }}>₪{t.monthly}/MO</span>
-    );
-  }
-  if (t.dormantDays != null) {
-    items.push(
-      <span key="dm" style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700 }}>DORMANT · {t.dormantDays}D</span>
-    );
-  }
-  // Interleave with mid-dot separators for tight rhythm. flexWrap stays on
-  // so narrow cards still wrap cleanly without horizontal overflow.
-  const interleaved = items.flatMap((node, i) => i === 0
-    ? [node]
-    : [<span key={`s${i}`} style={{ color: C.tm, opacity: 0.6, fontSize: 11 }}>·</span>, node]
-  );
+// Card layout uses 4 labeled blocks: IDENTITY (who) · TRAINING (relationship)
+// · BODYWEIGHT (one living metric) · FINANCIALS (revenue risk). Each block
+// answers one scan question, separated by a thin hairline so the eye anchors
+// on labels rather than parsing a single dense row.
+
+function CardSection({ label, children, center = false, dense = false }) {
   return (
-    <div style={{
-      display: 'flex', flexWrap: 'wrap', gap: '4px 8px', alignItems: 'center',
-      justifyContent: center ? 'center' : 'flex-start',
-      marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.ac}26`,
-    }}>{interleaved}</div>
+    <div style={{ marginTop: dense ? 8 : 12, paddingTop: dense ? 8 : 10, borderTop: `0.25px solid ${C.ac}26` }}>
+      <div style={{
+        fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
+        textTransform: 'uppercase', marginBottom: 6,
+        textAlign: center ? 'center' : 'left',
+      }}>{label}</div>
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center',
+        justifyContent: center ? 'center' : 'flex-start',
+      }}>{children}</div>
+    </div>
   );
 }
 
-function TraineeCard({ t, onClick }) {
-  // Couples render with two member columns separated by a vertical divider —
-  // matches the real coach-app TraineeCard layout. Each member gets their
-  // own name, "first name" derived from the combined "X ו/and Y Surname"
-  // name, plus their own WhatsApp button.
-  if (t.isCouple) return <CoupleCard t={t} onClick={onClick} />;
-  // Match the real ui.jsx Card spec: 0.25px ac-dimmed border, 10px radius,
-  // 18px padding, hover bumps to full-opacity ac border + sf2 background.
+function CardSectionFirst({ children, center = false }) {
+  // Same shape as CardSection minus the top border — used for the first
+  // (IDENTITY) block so the card doesn't start with a divider line.
   return (
-    <div onClick={onClick} style={{
-      background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
-      padding: 18, cursor: 'pointer', transition: 'all 0.2s',
-    }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
-        {/* minWidth:0 lets the email truncate to ellipsis instead of forcing
-            the whole card to grow when an address is too long. */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', gap: 6 }}>
-            {t.name}{t.online && <OnlineDot />}
-          </div>
-          <div style={{
-            fontSize: 12, color: C.tm, marginTop: 2,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>{t.email}</div>
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 4,
+      alignItems: center ? 'center' : 'stretch',
+    }}>{children}</div>
+  );
+}
+
+function MidDot() {
+  return <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>·</span>;
+}
+
+function TrainingBlock({ t, center = false }) {
+  const items = [
+    <span key="fmt" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{t.format}</span>,
+    <span key="sl" style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{t.sessionsLeft} SESSIONS LEFT</span>,
+    <span key="pr" style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{t.programs} PROGRAMS</span>,
+  ];
+  const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
+  return (
+    <CardSection label="Training" center={center}>
+      {interleaved}
+      {t.lastWorkout && (
+        <div style={{ flexBasis: '100%', marginTop: 2, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'left' }}>
+          LAST WORKOUT · {t.lastWorkout.toUpperCase()}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-          <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
-          {t.payment === 'OVERDUE'
-            ? <Badge color={C.rd}>OVERDUE · 34D</Badge>
-            : <Badge color={C.gn}>PAID · 12D AGO</Badge>}
-          <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>LAST · {t.lastWorkout?.toUpperCase() || '—'}</span>
-          <FakeWaButton />
+      )}
+    </CardSection>
+  );
+}
+
+function FinancialsBlock({ t, center = false }) {
+  const items = [];
+  if (t.payment === 'OVERDUE') {
+    items.push(<span key="ov" style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>OVERDUE · 34D</span>);
+  } else {
+    items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>PAID · 12D AGO</span>);
+  }
+  if (t.monthly > 0) {
+    items.push(<span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>₪{t.monthly}/MO</span>);
+  }
+  if (t.dormantDays != null) {
+    items.push(<span key="dm" style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>DORMANT · {t.dormantDays}D</span>);
+  }
+  const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
+  return <CardSection label="Financials" center={center}>{interleaved}</CardSection>;
+}
+
+function BodyweightBlock({ weight, center = false }) {
+  if (!weight) return null;
+  return (
+    <CardSection label="Bodyweight" center={center}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: center ? 'center' : 'flex-start' }}>
+        <div style={{ width: '100%', maxWidth: 220 }}>
+          <MiniBWSparkline weight={weight} />
         </div>
       </div>
-      <div style={{ marginTop: 4 }}><MiniBWSparkline weight={t.weight} /></div>
-      <TraineeMetaStrip t={t} />
+    </CardSection>
+  );
+}
+
+const cardStyle = {
+  background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+  padding: 18, cursor: 'pointer', transition: 'all 0.2s',
+};
+const cardEnter = (e) => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; };
+const cardLeave = (e) => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; };
+
+function TraineeCard({ t, onClick }) {
+  if (t.isCouple) return <CoupleCard t={t} onClick={onClick} />;
+  return (
+    <div onClick={onClick} style={cardStyle} onMouseEnter={cardEnter} onMouseLeave={cardLeave}>
+      {/* IDENTITY — name + status, contact details below as a unit, WA on right. */}
+      <CardSectionFirst>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', gap: 6 }}>
+              {t.name}{t.online && <OnlineDot />}
+            </div>
+            <div style={{
+              fontSize: 12, color: C.tm, marginTop: 2,
+              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            }}>{t.email}</div>
+            {t.phone && (
+              <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginTop: 2, letterSpacing: 0.5 }}>
+                {t.phone}
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+            <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
+            <FakeWaButton />
+          </div>
+        </div>
+      </CardSectionFirst>
+      <TrainingBlock t={t} />
+      <BodyweightBlock weight={t.weight} />
+      <FinancialsBlock t={t} />
     </div>
   );
 }
@@ -656,59 +696,68 @@ function CoupleCard({ t, onClick }) {
     return { a: m[1], b: m[2], surname: m[3] };
   };
   const parsed = parseCouple(t.name);
+  // Per-member identity facts (emails / phones / weights) match the split in
+  // DemoTraineeDetail so the card and the detail view stay consistent.
+  const memberMeta = [
+    { email: 'yael.cohen@example.co.il', phone: '+972503334455', weight: 62 },
+    { email: 'idan.cohen@example.co.il', phone: '+972503334456', weight: 82 },
+  ];
   return (
-    <div onClick={onClick} style={{
-      background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
-      padding: 18, cursor: 'pointer', transition: 'all 0.2s',
-    }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-        <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, flex: 1, minWidth: 0 }}>{t.name}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+    <div onClick={onClick} style={cardStyle} onMouseEnter={cardEnter} onMouseLeave={cardLeave}>
+      {/* IDENTITY — combined name banner + per-member sub-columns underneath.
+          Each member's contact details (name, email, phone, WA) live together
+          in their own column so a coach reading "who do I message" doesn't
+          jump back and forth across the divider. */}
+      <CardSectionFirst>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, flex: 1, minWidth: 0 }}>{t.name}</div>
           <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
-          {t.payment === 'OVERDUE'
-            ? <Badge color={C.rd}>OVERDUE</Badge>
-            : <Badge color={C.gn}>PAID</Badge>}
-          <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>LAST · {t.lastWorkout?.toUpperCase() || '—'}</span>
         </div>
-      </div>
-      {parsed && (
-        <div style={{ display: 'flex', marginTop: 12 }}>
-          {[parsed.a, parsed.b].map((member, mi) => (
-            <React.Fragment key={mi}>
-              {mi === 1 && <div style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {member} {parsed.surname}
+        {parsed && (
+          <div style={{ display: 'flex', marginTop: 8 }}>
+            {[parsed.a, parsed.b].map((member, mi) => (
+              <React.Fragment key={mi}>
+                {mi === 1 && <div style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{
+                      fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx,
+                      flex: 1, minWidth: 0,
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>{member} {parsed.surname}</div>
+                    <FakeWaButton />
                   </div>
-                  <FakeWaButton />
+                  <div style={{
+                    fontSize: 11, color: C.tm, marginTop: 2,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{memberMeta[mi].email}</div>
+                  <div style={{
+                    fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2, letterSpacing: 0.5,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{memberMeta[mi].phone}</div>
                 </div>
-                {/* Truncate emails so two long addresses on a narrow card
-                    don't run into each other across the divider. */}
-                <div style={{
-                  fontSize: 11, color: C.tm, marginTop: 2,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>
-                  {mi === 0 ? 'yael.cohen@example.co.il' : 'idan.cohen@example.co.il'}
-                </div>
-                <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700, marginTop: 6 }}>
-                  {t.programs} PROGRAMS
-                </div>
-                {/* Per-member BW — Yael ~62kg, Idan ~82kg per the household
-                    member split in DemoTraineeDetail. Each gets their own
-                    curve so the card mirrors the real-app per-clientId BW. */}
-                <div style={{ marginTop: 8 }}>
-                  <MiniBWSparkline weight={mi === 0 ? 62 : 82} />
-                </div>
-              </div>
-            </React.Fragment>
-          ))}
-        </div>
-      )}
-      <TraineeMetaStrip t={t} center />
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+      </CardSectionFirst>
+
+      <TrainingBlock t={t} center />
+
+      {/* BODYWEIGHT — per member, since each has their own curve. Centered
+          and split into two mini blocks under one shared label. */}
+      <CardSection label="Bodyweight" center>
+        {parsed && [parsed.a, parsed.b].map((member, mi) => (
+          <div key={mi} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700 }}>{member.toUpperCase()}</div>
+            <div style={{ width: '100%', maxWidth: 160 }}>
+              <MiniBWSparkline weight={memberMeta[mi].weight} />
+            </div>
+          </div>
+        ))}
+      </CardSection>
+
+      <FinancialsBlock t={t} center />
     </div>
   );
 }
