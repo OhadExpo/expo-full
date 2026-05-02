@@ -54,8 +54,8 @@ export default function WaitlistView() {
     // Pull every coach_waitlist row (including contacted ones) — funnel
     // history, not just the action queue. CoachChat captures already write
     // context=coach_waitlist with source=expo-app-chat, so they're included.
-    // Tries with the AI-summary `notes` column first; falls back to the
-    // legacy column set if the migration hasn't been applied yet.
+    // Tries with the full enriched column set first; falls back layer by
+    // layer if migrations haven't been applied yet.
     const baseQuery = (cols) => supabase
       .from('leads')
       .select(cols)
@@ -63,11 +63,15 @@ export default function WaitlistView() {
       .order('created_at', { ascending: false })
       .limit(500);
     try {
-      const { data, error } = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at,notes');
-      if (!error) { setLeads(data || []); }
+      const r1 = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at,notes,interests,pain_points,programs_mentioned');
+      if (!r1.error) { setLeads(r1.data || []); }
       else {
-        const fb = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at');
-        if (!fb.error) setLeads(fb.data || []);
+        const r2 = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at,notes');
+        if (!r2.error) { setLeads(r2.data || []); }
+        else {
+          const r3 = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at');
+          if (!r3.error) setLeads(r3.data || []);
+        }
       }
     } catch {}
     try {
@@ -205,6 +209,27 @@ export default function WaitlistView() {
                           💬 {l.notes}
                         </div>
                       )}
+                      {(() => {
+                        const tags = [
+                          ...(Array.isArray(l.programs_mentioned) ? l.programs_mentioned.map(t => ({ t, kind: 'program' })) : []),
+                          ...(Array.isArray(l.interests) ? l.interests.map(t => ({ t, kind: 'interest' })) : []),
+                          ...(Array.isArray(l.pain_points) ? l.pain_points.map(t => ({ t, kind: 'pain' })) : []),
+                        ];
+                        if (tags.length === 0) return null;
+                        return (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 6, maxWidth: 320 }}>
+                            {tags.map(({ t, kind }, i) => {
+                              const color = kind === 'program' ? C.ac : (kind === 'pain' ? C.or : C.gn);
+                              return (
+                                <span key={`${kind}-${i}`} title={kind}
+                                  style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 3, padding: '1px 5px', letterSpacing: 0.4 }}>
+                                  {t}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {(() => {

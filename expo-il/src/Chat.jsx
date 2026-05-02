@@ -30,6 +30,11 @@ function detectLang() {
   return document.documentElement.lang === 'he' || document.documentElement.dir === 'rtl' ? 'he' : 'en';
 }
 
+function makeSessionId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export default function Chat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -42,6 +47,8 @@ export default function Chat() {
   const [captureState, setCaptureState] = useState('idle');
   const [captureErr, setCaptureErr] = useState('');
   const [lang, setLang] = useState('en');
+  const sessionIdRef = useRef(null);
+  if (!sessionIdRef.current) sessionIdRef.current = makeSessionId();
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -135,14 +142,51 @@ export default function Chat() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, stream: true, sessionId: sessionIdRef.current }),
       });
-      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         setErr(data?.error || (isHe ? 'משהו השתבש. נסה שוב.' : 'Something went wrong. Try again.'));
         setSending(false); return;
       }
-      setMessages([...next, { role: 'assistant', content: data.reply || '' }]);
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('text/event-stream') || !res.body) {
+        const data = await res.json().catch(() => ({}));
+        setMessages([...next, { role: 'assistant', content: data?.reply || '' }]);
+        return;
+      }
+      setMessages([...next, { role: 'assistant', content: '' }]);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let acc = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split(/\n/);
+        buf = lines.pop() || '';
+        for (const raw of lines) {
+          const line = raw.trim();
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const ev = JSON.parse(payload);
+            if (typeof ev?.t === 'string') {
+              acc += ev.t;
+              setMessages(prev => {
+                const copy = prev.slice();
+                const last = copy[copy.length - 1];
+                if (last && last.role === 'assistant') {
+                  copy[copy.length - 1] = { ...last, content: acc };
+                }
+                return copy;
+              });
+            }
+          } catch {}
+        }
+      }
     } catch {
       setErr(isHe ? 'אין חיבור. נסה שוב.' : 'No connection. Try again.');
     } finally {

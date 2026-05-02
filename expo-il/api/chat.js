@@ -1,9 +1,42 @@
 // Athlete-side chat endpoint for expo-il.co.il. Same Anthropic-proxy
 // pattern as the coach side (expo-app/api/chat.js) but with a system
-// prompt scoped to athletes browsing Ohad's coaching programs.
+// prompt scoped to athletes browsing Ohad's coaching programs. Logs
+// every turn to public.chat_logs for audit + intent tuning.
 //
 // Vercel auto-routes this file to /api/chat. ANTHROPIC_API_KEY must be
 // set in this project's Vercel env vars (production + preview).
+
+import crypto from 'crypto';
+
+const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
+const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+
+function hashIp(ip) {
+  return crypto.createHash('sha256').update(`expo:${ip}`).digest('hex').slice(0, 16);
+}
+
+async function logTurn({ sessionId, visitorMsg, assistantMsg, userAgent, ip, error }) {
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/chat_logs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        site: 'expo-il',
+        session_id: sessionId || null,
+        visitor_msg: (visitorMsg || '').slice(0, 2000),
+        assistant_msg: assistantMsg ? assistantMsg.slice(0, 2000) : null,
+        user_agent: (userAgent || '').slice(0, 200),
+        ip_hash: ip ? hashIp(ip) : null,
+        error: error ? error.slice(0, 200) : null,
+      }),
+    });
+  } catch {}
+}
 
 const SYSTEM_PROMPT = `You are the chat assistant on expo-il.co.il — Ohad's personal training and coaching site. Visitors are athletes (or future athletes) browsing 12–16-week training programs and considering working with Ohad.
 
@@ -79,6 +112,8 @@ export default async function handler(req, res) {
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch { res.status(400).json({ error: 'Bad JSON' }); return; }
   }
+  const sessionId = String(body?.sessionId || '').slice(0, 64) || null;
+  const userAgent = (req.headers['user-agent'] || '').toString();
   const messages = Array.isArray(body?.messages) ? body.messages : null;
   if (!messages || messages.length === 0) {
     res.status(400).json({ error: 'No messages' }); return;
@@ -94,6 +129,9 @@ export default async function handler(req, res) {
     res.status(400).json({ error: 'Empty messages' }); return;
   }
 
+  const wantStream = !!body?.stream;
+  const lastVisitor = cleanMessages[cleanMessages.length - 1]?.content;
+
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -107,21 +145,67 @@ export default async function handler(req, res) {
         max_tokens: 400,
         system: SYSTEM_PROMPT,
         messages: cleanMessages,
+        stream: wantStream,
       }),
     });
     if (!r.ok) {
       const txt = await r.text().catch(() => '');
       console.error('Anthropic error', r.status, txt);
+      logTurn({ sessionId, visitorMsg: lastVisitor, userAgent, ip, error: `anthropic ${r.status}` });
       res.status(502).json({ error: 'Chat backend hiccup — try again, or use the contact form.' }); return;
     }
+
+    if (wantStream && r.body) {
+      res.setHeader('content-type', 'text/event-stream; charset=utf-8');
+      res.setHeader('cache-control', 'no-cache, no-transform');
+      res.setHeader('connection', 'keep-alive');
+      res.setHeader('x-accel-buffering', 'no');
+      res.flushHeaders?.();
+      let accumulated = '';
+      let buf = '';
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split(/\n/);
+          buf = lines.pop() || '';
+          for (const raw of lines) {
+            const line = raw.trim();
+            if (!line.startsWith('data:')) continue;
+            const payload = line.slice(5).trim();
+            if (!payload) continue;
+            try {
+              const ev = JSON.parse(payload);
+              if (ev?.type === 'content_block_delta' && ev.delta?.type === 'text_delta' && typeof ev.delta.text === 'string') {
+                accumulated += ev.delta.text;
+                res.write(`data: ${JSON.stringify({ t: ev.delta.text })}\n\n`);
+              }
+            } catch {}
+          }
+        }
+      } catch (e) {
+        console.error('stream pump error', e);
+      }
+      res.write(`data: [DONE]\n\n`);
+      res.end();
+      logTurn({ sessionId, visitorMsg: lastVisitor, assistantMsg: accumulated.trim() || null, userAgent, ip, error: accumulated ? null : 'empty stream' });
+      return;
+    }
+
     const data = await r.json();
     const reply = (data?.content || []).map(c => c?.type === 'text' ? c.text : '').join('').trim();
     if (!reply) {
+      logTurn({ sessionId, visitorMsg: lastVisitor, userAgent, ip, error: 'empty reply' });
       res.status(502).json({ error: 'Empty reply — try again.' }); return;
     }
+    logTurn({ sessionId, visitorMsg: lastVisitor, assistantMsg: reply, userAgent, ip });
     res.status(200).json({ reply });
   } catch (e) {
     console.error('chat handler exception', e);
+    logTurn({ sessionId, visitorMsg: lastVisitor, userAgent, ip, error: String(e).slice(0, 200) });
     res.status(500).json({ error: 'Chat unavailable — try again, or use the contact form.' });
   }
 }

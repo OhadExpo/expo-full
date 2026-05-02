@@ -19,6 +19,14 @@ const SUGGESTIONS = [
 // back-and-forth (3+ user turns) so we don't interrupt the first answer.
 const CAPTURE_PROMPT = "Want me to put you on the list? Drop your email and Ohad will reach out as coach slots open — or keep asking questions.";
 
+// Generate a transient per-page-load id so backend logs from the same
+// visitor session can be correlated. Doesn't survive reloads — that's fine
+// for audit purposes.
+function makeSessionId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export default function CoachChat() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]); // [{role:'user'|'assistant'|'system-capture', content:string}]
@@ -31,6 +39,8 @@ export default function CoachChat() {
   const [captureEmail, setCaptureEmail] = useState('');
   const [captureState, setCaptureState] = useState('idle'); // idle | sending | done | error
   const [captureErr, setCaptureErr] = useState('');
+  const sessionIdRef = useRef(null);
+  if (!sessionIdRef.current) sessionIdRef.current = makeSessionId();
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -119,21 +129,58 @@ export default function CoachChat() {
     setDraft('');
     setSending(true);
     try {
-      // Strip system-capture rows before posting — only real user/assistant
-      // turns go to the LLM so it doesn't see our funnel injections.
       const apiMessages = next.filter(m => m.role === 'user' || m.role === 'assistant');
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, stream: true, sessionId: sessionIdRef.current }),
       });
-      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         setErr(data?.error || 'Something went wrong. Try again, or email Ohad directly.');
         setSending(false);
         return;
       }
-      setMessages([...next, { role: 'assistant', content: data.reply || '' }]);
+      // If the server didn't switch to SSE (older deploy, etc.) fall back to JSON parse.
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('text/event-stream') || !res.body) {
+        const data = await res.json().catch(() => ({}));
+        setMessages([...next, { role: 'assistant', content: data?.reply || '' }]);
+        return;
+      }
+      // Append a placeholder assistant message and stream tokens into it.
+      setMessages([...next, { role: 'assistant', content: '' }]);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      let acc = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split(/\n/);
+        buf = lines.pop() || '';
+        for (const raw of lines) {
+          const line = raw.trim();
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const ev = JSON.parse(payload);
+            if (typeof ev?.t === 'string') {
+              acc += ev.t;
+              setMessages(prev => {
+                const copy = prev.slice();
+                const last = copy[copy.length - 1];
+                if (last && last.role === 'assistant') {
+                  copy[copy.length - 1] = { ...last, content: acc };
+                }
+                return copy;
+              });
+            }
+          } catch {}
+        }
+      }
     } catch {
       setErr('No connection. Try again, or email Ohad directly.');
     } finally {

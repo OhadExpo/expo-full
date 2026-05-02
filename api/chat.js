@@ -1,9 +1,44 @@
 // Marketing chat endpoint for /coaches. Proxies the visitor's message to
 // Anthropic so the API key never reaches the browser. Strictly Q&A about
 // EXPO — system prompt redirects everything else back to "email Ohad".
+// Each turn is also fire-and-forget logged to public.chat_logs so Ohad
+// can audit what visitors are actually asking and tune the prompt.
 //
 // Vercel auto-routes this file to /api/chat. ANTHROPIC_API_KEY must be set
 // in Vercel env vars (production + preview).
+
+import crypto from 'crypto';
+
+const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
+const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+
+function hashIp(ip) {
+  return crypto.createHash('sha256').update(`expo:${ip}`).digest('hex').slice(0, 16);
+}
+
+async function logTurn({ site, sessionId, visitorMsg, assistantMsg, userAgent, ip, error }) {
+  // Fire-and-forget — never block the visitor on logging.
+  try {
+    await fetch(`${SUPA_URL}/rest/v1/chat_logs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPA_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        site,
+        session_id: sessionId || null,
+        visitor_msg: (visitorMsg || '').slice(0, 2000),
+        assistant_msg: assistantMsg ? assistantMsg.slice(0, 2000) : null,
+        user_agent: (userAgent || '').slice(0, 200),
+        ip_hash: ip ? hashIp(ip) : null,
+        error: error ? error.slice(0, 200) : null,
+      }),
+    });
+  } catch {}
+}
 
 const SYSTEM_PROMPT = `You are EXPO's chat assistant on the /coaches marketing page. EXPO is a video-driven coaching platform built by Ohad — a single Israeli coach — for other independent coaches.
 
@@ -83,6 +118,8 @@ export default async function handler(req, res) {
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch { res.status(400).json({ error: 'Bad JSON' }); return; }
   }
+  const sessionId = String(body?.sessionId || '').slice(0, 64) || null;
+  const userAgent = (req.headers['user-agent'] || '').toString();
   const messages = Array.isArray(body?.messages) ? body.messages : null;
   if (!messages || messages.length === 0) {
     res.status(400).json({ error: 'No messages' }); return;
@@ -100,6 +137,9 @@ export default async function handler(req, res) {
     res.status(400).json({ error: 'Empty messages' }); return;
   }
 
+  const wantStream = !!body?.stream;
+  const lastVisitor = cleanMessages[cleanMessages.length - 1]?.content;
+
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -113,21 +153,72 @@ export default async function handler(req, res) {
         max_tokens: 400,
         system: SYSTEM_PROMPT,
         messages: cleanMessages,
+        stream: wantStream,
       }),
     });
     if (!r.ok) {
       const txt = await r.text().catch(() => '');
       console.error('Anthropic error', r.status, txt);
+      logTurn({ site: 'expo-app', sessionId, visitorMsg: lastVisitor, userAgent, ip, error: `anthropic ${r.status}` });
       res.status(502).json({ error: 'Chat backend hiccup — try again, or email Ohad.' }); return;
     }
+
+    if (wantStream && r.body) {
+      // Pipe Anthropic SSE through, extracting text deltas into a simpler
+      // `data: <chunk>\n\n` stream the frontend can consume without an
+      // SSE parsing library. Accumulate the full reply for logging.
+      res.setHeader('content-type', 'text/event-stream; charset=utf-8');
+      res.setHeader('cache-control', 'no-cache, no-transform');
+      res.setHeader('connection', 'keep-alive');
+      res.setHeader('x-accel-buffering', 'no');
+      res.flushHeaders?.();
+      let accumulated = '';
+      let buf = '';
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split(/\n/);
+          buf = lines.pop() || '';
+          for (const raw of lines) {
+            const line = raw.trim();
+            if (!line.startsWith('data:')) continue;
+            const payload = line.slice(5).trim();
+            if (!payload) continue;
+            try {
+              const ev = JSON.parse(payload);
+              if (ev?.type === 'content_block_delta' && ev.delta?.type === 'text_delta' && typeof ev.delta.text === 'string') {
+                accumulated += ev.delta.text;
+                res.write(`data: ${JSON.stringify({ t: ev.delta.text })}\n\n`);
+              } else if (ev?.type === 'message_stop') {
+                // sent below as DONE
+              }
+            } catch {}
+          }
+        }
+      } catch (e) {
+        console.error('stream pump error', e);
+      }
+      res.write(`data: [DONE]\n\n`);
+      res.end();
+      logTurn({ site: 'expo-app', sessionId, visitorMsg: lastVisitor, assistantMsg: accumulated.trim() || null, userAgent, ip, error: accumulated ? null : 'empty stream' });
+      return;
+    }
+
     const data = await r.json();
     const reply = (data?.content || []).map(c => c?.type === 'text' ? c.text : '').join('').trim();
     if (!reply) {
+      logTurn({ site: 'expo-app', sessionId, visitorMsg: lastVisitor, userAgent, ip, error: 'empty reply' });
       res.status(502).json({ error: 'Empty reply — try again.' }); return;
     }
+    logTurn({ site: 'expo-app', sessionId, visitorMsg: lastVisitor, assistantMsg: reply, userAgent, ip });
     res.status(200).json({ reply });
   } catch (e) {
     console.error('chat handler exception', e);
+    logTurn({ site: 'expo-app', sessionId, visitorMsg: lastVisitor, userAgent, ip, error: String(e).slice(0, 200) });
     res.status(500).json({ error: 'Chat unavailable — try again, or email Ohad.' });
   }
 }
