@@ -26,6 +26,9 @@ function normalizeDays(days) {
       superset: e.superset ?? '',
       wk: e.wk ?? null,
       wkS: e.wkS ?? null,
+      // Per-exercise URL override. '' or undefined → fall back to library
+      // videoLink at render time. Editing this never touches the library row.
+      videoUrl: e.videoUrl ?? e.vid ?? '',
       title: e.title,
     }));
     return { id: d.id || uid(), name: d.name || d.n || '', exercises };

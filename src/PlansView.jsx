@@ -384,12 +384,32 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   <Input label="Tempo" value={ex.tempo} onChange={e=>updateEx(exIdx,{tempo:e.target.value})} placeholder="3010" />
                   <button onClick={()=>removeEx(exIdx)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,marginBottom:4,opacity:0.6}}>🗑</button>
                 </div>
-                {exData?<div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+                {exData?<div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
                   {exData.movementPattern&&<Badge color={C.gn}>{exData.movementPattern}</Badge>}
                   {exData.laterality&&<Badge color={C.tm}>{exData.laterality}</Badge>}
                   {exData.primaryMuscles&&<span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
+                  {exData.cues&&<span title={exData.cues} style={{fontSize:11,color:C.td,fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",flex:"1 1 200px"}}>💡 {exData.cues}</span>}
                 </div>:exTitle?<div style={{fontSize:11,color:C.or,marginTop:4}}>📝 {exTitle}</div>:null}
                 <Input value={ex.notes} onChange={e=>updateEx(exIdx,{notes:e.target.value})} placeholder="Notes, modifications..." style={{marginTop:6}} />
+                {(() => {
+                  // Per-exercise URL override. Library videoLink shows as placeholder
+                  // when override is empty; typing here only mutates this plan row,
+                  // not the shared exercise library entry.
+                  const libUrl = exData?.videoLink || '';
+                  const value = ex.videoUrl ?? '';
+                  const effective = value || libUrl;
+                  return (
+                    <div style={{marginTop:6,display:"grid",gridTemplateColumns:effective?"1fr auto":"1fr",gap:6,alignItems:"center"}}>
+                      <Input value={value} onChange={e=>updateEx(exIdx,{videoUrl:e.target.value})}
+                        placeholder={libUrl?`📹 from library: ${libUrl}`:"📹 Video URL (override library)"} />
+                      {effective && <a href={effective} target="_blank" rel="noreferrer"
+                        title={value?"Per-program override":"From exercise library"}
+                        style={{fontSize:11,fontFamily:FN,color:value?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`1px solid ${value?C.ac:C.bd}`,borderRadius:6,whiteSpace:"nowrap"}}>
+                        {value?"OPEN ▸":"LIB ▸"}
+                      </a>}
+                    </div>
+                  );
+                })()}
                 {plan.name && day && (() => {
                   // Match the plan's actual week count — the per-week sets/reps
                   // grids above use plan.weeks, but this used to be hardcoded
