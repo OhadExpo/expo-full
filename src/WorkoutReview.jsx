@@ -1706,41 +1706,42 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               DELETE
             </button>
           )}
-          {/* "Back to Review" — return to the queue list (the screen the
-              trainer reaches Review from). Always visible alongside the
-              primary CTA so the trainer can jump out without committing. */}
+          {/* Order: DELETE · UNMARK (small status toggles, left-aligned)
+              followed by BACK TO REVIEW + NEXT PENDING — both primary
+              size (flex:1) so they share the row equally. UNMARK only
+              appears when the workout is already marked reviewed. */}
+          {wo.reviewedAt && (
+            <button onClick={() => { markReviewed && markReviewed(wo.id, false); }}
+              style={{padding:"12px 16px",borderRadius:8,border:`1px solid ${C.bd}`,
+                background:"transparent",color:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,
+                cursor:"pointer"}}>
+              UNMARK
+            </button>
+          )}
           <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
             title="Return to the review queue"
-            style={{padding:"12px 16px",borderRadius:8,border:`1px solid ${C.bd}`,
-              background:"transparent",color:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,
-              cursor:"pointer"}}>
+            style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.bd2}`,
+              background:"transparent",color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,
+              letterSpacing:0.5,cursor:"pointer"}}>
             ← BACK TO REVIEW
           </button>
           {wo.reviewedAt ? (
-            <>
-              <button onClick={() => { markReviewed && markReviewed(wo.id, false); }}
-                style={{padding:"12px 16px",borderRadius:8,border:`1px solid ${C.bd}`,
-                  background:"transparent",color:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,
-                  cursor:"pointer"}}>
-                UNMARK
+            findNextUnreviewed() ? (
+              <button onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}
+                title="Jump to next pending workout"
+                style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.ac}`,
+                  background:C.ac,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
+                  letterSpacing:0.5,cursor:"pointer"}}>
+                → NEXT PENDING ({remainingAfter})
               </button>
-              {findNextUnreviewed() ? (
-                <button onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}
-                  title="Jump to next pending workout"
-                  style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.ac}`,
-                    background:C.ac,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
-                    letterSpacing:0.5,cursor:"pointer"}}>
-                  → NEXT PENDING ({remainingAfter})
-                </button>
-              ) : (
-                <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
-                  style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.gn}`,
-                    background:C.gn,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
-                    letterSpacing:0.5,cursor:"pointer"}}>
-                  ✓ REVIEWED — BACK TO LIST
-                </button>
-              )}
-            </>
+            ) : (
+              <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
+                style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.gn}`,
+                  background:C.gn,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
+                  letterSpacing:0.5,cursor:"pointer"}}>
+                ✓ REVIEWED — BACK TO LIST
+              </button>
+            )
           ) : (
             <button onClick={saveAndNext}
               title="Mark reviewed and jump to the next pending workout (⌘/Ctrl + Enter)"
