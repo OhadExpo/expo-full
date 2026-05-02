@@ -1,11 +1,18 @@
-// SmartImportView — coach-side AI-powered XLSX importer.
+// SmartImportView — coach-side AI-powered document importer.
 //
-// Flow: pick file → pick sheet → pick target (exercises | athletes | programs)
-// → AI proposes a column→field mapping → coach reviews/edits → AI transforms
-// rows → coach previews → commit to Supabase.
+// Accepts ANY document the coach has:
+//   • XLSX / XLS / ODS / CSV / TSV → parsed locally via xlsx → AOA
+//   • PDF → rendered to images via pdfjs → /api/smart-import vision-extract
+//   • PNG / JPG / JPEG / WEBP → sent straight to vision-extract
+//   • TXT / MD with table-like structure → tab/comma-split locally
 //
-// The /api/smart-import endpoint runs Opus 4.7 with target-specific system
-// prompts. This view is purely orchestration + override surface.
+// Pipeline once we have an AOA per sheet:
+//   1. Plan (multi-sheet workbook → per-sheet target classifier, AI)
+//   2. Analyze (per-sheet column → field mapping, AI, with existingContext)
+//   3. Coach reviews / overrides mapping
+//   4. Transform (AI per-row normalization with auto-repair)
+//   5. Coach previews JSON
+//   6. Commit to Supabase (dedupe on commit)
 import React, { useState, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
@@ -24,59 +31,183 @@ const TARGET_FIELDS = {
   programs: ['programName','days'],
 };
 
+// File-type detection — fall back to extension if mime type is missing.
+function classifyFile(file) {
+  const name = (file.name || '').toLowerCase();
+  const t = (file.type || '').toLowerCase();
+  if (t.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp)$/.test(name)) return 'image';
+  if (t === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
+  if (t.includes('csv') || name.endsWith('.csv') || name.endsWith('.tsv')) return 'sheet';
+  if (name.endsWith('.txt') || name.endsWith('.md')) return 'text';
+  if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.ods') || t.includes('spreadsheet') || t.includes('excel')) return 'sheet';
+  // Best-effort: if extension is unknown, try sheet first.
+  return 'sheet';
+}
+
+function fileToDataUrl(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+function fileToArrayBuffer(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = rej;
+    r.readAsArrayBuffer(file);
+  });
+}
+
+// Render a PDF file to an array of base64-encoded PNG page images.
+async function pdfToImages(file, { maxPages = 8, scale = 2 } = {}) {
+  const pdfjs = await import('pdfjs-dist/build/pdf.mjs');
+  // Worker — Vite serves the dist worker file as-is.
+  pdfjs.GlobalWorkerOptions.workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
+  const buf = await fileToArrayBuffer(file);
+  const doc = await pdfjs.getDocument({ data: buf }).promise;
+  const n = Math.min(doc.numPages, maxPages);
+  const out = [];
+  for (let i = 1; i <= n; i++) {
+    const page = await doc.getPage(i);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width; canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+    const dataUrl = canvas.toDataURL('image/png');
+    const data = dataUrl.split(',')[1] || '';
+    out.push({ mediaType: 'image/png', data });
+  }
+  return out;
+}
+
+// Convert AOA → { headers, rows, sample } using the heuristic that the first
+// row with ≥3 non-empty cells is the header row.
+function aoaToSheetGrid(aoa, sheetName) {
+  if (!aoa.length) return { headers: [], rows: [], sample: [], sheetName };
+  let headerIdx = 0;
+  for (let i = 0; i < Math.min(aoa.length, 8); i++) {
+    const nonEmpty = (aoa[i] || []).filter(c => String(c || '').trim()).length;
+    if (nonEmpty >= 3) { headerIdx = i; break; }
+  }
+  const headers = (aoa[headerIdx] || []).map(h => String(h || '').trim());
+  const dataRows = aoa.slice(headerIdx + 1).filter(r => r.some(c => String(c || '').trim()));
+  return { headers, rows: dataRows, sample: dataRows.slice(0, 6), sheetName };
+}
+
 export default function SmartImportView() {
   const [fileName, setFileName] = useState('');
-  const [workbook, setWorkbook] = useState(null);
-  const [sheetName, setSheetName] = useState('');
+  const [fileKind, setFileKind] = useState('');
+  const [parsing, setParsing] = useState(false);
+  const [sheets, setSheets] = useState([]);              // [{ headers, rows, sample, sheetName, guessedTarget? }]
+  const [activeSheetIdx, setActiveSheetIdx] = useState(0);
   const [target, setTarget] = useState('exercises');
-  const [sheetGrid, setSheetGrid] = useState(null);   // { headers, rows, sample, sheetName }
   const [analyzing, setAnalyzing] = useState(false);
-  const [mapping, setMapping] = useState(null);       // model output: { mapping, notes, warnings, confidence }
+  const [mapping, setMapping] = useState(null);
   const [transforming, setTransforming] = useState(false);
-  const [transform, setTransform] = useState(null);   // model output: { items, errors, warnings }
+  const [transform, setTransform] = useState(null);
   const [committing, setCommitting] = useState(false);
   const [commitMsg, setCommitMsg] = useState('');
   const [err, setErr] = useState('');
   const inputRef = useRef(null);
 
-  const onPick = e => {
+  const onPick = async e => {
     const f = e.target.files?.[0]; if (!f) return;
-    setFileName(f.name); setErr(''); setMapping(null); setTransform(null); setSheetGrid(null);
-    const r = new FileReader();
-    r.onload = ev => {
-      try {
-        const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
-        setWorkbook(wb);
-        const s0 = wb.SheetNames[0]; setSheetName(s0);
-        loadSheet(wb, s0);
-      } catch (e) { setErr('Could not read file: ' + e.message); }
-    };
-    r.readAsArrayBuffer(f);
+    setFileName(f.name); setErr(''); setMapping(null); setTransform(null); setSheets([]); setCommitMsg('');
+    const kind = classifyFile(f);
+    setFileKind(kind);
+    setParsing(true);
+    try {
+      if (kind === 'sheet') {
+        const buf = await fileToArrayBuffer(f);
+        const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+        const out = wb.SheetNames.map(name => aoaToSheetGrid(
+          XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: false }),
+          name,
+        ));
+        setSheets(out);
+        setActiveSheetIdx(0);
+      } else if (kind === 'text') {
+        const text = await f.text();
+        // tab-first, fall back to comma
+        const sep = text.includes('\t') ? '\t' : ',';
+        const aoa = text.split(/\r?\n/).map(line => line.split(sep));
+        setSheets([aoaToSheetGrid(aoa, f.name)]);
+        setActiveSheetIdx(0);
+      } else if (kind === 'pdf' || kind === 'image') {
+        // Vision path — render PDF pages or pass image through directly.
+        let images;
+        if (kind === 'pdf') {
+          images = await pdfToImages(f);
+        } else {
+          const dataUrl = await fileToDataUrl(f);
+          const m = dataUrl.match(/^data:(.+?);base64,(.*)$/);
+          if (!m) throw new Error('Could not read image');
+          images = [{ mediaType: m[1], data: m[2] }];
+        }
+        const r = await fetch('/api/smart-import', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ kind: 'vision-extract', images, target }),
+        });
+        const j = await r.json();
+        if (!r.ok || j.error) throw new Error(j.error || `vision HTTP ${r.status}`);
+        const out = (j.sheets || []).map(s => ({
+          headers: s.headers || [], rows: s.rows || [], sample: s.sample || (s.rows || []).slice(0, 6),
+          sheetName: s.name || f.name, guessedTarget: s.guessedTarget, guessedTargetConfidence: s.guessedTargetConfidence,
+        }));
+        setSheets(out); setActiveSheetIdx(0);
+        // Auto-pick the strongest guessed target
+        const top = out[0];
+        if (top?.guessedTarget && ['exercises','athletes','programs'].includes(top.guessedTarget) && top.guessedTargetConfidence >= 0.7) {
+          setTarget(top.guessedTarget);
+        }
+      }
+    } catch (e) { setErr('Could not read file: ' + e.message); }
+    setParsing(false);
   };
 
-  const loadSheet = (wb, name) => {
-    const ws = wb.Sheets[name];
-    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
-    if (!aoa.length) { setSheetGrid({ headers: [], rows: [], sample: [], sheetName: name }); return; }
-    // Find the first row with ≥3 non-empty cells — that's the header row.
-    let headerIdx = 0;
-    for (let i = 0; i < Math.min(aoa.length, 8); i++) {
-      const nonEmpty = aoa[i].filter(c => String(c || '').trim()).length;
-      if (nonEmpty >= 3) { headerIdx = i; break; }
-    }
-    const headers = aoa[headerIdx].map(h => String(h || '').trim());
-    const dataRows = aoa.slice(headerIdx + 1).filter(r => r.some(c => String(c || '').trim()));
-    const sample = dataRows.slice(0, 6);
-    setSheetGrid({ headers, rows: dataRows, sample, sheetName: name });
+  const sheetGrid = sheets[activeSheetIdx] || null;
+
+  // Build a compact existingContext snapshot the analyze/transform calls can use
+  // to dedupe + cross-reference. Cached per-target on first request.
+  const ctxRef = useRef({ exercises: null, athletes: null, programs: null });
+  const fetchExistingContext = async (t) => {
+    if (ctxRef.current[t]) return ctxRef.current[t];
+    let ctx = null;
+    try {
+      if (t === 'exercises' || t === 'programs') {
+        const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
+        const titles = (row?.value || []).map(e => e?.title).filter(Boolean);
+        ctx = { exerciseTitles: titles.slice(0, 200) };
+      }
+      if (t === 'athletes') {
+        const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-trainees').maybeSingle();
+        const names = (row?.value || []).map(e => e?.name).filter(Boolean);
+        ctx = { athleteNames: names.slice(0, 100) };
+      }
+      if (t === 'programs') {
+        const { data: plans } = await supabase.from('plans').select('data').limit(50);
+        const dayNames = new Set();
+        for (const p of (plans || [])) for (const d of (p.data?.days || [])) if (d.name) dayNames.add(d.name);
+        ctx = { ...(ctx || {}), commonDayNames: [...dayNames].slice(0, 20) };
+      }
+    } catch {}
+    ctxRef.current[t] = ctx;
+    return ctx;
   };
 
-  const onSheetChange = v => { setSheetName(v); setMapping(null); setTransform(null); if (workbook) loadSheet(workbook, v); };
   const onTargetChange = v => { setTarget(v); setMapping(null); setTransform(null); };
+  const onSheetChange = v => { setActiveSheetIdx(parseInt(v) || 0); setMapping(null); setTransform(null); };
 
   const analyze = async () => {
     if (!sheetGrid) return;
     setErr(''); setAnalyzing(true); setMapping(null); setTransform(null);
     try {
+      const existingContext = await fetchExistingContext(target);
       const r = await fetch('/api/smart-import', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -85,6 +216,7 @@ export default function SmartImportView() {
           headers: sheetGrid.headers,
           sampleRows: sheetGrid.sample,
           sheetName: sheetGrid.sheetName,
+          existingContext,
         }),
       });
       const j = await r.json();
@@ -103,8 +235,7 @@ export default function SmartImportView() {
     if (!mapping || !sheetGrid) return;
     setErr(''); setTransforming(true); setTransform(null); setCommitMsg('');
     try {
-      // Convert AOA rows → array of {header: cellValue} objects so the model
-      // doesn't have to track index positions.
+      const existingContext = await fetchExistingContext(target);
       const rowObjs = sheetGrid.rows.map(r => {
         const o = {};
         sheetGrid.headers.forEach((h, i) => { if (h) o[h] = r[i] !== undefined ? String(r[i]) : ''; });
@@ -119,7 +250,13 @@ export default function SmartImportView() {
         const r = await fetch('/api/smart-import', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ kind: 'transform', target, mapping: mapping.mapping, rows: chunk }),
+          body: JSON.stringify({
+            kind: 'transform', target,
+            mapping: mapping.mapping,
+            enumNormalizations: mapping.enumNormalizations,
+            rows: chunk,
+            existingContext,
+          }),
         });
         const j = await r.json();
         if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
@@ -138,15 +275,13 @@ export default function SmartImportView() {
     try {
       let summary = '';
       if (target === 'exercises') {
-        // Read existing library, merge by title (skip if already present).
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
         const lib = row?.value || [];
         const titles = new Set(lib.map(e => (e.title || '').toLowerCase().trim()));
         let added = 0;
         for (const item of transform.items) {
           const t = (item.title || '').trim();
-          if (!t) continue;
-          if (titles.has(t.toLowerCase())) continue;
+          if (!t || titles.has(t.toLowerCase())) continue;
           lib.push({
             id: 'ex_' + uid(),
             title: t,
@@ -160,12 +295,9 @@ export default function SmartImportView() {
             laterality: item.laterality || '',
             primaryMuscles: item.primaryMuscles || '',
             secondaryMuscles: item.secondaryMuscles || '',
-            primaryJoints: '',
-            jointMovements: '',
-            movementType: '',
+            primaryJoints: '', jointMovements: '', movementType: '',
           });
-          titles.add(t.toLowerCase());
-          added++;
+          titles.add(t.toLowerCase()); added++;
         }
         const { error } = await supabase.from('store').upsert({ key: 'expo-exercises', value: lib, updated_at: new Date().toISOString() });
         if (error) throw error;
@@ -178,16 +310,9 @@ export default function SmartImportView() {
         let added = 0; let updated = 0;
         for (const item of transform.items) {
           const k = keyOf(item);
-          if (existing.has(k)) {
-            const t = existing.get(k);
-            Object.assign(t, item);
-            updated++;
-          } else {
-            arr.push({
-              id: 'tr_' + uid(),
-              status: 'Active', format: 'In-Person Private', package: '',
-              ...item,
-            });
+          if (existing.has(k)) { Object.assign(existing.get(k), item); updated++; }
+          else {
+            arr.push({ id: 'tr_' + uid(), status: 'Active', format: 'In-Person Private', package: '', ...item });
             added++;
           }
         }
@@ -195,8 +320,6 @@ export default function SmartImportView() {
         if (error) throw error;
         summary = `+${added} new athletes, ${updated} updated.`;
       } else if (target === 'programs') {
-        // items[] is one program (rare: one per sheet). For each, write to plans table.
-        // Resolve exercise titles → eids against current library (add new entries as needed).
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
         const lib = row?.value || [];
         const byTitle = new Map(lib.map(e => [(e.title || '').toLowerCase().trim(), e]));
@@ -262,21 +385,23 @@ export default function SmartImportView() {
         <div>
           <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 700, color: C.tx }}>Smart Import</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 4 }}>
-            Upload any XLSX. AI maps your columns to EXPO's schema and previews before commit.
+            Drop any document — XLSX, CSV, PDF, image, screenshot. AI reads it, maps it to EXPO's schema, previews before commit.
           </div>
         </div>
-        <input ref={inputRef} type="file" accept=".xlsx,.xls,.csv" onChange={onPick} style={{ display: 'none' }} />
-        <Btn onClick={() => inputRef.current?.click()}>{fileName ? 'Replace File' : 'Pick File'}</Btn>
+        <input ref={inputRef} type="file"
+          accept=".xlsx,.xls,.ods,.csv,.tsv,.txt,.md,.pdf,.png,.jpg,.jpeg,.webp,image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          onChange={onPick} style={{ display: 'none' }} />
+        <Btn onClick={() => inputRef.current?.click()} disabled={parsing}>{parsing ? 'Reading…' : (fileName ? 'Replace File' : 'Pick File')}</Btn>
       </div>
 
       {fileName && (
         <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 12, marginBottom: 12, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 10, alignItems: 'end' }}>
           <div>
-            <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginBottom: 4 }}>FILE</div>
+            <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginBottom: 4 }}>FILE · {fileKind.toUpperCase()}</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</div>
           </div>
-          {workbook?.SheetNames?.length > 1 && (
-            <Select label="Sheet" options={workbook.SheetNames.map(n => ({ value: n, label: n }))} value={sheetName} onChange={onSheetChange} />
+          {sheets.length > 1 && (
+            <Select label="Sheet/Page" options={sheets.map((s, i) => ({ value: String(i), label: s.sheetName + (s.guessedTarget ? ` · ${s.guessedTarget}` : '') }))} value={String(activeSheetIdx)} onChange={onSheetChange} />
           )}
           <Select label="Target" options={TARGETS.map(t => ({ value: t.value, label: t.label }))} value={target} onChange={onTargetChange} />
           <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length}>{analyzing ? 'Analyzing…' : 'Analyze with AI'}</Btn>
