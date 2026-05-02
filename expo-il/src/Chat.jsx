@@ -238,19 +238,15 @@ export default function Chat() {
             fontFamily: FB,
           }}>
           <div style={{
-            padding: '12px 16px', borderBottom: `1px solid ${C.bd}`,
+            padding: '14px 16px', borderBottom: `1px solid ${C.bd}`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            background: C.sf2,
+            background: C.sf2, gap: 10,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 28, width: 'auto', display: 'block', flexShrink: 0 }} />
-              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700, lineHeight: 1.2 }}>
-                  {isHe ? 'צ׳אט' : 'CHAT'}
-                </div>
-                <div style={{ fontSize: 11, color: C.td, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
-                  {isHe ? 'שאל כל שאלה על האימונים והתוכניות.' : 'Ask anything about the programs.'}
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 32, width: 'auto', display: 'block', flexShrink: 0 }} />
+              <div style={{ width: 1, height: 22, background: C.bd, flexShrink: 0 }} />
+              <div style={{ fontSize: 12, color: C.tm, lineHeight: 1.3, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isHe ? 'שאל כל שאלה על האימונים והתוכניות' : 'Ask anything about the programs'}
               </div>
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
