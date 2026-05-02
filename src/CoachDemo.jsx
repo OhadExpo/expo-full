@@ -550,20 +550,30 @@ function MidDot() {
 }
 
 function TrainingBlock({ t, center = false }) {
-  const items = [
-    <span key="fmt" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{t.format}</span>,
-    <span key="sl" style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{t.sessionsLeft} SESSIONS LEFT</span>,
-    <span key="pr" style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{t.programs} PROGRAMS</span>,
-  ];
-  const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
+  // Two fixed rows so card structure is uniform regardless of text length:
+  //   row 1 — FORMAT · SESSIONS LEFT
+  //   row 2 — N PROGRAMS
+  //   row 3 (optional) — LAST WORKOUT · ...
+  // Programs always starts on its own row even when there's space on row 1,
+  // so neighbouring cards line up vertically.
+  const justify = center ? 'center' : 'flex-start';
   return (
     <CardSection label="Training" center={center}>
-      {interleaved}
-      {t.lastWorkout && (
-        <div style={{ flexBasis: '100%', marginTop: 2, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'left' }}>
-          LAST WORKOUT · {t.lastWorkout.toUpperCase()}
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{t.format}</span>
+          <MidDot />
+          <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{t.sessionsLeft} SESSIONS LEFT</span>
         </div>
-      )}
+        <div style={{ display: 'flex', justifyContent: justify }}>
+          <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{t.programs} PROGRAMS</span>
+        </div>
+        {t.lastWorkout && (
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'left' }}>
+            LAST WORKOUT · {t.lastWorkout.toUpperCase()}
+          </div>
+        )}
+      </div>
     </CardSection>
   );
 }
