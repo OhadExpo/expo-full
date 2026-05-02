@@ -250,8 +250,15 @@ export default function Chat() {
                 {isHe ? 'שאל כל שאלה על האימונים והתוכניות.' : 'Ask anything about the programs.'}
               </div>
             </div>
-            <button onClick={() => setOpen(false)} aria-label="Close chat"
-              style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              {messages.length > 0 && (
+                <button onClick={() => { setMessages([]); setErr(''); setCapturePrompted(false); setCaptureEmail(''); setCaptureState('idle'); setCaptureErr(''); }}
+                  aria-label={isHe ? 'התחל שיחה חדשה' : 'Start a new conversation'} title={isHe ? 'התחל שיחה חדשה' : 'Start a new conversation'}
+                  style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '6px 8px', borderRadius: 6 }}>↻</button>
+              )}
+              <button onClick={() => setOpen(false)} aria-label="Close chat"
+                style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
+            </div>
           </div>
 
           <div ref={scrollRef} style={{
@@ -337,16 +344,25 @@ export default function Chat() {
             )}
           </div>
 
-          {messages.length === 0 && (
+          {healthy !== false && (
             <div style={{
-              padding: '4px 14px 10px', display: 'flex', flexWrap: 'wrap', gap: 6,
+              padding: messages.length === 0 ? '4px 14px 10px' : '6px 10px 8px',
+              display: 'flex',
+              flexWrap: messages.length === 0 ? 'wrap' : 'nowrap',
+              overflowX: messages.length === 0 ? 'visible' : 'auto',
+              gap: 6,
+              borderTop: messages.length === 0 ? 'none' : `1px solid ${C.bd}`,
+              scrollbarWidth: 'none',
             }}>
+              <style>{`.fv-chip-strip::-webkit-scrollbar { display: none; }`}</style>
               {SUGGESTIONS.map((s, i) => (
                 <button key={i} onClick={() => send(s)} disabled={sending}
+                  className="fv-chip-strip"
                   style={{
                     background: 'transparent', border: `1px solid ${C.bd2}`,
                     color: C.tx, borderRadius: 16, padding: '6px 12px',
                     fontFamily: FB, fontSize: 12, cursor: 'pointer',
+                    whiteSpace: 'nowrap', flexShrink: 0,
                   }}>{s}</button>
               ))}
             </div>

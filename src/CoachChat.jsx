@@ -235,8 +235,15 @@ export default function CoachChat() {
               <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700 }}>EXPO CHAT</div>
               <div style={{ fontSize: 11, color: C.td, marginTop: 2 }}>Ask anything about the platform.</div>
             </div>
-            <button onClick={() => setOpen(false)} aria-label="Close chat"
-              style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              {messages.length > 0 && (
+                <button onClick={() => { setMessages([]); setErr(''); setCapturePrompted(false); setCaptureEmail(''); setCaptureState('idle'); setCaptureErr(''); }}
+                  aria-label="Start a new conversation" title="Start a new conversation"
+                  style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '6px 8px', borderRadius: 6 }}>↻</button>
+              )}
+              <button onClick={() => setOpen(false)} aria-label="Close chat"
+                style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -319,17 +326,28 @@ export default function CoachChat() {
             )}
           </div>
 
-          {/* Suggestion chips — only on empty state */}
-          {messages.length === 0 && (
+          {/* Suggestion chips — persistent so visitors don't have to think
+              up follow-ups. After the empty state they collapse to a single-
+              line horizontally-scrolling strip to save vertical space. */}
+          {healthy !== false && (
             <div style={{
-              padding: '4px 14px 10px', display: 'flex', flexWrap: 'wrap', gap: 6,
+              padding: messages.length === 0 ? '4px 14px 10px' : '6px 10px 8px',
+              display: 'flex',
+              flexWrap: messages.length === 0 ? 'wrap' : 'nowrap',
+              overflowX: messages.length === 0 ? 'visible' : 'auto',
+              gap: 6,
+              borderTop: messages.length === 0 ? 'none' : `1px solid ${C.bd}`,
+              scrollbarWidth: 'none',
             }}>
+              <style>{`.cl-chip-strip::-webkit-scrollbar { display: none; }`}</style>
               {SUGGESTIONS.map((s, i) => (
                 <button key={i} onClick={() => send(s)} disabled={sending}
+                  className="cl-chip-strip"
                   style={{
                     background: 'transparent', border: `1px solid ${C.bd2}`,
                     color: C.tx, borderRadius: 16, padding: '6px 12px',
                     fontFamily: FB, fontSize: 12, cursor: 'pointer',
+                    whiteSpace: 'nowrap', flexShrink: 0,
                   }}>{s}</button>
               ))}
             </div>
