@@ -1347,7 +1347,7 @@ function DemoExercises() {
             <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>
           )}
         </div>
-        <div className="cd-ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+        <div className="cd-ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <select value={filters.category} onChange={e => setF('category', e.target.value)} style={selectStyle}>
             <option value="">Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
@@ -1369,6 +1369,10 @@ function DemoExercises() {
         </div>
       </div>
 
+      <div style={{ fontSize: 12, color: C.td, marginBottom: 10, fontFamily: FN }}>
+        {filtered.length} exercise{filtered.length !== 1 ? 's' : ''}
+      </div>
+
       {filtered.length === 0 ? (
         <div style={{
           background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 12,
@@ -1380,23 +1384,32 @@ function DemoExercises() {
           </div>
         </div>
       ) : (
-        <div style={{
-          display: 'grid', gap: 8,
-          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
-        }}>
-          {filtered.map((e, i) => (
-            <div key={i} style={{
-              background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8,
-              padding: '12px 14px',
-            }}>
-              <div style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, marginBottom: 4 }}>{e.name}</div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                <Badge color={C.ac}>{e.category}</Badge>
-                <Badge color={C.tm}>{e.pattern}</Badge>
-                {e.resistanceType && <Badge color={C.td}>{e.resistanceType}</Badge>}
-              </div>
-            </div>
-          ))}
+        // Same table shape as src/ExercisesView.jsx so the demo mirrors what
+        // a coach actually sees in the real app: Title / Category / Resistance
+        // / Pattern / Laterality, hover-tinted rows, badges per cell.
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${C.bd}` }}>
+                {['Title', 'Category', 'Resistance', 'Pattern', 'Laterality'].map(h => (
+                  <th key={h} style={{ textAlign: 'left', padding: '8px 10px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((e, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${C.bd}` }}
+                  onMouseEnter={ev => ev.currentTarget.style.background = C.sf2}
+                  onMouseLeave={ev => ev.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '10px', color: C.tx, fontWeight: 600 }}>{e.name}</td>
+                  <td style={{ padding: '10px' }}><Badge>{e.category}</Badge></td>
+                  <td style={{ padding: '10px', color: C.tm }}>{e.resistanceType || '—'}</td>
+                  <td style={{ padding: '10px' }}>{e.pattern ? <Badge color={C.gn}>{e.pattern}</Badge> : '—'}</td>
+                  <td style={{ padding: '10px', color: C.tm }}>{e.laterality || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </section>
@@ -1715,10 +1728,8 @@ export default function CoachDemo() {
         @media (max-width: 720px) {
           .cd-prog-grid { grid-template-columns: 1fr !important; }
         }
-        /* Exercise filter row on tablet/phone — drop from 6 cols to 3, then 2. */
-        @media (max-width: 880px) {
-          .cd-ex-filters { grid-template-columns: repeat(3, 1fr) !important; }
-        }
+        /* Exercise filter row collapses to 2 cols on phones so labels stay
+           readable. Default is 3 cols, matching the real coach app. */
         @media (max-width: 540px) {
           .cd-ex-filters { grid-template-columns: repeat(2, 1fr) !important; }
         }

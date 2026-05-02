@@ -37,6 +37,9 @@ export default function ExercisesView({ exercises, setExercises }) {
   };
   return (
     <div>
+      <style>{`
+        @media (max-width: 720px) { .ex-filters { grid-template-columns: repeat(2, 1fr) !important; } }
+      `}</style>
       <div style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ flex: 1, minWidth: 200 }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12 }} /></div>
         <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }}>+ Add Exercise</Btn>
@@ -48,7 +51,7 @@ export default function ExercisesView({ exercises, setExercises }) {
           </div>
           {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+        <div className="ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           <select value={filters.category} onChange={e => setF('category', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
             <option value="">Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
