@@ -3,7 +3,7 @@
 // across page loads — fresh conversation each time the page reloads.
 
 import React, { useState, useRef, useEffect } from 'react';
-import { C, FN, FB } from './theme';
+import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -231,9 +231,12 @@ export default function CoachChat() {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             background: C.sf2,
           }}>
-            <div>
-              <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700 }}>EXPO CHAT</div>
-              <div style={{ fontSize: 11, color: C.td, marginTop: 2 }}>Ask anything about the platform.</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 22, width: 'auto', display: 'block', flexShrink: 0 }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700 }}>CHAT</div>
+                <div style={{ fontSize: 11, color: C.td, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Ask anything about the platform.</div>
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               {messages.length > 0 && (

@@ -388,9 +388,21 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   {exData.movementPattern&&<Badge color={C.gn}>{exData.movementPattern}</Badge>}
                   {exData.laterality&&<Badge color={C.tm}>{exData.laterality}</Badge>}
                   {exData.primaryMuscles&&<span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
-                  {exData.cues&&<span title={exData.cues} style={{fontSize:11,color:C.td,fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"100%",flex:"1 1 200px"}}>💡 {exData.cues}</span>}
                 </div>:exTitle?<div style={{fontSize:11,color:C.or,marginTop:4}}>📝 {exTitle}</div>:null}
-                <Input value={ex.notes} onChange={e=>updateEx(exIdx,{notes:e.target.value})} placeholder="Notes, modifications..." style={{marginTop:6}} />
+                {(() => {
+                  // Notes/Modifications: defaults to the library's cues so the coach
+                  // sees the canonical technique notes inside the editable field. Typing
+                  // here only mutates ex.notes on this plan row — the library row is
+                  // never touched. Clearing falls back to the library cues again.
+                  const libCues = exData?.cues || '';
+                  const value = ex.notes || libCues;
+                  return (
+                    <Input value={value}
+                      onChange={e=>updateEx(exIdx,{notes:e.target.value})}
+                      placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."}
+                      style={{marginTop:6}} />
+                  );
+                })()}
                 {(() => {
                   // Per-exercise URL override. Library videoLink shows as placeholder
                   // when override is empty; typing here only mutates this plan row,

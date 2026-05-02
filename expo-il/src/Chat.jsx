@@ -4,7 +4,7 @@
 // capture after 3 user turns drops a lead row tagged source='expo-il-chat'.
 
 import React, { useState, useRef, useEffect } from 'react';
-import { C, FN, FB } from './theme';
+import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -242,12 +242,15 @@ export default function Chat() {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             background: C.sf2,
           }}>
-            <div>
-              <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700 }}>
-                {isHe ? 'צ׳אט EXPO' : 'EXPO CHAT'}
-              </div>
-              <div style={{ fontSize: 11, color: C.td, marginTop: 2 }}>
-                {isHe ? 'שאל כל שאלה על האימונים והתוכניות.' : 'Ask anything about the programs.'}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 22, width: 'auto', display: 'block', flexShrink: 0 }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700 }}>
+                  {isHe ? 'צ׳אט' : 'CHAT'}
+                </div>
+                <div style={{ fontSize: 11, color: C.td, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {isHe ? 'שאל כל שאלה על האימונים והתוכניות.' : 'Ask anything about the programs.'}
+                </div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
