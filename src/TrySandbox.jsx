@@ -150,6 +150,9 @@ function ClientPortalMock({ onPick }) {
     plans: [{ name: 'Block #4 — Push/Pull Volume', phase: 'Volume', weeks: 4 }],
   };
   const PLAN = TRAINEE.plans[0];
+  // 2 days × 4 exercises — keeps the demo focused: an athlete sees Day A
+  // (push) + Day B (pull) on the program tab, fully visible without
+  // scrolling.
   const DAYS = [
     {
       name: 'Day A · Push',
@@ -157,7 +160,7 @@ function ClientPortalMock({ onPick }) {
         { eid: 'bench',   t: 'Bench Press',     vid: 'https://youtu.be/0', s: 4, r: '6-8',   load: '60kg',   tempo: '3-1-1', focus: 'Pause 1s on chest, drive heels.' },
         { eid: 'ohp',     t: 'Overhead Press',  vid: 'https://youtu.be/0', s: 4, r: '6-8',   load: '35kg',   focus: 'Glutes locked, ribs down.' },
         { eid: 'lateral', t: 'Lateral Raise',   vid: 'https://youtu.be/0', s: 3, r: '12-15', load: '7.5kg',  focus: 'Lead with elbows, soft thumb.' },
-        { eid: 'pushup',  t: 'Push-Up',         vid: 'https://youtu.be/0', s: 3, r: '12',    load: 'BW',     focus: '2-1-1 tempo.' },
+        { eid: 'pushup',  t: 'Push-Up',         vid: 'https://youtu.be/0', s: 3, r: '12',    load: 'BW',     focus: '2-1-1 tempo, plank from heel to crown.' },
       ],
     },
     {
@@ -166,15 +169,7 @@ function ClientPortalMock({ onPick }) {
         { eid: 'pullup',  t: 'Pull-Up',     vid: 'https://youtu.be/0', s: 4, r: '6-8',  load: 'BW',     focus: 'Chin clears bar, no kip.' },
         { eid: 'row',     t: 'DB Row',      vid: 'https://youtu.be/0', s: 3, r: '10 E', load: '20kg',   focus: 'Pull to hip, not chest.' },
         { eid: 'curl',    t: 'DB Curl',     vid: 'https://youtu.be/0', s: 3, r: '12',   load: '12.5kg', focus: 'No swing — count from full hang.' },
-      ],
-    },
-    {
-      name: 'Day C · Legs',
-      ex: [
-        { eid: 'squat',     t: 'Back Squat',         vid: 'https://youtu.be/0', s: 5, r: '5',     load: '95kg',   tempo: '3-1-1', focus: 'Brace BEFORE unrack.' },
-        { eid: 'rdl',       t: 'Romanian Deadlift',  vid: 'https://youtu.be/0', s: 4, r: '8',     load: '70kg',   focus: 'Push hips back.' },
-        { eid: 'lunge',     t: 'Walking Lunge',      vid: 'https://youtu.be/0', s: 3, r: '10 E', load: '2×16kg', focus: 'Knee tracks toe.' },
-        { eid: 'hipthrust', t: 'Hip Thrust',         vid: 'https://youtu.be/0', s: 3, r: '10',    load: '80kg',   focus: 'Lock at the top.' },
+        { eid: 'face',    t: 'Face Pull',   vid: 'https://youtu.be/0', s: 3, r: '15',   load: '15kg',   focus: 'Elbows high, pull to forehead.' },
       ],
     },
   ];
@@ -208,6 +203,147 @@ function ClientPortalMock({ onPick }) {
   const [bwData, setBwData] = useState(BW_LOG);
   const [wk, setWk] = useState(1); // current week (0-indexed: 1 = W2)
   const [doneDays, setDoneDays] = useState({}); // { [dayName]: true }
+  const [loggingDay, setLoggingDay] = useState(null); // day index being logged
+  const [logSets, setLogSets] = useState({}); // {`${dayIdx}:${exIdx}:${setIdx}`: {reps,load,done}}
+  const [preCheck, setPreCheck] = useState({ pain: '', energy: '', sleep: '' });
+
+  // ─── Mock StepLogger — mirrors src/ClientPortal.jsx StepLogger ─────
+  // Open when 📝 Log is tapped on a day card. Shows pre-workout check
+  // (pain/energy/sleep), then per-exercise set-by-set log inputs, then a
+  // Complete button that marks the day done and returns to the program tab.
+  if (loggingDay != null) {
+    const day = DAYS[loggingDay];
+    const exit = () => { setLoggingDay(null); window.scrollTo(0, 0); };
+    const completeAndExit = () => {
+      setDoneDays(d => ({ ...d, [day.name]: true }));
+      exit();
+    };
+    const totalSets = day.ex.reduce((a, ex) => a + ex.s, 0);
+    const doneSets = day.ex.reduce((a, ex, exIdx) => {
+      let n = 0;
+      for (let s = 0; s < ex.s; s++) {
+        if (logSets[`${loggingDay}:${exIdx}:${s}`]?.done) n++;
+      }
+      return a + n;
+    }, 0);
+    const pct = totalSets > 0 ? Math.round((doneSets / totalSets) * 100) : 0;
+    const updateSet = (exIdx, setIdx, patch) => {
+      const k = `${loggingDay}:${exIdx}:${setIdx}`;
+      setLogSets(s => ({ ...s, [k]: { ...(s[k] || { reps: '', load: '', done: false }), ...patch } }));
+    };
+    return (
+      <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
+        <div style={{ background: `linear-gradient(135deg,${C.sf},${C.sf2})`, padding: '16px 20px', borderBottom: `1px solid ${C.bd}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <button onClick={exit} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0 }}>← Back</button>
+            <button onClick={completeAndExit} style={{ background: C.gn, color: '#0a0a0b', border: 'none', borderRadius: 6, padding: '6px 14px', fontFamily: FB, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              Complete Workout
+            </button>
+          </div>
+          <h2 style={{ margin: '0 0 4px', fontFamily: FN, fontSize: 18, textAlign: 'center' }}>{day.name}</h2>
+          <div style={{ fontSize: 11, color: C.tm, textAlign: 'center', marginBottom: 8 }}>{PLAN.name} · W{wk + 1}</div>
+          <div style={{ background: C.sf2, borderRadius: 4, height: 6, overflow: 'hidden' }}>
+            <div style={{ background: pct === 100 ? C.gn : C.ac, height: '100%', width: `${pct}%`, transition: 'width 0.3s', borderRadius: 4 }} />
+          </div>
+          <div style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: 1, marginTop: 4, textAlign: 'right' }}>{doneSets} / {totalSets} SETS · {pct}%</div>
+        </div>
+
+        <div style={{ padding: '14px 20px 24px' }}>
+          {/* Pre-workout check (pain / energy / sleep) — same fields as real */}
+          <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 12, padding: 14, marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontFamily: FN, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 10 }}>PRE-WORKOUT CHECK</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              {[['pain', 'PAIN', '0-10'], ['energy', 'ENERGY', '1-5'], ['sleep', 'SLEEP', '1-5']].map(([k, l, ph]) => (
+                <div key={k}>
+                  <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: 1, fontWeight: 700, marginBottom: 4, textAlign: 'center' }}>{l}</div>
+                  <input type="number" placeholder={ph} value={preCheck[k]} onChange={e => setPreCheck(p => ({ ...p, [k]: e.target.value }))} style={{
+                    width: '100%', background: C.sf2, border: `0.25px solid ${C.bd}`, borderRadius: 6,
+                    padding: '6px 8px', color: C.tx, fontFamily: FN, fontSize: 13, outline: 'none',
+                    boxSizing: 'border-box', textAlign: 'center',
+                  }} />
+                </div>
+              ))}
+            </div>
+            {parseInt(preCheck.pain) >= 4 && (
+              <div style={{ background: C.rdD, borderRadius: 6, padding: 8, marginTop: 8, fontSize: 11, color: C.rd, fontWeight: 600 }}>
+                ⚠ Pain ≥4 — load regression: ROM → Tempo → Intensity → Volume
+              </div>
+            )}
+          </div>
+
+          {/* Exercise blocks — set rows with reps/load/RPE/done checkbox */}
+          {day.ex.map((ex, exIdx) => (
+            <div key={exIdx} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 14, marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, color: C.tx, fontSize: 14, marginBottom: 4 }}>
+                {exIdx + 1}. {ex.t}
+                <span style={{ fontWeight: 400, color: C.tm, fontSize: 12, marginLeft: 8 }}>{ex.s}×{ex.r}{ex.load ? ` · ${ex.load}` : ''}</span>
+              </div>
+              {ex.focus && (
+                <div style={{ fontSize: 11, color: C.ac, marginBottom: 8, opacity: 0.85 }}>💡 {ex.focus}</div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 50px', gap: 6, alignItems: 'center', marginBottom: 4 }}>
+                {['SET', 'REPS', 'LOAD', 'RPE', 'DONE'].map(h => (
+                  <div key={h} style={{ fontSize: 9, fontFamily: FN, color: C.td, textAlign: 'center', letterSpacing: 1, fontWeight: 700 }}>{h}</div>
+                ))}
+              </div>
+              {Array.from({ length: ex.s }, (_, sIdx) => {
+                const k = `${loggingDay}:${exIdx}:${sIdx}`;
+                const v = logSets[k] || { reps: '', load: '', rpe: '', done: false };
+                return (
+                  <div key={sIdx} style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 50px', gap: 6, alignItems: 'center', padding: '4px 0', opacity: v.done ? 0.55 : 1 }}>
+                    <span style={{ fontFamily: FN, fontSize: 13, color: C.tm, textAlign: 'center' }}>{sIdx + 1}</span>
+                    <input type="number" value={v.reps} onChange={e => updateSet(exIdx, sIdx, { reps: e.target.value })} placeholder="—" style={{
+                      background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 6,
+                      padding: '5px 8px', color: C.tx, fontFamily: FN, fontSize: 13, outline: 'none',
+                      width: '100%', boxSizing: 'border-box', textAlign: 'center',
+                    }} />
+                    <input type="number" value={v.load} onChange={e => updateSet(exIdx, sIdx, { load: e.target.value })} placeholder="—" style={{
+                      background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 6,
+                      padding: '5px 8px', color: C.tx, fontFamily: FN, fontSize: 13, outline: 'none',
+                      width: '100%', boxSizing: 'border-box', textAlign: 'center',
+                    }} />
+                    <input value={v.rpe || ''} onChange={e => updateSet(exIdx, sIdx, { rpe: e.target.value })} placeholder="—" style={{
+                      background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 6,
+                      padding: '5px 8px', color: C.tx, fontFamily: FN, fontSize: 13, outline: 'none',
+                      width: '100%', boxSizing: 'border-box', textAlign: 'center',
+                    }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <input type="checkbox" checked={!!v.done} onChange={e => updateSet(exIdx, sIdx, { done: e.target.checked })} style={{ width: 18, height: 18, accentColor: C.gn, cursor: 'pointer' }} />
+                    </div>
+                  </div>
+                );
+              })}
+              <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                <button onClick={() => onPick({ key: ex.eid, label: ex.t, sample: ex.t })} title="Film a set" style={{
+                  ...baseBtn, background: 'transparent', color: C.rd,
+                  border: `1px solid ${C.rd}40`, padding: '6px 12px', fontSize: 11,
+                }}>📹 FILM SET</button>
+                <button onClick={() => {
+                  // Mark all sets done
+                  const next = { ...logSets };
+                  for (let s = 0; s < ex.s; s++) {
+                    const k = `${loggingDay}:${exIdx}:${s}`;
+                    next[k] = { ...(next[k] || { reps: '', load: '', rpe: '' }), done: true };
+                  }
+                  setLogSets(next);
+                }} style={{
+                  ...baseBtn, background: 'transparent', color: C.gn,
+                  border: `1px solid ${C.gn}40`, padding: '6px 12px', fontSize: 11,
+                }}>✓ MARK ALL</button>
+              </div>
+            </div>
+          ))}
+
+          <button onClick={completeAndExit} style={{
+            width: '100%', padding: '14px 0', borderRadius: 8, border: 'none',
+            background: C.gn, color: '#0a0a0b',
+            fontFamily: FB, fontSize: 14, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
+            marginTop: 8,
+          }}>✓ Complete Workout</button>
+        </div>
+      </div>
+    );
+  }
 
   // ─── Top header (matches ClientPortal renderTopHeader) ─────────
   const renderTopHeader = () => (
@@ -397,7 +533,7 @@ function ClientPortalMock({ onPick }) {
                   )}
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>{day.ex.length} exercises</div>
                 </div>
-                <button onClick={() => setDoneDays(d => ({ ...d, [day.name]: !d[day.name] }))} style={{
+                <button onClick={() => { setLoggingDay(di); window.scrollTo(0, 0); }} style={{
                   padding: '6px 12px', borderRadius: 6, border: 'none',
                   background: done ? C.gnD : C.acD,
                   color: done ? C.gn : C.ac,
