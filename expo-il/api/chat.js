@@ -151,8 +151,18 @@ export default async function handler(req, res) {
     if (!r.ok) {
       const txt = await r.text().catch(() => '');
       console.error('Anthropic error', r.status, txt);
-      logTurn({ sessionId, visitorMsg: lastVisitor, userAgent, ip, error: `anthropic ${r.status}` });
-      res.status(502).json({ error: 'Chat backend hiccup — try again, or use the contact form.' }); return;
+      logTurn({ sessionId, visitorMsg: lastVisitor, userAgent, ip, error: `anthropic ${r.status} ${txt.slice(0,200)}` });
+      // Surface the underlying Anthropic message for billing/auth-class errors so
+      // operators see "credit balance too low" instead of a generic "hiccup".
+      let userMsg = 'Chat backend hiccup — try again, or use the contact form.';
+      try {
+        const j = JSON.parse(txt);
+        const m = j?.error?.message || '';
+        if (/credit balance|billing|payment/i.test(m)) userMsg = 'Chat is paused — billing needs attention. Use the contact form below.';
+        else if (r.status === 401 || /authentication/i.test(m)) userMsg = 'Chat auth error — use the contact form below.';
+        else if (r.status === 429) userMsg = 'Rate-limited — try again in a moment, or use the contact form.';
+      } catch {}
+      res.status(502).json({ error: userMsg }); return;
     }
 
     if (wantStream && r.body) {

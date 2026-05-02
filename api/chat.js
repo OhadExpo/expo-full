@@ -159,8 +159,16 @@ export default async function handler(req, res) {
     if (!r.ok) {
       const txt = await r.text().catch(() => '');
       console.error('Anthropic error', r.status, txt);
-      logTurn({ site: 'expo-app', sessionId, visitorMsg: lastVisitor, userAgent, ip, error: `anthropic ${r.status}` });
-      res.status(502).json({ error: 'Chat backend hiccup — try again, or email Ohad.' }); return;
+      logTurn({ site: 'expo-app', sessionId, visitorMsg: lastVisitor, userAgent, ip, error: `anthropic ${r.status} ${txt.slice(0,200)}` });
+      let userMsg = 'Chat backend hiccup — try again, or email Ohad.';
+      try {
+        const j = JSON.parse(txt);
+        const m = j?.error?.message || '';
+        if (/credit balance|billing|payment/i.test(m)) userMsg = 'Chat is paused — billing needs attention. Email Ohad directly.';
+        else if (r.status === 401 || /authentication/i.test(m)) userMsg = 'Chat auth error — email Ohad directly.';
+        else if (r.status === 429) userMsg = 'Rate-limited — try again in a moment, or email Ohad.';
+      } catch {}
+      res.status(502).json({ error: userMsg }); return;
     }
 
     if (wantStream && r.body) {
