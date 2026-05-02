@@ -325,34 +325,28 @@ export default function CoachChat() {
                 borderRadius: 8, padding: '8px 10px',
               }}>{err}</div>
             )}
+            {/* Inline suggestions — shown when the conversation is idle and
+                the last message (if any) is from the assistant. Chips refresh
+                under each AI answer instead of living in a dead strip above
+                the input. */}
+            {healthy !== false && !sending && (messages.length === 0 || messages[messages.length - 1].role === 'assistant') && (
+              <div style={{
+                alignSelf: 'stretch',
+                display: 'flex', flexWrap: 'wrap', gap: 6,
+                paddingTop: messages.length === 0 ? 0 : 4,
+              }}>
+                {SUGGESTIONS.map((s, i) => (
+                  <button key={i} onClick={() => send(s)} disabled={sending}
+                    style={{
+                      background: 'transparent', border: `1px solid ${C.bd2}`,
+                      color: C.tx, borderRadius: 16, padding: '6px 12px',
+                      fontFamily: FB, fontSize: 12, cursor: 'pointer',
+                      whiteSpace: 'nowrap', flexShrink: 0,
+                    }}>{s}</button>
+                ))}
+              </div>
+            )}
           </div>
-
-          {/* Suggestion chips — persistent so visitors don't have to think
-              up follow-ups. After the empty state they collapse to a single-
-              line horizontally-scrolling strip to save vertical space. */}
-          {healthy !== false && (
-            <div style={{
-              padding: messages.length === 0 ? '4px 14px 10px' : '6px 10px 8px',
-              display: 'flex',
-              flexWrap: messages.length === 0 ? 'wrap' : 'nowrap',
-              overflowX: messages.length === 0 ? 'visible' : 'auto',
-              gap: 6,
-              borderTop: messages.length === 0 ? 'none' : `1px solid ${C.bd}`,
-              scrollbarWidth: 'none',
-            }}>
-              <style>{`.cl-chip-strip::-webkit-scrollbar { display: none; }`}</style>
-              {SUGGESTIONS.map((s, i) => (
-                <button key={i} onClick={() => send(s)} disabled={sending}
-                  className="cl-chip-strip"
-                  style={{
-                    background: 'transparent', border: `1px solid ${C.bd2}`,
-                    color: C.tx, borderRadius: 16, padding: '6px 12px',
-                    fontFamily: FB, fontSize: 12, cursor: 'pointer',
-                    whiteSpace: 'nowrap', flexShrink: 0,
-                  }}>{s}</button>
-              ))}
-            </div>
-          )}
 
           {/* Input — degrade to offline notice when the API key isn't configured */}
           {healthy === false ? (
