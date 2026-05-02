@@ -19,6 +19,16 @@ import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
 import { Btn, Input, Select, Badge } from './ui';
 
+// All smart-import API calls go through this helper so they always carry
+// the coach's Supabase JWT — without it, the backend's tool calls hit RLS
+// and see an empty library/athlete list.
+async function siFetch(body) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers = { 'content-type': 'application/json' };
+  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+  return fetch('/api/smart-import', { method: 'POST', headers, body: JSON.stringify(body) });
+}
+
 const TARGETS = [
   { value: 'exercises', label: 'Exercise Library', hint: 'Add or merge into the shared exercise library.' },
   { value: 'athletes', label: 'Athletes', hint: 'Add or update trainees in expo-trainees.' },
@@ -148,11 +158,7 @@ export default function SmartImportView() {
           if (!m) throw new Error('Could not read image');
           images = [{ mediaType: m[1], data: m[2] }];
         }
-        const r = await fetch('/api/smart-import', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ kind: 'vision-extract', images, target }),
-        });
+        const r = await siFetch({ kind: 'vision-extract', images, target });
         const j = await r.json();
         if (!r.ok || j.error) throw new Error(j.error || `vision HTTP ${r.status}`);
         const out = (j.sheets || []).map(s => ({
@@ -208,16 +214,12 @@ export default function SmartImportView() {
     setErr(''); setAnalyzing(true); setMapping(null); setTransform(null);
     try {
       const existingContext = await fetchExistingContext(target);
-      const r = await fetch('/api/smart-import', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          kind: 'analyze', target,
-          headers: sheetGrid.headers,
-          sampleRows: sheetGrid.sample,
-          sheetName: sheetGrid.sheetName,
-          existingContext,
-        }),
+      const r = await siFetch({
+        kind: 'analyze', target,
+        headers: sheetGrid.headers,
+        sampleRows: sheetGrid.sample,
+        sheetName: sheetGrid.sheetName,
+        existingContext,
       });
       const j = await r.json();
       if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
@@ -247,16 +249,12 @@ export default function SmartImportView() {
       const allWarnings = mapping.warnings || [];
       for (let i = 0; i < rowObjs.length; i += CHUNK) {
         const chunk = rowObjs.slice(i, i + CHUNK);
-        const r = await fetch('/api/smart-import', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            kind: 'transform', target,
-            mapping: mapping.mapping,
-            enumNormalizations: mapping.enumNormalizations,
-            rows: chunk,
-            existingContext,
-          }),
+        const r = await siFetch({
+          kind: 'transform', target,
+          mapping: mapping.mapping,
+          enumNormalizations: mapping.enumNormalizations,
+          rows: chunk,
+          existingContext,
         });
         const j = await r.json();
         if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);

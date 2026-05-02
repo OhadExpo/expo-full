@@ -86,14 +86,22 @@ const TOOLS = [
   },
 ];
 
-async function execTool(name, input) {
+// Tool calls require the COACH's JWT to read RLS-protected tables (store +
+// plans). The frontend includes its Supabase access token as Bearer auth on
+// every smart-import request; we pass that token down into each Supabase call.
+function supaHeaders(authToken) {
+  return {
+    apikey: SUPA_PUBLISHABLE_KEY,
+    Authorization: `Bearer ${authToken || SUPA_PUBLISHABLE_KEY}`,
+  };
+}
+
+async function execTool(name, input, authToken) {
   try {
     if (name === 'lookup_exercise') {
       const q = String(input?.query || '').trim().toLowerCase();
       const limit = Math.min(Math.max(parseInt(input?.limit) || 5, 1), 15);
-      const r = await fetch(`${SUPA_URL}/rest/v1/store?key=eq.expo-exercises&select=value`, {
-        headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPA_PUBLISHABLE_KEY}` },
-      });
+      const r = await fetch(`${SUPA_URL}/rest/v1/store?key=eq.expo-exercises&select=value`, { headers: supaHeaders(authToken) });
       const rows = await r.json();
       const lib = rows?.[0]?.value || [];
       const scored = lib
@@ -102,14 +110,12 @@ async function execTool(name, input) {
         .sort((a, b) => b.score - a.score)
         .slice(0, limit)
         .map(({ id, title, videoLink }) => ({ id, title, videoLink: videoLink ? '✓' : '' }));
-      return { matches: scored, totalLibSize: lib.length };
+      return { matches: scored, totalLibSize: lib.length, authedRead: !!authToken };
     }
     if (name === 'lookup_athlete') {
       const q = String(input?.query || '').trim().toLowerCase();
       const limit = Math.min(Math.max(parseInt(input?.limit) || 5, 1), 15);
-      const r = await fetch(`${SUPA_URL}/rest/v1/store?key=eq.expo-trainees&select=value`, {
-        headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPA_PUBLISHABLE_KEY}` },
-      });
+      const r = await fetch(`${SUPA_URL}/rest/v1/store?key=eq.expo-trainees&select=value`, { headers: supaHeaders(authToken) });
       const rows = await r.json();
       const arr = rows?.[0]?.value || [];
       const phoneQ = q.replace(/\D/g, '');
@@ -124,13 +130,11 @@ async function execTool(name, input) {
         .sort((a, b) => b.score - a.score)
         .slice(0, limit)
         .map(({ id, name, phone, status }) => ({ id, name, phone, status }));
-      return { matches: scored, totalAthletes: arr.length };
+      return { matches: scored, totalAthletes: arr.length, authedRead: !!authToken };
     }
     if (name === 'peek_recent_plans') {
       const limit = Math.min(Math.max(parseInt(input?.limit) || 6, 1), 15);
-      const r = await fetch(`${SUPA_URL}/rest/v1/plans?select=name,trainee_id,data&order=created_at.desc&limit=${limit}`, {
-        headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPA_PUBLISHABLE_KEY}` },
-      });
+      const r = await fetch(`${SUPA_URL}/rest/v1/plans?select=name,trainee_id,data&order=created_at.desc&limit=${limit}`, { headers: supaHeaders(authToken) });
       const plans = await r.json();
       return {
         plans: (plans || []).map(p => ({
@@ -139,6 +143,7 @@ async function execTool(name, input) {
           dayNames: (p.data?.days || []).map(d => d.name),
           sampleExerciseTitles: (p.data?.days || []).flatMap(d => (d.exercises || []).slice(0, 2).map(e => e.title).filter(Boolean)).slice(0, 8),
         })),
+        authedRead: !!authToken,
       };
     }
     if (name === 'taxonomy_options') {
@@ -432,6 +437,11 @@ export default async function handler(req, res) {
     try { body = JSON.parse(body); } catch { res.status(400).json({ error: 'Bad JSON' }); return; }
   }
   const kind = body?.kind;
+  // Coach's Supabase JWT — required for tool calls to read RLS-protected
+  // tables (store, plans). Frontend forwards it; if missing, tool calls fall
+  // back to the publishable key (which sees nothing in store under RLS).
+  const authHeader = String(req.headers['authorization'] || '');
+  const authToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
   try {
     if (kind === 'vision-extract') {
@@ -497,7 +507,7 @@ SAMPLE ROWS (each row is an array aligned to HEADERS):
 ${JSON.stringify(sampleRows, null, 2)}
 ${existingContext ? `\nEXISTING DATA SNAPSHOT (use to avoid duplicates / cross-reference):\n${existingContext}\n` : ''}
 Propose the mapping + structure + enumNormalizations per the rules. Strict JSON only.`;
-      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_ANALYZE, userPrompt, maxTokens: 2500, useTools: true });
+      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_ANALYZE, userPrompt, maxTokens: 2500, useTools: true, authToken });
       res.status(200).json(result);
       return;
     }
@@ -523,7 +533,7 @@ ROWS (each row is { headerName: cellValue }):
 ${JSON.stringify(rows, null, 2)}
 ${existingContext ? `\nEXISTING DATA SNAPSHOT (use for cross-reference; frontend dedupes on commit):\n${existingContext}\n` : ''}
 Produce normalized items. Strict JSON only.`;
-      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_TRANSFORM, userPrompt, maxTokens: 6000, useTools: true });
+      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_TRANSFORM, userPrompt, maxTokens: 6000, useTools: true, authToken });
 
       // Server-side schema validation. If anything is broken, run a repair pass.
       const items = Array.isArray(result?.items) ? result.items : [];
@@ -629,12 +639,12 @@ function validateAgainstSchema(item, target, schema) {
   return errs;
 }
 
-async function anthropicJson({ apiKey, system, userPrompt, maxTokens, useTools = false }) {
+async function anthropicJson({ apiKey, system, userPrompt, maxTokens, useTools = false, authToken = null }) {
   // Single-shot Opus 4.7 with prompt caching. When useTools=true we wrap the
   // call in a tool-use loop that lets the model query the coach's live data
   // (lookup_exercise, lookup_athlete, etc.) before producing final JSON.
   if (useTools) {
-    return await runWithTools({ apiKey, system, userPrompt, maxTokens });
+    return await runWithTools({ apiKey, system, userPrompt, maxTokens, authToken });
   }
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -664,7 +674,7 @@ async function anthropicJson({ apiKey, system, userPrompt, maxTokens, useTools =
 // Tool-use loop. The model can call any of our TOOLS up to MAX_HOPS times
 // before it must produce its final JSON answer. We feed each tool_use back
 // in as a tool_result on the next turn.
-async function runWithTools({ apiKey, system, userPrompt, maxTokens, MAX_HOPS = 8 }) {
+async function runWithTools({ apiKey, system, userPrompt, maxTokens, authToken = null, MAX_HOPS = 8 }) {
   const messages = [{ role: 'user', content: userPrompt }];
   for (let hop = 0; hop < MAX_HOPS; hop++) {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -702,7 +712,7 @@ async function runWithTools({ apiKey, system, userPrompt, maxTokens, MAX_HOPS = 
     messages.push({ role: 'assistant', content: blocks });
     const results = [];
     for (const tu of toolUses) {
-      const out = await execTool(tu.name, tu.input || {});
+      const out = await execTool(tu.name, tu.input || {}, authToken);
       results.push({ type: 'tool_result', tool_use_id: tu.id, content: JSON.stringify(out).slice(0, 4000) });
     }
     messages.push({ role: 'user', content: results });
