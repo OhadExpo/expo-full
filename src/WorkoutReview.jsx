@@ -104,6 +104,10 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const [pausedAtCommentId, setPausedAtCommentId] = useState(null);
   const [videoPaused, setVideoPaused] = useState(true);
   const [videoEnded, setVideoEnded] = useState(false);
+  // Browsers can't always decode the source (e.g. older legacy .MOV /
+  // video/quicktime uploads on Chrome). When the <video> errors, swap to a
+  // download fallback so the trainer can still access the clip.
+  const [videoLoadError, setVideoLoadError] = useState(false);
   const drawCanvasRef = useRef(null);
   const wrapperRef = useRef(null);
   // HUD position offset (drag) + a render-bumping counter so the drawing
@@ -953,10 +957,28 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         }
       `}</style>
       <div ref={wrapperRef} className="fv-wrap" style={{position:'relative',marginBottom:6,lineHeight:0}}>
-        <video ref={videoRef} src={url} controls
-          controlsList={isFullscreen ? '' : 'nofullscreen'}
-          playsInline crossOrigin="anonymous"
-          style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
+        {videoLoadError ? (
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+            background:C.sf2,border:`1px dashed ${C.bd}`,borderRadius:8,padding:'24px 16px',textAlign:'center',lineHeight:1.5}}>
+            <div style={{fontSize:11,fontFamily:FN,color:C.rd||'#ff6b6b',fontWeight:700,letterSpacing:0.5,marginBottom:6}}>
+              ⚠ This browser can't play this clip
+            </div>
+            <div style={{fontSize:11,color:C.tm,marginBottom:10,maxWidth:340}}>
+              Likely an HEVC/.MOV upload. Open it in a new tab to view, or download and play locally.
+            </div>
+            <a href={url} target="_blank" rel="noopener noreferrer"
+              style={{display:'inline-block',background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,
+                fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:4,textDecoration:'none',letterSpacing:0.5}}>
+              OPEN IN NEW TAB ↗
+            </a>
+          </div>
+        ) : (
+          <video ref={videoRef} src={url} controls
+            controlsList={isFullscreen ? '' : 'nofullscreen'}
+            playsInline crossOrigin="anonymous"
+            onError={() => setVideoLoadError(true)}
+            style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
+        )}
         <canvas ref={canvasRef}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
             pointerEvents:'none',display:poseOn?'block':'none'}} />
@@ -1497,7 +1519,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         {wo.exercises.map((ex, i) => {
           const isExpanded = expandedEx === i;
           const doneSets = ex.sets.filter(s => s.done).length;
-          const exName = EX[ex.eid]?.t || ex.title || ex.eid;
+          const libId = ex.eid?.startsWith('dyn_') ? ex.eid.slice(4) : ex.eid;
+          const fromLib = (exercises || []).find(e => e.id === libId);
+          const exName = EX[ex.eid]?.t || fromLib?.title || ex.title || ex.eid;
           const formVideo = wo.formVideos?.[i];
           const currentFocus = getFocus(wo.planName, wo.dayName, ex.eid, wo.week || 1);
           const nextFocus = getFocus(wo.planName, wo.dayName, ex.eid, nextWeek);

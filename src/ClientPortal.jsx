@@ -346,6 +346,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       let uploadBlob = file;
       let ext = file.name.match(/\.[^.]+$/)?.[0] || '.mp4';
       let contentType = file.type || 'video/mp4';
+      // iPhone hands us .MOV / video/quicktime. Chrome/Edge on desktop refuse
+      // to play that MIME, so the trainer review screen shows a black player.
+      // Most iPhone web-uploads are H.264-in-MOV, which Chrome plays fine if
+      // we just label it video/mp4. HEVC clips will still fail (no transcode
+      // here) — they fall through to the FormVideoPlayer error fallback.
+      if (/quicktime/i.test(contentType) || /\.mov$/i.test(ext)) {
+        ext = '.mp4';
+        contentType = 'video/mp4';
+      }
 
       // Decide: compress or upload directly
       // Safari/iOS: NEVER compress (captureStream is broken on WebKit)
