@@ -3,6 +3,7 @@ import { Analytics, track } from '@vercel/analytics/react';
 import { C, FN, FB, CONTACT, buyOnWhatsApp, EXPO_LOGO_NAV } from './theme';
 import { PROGRAMS } from './programs';
 import { useT, useLang, setLang } from './i18n';
+import Chat from './Chat';
 
 // Wrapped <a> that fires a Vercel Analytics custom event before the click is
 // honoured. Vercel Analytics has to be enabled in the project dashboard for
@@ -2938,6 +2939,7 @@ export default function App() {
       {isHome && <StickyCTA />}
       {isHome && <ExitIntentModal />}
       <QuizModal open={quizOpen} onClose={() => setQuizOpen(false)} />
+      <Chat />
       <Analytics />
     </div>
   );

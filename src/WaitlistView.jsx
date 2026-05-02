@@ -52,8 +52,9 @@ export default function WaitlistView() {
 
   const reload = useCallback(async () => {
     try {
-      // Pull every coach_waitlist row (including contacted ones) — this is the
-      // funnel-history surface, not just the action queue.
+      // Pull every coach_waitlist row (including contacted ones) — funnel
+      // history, not just the action queue. CoachChat captures already write
+      // context=coach_waitlist with source=expo-app-chat, so they're included.
       const { data, error } = await supabase
         .from('leads')
         .select('id,email,source,context,user_agent,created_at,consumed_at')
@@ -192,7 +193,20 @@ export default function WaitlistView() {
                     <td style={{ padding: '10px 12px' }}>
                       <a href={mailto} style={{ color: C.tx, textDecoration: 'none', fontWeight: 600 }} title={l.email}>{l.email}</a>
                     </td>
-                    <td style={{ padding: '10px 12px', color: C.tm, fontSize: 12 }}>{l.source || '—'}</td>
+                    <td style={{ padding: '10px 12px' }}>
+                      {(() => {
+                        const isChat = l.source === 'expo-app-chat';
+                        const isForm = l.source === 'expo-app';
+                        const label = isChat ? '💬 CHAT' : (isForm ? 'FORM' : (l.source || '—').toUpperCase());
+                        const color = isChat ? C.gn : (isForm ? C.ac : C.tm);
+                        return (
+                          <span title={isChat ? 'Captured via /coaches chat bot' : (isForm ? 'Submitted via /coaches waitlist form' : l.source)}
+                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: `${color}20`, border: `1px solid ${color}55`, borderRadius: 4, padding: '3px 6px', letterSpacing: 0.5 }}>
+                            {label}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td style={{ padding: '10px 12px', fontFamily: FN, color: l.intent >= 3 ? C.ac : (l.intent >= 1 ? C.tm : C.td), fontSize: 13 }} title={`Intent ${l.intent}/4`}>
                       {stars}
                     </td>
