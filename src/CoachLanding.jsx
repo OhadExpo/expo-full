@@ -392,9 +392,9 @@ export default function CoachLanding() {
             <FeatureCard tag="OPS" title="Dormant nudges via WhatsApp"
               body="Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record." />
             <FeatureCard tag="REVIEW" title="Per-rep video review"
-              body="Pause on any frame, draw on the video, leave timestamped voice + text comments. The client sees the review from the same portal — no email back-and-forth." />
+              body="Pause on any frame, draw on the video, leave timestamped voice + text comments. The athlete sees the review from the same portal — no email back-and-forth." />
             <FeatureCard tag="NO LOCK-IN" title="Your data, your rules"
-              body="Export every plan, exercise, and workout log to xlsx anytime. Bring your existing exercise library (xlsx, sheets, Trainerize export) — bulk import is part of onboarding." />
+              body="Export every plan, exercise, and workout log to xlsx anytime. Bring your existing exercise library — xlsx, sheets, or whatever export your previous app gave you, bulk import is part of onboarding." />
           </div>
         </section>
 

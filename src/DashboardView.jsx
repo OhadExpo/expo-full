@@ -237,7 +237,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
       {/* Search */}
       <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
-        <input placeholder="Filter clients..." value={filter} onChange={e => setFilter(e.target.value)}
+        <input placeholder="Filter athletes..." value={filter} onChange={e => setFilter(e.target.value)}
           style={{ ...baseInput, maxWidth: 300, paddingLeft: 12, textAlign: 'center' }} />
       </div>
 
