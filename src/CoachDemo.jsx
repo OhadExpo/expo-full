@@ -492,15 +492,21 @@ function MiniBWSparkline({ weight }) {
   const last = points[points.length - 1];
   const delta = last - points[0];
   const deltaColor = delta < 0 ? C.gn : delta > 0 ? C.or : C.tm;
+  // Layout: kg + delta hold their natural widths; the sparkline svg fills
+  // the leftover space and shrinks (preserveAspectRatio=none) when the
+  // parent column is too narrow — needed for couple-member columns where
+  // a fixed 96px svg would push the delta outside the card.
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: 'block', flexShrink: 0 }} aria-hidden="true">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+        style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
+        aria-hidden="true">
         <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx }}>
+      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx, flexShrink: 0 }}>
         {last.toFixed(1)}<span style={{ color: C.tm }}>kg</span>
       </span>
-      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor }}>
+      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor, flexShrink: 0 }}>
         {delta > 0 ? '+' : ''}{delta.toFixed(1)}
       </span>
     </div>
