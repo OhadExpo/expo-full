@@ -1035,11 +1035,146 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES'
 }
 
 // ─── Tab: Programs ────────────────────────────────────────────────────────
+// 12 mock programs spread across the 3 mock trainees — same shape as the
+// real planIndex (id, name, traineeId, dayCount, exerciseCount, phase,
+// created, updated) so the demo list view mirrors PlansView 1:1.
+const MOCK_PROGRAM_INDEX = [
+  { id: 'p1',  name: 'Block #4 — Push/Pull Volume',     traineeId: 't1', dayCount: 3, exerciseCount: 22, phase: 'Volume',     created: '2026-04-12', updated: '2026-04-29' },
+  { id: 'p2',  name: 'Block #3 — Strength Base',        traineeId: 't1', dayCount: 3, exerciseCount: 18, phase: 'Strength',   created: '2026-03-15', updated: '2026-04-09' },
+  { id: 'p3',  name: 'Block #2 — Reset',                traineeId: 't1', dayCount: 3, exerciseCount: 14, phase: 'Reset',      created: '2026-02-22', updated: '2026-03-12' },
+  { id: 'p4',  name: 'Block #4 — Pull Specialization',  traineeId: 't2', dayCount: 4, exerciseCount: 26, phase: 'Volume',     created: '2026-04-14', updated: '2026-04-28' },
+  { id: 'p5',  name: 'Block #3 — Volume',               traineeId: 't2', dayCount: 4, exerciseCount: 24, phase: 'Volume',     created: '2026-03-18', updated: '2026-04-11' },
+  { id: 'p6',  name: 'Block #2 — Hypertrophy',          traineeId: 't2', dayCount: 3, exerciseCount: 21, phase: 'Hypertrophy',created: '2026-02-25', updated: '2026-03-15' },
+  { id: 'p7',  name: 'Block #1 — Intake',               traineeId: 't2', dayCount: 2, exerciseCount: 12, phase: 'Intake',     created: '2026-02-04', updated: '2026-02-18' },
+  { id: 'p8',  name: 'Block #4 — Couple Volume',        traineeId: 't3', dayCount: 3, exerciseCount: 24, phase: 'Volume',     created: '2026-04-13', updated: '2026-04-30' },
+  { id: 'p9',  name: 'Block #3 — Couple Base',          traineeId: 't3', dayCount: 3, exerciseCount: 20, phase: 'Strength',   created: '2026-03-16', updated: '2026-04-10' },
+  { id: 'p10', name: 'Block #2 — Onboarding',           traineeId: 't3', dayCount: 2, exerciseCount: 14, phase: 'Onboarding', created: '2026-02-21', updated: '2026-03-13' },
+  { id: 'p11', name: 'Block #1 — Couple Intake',        traineeId: 't3', dayCount: 2, exerciseCount: 10, phase: 'Intake',     created: '2026-02-01', updated: '2026-02-15' },
+  { id: 'p12', name: 'Foundation Template',             traineeId: '',   dayCount: 4, exerciseCount: 28, phase: 'Template',   created: '2026-01-10', updated: '2026-04-22' },
+];
+
 function DemoPrograms() {
+  // List view first (mirrors PlansView root) — clicking a card opens the
+  // existing block-detail panel as the editor view, with a back-link to
+  // return. The block editor below is unchanged from before; it just lives
+  // behind the list now instead of being the default surface.
+  const [selectedProgramId, setSelectedProgramId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [filterTrainee, setFilterTrainee] = useState('');
+  const [sortField, setSortField] = useState('updated');
+  const [sortDir, setSortDir] = useState('desc');
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
   const [openExIdx, setOpenExIdx] = useState(null);
   const [activeBlock, setActiveBlock] = useState('Block #4');
   const block = BLOCK_DATA[activeBlock];
+
+  const traineeName = (id) => MOCK_TRAINEES.find(t => t.id === id)?.name || 'Unassigned';
+
+  if (!selectedProgramId) {
+    // ─── LIST view (matches src/PlansView.jsx root) ───
+    const q = search.trim().toLowerCase();
+    let filtered = MOCK_PROGRAM_INDEX.filter(p => {
+      if (filterTrainee && p.traineeId !== filterTrainee) return false;
+      if (q && !p.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    filtered = filtered.slice().sort((a, b) => {
+      const va = a[sortField] || '';
+      const vb = b[sortField] || '';
+      const cmp = String(va).localeCompare(String(vb));
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+
+    return (
+      <section>
+        <SectionHeader tag="PROGRAMS" title="Block-based plan editor" body="Each program is a block — a phase of training. Search, sort, click into one to open the day-by-day editor. Bulk import from xlsx; bulk duplicate to clone a plan onto a new athlete." />
+
+        <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <input placeholder="Search programs..." value={search} onChange={e => setSearch(e.target.value)} style={{
+              background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 8,
+              padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
+              outline: 'none', width: '100%', boxSizing: 'border-box',
+            }} />
+          </div>
+          <select value={filterTrainee} onChange={e => setFilterTrainee(e.target.value)} style={{
+            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 6,
+            padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
+            width: 200,
+          }}>
+            <option value="">All Athletes ({MOCK_PROGRAM_INDEX.length})</option>
+            {MOCK_TRAINEES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+          <button onClick={e => e.stopPropagation()} style={{
+            ...baseBtn, background: C.ac, color: '#0a0a0b', padding: '8px 16px', fontSize: 13, fontWeight: 700,
+          }}>+ New Program</button>
+        </div>
+
+        {/* Sort controls — mirrors the real PlansView sort row exactly */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap', fontFamily: FN, fontSize: 11 }}>
+          <span style={{ color: C.td, letterSpacing: '0.05em' }}>SORT</span>
+          {[['name', 'Name'], ['created', 'Uploaded'], ['updated', 'Last edited']].map(([f, l]) => {
+            const active = sortField === f;
+            return (
+              <button key={f} onClick={() => {
+                if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+                else setSortField(f);
+              }} style={{
+                padding: '4px 10px', borderRadius: 4,
+                border: `1px solid ${active ? C.ac : C.bd}`,
+                background: active ? C.acD : 'transparent',
+                color: active ? C.ac : C.tm,
+                fontFamily: FN, fontSize: 11, fontWeight: active ? 700 : 500,
+                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
+              }}>
+                {l}{active && <span style={{ fontSize: 10 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ fontSize: 12, color: C.td, marginBottom: 12, fontFamily: FN }}>
+          Showing {filtered.length} of {MOCK_PROGRAM_INDEX.length} programs
+        </div>
+
+        {filtered.length === 0 ? (
+          <div style={{ background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 12, padding: 40, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>
+            📋 No programs match your search.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {filtered.map(p => (
+              <div key={p.id} onClick={() => setSelectedProgramId(p.id)} style={demoCardStyle({ cursor: 'pointer' })}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div>
+                    <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx }}>{p.name}</div>
+                    <div style={{ fontSize: 12, color: C.tm, marginTop: 4 }}>
+                      {traineeName(p.traineeId)} · {p.dayCount} days · {p.exerciseCount} exercises
+                    </div>
+                    {p.phase && (
+                      <span style={{
+                        display: 'inline-block', marginTop: 6,
+                        fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700,
+                        padding: '2px 8px', background: C.acD, borderRadius: 4,
+                        border: `1px solid rgba(57,189,255,0.30)`,
+                      }}>{p.phase}</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button onClick={e => e.stopPropagation()} title="Demo only" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>📋</button>
+                    <button onClick={e => e.stopPropagation()} title="Demo only" style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.6 }}>🗑</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  }
+  // ─── DETAIL view: existing block-data editor, only shown after a card click ───
   // Clamp the selected-day index when the active block changes — older
   // blocks have fewer days, so without this the user can fall off the end
   // and crash on `day.exercises`.
@@ -1054,6 +1189,10 @@ function DemoPrograms() {
   const isActiveBlock = activeBlock === 'Block #4';
   return (
     <section>
+      <button onClick={() => setSelectedProgramId(null)} style={{
+        background: 'none', border: 'none', color: C.ac,
+        cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, marginBottom: 14,
+      }}>← Back to programs</button>
       <SectionHeader tag="PROGRAMS" title="Block-based plan editor" body="Each block is a phase of training. Days are tabs. Each row = sets, reps, tempo, video link, superset letter. Bulk import from xlsx; bulk duplicate to clone a plan onto a new athlete." />
 
       <div className="cd-prog-grid" style={{
@@ -1597,50 +1736,117 @@ const TABS = [
   { key: 'review',    label: 'REVIEW',    count: null },
 ];
 
+// Card style matches src/ui.jsx Card — 0.25px ac-dimmed border, 10px
+// radius, 18px padding. Used inline so the demo doesn't pull in the
+// real-app's authed Card component.
+const demoCardStyle = (extra = {}) => ({
+  background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+  padding: 18, transition: 'all 0.2s', ...extra,
+});
+
+// Mock plans the trainer can start workouts from — same shape as the real
+// app's planIndex (id, name, traineeId, dayNames). Ties to MOCK_TRAINEES.
+const MOCK_PLAN_INDEX = [
+  { id: 'p_noa_b4',   name: 'Block #4 — Push/Pull Volume', traineeId: 't1', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
+  { id: 'p_gal_b4',   name: 'Block #4 — Pull Specialization', traineeId: 't2', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
+  { id: 'p_couple_b4', name: 'Block #4 — Couple Volume', traineeId: 't3', dayNames: ['Day A · Push', 'Day B · Pull', 'Day C · Legs'] },
+];
+
+const MOCK_IN_PROGRESS = [
+  { id: 'wip1', traineeId: 't1', dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', date: new Date().toISOString() },
+];
+
 function DemoWorkouts() {
+  // Same structure as src/WorkoutsView.jsx:
+  //   1. "Start Workout from Plan" — list of plans with day-buttons
+  //   2. "In Progress (N)" — orange-bordered cards
+  //   3. "Completed (N)" — athlete filter on the right + cards list
+  const [filterTrainee, setFilterTrainee] = useState('');
+  const traineeName = (id) => MOCK_TRAINEES.find(t => t.id === id)?.name || '—';
+  const completed = MOCK_WORKOUTS.filter(w => !filterTrainee || (w.who === traineeName(filterTrainee)));
+
+  const sectionH = {
+    fontFamily: FN, fontSize: 12, color: C.td, textTransform: 'uppercase',
+    letterSpacing: '0.05em', margin: 0, fontWeight: 600,
+  };
+
   return (
     <section>
-      <SectionHeader tag="WORKOUTS" title="Every set every athlete logged" body="When your athlete finishes a workout in their portal, it lands here — date, volume, top set, and any clip they sent for review. One tap into the row to scrub their video, log a session, or pull the data into a CSV." />
+      <SectionHeader tag="WORKOUTS" title="Every set every athlete logged" body="Start a session from any active plan, follow it in progress, then file the completed log alongside the athlete's portal-logged sessions. Same surface a coach uses in the real app." />
 
-      <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12, overflow: 'hidden' }}>
-        {MOCK_WORKOUTS.map((w, i) => (
-          <div key={i} style={{
-            padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-            borderBottom: i < MOCK_WORKOUTS.length - 1 ? `1px solid ${C.bd}` : 'none',
-            transition: 'background 0.15s', cursor: 'pointer',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = C.sf2}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            <div style={{ flex: '1 1 200px', minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                <span style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx }}>{w.who}</span>
-                {w.flagged && <Badge color={C.ac}>🎬 {w.flagged.toUpperCase()}</Badge>}
-              </div>
-              <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{w.day}</div>
+      {/* 1. Start Workout from Plan */}
+      <h3 style={{ ...sectionH, marginBottom: 12 }}>Start Workout from Plan</h3>
+      <div style={{ display: 'grid', gap: 8, marginBottom: 24 }}>
+        {MOCK_PLAN_INDEX.map(p => (
+          <div key={p.id} style={demoCardStyle()}>
+            <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx, marginBottom: 8 }}>
+              {p.name} <span style={{ fontWeight: 400, color: C.tm }}>— {traineeName(p.traineeId)}</span>
             </div>
-            <div style={{ flex: '1 1 200px', minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, opacity: 0.85 }}>
-              <span style={{ color: C.ac, fontFamily: FN, fontSize: 10, letterSpacing: 1.5, marginRight: 6 }}>TOP SET</span>{w.topSet}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flex: '0 0 auto', gap: 2 }}>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700 }}>{w.vol}</span>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{w.when}</span>
-            </div>
-            <div style={{ display: 'flex', gap: 6, flex: '0 0 auto' }}>
-              {w.flagged && (
-                <button title="Demo only" onClick={e => e.stopPropagation()} style={{
-                  ...baseBtn, background: 'transparent', color: C.ac,
-                  border: `1px solid ${C.ac}40`, padding: '5px 10px', fontSize: 10,
-                }}>🎬 OPEN</button>
-              )}
-              <button title="Demo only · decrement sessionsRemaining" onClick={e => e.stopPropagation()} style={{
-                ...baseBtn, background: 'transparent', color: C.tm,
-                border: `1px solid ${C.bd}`, padding: '5px 10px', fontSize: 10,
-              }}>✓ MARK SESSION</button>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {p.dayNames.map((dn, i) => (
+                <button key={i} onClick={e => e.stopPropagation()} style={{
+                  ...baseBtn, background: 'transparent', color: C.tm,
+                  border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 12, fontWeight: 600,
+                }}>▶ {dn}</button>
+              ))}
             </div>
           </div>
         ))}
       </div>
+
+      {/* 2. In Progress */}
+      {MOCK_IN_PROGRESS.length > 0 && (
+        <>
+          <h3 style={{ ...sectionH, color: C.or, marginBottom: 12 }}>In Progress ({MOCK_IN_PROGRESS.length})</h3>
+          {MOCK_IN_PROGRESS.map(w => (
+            <div key={w.id} style={{ ...demoCardStyle({ marginBottom: 8, borderColor: C.or + '40', cursor: 'pointer' }) }}>
+              <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>{w.dayName}</div>
+              <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
+                {traineeName(w.traineeId)} · {new Date(w.date).toLocaleDateString()}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* 3. Completed */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 12 }}>
+        <h3 style={sectionH}>Completed ({completed.length})</h3>
+        <select value={filterTrainee} onChange={e => setFilterTrainee(e.target.value)} style={{
+          background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 6,
+          padding: '4px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
+          width: 180,
+        }}>
+          <option value="">All Athletes</option>
+          {MOCK_TRAINEES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+      </div>
+      {completed.length === 0 ? (
+        <div style={{
+          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 10,
+          padding: 36, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13,
+        }}>📊 No completed workouts yet.</div>
+      ) : (
+        completed.map((w, i) => (
+          <div key={i} style={demoCardStyle({ marginBottom: 8 })}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>
+                  {w.day} <span style={{ fontWeight: 400, color: C.td, fontSize: 12 }}>({w.who})</span>
+                </div>
+                <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
+                  {w.who} · {w.when}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Badge color={C.gn}>Completed</Badge>
+                <button onClick={e => e.stopPropagation()} title="Demo only" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>✏️</button>
+                <button onClick={e => e.stopPropagation()} title="Demo only" style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.6 }}>🗑</button>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
     </section>
   );
 }
