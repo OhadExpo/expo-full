@@ -207,7 +207,6 @@ function DemoDashboard({ onJumpToTrainee }) {
   const overdue = MOCK_TRAINEES.filter(t => t.payment === 'OVERDUE');
   return (
     <section>
-      <SectionHeader tag="DASHBOARD" title="The morning view" body="Stat cards on top, action queues below. Everything that needs your attention surfaces here — overdue payments, dormant athletes, pending reviews — without you opening 5 tabs." />
 
       {/* Summary card grid — same shape as the real DashboardView's
           repeat(auto-fit, minmax(170px, 1fr)) at 10px gap. */}
@@ -423,7 +422,6 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   });
   return (
     <section>
-      <SectionHeader tag="ATHLETES" title="Your roster" body="Card per athlete. Phone, plan count, sessions left, dormant flag, status — all visible at a glance. Couples render as one card with both members." />
       <div style={{
         display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14,
       }}>
@@ -1087,7 +1085,6 @@ function DemoPrograms() {
 
     return (
       <section>
-        <SectionHeader tag="PROGRAMS" title="Block-based plan editor" body="Each program is a block — a phase of training. Search, sort, click into one to open the day-by-day editor. Bulk import from xlsx; bulk duplicate to clone a plan onto a new athlete." />
 
         <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 180 }}>
@@ -1193,7 +1190,6 @@ function DemoPrograms() {
         background: 'none', border: 'none', color: C.ac,
         cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, marginBottom: 14,
       }}>← Back to programs</button>
-      <SectionHeader tag="PROGRAMS" title="Block-based plan editor" body="Each block is a phase of training. Days are tabs. Each row = sets, reps, tempo, video link, superset letter. Bulk import from xlsx; bulk duplicate to clone a plan onto a new athlete." />
 
       <div className="cd-prog-grid" style={{
         display: 'grid', gap: 14, marginBottom: 14,
@@ -1456,7 +1452,6 @@ function DemoExercises() {
 
   return (
     <section>
-      <SectionHeader tag="EXERCISE LIBRARY" title="Your taxonomy, your rules" body="Every exercise is tagged with category, resistance, body position, movement type, pattern, and laterality. The rep counter routes joint channels off the pattern. Bring your existing library — bulk import is xlsx, sheets, or a Trainerize export." />
 
       {/* Search + count */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
@@ -1560,12 +1555,248 @@ function DemoExercises() {
 // CoachDemo always-mounts DemoReview (hidden via display:none on other tabs)
 // so the iframe starts loading the moment the visitor lands on Dashboard. By
 // the time they click Review, the wasm + model are usually already warm.
+// Mock review queue — same shape as src/WorkoutReview.jsx's clientWorkouts
+// list: 3 pending workouts, 2 with form videos, 1 with prior comments and a
+// weekly-focus note. Click into one to open a detail mirror that shows the
+// same exercise rows + bottom action row the real coach sees.
+const MOCK_REVIEW_QUEUE = [
+  {
+    id: 'rv1', traineeName: 'נועה לוי', initials: 'NL',
+    dayName: 'Day A · Push', planName: 'Block #4 — Push/Pull Volume', week: 2,
+    date: 'Today 09:14', doneSets: 18, totalSets: 20,
+    exercises: [
+      { name: 'BB Bench Press',     prescribed: '4×6-8 · 60kg', done: 4, sets: 4, hasVideo: true,  comments: 3, focus: true  },
+      { name: 'DB Incline Press',   prescribed: '3×8-10',       done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Cable Fly',          prescribed: '3×12',         done: 3, sets: 3, hasVideo: true,  comments: 1, focus: false },
+      { name: 'Standing OHP',       prescribed: '4×6-8 · 35kg', done: 4, sets: 4, hasVideo: false, comments: 0, focus: true  },
+      { name: 'Tricep Pushdown',    prescribed: '3×12',         done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Cable Pallof Press', prescribed: '3×10 E',       done: 1, sets: 3, hasVideo: false, comments: 0, focus: false },
+    ],
+  },
+  {
+    id: 'rv2', traineeName: 'יעל כהן', initials: 'YK',
+    dayName: 'Day B · Pull', planName: 'Block #4 — Couple Volume', week: 2,
+    date: 'Today 08:02', doneSets: 17, totalSets: 21,
+    exercises: [
+      { name: 'Pull-Up',            prescribed: '4×AMRAP',      done: 4, sets: 4, hasVideo: true,  comments: 2, focus: true  },
+      { name: 'Bent-Over BB Row',   prescribed: '4×8',          done: 4, sets: 4, hasVideo: false, comments: 0, focus: false },
+      { name: 'Face Pull',          prescribed: '3×15',         done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'DB Bicep Curl',      prescribed: '3×12',         done: 3, sets: 3, hasVideo: true,  comments: 0, focus: false },
+      { name: 'Hanging Leg Raise',  prescribed: '3×8',          done: 2, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Plank',              prescribed: '3×60s',        done: 1, sets: 3, hasVideo: false, comments: 0, focus: false },
+    ],
+  },
+  {
+    id: 'rv3', traineeName: 'גל מזרחי', initials: 'GM',
+    dayName: 'Day C · Legs', planName: 'Block #4 — Pull Specialization', week: 2,
+    date: 'Yesterday', doneSets: 14, totalSets: 14,
+    exercises: [
+      { name: 'Back Squat',         prescribed: '4×5 · 100kg',  done: 4, sets: 4, hasVideo: false, comments: 0, focus: false },
+      { name: 'Romanian Deadlift',  prescribed: '3×8 · 90kg',   done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Walking Lunge',      prescribed: '3×10 E',       done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Leg Curl',           prescribed: '3×12',         done: 3, sets: 3, hasVideo: false, comments: 0, focus: false },
+      { name: 'Hip Thrust',         prescribed: '1×AMRAP',      done: 1, sets: 1, hasVideo: false, comments: 0, focus: false },
+    ],
+  },
+];
+
 function DemoReview() {
+  // Two-screen mirror of src/WorkoutReview.jsx:
+  //   1. Queue list — sub-nav + REVIEW QUEUE banner + per-athlete workout cards
+  //   2. Workout detail — exercise rows with the same 📹💬🎯 icons + bottom
+  //      action row (DELETE / UNMARK / BACK TO REVIEW / NEXT PENDING) the
+  //      real coach sees.
+  const [subTab, setSubTab] = useState('review');
+  const [selectedId, setSelectedId] = useState(null);
+  const selected = MOCK_REVIEW_QUEUE.find(w => w.id === selectedId);
+  const queue = MOCK_REVIEW_QUEUE;
+  const withVideo = queue.filter(w => w.exercises.some(e => e.hasVideo)).length;
+  const byClient = {};
+  for (const wo of queue) {
+    if (!byClient[wo.traineeName]) byClient[wo.traineeName] = { name: wo.traineeName, workouts: [] };
+    byClient[wo.traineeName].workouts.push(wo);
+  }
+
+  const subNav = (
+    <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+      {[['review', 'Review Athlete Workouts'], ['log', 'Log In-Person Session']].map(([k, l]) => (
+        <button key={k} onClick={() => { setSubTab(k); setSelectedId(null); }} style={{
+          flex: 1, padding: '10px 0', borderRadius: 8,
+          border: `1px solid ${subTab === k ? C.ac : C.bd}`,
+          background: subTab === k ? C.acD : 'transparent',
+          color: subTab === k ? C.ac : C.tm,
+          fontFamily: FB, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        }}>{l}</button>
+      ))}
+    </div>
+  );
+
+  if (subTab === 'log') {
+    return <section>{subNav}<DemoWorkouts /></section>;
+  }
+
+  if (selected) {
+    return (
+      <section>
+        {subNav}
+        <button onClick={() => setSelectedId(null)} style={{
+          background: 'none', border: 'none', color: C.ac,
+          cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, marginBottom: 12,
+        }}>← Back to queue</button>
+
+        <div style={{
+          background: C.sf, border: `1px solid ${C.ac}40`, borderRadius: 10,
+          padding: '14px 18px', marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%',
+              background: C.acD, border: `1px solid ${C.ac}40`, color: C.ac,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: FB, fontWeight: 700, fontSize: 13, flex: '0 0 auto',
+            }}>{selected.initials}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 16, color: C.tx }}>{selected.traineeName}</div>
+              <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginTop: 2 }}>
+                {selected.dayName.toUpperCase()} · {selected.planName} · W{selected.week} · {selected.date.toUpperCase()}
+              </div>
+            </div>
+            <div style={{ fontFamily: FN, fontSize: 11, color: C.gn, letterSpacing: 1, fontWeight: 700 }}>
+              {selected.doneSets}/{selected.totalSets} SETS
+            </div>
+          </div>
+        </div>
+
+        {selected.exercises.map((ex, i) => (
+          <div key={i} style={{
+            background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10,
+            marginBottom: 8, padding: '12px 14px',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <div style={{
+              width: 26, height: 26, borderRadius: 6,
+              background: ex.done === ex.sets ? C.gnD : C.acD,
+              color: ex.done === ex.sets ? C.gn : C.ac,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: FN, fontSize: 11, fontWeight: 700, flexShrink: 0,
+            }}>{i + 1}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx }}>{ex.name}</div>
+              <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
+                {ex.prescribed} · {ex.done}/{ex.sets} sets
+                {ex.hasVideo && <span title="Form video submitted" style={{ color: C.gn, marginLeft: 6 }}>📹</span>}
+                {ex.comments > 0 && (
+                  <span title={`${ex.comments} comment${ex.comments === 1 ? '' : 's'} on this exercise`} style={{ color: C.ac, marginLeft: 6 }}>
+                    💬{ex.comments > 1 ? <sup style={{ fontSize: 8 }}>{ex.comments}</sup> : null}
+                  </span>
+                )}
+                {ex.focus && (
+                  <span title="Weekly focus written" style={{ color: C.or, marginLeft: 6 }}>🎯</span>
+                )}
+              </div>
+            </div>
+            <span style={{ color: C.td, fontSize: 11 }}>▼</span>
+          </div>
+        ))}
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 20, marginBottom: 8 }}>
+          <button onClick={e => e.stopPropagation()} style={{
+            padding: '12px 16px', borderRadius: 8, border: `1px solid ${C.rd || '#c94444'}`,
+            background: 'transparent', color: C.rd || '#ff6b6b',
+            fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}>DELETE</button>
+          <button onClick={e => e.stopPropagation()} style={{
+            padding: '12px 16px', borderRadius: 8, border: `1px solid ${C.bd}`,
+            background: 'transparent', color: C.tm,
+            fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}>UNMARK</button>
+          <button onClick={() => setSelectedId(null)} title="Return to the review queue" style={{
+            flex: 1, padding: '12px 0', borderRadius: 8, border: `1px solid ${C.bd2}`,
+            background: 'transparent', color: C.tx,
+            fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
+          }}>← BACK TO REVIEW</button>
+          <button onClick={() => {
+            const idx = queue.findIndex(w => w.id === selected.id);
+            const next = queue[(idx + 1) % queue.length];
+            setSelectedId(next.id);
+          }} title="Jump to next pending workout" style={{
+            flex: 1, padding: '12px 0', borderRadius: 8, border: `1px solid ${C.ac}`,
+            background: C.ac, color: '#0a0a0b',
+            fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
+          }}>→ NEXT PENDING ({queue.length - 1})</button>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      {subNav}
+
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        background: C.sf, border: `1px solid ${C.ac}40`, borderRadius: 10,
+        padding: '10px 14px', marginBottom: 14,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8, background: C.acD,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac,
+          }}>{queue.length}</div>
+          <div>
+            <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.2, fontWeight: 700 }}>REVIEW QUEUE</div>
+            <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 2 }}>
+              {queue.length} pending · {withVideo} with form video{withVideo === 1 ? '' : 's'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {Object.entries(byClient).map(([cid, data]) => (
+        <div key={cid} style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 12, fontFamily: FN, color: C.ac, fontWeight: 700, marginBottom: 8 }}>
+            {data.name.toUpperCase()} ({data.workouts.length})
+          </div>
+          {data.workouts.map(wo => {
+            const hasFormVids = wo.exercises.some(e => e.hasVideo);
+            return (
+              <div key={wo.id} onClick={() => setSelectedId(wo.id)} style={{
+                background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 8,
+                padding: '12px 16px', marginBottom: 6, cursor: 'pointer',
+                transition: 'border-color .15s', display: 'flex',
+                justifyContent: 'space-between', alignItems: 'center',
+              }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
+                onMouseLeave={e => e.currentTarget.style.borderColor = C.ac + '4D'}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {wo.dayName}
+                    <span style={{ fontWeight: 400, color: C.tm, fontSize: 12 }}>{wo.planName}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
+                    W{wo.week} · {wo.date} · {wo.doneSets}/{wo.totalSets} sets
+                    {hasFormVids && <span style={{ color: C.gn, marginLeft: 4 }}>📹</span>}
+                  </div>
+                </div>
+                <span style={{ color: C.ac, fontSize: 12, marginLeft: 8, flexShrink: 0 }}>Review →</span>
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+// Legacy showcase Review (kept for reference, not rendered) was an iframe +
+// sidebar marketing surface. Replaced above with a queue + detail mirror so
+// the demo previews exactly what /coach/review shows. Anything we want to
+// add to the demo Review tab from here on should ship to the real one too.
+function _DemoReviewLegacy() {
   const [iframeLoaded, setIframeLoaded] = useState(false);
   return (
     <section>
-      <SectionHeader tag="REVIEW TOOL" title="Where you actually coach" body="Athlete clip arrives, pose overlay + rep count auto-attach. You scrub, draw on the bar path, drop timestamped comments, and queue a reply video. The athlete sees all of it in their portal — no email, no DMs." />
-
       <div style={{
         display: 'grid', gap: 14,
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
@@ -1772,7 +2003,6 @@ function DemoWorkouts() {
 
   return (
     <section>
-      <SectionHeader tag="WORKOUTS" title="Every set every athlete logged" body="Start a session from any active plan, follow it in progress, then file the completed log alongside the athlete's portal-logged sessions. Same surface a coach uses in the real app." />
 
       {/* 1. Start Workout from Plan */}
       <h3 style={{ ...sectionH, marginBottom: 12 }}>Start Workout from Plan</h3>
