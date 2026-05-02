@@ -1,17 +1,23 @@
-// Smart-import endpoint — Opus 4.7-powered ingest agent for ANY document.
+// Smart-import endpoint — Opus 4.7-powered ingest AGENT for any document.
 //
-// Supported inputs (handled by the frontend, all routed through the modes below):
+// Architecture: Tool-use loop. Instead of injecting a static snapshot of the
+// coach's library/athletes, the model has live tools (lookup_exercise,
+// lookup_athlete, peek_recent_plans, taxonomy_options) it can call mid-thought
+// to ground decisions in the coach's actual data. The server runs each tool
+// call against Supabase and feeds the result back; max 8 hops per analyze /
+// transform call.
+//
+// Supported inputs (frontend dispatch, all routed through the modes below):
 //   • XLSX, XLS, ODS, CSV, TSV — parsed client-side via xlsx → AOA
-//   • PDF — rendered to images client-side via pdfjs → vision-extract
+//   • PDF — rendered to images via pdfjs → vision-extract
 //   • PNG, JPG, JPEG, WEBP — sent straight to vision-extract
 //   • Plain-text/markdown tables — split client-side → AOA
 //
 // Modes:
-//   { kind: 'plan',           workbookSummary: { sheets: [{ name, headers, sampleRows, totalRows }] } }
-//     → returns { sheets: [{ name, target, confidence, why, estItems }], order, notes, warnings }
+//   { kind: 'plan',           workbookSummary: { sheets: [...] } }
+//     → returns { sheets, order, notes, warnings }
 //   { kind: 'vision-extract', images: [{ mediaType, data }], target?, hint? }
-//     → returns { sheets: [{ name, headers, rows, sample }], notes }
-//       (turns image/PDF pages into the same AOA shape XLSX produces)
+//     → returns { sheets, notes }
 //   { kind: 'analyze',        target, headers, sampleRows, sheetName?, existingContext? }
 //     → returns { mapping, structure, enumNormalizations, notes, warnings, confidence }
 //   { kind: 'transform',      target, mapping, rows, enumNormalizations?, existingContext? }
@@ -22,6 +28,145 @@
 // compact summary in, and the model uses it to dedupe / reuse / cross-
 // reference. This is what pushes the agent past prompt-only IQ — it has
 // real ground truth about what the coach already has.
+
+const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
+const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+
+// ---------------------------------------------------------------------------
+// Live tools — the model calls these mid-thought to ground decisions against
+// the coach's actual library/athletes/plans, instead of relying on a frozen
+// snapshot. Each handler is server-side, hits Supabase, returns short JSON.
+// ---------------------------------------------------------------------------
+const TOOLS = [
+  {
+    name: 'lookup_exercise',
+    description: "Fuzzy-search the coach's existing exercise library by title. Use to check whether a row's exercise name already exists (avoid duplicates) or to resolve a sloppy/abbreviated title to a canonical one.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Exercise title or substring to search for. Hebrew or English.' },
+        limit: { type: 'number', description: 'Max results (default 5, max 15).' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'lookup_athlete',
+    description: "Fuzzy-search the coach's existing trainees by name or phone. Use to dedupe a row before importing, or to confirm an athlete reference in a program sheet.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Name fragment, full name, or phone digits.' },
+        limit: { type: 'number', description: 'Max results (default 5, max 15).' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'peek_recent_plans',
+    description: 'Return a compact summary of the coach\'s recent training plans (day names + first few exercise titles). Use when classifying a programs sheet to recognize the coach\'s existing block style.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max plans (default 6, max 15).' },
+      },
+    },
+  },
+  {
+    name: 'taxonomy_options',
+    description: 'Return the canonical enum options for a target field (e.g. category, resistanceType, status). Use when normalizing free-text values to canonical options.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        target: { type: 'string', enum: ['exercises','athletes','programs'] },
+        field: { type: 'string', description: 'Target field name (e.g. "category", "status").' },
+      },
+      required: ['target','field'],
+    },
+  },
+];
+
+async function execTool(name, input) {
+  try {
+    if (name === 'lookup_exercise') {
+      const q = String(input?.query || '').trim().toLowerCase();
+      const limit = Math.min(Math.max(parseInt(input?.limit) || 5, 1), 15);
+      const r = await fetch(`${SUPA_URL}/rest/v1/store?key=eq.expo-exercises&select=value`, {
+        headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPA_PUBLISHABLE_KEY}` },
+      });
+      const rows = await r.json();
+      const lib = rows?.[0]?.value || [];
+      const scored = lib
+        .map(e => ({ id: e.id, title: e.title || '', videoLink: e.videoLink || '', score: fuzzyScore((e.title || '').toLowerCase(), q) }))
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map(({ id, title, videoLink }) => ({ id, title, videoLink: videoLink ? '✓' : '' }));
+      return { matches: scored, totalLibSize: lib.length };
+    }
+    if (name === 'lookup_athlete') {
+      const q = String(input?.query || '').trim().toLowerCase();
+      const limit = Math.min(Math.max(parseInt(input?.limit) || 5, 1), 15);
+      const r = await fetch(`${SUPA_URL}/rest/v1/store?key=eq.expo-trainees&select=value`, {
+        headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPA_PUBLISHABLE_KEY}` },
+      });
+      const rows = await r.json();
+      const arr = rows?.[0]?.value || [];
+      const phoneQ = q.replace(/\D/g, '');
+      const scored = arr
+        .map(t => {
+          const name = (t.name || '').toLowerCase();
+          const phone = (t.phone || '').replace(/\D/g, '');
+          const s = Math.max(fuzzyScore(name, q), phoneQ.length >= 4 && phone.includes(phoneQ) ? 0.95 : 0);
+          return { id: t.id, name: t.name, phone: t.phone || '', status: t.status || '', score: s };
+        })
+        .filter(x => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map(({ id, name, phone, status }) => ({ id, name, phone, status }));
+      return { matches: scored, totalAthletes: arr.length };
+    }
+    if (name === 'peek_recent_plans') {
+      const limit = Math.min(Math.max(parseInt(input?.limit) || 6, 1), 15);
+      const r = await fetch(`${SUPA_URL}/rest/v1/plans?select=name,trainee_id,data&order=created_at.desc&limit=${limit}`, {
+        headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${SUPA_PUBLISHABLE_KEY}` },
+      });
+      const plans = await r.json();
+      return {
+        plans: (plans || []).map(p => ({
+          name: p.name,
+          trainee_id: p.trainee_id,
+          dayNames: (p.data?.days || []).map(d => d.name),
+          sampleExerciseTitles: (p.data?.days || []).flatMap(d => (d.exercises || []).slice(0, 2).map(e => e.title).filter(Boolean)).slice(0, 8),
+        })),
+      };
+    }
+    if (name === 'taxonomy_options') {
+      const t = input?.target;
+      const f = input?.field;
+      const def = SCHEMAS[t]?.fields?.[f];
+      if (!def) return { error: 'unknown field' };
+      return { type: def.type, options: def.options || null, hint: def.hint || null };
+    }
+    return { error: 'unknown tool: ' + name };
+  } catch (e) {
+    return { error: 'tool error: ' + (e?.message || String(e)) };
+  }
+}
+
+// Unicode-aware fuzzy scorer — token-set overlap + length penalty. Works for
+// Hebrew and English titles without needing a heavy dep.
+function fuzzyScore(a, b) {
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  if (a.includes(b) || b.includes(a)) return 0.85 - Math.abs(a.length - b.length) / Math.max(a.length, b.length, 1) * 0.2;
+  const tokA = new Set(a.split(/[\s\-_/(),.]+/).filter(Boolean));
+  const tokB = new Set(b.split(/[\s\-_/(),.]+/).filter(Boolean));
+  if (tokA.size === 0 || tokB.size === 0) return 0;
+  let hit = 0;
+  for (const t of tokB) if (tokA.has(t)) hit++;
+  return hit / Math.max(tokA.size, tokB.size);
+}
 
 const SCHEMAS = {
   exercises: {
@@ -91,6 +236,21 @@ Respond with strict JSON only:
 
 const SYSTEM_PROMPT_ANALYZE = `You are EXPO's senior data-mapping engineer. Coaches upload sheets in every imaginable layout — Trainerize exports, hand-built Excel templates, Google Sheets with Hebrew headers, raw CSV from CRMs, drive-style training-block sheets with day separators. Your job: given column headers + sample rows + (optionally) a snapshot of what already exists in the coach's database, propose the SHARPEST possible mapping to the target schema.
 
+# LIVE TOOLS (call them mid-thought, before producing your final JSON)
+You have these tools — USE them when relevant, don't guess:
+• lookup_exercise(query) — fuzzy-search the coach's existing library. Call when a sample row's exercise title looks like it might already exist; the result tells you the canonical spelling/eid + whether it has a video.
+• lookup_athlete(query) — fuzzy-search the coach's trainees by name or phone. Call when a sample row's name might already be in the system; this prevents duplicates and confirms canonical spelling.
+• peek_recent_plans(limit?) — get a compact summary of recent programs (day names + first exercises). Call when classifying a programs sheet so you recognize the coach's typical block structure ("Day A/B/C" vs "Day 1/2/3" vs Hebrew names).
+• taxonomy_options(target, field) — get the canonical enum options for any field. Call when you're not 100% sure of an option name (e.g. is it "Active" or "active"?).
+
+You may call multiple tools in one turn (parallel calls) and chain across turns. Cap yourself at ~5 tool calls total — over-calling burns time.
+
+WHEN to call tools:
+- BEFORE finalizing mapping for any enum field → call taxonomy_options to verify the canonical options.
+- BEFORE finalizing mapping for athletes target → call lookup_athlete on 1–3 sample names to check for duplicates and add a "warnings" entry if any are matches.
+- BEFORE finalizing mapping for exercises or programs → call lookup_exercise on 1–3 sample titles to surface existing-library matches into the warnings.
+- BEFORE classifying a programs sheet's day-naming convention → call peek_recent_plans once.
+
 Respond with strict JSON only. No prose, no markdown fences. The shape:
 {
   "structure": {
@@ -147,6 +307,14 @@ GOOD OUTPUT (abridged):
 }`;
 
 const SYSTEM_PROMPT_TRANSFORM = `You are EXPO's senior data-transformation engineer. Given (a) a target schema, (b) a column→field mapping the coach approved, (c) raw rows, and (d) optionally a snapshot of existing data in the coach's database, produce normalized records that fit the target schema EXACTLY.
+
+# LIVE TOOLS (call when grounding a decision matters)
+• lookup_exercise(query) — find canonical title + eid for a row's exercise (use during programs transform when an exercise title might already exist in the library; helps preserve eid + video).
+• lookup_athlete(query) — confirm an athlete already exists; surface the duplicate in "warnings" so the coach knows the commit will merge, not double.
+• taxonomy_options(target, field) — get canonical enum options when normalizing a value you're unsure about.
+• peek_recent_plans — rarely needed during transform; only call if the day-naming pattern is ambiguous.
+
+Be SPARING with tool calls during transform — every call adds latency. Cap yourself at ~5 calls per batch. Only call when a row's value would otherwise be a guess; don't call for values you're already confident about.
 
 Respond with strict JSON only. No prose, no markdown fences:
 {
@@ -329,7 +497,7 @@ SAMPLE ROWS (each row is an array aligned to HEADERS):
 ${JSON.stringify(sampleRows, null, 2)}
 ${existingContext ? `\nEXISTING DATA SNAPSHOT (use to avoid duplicates / cross-reference):\n${existingContext}\n` : ''}
 Propose the mapping + structure + enumNormalizations per the rules. Strict JSON only.`;
-      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_ANALYZE, userPrompt, maxTokens: 2500 });
+      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_ANALYZE, userPrompt, maxTokens: 2500, useTools: true });
       res.status(200).json(result);
       return;
     }
@@ -355,7 +523,7 @@ ROWS (each row is { headerName: cellValue }):
 ${JSON.stringify(rows, null, 2)}
 ${existingContext ? `\nEXISTING DATA SNAPSHOT (use for cross-reference; frontend dedupes on commit):\n${existingContext}\n` : ''}
 Produce normalized items. Strict JSON only.`;
-      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_TRANSFORM, userPrompt, maxTokens: 6000 });
+      const result = await anthropicJson({ apiKey, system: SYSTEM_PROMPT_TRANSFORM, userPrompt, maxTokens: 6000, useTools: true });
 
       // Server-side schema validation. If anything is broken, run a repair pass.
       const items = Array.isArray(result?.items) ? result.items : [];
@@ -461,8 +629,13 @@ function validateAgainstSchema(item, target, schema) {
   return errs;
 }
 
-async function anthropicJson({ apiKey, system, userPrompt, maxTokens }) {
-  // Opus 4.7 with prompt caching on the long system prompt.
+async function anthropicJson({ apiKey, system, userPrompt, maxTokens, useTools = false }) {
+  // Single-shot Opus 4.7 with prompt caching. When useTools=true we wrap the
+  // call in a tool-use loop that lets the model query the coach's live data
+  // (lookup_exercise, lookup_athlete, etc.) before producing final JSON.
+  if (useTools) {
+    return await runWithTools({ apiKey, system, userPrompt, maxTokens });
+  }
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -486,6 +659,55 @@ async function anthropicJson({ apiKey, system, userPrompt, maxTokens }) {
   const parsed = parseLooseJson(text);
   if (!parsed) throw new Error(`Model returned non-JSON: ${text.slice(0, 400)}`);
   return parsed;
+}
+
+// Tool-use loop. The model can call any of our TOOLS up to MAX_HOPS times
+// before it must produce its final JSON answer. We feed each tool_use back
+// in as a tool_result on the next turn.
+async function runWithTools({ apiKey, system, userPrompt, maxTokens, MAX_HOPS = 8 }) {
+  const messages = [{ role: 'user', content: userPrompt }];
+  for (let hop = 0; hop < MAX_HOPS; hop++) {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-7',
+        max_tokens: maxTokens,
+        system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+        tools: TOOLS,
+        messages,
+      }),
+    });
+    if (!r.ok) {
+      const txt = await r.text().catch(() => '');
+      throw new Error(`anthropic ${r.status}: ${txt.slice(0, 300)}`);
+    }
+    const j = await r.json();
+    const stop = j?.stop_reason;
+    const blocks = j?.content || [];
+    const toolUses = blocks.filter(b => b.type === 'tool_use');
+    // Stop on end_turn (or max_tokens, but unlikely if the model is well-behaved).
+    if (stop !== 'tool_use' || toolUses.length === 0) {
+      // Final answer: concatenate all text blocks and parse.
+      const text = blocks.filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+      const parsed = parseLooseJson(text);
+      if (!parsed) throw new Error(`Model returned non-JSON after tool loop: ${text.slice(0, 400)}`);
+      return parsed;
+    }
+    // Append assistant turn (containing tool_use blocks), then add tool_results.
+    messages.push({ role: 'assistant', content: blocks });
+    const results = [];
+    for (const tu of toolUses) {
+      const out = await execTool(tu.name, tu.input || {});
+      results.push({ type: 'tool_result', tool_use_id: tu.id, content: JSON.stringify(out).slice(0, 4000) });
+    }
+    messages.push({ role: 'user', content: results });
+  }
+  throw new Error('tool loop exceeded MAX_HOPS without final answer');
 }
 
 // Vision variant: same model + prompt caching, but accepts a content array
