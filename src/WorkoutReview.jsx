@@ -957,27 +957,19 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         }
       `}</style>
       <div ref={wrapperRef} className="fv-wrap" style={{position:'relative',marginBottom:6,lineHeight:0}}>
-        {videoLoadError ? (
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-            background:C.sf2,border:`1px dashed ${C.bd}`,borderRadius:8,padding:'24px 16px',textAlign:'center',lineHeight:1.5}}>
-            <div style={{fontSize:11,fontFamily:FN,color:C.rd||'#ff6b6b',fontWeight:700,letterSpacing:0.5,marginBottom:6}}>
-              ⚠ This browser can't play this clip
-            </div>
-            <div style={{fontSize:11,color:C.tm,marginBottom:10,maxWidth:340}}>
-              Likely an HEVC/.MOV upload. Open it in a new tab to view, or download and play locally.
-            </div>
-            <a href={url} target="_blank" rel="noopener noreferrer"
-              style={{display:'inline-block',background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,
-                fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:4,textDecoration:'none',letterSpacing:0.5}}>
-              OPEN IN NEW TAB ↗
-            </a>
-          </div>
-        ) : (
-          <video ref={videoRef} src={url} controls
-            controlsList={isFullscreen ? '' : 'nofullscreen'}
-            playsInline crossOrigin="anonymous"
-            onError={() => setVideoLoadError(true)}
-            style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
+        <video ref={videoRef} src={url} controls
+          controlsList={isFullscreen ? '' : 'nofullscreen'}
+          playsInline crossOrigin="anonymous"
+          onError={() => setVideoLoadError(true)}
+          style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
+        {videoLoadError && (
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            style={{position:'absolute',bottom:8,right:8,zIndex:6,
+              background:'rgba(10,10,11,0.85)',border:`1px solid ${C.ac}`,color:C.ac,
+              fontFamily:FN,fontSize:10,padding:'4px 8px',borderRadius:4,
+              textDecoration:'none',letterSpacing:0.5}}>
+            OPEN IN NEW TAB ↗
+          </a>
         )}
         <canvas ref={canvasRef}
           style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',
