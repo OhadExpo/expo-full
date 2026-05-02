@@ -173,11 +173,46 @@ function ClientPortalMock({ onPick }) {
       ],
     },
   ];
+  // History rows match the real ClientPortal shape: per-workout cards with
+  // per-exercise rows inside (title · prescription — done/total · 📹 if a
+  // form video was uploaded · 💬 N if the coach left review notes).
   const HISTORY = [
-    { id: 'h1', date: '2026-04-29', dayName: 'Day C · Legs', planName: PLAN.name, doneSets: 14, totalSets: 14, hasVideo: false, coachNotes: 0 },
-    { id: 'h2', date: '2026-04-27', dayName: 'Day B · Pull', planName: PLAN.name, doneSets: 21, totalSets: 21, hasVideo: true,  coachNotes: 2 },
-    { id: 'h3', date: '2026-04-23', dayName: 'Day A · Push', planName: PLAN.name, doneSets: 20, totalSets: 20, hasVideo: true,  coachNotes: 3 },
-    { id: 'h4', date: '2026-04-20', dayName: 'Day C · Legs', planName: PLAN.name, doneSets: 14, totalSets: 14, hasVideo: false, coachNotes: 0 },
+    {
+      id: 'h1', date: '2026-04-29', dayName: 'Day C · Legs', planName: PLAN.name, week: 1,
+      exercises: [
+        { title: 'Back Squat',        prescribed: '5×5 · 95kg',  done: 5, total: 5, hasVideo: false, notes: 0 },
+        { title: 'Romanian Deadlift', prescribed: '4×8 · 70kg',  done: 4, total: 4, hasVideo: false, notes: 0 },
+        { title: 'Walking Lunge',     prescribed: '3×10 E',      done: 3, total: 3, hasVideo: false, notes: 0 },
+        { title: 'Hip Thrust',        prescribed: '3×10 · 80kg', done: 2, total: 2, hasVideo: false, notes: 0 },
+      ],
+    },
+    {
+      id: 'h2', date: '2026-04-27', dayName: 'Day B · Pull', planName: PLAN.name, week: 1,
+      exercises: [
+        { title: 'Pull-Up',         prescribed: '4×6-8 · BW',     done: 4, total: 4, hasVideo: true,  notes: 2 },
+        { title: 'DB Row',          prescribed: '3×10 E · 20kg',  done: 3, total: 3, hasVideo: false, notes: 0 },
+        { title: 'DB Curl',         prescribed: '3×12 · 12.5kg',  done: 3, total: 3, hasVideo: true,  notes: 0 },
+        { title: 'Face Pull',       prescribed: '3×15 · 15kg',    done: 3, total: 3, hasVideo: false, notes: 0 },
+      ],
+    },
+    {
+      id: 'h3', date: '2026-04-23', dayName: 'Day A · Push', planName: PLAN.name, week: 1,
+      exercises: [
+        { title: 'Bench Press',     prescribed: '4×6-8 · 60kg',  done: 4, total: 4, hasVideo: true,  notes: 3 },
+        { title: 'Overhead Press',  prescribed: '4×6-8 · 35kg',  done: 4, total: 4, hasVideo: false, notes: 0 },
+        { title: 'Lateral Raise',   prescribed: '3×12-15 · 7.5kg', done: 3, total: 3, hasVideo: false, notes: 0 },
+        { title: 'Push-Up',         prescribed: '3×12 · BW',     done: 3, total: 3, hasVideo: false, notes: 0 },
+      ],
+    },
+    {
+      id: 'h4', date: '2026-04-20', dayName: 'Day C · Legs', planName: PLAN.name, week: 4,
+      exercises: [
+        { title: 'Back Squat',        prescribed: '5×5 · 92.5kg', done: 5, total: 5, hasVideo: false, notes: 0 },
+        { title: 'Romanian Deadlift', prescribed: '4×8 · 67.5kg', done: 4, total: 4, hasVideo: false, notes: 0 },
+        { title: 'Walking Lunge',     prescribed: '3×10 E',       done: 3, total: 3, hasVideo: false, notes: 0 },
+        { title: 'Hip Thrust',        prescribed: '3×10 · 77.5kg', done: 2, total: 2, hasVideo: false, notes: 0 },
+      ],
+    },
   ];
   const PRS = [
     { name: 'Back Squat',          load: '105kg', date: '2026-04-26', delta: '+5kg / 8w' },
@@ -206,6 +241,7 @@ function ClientPortalMock({ onPick }) {
   const [loggingDay, setLoggingDay] = useState(null); // day index being logged
   const [logSets, setLogSets] = useState({}); // {`${dayIdx}:${exIdx}:${setIdx}`: {reps,load,done}}
   const [preCheck, setPreCheck] = useState({ pain: '', energy: '', sleep: '' });
+  const [expandedHistEx, setExpandedHistEx] = useState(null); // History tab tap-to-expand: `${workoutId}:${exIdx}`
 
   // ─── Mock StepLogger — mirrors src/ClientPortal.jsx StepLogger ─────
   // Open when 📝 Log is tapped on a day card. Shows pre-workout check
@@ -484,33 +520,80 @@ function ClientPortalMock({ onPick }) {
     );
   }
 
-  // ─── History tab body ────────────────────────────────────────
+  // ─── History tab body — mirrors ClientPortal `vw === 'hist'` 1:1 ───
+  // Per-workout cards with per-exercise rows inside. Per-exercise: title +
+  // prescription + done/total sets, 📹 if a form video was uploaded, and a
+  // small acD-bg `💬 N` pill if the coach left review notes. Tapping a
+  // videoed exercise expands to show the form-video player (here: a stub
+  // box since the demo has no actual video). 0.25px ac4D border, becomes
+  // 2px ac when an exercise inside is expanded.
   if (vw === 'hist') {
     return (
       <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
         {renderTopHeader()}
         <div style={{ padding: '14px 20px 20px' }}>
           <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>History ({HISTORY.length})</h2>
-          {HISTORY.map(w => (
-            <div key={w.id} style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 12, padding: '12px 14px', marginBottom: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>
-                    {w.dayName}
-                    {w.hasVideo && <span title="Form video uploaded" style={{ color: C.gn, marginLeft: 6 }}>📹</span>}
+          {HISTORY.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: C.td }}>No workouts yet.</div>
+          ) : (
+            HISTORY.map(w => {
+              const wActive = expandedHistEx && expandedHistEx.startsWith(w.id + ':');
+              return (
+                <div key={w.id} style={{
+                  background: C.sf,
+                  border: `${wActive ? '2px' : '0.25px'} solid ${C.ac}${wActive ? '' : '4D'}`,
+                  borderRadius: 10, padding: 12, marginBottom: 8,
+                }}>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>
+                    {w.dayName} <span style={{ color: C.tm, fontWeight: 400 }}>({w.planName})</span>
                   </div>
-                  <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginTop: 2 }}>
-                    {new Date(w.date).toLocaleDateString()} · {w.planName} · {w.doneSets}/{w.totalSets} SETS
+                  <div style={{ fontSize: 11, color: C.tm, marginBottom: 4 }}>
+                    {new Date(w.date).toLocaleDateString()} · W{w.week}
                   </div>
+                  {w.exercises.map((x, i) => {
+                    const expandKey = `${w.id}:${i}`;
+                    const isOpen = expandedHistEx === expandKey;
+                    const canExpand = x.hasVideo;
+                    return (
+                      <div key={i} style={{ marginTop: 2 }}>
+                        <div onClick={canExpand ? () => setExpandedHistEx(isOpen ? null : expandKey) : undefined}
+                          style={{ fontSize: 11, color: C.tm, display: 'flex', alignItems: 'center', gap: 6, cursor: canExpand ? 'pointer' : 'default', padding: '2px 0' }}>
+                          <span style={{ flex: 1 }}>{i + 1}. {x.title} ({x.prescribed}) — {x.done}/{x.total}</span>
+                          {x.hasVideo && <span style={{ color: C.gn, fontSize: 12 }}>📹</span>}
+                          {x.notes > 0 && (
+                            <span style={{
+                              background: C.acD, color: C.ac,
+                              fontFamily: FN, fontSize: 9, fontWeight: 700,
+                              padding: '1px 6px', borderRadius: 8,
+                            }}>💬 {x.notes}</span>
+                          )}
+                          {canExpand && <span style={{ color: C.td, fontSize: 10 }}>{isOpen ? '▲' : '▼'}</span>}
+                        </div>
+                        {isOpen && x.hasVideo && (
+                          <div style={{
+                            marginTop: 6, marginBottom: 10,
+                            background: C.sf2, border: `0.25px solid ${C.ac}4D`, borderRadius: 8,
+                            padding: 8,
+                          }}>
+                            <div style={{
+                              background: '#000', borderRadius: 6, aspectRatio: '16/9',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
+                            }}>FORM VIDEO</div>
+                            {x.notes > 0 && (
+                              <div style={{ marginTop: 8, fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
+                                💬 {x.notes} COACH NOTE{x.notes === 1 ? '' : 'S'}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                {w.coachNotes > 0 && (
-                  <span style={{ background: C.rd, color: '#fff', fontSize: 9, fontFamily: FN, fontWeight: 700, padding: '2px 6px', borderRadius: 8 }}>
-                    {w.coachNotes} coach note{w.coachNotes === 1 ? '' : 's'}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+              );
+            })
+          )}
         </div>
       </div>
     );

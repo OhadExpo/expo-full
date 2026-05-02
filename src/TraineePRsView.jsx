@@ -194,27 +194,24 @@ function fmtDate(iso) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-export default function TraineePRsView({ clientWorkouts, traineeId, header, embedded = false, sortMode: extSortMode }) {
-  const [expanded, setExpanded] = useState(null); // exercise title
+// Picker-style Records view: athlete or coach picks a logged exercise from
+// a dropdown, sees the all-time PR (heaviest weight × reps achieved at that
+// weight) front-and-center, then a per-session history beneath it. The
+// dropdown only contains exercises this athlete has actually logged with a
+// numeric load — empty list ⇒ empty state, not a stub.
+export default function TraineePRsView({ clientWorkouts, traineeId, header, embedded = false }) {
   const rows = useMemo(() => aggregate(clientWorkouts, traineeId), [clientWorkouts, traineeId]);
-  const [filter, setFilter] = useState('');
-  const [compareBlocks, setCompareBlocks] = useState(false);
-  // Sort mode: 'recent' = most recently trained (default), 'jump' = biggest
-  // delta from first → last load. Trainer Records tab can override via prop;
-  // trainee portal still defaults to 'recent'.
-  const [internalSortMode, setInternalSortMode] = useState(extSortMode || 'recent');
-  const sortMode = extSortMode || internalSortMode;
-  const filtered = useMemo(() => {
-    const s = filter.trim().toLowerCase();
-    let r = rows;
-    if (s) r = r.filter(x => x.title.toLowerCase().includes(s));
-    if (sortMode === 'jump') {
-      r = [...r].sort((a, b) => (b.delta || 0) - (a.delta || 0));
+  const options = useMemo(() => rows.slice().sort((a, b) => a.title.localeCompare(b.title)), [rows]);
+  const [pickedId, setPickedId] = useState(null);
+  // Auto-select first option when rows arrive (or after data refresh swaps
+  // the option list) so the visitor lands on a real PR card immediately.
+  useMemo(() => {
+    if (options.length === 0) { if (pickedId) setPickedId(null); return; }
+    if (!pickedId || !options.some(o => o.id === pickedId)) {
+      setPickedId(options[0].id);
     }
-    return r;
-  }, [rows, filter, sortMode]);
-  // Only worth showing the toggle if there's actually >1 block of history.
-  const anyHasTwoBlocks = rows.some(r => r.previousBlock);
+  }, [options]);
+  const picked = options.find(o => o.id === pickedId);
 
   const wrapStyle = embedded
     ? { color: C.tx, fontFamily: FB }
@@ -229,175 +226,101 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
           <>
             <h2 style={{ fontFamily: FN, fontSize: 18, margin: '0 0 4px', textAlign: 'center' }}>Records</h2>
             <div style={{ color: C.tm, fontSize: 12, marginBottom: 14, textAlign: 'center' }}>
-              Top set per session, by exercise.
+              Pick an exercise — see the heaviest weight you've lifted on it and how many reps you hit at that weight.
             </div>
           </>
         )}
 
-        {rows.length > 5 && (
-          <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Search exercise…"
-            style={{
-              width: '100%', background: C.sf2, border: `0.25px solid ${C.ac}4D`,
-              borderRadius: 8, padding: '10px 12px', color: C.tx, fontFamily: FB, fontSize: 14,
-              outline: 'none', boxSizing: 'border-box', marginBottom: 14, textAlign: 'center',
-            }} />
-        )}
-
-        {anyHasTwoBlocks && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
-            <button onClick={() => setCompareBlocks(v => !v)}
-              style={{
-                background: compareBlocks ? C.acD : 'transparent',
-                border: `1px solid ${compareBlocks ? C.ac : C.bd}`,
-                color: compareBlocks ? C.ac : C.tm,
-                borderRadius: 999, padding: '6px 14px', fontFamily: FN, fontSize: 10,
-                fontWeight: 700, letterSpacing: 1.4, cursor: 'pointer',
-              }}>
-              {compareBlocks ? '✓ COMPARING BLOCKS' : 'COMPARE BLOCKS'}
-            </button>
-          </div>
-        )}
-
-        {rows.length === 0 && (
+        {rows.length === 0 ? (
           <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 12, padding: 30, textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1.5, marginBottom: 8 }}>NO RECORDS YET</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
-              Log a few sessions with weights and your top-set progression for each exercise will show up here.
+              Log a few sessions with weights and your records will show up here.
             </div>
           </div>
-        )}
-
-        {filtered.length === 0 && rows.length > 0 && (
-          <div style={{ textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 12, padding: 20 }}>
-            No exercises match "{filter}".
-          </div>
-        )}
-
-        {/* Grid of cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filtered.map((r) => {
-            const isOpen = expanded === r.id;
-            const trendUp = r.delta > 0;
-            const trendFlat = r.delta === 0;
-            return (
-              <div key={r.id} style={{
-                background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 12,
-                overflow: 'hidden',
+        ) : (
+          <>
+            {/* Exercise picker — only exercises with at least one logged top set */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 6 }}>EXERCISE</div>
+              <select value={pickedId || ''} onChange={e => setPickedId(e.target.value)} style={{
+                width: '100%', background: C.sf, border: `0.25px solid ${C.ac}4D`,
+                borderRadius: 8, padding: '12px 14px', color: C.tx,
+                fontFamily: FB, fontSize: 15, fontWeight: 600,
+                outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
               }}>
-                <button onClick={() => setExpanded(isOpen ? null : r.id)} aria-expanded={isOpen} style={{
-                  width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-                  padding: '14px 14px 12px', textAlign: 'center',
+                {options.map(o => (
+                  <option key={o.id} value={o.id}>
+                    {o.title} ({o.sessionCount} session{o.sessionCount === 1 ? '' : 's'})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {picked && (
+              <>
+                {/* PR hero card */}
+                <div style={{
+                  background: C.sf, border: `0.25px solid ${C.ac}`, borderRadius: 12,
+                  padding: '20px 18px', textAlign: 'center', marginBottom: 14,
+                  boxShadow: `0 0 0 1px ${C.ac}26`,
                 }}>
-                  {/* Title — centered, single line */}
-                  <div style={{
-                    fontFamily: FB, fontSize: 15, fontWeight: 700, color: C.tx,
-                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }} title={r.title}>{r.title}</div>
-
-                  {/* Sub: PR — single typographic line, all same size */}
-                  <div style={{
-                    fontFamily: FN, fontSize: 22, fontWeight: 700, color: C.ac,
-                    marginTop: 6, lineHeight: 1, letterSpacing: -0.5,
-                  }}>
-                    {r.allTimePR}<span style={{ fontSize: 13, color: C.tm, fontWeight: 400, marginLeft: 4 }}>kg</span>
-                    {r.allTimePRReps > 0 && (
-                      <span style={{ fontSize: 13, color: C.tm, fontWeight: 400, marginLeft: 6 }}>× {r.allTimePRReps}</span>
-                    )}
-                    <span style={{ fontSize: 9, color: C.td, letterSpacing: 2, fontWeight: 700, marginLeft: 8, verticalAlign: 'middle' }}>PR</span>
-                  </div>
-
-                  {/* Full-width sparkline below — guaranteed visible.
-                      In compareBlocks mode we render the current block as
-                      the primary line and overlay the previous block dashed
-                      behind it, sharing the same y-axis. */}
-                  <div style={{ marginTop: 10 }}>
-                    {compareBlocks && r.previousBlock ? (
-                      <Sparkline
-                        series={r.currentBlock.list}
-                        overlay={r.previousBlock.list}
-                        overlayUid={`${r.id}-cmp`}
-                      />
-                    ) : (
-                      <Sparkline series={r.series} overlayUid={r.id} />
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>
+                  <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
+                    {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 4 }}>kg</span>
+                    {picked.allTimePRReps > 0 && (
+                      <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 8 }}>× {picked.allTimePRReps}</span>
                     )}
                   </div>
-                  {compareBlocks && r.previousBlock && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 6, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1 }}>
-                      <span><span style={{ display: 'inline-block', width: 10, height: 2, background: C.ac, marginRight: 4, verticalAlign: 'middle' }} />{r.currentBlock.name}</span>
-                      <span><span style={{ display: 'inline-block', width: 10, height: 2, background: C.tm, marginRight: 4, verticalAlign: 'middle', borderTop: `1px dashed ${C.tm}` }} />{r.previousBlock.name}</span>
+                  <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, marginTop: 10 }}>
+                    {fmtDate(picked.allTimePRDate)}
+                  </div>
+                  {picked.swappedAny && (
+                    <div style={{ marginTop: 10, fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8 }}>
+                      Includes sessions from mid-session swaps.
                     </div>
                   )}
+                </div>
 
-                  {/* Bottom stats row — three equal items, justify-around for symmetry */}
-                  <div style={{
-                    display: 'flex', justifyContent: 'space-around', alignItems: 'center',
-                    marginTop: 8, gap: 8,
-                  }}>
-                    <div>
-                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.2, fontWeight: 700 }}>SESSIONS</div>
-                      <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, marginTop: 2 }}>{r.sessionCount}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.2, fontWeight: 700 }}>Δ FROM FIRST</div>
-                      <div style={{
-                        fontFamily: FN, fontSize: 13, fontWeight: 700, marginTop: 2,
-                        color: trendFlat ? C.tm : (trendUp ? C.gn : C.rd),
-                      }}>
-                        {trendFlat ? '—' : `${trendUp ? '+' : ''}${r.delta} kg`}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1.2, fontWeight: 700 }}>LAST</div>
-                      <div style={{ fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, marginTop: 2 }}>{fmtDate(r.lastDate)}</div>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Expanded session-by-session breakdown */}
-                {isOpen && (
-                  <div style={{ borderTop: `1px solid ${C.bd}`, padding: '10px 14px 14px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 50px 50px', gap: 4, marginBottom: 6 }}>
-                      {['DATE', 'TOP SET', 'REPS', 'RPE'].map(h => (
-                        <div key={h} style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1, textAlign: 'center' }}>{h}</div>
-                      ))}
-                    </div>
-                    {r.series.slice().reverse().map((s, i) => (
-                      <div key={i} style={{
-                        display: 'grid', gridTemplateColumns: '1fr 70px 50px 50px', gap: 4,
-                        padding: '4px 0', alignItems: 'center',
-                        borderBottom: i < r.series.length - 1 ? `1px solid ${C.bd}22` : 'none',
-                      }}>
-                        <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, textAlign: 'center' }}>
-                          {fmtDate(s.date)}
-                          {s.week ? <span style={{ color: C.td, marginLeft: 4 }}>W{s.week}</span> : null}
-                        </div>
-                        <div style={{
-                          fontFamily: FN, fontSize: 13, color: s.load === r.allTimePR ? C.ac : C.tx,
-                          fontWeight: s.load === r.allTimePR ? 700 : 600, textAlign: 'center',
-                        }}>
-                          {s.load}<span style={{ fontSize: 10, color: C.tm }}>kg</span>
-                          {s.load === r.allTimePR && (
-                            <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, marginLeft: 4, letterSpacing: 0.5 }}>PR</span>
-                          )}
-                        </div>
-                        <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, textAlign: 'center' }}>{s.reps || '—'}</div>
-                        <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, textAlign: 'center' }}>{s.rpe ?? '—'}</div>
-                      </div>
+                {/* Session history */}
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 6 }}>
+                  SESSION HISTORY · {picked.sessionCount} ENTR{picked.sessionCount === 1 ? 'Y' : 'IES'}
+                </div>
+                <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 60px 60px', padding: '8px 12px', borderBottom: `1px solid ${C.bd}` }}>
+                    {['DATE', 'WEIGHT', 'REPS', 'RPE'].map(h => (
+                      <div key={h} style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1, textAlign: 'center', fontWeight: 700 }}>{h}</div>
                     ))}
-                    {r.swappedAny && (
-                      <div style={{
-                        marginTop: 8, fontFamily: FN, fontSize: 9, color: C.td,
-                        letterSpacing: 0.8, textAlign: 'center',
-                      }}>
-                        Some sessions came from a mid-session swap.
-                      </div>
-                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  {picked.series.slice().reverse().map((s, i, arr) => (
+                    <div key={i} style={{
+                      display: 'grid', gridTemplateColumns: '1fr 80px 60px 60px',
+                      padding: '8px 12px', alignItems: 'center',
+                      borderBottom: i < arr.length - 1 ? `1px solid ${C.bd}22` : 'none',
+                      background: s.load === picked.allTimePR ? `${C.ac}10` : 'transparent',
+                    }}>
+                      <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, textAlign: 'center' }}>
+                        {fmtDate(s.date)}
+                        {s.week ? <span style={{ color: C.td, marginLeft: 4 }}>W{s.week}</span> : null}
+                      </div>
+                      <div style={{
+                        fontFamily: FN, fontSize: 13, color: s.load === picked.allTimePR ? C.ac : C.tx,
+                        fontWeight: s.load === picked.allTimePR ? 700 : 600, textAlign: 'center',
+                      }}>
+                        {s.load}<span style={{ fontSize: 10, color: C.tm, marginLeft: 1 }}>kg</span>
+                        {s.load === picked.allTimePR && (
+                          <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, marginLeft: 4, letterSpacing: 0.5, fontWeight: 700 }}>PR</span>
+                        )}
+                      </div>
+                      <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, textAlign: 'center' }}>{s.reps || '—'}</div>
+                      <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, textAlign: 'center' }}>{s.rpe ?? '—'}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
