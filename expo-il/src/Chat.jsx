@@ -82,8 +82,24 @@ export default function Chat() {
       return;
     }
     setCaptureState('sending'); setCaptureErr('');
+    const apiMessages = messages.filter(m => m.role === 'user' || m.role === 'assistant');
     try {
-      const res = await fetch(`${SUPA_URL}/rest/v1/leads`, {
+      // Prefer the AI-summary endpoint; fall back to direct insert on any
+      // failure so we never drop a lead.
+      const captureRes = await fetch('/api/capture', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          email: trimmed,
+          source: 'expo-il-chat',
+          context: 'chat_capture',
+          messages: apiMessages,
+        }),
+      });
+      if (captureRes.ok) {
+        setCaptureState('done'); return;
+      }
+      const fallback = await fetch(`${SUPA_URL}/rest/v1/leads`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +114,7 @@ export default function Chat() {
           user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : null,
         }),
       });
-      if (!res.ok && res.status !== 409) throw new Error(`HTTP ${res.status}`);
+      if (!fallback.ok && fallback.status !== 409) throw new Error(`HTTP ${fallback.status}`);
       setCaptureState('done');
     } catch {
       setCaptureState('error');

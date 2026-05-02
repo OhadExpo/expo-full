@@ -66,8 +66,28 @@ export default function CoachChat() {
       setCaptureState('error'); setCaptureErr('Enter a valid email'); return;
     }
     setCaptureState('sending'); setCaptureErr('');
+    // Strip system-capture rows — only real turns are useful for the
+    // server-side summary.
+    const apiMessages = messages.filter(m => m.role === 'user' || m.role === 'assistant');
     try {
-      const res = await fetch(`${SUPA_URL}/rest/v1/leads`, {
+      // Try the AI-summary endpoint first. On failure (function not
+      // deployed yet, key missing, etc.), fall back to the original
+      // direct-insert path so we never lose a lead.
+      const captureRes = await fetch('/api/capture', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          email: trimmed,
+          source: 'expo-app-chat',
+          context: 'coach_waitlist',
+          messages: apiMessages,
+        }),
+      });
+      if (captureRes.ok) {
+        setCaptureState('done'); return;
+      }
+      // Fallback path — direct REST insert against Supabase.
+      const fallback = await fetch(`${SUPA_URL}/rest/v1/leads`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +102,7 @@ export default function CoachChat() {
           user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : null,
         }),
       });
-      if (!res.ok && res.status !== 409) throw new Error(`HTTP ${res.status}`);
+      if (!fallback.ok && fallback.status !== 409) throw new Error(`HTTP ${fallback.status}`);
       setCaptureState('done');
     } catch {
       setCaptureState('error'); setCaptureErr('Something went wrong. Try again.');

@@ -51,17 +51,24 @@ export default function WaitlistView() {
   const [filter, setFilter] = useState('');
 
   const reload = useCallback(async () => {
+    // Pull every coach_waitlist row (including contacted ones) — funnel
+    // history, not just the action queue. CoachChat captures already write
+    // context=coach_waitlist with source=expo-app-chat, so they're included.
+    // Tries with the AI-summary `notes` column first; falls back to the
+    // legacy column set if the migration hasn't been applied yet.
+    const baseQuery = (cols) => supabase
+      .from('leads')
+      .select(cols)
+      .eq('context', 'coach_waitlist')
+      .order('created_at', { ascending: false })
+      .limit(500);
     try {
-      // Pull every coach_waitlist row (including contacted ones) — funnel
-      // history, not just the action queue. CoachChat captures already write
-      // context=coach_waitlist with source=expo-app-chat, so they're included.
-      const { data, error } = await supabase
-        .from('leads')
-        .select('id,email,source,context,user_agent,created_at,consumed_at')
-        .eq('context', 'coach_waitlist')
-        .order('created_at', { ascending: false })
-        .limit(500);
-      if (!error) setLeads(data || []);
+      const { data, error } = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at,notes');
+      if (!error) { setLeads(data || []); }
+      else {
+        const fb = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at');
+        if (!fb.error) setLeads(fb.data || []);
+      }
     } catch {}
     try {
       const { data } = await supabase.from('store').select('value').eq('key', NOTES_KEY).maybeSingle();
@@ -192,6 +199,12 @@ export default function WaitlistView() {
                   <tr key={l.id} style={{ borderBottom: `1px solid ${C.bd}`, opacity: l.contacted ? 0.55 : 1 }}>
                     <td style={{ padding: '10px 12px' }}>
                       <a href={mailto} style={{ color: C.tx, textDecoration: 'none', fontWeight: 600 }} title={l.email}>{l.email}</a>
+                      {l.notes && (
+                        <div title="AI summary of the chat conversation"
+                          style={{ fontFamily: FB, fontSize: 11, color: C.tm, fontStyle: 'italic', marginTop: 4, lineHeight: 1.35, maxWidth: 320, whiteSpace: 'normal' }}>
+                          💬 {l.notes}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {(() => {
