@@ -579,10 +579,12 @@ function TrainingBlock({ t, center = false }) {
 }
 
 function FinancialsBlock({ t, center = false }) {
+  // Always render — empty trainees still show a "NOT BILLABLE" placeholder
+  // so cards line up section-for-section across the grid.
   const items = [];
   if (t.payment === 'OVERDUE') {
     items.push(<span key="ov" style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: 1 }}>OVERDUE · 34D</span>);
-  } else {
+  } else if (t.payment === 'PAID') {
     items.push(<span key="pd" style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: 1 }}>PAID · 12D AGO</span>);
   }
   if (t.monthly > 0) {
@@ -590,6 +592,13 @@ function FinancialsBlock({ t, center = false }) {
   }
   if (t.dormantDays != null) {
     items.push(<span key="dm" style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1 }}>DORMANT · {t.dormantDays}D</span>);
+  }
+  if (items.length === 0) {
+    return (
+      <CardSection label="Financials" center={center}>
+        <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>NOT BILLABLE</span>
+      </CardSection>
+    );
   }
   const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
   return <CardSection label="Financials" center={center}>{interleaved}</CardSection>;
@@ -611,6 +620,10 @@ function BodyweightBlock({ weight, center = false }) {
 const cardStyle = {
   background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
   padding: 18, cursor: 'pointer', transition: 'all 0.2s',
+  // height:100% makes every card stretch to the tallest in its grid row,
+  // so a row of 1 single + 1 couple lines up flush. flex-column lets future
+  // bottom-pinned controls (edit, footer) use marginTop:auto.
+  height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box',
 };
 const cardEnter = (e) => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; };
 const cardLeave = (e) => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; };
@@ -625,7 +638,7 @@ function TraineeCard({ t, onClick }) {
         <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
           {t.name}{t.online && <OnlineDot />}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 }}>
           <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
           <FakeWaButton />
         </div>
@@ -718,7 +731,7 @@ function CoupleCard({ t, onClick }) {
           across the divider. */}
       <CardSectionFirst center>
         <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, textAlign: 'center' }}>{t.name}</div>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
           <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
         </div>
         {parsed && (

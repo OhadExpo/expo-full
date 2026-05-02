@@ -148,6 +148,9 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
 }
 
 function FinancialsBlock({ pay, monthly, center = false }) {
+  // Always render the block — even when there's no pay history and no
+  // monthly rate — so cards line up section-for-section. Empty state shows
+  // a dim "NOT BILLABLE" so the slot is still visible.
   const items = [];
   if (pay) items.push(
     <span key="pay" style={{ fontFamily: FN, fontSize: 11, color: pay.color, fontWeight: 700, letterSpacing: 1 }}>{pay.label}</span>
@@ -155,7 +158,13 @@ function FinancialsBlock({ pay, monthly, center = false }) {
   if (monthly > 0) items.push(
     <span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>₪{monthly}/MO</span>
   );
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return (
+      <CardSection label="Financials" center={center}>
+        <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, letterSpacing: 1, opacity: 0.55 }}>NOT BILLABLE</span>
+      </CardSection>
+    );
+  }
   const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
   return <CardSection label="Financials" center={center}>{interleaved}</CardSection>;
 }
@@ -337,11 +346,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               // don't double-count the shared programs.
               const sharedProgramsCount = Math.max(mpc[0] || 0, mpc[1] || 0);
               return (
-                <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+                <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
                   {/* IDENTITY — combined name centered as banner; status
                       badge centered below; per-member sub-columns underneath
                       (each with name, email, phone, WA together). */}
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontWeight:700,fontSize:15,color:C.tx,textAlign:'center'}}>
                       {t.name}{online && <OnlineDot />}
                     </div>
@@ -410,11 +419,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   </CardSection>
 
                   {!showArchived && (
-                    <div style={{display:'flex',justifyContent:'flex-end',marginTop:8}}>
+                    <div style={{display:'flex',justifyContent:'flex-end',marginTop:'auto',paddingTop:8}}>
                       <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:11,padding:0}}>✏️ Edit</button>
                     </div>
                   )}
-                  {showArchived && <div style={{display:'flex',gap:6,marginTop:10}}>
+                  {showArchived && <div style={{display:'flex',gap:6,marginTop:'auto',paddingTop:10}}>
                     <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
                     <Btn variant="danger" onClick={e => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
                   </div>}
@@ -431,14 +440,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             const bwEntries = getBwEntries(t, bwLog);
             const programs = planCounts?.[t.id] || 0;
             return (
-            <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {}}>
+            <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
               {/* IDENTITY — name centered as banner; status + WA centered
                   beneath; email + phone centered below. */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
                   {t.name}{online && <OnlineDot />}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 6 }}>
                   <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} />
                 </div>
@@ -455,11 +464,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} center />
               <BodyweightBlock entries={bwEntries} center />
 
-              {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+              {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 'auto', paddingTop: 10 }}>
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
               </div>}
-              {!showArchived && <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",fontSize:11,marginTop:8,padding:0}}>✏️ Edit</button>}
+              {!showArchived && <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",fontSize:11,marginTop:'auto',paddingTop:8}}>✏️ Edit</button>}
             </Card>);
           })}
         </div>)}
