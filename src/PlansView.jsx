@@ -404,20 +404,23 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   );
                 })()}
                 {(() => {
-                  // Per-exercise URL override. Library videoLink shows as placeholder
-                  // when override is empty; typing here only mutates this plan row,
-                  // not the shared exercise library entry.
+                  // Per-exercise URL.
+                  // - undefined override → show library videoLink (read-only fallback)
+                  // - any string override (including '') → use it; '' = explicit "no
+                  //   video for this program" and the field stays empty even if the
+                  //   library has one. Editing/clearing here never touches the library.
                   const libUrl = exData?.videoLink || '';
-                  const value = ex.videoUrl ?? '';
-                  const effective = value || libUrl;
+                  const hasOverride = ex.videoUrl !== undefined;
+                  const value = hasOverride ? (ex.videoUrl || '') : libUrl;
+                  const effective = value;
                   return (
                     <div style={{marginTop:6,display:"grid",gridTemplateColumns:effective?"1fr auto":"1fr",gap:6,alignItems:"center"}}>
                       <Input value={value} onChange={e=>updateEx(exIdx,{videoUrl:e.target.value})}
-                        placeholder={libUrl?`📹 from library: ${libUrl}`:"📹 Video URL (override library)"} />
+                        placeholder="📹 Insert video URL" />
                       {effective && <a href={effective} target="_blank" rel="noreferrer"
-                        title={value?"Per-program override":"From exercise library"}
-                        style={{fontSize:11,fontFamily:FN,color:value?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`1px solid ${value?C.ac:C.bd}`,borderRadius:6,whiteSpace:"nowrap"}}>
-                        {value?"OPEN ▸":"LIB ▸"}
+                        title={hasOverride?"Per-program URL":"From exercise library"}
+                        style={{fontSize:11,fontFamily:FN,color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`1px solid ${hasOverride?C.ac:C.bd}`,borderRadius:6,whiteSpace:"nowrap"}}>
+                        {hasOverride?"OPEN ▸":"LIB ▸"}
                       </a>}
                     </div>
                   );

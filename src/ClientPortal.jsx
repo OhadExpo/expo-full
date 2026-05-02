@@ -108,12 +108,16 @@ function trainerPlanToPortal(plan, trainerExercises) {
           const sets = pe.sets ?? pe.s ?? 3;
           const reps = pe.reps ?? pe.r ?? '8-12';
           const notes = pe.notes ?? pe.n;
-          // Per-instance video override (set in PlanEditor → "Video URL" field).
-          // Library `EX[eid].vid` stays the canonical clip; this overrides only
-          // for this specific row in this plan.
-          const overrideUrl = pe.videoUrl || pe.vid || '';
+          // Per-instance video override. Three states:
+          //   undefined → no override (trainee sees library videoLink)
+          //   ''        → explicit "no video for this program row"
+          //   'http://…' → use this URL on this row
+          // We propagate the override (including '') so the trainee respects
+          // an explicit "no video" choice instead of falling back to library.
+          const hasOverride = pe.videoUrl !== undefined || pe.vid !== undefined;
+          const overrideUrl = pe.videoUrl !== undefined ? pe.videoUrl : pe.vid;
           const out = { eid, s: sets, r: reps };
-          if (overrideUrl) out.vid = overrideUrl;
+          if (hasOverride) out.vid = overrideUrl || '';
           if (pe.tempo) out.tempo = pe.tempo;
           if (pe.superset) out.superset = pe.superset;
           if (notes) out.n = notes;
@@ -689,8 +693,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const sub = substitutions[ex.eid];
     const d = sub ? { ...dPrescribed, ...libExerciseToEx(sub) } : dPrescribed;
     // Per-instance video override (set by coach in PlanEditor) wins over the
-    // library default. Substitution still wins over both — trainee picked it.
-    const effectiveVid = sub ? d.vid : (ex.vid || d.vid);
+    // library default. ex.vid === '' means coach explicitly cleared the video
+    // for this row → no fallback. Substitution still wins over both — trainee
+    // picked it.
+    const effectiveVid = sub ? d.vid : ('vid' in ex ? ex.vid : d.vid);
     const vid = ytId(effectiveVid);
     const hw = ex.wk?.length > 0;
     const wr = hw ? (ex.wk[weekNum] ?? ex.r) : null;
@@ -1409,7 +1415,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN}}>{hw?(wr||''):((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+ex.r}</span>
                   {ex.tempo && <span style={{fontSize:9,color:C.or,marginLeft:4}}>{ex.tempo}</span>}
                   {focus && <div style={{fontSize:11,color:C.ac,marginTop:3,opacity:0.85,lineHeight:1.4,display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'}}>💡 {focus}</div>}</div>
-                {(ex.vid || d.vid) && <a href={ex.vid || d.vid} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4,flexShrink:0}}>▶</a>}
+                {(() => {
+                  const v = 'vid' in ex ? ex.vid : d.vid;
+                  return v ? <a href={v} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4,flexShrink:0}}>▶</a> : null;
+                })()}
               </div>})}
           </div>})}</React.Fragment>)})()}
       </div>

@@ -243,12 +243,12 @@ export default function Chat() {
             background: C.sf2,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 22, width: 'auto', display: 'block', flexShrink: 0 }} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700 }}>
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 28, width: 'auto', display: 'block', flexShrink: 0 }} />
+              <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1.5, fontWeight: 700, lineHeight: 1.2 }}>
                   {isHe ? 'צ׳אט' : 'CHAT'}
                 </div>
-                <div style={{ fontSize: 11, color: C.td, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 11, color: C.td, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.2 }}>
                   {isHe ? 'שאל כל שאלה על האימונים והתוכניות.' : 'Ask anything about the programs.'}
                 </div>
               </div>
