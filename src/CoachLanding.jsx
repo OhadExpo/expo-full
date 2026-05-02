@@ -12,6 +12,7 @@
 import React, { useState } from 'react';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
+import CoachChat from './CoachChat';
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -557,6 +558,8 @@ export default function CoachLanding() {
           <a href="/login" style={{ color: C.td, textDecoration: 'none' }}>SIGN IN</a>
         </span>
       </footer>
+
+      <CoachChat />
     </div>
   );
 }
