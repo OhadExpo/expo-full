@@ -242,12 +242,13 @@ export default function Chat() {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             background: C.sf2, gap: 10,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1, height: 32 }}>
-              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 32, width: 'auto', display: 'block', flexShrink: 0, objectFit: 'contain' }} />
-              <div style={{ width: 1, alignSelf: 'stretch', background: C.bd, flexShrink: 0 }} />
-              <div style={{ fontSize: 12, color: C.tm, lineHeight: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center' }}>
-                {isHe ? 'שאל כל שאלה על האימונים והתוכניות' : 'Ask anything about the programs'}
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 28, width: 'auto', display: 'block', flexShrink: 0, objectFit: 'contain', verticalAlign: 'middle' }} />
+              <div style={{ width: 1, height: 18, background: C.bd, flexShrink: 0 }} />
+              <span style={{
+                fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.tm,
+                lineHeight: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{isHe ? 'שאל כל שאלה.' : 'ASK ANYTHING.'}</span>
             </div>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               {messages.length > 0 && (
