@@ -100,27 +100,336 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
     setExercise(null); setStep('exercise');
   };
 
+  // For pov="trainee" + landing step, mirror the real ClientPortal surface
+  // 1:1 — own header, 4-tab nav, day cards, BW tab, History tab. The engine
+  // sandbox (upload → analyze → compare) only takes over once the visitor
+  // taps "📹 FILM SET" on an exercise, and a ← BACK TO PORTAL link returns
+  // them home so they don't get stuck in a marketing flow.
+  const isTraineePortal = pov === 'trainee' && !isEmbedded && step === 'exercise';
+
   return (
     <div style={{
       background: C.bg, color: C.tx, minHeight:'100vh',
       fontFamily: FB, display:'flex', flexDirection:'column',
     }}>
-      {!isEmbedded && <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />}
-      {!isEmbedded && <POVBanner pov={pov} />}
-      {!isEmbedded && pov === 'trainee' && <TraineeContextStrip exercise={exercise} />}
-      <main style={{ flex:1, padding: isEmbedded ? '14px 16px 24px' : '18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
-        {step === 'exercise' && (pov === 'trainee' && !isEmbedded
-          ? <TraineeHomeMock onPick={onPickExercise} />
-          : <ExercisePicker pov={pov} onPick={onPickExercise} />)}
-        {step === 'upload'   && <UploadStep pov={pov} exercise={exercise} onUpload={onUpload} onChangeExercise={() => setStep('exercise')} />}
-        {step === 'analyze'  && <AnalyzeStep pov={pov} exercise={exercise} videoUrl={videoUrl}
-                                  onChangeVideo={() => setStep('upload')}
-                                  onCompare={() => setStep('compare')} hideEndCTA={isEmbedded} />}
-        {step === 'compare'  && <CompareStep pov={pov} exercise={exercise} primaryUrl={videoUrl} secondUrl={secondUrl}
-                                  onUploadSecond={onUploadSecond}
-                                  onBack={() => setStep('analyze')} hideEndCTA={isEmbedded} />}
-      </main>
-      {!isEmbedded && <Footer />}
+      {!isEmbedded && !isTraineePortal && <Header step={step} exercise={exercise} onRestart={restart} onStep={setStep} hasVideo={!!videoUrl} />}
+      {!isEmbedded && !isTraineePortal && <POVBanner pov={pov} />}
+      {!isEmbedded && !isTraineePortal && pov === 'trainee' && <TraineeContextStrip exercise={exercise} />}
+      {isTraineePortal ? (
+        <ClientPortalMock onPick={onPickExercise} />
+      ) : (
+        <main style={{ flex:1, padding: isEmbedded ? '14px 16px 24px' : '18px 16px 80px', maxWidth:1180, margin:'0 auto', width:'100%' }}>
+          {step === 'exercise' && <ExercisePicker pov={pov} onPick={onPickExercise} />}
+          {step === 'upload'   && <UploadStep pov={pov} exercise={exercise} onUpload={onUpload} onChangeExercise={pov === 'trainee' ? restart : () => setStep('exercise')} />}
+          {step === 'analyze'  && <AnalyzeStep pov={pov} exercise={exercise} videoUrl={videoUrl}
+                                    onChangeVideo={() => setStep('upload')}
+                                    onCompare={() => setStep('compare')} hideEndCTA={isEmbedded} />}
+          {step === 'compare'  && <CompareStep pov={pov} exercise={exercise} primaryUrl={videoUrl} secondUrl={secondUrl}
+                                    onUploadSecond={onUploadSecond}
+                                    onBack={() => setStep('analyze')} hideEndCTA={isEmbedded} />}
+        </main>
+      )}
+      {!isEmbedded && !isTraineePortal && <Footer />}
+    </div>
+  );
+}
+
+// ─── ClientPortalMock — 1:1 mirror of src/ClientPortal.jsx for /demo/trainee ────
+//
+// Renders the same surface the real `/portal` shows: gradient top header
+// (logo + lock + Log Out), centered "Hey {first} 💪" greeting, plan
+// badges + 🔥STREAK + N SESSIONS counter, 4-tab nav (Program / BW / PRs /
+// History), and per-tab bodies. Mock data is sized to match the existing
+// TraineeHomeMock so the URL transition feels seamless.
+//
+// "📹 FILM SET" on an exercise calls back into TrySandbox to enter the
+// engine sandbox (upload → analyze → compare) with that lift pre-picked.
+function ClientPortalMock({ onPick }) {
+  const TRAINEE = {
+    name: 'נועה לוי', firstName: 'Noa', sessionsLeft: 6,
+    plans: [{ name: 'Block #4 — Push/Pull Volume', phase: 'Volume', weeks: 4 }],
+  };
+  const PLAN = TRAINEE.plans[0];
+  const DAYS = [
+    {
+      name: 'Day A · Push',
+      ex: [
+        { eid: 'bench',   t: 'Bench Press',     vid: 'https://youtu.be/0', s: 4, r: '6-8',   load: '60kg',   tempo: '3-1-1', focus: 'Pause 1s on chest, drive heels.' },
+        { eid: 'ohp',     t: 'Overhead Press',  vid: 'https://youtu.be/0', s: 4, r: '6-8',   load: '35kg',   focus: 'Glutes locked, ribs down.' },
+        { eid: 'lateral', t: 'Lateral Raise',   vid: 'https://youtu.be/0', s: 3, r: '12-15', load: '7.5kg',  focus: 'Lead with elbows, soft thumb.' },
+        { eid: 'pushup',  t: 'Push-Up',         vid: 'https://youtu.be/0', s: 3, r: '12',    load: 'BW',     focus: '2-1-1 tempo.' },
+      ],
+    },
+    {
+      name: 'Day B · Pull',
+      ex: [
+        { eid: 'pullup',  t: 'Pull-Up',     vid: 'https://youtu.be/0', s: 4, r: '6-8',  load: 'BW',     focus: 'Chin clears bar, no kip.' },
+        { eid: 'row',     t: 'DB Row',      vid: 'https://youtu.be/0', s: 3, r: '10 E', load: '20kg',   focus: 'Pull to hip, not chest.' },
+        { eid: 'curl',    t: 'DB Curl',     vid: 'https://youtu.be/0', s: 3, r: '12',   load: '12.5kg', focus: 'No swing — count from full hang.' },
+      ],
+    },
+    {
+      name: 'Day C · Legs',
+      ex: [
+        { eid: 'squat',     t: 'Back Squat',         vid: 'https://youtu.be/0', s: 5, r: '5',     load: '95kg',   tempo: '3-1-1', focus: 'Brace BEFORE unrack.' },
+        { eid: 'rdl',       t: 'Romanian Deadlift',  vid: 'https://youtu.be/0', s: 4, r: '8',     load: '70kg',   focus: 'Push hips back.' },
+        { eid: 'lunge',     t: 'Walking Lunge',      vid: 'https://youtu.be/0', s: 3, r: '10 E', load: '2×16kg', focus: 'Knee tracks toe.' },
+        { eid: 'hipthrust', t: 'Hip Thrust',         vid: 'https://youtu.be/0', s: 3, r: '10',    load: '80kg',   focus: 'Lock at the top.' },
+      ],
+    },
+  ];
+  const HISTORY = [
+    { id: 'h1', date: '2026-04-29', dayName: 'Day C · Legs', planName: PLAN.name, doneSets: 14, totalSets: 14, hasVideo: false, coachNotes: 0 },
+    { id: 'h2', date: '2026-04-27', dayName: 'Day B · Pull', planName: PLAN.name, doneSets: 21, totalSets: 21, hasVideo: true,  coachNotes: 2 },
+    { id: 'h3', date: '2026-04-23', dayName: 'Day A · Push', planName: PLAN.name, doneSets: 20, totalSets: 20, hasVideo: true,  coachNotes: 3 },
+    { id: 'h4', date: '2026-04-20', dayName: 'Day C · Legs', planName: PLAN.name, doneSets: 14, totalSets: 14, hasVideo: false, coachNotes: 0 },
+  ];
+  const PRS = [
+    { name: 'Back Squat',          load: '105kg', date: '2026-04-26', delta: '+5kg / 8w' },
+    { name: 'Bench Press',         load: '70kg',  date: '2026-04-22', delta: '+2.5kg / 8w' },
+    { name: 'Romanian Deadlift',   load: '80kg',  date: '2026-04-19', delta: '+5kg / 8w' },
+    { name: 'Pull-Up',             load: '+5kg',  date: '2026-04-16', delta: '+2.5kg / 8w' },
+  ];
+  const BW_LOG = [
+    { date: '2026-03-04', bw: 65.6, week: 1 },
+    { date: '2026-03-11', bw: 65.1, week: 2 },
+    { date: '2026-03-18', bw: 64.8, week: 3 },
+    { date: '2026-03-25', bw: 64.3, week: 4 },
+    { date: '2026-04-01', bw: 64.4, week: 1 },
+    { date: '2026-04-08', bw: 64.0, week: 2 },
+    { date: '2026-04-15', bw: 63.7, week: 3 },
+    { date: '2026-04-22', bw: 63.3, week: 4 },
+  ];
+  const STREAK = 4;
+
+  const [vw, setVw] = useState('prog');
+  const [bw, setBw] = useState('');
+  const [bwInput, setBwInput] = useState('');
+  const [bwData, setBwData] = useState(BW_LOG);
+  const [wk, setWk] = useState(1); // current week (0-indexed: 1 = W2)
+  const [doneDays, setDoneDays] = useState({}); // { [dayName]: true }
+
+  // ─── Top header (matches ClientPortal renderTopHeader) ─────────
+  const renderTopHeader = () => (
+    <>
+      <div style={{ background: `linear-gradient(135deg,${C.sf},${C.sf2})`, padding: '20px 20px 16px', borderBottom: `1px solid ${C.bd}` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <EXPOMark height={22} style={{ marginLeft: 3 }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button title="Change password (demo)" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+            </button>
+            <a href="/demo" style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, textDecoration: 'none' }}>Log Out →</a>
+          </div>
+        </div>
+        <h1 style={{ margin: '0 0 6px', fontFamily: FN, fontSize: 20, color: C.tx, textAlign: 'center' }}>Hey {TRAINEE.firstName} 💪</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 14 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {TRAINEE.plans.map(p => (
+                <span key={p.name} style={{ fontSize: 9, fontFamily: FN, color: C.ac, fontWeight: 700, padding: '2px 6px', borderRadius: 3, border: `1px solid ${C.ac}40`, background: C.acD }}>{p.name}</span>
+              ))}
+            </div>
+          </div>
+          {STREAK >= 2 && (
+            <div style={{ textAlign: 'right', flexShrink: 0 }} title={`${STREAK} consecutive days with a logged workout`}>
+              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: C.or }}>🔥{STREAK}</div>
+              <div style={{ fontSize: 9, color: C.tm, fontFamily: FN }}>STREAK</div>
+            </div>
+          )}
+          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: TRAINEE.sessionsLeft <= 2 ? C.rd : C.gn }}>{TRAINEE.sessionsLeft}</div>
+            <div style={{ fontSize: 9, color: C.tm, fontFamily: FN }}>SESSIONS</div>
+          </div>
+        </div>
+      </div>
+      <div style={{ padding: '14px 20px 0', display: 'flex', gap: 4 }}>
+        {[['prog', 'Program'], ['bwt', 'BW'], ['pr', 'PRs'], ['hist', `History (${HISTORY.length})`]].map(([k, l]) => (
+          <button key={k} onClick={() => setVw(k)} style={{
+            flex: 1, padding: 8, borderRadius: 6,
+            border: `${vw === k ? '2px' : '0.25px'} solid ${C.ac}${vw === k ? '' : '4D'}`,
+            background: vw === k ? C.acD : 'transparent',
+            color: vw === k ? C.ac : C.tm,
+            fontFamily: FB, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+          }}>{l}</button>
+        ))}
+      </div>
+    </>
+  );
+
+  // ─── BW tab body ─────────────────────────────────────────────
+  if (vw === 'bwt') {
+    const maxBw = Math.max(...bwData.map(b => b.bw));
+    const minBw = Math.min(...bwData.map(b => b.bw));
+    const range = Math.max(maxBw - minBw, 2);
+    return (
+      <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
+        {renderTopHeader()}
+        <div style={{ padding: '14px 20px 20px' }}>
+          <h2 style={{ margin: '0 0 4px', fontFamily: FN, fontSize: 18 }}>Bodyweight Tracking</h2>
+          <div style={{ color: C.tm, fontSize: 12, marginBottom: 16 }}>{TRAINEE.name} · {bwData.length} entries</div>
+          <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
+              {Array.from({ length: PLAN.weeks }, (_, w) => (
+                <button key={w} onClick={() => setWk(w)} style={{
+                  flex: '1 1 40px', padding: '6px 0', borderRadius: 6,
+                  border: `${wk === w ? '2px' : '0.25px'} solid ${C.ac}${wk === w ? '' : '4D'}`,
+                  background: wk === w ? C.acD : 'transparent',
+                  color: wk === w ? C.ac : C.tm,
+                  fontFamily: FN, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                }}>W{w + 1}</button>
+              ))}
+            </div>
+            <div style={{ fontSize: 11, fontFamily: FN, color: C.td, marginBottom: 8, textAlign: 'center' }}>LOG W{wk + 1} · {PLAN.name}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={bwInput} onChange={e => setBwInput(e.target.value)} placeholder="Weight in kg" type="number" style={{
+                flex: 1, background: C.sf2, border: `0.25px solid ${C.ac}`, borderRadius: 8,
+                padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 14, outline: 'none',
+                boxSizing: 'border-box', textAlign: 'center',
+              }} />
+              <button onClick={() => {
+                const v = parseFloat(bwInput);
+                if (!Number.isFinite(v)) return;
+                setBwData(d => [...d, { date: new Date().toISOString(), bw: v, week: wk + 1 }]);
+                setBwInput('');
+              }} style={{
+                padding: '10px 20px', borderRadius: 8, border: 'none',
+                background: bwInput ? C.ac : C.sf3, color: bwInput ? '#fff' : C.td,
+                fontFamily: FB, fontSize: 13, fontWeight: 700, cursor: bwInput ? 'pointer' : 'default',
+              }}>Save</button>
+            </div>
+          </div>
+          <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontFamily: FN, color: C.td, marginBottom: 10 }}>TREND</div>
+            <svg viewBox={`0 -10 ${Math.max(bwData.length * 60, 300)} 185`} style={{ width: '100%', height: 185 }}>
+              {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
+                const y = 10 + p * 130;
+                const val = (maxBw - p * range).toFixed(1);
+                return (
+                  <g key={i}>
+                    <line x1="40" y1={y} x2={Math.max(bwData.length * 60, 300) - 10} y2={y} stroke={C.bd} strokeWidth="0.5" strokeDasharray="4" />
+                    <text x="36" y={y + 4} fill={C.td} fontSize="9" fontFamily={FN} textAnchor="end">{val}</text>
+                  </g>
+                );
+              })}
+              <polyline fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                points={bwData.map((d, i) => `${50 + i * 50},${10 + ((maxBw - d.bw) / range) * 130}`).join(' ')} />
+              {bwData.map((d, i) => (
+                <circle key={i} cx={50 + i * 50} cy={10 + ((maxBw - d.bw) / range) * 130} r="3" fill={C.ac} />
+              ))}
+            </svg>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── PRs tab body ────────────────────────────────────────────
+  if (vw === 'pr') {
+    return (
+      <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
+        {renderTopHeader()}
+        <div style={{ padding: '14px 20px 20px' }}>
+          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>Personal Records ({PRS.length})</h2>
+          {PRS.map((pr, i) => (
+            <div key={i} style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 12, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>{pr.name}</div>
+                <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginTop: 2 }}>{pr.date}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 16, color: C.ac }}>{pr.load}</div>
+                <div style={{ fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1, fontWeight: 700 }}>{pr.delta}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── History tab body ────────────────────────────────────────
+  if (vw === 'hist') {
+    return (
+      <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
+        {renderTopHeader()}
+        <div style={{ padding: '14px 20px 20px' }}>
+          <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>History ({HISTORY.length})</h2>
+          {HISTORY.map(w => (
+            <div key={w.id} style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 12, padding: '12px 14px', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>
+                    {w.dayName}
+                    {w.hasVideo && <span title="Form video uploaded" style={{ color: C.gn, marginLeft: 6 }}>📹</span>}
+                  </div>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginTop: 2 }}>
+                    {new Date(w.date).toLocaleDateString()} · {w.planName} · {w.doneSets}/{w.totalSets} SETS
+                  </div>
+                </div>
+                {w.coachNotes > 0 && (
+                  <span style={{ background: C.rd, color: '#fff', fontSize: 9, fontFamily: FN, fontWeight: 700, padding: '2px 6px', borderRadius: 8 }}>
+                    {w.coachNotes} coach note{w.coachNotes === 1 ? '' : 's'}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Program tab body (default) ──────────────────────────────
+  return (
+    <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
+      {renderTopHeader()}
+      <div style={{ padding: '14px 20px 20px' }}>
+        {DAYS.map((day, di) => {
+          const done = !!doneDays[day.name];
+          return (
+            <div key={di} style={{ background: C.sf, border: `0.25px solid ${done ? C.gn + '40' : C.ac}`, borderRadius: 12, marginBottom: 12, padding: '14px 18px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div>
+                  <span style={{ fontWeight: 700, fontSize: 15 }}>{day.name}</span>
+                  {done && (
+                    <span style={{ fontSize: 9, fontFamily: FN, color: C.gn, fontWeight: 700, padding: '2px 6px', marginLeft: 6, borderRadius: 3, border: `1px solid ${C.gn}40`, background: C.gnD }}>✓</span>
+                  )}
+                  <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>{day.ex.length} exercises</div>
+                </div>
+                <button onClick={() => setDoneDays(d => ({ ...d, [day.name]: !d[day.name] }))} style={{
+                  padding: '6px 12px', borderRadius: 6, border: 'none',
+                  background: done ? C.gnD : C.acD,
+                  color: done ? C.gn : C.ac,
+                  fontFamily: FB, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                }}>{done ? 'Again' : '📝 Log'}</button>
+              </div>
+              {day.ex.map((ex, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '4px 0', borderTop: i ? `1px solid ${C.bd}22` : 'none' }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: 4, background: C.acD,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, flexShrink: 0,
+                  }}>{i + 1}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 12 }}>{ex.t}</div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.ac, fontFamily: FN }}>{ex.s}x{ex.r}{ex.load ? ` · ${ex.load}` : ''}</span>
+                    {ex.tempo && <span style={{ fontSize: 9, color: C.or, marginLeft: 4 }}>{ex.tempo}</span>}
+                    {ex.focus && (
+                      <div style={{ fontSize: 11, color: C.ac, marginTop: 3, opacity: 0.85, lineHeight: 1.4 }}>💡 {ex.focus}</div>
+                    )}
+                  </div>
+                  <button onClick={() => onPick({ key: ex.eid, label: ex.t, sample: ex.t })} title="Film a set — runs the live engine" style={{
+                    background: 'none', border: 'none', color: C.rd, cursor: 'pointer',
+                    fontSize: 10, padding: '2px 6px', borderRadius: 4, flexShrink: 0,
+                    fontFamily: FN, fontWeight: 700, letterSpacing: 0.5,
+                  }}>📹 FILM</button>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
