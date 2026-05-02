@@ -67,18 +67,115 @@ function CardBWSparkline({ entries }) {
   const first = entries[0].bw;
   const delta = last - first;
   const deltaColor = delta < 0 ? C.gn : delta > 0 ? C.or : C.tm;
+  // Layout: kg + delta hold their natural widths; the sparkline svg fills
+  // the leftover space and shrinks (preserveAspectRatio=none) when the
+  // parent column is too narrow — needed for couple-member columns.
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: 'block', flexShrink: 0 }} aria-label="Bodyweight trend">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+        style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
+        aria-label="Bodyweight trend">
         <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx }}>
+      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1, color: C.tx, flexShrink: 0 }}>
         {last.toFixed(1)}<span style={{ color: C.tm }}>kg</span>
       </span>
-      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor }}>
+      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: deltaColor, flexShrink: 0 }}>
         {delta > 0 ? '+' : ''}{delta.toFixed(1)}
       </span>
     </div>
+  );
+}
+
+// Card layout: 4 labeled blocks — IDENTITY / TRAINING / BODYWEIGHT / FINANCIALS.
+// Each block answers one scan question, separated by a hairline so the eye
+// anchors on labels rather than parsing a single dense row.
+const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>·</span>;
+
+function CardSection({ label, children, center = false }) {
+  return (
+    <div style={{ marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.ac}26` }}>
+      <div style={{
+        fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
+        textTransform: 'uppercase', marginBottom: 6,
+        textAlign: center ? 'center' : 'left',
+      }}>{label}</div>
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center',
+        justifyContent: center ? 'center' : 'flex-start',
+      }}>{children}</div>
+    </div>
+  );
+}
+
+function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = false }) {
+  const items = [];
+  if (format) items.push(
+    <span key="fmt" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{format}</span>
+  );
+  if (sessionsRemaining != null && sessionsRemaining > 0) items.push(
+    <span key="sl" style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{sessionsRemaining} SESSIONS LEFT</span>
+  );
+  if (programs > 0) items.push(
+    <span key="pr" style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{programs} PROGRAMS</span>
+  );
+  if (items.length === 0 && !lastWk) return null;
+  const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
+  return (
+    <CardSection label="Training" center={center}>
+      {interleaved}
+      {lastWk && (
+        <div style={{ flexBasis: '100%', marginTop: 2, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'left' }}>
+          LAST WORKOUT · {lastWk}
+        </div>
+      )}
+    </CardSection>
+  );
+}
+
+function FinancialsBlock({ pay, monthly, center = false }) {
+  const items = [];
+  if (pay) items.push(
+    <span key="pay" style={{ fontFamily: FN, fontSize: 11, color: pay.color, fontWeight: 700, letterSpacing: 1 }}>{pay.label}</span>
+  );
+  if (monthly > 0) items.push(
+    <span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>₪{monthly}/MO</span>
+  );
+  if (items.length === 0) return null;
+  const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
+  return <CardSection label="Financials" center={center}>{interleaved}</CardSection>;
+}
+
+// Always render a BW block — even if no entries yet — so cards have a
+// uniform 4-section rhythm. Empty state shows a dim flatline + "NO LOGS
+// YET" so the coach knows the slot exists but hasn't been used.
+function BodyweightBlock({ entries, center = false, label = null }) {
+  const hasData = entries && entries.length >= 2;
+  const W = 96, H = 22;
+  return (
+    <CardSection label="Bodyweight" center={center}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: center ? 'center' : 'flex-start' }}>
+        <div style={{ width: '100%', maxWidth: 220, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {label && (
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1, fontWeight: 700, textAlign: center ? 'center' : 'left' }}>{label}</div>
+          )}
+          {hasData ? (
+            <CardBWSparkline entries={entries} />
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, opacity: 0.55 }}>
+              <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+                style={{ display: 'block', height: H, width: '100%', maxWidth: W, minWidth: 32, flexShrink: 1 }}
+                aria-label="Bodyweight trend (no data)">
+                <line x1="2" y1={H/2} x2={W-2} y2={H/2} stroke={C.tm} strokeWidth="1" strokeDasharray="2 3" />
+              </svg>
+              <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1, color: C.tm, flexShrink: 0 }}>
+                NO LOGS YET
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </CardSection>
   );
 }
 
@@ -220,47 +317,89 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 .map(b => ({ ...b, bw: parseFloat(b.bw) }))
                 .sort((a, b) => new Date(a.date) - new Date(b.date))
                 .slice(-8);
+              // Programs assigned to the parent ID are shared between both
+              // members; sub-IDs are per-member. For the shared TRAINING block
+              // we report the union (max of the two member counts) so we
+              // don't double-count the shared programs.
+              const sharedProgramsCount = Math.max(mpc[0] || 0, mpc[1] || 0);
               return (
                 <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:15,color:C.tx,textAlign:'left',display:'flex',alignItems:'center',gap:6}}>{t.name}{online && <OnlineDot />}</div>
+                  {/* IDENTITY — shared name banner + per-member sub-columns
+                      (each with name, email, phone, WA together). */}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                    <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:6,fontWeight:700,fontSize:15,color:C.tx,textAlign:'left'}}>
+                      {t.name}{online && <OnlineDot />}
                     </div>
-                    <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
-                      <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
-                      {pay && <Badge color={pay.color}>{pay.label}</Badge>}
-                      {lastWk && <span style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>LAST · {lastWk}</span>}
-                    </div>
+                    <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
                   </div>
-                  <div style={{display:'flex',marginTop:10}}>
-                    {[m0, m1].map((m, mi) => {
-                      const memberBw = mi === 0 ? bwM0 : bwM1;
-                      return (
+                  <div style={{display:'flex',marginTop:8}}>
+                    {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
                         {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
                         <div style={{flex:1,minWidth:0}}>
                           <div style={{display:'flex',alignItems:'center',gap:6}}>
-                            <div style={{fontWeight:600,fontSize:13,color:C.tx,textAlign:'left',overflowWrap:'anywhere',flex:1,minWidth:0}}>{m.name || `Member ${mi+1}`}</div>
+                            <div style={{
+                              fontWeight:600,fontSize:13,color:C.tx,textAlign:'left',
+                              flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                            }}>{m.name || `Member ${mi+1}`}</div>
                             <WhatsAppCheckInButton name={m.name || t.name} phone={m.phone} />
                           </div>
-                          <div style={{fontSize:12,color:C.tm,marginTop:2,minHeight:16,textAlign:'left',overflowWrap:'anywhere'}}>{emailsDisplay(m.email)}</div>
-                          <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap'}}>
-                            {mpc[mi] > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{mpc[mi]} PROGRAMS</span>}
-                          </div>
-                          {memberBw.length >= 2 && <div style={{marginTop:8}}><CardBWSparkline entries={memberBw} /></div>}
+                          <div style={{
+                            fontSize:12,color:C.tm,marginTop:2,textAlign:'left',
+                            whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                          }}>{emailsDisplay(m.email)}</div>
+                          {m.phone && (
+                            <div style={{
+                              fontFamily:FN,fontSize:10,color:C.tm,marginTop:2,letterSpacing:0.5,
+                              whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                            }}>{m.phone}</div>
+                          )}
                         </div>
                       </React.Fragment>
+                    ))}
+                  </div>
+
+                  <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={sharedProgramsCount} lastWk={lastWk} center />
+
+                  {/* BODYWEIGHT — per-member, since each has their own curve.
+                      Centered, two mini-blocks under one shared label. */}
+                  <CardSection label="Bodyweight" center>
+                    {[m0, m1].map((m, mi) => {
+                      const memberBw = mi === 0 ? bwM0 : bwM1;
+                      const hasData = memberBw.length >= 2;
+                      const W = 96, H = 22;
+                      const memberLabel = (m.name || `Member ${mi+1}`).split(' ')[0].toUpperCase();
+                      return (
+                        <div key={mi} style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                          <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>{memberLabel}</div>
+                          <div style={{width:'100%',maxWidth:160}}>
+                            {hasData ? (
+                              <CardBWSparkline entries={memberBw} />
+                            ) : (
+                              <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0,opacity:0.55}}>
+                                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
+                                  style={{display:'block',height:H,width:'100%',maxWidth:W,minWidth:32,flexShrink:1}}
+                                  aria-label="Bodyweight trend (no data)">
+                                  <line x1="2" y1={H/2} x2={W-2} y2={H/2} stroke={C.tm} strokeWidth="1" strokeDasharray="2 3" />
+                                </svg>
+                                <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:1,color:C.tm,flexShrink:0}}>
+                                  NO LOGS
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
-                  </div>
-                  <div style={{fontSize:11,color:C.tm,marginTop:14,fontFamily:FN,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em'}}>{t.format}</div>
-                  <div style={{display:'flex',gap:8,marginTop:6,flexWrap:'wrap',minHeight:22}}>
-                    {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:t.sessionsRemaining<=2?C.rd:C.gn}}>{t.sessionsRemaining} SESSIONS LEFT</span>}
-                    {t.monthly > 0 && <span style={{fontSize:11,color:C.td,fontFamily:FN}}>₪{t.monthly}/mo</span>}
-                  </div>
-                  <div style={{display:'flex',justifyContent:'flex-end',marginTop:6}}>
-                    {!showArchived && <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:11,padding:0}}>✏️ Edit</button>}
-                  </div>
+                  </CardSection>
+
+                  <FinancialsBlock pay={pay} monthly={t.monthly} center />
+
+                  {!showArchived && (
+                    <div style={{display:'flex',justifyContent:'flex-end',marginTop:8}}>
+                      <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:11,padding:0}}>✏️ Edit</button>
+                    </div>
+                  )}
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:10}}>
                     <Btn variant="ghost" onClick={e => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
                     <Btn variant="danger" onClick={e => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
@@ -269,31 +408,38 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               );
             }
 
-            // Solo trainee card
+            // Solo trainee card — 4-block layout (IDENTITY / TRAINING /
+            // BODYWEIGHT / FINANCIALS), with edit + archive controls outside
+            // the blocks.
             const online = isOnline(t.id, presence);
             const pay = getPaymentStatus(t, payments);
             const lastWk = getLastWorkoutLabel(t, workouts, clientWorkouts);
             const bwEntries = getBwEntries(t, bwLog);
+            const programs = planCounts?.[t.id] || 0;
             return (
             <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {}}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              {/* IDENTITY */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, textAlign:'left', display:'flex', alignItems:'center', gap:6 }}>{t.name}{online && <OnlineDot />}</div>
-                  <div style={{ fontSize: 12, color: C.tm, marginTop: 2, minHeight: 16, textAlign:'left' }}>{emailsDisplay(t.email)}{t.phone ? ` · ${t.phone}` : ""}</div>
-                  <div style={{ fontSize: 11, color: C.tm, marginTop: 18, fontFamily: FN, fontWeight: 600, textTransform:'uppercase', letterSpacing:'0.04em' }}>{t.format}</div>
-                  <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", minHeight: 22, alignItems: 'center' }}>
-                    {t.sessionsRemaining != null && t.sessionsRemaining > 0 && <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:t.sessionsRemaining<=2?C.rd:C.gn}}>{t.sessionsRemaining} SESSIONS LEFT</span>}
-                    {(()=>{const pc=planCounts?.[t.id]||0;if(!pc)return null;return <span style={{fontSize:11,fontFamily:FN,fontWeight:700,color:C.ac}}>{pc} PROGRAMS</span>})()}
-                    {t.monthly > 0 && <span style={{fontSize:11,fontFamily:FN,color:C.td}}>₪{t.monthly}/MO</span>}
-                  </div>
-                  {bwEntries.length >= 2 && <div style={{marginTop:10}}><CardBWSparkline entries={bwEntries} /></div>}
+                  <div style={{
+                    fontSize: 12, color: C.tm, marginTop: 2, textAlign:'left',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{emailsDisplay(t.email)}</div>
+                  {t.phone && (
+                    <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginTop: 2, letterSpacing: 0.5 }}>{t.phone}</div>
+                  )}
                 </div>
-                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
+                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
                   <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
-                  {pay && <Badge color={pay.color}>{pay.label}</Badge>}
-                  {lastWk && <span style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:1,fontWeight:700}}>LAST · {lastWk}</span>}
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} />
-                </div></div>
+                </div>
+              </div>
+
+              <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} />
+              <BodyweightBlock entries={bwEntries} />
+              <FinancialsBlock pay={pay} monthly={t.monthly} />
+
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
