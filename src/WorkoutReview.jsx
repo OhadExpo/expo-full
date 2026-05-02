@@ -1530,7 +1530,17 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
                     {ex.prescribed} · {doneSets}/{ex.sets.length} sets
-                    {(formVideo?.has || formVideo?.cloudUrl) && <span style={{color:C.gn,marginLeft:6}}>📹</span>}
+                    {(formVideo?.has || formVideo?.cloudUrl) && <span title="Form video submitted" style={{color:C.gn,marginLeft:6}}>📹</span>}
+                    {(formVideo?.reviewNotes?.length > 0) && (
+                      <span title={`${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginLeft:6}}>
+                        💬{formVideo.reviewNotes.length > 1 ? <sup style={{fontSize:8}}>{formVideo.reviewNotes.length}</sup> : null}
+                      </span>
+                    )}
+                    {(currentFocus || nextFocus) && (
+                      <span title={nextFocus ? `Focus written for next week: ${nextFocus}` : `Focus from previous week: ${currentFocus}`} style={{color:C.or,marginLeft:6}}>
+                        🎯
+                      </span>
+                    )}
                     {ex.substitution && <span style={{color:C.or,marginLeft:6,fontFamily:FN,fontWeight:700,fontSize:10,letterSpacing:0.5}} title={`Swapped from "${ex.substitution.from}"`}>⇄ SWAP</span>}
                   </div>
                   {ex.substitution && (
@@ -1539,7 +1549,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     </div>
                   )}
                 </div>
-                {nextFocus && <div style={{width:6,height:6,borderRadius:3,background:C.ac,flexShrink:0}} />}
                 <span style={{color:C.td,fontSize:11}}>{isExpanded?'▲':'▼'}</span>
               </div>
 
@@ -1697,6 +1706,16 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               DELETE
             </button>
           )}
+          {/* "Back to Review" — return to the queue list (the screen the
+              trainer reaches Review from). Always visible alongside the
+              primary CTA so the trainer can jump out without committing. */}
+          <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
+            title="Return to the review queue"
+            style={{padding:"12px 16px",borderRadius:8,border:`1px solid ${C.bd}`,
+              background:"transparent",color:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,
+              cursor:"pointer"}}>
+            ← BACK TO REVIEW
+          </button>
           {wo.reviewedAt ? (
             <>
               <button onClick={() => { markReviewed && markReviewed(wo.id, false); }}
