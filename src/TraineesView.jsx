@@ -338,10 +338,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               const sharedProgramsCount = Math.max(mpc[0] || 0, mpc[1] || 0);
               return (
                 <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
-                  {/* IDENTITY — shared name banner + per-member sub-columns
+                  {/* IDENTITY — combined name centered as banner; status
+                      badge centered below; per-member sub-columns underneath
                       (each with name, email, phone, WA together). */}
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
-                    <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:6,fontWeight:700,fontSize:15,color:C.tx,textAlign:'left'}}>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontWeight:700,fontSize:15,color:C.tx,textAlign:'center'}}>
                       {t.name}{online && <OnlineDot />}
                     </div>
                     <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
@@ -431,22 +432,23 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             const programs = planCounts?.[t.id] || 0;
             return (
             <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {}}>
-              {/* IDENTITY */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, textAlign:'left', display:'flex', alignItems:'center', gap:6 }}>{t.name}{online && <OnlineDot />}</div>
-                  <div style={{
-                    fontSize: 12, color: C.tm, marginTop: 2, textAlign:'left',
-                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                  }}>{emailsDisplay(t.email)}</div>
-                  {t.phone && (
-                    <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginTop: 2, letterSpacing: 0.5 }}>{t.phone}</div>
-                  )}
+              {/* IDENTITY — name centered as banner; status + WA centered
+                  beneath; email + phone centered below. */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+                  {t.name}{online && <OnlineDot />}
                 </div>
-                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,flexShrink:0}}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} />
                 </div>
+                <div style={{
+                  fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>{emailsDisplay(t.email)}</div>
+                {t.phone && (
+                  <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
+                )}
               </div>
 
               <FinancialsBlock pay={pay} monthly={t.monthly} center />

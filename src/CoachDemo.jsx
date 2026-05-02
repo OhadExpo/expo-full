@@ -619,28 +619,25 @@ function TraineeCard({ t, onClick }) {
   if (t.isCouple) return <CoupleCard t={t} onClick={onClick} />;
   return (
     <div onClick={onClick} style={cardStyle} onMouseEnter={cardEnter} onMouseLeave={cardLeave}>
-      {/* IDENTITY — name + status, contact details below as a unit, WA on right. */}
-      <CardSectionFirst>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', gap: 6 }}>
-              {t.name}{t.online && <OnlineDot />}
-            </div>
-            <div style={{
-              fontSize: 12, color: C.tm, marginTop: 2,
-              whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>{t.email}</div>
-            {t.phone && (
-              <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginTop: 2, letterSpacing: 0.5 }}>
-                {t.phone}
-              </div>
-            )}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-            <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
-            <FakeWaButton />
-          </div>
+      {/* IDENTITY — name centered as the card banner; status badge + WA
+          button on a centered row beneath; email + phone centered below. */}
+      <CardSectionFirst center>
+        <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+          {t.name}{t.online && <OnlineDot />}
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 2 }}>
+          <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
+          <FakeWaButton />
+        </div>
+        <div style={{
+          fontSize: 12, color: C.tm, marginTop: 4, textAlign: 'center',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+        }}>{t.email}</div>
+        {t.phone && (
+          <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginTop: 2, letterSpacing: 0.5, textAlign: 'center' }}>
+            {t.phone}
+          </div>
+        )}
       </CardSectionFirst>
       <FinancialsBlock t={t} center />
       <TrainingBlock t={t} center />
@@ -714,13 +711,14 @@ function CoupleCard({ t, onClick }) {
   ];
   return (
     <div onClick={onClick} style={cardStyle} onMouseEnter={cardEnter} onMouseLeave={cardLeave}>
-      {/* IDENTITY — combined name banner + per-member sub-columns underneath.
-          Each member's contact details (name, email, phone, WA) live together
-          in their own column so a coach reading "who do I message" doesn't
-          jump back and forth across the divider. */}
-      <CardSectionFirst>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, flex: 1, minWidth: 0 }}>{t.name}</div>
+      {/* IDENTITY — combined name banner (centered) + status badge centered
+          below + per-member sub-columns underneath. Each member's contact
+          details (name, email, phone, WA) live together in their own column
+          so a coach reading "who do I message" doesn't jump back and forth
+          across the divider. */}
+      <CardSectionFirst center>
+        <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, textAlign: 'center' }}>{t.name}</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
           <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
         </div>
         {parsed && (
