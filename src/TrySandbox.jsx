@@ -516,11 +516,66 @@ function ClientPortalMock({ onPick }) {
     );
   }
 
-  // ─── Program tab body (default) ──────────────────────────────
+  // ─── Program tab body (default) — mirror of ClientPortal `vw === 'prog'` ───
+  const lb = bwData[bwData.length - 1]?.bw;
+  const unreadCoachNotes = HISTORY.reduce((a, h) => a + (h.coachNotes || 0), 0);
   return (
     <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
       {renderTopHeader()}
       <div style={{ padding: '14px 20px 20px' }}>
+        {/* Week picker + tiny BW quick-log row (matches real Program tab) */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginBottom: 4 }}>Week</div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {Array.from({ length: PLAN.weeks }, (_, w) => (
+                <button key={w} onClick={() => setWk(w)} style={{
+                  flex: '1 1 40px', padding: '8px 0', borderRadius: 6,
+                  border: `${wk === w ? '2px' : '0.25px'} solid ${C.ac}${wk === w ? '' : '4D'}`,
+                  background: wk === w ? C.acD : 'transparent',
+                  color: wk === w ? C.ac : C.tm,
+                  fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}>W{w + 1}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ width: 120 }}>
+            <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginBottom: 4 }}>BW {lb ? `(${lb}kg)` : ''}</div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" style={{
+                background: C.sf2, border: `0.25px solid ${C.ac}4D`, borderRadius: 6,
+                padding: '8px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none',
+                width: '100%', boxSizing: 'border-box', textAlign: 'center',
+              }} />
+              {bw && (
+                <button onClick={() => {
+                  setBwData(d => [...d, { date: new Date().toISOString(), bw: parseFloat(bw), week: wk + 1 }]);
+                  setBw('');
+                }} style={{
+                  background: C.acD, border: 'none', borderRadius: 6,
+                  padding: '4px 8px', color: C.ac,
+                  fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                }}>Save</button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Unread coach notes callout */}
+        {unreadCoachNotes > 0 && (
+          <div onClick={() => setVw('hist')} style={{
+            background: C.acD, border: `1px solid ${C.ac}60`, borderRadius: 10,
+            padding: '10px 14px', marginBottom: 14, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 20 }}>📬</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: C.ac, fontWeight: 700 }}>Ohad left {unreadCoachNotes} new note{unreadCoachNotes === 1 ? '' : 's'} on your workouts</div>
+              <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>Tap to view in History →</div>
+            </div>
+          </div>
+        )}
+
         {DAYS.map((day, di) => {
           const done = !!doneDays[day.name];
           return (
@@ -552,14 +607,15 @@ function ClientPortalMock({ onPick }) {
                     <span style={{ fontSize: 11, fontWeight: 700, color: C.ac, fontFamily: FN }}>{ex.s}x{ex.r}{ex.load ? ` · ${ex.load}` : ''}</span>
                     {ex.tempo && <span style={{ fontSize: 9, color: C.or, marginLeft: 4 }}>{ex.tempo}</span>}
                     {ex.focus && (
-                      <div style={{ fontSize: 11, color: C.ac, marginTop: 3, opacity: 0.85, lineHeight: 1.4 }}>💡 {ex.focus}</div>
+                      <div style={{ fontSize: 11, color: C.ac, marginTop: 3, opacity: 0.85, lineHeight: 1.4, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}>💡 {ex.focus}</div>
                     )}
                   </div>
-                  <button onClick={() => onPick({ key: ex.eid, label: ex.t, sample: ex.t })} title="Film a set — runs the live engine" style={{
-                    background: 'none', border: 'none', color: C.rd, cursor: 'pointer',
-                    fontSize: 10, padding: '2px 6px', borderRadius: 4, flexShrink: 0,
-                    fontFamily: FN, fontWeight: 700, letterSpacing: 0.5,
-                  }}>📹 FILM</button>
+                  {ex.vid && (
+                    <a href={ex.vid} target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{
+                      color: C.rd, fontSize: 10, textDecoration: 'none',
+                      padding: '2px 6px', background: C.rdD, borderRadius: 4, flexShrink: 0,
+                    }}>▶</a>
+                  )}
                 </div>
               ))}
             </div>
