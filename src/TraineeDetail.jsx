@@ -4,6 +4,7 @@ import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInpu
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
+import TraineePRsView from './TraineePRsView';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId } from './traineeUtils';
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, portalVis, setPortalVis }) {
@@ -275,6 +276,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Bodyweight ({tBw.length})</h3>
       <BWChart entries={tBw} />
+
+      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Records</h3>
+      {/* tcw is already filtered to this athlete (incl. couple sub-members),
+          so no traineeId filter is needed. Couples → parent + __0 + __1 all
+          surface in the picker as one combined record set. */}
+      <TraineePRsView clientWorkouts={tcw} embedded />
 
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Progressive Overload</h3>
       <OverloadChart workouts={tw} exercises={exercises} />
