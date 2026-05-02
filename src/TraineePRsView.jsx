@@ -11,7 +11,7 @@
 // the prescribed eid's. That way a trainee who did "Pull-Up" instead of
 // "Lat Pulldown" sees their pull-up loads on the pull-up card.
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { EX } from './exerciseData';
 
@@ -203,6 +203,10 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
   const rows = useMemo(() => aggregate(clientWorkouts, traineeId), [clientWorkouts, traineeId]);
   const options = useMemo(() => rows.slice().sort((a, b) => a.title.localeCompare(b.title)), [rows]);
   const [pickedId, setPickedId] = useState(null);
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [highlight, setHighlight] = useState(0);
+  const wrapRef = useRef(null);
   // Auto-select first option when rows arrive (or after data refresh swaps
   // the option list) so the visitor lands on a real PR card immediately.
   useMemo(() => {
@@ -212,6 +216,25 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
     }
   }, [options]);
   const picked = options.find(o => o.id === pickedId);
+  // Substring filter — case-insensitive, matches anywhere in title.
+  const q = query.trim().toLowerCase();
+  const filtered = q ? options.filter(o => o.title.toLowerCase().includes(q)) : options;
+  // Close picker on outside click.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false); setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+  // Reset highlight when filtered list changes so we never point past the end.
+  useEffect(() => { setHighlight(0); }, [q, open]);
+  const choose = (id) => {
+    setPickedId(id); setOpen(false); setQuery('');
+  };
 
   const wrapStyle = embedded
     ? { color: C.tx, fontFamily: FB }
@@ -240,21 +263,58 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
           </div>
         ) : (
           <>
-            {/* Exercise picker — only exercises with at least one logged top set */}
-            <div style={{ marginBottom: 14 }}>
+            {/* Exercise picker — search-as-you-type combobox over only the
+                exercises this athlete has logged a top set for. */}
+            <div ref={wrapRef} style={{ marginBottom: 14, position: 'relative' }}>
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 6 }}>EXERCISE</div>
-              <select value={pickedId || ''} onChange={e => setPickedId(e.target.value)} style={{
-                width: '100%', background: C.sf, border: `0.25px solid ${C.ac}4D`,
-                borderRadius: 8, padding: '12px 14px', color: C.tx,
-                fontFamily: FB, fontSize: 15, fontWeight: 600,
-                outline: 'none', boxSizing: 'border-box', cursor: 'pointer',
-              }}>
-                {options.map(o => (
-                  <option key={o.id} value={o.id}>
-                    {o.title} ({o.sessionCount} session{o.sessionCount === 1 ? '' : 's'})
-                  </option>
-                ))}
-              </select>
+              <input
+                value={open ? query : (picked ? `${picked.title} (${picked.sessionCount} session${picked.sessionCount === 1 ? '' : 's'})` : '')}
+                onChange={e => { setQuery(e.target.value); setOpen(true); }}
+                onFocus={() => { setOpen(true); setQuery(''); }}
+                onKeyDown={e => {
+                  if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); setHighlight(h => Math.min(h + 1, filtered.length - 1)); }
+                  else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight(h => Math.max(h - 1, 0)); }
+                  else if (e.key === 'Enter') { e.preventDefault(); if (filtered[highlight]) choose(filtered[highlight].id); }
+                  else if (e.key === 'Escape') { setOpen(false); setQuery(''); e.target.blur(); }
+                }}
+                placeholder="Search an exercise…"
+                style={{
+                  width: '100%', background: C.sf,
+                  border: `0.25px solid ${open ? C.ac : `${C.ac}4D`}`,
+                  borderRadius: 8, padding: '12px 14px', color: C.tx,
+                  fontFamily: FB, fontSize: 15, fontWeight: 600,
+                  outline: 'none', boxSizing: 'border-box', cursor: 'text',
+                }}
+              />
+              {open && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                  background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 8,
+                  maxHeight: 280, overflowY: 'auto', zIndex: 20,
+                  boxShadow: '0 6px 20px rgba(0,0,0,0.45)',
+                }}>
+                  {filtered.length === 0 ? (
+                    <div style={{ padding: '12px 14px', color: C.td, fontSize: 13, textAlign: 'center' }}>
+                      No matches — try a different word.
+                    </div>
+                  ) : filtered.map((o, i) => (
+                    <div key={o.id}
+                      onMouseDown={e => { e.preventDefault(); choose(o.id); }}
+                      onMouseEnter={() => setHighlight(i)}
+                      style={{
+                        padding: '10px 14px', cursor: 'pointer',
+                        background: i === highlight ? `${C.ac}18` : (o.id === pickedId ? `${C.ac}0a` : 'transparent'),
+                        borderBottom: i < filtered.length - 1 ? `1px solid ${C.bd}22` : 'none',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+                      }}>
+                      <span style={{ color: C.tx, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>
+                      <span style={{ fontFamily: FN, color: C.td, fontSize: 10, flexShrink: 0 }}>
+                        {o.sessionCount} session{o.sessionCount === 1 ? '' : 's'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {picked && (

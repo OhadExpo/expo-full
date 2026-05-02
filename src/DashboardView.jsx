@@ -195,17 +195,34 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                   ))}
                 </div>
               )}
-              {leads && leads.length > 0 && (
+              {leads && leads.length > 0 && (() => {
+                // Multi-tenant gate-open counter — track only coach_waitlist
+                // contexts (intake form leads on expo-il are athletes, not coaches).
+                const COACH_GATE = 5;
+                const coachLeads = leads.filter(l => l.context === 'coach_waitlist').length;
+                const gateOpen = coachLeads >= COACH_GATE;
+                const gateColor = gateOpen ? C.gn : (coachLeads > 0 ? C.or : C.td);
+                return (
                 <div style={{ background: C.sf, border: `1px solid ${C.ac}30`, borderRadius: 10, padding: '14px 18px' }}>
-                  <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, textTransform: 'uppercase', marginBottom: 8 }}>📩 New Leads ({leads.length})</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 10, fontFamily: FN, color: C.ac, textTransform: 'uppercase' }}>📩 New Leads ({leads.length})</span>
+                    <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
+                      style={{ fontFamily: FN, fontSize: 9, color: gateColor, border: `1px solid ${gateColor}55`, background: `${gateColor}15`, borderRadius: 4, padding: '2px 6px', letterSpacing: '0.04em' }}>
+                      🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
+                    </span>
+                  </div>
                   {leads.map(l => {
                     const ageMs = now - new Date(l.created_at);
                     const days = Math.floor(ageMs / 86400000);
                     const hours = Math.floor(ageMs / 3600000);
                     const ago = days >= 1 ? `${days}d` : hours >= 1 ? `${hours}h` : 'just now';
                     const mailto = `mailto:${l.email}?subject=${encodeURIComponent('היי מ-EXPO')}&body=${encodeURIComponent('היי, ראיתי שהשארת מייל ב-expo-il.co.il.\n')}`;
+                    const isCoach = l.context === 'coach_waitlist';
                     return (
                       <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 13 }}>
+                        {isCoach && (
+                          <span title="Coach waitlist signup" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: `${C.ac}20`, border: `1px solid ${C.ac}55`, borderRadius: 4, padding: '2px 5px', flexShrink: 0 }}>COACH</span>
+                        )}
                         <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${l.context} · ${l.source}`}>{l.email}</a>
                         <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>
                         <button onClick={() => markLeadContacted(l.id)} title="Mark contacted" style={{ background: `${C.gn}20`, border: `1px solid ${C.gn}55`, color: C.gn, borderRadius: 6, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
@@ -214,7 +231,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                     );
                   })}
                 </div>
-              )}
+                );
+              })()}
             </div>
           )}
           {dropoutRisk.length > 0 && (
