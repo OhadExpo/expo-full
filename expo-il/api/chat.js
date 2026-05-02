@@ -15,6 +15,35 @@ function hashIp(ip) {
   return crypto.createHash('sha256').update(`expo:${ip}`).digest('hex').slice(0, 16);
 }
 
+// Pull prior turns for this sessionId so a returning visitor doesn't lose
+// the thread when the frontend restarts (page reload, tab refresh). Returns
+// up to N most-recent turns, oldest-first, formatted as a Claude-shaped
+// messages[] tail. Best-effort — failures degrade silently to "no memory".
+async function recallSession(sessionId, max = 14) {
+  if (!sessionId) return [];
+  try {
+    const r = await fetch(
+      `${SUPA_URL}/rest/v1/chat_logs?session_id=eq.${encodeURIComponent(sessionId)}&order=created_at.desc&limit=${max}`,
+      {
+        headers: {
+          'apikey': SUPA_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`,
+        },
+      }
+    );
+    if (!r.ok) return [];
+    const rows = await r.json();
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    // Each row is one full turn — pair it back into [user, assistant].
+    const out = [];
+    for (const row of rows.reverse()) {
+      if (row.visitor_msg) out.push({ role: 'user', content: String(row.visitor_msg).slice(0, 1500) });
+      if (row.assistant_msg) out.push({ role: 'assistant', content: String(row.assistant_msg).slice(0, 1500) });
+    }
+    return out;
+  } catch { return []; }
+}
+
 async function logTurn({ sessionId, visitorMsg, assistantMsg, userAgent, ip, error }) {
   try {
     await fetch(`${SUPA_URL}/rest/v1/chat_logs`, {
@@ -113,7 +142,7 @@ Reply in the language the visitor used. Hebrew message → Hebrew reply (natural
 • Don't claim to be Ohad or human. If asked, "I'm the EXPO chat assistant — Ohad himself reads the contact-form messages."
 • Don't end every message with "use the contact form" — only when the question genuinely needs Ohad.
 
-# EXAMPLES OF GOOD ANSWERS
+# EXAMPLES OF GOOD ANSWERS (English)
 
 Visitor: "which program is right for me?"
 You: "Quick one to point you right: how long have you been training consistently — first time, under a year, or longer?"
@@ -125,7 +154,24 @@ Visitor: "I had ACL surgery 8 months ago"
 You: "Return to Training is built for exactly this, but the prerequisite is your physio or surgeon clearing you to load. If you've got that clearance, the program reloads bilateral then unilateral leg strength over 12 weeks. If you're not cleared yet, message Ohad via the contact form first — he won't sell the block to someone who shouldn't be loading yet."
 
 Visitor: "what equipment do I need?"
-You: "Standard commercial gym is the assumption — barbell, dumbbells, squat rack, bench, cable. A few accessories use machines (leg curl, lat pulldown). If you're at a barebones home setup, tell me what you have and I'll flag whether it's a fit."`;
+You: "Standard commercial gym is the assumption — barbell, dumbbells, squat rack, bench, cable. A few accessories use machines (leg curl, lat pulldown). If you're at a barebones home setup, tell me what you have and I'll flag whether it's a fit."
+
+# EXAMPLES OF GOOD ANSWERS (Hebrew — natural Israeli, not formal/literary)
+
+Visitor: "איזה בלוק מתאים לי?"
+You: "תכף אכוון אותך — כמה זמן את/ה מתאמן/ת באופן רציני? פעם ראשונה, פחות משנה, או יותר?"
+
+Visitor: "מתאמן שנתיים, רוצה להגדיל מסה"
+You: "Hypertrophy 16 — 16 שבועות סביב נפח מתקדם על תרגילי הבסיס + עזרים ממוקדים. 390₪ חד-פעמי. שנתיים זה בסיס מצוין בשבילו. אם בא לך גם לשפר כוח לצד מסה, PowerBuild (350₪) זה ההיברידי — קצת פחות נפח אבל גם הכוח יעלה."
+
+Visitor: "כמה זה יוצא בחודש?"
+You: "התשלום חד-פעמי לכל הבלוק, לא חודשי. אם תיקח Foundation (290₪ ל-12 שבועות) זה יוצא בערך 24₪ לשבוע. כולל את כל הסקירה של אוהד על סרטוני הביצוע."
+
+Visitor: "אני לא בארץ, אפשר?"
+You: "ברור. הפלטפורמה רחוקה לחלוטין — סרטוני ביצוע מועלים בענן, אוהד צופה ומגיב, אתה רואה את התגובה בפורטל. עובד מכל מקום עם חיבור."
+
+# REASONING DISCIPLINE
+When you make a recommendation, briefly say *why* (1 sentence: which constraint matched). When you compare two programs, name the trade-off in one line. Never list 3+ programs without committing — if multiple fit, pick a default and say what would shift you to the other.`;
 
 const rateBuckets = new Map();
 const RATE_LIMIT = 30;
@@ -173,9 +219,23 @@ export default async function handler(req, res) {
   if (cleanMessages.length === 0) {
     res.status(400).json({ error: 'Empty messages' }); return;
   }
+  // Server-side memory: if the frontend has only a fresh thread (1–2 messages)
+  // but we have prior turns logged for this sessionId, prepend them so a
+  // returning visitor isn't talking to a stranger. Cap total at ~20 turns.
+  let assembled = cleanMessages;
+  if (sessionId && cleanMessages.length <= 2) {
+    const prior = await recallSession(sessionId, 14);
+    if (prior.length) {
+      // Drop tail prior turns that duplicate the incoming first message.
+      const incomingFirst = cleanMessages[0]?.content?.trim();
+      while (prior.length && prior[prior.length - 1].content?.trim() === incomingFirst) prior.pop();
+      assembled = [...prior, ...cleanMessages].slice(-20);
+    }
+  }
 
   const wantStream = !!body?.stream;
   const lastVisitor = cleanMessages[cleanMessages.length - 1]?.content;
+  const cleanMessagesForApi = assembled;
 
   try {
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -195,7 +255,7 @@ export default async function handler(req, res) {
         // only pay once for the system tokens — typical conversation gets a
         // 90%+ cache hit rate after the first message.
         system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-        messages: cleanMessages,
+        messages: cleanMessagesForApi,
         stream: wantStream,
       }),
     });

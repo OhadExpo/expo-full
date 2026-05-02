@@ -237,27 +237,32 @@ export default function Chat() {
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             fontFamily: FB,
           }}>
+          {/* Header — every child sits inside a fixed 28px row, alignItems:center.
+              Each control is its own flex box with the same 28px height + line-
+              height:1, so logo / "ASK ANYTHING." / ↻ / × all share one optical
+              centerline regardless of their intrinsic glyph metrics. */}
           <div style={{
-            padding: '14px 16px', borderBottom: `1px solid ${C.bd}`,
+            padding: '12px 16px', borderBottom: `1px solid ${C.bd}`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             background: C.sf2, gap: 10,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
-              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 28, width: 'auto', display: 'block', flexShrink: 0, objectFit: 'contain', verticalAlign: 'middle' }} />
-              <div style={{ width: 1, height: 18, background: C.bd, flexShrink: 0 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1, height: 28 }}>
+              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 28, width: 'auto', display: 'block', flexShrink: 0, objectFit: 'contain' }} />
+              <div style={{ width: 1, height: 16, background: C.bd, flexShrink: 0 }} />
               <span style={{
+                display: 'inline-flex', alignItems: 'center', height: 28,
                 fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.tm,
                 lineHeight: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>{isHe ? 'שאל כל שאלה.' : 'ASK ANYTHING.'}</span>
             </div>
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'center', height: 28 }}>
               {messages.length > 0 && (
                 <button onClick={() => { setMessages([]); setErr(''); setCapturePrompted(false); setCaptureEmail(''); setCaptureState('idle'); setCaptureErr(''); }}
                   aria-label={isHe ? 'התחל שיחה חדשה' : 'Start a new conversation'} title={isHe ? 'התחל שיחה חדשה' : 'Start a new conversation'}
-                  style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '6px 8px', borderRadius: 6 }}>↻</button>
+                  style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 0, borderRadius: 6, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>↻</button>
               )}
               <button onClick={() => setOpen(false)} aria-label="Close chat"
-                style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
+                style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: 0, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
           </div>
 

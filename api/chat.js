@@ -16,6 +16,32 @@ function hashIp(ip) {
   return crypto.createHash('sha256').update(`expo:${ip}`).digest('hex').slice(0, 16);
 }
 
+// Pull prior turns from chat_logs so a returning sessionId resumes context
+// even after a page reload. Best-effort, oldest-first.
+async function recallSession(sessionId, max = 14) {
+  if (!sessionId) return [];
+  try {
+    const r = await fetch(
+      `${SUPA_URL}/rest/v1/chat_logs?session_id=eq.${encodeURIComponent(sessionId)}&order=created_at.desc&limit=${max}`,
+      {
+        headers: {
+          'apikey': SUPA_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${SUPA_PUBLISHABLE_KEY}`,
+        },
+      }
+    );
+    if (!r.ok) return [];
+    const rows = await r.json();
+    if (!Array.isArray(rows) || rows.length === 0) return [];
+    const out = [];
+    for (const row of rows.reverse()) {
+      if (row.visitor_msg) out.push({ role: 'user', content: String(row.visitor_msg).slice(0, 1500) });
+      if (row.assistant_msg) out.push({ role: 'assistant', content: String(row.assistant_msg).slice(0, 1500) });
+    }
+    return out;
+  } catch { return []; }
+}
+
 async function logTurn({ site, sessionId, visitorMsg, assistantMsg, userAgent, ip, error }) {
   // Fire-and-forget — never block the visitor on logging.
   try {
@@ -120,7 +146,22 @@ Visitor: "I have 25 clients"
 You: "Growth tier (₪249/mo, pre-VAT) — that's the band most coaches sit in. Worth a /try before committing; everything's preloaded with mock athletes so you can see the daily workflow without setting anything up."
 
 Visitor: "Can you build a custom integration for my Notion CRM?"
-You: "Custom integration work is a Founding Partner perk — drop your email in the waitlist below and Ohad will scope it with you directly."`;
+You: "Custom integration work is a Founding Partner perk — drop your email in the waitlist below and Ohad will scope it with you directly."
+
+# EXAMPLES OF GOOD ANSWERS (Hebrew — natural Israeli, not formal/literary)
+
+Visitor: "מה ההבדל בין EXPO ל-Trainerize?"
+You: "שלוש נקודות:
+• בקרת ביצוע על וידאו מובנית — השוואה זה לצד זה, הערות עם תזמון, שכבת ציור. בלי לקפוץ ל-YouTube.
+• ספירת חזרות אוטומטית רצה בדפדפן — אין אפליקציה להתקין.
+• עברית + אנגלית, מתחלף לכל מתאמן.
+אם בקרת וידאו זה מרכזי בעבודה שלך, ב-/try יש מתאמנים מדומים טעונים — אפשר להרגיש את הזרימה ב-5 דקות."
+
+Visitor: "יש לי 25 מתאמנים"
+You: "תוכנית Growth (₪249/חודש לפני מע״מ) — זאת הרצועה שרוב המאמנים נמצאים בה. כדאי קודם /try לפני התחייבות; הכל מוכן עם נתוני דמו."
+
+# REASONING DISCIPLINE
+When you make a recommendation, briefly say *why* (one sentence: which constraint matched). When you compare two tiers, name the trade-off in one line. Never list both as equal options — pick a default and say what would shift you to the other.`;
 
 // Tiny in-memory rate limiter — best-effort, resets on cold start.
 // 30 requests / IP / hour. Real abuse needs a proper KV store; this just
@@ -173,6 +214,17 @@ export default async function handler(req, res) {
   if (cleanMessages.length === 0) {
     res.status(400).json({ error: 'Empty messages' }); return;
   }
+  // Server-side memory: stitch in prior turns from chat_logs when the
+  // frontend has just (re)started a thread under a known sessionId.
+  let assembled = cleanMessages;
+  if (sessionId && cleanMessages.length <= 2) {
+    const prior = await recallSession(sessionId, 14);
+    if (prior.length) {
+      const incomingFirst = cleanMessages[0]?.content?.trim();
+      while (prior.length && prior[prior.length - 1].content?.trim() === incomingFirst) prior.pop();
+      assembled = [...prior, ...cleanMessages].slice(-20);
+    }
+  }
 
   const wantStream = !!body?.stream;
   const lastVisitor = cleanMessages[cleanMessages.length - 1]?.content;
@@ -194,7 +246,7 @@ export default async function handler(req, res) {
         // Cache the long system prompt so repeated turns within 5min only
         // pay once for the system tokens.
         system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-        messages: cleanMessages,
+        messages: assembled,
         stream: wantStream,
       }),
     });
