@@ -893,7 +893,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 }
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession, updateFormVideos }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null }) {
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
@@ -964,6 +964,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [plansReloadKey, setPlansReloadKey] = useState(0);
   React.useEffect(() => {
     if (!ci) { setClientPlans([]); return; }
+    // Demo mode: skip Supabase entirely, render the prop-supplied plans.
+    if (demoMode) {
+      setClientPlans(Array.isArray(demoPlans) ? demoPlans : []);
+      setPlansLoadError(null);
+      return;
+    }
     let alive = true;
     setPlansLoadError(null);
     (async () => {
@@ -991,14 +997,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       }
     })();
     return () => { alive = false; };
-  }, [ci, plansReloadKey]);
+  }, [ci, plansReloadKey, demoMode, demoPlans]);
 
   // Presence heartbeat — let the coach know this client is online.
   // Gated on document.visibilityState so a backgrounded tab doesn't keep
   // writing to Supabase every 30s for hours. When the tab comes back to
   // foreground we beat immediately so the coach sees them as online.
   React.useEffect(() => {
-    if (!ci) return;
+    if (!ci || demoMode) return;
     let consecutiveFailures = 0;
     const beat = async () => {
       if (document.visibilityState !== 'visible') return;
@@ -1027,7 +1033,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const onVis = () => { if (document.visibilityState === 'visible') beat(); };
     document.addEventListener('visibilitychange', onVis);
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
-  }, [ci]);
+  }, [ci, demoMode]);
 
   const clientName = trainee?.name || '';
 

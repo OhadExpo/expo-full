@@ -26,6 +26,7 @@ const WorkoutReview = lazy(() => import('./WorkoutReview'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazy(() => import('./TrySandbox'));
+const DemoTraineePortal = lazy(() => import('./DemoTraineePortal'));
 // Public coach-sales marketing landing at /demo for unauthed visitors.
 const CoachLanding = lazy(() => import('./CoachLanding'));
 // Front-door chooser at / for unauthed visitors — splits Sign In vs the
@@ -201,13 +202,17 @@ function AuthGate() {
   // Browser-mode public demo routes:
   //   /demo          → CoachLanding (marketing pitch + waitlist)
   //   /demo/coach    → CoachDemo (full coach-side tour)
-  //   /demo/trainee  → TrySandbox pov="trainee" (engine sandbox)
+  //   /demo/trainee  → DemoTraineePortal (real ClientPortal in demoMode w/ fixture data)
+  //   /demo/sandbox  → TrySandbox pov="trainee" (engine sandbox; legacy demo)
   // Both end-CTAs converge at /demo#waitlist. Hidden in PWA mode.
   if (!inPwa) {
     if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach' || path === '/coaches/try' || path === '/try') {
       return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
     }
     if (path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
+      return <Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense>;
+    }
+    if (path === '/demo/sandbox') {
       return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
     }
   }
