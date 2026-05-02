@@ -642,9 +642,9 @@ function TraineeCard({ t, onClick }) {
           </div>
         </div>
       </CardSectionFirst>
+      <FinancialsBlock t={t} />
       <TrainingBlock t={t} />
       <BodyweightBlock weight={t.weight} />
-      <FinancialsBlock t={t} />
     </div>
   );
 }
@@ -752,6 +752,7 @@ function CoupleCard({ t, onClick }) {
         )}
       </CardSectionFirst>
 
+      <FinancialsBlock t={t} center />
       <TrainingBlock t={t} center />
 
       {/* BODYWEIGHT — per member, since each has their own curve. Centered
@@ -766,8 +767,6 @@ function CoupleCard({ t, onClick }) {
           </div>
         ))}
       </CardSection>
-
-      <FinancialsBlock t={t} center />
     </div>
   );
 }

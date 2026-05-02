@@ -109,26 +109,40 @@ function CardSection({ label, children, center = false }) {
 }
 
 function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = false }) {
-  const items = [];
-  if (format) items.push(
-    <span key="fmt" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{format}</span>
-  );
-  if (sessionsRemaining != null && sessionsRemaining > 0) items.push(
-    <span key="sl" style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{sessionsRemaining} SESSIONS LEFT</span>
-  );
-  if (programs > 0) items.push(
-    <span key="pr" style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{programs} PROGRAMS</span>
-  );
-  if (items.length === 0 && !lastWk) return null;
-  const interleaved = items.flatMap((n, i) => i === 0 ? [n] : [<MidDot key={`d${i}`} />, n]);
+  // Two fixed rows so card structure is uniform regardless of text length:
+  //   row 1 — FORMAT · SESSIONS LEFT
+  //   row 2 — N PROGRAMS
+  //   row 3 (optional) — LAST WORKOUT · ...
+  // Programs always starts on its own row even when there's space on row 1,
+  // so neighbouring cards line up vertically.
+  const justify = center ? 'center' : 'flex-start';
+  const hasSessions = sessionsRemaining != null && sessionsRemaining > 0;
+  if (!format && !hasSessions && !(programs > 0) && !lastWk) return null;
   return (
     <CardSection label="Training" center={center}>
-      {interleaved}
-      {lastWk && (
-        <div style={{ flexBasis: '100%', marginTop: 2, fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'left' }}>
-          LAST WORKOUT · {lastWk}
-        </div>
-      )}
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {(format || hasSessions) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
+            {format && (
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{format}</span>
+            )}
+            {format && hasSessions && <MidDot />}
+            {hasSessions && (
+              <span style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{sessionsRemaining} SESSIONS LEFT</span>
+            )}
+          </div>
+        )}
+        {programs > 0 && (
+          <div style={{ display: 'flex', justifyContent: justify }}>
+            <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{programs} PROGRAMS</span>
+          </div>
+        )}
+        {lastWk && (
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600, textAlign: center ? 'center' : 'left' }}>
+            LAST WORKOUT · {lastWk}
+          </div>
+        )}
+      </div>
     </CardSection>
   );
 }
@@ -359,6 +373,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                     ))}
                   </div>
 
+                  <FinancialsBlock pay={pay} monthly={t.monthly} center />
                   <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={sharedProgramsCount} lastWk={lastWk} center />
 
                   {/* BODYWEIGHT — per-member, since each has their own curve.
@@ -392,8 +407,6 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                       );
                     })}
                   </CardSection>
-
-                  <FinancialsBlock pay={pay} monthly={t.monthly} center />
 
                   {!showArchived && (
                     <div style={{display:'flex',justifyContent:'flex-end',marginTop:8}}>
@@ -436,9 +449,9 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 </div>
               </div>
 
+              <FinancialsBlock pay={pay} monthly={t.monthly} />
               <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} />
               <BodyweightBlock entries={bwEntries} />
-              <FinancialsBlock pay={pay} monthly={t.monthly} />
 
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
