@@ -587,48 +587,148 @@ function TraineeHomeMock({ onPick }) {
   );
 }
 
-// ─── Step 1 · pick an exercise ────────────────────────────────────────────
+// ─── Step 1 · auto-detected exercise (override available) ──────────────
+//
+// Real app behavior: the engine picks the exercise from the athlete's plan
+// position automatically — they never tag what they filmed. The demo used to
+// present a 13-button picker which made it look like the platform asks the
+// athlete to identify the lift. Now we mirror production: show the auto-
+// detected exercise as a hero card, with a low-key override path for the
+// edge case where the plan position is wrong, and a small joint-channel
+// dropdown for the case where the athlete wants to track a different joint.
+//
+// Exercise & joint mapping mirrors the real app's repCounter.js routing —
+// squat→knee, hinge→hip, push→elbow, pull→back/elbow, isolation→primary.
+const PATTERN_FOR = {
+  squat:    { pattern: 'Squat',          joint: 'KNEE' },
+  goblet:   { pattern: 'Squat',          joint: 'KNEE' },
+  lunge:    { pattern: 'Lunge',          joint: 'KNEE' },
+  rdl:      { pattern: 'Hip Hinge',      joint: 'HIP' },
+  dl:       { pattern: 'Hip Hinge',      joint: 'HIP' },
+  hipthrust:{ pattern: 'Hip Hinge',      joint: 'HIP' },
+  bench:    { pattern: 'Horizontal Push',joint: 'ELBOW' },
+  ohp:      { pattern: 'Vertical Push',  joint: 'ELBOW' },
+  pushup:   { pattern: 'Horizontal Push',joint: 'ELBOW' },
+  pullup:   { pattern: 'Vertical Pull',  joint: 'ELBOW' },
+  row:      { pattern: 'Horizontal Pull',joint: 'ELBOW' },
+  curl:     { pattern: 'Isolation',      joint: 'ELBOW' },
+  lateral:  { pattern: 'Isolation',      joint: 'SHOULDER' },
+};
+const JOINT_OPTIONS = ['AUTO', 'KNEE', 'HIP', 'ELBOW', 'SHOULDER'];
+
 function ExercisePicker({ pov, onPick }) {
   const isCoach = pov === 'coach';
+  // Auto-detected default: matches the plan-context strip's "Block #4 Day A
+  // exercise 1" — Back Squat. Same exercise an athlete would actually be on
+  // when arriving at the upload step.
+  const auto = TRY_EXERCISES[0];
+  const meta = PATTERN_FOR[auto.key] || { pattern: 'Squat', joint: 'KNEE' };
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [joint, setJoint] = useState('AUTO');
+  const resolvedJoint = joint === 'AUTO' ? meta.joint : joint;
+
   return (
     <section>
       <div style={{
-        fontFamily:FN, color: C.ac, fontSize: 11, letterSpacing: 3,
+        fontFamily: FN, color: C.gn, fontSize: 11, letterSpacing: 3,
         marginBottom: 8, fontWeight: 700,
-      }}>STEP 1 · {isCoach ? 'PICK THE LIFT TO REVIEW' : 'PICK WHAT YOU FILMED'}</div>
+      }}>STEP 1 · {isCoach ? 'AUTO-MATCHED FROM THE PLAN' : 'AUTO-DETECTED FROM YOUR PLAN'}</div>
       <h1 style={{
-        fontFamily:FB, fontSize:'clamp(24px, 3.5vw, 30px)', fontWeight:700,
-        marginBottom: 10, letterSpacing:-0.3,
-      }}>{isCoach ? "What's your client's clip of?" : 'What did you film?'}</h1>
+        fontFamily: FB, fontSize: 'clamp(24px, 3.5vw, 30px)', fontWeight: 700,
+        marginBottom: 10, letterSpacing: -0.3,
+      }}>{isCoach
+        ? <>You're reviewing <span style={{ color: C.ac }}>{auto.label}</span>.</>
+        : <>We already know — it's your <span style={{ color: C.ac }}>{auto.label}</span>.</>}</h1>
       <p style={{
-        fontFamily:FB, color: C.tx, fontSize: 15, lineHeight:1.6, maxWidth: 640, opacity: 0.85,
-        marginBottom: 28,
+        fontFamily: FB, color: C.tx, fontSize: 15, lineHeight: 1.6, maxWidth: 640, opacity: 0.85,
+        marginBottom: 24,
       }}>
         {isCoach
-          ? "Pick the lift. The rep counter routes to the right joint channel — squat → knee, hinge → hip, press → elbow — so your reps are counted correctly the moment the athlete uploads. You don't tag exercises; the engine inherits it from the plan."
-          : "Pick the closest match. The rep counter routes to the right joint channel — squat → knee, hinge → hip, press → elbow — same logic the EXPO portal uses on real client clips. If yours isn't here, pick the closest movement pattern."}
+          ? "The engine inherits the exercise from the athlete's plan position the moment they upload — no tagging on either side. Joint channel below is auto-routed off the movement pattern (squat → knee, hinge → hip, press → elbow)."
+          : "Your plan tells the app what set you're on. The rep counter auto-routes to the right joint (squat → knee, hinge → hip, press → elbow) the moment you upload. You don't tag anything."}
       </p>
+
+      {/* Auto-detected exercise card */}
       <div style={{
-        display:'grid', gap: 10,
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+        background: C.sf, border: `1px solid ${C.gn}40`, borderRadius: 12,
+        padding: 18, marginBottom: 12,
       }}>
-        {TRY_EXERCISES.map(ex => (
-          <button key={ex.key} onClick={() => onPick(ex)} style={{
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: 2, fontWeight: 700, marginBottom: 4 }}>
+              ✓ AUTO-DETECTED
+            </div>
+            <div style={{ fontFamily: FB, fontSize: 22, fontWeight: 700, color: C.tx, marginBottom: 4 }}>{auto.label}</div>
+            <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>
+              BLOCK #4 · DAY A · EXERCISE 1 · 4×6-8 · 60KG
+            </div>
+          </div>
+          <div style={{ minWidth: 180, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 2, fontWeight: 700 }}>JOINT TRACKING</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontFamily: FB, fontSize: 16, color: C.ac, fontWeight: 700 }}>{resolvedJoint}</span>
+              {joint === 'AUTO' && (
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: C.gn + '20', borderRadius: 4 }}>AUTO</span>
+              )}
+            </div>
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>
+              FROM PATTERN: {meta.pattern.toUpperCase()}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button onClick={() => onPick(auto)} style={{
             ...baseBtn,
-            display:'flex', justifyContent:'flex-start', textAlign:'left',
-            background: C.sf, color: C.tx,
-            border: `1px solid ${C.bd}`, padding: '14px 16px',
-            fontSize: 14, fontWeight: 600, borderRadius: 10,
-            transition:'border-color 150ms ease, background 150ms ease',
+            background: C.ac, color: '#0a0a0b',
+            padding: '12px 22px', fontSize: 14, fontWeight: 700, letterSpacing: 0.5,
+          }}>CONTINUE → UPLOAD</button>
+          <select value={joint} onChange={e => setJoint(e.target.value)} style={{
+            background: C.sf2, border: `1px solid ${C.bd2}`, borderRadius: 8,
+            padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 12,
+            fontWeight: 600, letterSpacing: 1, outline: 'none',
           }}>
-            <span style={{
-              display:'inline-block', width:6, height:6, borderRadius:'50%',
-              background: C.ac, marginRight: 10,
-            }} />
-            {ex.label}
-          </button>
-        ))}
+            {JOINT_OPTIONS.map(j => (
+              <option key={j} value={j}>{j === 'AUTO' ? 'JOINT: AUTO' : `TRACK: ${j}`}</option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {/* Override (rare path) */}
+      <button onClick={() => setOverrideOpen(o => !o)} style={{
+        background: 'none', border: 'none', color: C.tm, cursor: 'pointer',
+        fontFamily: FN, fontSize: 11, letterSpacing: 1, fontWeight: 600, padding: 0,
+        textDecoration: overrideOpen ? 'none' : 'underline', marginBottom: 12,
+      }}>{overrideOpen ? 'HIDE OVERRIDE' : 'NOT THIS LIFT? OVERRIDE →'}</button>
+
+      {overrideOpen && (
+        <>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>
+            MANUAL OVERRIDE — pick the lift instead
+          </div>
+          <div style={{
+            display: 'grid', gap: 10,
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+          }}>
+            {TRY_EXERCISES.map(ex => (
+              <button key={ex.key} onClick={() => onPick(ex)} style={{
+                ...baseBtn,
+                display: 'flex', justifyContent: 'flex-start', textAlign: 'left',
+                background: C.sf, color: C.tx,
+                border: `1px solid ${ex.key === auto.key ? C.ac : C.bd}`, padding: '14px 16px',
+                fontSize: 14, fontWeight: 600, borderRadius: 10,
+              }}>
+                <span style={{
+                  display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+                  background: ex.key === auto.key ? C.gn : C.ac, marginRight: 10,
+                }} />
+                {ex.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   );
 }
