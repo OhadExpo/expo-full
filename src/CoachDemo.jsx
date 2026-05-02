@@ -12,7 +12,7 @@
 // trainee-side engine sandbox. Both end-CTAs converge at /demo#waitlist.
 
 import React, { useState, useEffect } from 'react';
-import { C, FN, FB } from './theme';
+import { C, FN, FB, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 import { EXPOMark } from './expoMark';
 
 // ─── Mock data ────────────────────────────────────────────────────────────
@@ -111,27 +111,31 @@ const BLOCK_DATA = {
   },
 };
 
+// Each entry carries the same six taxonomy fields the real coach app's
+// ExercisesView filters on (category / resistance / body position / movement
+// type / pattern / laterality) so the demo's filter row mirrors production
+// 1:1 instead of just exposing category.
 const MOCK_EXERCISES = [
-  { name: 'BB Bench Press',         category: 'Chest',     pattern: 'Horizontal Push' },
-  { name: 'DB Incline Press',       category: 'Chest',     pattern: 'Horizontal Push' },
-  { name: 'Cable Fly',              category: 'Chest',     pattern: 'Isolation' },
-  { name: 'Standing OHP',           category: 'Shoulders', pattern: 'Vertical Push' },
-  { name: 'Lateral Raise',          category: 'Shoulders', pattern: 'Isolation' },
-  { name: 'BB Deadlift',            category: 'Legs',      pattern: 'Hip Hinge' },
-  { name: 'Romanian Deadlift',      category: 'Legs',      pattern: 'Hip Hinge' },
-  { name: 'Pull-Up',                category: 'Back',      pattern: 'Vertical Pull' },
-  { name: 'Bent-Over BB Row',       category: 'Back',      pattern: 'Horizontal Pull' },
-  { name: 'Back Squat',             category: 'Legs',      pattern: 'Squat' },
-  { name: 'Front Squat',            category: 'Legs',      pattern: 'Squat' },
-  { name: 'Walking Lunge',          category: 'Legs',      pattern: 'Lunge' },
-  { name: 'Leg Curl',               category: 'Legs',      pattern: 'Isolation' },
-  { name: 'Hip Thrust',             category: 'Glutes',    pattern: 'Hip Hinge' },
-  { name: 'Face Pull',              category: 'Back',      pattern: 'Horizontal Pull' },
-  { name: 'DB Bicep Curl',          category: 'Arms',      pattern: 'Curl' },
-  { name: 'Tricep Pushdown',        category: 'Arms',      pattern: 'Extend' },
-  { name: 'Hanging Leg Raise',      category: 'Core',      pattern: 'Anti-Extension' },
-  { name: 'Plank',                  category: 'Core',      pattern: 'Anti-Extension' },
-  { name: 'Cable Pallof Press',     category: 'Core',      pattern: 'Anti-Rotation' },
+  { name: 'BB Bench Press',     category: 'Chest',     resistanceType: 'Barbell',    bodyPosition: 'Supine',       movementType: 'Push',          pattern: 'Horizontal Push',         laterality: 'Bilateral'  },
+  { name: 'DB Incline Press',   category: 'Chest',     resistanceType: 'Dumbbell',   bodyPosition: 'Supine',       movementType: 'Push',          pattern: 'Horizontal Push',         laterality: 'Bilateral'  },
+  { name: 'Cable Fly',          category: 'Chest',     resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Push',          pattern: 'Isolation',               laterality: 'Bilateral'  },
+  { name: 'Standing OHP',       category: 'Shoulders', resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Push',          pattern: 'Vertical Push',           laterality: 'Bilateral'  },
+  { name: 'Lateral Raise',      category: 'Shoulders', resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Lateral Raise', pattern: 'Isolation',               laterality: 'Bilateral'  },
+  { name: 'BB Deadlift',        category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral'  },
+  { name: 'Romanian Deadlift',  category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral'  },
+  { name: 'Pull-Up',            category: 'Back',      resistanceType: 'Bodyweight', bodyPosition: 'Hanging',      movementType: 'Pull',          pattern: 'Vertical Pull',           laterality: 'Bilateral'  },
+  { name: 'Bent-Over BB Row',   category: 'Back',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Row',           pattern: 'Horizontal Pull',         laterality: 'Bilateral'  },
+  { name: 'Back Squat',         category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Squat',         pattern: 'Squat',                   laterality: 'Bilateral'  },
+  { name: 'Front Squat',        category: 'Legs',      resistanceType: 'Barbell',    bodyPosition: 'Standing',     movementType: 'Squat',         pattern: 'Squat',                   laterality: 'Bilateral'  },
+  { name: 'Walking Lunge',      category: 'Legs',      resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Lunge',         pattern: 'Lunge',                   laterality: 'Alternating'},
+  { name: 'Leg Curl',           category: 'Legs',      resistanceType: 'Machine',    bodyPosition: 'Prone',        movementType: 'Curl',          pattern: 'Isolation',               laterality: 'Bilateral'  },
+  { name: 'Hip Thrust',         category: 'Glutes',    resistanceType: 'Barbell',    bodyPosition: 'Supine',       movementType: 'Hinge',         pattern: 'Hip Hinge',               laterality: 'Bilateral'  },
+  { name: 'Face Pull',          category: 'Back',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Pull',          pattern: 'Horizontal Pull',         laterality: 'Bilateral'  },
+  { name: 'DB Bicep Curl',      category: 'Arms',      resistanceType: 'Dumbbell',   bodyPosition: 'Standing',     movementType: 'Curl',          pattern: 'Isolation',               laterality: 'Bilateral'  },
+  { name: 'Tricep Pushdown',    category: 'Arms',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Extend',        pattern: 'Isolation',               laterality: 'Bilateral'  },
+  { name: 'Hanging Leg Raise',  category: 'Core',      resistanceType: 'Bodyweight', bodyPosition: 'Hanging',      movementType: 'Isometric',     pattern: 'Isolation',               laterality: 'Bilateral'  },
+  { name: 'Plank',              category: 'Core',      resistanceType: 'Bodyweight', bodyPosition: 'Prone',        movementType: 'Isometric',     pattern: 'Isolation',               laterality: 'Bilateral'  },
+  { name: 'Cable Pallof Press', category: 'Core',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Anti-Rotation', pattern: 'Rotation/Anti-Rotation',  laterality: 'Unilateral' },
 ];
 
 const MOCK_REVIEW_COMMENTS = [
@@ -1279,47 +1283,90 @@ function ExerciseAction({ icon, label, sub }) {
 
 // ─── Tab: Exercises ───────────────────────────────────────────────────────
 function DemoExercises() {
-  const [filter, setFilter] = useState('All');
+  // Mirrors src/ExercisesView.jsx filter shape: a search box + a 6-up grid
+  // of selects (Category / Resistance / Body Position / Movement Type /
+  // Pattern / Laterality), with an active-count chip and a Clear all link.
+  // Anything dropped here would also land on the real coach app.
   const [search, setSearch] = useState('');
-  const cats = ['All', ...Array.from(new Set(MOCK_EXERCISES.map(e => e.category)))];
+  const emptyFilters = { category: '', resistanceType: '', bodyPosition: '', movementType: '', movementPattern: '', laterality: '' };
+  const [filters, setFilters] = useState(emptyFilters);
+  const setF = (k, v) => setFilters(prev => ({ ...prev, [k]: v }));
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const clearFilters = () => setFilters(emptyFilters);
+
   const q = search.trim().toLowerCase();
   const filtered = MOCK_EXERCISES.filter(e => {
-    if (filter !== 'All' && e.category !== filter) return false;
-    if (q && !e.name.toLowerCase().includes(q) && !e.pattern.toLowerCase().includes(q)) return false;
+    if (q) {
+      const haystack = [e.name, e.category, e.resistanceType, e.bodyPosition, e.movementType, e.pattern, e.laterality].filter(Boolean).join(' ').toLowerCase();
+      if (!q.split(/\s+/).filter(Boolean).every(tok => haystack.includes(tok))) return false;
+    }
+    if (filters.category && e.category !== filters.category) return false;
+    if (filters.resistanceType && e.resistanceType !== filters.resistanceType) return false;
+    if (filters.bodyPosition && e.bodyPosition !== filters.bodyPosition) return false;
+    if (filters.movementType && e.movementType !== filters.movementType) return false;
+    if (filters.movementPattern && e.pattern !== filters.movementPattern) return false;
+    if (filters.laterality && e.laterality !== filters.laterality) return false;
     return true;
   });
+
+  // Match the real coach-app baseInput look so the demo selects don't drift.
+  const selectStyle = {
+    background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 6,
+    padding: '6px 10px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
+  };
+
   return (
     <section>
-      <SectionHeader tag="EXERCISE LIBRARY" title="Your taxonomy, your rules" body="Every exercise is tagged with category + movement pattern. The rep counter routes joint channels off the pattern. Bring your existing library — bulk import is xlsx, sheets, or a Trainerize export." />
+      <SectionHeader tag="EXERCISE LIBRARY" title="Your taxonomy, your rules" body="Every exercise is tagged with category, resistance, body position, movement type, pattern, and laterality. The rep counter routes joint channels off the pattern. Bring your existing library — bulk import is xlsx, sheets, or a Trainerize export." />
 
-      <div style={{
-        display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14,
-      }}>
+      {/* Search + count */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
         <input
           type="search"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search exercises…"
+          placeholder="Search exercises (title, muscle, pattern...)"
           style={{
             background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 8,
             padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
-            outline: 'none', minWidth: 200, flex: '1 1 200px', maxWidth: 320,
+            outline: 'none', flex: '1 1 200px', minWidth: 200,
           }}
         />
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {cats.map(c => (
-            <button key={c} onClick={() => setFilter(c)} style={{
-              ...baseBtn,
-              background: filter === c ? C.acD : 'transparent',
-              color: filter === c ? C.ac : C.tm,
-              border: `1px solid ${filter === c ? C.ac : C.bd}`,
-              padding: '5px 12px', fontSize: 11,
-            }}>{c.toUpperCase()}</button>
-          ))}
-        </div>
         <span style={{
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, marginLeft: 'auto',
         }}>{filtered.length} / {MOCK_EXERCISES.length}</span>
+      </div>
+
+      {/* Filter pane — same 6-col grid of selects as the real ExercisesView */}
+      <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 8, padding: 10, marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ fontSize: 10, fontFamily: FN, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}
+          </div>
+          {activeFilterCount > 0 && (
+            <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>
+          )}
+        </div>
+        <div className="cd-ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+          <select value={filters.category} onChange={e => setF('category', e.target.value)} style={selectStyle}>
+            <option value="">Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={selectStyle}>
+            <option value="">Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={selectStyle}>
+            <option value="">Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={selectStyle}>
+            <option value="">Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={selectStyle}>
+            <option value="">Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={selectStyle}>
+            <option value="">Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -1346,6 +1393,7 @@ function DemoExercises() {
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 <Badge color={C.ac}>{e.category}</Badge>
                 <Badge color={C.tm}>{e.pattern}</Badge>
+                {e.resistanceType && <Badge color={C.td}>{e.resistanceType}</Badge>}
               </div>
             </div>
           ))}
@@ -1666,6 +1714,13 @@ export default function CoachDemo() {
            so the editor still gets full width. */
         @media (max-width: 720px) {
           .cd-prog-grid { grid-template-columns: 1fr !important; }
+        }
+        /* Exercise filter row on tablet/phone — drop from 6 cols to 3, then 2. */
+        @media (max-width: 880px) {
+          .cd-ex-filters { grid-template-columns: repeat(3, 1fr) !important; }
+        }
+        @media (max-width: 540px) {
+          .cd-ex-filters { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
 
