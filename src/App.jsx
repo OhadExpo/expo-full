@@ -201,7 +201,7 @@ function AuthGate() {
   //   /demo/trainee  → TrySandbox pov="trainee" (engine sandbox)
   // Both end-CTAs converge at /demo#waitlist. Hidden in PWA mode.
   if (!inPwa) {
-    if (path === '/demo/coach' || path === '/coaches/demo/coach' || path === '/coaches/try' || path === '/try') {
+    if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach' || path === '/coaches/try' || path === '/try') {
       return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
     }
     if (path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {

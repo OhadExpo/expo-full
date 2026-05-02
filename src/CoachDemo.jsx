@@ -11,7 +11,7 @@
 // Companion to /demo (TrySandbox pov="trainee") which stays as the simple
 // trainee-side engine sandbox. Both end-CTAs converge at /demo#waitlist.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
 
@@ -1571,21 +1571,54 @@ function DemoWorkouts() {
   );
 }
 
+// Pull a tab key out of the URL path. Valid keys come from TABS; an unknown
+// or empty trailing segment falls back to dashboard so /demo/coach itself
+// renders the dashboard without forcing a redirect.
+const TAB_KEYS = TABS.map(t => t.key);
+function tabFromPath(p) {
+  const m = (p || '').match(/^\/demo\/coach\/([^/?#]+)/);
+  if (!m) return 'dashboard';
+  return TAB_KEYS.includes(m[1]) ? m[1] : 'dashboard';
+}
+
 export default function CoachDemo() {
-  const [tab, setTab] = useState('dashboard');
+  const [tab, setTab] = useState(() => typeof window === 'undefined' ? 'dashboard' : tabFromPath(window.location.pathname));
   const [selectedTrainee, setSelectedTrainee] = useState(null);
   // Track where the trainee-detail view was reached from so the back button
   // returns to the source surface instead of always landing on the Trainees tab.
   const [returnTab, setReturnTab] = useState('trainees');
+
+  // Tab → URL: each tab gets its own path under /demo/coach/<key> so users
+  // can deep-link, refresh, and use browser back/forward. Dashboard sits at
+  // the bare /demo/coach for shareability.
+  const navigateToTab = (key) => {
+    setTab(key);
+    setSelectedTrainee(null);
+    if (typeof window === 'undefined') return;
+    const target = key === 'dashboard' ? '/demo/coach' : `/demo/coach/${key}`;
+    if (window.location.pathname !== target) {
+      window.history.pushState({ tab: key }, '', target + window.location.hash);
+    }
+  };
+
+  // Browser back/forward: keep the React tab in sync with the URL the user
+  // navigated to. popstate fires on both back and forward, plus on any
+  // external pushState (e.g. nav from another component).
+  useEffect(() => {
+    const onPop = () => setTab(tabFromPath(window.location.pathname));
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   const onJumpToTrainee = (id, sourceTab = 'trainees') => {
     setReturnTab(sourceTab);
     setSelectedTrainee(id);
-    setTab('trainees');
+    navigateToTab('trainees');
   };
   const onClearTrainee = () => {
     setSelectedTrainee(null);
     if (returnTab !== 'trainees') {
-      setTab(returnTab);
+      navigateToTab(returnTab);
       setReturnTab('trainees');
     }
   };
@@ -1647,7 +1680,7 @@ export default function CoachDemo() {
             {TABS.map((t, i) => (
               <button key={t.key} role="tab" aria-selected={tab === t.key}
                 tabIndex={tab === t.key ? 0 : -1}
-                onClick={() => { setTab(t.key); setSelectedTrainee(null); }}
+                onClick={() => navigateToTab(t.key)}
                 onKeyDown={e => {
                   if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'Home' && e.key !== 'End') return;
                   e.preventDefault();
@@ -1657,7 +1690,7 @@ export default function CoachDemo() {
                   else if (e.key === 'Home') nextIdx = 0;
                   else if (e.key === 'End') nextIdx = TABS.length - 1;
                   const nextKey = TABS[nextIdx].key;
-                  setTab(nextKey); setSelectedTrainee(null);
+                  navigateToTab(nextKey);
                   // focus moves to the newly-active tab so screen-readers track
                   setTimeout(() => {
                     const el = document.querySelector(`[role="tab"][data-key="${nextKey}"]`);
