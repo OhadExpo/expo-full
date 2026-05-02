@@ -78,16 +78,30 @@ function trainerPlanToPortal(plan, trainerExercises) {
             const needle = pe.title.toLowerCase().trim();
             exData = trainerExercises.find(e => (e.title || '').toLowerCase().trim() === needle) || null;
           }
-          const title = (pe.title || exData?.title || 'Exercise ' + (peIdx + 1)).trim();
+          // Resolved title: trainer-library hit > inline pe.title > "Exercise N"
+          // placeholder. The library is the canonical source — if we have it,
+          // prefer it over an inline title so a renamed library entry flows
+          // through to old plans. Only fall back to "Exercise N" when we have
+          // literally nothing (trainerExercises hasn't loaded yet on first
+          // render, OR the eid is orphaned and there's no inline title).
+          const haveRealTitle = !!(exData?.title || pe.title);
+          const title = (exData?.title || pe.title || 'Exercise ' + (peIdx + 1)).trim();
           let eid = EX_BY_TITLE[title.toLowerCase()];
           if (!eid) {
             const stableKey = pe.id || libId || title.toLowerCase().replace(/[^a-z0-9]+/g, '_');
             eid = 'dyn_' + stableKey;
-            if (!EX[eid]) {
+            // Always (re)write when we have a real title — earlier renders may
+            // have stubbed this with "Exercise N" before trainerExercises had
+            // loaded, and the old guard `if (!EX[eid])` made that stub
+            // permanent. Only refuse to overwrite an entry that already has
+            // a real title if all we have now is the placeholder.
+            const existing = EX[eid];
+            const stubbed = existing && /^exercise\s+\d+$/i.test(existing.t || '');
+            if (!existing || stubbed || haveRealTitle) {
               EX[eid] = {
                 t: title,
-                vid: exData?.videoLink || '',
-                q: exData?.cues || '',
+                vid: exData?.videoLink || existing?.vid || '',
+                q: exData?.cues || existing?.q || '',
               };
             }
           }
@@ -647,7 +661,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // ===== EXERCISE STEP (single exercise OR grouped superset) =====
   const group = groups[step]; if (!group) return null;
   const isSuperset = group.exIdxs.length > 1 && !!group.superset;
-  const groupExs = group.exIdxs.map(idx => ({ idx, ex: day.ex[idx], d: EX[day.ex[idx].eid] })).filter(g => g.d);
+  // Stub-fill any unresolved entry instead of silently dropping it — a missing
+  // EX[eid] used to make exercises vanish from the day, masquerading as data
+  // loss. Now they render with whatever title we can scrape from the eid so
+  // the athlete sees the slot exists and can still log against it.
+  const groupExs = group.exIdxs.map(idx => {
+    const ex = day.ex[idx];
+    const d = EX[ex.eid] || { t: `Exercise ${idx + 1}`, vid: '', q: '' };
+    return { idx, ex, d };
+  });
   if (groupExs.length === 0) return null;
 
   // Any exercise in the group still uploading?
@@ -1371,7 +1393,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               <div><span style={{fontWeight:700,fontSize:15}}>{day.name}</span>{done && <Bg color={C.gn} style={{fontSize:9,padding:'2px 6px',marginLeft:6}}>✓</Bg>}
                 <div style={{fontSize:11,color:C.tm,marginTop:2}}>{day.ex.length} exercises</div></div>
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 12px',borderRadius:6,border:'none',background:done?C.gnD:C.acD,color:done?C.gn:C.ac,fontFamily:FB,fontSize:11,fontWeight:600,cursor:'pointer'}}>{done?'Again':'📝 Log'}</button></div>
-            {day.ex.map((ex,i) => {const d = EX[ex.eid]; if(!d) return null; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
+            {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
               const focus = weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk+1}`];
               return <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',padding:'4px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
                 <div style={{width:22,height:22,borderRadius:4,background:C.acD,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:10,fontWeight:700,color:C.ac,flexShrink:0}}>{i+1}</div>
