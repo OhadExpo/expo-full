@@ -642,9 +642,9 @@ function TraineeCard({ t, onClick }) {
           </div>
         </div>
       </CardSectionFirst>
-      <FinancialsBlock t={t} />
-      <TrainingBlock t={t} />
-      <BodyweightBlock weight={t.weight} />
+      <FinancialsBlock t={t} center />
+      <TrainingBlock t={t} center />
+      <BodyweightBlock weight={t.weight} center />
     </div>
   );
 }

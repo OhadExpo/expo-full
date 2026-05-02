@@ -449,9 +449,9 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 </div>
               </div>
 
-              <FinancialsBlock pay={pay} monthly={t.monthly} />
-              <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} />
-              <BodyweightBlock entries={bwEntries} />
+              <FinancialsBlock pay={pay} monthly={t.monthly} center />
+              <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} center />
+              <BodyweightBlock entries={bwEntries} center />
 
               {showArchived && <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
