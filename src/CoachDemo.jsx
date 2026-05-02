@@ -735,7 +735,7 @@ function CoupleCard({ t, onClick }) {
           <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
         </div>
         {parsed && (
-          <div style={{ display: 'flex', marginTop: 8 }}>
+          <div style={{ display: 'flex', marginTop: 8, width: '100%', alignSelf: 'stretch' }}>
             {[parsed.a, parsed.b].map((member, mi) => (
               <React.Fragment key={mi}>
                 {mi === 1 && <div style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}

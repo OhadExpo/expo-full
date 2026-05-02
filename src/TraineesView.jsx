@@ -356,7 +356,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                     </div>
                     <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
                   </div>
-                  <div style={{display:'flex',marginTop:8}}>
+                  <div style={{display:'flex',marginTop:8,width:'100%',alignSelf:'stretch'}}>
                     {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
                         {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
