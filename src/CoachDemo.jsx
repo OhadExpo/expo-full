@@ -507,6 +507,49 @@ function MiniBWSparkline({ weight }) {
   );
 }
 
+// Bottom strip shared by both single and couple cards: format · sessions ·
+// programs · ₪/mo · dormant. Lives below the personal-details block so the
+// card reads top-to-bottom as "who they are → their numbers". Singles get
+// it left-aligned; couples get it center-aligned because the metrics here
+// are shared between both members.
+function TraineeMetaStrip({ t, center = false }) {
+  const items = [];
+  items.push(
+    <span key="fmt" style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{t.format}</span>
+  );
+  items.push(
+    <span key="sl" style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{t.sessionsLeft} SESSIONS LEFT</span>
+  );
+  if (!t.isCouple) {
+    items.push(
+      <span key="pr" style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{t.programs} PROGRAMS</span>
+    );
+  }
+  if (t.monthly > 0) {
+    items.push(
+      <span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 600 }}>₪{t.monthly}/MO</span>
+    );
+  }
+  if (t.dormantDays != null) {
+    items.push(
+      <span key="dm" style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700 }}>DORMANT · {t.dormantDays}D</span>
+    );
+  }
+  // Interleave with mid-dot separators for tight rhythm. flexWrap stays on
+  // so narrow cards still wrap cleanly without horizontal overflow.
+  const interleaved = items.flatMap((node, i) => i === 0
+    ? [node]
+    : [<span key={`s${i}`} style={{ color: C.tm, opacity: 0.6, fontSize: 11 }}>·</span>, node]
+  );
+  return (
+    <div style={{
+      display: 'flex', flexWrap: 'wrap', gap: '4px 8px', alignItems: 'center',
+      justifyContent: center ? 'center' : 'flex-start',
+      marginTop: 12, paddingTop: 10, borderTop: `0.25px solid ${C.ac}26`,
+    }}>{interleaved}</div>
+  );
+}
+
 function TraineeCard({ t, onClick }) {
   // Couples render with two member columns separated by a vertical divider —
   // matches the real coach-app TraineeCard layout. Each member gets their
@@ -523,14 +566,19 @@ function TraineeCard({ t, onClick }) {
       onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 8 }}>
+        {/* minWidth:0 lets the email truncate to ellipsis instead of forcing
+            the whole card to grow when an address is too long. */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', gap: 6 }}>
             {t.name}{t.online && <OnlineDot />}
           </div>
-          <div style={{ fontSize: 12, color: C.tm, marginTop: 2 }}>{t.email}</div>
+          <div style={{
+            fontSize: 12, color: C.tm, marginTop: 2,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{t.email}</div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
           <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
           {t.payment === 'OVERDUE'
             ? <Badge color={C.rd}>OVERDUE · 34D</Badge>
@@ -539,29 +587,8 @@ function TraineeCard({ t, onClick }) {
           <FakeWaButton />
         </div>
       </div>
-      <div style={{
-        fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 600,
-        textTransform: 'uppercase', marginTop: 14,
-      }}>{t.format}</div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>
-          {t.sessionsLeft} SESSIONS LEFT
-        </span>
-        <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>
-          {t.programs} PROGRAMS
-        </span>
-        {t.monthly > 0 && (
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 600 }}>
-            ₪{t.monthly}/MO
-          </span>
-        )}
-        {t.dormantDays != null && (
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700 }}>
-            DORMANT · {t.dormantDays}D
-          </span>
-        )}
-      </div>
-      <div style={{ marginTop: 10 }}><MiniBWSparkline weight={t.weight} /></div>
+      <div style={{ marginTop: 4 }}><MiniBWSparkline weight={t.weight} /></div>
+      <TraineeMetaStrip t={t} />
     </div>
   );
 }
@@ -631,9 +658,9 @@ function CoupleCard({ t, onClick }) {
       onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
         <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 14, color: C.tx, flex: 1, minWidth: 0 }}>{t.name}</div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
           <Badge color={t.dormantDays != null ? C.tm : C.gn}>{t.status}</Badge>
           {t.payment === 'OVERDUE'
             ? <Badge color={C.rd}>OVERDUE</Badge>
@@ -648,12 +675,17 @@ function CoupleCard({ t, onClick }) {
               {mi === 1 && <div style={{ width: 1, background: C.bd, margin: '0 12px', alignSelf: 'stretch' }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 13, color: C.tx, flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {member} {parsed.surname}
                   </div>
                   <FakeWaButton />
                 </div>
-                <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>
+                {/* Truncate emails so two long addresses on a narrow card
+                    don't run into each other across the divider. */}
+                <div style={{
+                  fontSize: 11, color: C.tm, marginTop: 2,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
                   {mi === 0 ? 'yael.cohen@example.co.il' : 'idan.cohen@example.co.il'}
                 </div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700, marginTop: 6 }}>
@@ -670,20 +702,7 @@ function CoupleCard({ t, onClick }) {
           ))}
         </div>
       )}
-      <div style={{
-        fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 600,
-        textTransform: 'uppercase', marginTop: 14,
-      }}>{t.format}</div>
-      <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontFamily: FN, fontSize: 11, color: t.sessionsLeft <= 2 ? C.rd : C.gn, fontWeight: 700 }}>
-          {t.sessionsLeft} SESSIONS LEFT
-        </span>
-        {t.monthly > 0 && (
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 600 }}>
-            ₪{t.monthly}/MO
-          </span>
-        )}
-      </div>
+      <TraineeMetaStrip t={t} center />
     </div>
   );
 }
