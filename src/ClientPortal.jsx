@@ -1238,9 +1238,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const bwData = bwLog.filter(b => b.clientId === ci).sort((a,b) => new Date(a.date) - new Date(b.date));
     const existingBw = bwData.find(b => b.week === wk + 1 && b.blockName === activePlan?.name);
     const bwDisplay = bw || (existingBw ? String(existingBw.bw) : '');
-    const maxBw = bwData.length ? Math.max(...bwData.map(b=>b.bw)) : 100;
-    const minBw = bwData.length ? Math.min(...bwData.map(b=>b.bw)) : 50;
-    const range = Math.max(maxBw - minBw, 2);
+    const rawMax = bwData.length ? Math.max(...bwData.map(b=>b.bw)) : 100;
+    const rawMin = bwData.length ? Math.min(...bwData.map(b=>b.bw)) : 50;
+    const pad = Math.max((rawMax - rawMin) * 0.2, 1.5);
+    const maxBw = rawMax + pad;
+    const minBw = rawMin - pad;
+    const range = maxBw - minBw;
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
