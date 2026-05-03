@@ -225,22 +225,22 @@ export default function CoachChat() {
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             fontFamily: FB,
           }}>
-          {/* Header — every child is centered against the parent's centerline
-              via alignItems:center. Logo at 20px to match the visual weight of
-              the 14px icons + 11px label so the row reads as one balanced strip. */}
+          {/* Header — three-zone layout. Logo and button cluster anchor the
+              outer edges via justifyContent:space-between. The label sits in
+              an absolutely-positioned middle layer so it lands on the dialog's
+              true geometric centerline regardless of the side widths. */}
           <div style={{
+            position: 'relative',
             padding: '10px 14px', borderBottom: `1px solid ${C.bd}`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             background: C.sf2, gap: 10, minHeight: 44,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-              <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 20, width: 'auto', display: 'block', flexShrink: 0 }} />
-              <div style={{ width: 1, height: 14, background: C.bd, flexShrink: 0 }} />
-              <span style={{
-                fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.tm,
-                lineHeight: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>ASK ANYTHING.</span>
-            </div>
+            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 20, width: 'auto', display: 'block', flexShrink: 0 }} />
+            <span style={{
+              position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.tm,
+              lineHeight: 1, whiteSpace: 'nowrap', pointerEvents: 'none',
+            }}>ASK ANYTHING.</span>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               {messages.length > 0 && (
                 <button onClick={() => { setMessages([]); setErr(''); setCapturePrompted(false); setCaptureEmail(''); setCaptureState('idle'); setCaptureErr(''); }}
