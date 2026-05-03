@@ -4,11 +4,13 @@
 
 export const DEMO_CLIENT_ID = 'tr_demo';
 
+// Same person who shows up on the coach-side demo roster (CoachDemo.jsx)
+// so the two demos feel like one cohesive tour, not two unrelated personas.
 export const DEMO_TRAINEE = {
   id: 'tr_demo',
-  name: 'Diego Day',
-  email: 'diego@diegoday.com',
-  phone: '+972541234567',
+  name: 'Gal Mizrahi',
+  email: 'gal.mizrahi@example.co.il',
+  phone: '+972526789012',
   age: 32,
   height: 178,
   weight: 78,
