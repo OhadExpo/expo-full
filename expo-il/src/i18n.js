@@ -104,7 +104,7 @@ const STRINGS = {
   'how.04.t':            { en: 'Train',               he: 'תתאמן' },
   'how.04.d': {
     en: 'Log every set on your phone. The program tracks your bodyweight trend, session RPE, and pain check-ins, and surfaces a weekly focus — same engine as my private athletes, no coach DMs in the way.',
-    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומציגה פוקוס שבועי. אותה שיטה כמו של ספורטאים אישיים שלי. בלי לחכות להודעות.',
+    he: 'תרשום כל סט בטלפון. התוכנית עוקבת אחרי משקל הגוף, RPE של כל אימון, ודיווחי כאב — ומציגה פוקוס שבועי. אותה שיטה שאני עובד איתה עם ספורטאים אישיים. בלי לחכות לתשובה ממאמן.',
   },
 
   // (Old in-line how.faq.* keys removed — FAQ now lives in its own section,
@@ -115,7 +115,7 @@ const STRINGS = {
   'inside.h2':           { en: 'Your phone counts the reps. You focus on the lift.', he: 'הטלפון סופר חזרות. אתה מתרכז במשקל.' },
   'inside.body': {
     en: 'Film any set with your phone. The portal runs pose detection on the clip, counts the reps automatically, and lets you compare the new attempt with your last set at the same weight — same engine I use with private athletes, no manual stopwatch.',
-    he: 'תצלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ומאפשר להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה כמו של ספורטאים אישיים. בלי סטופר.',
+    he: 'תצלם כל סט בטלפון. הפורטל מריץ Pose Detection על הקליפ, סופר חזרות אוטומטית, ונותן להשוות בין הסט החדש לסט הקודם באותו משקל. אותה שיטה שאני עובד איתה עם ספורטאים אישיים. בלי לספור עם סטופר.',
   },
 
   // Phone 1 — pose landmarker
@@ -164,7 +164,7 @@ const STRINGS = {
   // own clip — without account, login, or any backend touch.
   'inside.tryCta': {
     en: 'See your own set analysed live →',
-    he: 'ראה את הסט שלך מנותח חי →',
+    he: '← תראה את הסט שלך נבדק חי',
   },
 
   // ─── About the coach ──────────────────────────────────────────────
@@ -172,7 +172,7 @@ const STRINGS = {
   'about.h2':            { en: "I'm Ohad. I've been programming this exact engine for years.", he: 'אני אוהד. שנים שאני בונה את השיטה הזאת.' },
   'about.p1': {
     en: "Athletic Performance Coach at Bnei Herzliya. Spent four years playing American football in the NCAA — CMU, then a couple of college teams in Israel (OUI, TAU). Trained as an athlete first, then started programming for athletes who needed someone who'd done the work.",
-    he: 'מאמן יכולות אתלטיות בבני הרצליה. שיחקתי פוטבול ב-NCAA, ב-CMU. אחרי זה כמה עונות בקבוצות קולג\' בארץ — OUI, TAU. התאמנתי בעצמי קודם. אחרי זה התחלתי לכתוב תוכניות לאתלטים.',
+    he: 'מאמן יכולות אתלטיות בבני הרצליה. שיחקתי פוטבול ב-NCAA ב-CMU, ואחרי זה עוד כמה עונות בקבוצות קולג׳ בארץ — OUI, TAU. הייתי ספורטאי לפני שהייתי מאמן. אחרי זה התחלתי לכתוב תוכניות לאתלטים שצריכים מישהו שעבר את הדרך בעצמו.',
   },
   'about.p2': {
     en: 'Today I work with private athletes out of Herzliya — block-periodised training, progress logged on the phone, video reviewed every week. The portal you see here is the same one they use. I built it myself so I could stop juggling spreadsheets.',
@@ -180,7 +180,7 @@ const STRINGS = {
   },
   'about.p3': {
     en: "EXPO templates exist because I can't take more 1:1 athletes than my schedule allows, but the programming is good enough to deliver as standalone product. Same blocks, same auto-regulation, no waitlist.",
-    he: 'תבניות EXPO קיימות כי אני לא יכול לקחת יותר ספורטאים מכמה שהיום נותן לי. אבל התוכניות עצמן מספיק טובות לעמוד כמוצר עצמאי. אותם בלוקים. אותה אוטו-רגולציה. בלי רשימת המתנה.',
+    he: 'תבניות EXPO קיימות כי היום שלי כבר לא נותן לי לקחת עוד ספורטאים אישיים. אבל התוכניות עצמן טובות מספיק כדי לעמוד כמוצר עצמאי. אותם בלוקים. אותה אוטו-רגולציה. בלי רשימת המתנה.',
   },
 
   // Existing 3-credential strip
@@ -201,12 +201,12 @@ const STRINGS = {
   'about.values.t2':     { en: 'Movement first, load second', he: 'תנועה לפני עומס' },
   'about.values.d2': {
     en: 'Tempo and ROM cues come before percentage charts. If the rep looks ugly, the weight comes off — no negotiation.',
-    he: 'מסרי טמפו וטווח תנועה באים לפני אחוזים. אם החזרה מכוערת, המשקל יורד — בלי משא ומתן.',
+    he: 'טמפו וטווח תנועה באים לפני אחוזים. אם החזרה לא נראית טוב, המשקל יורד — בלי משא ומתן.',
   },
   'about.values.t3':     { en: 'Build for the long run',      he: 'בונים לטווח הארוך' },
   'about.values.d3': {
     en: 'Pain check-ins, deload weeks, and reassess windows are baked into every block. You don\'t get strong by training through dysfunction.',
-    he: 'דיווחי כאב, שבועות דלואד וחלונות הערכה מחדש מובנים בכל בלוק. לא מתחזקים מהתאמנות דרך תפקוד לקוי.',
+    he: 'דיווחי כאב, שבועות דלואד והערכה מחדש מובנים בכל בלוק. לא מתחזקים מאימון דרך כאב או תפקוד לקוי.',
   },
 
   'about.photo.note': {
@@ -219,7 +219,7 @@ const STRINGS = {
   'why.h2':              { en: 'Programmed, without paying for a private coach.', he: 'אימון לפי תוכנית, בלי המחיר של מאמן אישי.' },
   'why.body': {
     en: "Most lifters end up in one of three buckets. Templates are the middle option — almost everything a private athlete gets, at a fraction of the price, with you as the operator.",
-    he: 'רוב המתאמנים מתחלקים לשלוש קטגוריות. תבניות הן האמצע — מקבל כמעט הכל מה שספורטאי אישי מקבל, חלק קטן מהמחיר, רק שאתה זה שמפעיל.',
+    he: 'רוב המתאמנים נופלים באחת משלוש קטגוריות. תבניות הן האמצע — אתה מקבל כמעט הכל שספורטאי אישי מקבל, בשבריר מהמחיר, רק שאתה מפעיל את התוכנית בעצמך.',
   },
 
   // Column headers
@@ -314,9 +314,9 @@ const STRINGS = {
   'notfound.h2':         { en: "That program doesn't exist (yet).", he: 'התוכנית הזאת לא קיימת. עדיין.' },
   'notfound.body': {
     en: "The link you followed points at a program that was renamed or hasn't been published yet. Head back to the catalog to see what's available right now.",
-    he: 'הקישור שלחצת מוביל לתוכנית ששינתה שם או שעוד לא פורסמה. חזור לקטלוג ותראה מה זמין כרגע.',
+    he: 'הקישור שלחצת מוביל לתוכנית ששינתה שם או שעוד לא פורסמה. תחזור לקטלוג ותראה מה זמין עכשיו.',
   },
-  'notfound.cta':        { en: '← BACK TO CATALOG',  he: 'חזור לקטלוג →' },
+  'notfound.cta':        { en: '← BACK TO CATALOG',  he: 'חזרה לקטלוג →' },
 
   // ─── Buy on WhatsApp prefill (program-specific) ───────────────────
   'wa.buy.tmpl': {
@@ -349,7 +349,7 @@ const STRINGS = {
   'trust.refund.t':   { en: '7-day refund',          he: 'החזר תוך 7 ימים' },
   'trust.refund.s':   { en: 'If it is not what you expected and you logged at most one session, full refund — no friction.', he: 'אם זה לא מה שציפית ולא רשמת יותר מאימון אחד — החזר מלא, בלי שאלות.' },
   'trust.he.t':       { en: 'Hebrew support',        he: 'תמיכה בעברית' },
-  'trust.he.s':       { en: 'WhatsApp answered in Hebrew, same day, by me.', he: 'וואטסאפ בעברית, אותו יום, אישי על ידי.' },
+  'trust.he.s':       { en: 'WhatsApp answered in Hebrew, same day, by me.', he: 'וואטסאפ בעברית, אותו יום, ממני אישית.' },
 
   // ─── FAQ section (8 questions, dedicated) ─────────────────────────
   'faq.badge':        { en: 'QUESTIONS BEFORE BUYING', he: 'שאלות לפני שקונים' },
@@ -404,21 +404,21 @@ const STRINGS = {
   'quiz.h2':          { en: 'Six questions. Get matched.', he: 'שש שאלות. תקבל התאמה.' },
   'quiz.body': {
     en: "I built this from the same intake form I use with private athletes — just shorter. Takes about a minute. The full assessment lives behind it for when you are ready.",
-    he: 'בניתי את זה מאותו טופס היכרות שאני משתמש בו עם ספורטאים אישיים — רק קצר יותר. דקה. ההערכה המלאה ממתינה מאחור לכשתהיה מוכן.',
+    he: 'בניתי את זה מאותו טופס היכרות שאני עובד איתו עם ספורטאים אישיים — רק קצר יותר. דקה. ההערכה המלאה מחכה מאחורה לכשתרצה.',
   },
-  'quiz.cta':         { en: 'START QUIZ →',          he: '← התחל קווויז' },
-  'quiz.modal.title': { en: 'Find your program',     he: 'מצא לך תוכנית' },
+  'quiz.cta':         { en: 'START QUIZ →',          he: '← תתחיל קוויז' },
+  'quiz.modal.title': { en: 'Find your program',     he: 'תמצא לך תוכנית' },
   'quiz.modal.close': { en: 'Close',                 he: 'סגירה' },
   'quiz.step.tmpl':   { en: 'STEP {n} OF {total}',   he: 'שלב {n} מתוך {total}' },
   'quiz.next':        { en: 'NEXT →',                he: '← הבא' },
-  'quiz.back':        { en: '← BACK',                he: 'חזור →' },
-  'quiz.see':         { en: 'SEE MY MATCHES →',      he: '← הצג התאמות' },
-  'quiz.restart':     { en: '↺ RESTART',             he: '↺ התחל מחדש' },
+  'quiz.back':        { en: '← BACK',                he: 'חזרה →' },
+  'quiz.see':         { en: 'SEE MY MATCHES →',      he: '← תראה התאמות' },
+  'quiz.restart':     { en: '↺ RESTART',             he: '↺ התחלה מחדש' },
 
   // Q1 — couple
   'quiz.q1':          { en: 'Are you buying for one person or for two?', he: 'אתה קונה ליחיד או לשניים?' },
   'quiz.q1.solo':     { en: 'Just me',               he: 'רק אני' },
-  'quiz.q1.couple':   { en: 'Two of us, same gym',   he: 'שניים, אותה חדר כושר' },
+  'quiz.q1.couple':   { en: 'Two of us, same gym',   he: 'שניים, אותו חדר כושר' },
 
   // Q2 — first-timer
   'quiz.q2':          { en: 'Have you trained in a gym before?', he: 'התאמנת בעבר בחדר כושר?' },
@@ -464,15 +464,15 @@ const STRINGS = {
     en: "Nothing matches your filters cleanly — your case looks specific. Message me on WhatsApp and I'll match you to the right block manually (or build a custom one).",
     he: 'אין התאמה נקייה לפי הסינון שלך — נראה שהמקרה שלך ספציפי. תכתוב לי בוואטסאפ ואני אכוון אותך ידנית לבלוק הנכון (או אבנה מותאם).',
   },
-  'quiz.r.fit.high':   { en: 'BEST MATCH',           he: 'ההתאמה הטובה ביותר' },
+  'quiz.r.fit.high':   { en: 'BEST MATCH',           he: 'ההתאמה הכי טובה' },
   'quiz.r.fit.med':    { en: 'ALSO WORKS',           he: 'גם מתאים' },
   'quiz.r.full.h':     { en: 'Want me to look at this personally?', he: 'רוצה שאני אסתכל על זה אישית?' },
   'quiz.r.full.body': {
     en: 'The full intake form is the same one I use with private athletes — body history, sleep, stress, training history, goals. Fills in 6 minutes. After you submit it I will reply with a personalised recommendation.',
-    he: 'טופס ההיכרות המלא זה אותו אחד שאני עובד איתו עם ספורטאים אישיים — היסטוריה גופנית, שינה, לחץ, ניסיון אימוני, מטרות. ממלאים תוך 6 דקות. אחרי שאתה שולח אני חוזר עם המלצה אישית.',
+    he: 'טופס ההיכרות המלא הוא אותו אחד שאני עובד איתו עם ספורטאים אישיים — היסטוריה גופנית, שינה, לחץ, ניסיון אימוני, מטרות. ממלאים תוך 6 דקות. אחרי שאתה שולח אני חוזר עם המלצה אישית.',
   },
-  'quiz.r.full.cta':   { en: 'OPEN FULL ASSESSMENT →', he: '← פתח טופס מלא' },
-  'quiz.r.wa.cta':     { en: 'OR ASK ON WHATSAPP →', he: '← או שאל בוואטסאפ' },
+  'quiz.r.full.cta':   { en: 'OPEN FULL ASSESSMENT →', he: '← תפתח את הטופס המלא' },
+  'quiz.r.wa.cta':     { en: 'OR ASK ON WHATSAPP →', he: '← או תכתוב בוואטסאפ' },
 
   // ─── Exit-intent / scroll-50% modal ───────────────────────────────
   'exit.title':       { en: 'Before you go —',      he: 'לפני שאתה הולך —' },
@@ -484,18 +484,18 @@ const STRINGS = {
   'exit.close':       { en: 'Close',                he: 'סגירה' },
 
   // ─── Interactive demo modals (clickable PhoneFrame) ───────────────
-  'demo.tap':         { en: '↗ TAP TO TRY',         he: '↗ לחץ לנסות' },
-  'demo.close':       { en: 'Close demo',           he: 'סגור הדגמה' },
+  'demo.tap':         { en: '↗ TAP TO TRY',         he: '↗ לחיצה לניסוי' },
+  'demo.close':       { en: 'Close demo',           he: 'סגירת הדגמה' },
   'demo.pose.h':      { en: 'Pose detection · interactive', he: 'זיהוי תנוחה · אינטראקטיבי' },
   'demo.pose.body': {
     en: 'Drag the slider to scrub through the squat — knee + hip angles update in real time, same as the portal does on a real clip.',
-    he: 'גרור את הסליידר כדי לעבור לאורך הסקוואט — זוויות הברך והירך מתעדכנות בזמן אמת, בדיוק כמו שהפורטל עושה על קליפ אמיתי.',
+    he: 'תגרור את הסליידר כדי לעבור לאורך הסקוואט — זוויות הברך והירך מתעדכנות בזמן אמת, בדיוק כמו שהפורטל עושה על קליפ אמיתי.',
   },
   'demo.pose.scrub':  { en: 'SQUAT PHASE',          he: 'שלב הסקוואט' },
   'demo.rep.h':       { en: 'Rep counter · interactive', he: 'ספירת חזרות · אינטראקטיבי' },
   'demo.rep.body': {
     en: "Tap the bar to add a rep. The path lights a trough at each tap — that's exactly how the portal counts off your real video.",
-    he: 'לחץ על הסרגל להוסיף חזרה. המסלול מאיר ירידה בכל לחיצה — בדיוק ככה הפורטל סופר על הסרטון האמיתי שלך.',
+    he: 'תלחץ על הסרגל להוסיף חזרה. המסלול מאיר ירידה בכל לחיצה — בדיוק ככה הפורטל סופר על הסרטון האמיתי שלך.',
   },
   'demo.rep.reset':   { en: '↺ RESET',              he: '↺ אפס' },
   'demo.cmp.h':       { en: 'Side-by-side · interactive', he: 'השוואה צד-לצד · אינטראקטיבי' },

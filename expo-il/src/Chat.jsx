@@ -17,13 +17,13 @@ const SUGGESTIONS_EN = [
 ];
 const SUGGESTIONS_HE = [
   "איזו תוכנית מתאימה לי?",
-  "האם אני צריך חדר כושר?",
+  "אני צריך חדר כושר?",
   "כמה זמן כל אימון?",
-  "האם אפשר אימון מרחוק?",
+  "אפשר להתאמן מרחוק?",
 ];
 
 const CAPTURE_PROMPT_EN = "Want me to put you in touch? Drop your email and Ohad will reach out — or keep asking questions.";
-const CAPTURE_PROMPT_HE = "להעביר את הפרטים שלך לאוהד? השאר אימייל ונחזור אליך — או המשך לשאול שאלות.";
+const CAPTURE_PROMPT_HE = "רוצה שאעביר את הפרטים לאוהד? תשאיר אימייל והוא יחזור אליך — או תמשיך לשאול שאלות.";
 
 function detectLang() {
   if (typeof document === 'undefined') return 'en';
@@ -85,7 +85,7 @@ export default function Chat() {
     const trimmed = captureEmail.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
       setCaptureState('error');
-      setCaptureErr(isHe ? 'הזן אימייל תקין' : 'Enter a valid email');
+      setCaptureErr(isHe ? 'תכניס אימייל תקין' : 'Enter a valid email');
       return;
     }
     setCaptureState('sending'); setCaptureErr('');
@@ -125,7 +125,7 @@ export default function Chat() {
       setCaptureState('done');
     } catch {
       setCaptureState('error');
-      setCaptureErr(isHe ? 'משהו השתבש. נסה שוב.' : 'Something went wrong. Try again.');
+      setCaptureErr(isHe ? 'משהו השתבש. תנסה שוב.' : 'Something went wrong. Try again.');
     }
   };
 
@@ -146,7 +146,7 @@ export default function Chat() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setErr(data?.error || (isHe ? 'משהו השתבש. נסה שוב.' : 'Something went wrong. Try again.'));
+        setErr(data?.error || (isHe ? 'משהו השתבש. תנסה שוב.' : 'Something went wrong. Try again.'));
         setSending(false); return;
       }
       const ct = res.headers.get('content-type') || '';
@@ -188,7 +188,7 @@ export default function Chat() {
         }
       }
     } catch {
-      setErr(isHe ? 'אין חיבור. נסה שוב.' : 'No connection. Try again.');
+      setErr(isHe ? 'אין חיבור. תנסה שוב.' : 'No connection. Try again.');
     } finally {
       setSending(false);
     }
@@ -256,7 +256,7 @@ export default function Chat() {
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               {messages.length > 0 && (
                 <button onClick={() => { setMessages([]); setErr(''); setCapturePrompted(false); setCaptureEmail(''); setCaptureState('idle'); setCaptureErr(''); }}
-                  aria-label={isHe ? 'התחל שיחה חדשה' : 'Start a new conversation'} title={isHe ? 'התחל שיחה חדשה' : 'Start a new conversation'}
+                  aria-label={isHe ? 'התחלת שיחה חדשה' : 'Start a new conversation'} title={isHe ? 'התחלת שיחה חדשה' : 'Start a new conversation'}
                   style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', lineHeight: 0, padding: 0, borderRadius: 6, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
                 </button>
@@ -279,7 +279,7 @@ export default function Chat() {
                 padding: '12px 14px',
               }}>
                 {isHe
-                  ? 'היי — אני עונה על שאלות בסיסיות על התוכניות, המחירים וההצעות. לפרטים אישיים — מלא את הטופס ואוהד יחזור אליך.'
+                  ? 'היי — אני עונה על שאלות בסיסיות על התוכניות, המחירים וההצעות. לפרטים אישיים — תמלא את הטופס ואוהד יחזור אליך.'
                   : "Hey — I can answer basic questions about Ohad's programs, pricing, and what's included. For anything personal, drop your email below."}
               </div>
             )}
