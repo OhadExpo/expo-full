@@ -647,9 +647,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           const tName = traineeMap[p.traineeId] || "Unassigned";
           return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px'}}
             onMouseEnter={e => {
+              const rect = e.currentTarget.getBoundingClientRect();
               clearTimeout(hoverTimerRef.current);
               hoverTimerRef.current = setTimeout(() => {
-                setHoverRect(e.currentTarget.getBoundingClientRect());
+                setHoverRect(rect);
                 loadPreviewPlan(p.id);
               }, 220);
             }}
