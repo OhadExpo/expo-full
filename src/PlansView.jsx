@@ -518,11 +518,14 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
 
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
+  const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
   const [editMode, setEditMode] = useState(false);
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterTrainee, setFilterTrainee] = useState("");
+  const [hoverRect, setHoverRect] = useState(null);
+  const hoverTimerRef = useRef(null);
   // Sort: field is 'name' | 'created' | 'updated'; dir is 'asc' | 'desc'.
   // Default 'created desc' matches the old creation-order-newest-first list.
   const [sortField, setSortField] = useState('created');
@@ -642,7 +645,19 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       {filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
         <div style={{display:"grid",gap:6}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
-          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px'}}>
+          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px'}}
+            onMouseEnter={e => {
+              clearTimeout(hoverTimerRef.current);
+              hoverTimerRef.current = setTimeout(() => {
+                setHoverRect(e.currentTarget.getBoundingClientRect());
+                loadPreviewPlan(p.id);
+              }, 220);
+            }}
+            onMouseLeave={() => {
+              clearTimeout(hoverTimerRef.current);
+              setHoverRect(null);
+              clearPreviewPlan();
+            }}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
               <div style={{minWidth:0,flex:1,direction:'ltr',unicodeBidi:'isolate',display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                 <div style={{fontWeight:700,fontSize:16,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.01em',flexShrink:0}}><bdi>{tName}</bdi></div>
@@ -655,6 +670,36 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>)}
+      {/* Hover preview popover */}
+      {previewPlan && hoverRect && (() => {
+        const GAP = 12;
+        const PW = 320;
+        const spaceRight = window.innerWidth - hoverRect.right - GAP;
+        const left = spaceRight >= PW ? hoverRect.right + GAP : hoverRect.left - PW - GAP;
+        const top = Math.min(hoverRect.top + window.scrollY, window.innerHeight - 20);
+        return (
+          <div style={{position:'fixed',zIndex:900,top:hoverRect.top,left:Math.max(8,left),width:PW,background:C.bg,border:`1px solid ${C.ac}60`,borderRadius:0,padding:16,pointerEvents:'none',boxShadow:'0 8px 32px rgba(0,0,0,0.7)'}}>
+            <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:C.ac,letterSpacing:'0.04em',marginBottom:2}}>{previewPlan.name||"Untitled"}</div>
+            <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:12}}>{previewPlan.days.length} DAYS · {previewPlan.days.reduce((n,d)=>n+d.exercises.length,0)} EX{previewPlan.phase?` · ${previewPlan.phase}`:''}</div>
+            {previewPlan.days.map((d,di) => (
+              <div key={d.id} style={{marginBottom:10}}>
+                <div style={{fontFamily:FN,fontSize:10,fontWeight:700,color:C.tx,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>{d.name}</div>
+                {d.exercises.slice(0,8).map((pe,ei) => {
+                  const ex = exercises.find(e=>e.id===pe.exerciseId);
+                  const title = ex?.title || pe.title || '—';
+                  return (
+                    <div key={pe.id||ei} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'2px 0',borderBottom:`0.25px solid ${C.ac}1A`}}>
+                      <span style={{fontSize:11,color:C.tm,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ei+1}. {title}</span>
+                      <span style={{fontSize:10,fontFamily:FN,color:C.ac,flexShrink:0,marginLeft:8}}>{pe.sets}×{pe.reps}</span>
+                    </div>
+                  );
+                })}
+                {d.exercises.length > 8 && <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:3}}>+{d.exercises.length-8} more</div>}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       <ConfirmDialog open={!!confirmDelete} title="Delete Program?" message="Existing workouts will remain." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)} />
     </div>);
 }
