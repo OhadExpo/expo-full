@@ -9,13 +9,162 @@
 //
 // No checkout, no signup, no multi-tenancy yet — this is a waitlist page.
 // Stripe + the trainers table get built once the waitlist proves demand.
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
 import CoachChat from './CoachChat';
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+
+// Inline i18n. The page is mounted at /demo (English default) and /he/demo
+// (Hebrew). Translations are natural Israeli "dugri" — direct, practical,
+// no marketing fluff or formal/literary phrasing. Add a key under both
+// languages or `t()` returns the key string back.
+const STRINGS = {
+  // Header
+  'header.badge':        { en: 'FOR COACHES',          he: 'למאמנים' },
+  'header.demo':         { en: 'SEE THE DEMO',         he: 'צפה בהדגמה' },
+  'header.signin':       { en: 'SIGN IN →',            he: '← התחברות' },
+
+  // Hero
+  'hero.badge':          { en: '· COACHING PLATFORM',  he: '· פלטפורמת אימון' },
+  'hero.h1':             { en: 'Run your roster on the same engine your clients film with.', he: 'נהל את כל המתאמנים שלך עם אותו מנוע שהם מצלמים איתו.' },
+  'hero.body': {
+    en: 'Pose detection, auto rep counter, side-by-side video review, plan authoring, client portals, and a dormant-client WhatsApp nudge — built by a working coach, running live on real clients.',
+    he: 'זיהוי תנוחה, ספירת חזרות אוטומטית, השוואת וידאו צד-לצד, כתיבת תוכניות, פורטל לכל מתאמן, ותזכורת וואטסאפ למתאמנים שנעלמו — בנוי על ידי מאמן פעיל, רץ חי על מתאמנים אמיתיים.',
+  },
+  'hero.cta.coach':      { en: 'SEE COACH VIEW →',     he: '← תצוגת מאמן' },
+  'hero.cta.athlete':    { en: 'SEE ATHLETE VIEW →',   he: '← תצוגת מתאמן' },
+  'hero.cta.waitlist':   { en: 'OR JOIN WAITLIST',     he: 'או הצטרף לרשימה' },
+  'hero.smallprint':     { en: 'NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP', he: 'בלי כרטיס · בלי הרשמה · ההדגמה רצה על הקליפ שלך' },
+
+  // Live demo
+  'demo.badge':          { en: 'LIVE · NOT A SCREENSHOT', he: 'חי · לא צילום מסך' },
+  'demo.h2':             { en: 'Upload a clip. Watch the engine work.', he: 'העלה קליפ. תראה את המנוע בפעולה.' },
+  'demo.body': {
+    en: 'The full engine, running below — same code your clients film with. For the deeper tour (dashboard, plan editor, review tool), open the full coach demo in a new tab.',
+    he: 'המנוע המלא, רץ למטה — אותו קוד שהמתאמנים שלך מצלמים איתו. לסיור עמוק יותר (דשבורד, עורך תוכניות, כלי בקרה) — פתח את הדגמת המאמן המלאה.',
+  },
+  'demo.embed.loading':  { en: 'LOADING ENGINE…',      he: 'טוען מנוע…' },
+  'demo.embed.modelfoot':{ en: 'POSE MODEL · ~6MB · FIRST LOAD ONLY', he: 'מודל תנוחה · ~6MB · טעינה ראשונה בלבד' },
+  'demo.embed.openCoach':{ en: 'OPEN THE FULL COACH DEMO →', he: '← פתח הדגמת מאמן מלאה' },
+  'demo.embed.openAthlete':{ en: 'OPEN THE ATHLETE VIEW →', he: '← פתח תצוגת מתאמן' },
+
+  // Features
+  'features.badge':      { en: 'WHAT YOU GET',         he: 'מה אתה מקבל' },
+  'features.h2':         { en: 'The whole stack — not just video review.', he: 'הסטאק המלא — לא רק בקרת וידאו.' },
+  'feat.video.tag':      { en: 'VIDEO ENGINE',         he: 'מנוע וידאו' },
+  'feat.video.title':    { en: 'Pose + auto rep counter', he: 'זיהוי תנוחה + ספירת חזרות' },
+  'feat.video.body': {
+    en: 'MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side.',
+    he: 'נקודות תנוחה של MediaPipe נמדדות בזמן אמת. חזרות נספרות לפי ירידות בזווית המפרק — סקוואט / הינג׳ / פרס / פול מנותבים אוטומטית לערוץ הנכון. השווה שני קליפים צד-לצד.',
+  },
+  'feat.prog.tag':       { en: 'PROGRAMMING',          he: 'תכנון אימונים' },
+  'feat.prog.title':     { en: 'Block-based plan authoring', he: 'כתיבת תוכניות בבלוקים' },
+  'feat.prog.body': {
+    en: 'Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Bulk import from xlsx.',
+    he: 'בונה שלבי אימון כבלוקים מוגדרים. רשימות תרגילים יום-יום עם סטים, חזרות, טמפו, קישורי וידאו, סופרסטים, לוגי גלים שבוע אחרי שבוע. ייבוא בכמות מ-xlsx.',
+  },
+  'feat.portal.tag':     { en: 'ATHLETE PORTAL',       he: 'פורטל מתאמן' },
+  'feat.portal.title':   { en: 'Branded portal per athlete', he: 'פורטל ממותג לכל מתאמן' },
+  'feat.portal.body': {
+    en: 'Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in.',
+    he: 'כל מתאמן מתחבר לתצוגת אימון עם התוכנית שלו, בקרות וידאו, ופידבק. זוגות חולקים כרטיס זוגי. רישום משקל גוף + אימונים בנוי פנימה.',
+  },
+  'feat.ops.tag':        { en: 'OPS',                  he: 'ניהול' },
+  'feat.ops.title':      { en: 'Dormant nudges via WhatsApp', he: 'תזכורות וואטסאפ למתאמנים שנעלמו' },
+  'feat.ops.body': {
+    en: "Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record.",
+    he: 'הדשבורד מציג מתאמנים שלא התאמנו N ימים. לחיצה אחת פותחת וואטסאפ עם הודעת צ׳ק-אין מוכנה בעברית או באנגלית — מספרי הטלפון נשארים בכרטיס המתאמן.',
+  },
+  'feat.review.tag':     { en: 'REVIEW',               he: 'בקרה' },
+  'feat.review.title':   { en: 'Per-rep video review', he: 'בקרת וידאו פר-חזרה' },
+  'feat.review.body': {
+    en: 'Pause on any frame, draw on the video, leave timestamped voice + text comments. The athlete sees the review from the same portal — no email back-and-forth.',
+    he: 'עצור בכל פריים, צייר על הוידאו, השאר הערות קוליות + טקסט עם תזמון. המתאמן רואה את הבקרה מאותו פורטל — בלי תכתובת מיילים.',
+  },
+  'feat.export.tag':     { en: 'NO LOCK-IN',           he: 'בלי מלכודת' },
+  'feat.export.title':   { en: 'Your data, your rules', he: 'הנתונים שלך, לפי הכללים שלך' },
+  'feat.export.body': {
+    en: 'Export every plan, exercise, and workout log to xlsx anytime. Bring your existing exercise library — xlsx, sheets, or whatever export your previous app gave you, bulk import is part of onboarding.',
+    he: 'ייצוא של כל תוכנית, תרגיל, ולוג אימון ל-xlsx בכל רגע. להביא איתך את ספריית התרגילים הקיימת — xlsx, גוגל שיטס, או כל פורמט שהאפליקציה הקודמת נתנה — ייבוא בכמות הוא חלק מההצטרפות.',
+  },
+
+  // About
+  'about.badge':         { en: 'WHO BUILDS IT',        he: 'מי בונה את זה' },
+  'about.h2':            { en: 'Built by a working coach for working coaches.', he: 'נבנה על ידי מאמן פעיל למאמנים פעילים.' },
+  'about.body': {
+    en: "I'm Ohad. I run my own roster on this exact platform — every line of it exists because I needed it on a Tuesday morning between sessions. Nothing in here is theoretical. If a feature doesn't survive contact with real clients, it gets cut.",
+    he: 'אני אוהד. אני מנהל את הרוסטר שלי על אותה פלטפורמה בדיוק — כל שורת קוד פה קיימת כי הייתי צריך אותה ביום שלישי בבוקר בין אימונים. שום דבר פה לא תיאורטי. אם פיצ׳ר לא שורד מגע עם מתאמנים אמיתיים — הוא יוצא.',
+  },
+
+  // Pricing
+  'pricing.badge':       { en: 'FOUNDING-COACH PRICING', he: 'מחירי מאמן מייסד' },
+  'pricing.h2':          { en: 'Pick the slot count that fits your roster.', he: 'תבחר את כמות הסלוטים שמתאימה לרוסטר שלך.' },
+  'pricing.body': {
+    en: 'Per-coach, flat monthly — no per-client fees, no transaction cuts. Numbers below are indicative; founding-coach pricing gets locked one tier lower on a 20-minute intake call before your account opens.',
+    he: 'לכל מאמן, מחיר חודשי קבוע — בלי עמלה על מתאמן, בלי אחוזים מעסקאות. המספרים למטה אינדיקטיביים; מחיר מאמן מייסד נסגר טייר אחד נמוך יותר בשיחת היכרות של 20 דקות לפני שהחשבון נפתח.',
+  },
+  'pricing.note':        { en: "NO CARD NOW · WAITLIST ONLY · I'LL REACH OUT TO LOCK PRICING", he: 'בלי כרטיס עכשיו · רק רשימת המתנה · אני אצור קשר לסגירת מחיר' },
+  'pricing.popular':     { en: 'MOST POPULAR',         he: 'הכי פופולרי' },
+
+  'tier.starter.name':   { en: 'STARTER',              he: 'בייסיק' },
+  'tier.starter.slots':  { en: 'Up to 10 active clients', he: 'עד 10 מתאמנים פעילים' },
+  'tier.starter.f1':     { en: 'Full video review engine', he: 'מנוע בקרת וידאו מלא' },
+  'tier.starter.f2':     { en: 'Plan authoring + xlsx import', he: 'כתיבת תוכניות + ייבוא מ-xlsx' },
+  'tier.starter.f3':     { en: 'Athlete portals + couple cards', he: 'פורטל מתאמנים + כרטיסי זוגות' },
+  'tier.starter.f4':     { en: 'Dormant-WhatsApp nudges', he: 'תזכורות וואטסאפ למתאמנים שנעלמו' },
+
+  'tier.growth.name':    { en: 'GROWTH',               he: 'צמיחה' },
+  'tier.growth.slots':   { en: 'Up to 30 active clients', he: 'עד 30 מתאמנים פעילים' },
+  'tier.growth.f1':      { en: 'Everything in Starter', he: 'כל מה שב-בייסיק' },
+  'tier.growth.f2':      { en: 'Bulk plan duplication across clients', he: 'שכפול תוכניות בכמות בין מתאמנים' },
+  'tier.growth.f3':      { en: 'Bodyweight + session payment tracking', he: 'מעקב משקל גוף + תשלומי אימונים' },
+  'tier.growth.f4':      { en: 'Priority email support', he: 'תמיכת מייל עדיפה' },
+
+  'tier.founding.name':  { en: 'FOUNDING PARTNER',     he: 'שותף מייסד' },
+  'tier.founding.slots': { en: 'Unlimited clients · roadmap influence', he: 'מתאמנים ללא הגבלה · השפעה על המפת דרכים' },
+  'tier.founding.f1':    { en: 'Everything in Growth', he: 'כל מה שב-צמיחה' },
+  'tier.founding.f2':    { en: 'Direct line for product requests + roadmap input', he: 'קו ישיר לבקשות מוצר + השפעה על המפת דרכים' },
+  'tier.founding.f3':    { en: 'Quarterly product strategy call', he: 'שיחת אסטרטגיית מוצר אחת לרבעון' },
+  'tier.founding.f4':    { en: 'First access to features as they ship', he: 'גישה ראשונה לפיצ׳רים ברגע שמשוחררים' },
+
+  'tier.cta.waitlist':   { en: 'JOIN WAITLIST',        he: 'הצטרף לרשימה' },
+  'tier.priceSub':       { en: '/ MONTH',              he: '/ חודש' },
+
+  // Waitlist CTA
+  'wl.badge':            { en: 'FOUNDING COACH WAITLIST', he: 'רשימת מאמנים מייסדים' },
+  'wl.h2':               { en: 'Get early access at founding-coach pricing.', he: 'גישה מוקדמת במחירי מאמן מייסד.' },
+  'wl.body': {
+    en: "Multi-coach access opens slot-by-slot. Drop your email — I'll reach out personally when it's your turn. No card. No commitment.",
+    he: 'הגישה למאמנים נפתחת סלוט-סלוט. השאר אימייל — אני אחזור אליך אישית כשיגיע התור שלך. בלי כרטיס. בלי מחויבות.',
+  },
+  'wl.placeholder':      { en: 'your@email.com',       he: 'your@email.com' },
+  'wl.cta':              { en: 'JOIN WAITLIST',        he: 'הצטרף' },
+  'wl.err.email':        { en: 'Enter a valid email',  he: 'הזן אימייל תקין' },
+  'wl.err.network':      { en: 'Something went wrong. Try again in a minute.', he: 'משהו השתבש. נסה שוב עוד רגע.' },
+  'wl.done':             { en: "✓ YOU'RE ON THE LIST. I'LL EMAIL YOU AS COACH SLOTS OPEN.", he: '✓ אתה ברשימה. אני אשלח לך מייל כשייפתח סלוט מאמן.' },
+
+  // Sticky mobile + footer
+  'sticky.engine':       { en: 'TRY THE ENGINE',       he: 'נסה את המנוע' },
+  'sticky.waitlist':     { en: 'WAITLIST →',           he: '← רשימה' },
+  'footer.line':         { en: '· COACHING PLATFORM · BUILT IN TEL AVIV · © {year} ALL RIGHTS RESERVED', he: '· פלטפורמת אימון · נבנה בתל אביב · © {year} כל הזכויות שמורות' },
+  'footer.demo':         { en: 'DEMO',                 he: 'הדגמה' },
+  'footer.signin':       { en: 'SIGN IN',              he: 'התחברות' },
+
+  // <title>
+  'doc.title':           { en: 'EXPO · Coaching Platform', he: 'EXPO · פלטפורמת אימון' },
+};
+
+function makeT(lang) {
+  return (key, vars) => {
+    const e = STRINGS[key];
+    let s = e?.[lang] ?? e?.en ?? key;
+    if (vars) s = s.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`));
+    return s;
+  };
+}
 
 const baseBtn = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -25,7 +174,7 @@ const baseBtn = {
   textDecoration: 'none',
 };
 
-function WaitlistForm() {
+function WaitlistForm({ t }) {
   const [email, setEmail] = useState('');
   const [state, setState] = useState('idle'); // idle | sending | done | error
   const [err, setErr] = useState('');
@@ -34,7 +183,7 @@ function WaitlistForm() {
     if (state === 'sending' || state === 'done') return;
     const trimmed = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setState('error'); setErr('Enter a valid email'); return;
+      setState('error'); setErr(t('wl.err.email')); return;
     }
     setState('sending'); setErr('');
     try {
@@ -62,7 +211,7 @@ function WaitlistForm() {
       setState('done');
     } catch (e2) {
       console.error('Waitlist submit failed:', e2);
-      setState('error'); setErr('Something went wrong. Try again in a minute.');
+      setState('error'); setErr(t('wl.err.network'));
     }
   };
   if (state === 'done') {
@@ -72,7 +221,7 @@ function WaitlistForm() {
         padding: '14px 20px', border: `1px solid ${C.gn}40`, borderRadius: 10,
         textAlign: 'center', maxWidth: 460, margin: '0 auto',
       }}>
-        ✓ YOU'RE ON THE LIST. I'LL EMAIL YOU AS COACH SLOTS OPEN.
+        {t('wl.done')}
       </div>
     );
   }
@@ -84,7 +233,7 @@ function WaitlistForm() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <input type="email" autoComplete="email" value={email}
           onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
-          placeholder="your@email.com"
+          placeholder={t('wl.placeholder')}
           style={{
             background: C.sf, border: `1px solid ${C.bd2}`,
             borderRadius: 8, padding: '12px 14px', color: C.tx,
@@ -96,7 +245,7 @@ function WaitlistForm() {
           background: state === 'sending' ? C.bd : C.ac,
           color: state === 'sending' ? C.tm : '#000',
           padding: '12px 20px',
-        }}>{state === 'sending' ? '…' : 'JOIN WAITLIST'}</button>
+        }}>{state === 'sending' ? '…' : t('wl.cta')}</button>
       </div>
       {state === 'error' && (
         <div style={{
@@ -113,7 +262,7 @@ function WaitlistForm() {
 // engine — they click out to /try or /demo via the buttons under the embed.
 // embed=1 strips TrySandbox's own header/footer so the engine slots cleanly
 // inside the marketing page.
-function DemoEmbed() {
+function DemoEmbed({ t }) {
   const [loaded, setLoaded] = useState(false);
   return (
     <div>
@@ -142,8 +291,8 @@ function DemoEmbed() {
               border: `2px solid ${C.bd}`, borderTopColor: C.ac,
               animation: 'cl-spin 0.9s linear infinite',
             }} />
-            <div>LOADING ENGINE…</div>
-            <div style={{ fontSize: 9, color: C.td, letterSpacing: 1.5 }}>POSE MODEL · ~6MB · FIRST LOAD ONLY</div>
+            <div>{t('demo.embed.loading')}</div>
+            <div style={{ fontSize: 9, color: C.td, letterSpacing: 1.5 }}>{t('demo.embed.modelfoot')}</div>
           </div>
         )}
         <iframe src="/demo/trainee?embed=1" title="EXPO live engine"
@@ -159,30 +308,30 @@ function DemoEmbed() {
       }}>
         <a href="/demo/coach" target="_blank" rel="noopener" style={{
           ...baseBtn, background: C.ac, color: '#000', padding: '11px 22px', fontSize: 12,
-        }}>OPEN THE FULL COACH DEMO →</a>
+        }}>{t('demo.embed.openCoach')}</a>
         <a href="/demo/trainee" target="_blank" rel="noopener" style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
-        }}>OPEN THE ATHLETE VIEW →</a>
+        }}>{t('demo.embed.openAthlete')}</a>
       </div>
     </div>
   );
 }
 
-function PricingTier({ name, slots, popular, features, cta, price, priceSub }) {
+function PricingTier({ name, slots, popular, features, cta, price, priceSub, popularLabel, isHe }) {
   return (
     <div style={{
       background: popular ? `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)` : C.sf,
       border: popular ? `1px solid rgba(57,189,255,0.40)` : `1px solid ${C.bd}`,
-      borderRadius: 14, padding: '24px 20px', textAlign: 'left',
+      borderRadius: 14, padding: '24px 20px', textAlign: isHe ? 'right' : 'left',
       position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 360,
     }}>
       {popular && (
         <div style={{
-          position: 'absolute', top: -10, right: 14,
+          position: 'absolute', top: -10, [isHe ? 'left' : 'right']: 14,
           fontFamily: FN, fontSize: 9, color: '#000', background: C.ac,
           letterSpacing: 1.5, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
-        }}>MOST POPULAR</div>
+        }}>{popularLabel}</div>
       )}
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 2.5, fontWeight: 700,
@@ -229,11 +378,11 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub }) {
   );
 }
 
-function FeatureCard({ tag, title, body }) {
+function FeatureCard({ tag, title, body, isHe }) {
   return (
     <div style={{
       background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 14,
-      padding: 22, textAlign: 'left',
+      padding: 22, textAlign: isHe ? 'right' : 'left',
     }}>
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 10, letterSpacing: 2, fontWeight: 700,
@@ -250,9 +399,21 @@ function FeatureCard({ tag, title, body }) {
   );
 }
 
-export default function CoachLanding() {
+export default function CoachLanding({ lang = 'en' }) {
+  const isHe = lang === 'he';
+  const t = makeT(lang);
+  // Sync <html lang>, <html dir>, and document.title with the active locale.
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = isHe ? 'rtl' : 'ltr';
+    document.title = t('doc.title');
+    return () => {
+      // Reset on unmount so other routes (e.g. coach app) don't inherit RTL.
+      document.documentElement.dir = 'ltr';
+    };
+  }, [lang, isHe, t]);
   return (
-    <div style={{
+    <div dir={isHe ? 'rtl' : 'ltr'} style={{
       background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
       display: 'flex', flexDirection: 'column',
     }}>
@@ -289,16 +450,21 @@ export default function CoachLanding() {
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
             padding: '4px 8px', background: C.acD, borderRadius: 6,
             border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
-          }}>FOR COACHES</span>
+          }}>{t('header.badge')}</span>
           <div style={{ flex: 1 }} />
+          <a href={isHe ? '/demo' : '/he/demo'} style={{
+            ...baseBtn, background: 'transparent', color: C.tm,
+            border: `1px solid ${C.bd}`, padding: '8px 10px', fontSize: 10,
+            letterSpacing: 1, fontWeight: 700,
+          }}>{isHe ? 'EN' : 'עב'}</a>
           <a href="/demo/coach" style={{
             ...baseBtn, background: 'transparent', color: C.tx,
             border: `1px solid ${C.bd2}`, padding: '8px 14px', fontSize: 11,
-          }}>SEE THE DEMO</a>
+          }}>{t('header.demo')}</a>
           <a href="/login" style={{
             ...baseBtn, background: 'transparent', color: C.tm,
             padding: '8px 14px', fontSize: 11,
-          }}>SIGN IN →</a>
+          }}>{t('header.signin')}</a>
         </div>
       </header>
 
@@ -313,36 +479,34 @@ export default function CoachLanding() {
             marginBottom: 14,
           }}>
             <EXPOMark height={14} />
-            <span>· COACHING PLATFORM</span>
+            <span>{t('hero.badge')}</span>
           </div>
           <h1 style={{
             fontFamily: FB, fontSize: 'clamp(30px, 5vw, 50px)', fontWeight: 700,
             margin: '0 0 16px', letterSpacing: -0.6, lineHeight: 1.08,
-          }}>Run your roster on the same engine your clients film with.</h1>
+          }}>{t('hero.h1')}</h1>
           <p style={{
             fontFamily: FB, color: C.tx, opacity: 0.85, fontSize: 16, lineHeight: 1.55,
             maxWidth: 680, margin: '0 auto 32px',
           }}>
-            Pose detection, auto rep counter, side-by-side video review, plan authoring,
-            client portals, and a dormant-client WhatsApp nudge — built by a working coach,
-            running live on real clients.
+            {t('hero.body')}
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 14 }}>
             <a href="/demo/coach" style={{
               ...baseBtn, background: C.ac, color: '#000', padding: '13px 26px', fontSize: 13,
-            }}>SEE COACH VIEW →</a>
+            }}>{t('hero.cta.coach')}</a>
             <a href="/demo/trainee" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, padding: '13px 26px', fontSize: 13,
-            }}>SEE ATHLETE VIEW →</a>
+            }}>{t('hero.cta.athlete')}</a>
             <a href="#waitlist" style={{
               ...baseBtn, background: 'transparent', color: C.tm,
               padding: '13px 18px', fontSize: 13,
-            }}>OR JOIN WAITLIST</a>
+            }}>{t('hero.cta.waitlist')}</a>
           </div>
           <div style={{
             fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
-          }}>NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP</div>
+          }}>{t('hero.smallprint')}</div>
         </section>
 
         {/* Live demo — two-tab embed of /try (coach POV) and /demo (trainee POV) */}
@@ -352,20 +516,18 @@ export default function CoachLanding() {
           <div style={{
             fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
             marginBottom: 14, textAlign: 'center',
-          }}>LIVE · NOT A SCREENSHOT</div>
+          }}>{t('demo.badge')}</div>
           <h2 style={{
             fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
             margin: '0 0 14px', letterSpacing: -0.3, textAlign: 'center',
-          }}>Upload a clip. Watch the engine work.</h2>
+          }}>{t('demo.h2')}</h2>
           <p style={{
             fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14.5, lineHeight: 1.55,
             maxWidth: 680, margin: '0 auto 22px', textAlign: 'center',
           }}>
-            The full engine, running below — same code your clients film with.
-            For the deeper tour (dashboard, plan editor, review tool), open the
-            full coach demo in a new tab.
+            {t('demo.body')}
           </p>
-          <DemoEmbed />
+          <DemoEmbed t={t} />
         </section>
 
         {/* What you get */}
@@ -375,27 +537,21 @@ export default function CoachLanding() {
           <div style={{
             fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
             marginBottom: 12, textAlign: 'center',
-          }}>WHAT YOU GET</div>
+          }}>{t('features.badge')}</div>
           <h2 style={{
             fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
             margin: '0 0 28px', letterSpacing: -0.3, textAlign: 'center',
-          }}>The whole stack — not just video review.</h2>
+          }}>{t('features.h2')}</h2>
           <div style={{
             display: 'grid', gap: 14,
             gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
           }}>
-            <FeatureCard tag="VIDEO ENGINE" title="Pose + auto rep counter"
-              body="MediaPipe pose landmarks render live. Reps count from joint-angle troughs — squat / hinge / press / pull are auto-routed to the right channel. Compare two clips side-by-side." />
-            <FeatureCard tag="PROGRAMMING" title="Block-based plan authoring"
-              body="Build phases of training as named blocks. Day-by-day exercise lists with sets, reps, tempo, video links, supersets, week-by-week wave logs. Bulk import from xlsx." />
-            <FeatureCard tag="ATHLETE PORTAL" title="Branded portal per athlete"
-              body="Each client logs in to a workout view with their plan, video reviews, and feedback. Couples share a couple-card. Bodyweight + session logging built in." />
-            <FeatureCard tag="OPS" title="Dormant nudges via WhatsApp"
-              body="Dashboard surfaces clients who haven't trained in N days. One-tap opens WhatsApp with a prefilled Hebrew/English check-in — phone numbers stay in the trainee record." />
-            <FeatureCard tag="REVIEW" title="Per-rep video review"
-              body="Pause on any frame, draw on the video, leave timestamped voice + text comments. The athlete sees the review from the same portal — no email back-and-forth." />
-            <FeatureCard tag="NO LOCK-IN" title="Your data, your rules"
-              body="Export every plan, exercise, and workout log to xlsx anytime. Bring your existing exercise library — xlsx, sheets, or whatever export your previous app gave you, bulk import is part of onboarding." />
+            <FeatureCard isHe={isHe} tag={t('feat.video.tag')} title={t('feat.video.title')} body={t('feat.video.body')} />
+            <FeatureCard isHe={isHe} tag={t('feat.prog.tag')} title={t('feat.prog.title')} body={t('feat.prog.body')} />
+            <FeatureCard isHe={isHe} tag={t('feat.portal.tag')} title={t('feat.portal.title')} body={t('feat.portal.body')} />
+            <FeatureCard isHe={isHe} tag={t('feat.ops.tag')} title={t('feat.ops.title')} body={t('feat.ops.body')} />
+            <FeatureCard isHe={isHe} tag={t('feat.review.tag')} title={t('feat.review.title')} body={t('feat.review.body')} />
+            <FeatureCard isHe={isHe} tag={t('feat.export.tag')} title={t('feat.export.title')} body={t('feat.export.body')} />
           </div>
         </section>
 
@@ -406,19 +562,16 @@ export default function CoachLanding() {
           <div style={{
             fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
             marginBottom: 12,
-          }}>WHO BUILDS IT</div>
+          }}>{t('about.badge')}</div>
           <h2 style={{
             fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 28px)', fontWeight: 700,
             margin: '0 0 14px', letterSpacing: -0.3,
-          }}>Built by a working coach for working coaches.</h2>
+          }}>{t('about.h2')}</h2>
           <p style={{
             fontFamily: FB, color: C.tx, opacity: 0.85, fontSize: 15, lineHeight: 1.6,
             maxWidth: 660, margin: '0 auto',
           }}>
-            I'm Ohad. I run my own roster on this exact platform — every line of it
-            exists because I needed it on a Tuesday morning between sessions. Nothing
-            in here is theoretical. If a feature doesn't survive contact with real
-            clients, it gets cut.
+            {t('about.body')}
           </p>
         </section>
 
@@ -429,68 +582,72 @@ export default function CoachLanding() {
           <div style={{
             fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
             marginBottom: 12, textAlign: 'center',
-          }}>FOUNDING-COACH PRICING</div>
+          }}>{t('pricing.badge')}</div>
           <h2 style={{
             fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700,
             margin: '0 0 14px', letterSpacing: -0.3, textAlign: 'center',
-          }}>Pick the slot count that fits your roster.</h2>
+          }}>{t('pricing.h2')}</h2>
           <p style={{
             fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14.5, lineHeight: 1.6,
             maxWidth: 620, margin: '0 auto 32px', textAlign: 'center',
           }}>
-            Per-coach, flat monthly — no per-client fees, no transaction cuts. Numbers
-            below are indicative; founding-coach pricing gets locked one tier lower
-            on a 20-minute intake call before your account opens.
+            {t('pricing.body')}
           </p>
           <div style={{
             display: 'grid', gap: 14,
             gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
           }}>
             <PricingTier
-              name="STARTER"
+              isHe={isHe}
+              popularLabel={t('pricing.popular')}
+              name={t('tier.starter.name')}
               price="₪149"
-              priceSub="/ MONTH"
-              slots="Up to 10 active clients"
-              cta="JOIN WAITLIST"
+              priceSub={t('tier.priceSub')}
+              slots={t('tier.starter.slots')}
+              cta={t('tier.cta.waitlist')}
               features={[
-                'Full video review engine',
-                'Plan authoring + xlsx import',
-                'Athlete portals + couple cards',
-                'Dormant-WhatsApp nudges',
+                t('tier.starter.f1'),
+                t('tier.starter.f2'),
+                t('tier.starter.f3'),
+                t('tier.starter.f4'),
               ]}
             />
             <PricingTier
-              name="GROWTH"
+              isHe={isHe}
+              popularLabel={t('pricing.popular')}
+              name={t('tier.growth.name')}
               price="₪249"
-              priceSub="/ MONTH"
-              slots="Up to 30 active clients"
+              priceSub={t('tier.priceSub')}
+              slots={t('tier.growth.slots')}
               popular
-              cta="JOIN WAITLIST"
+              cta={t('tier.cta.waitlist')}
               features={[
-                'Everything in Starter',
-                'Bulk plan duplication across clients',
-                'Bodyweight + session payment tracking',
-                'Priority email support',
+                t('tier.growth.f1'),
+                t('tier.growth.f2'),
+                t('tier.growth.f3'),
+                t('tier.growth.f4'),
               ]}
             />
             <PricingTier
-              name="FOUNDING PARTNER"
+              isHe={isHe}
+              popularLabel={t('pricing.popular')}
+              name={t('tier.founding.name')}
               price="₪399"
-              priceSub="/ MONTH"
-              slots="Unlimited clients · roadmap influence"
-              cta="JOIN WAITLIST"
+              priceSub={t('tier.priceSub')}
+              slots={t('tier.founding.slots')}
+              cta={t('tier.cta.waitlist')}
               features={[
-                'Everything in Growth',
-                'Direct line for product requests + roadmap input',
-                'Quarterly product strategy call',
-                'First access to features as they ship',
+                t('tier.founding.f1'),
+                t('tier.founding.f2'),
+                t('tier.founding.f3'),
+                t('tier.founding.f4'),
               ]}
             />
           </div>
           <div style={{
             marginTop: 18, textAlign: 'center',
             fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
-          }}>NO CARD NOW · WAITLIST ONLY · I'LL REACH OUT TO LOCK PRICING</div>
+          }}>{t('pricing.note')}</div>
         </section>
 
         {/* Waitlist CTA */}
@@ -505,19 +662,18 @@ export default function CoachLanding() {
             <div style={{
               fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
               marginBottom: 10,
-            }}>FOUNDING COACH WAITLIST</div>
+            }}>{t('wl.badge')}</div>
             <h2 style={{
               fontFamily: FB, fontSize: 'clamp(22px, 3.4vw, 28px)', fontWeight: 700,
               margin: '0 0 12px', letterSpacing: -0.3,
-            }}>Get early access at founding-coach pricing.</h2>
+            }}>{t('wl.h2')}</h2>
             <p style={{
               fontFamily: FB, color: C.tx, opacity: 0.78, fontSize: 14.5, lineHeight: 1.6,
               maxWidth: 540, margin: '0 auto 22px',
             }}>
-              Multi-coach access opens slot-by-slot. Drop your email — I'll reach out
-              personally when it's your turn. No card. No commitment.
+              {t('wl.body')}
             </p>
-            <WaitlistForm />
+            <WaitlistForm t={t} />
           </div>
         </section>
       </main>
@@ -532,11 +688,11 @@ export default function CoachLanding() {
         <a href="/demo/coach" style={{
           ...baseBtn, flex: 1, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd2}`, padding: '12px 14px', fontSize: 12,
-        }}>TRY THE ENGINE</a>
+        }}>{t('sticky.engine')}</a>
         <a href="#waitlist" style={{
           ...baseBtn, flex: 1, background: C.ac, color: '#000',
           padding: '12px 14px', fontSize: 12,
-        }}>WAITLIST →</a>
+        }}>{t('sticky.waitlist')}</a>
       </div>
 
       <footer style={{
@@ -550,12 +706,12 @@ export default function CoachLanding() {
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
         }}>
           <EXPOMark height={14} style={{ opacity: 0.55 }} />
-          <span>· COACHING PLATFORM · BUILT IN TEL AVIV · © {new Date().getFullYear()} ALL RIGHTS RESERVED</span>
+          <span>{t('footer.line', { year: new Date().getFullYear() })}</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>DEMO</a>
+          <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>{t('footer.demo')}</a>
           <span style={{ margin: '0 8px' }}>·</span>
-          <a href="/login" style={{ color: C.td, textDecoration: 'none' }}>SIGN IN</a>
+          <a href="/login" style={{ color: C.td, textDecoration: 'none' }}>{t('footer.signin')}</a>
         </span>
       </footer>
 

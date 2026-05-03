@@ -170,6 +170,7 @@ function AuthGate() {
   // Old /try paths also count as marketing (legacy redirect targets).
   const isMarketingPath = path === '/' || path === ''
     || path.startsWith('/demo')
+    || path.startsWith('/he/demo')
     || path.startsWith('/coaches')
     || path === '/try';
   useEffect(() => {
@@ -238,8 +239,11 @@ function AuthGate() {
     if (path === '/' || path === '') {
       return <Suspense fallback={<BootSplash />}><EntryChooser /></Suspense>;
     }
+    if (path === '/he/demo' || path === '/he/demo/') {
+      return <Suspense fallback={<BootSplash />}><CoachLanding lang="he" /></Suspense>;
+    }
     if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
-      return <Suspense fallback={<BootSplash />}><CoachLanding /></Suspense>;
+      return <Suspense fallback={<BootSplash />}><CoachLanding lang="en" /></Suspense>;
     }
     return <LoginScreen />;
   }

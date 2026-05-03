@@ -130,10 +130,13 @@ export default function CoachChat() {
     setSending(true);
     try {
       const apiMessages = next.filter(m => m.role === 'user' || m.role === 'assistant');
+      // Read lang from <html dir> so /he/demo (RTL) gets HE-locked replies and
+      // /demo (LTR) keeps the visitor-language-matching default.
+      const lang = (typeof document !== 'undefined' && document.documentElement.dir === 'rtl') ? 'he' : 'en';
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, stream: true, sessionId: sessionIdRef.current }),
+        body: JSON.stringify({ messages: apiMessages, stream: true, sessionId: sessionIdRef.current, lang }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
