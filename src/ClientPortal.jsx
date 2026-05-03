@@ -1277,8 +1277,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{fontSize:13}}>Log at least 2 weigh-ins to see your trend</div>
           </div>
         ) : (
-          <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:14,marginBottom:16}}>
-            <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:10}}>TREND</div>
+          <div style={{background:'transparent',border:`1px solid ${C.ac}`,borderRadius:0,padding:14,marginBottom:16}}>
+            <div style={{fontSize:10,fontFamily:FN,color:C.ac,letterSpacing:'0.15em',fontWeight:700,marginBottom:10}}>TREND</div>
             <svg viewBox={`0 -10 ${Math.max(bwData.length * 60, 300)} 185`} style={{width:'100%',height:185}}>
               {/* Grid lines */}
               {[0,0.25,0.5,0.75,1].map((p,i) => {
@@ -1286,7 +1286,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 const val = (maxBw - p * range).toFixed(1);
                 return <g key={i}>
                   <line x1="40" y1={y} x2={Math.max(bwData.length*60,300)-10} y2={y} stroke={C.bd} strokeWidth="0.5" strokeDasharray="4"/>
-                  <text x="36" y={y+4} fill={C.td} fontSize="9" fontFamily={FN} textAnchor="end">{val}</text>
+                  <text x="36" y={y+4} fill={C.tm} fontSize="9" fontFamily={FN} textAnchor="end">{val}</text>
                 </g>;
               })}
               {/* Line + dots */}
@@ -1322,8 +1322,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   {blockChanged && <line x1={x-25} y1="10" x2={x-25} y2="140" stroke={C.bd2||C.bd} strokeWidth="0.5" strokeDasharray="2"/>}
                   <circle cx={x} cy={y} r="3" fill={C.ac}/>
                   <text x={labelX} y={labelY} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor={anchor} fontWeight="600">{d.bw}</text>
-                  <text x={x} y={152} fill={C.td} fontSize="8" fontFamily={FN} textAnchor="middle">{blockAbbrev}·W{d.week||'?'}</text>
-                  <text x={x} y={163} fill={C.td} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
+                  <text x={x} y={152} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="middle">{blockAbbrev}·W{d.week||'?'}</text>
+                  <text x={x} y={163} fill={C.tm} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
                 </g>;
               })}
             </svg>
