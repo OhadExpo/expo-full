@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { C, FN, FB, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput } from './ui';
 import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
@@ -221,6 +221,62 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [overview, setOverview] = useState(false);
+  // Autosave state machine. Every change to `plan` schedules a debounced
+  // savePlan() so any text-box edit (name, day name, sets/reps grids, load,
+  // RPE, tempo, notes, video URL, warm-up rows, athlete picker, etc.) is
+  // persisted without the user clicking Save Program. Weekly Focus inputs
+  // already autosave via useSupaWeeklyFocus in App.jsx.
+  const [autoStatus, setAutoStatus] = useState('idle'); // 'idle'|'pending'|'saving'|'saved'|'error'
+  const planRef = useRef(plan);
+  const versionRef = useRef(0);
+  const savedVersionRef = useRef(0);
+  const savingRef = useRef(false);
+  const isMountRef = useRef(true);
+  const debounceRef = useRef(null);
+  const savedTimerRef = useRef(null);
+
+  const flush = useCallback(async () => {
+    if (savingRef.current) return;
+    if (savedVersionRef.current === versionRef.current) return;
+    savingRef.current = true;
+    setAutoStatus('saving');
+    const verAtStart = versionRef.current;
+    const ok = await savePlan(planRef.current);
+    savingRef.current = false;
+    if (ok) {
+      savedVersionRef.current = verAtStart;
+      if (versionRef.current > savedVersionRef.current) {
+        // More edits arrived during the save → run again so the latest lands.
+        flush();
+      } else {
+        setAutoStatus('saved');
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+        savedTimerRef.current = setTimeout(() => setAutoStatus('idle'), 1800);
+      }
+    } else {
+      setAutoStatus('error');
+    }
+  }, []);
+
+  useEffect(() => {
+    planRef.current = plan;
+    if (isMountRef.current) { isMountRef.current = false; return; }
+    versionRef.current += 1;
+    setAutoStatus('pending');
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { flush(); }, 600);
+  }, [plan, flush]);
+
+  // Safety net: if the editor unmounts with pending changes (e.g., page nav),
+  // fire a last save. The Back button awaits flush() directly so this is rare.
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    if (versionRef.current > savedVersionRef.current && !savingRef.current) {
+      savePlan(planRef.current);
+    }
+  }, []);
+
   const updateDay = (i, u) => setPlan(p => ({...p, days: p.days.map((d,idx) => idx===i ? {...d,...u} : d)}));
   const addDay = () => { setPlan(p => ({...p, days: [...p.days, defaultDay(p.days.length+1)]})); setActiveDay(plan.days.length); };
   const removeDay = i => { if (plan.days.length<=1) return; setPlan(p => ({...p, days: p.days.filter((_,idx)=>idx!==i)})); if (activeDay>=plan.days.length-1) setActiveDay(Math.max(0,plan.days.length-2)); };
@@ -234,12 +290,35 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const removeEx = ei => updateDay(activeDay, {exercises:plan.days[activeDay].exercises.filter((_,i)=>i!==ei)});
   const moveEx = (ei,dir) => { const exs=[...plan.days[activeDay].exercises]; const si=ei+dir; if(si<0||si>=exs.length) return; [exs[ei],exs[si]]=[exs[si],exs[ei]]; updateDay(activeDay,{exercises:exs}); };
   const day = plan.days[activeDay];
-  const handleSave = async () => { setSaving(true); await onSave(plan); setSaving(false); };
+  const handleSave = async () => {
+    setSaving(true);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    await onSave(plan);
+    // Mark the in-editor autosave caught up so the safety-net unmount flush
+    // doesn't issue a redundant write.
+    savedVersionRef.current = versionRef.current;
+    setSaving(false);
+  };
+  const handleBack = async () => {
+    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+    await flush();
+    onCancel();
+  };
+  const statusLabel = (() => {
+    switch (autoStatus) {
+      case 'pending': return { text: 'Editing…', color: C.tm };
+      case 'saving': return { text: 'Saving…', color: C.tm };
+      case 'saved': return { text: '✓ Saved', color: C.gn };
+      case 'error': return { text: '⚠ Save failed', color: C.rd };
+      default: return null;
+    }
+  })();
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <button onClick={onCancel} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
+        <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:11,fontWeight:600,color:statusLabel.color,letterSpacing:"0.04em"}}>{statusLabel.text}</span>}
           <button onClick={()=>setOverview(v=>!v)} style={{background:overview?C.ac:C.sf2,border:`${overview?'2px':'0.25px'} solid ${overview?C.ac:`${C.ac}4D`}`,borderRadius:6,padding:"6px 12px",color:overview?"#fff":C.tm,cursor:"pointer",fontFamily:FN,fontSize:11,fontWeight:600}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
           <Btn onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
@@ -517,7 +596,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     setEditMode(true);
   };
   const handleSave = async (plan) => { await savePlan(plan); setEditMode(false); clearPlan(); await reloadIndex(); };
-  const handleCancel = () => { setEditMode(false); clearPlan(); };
+  // Back from the editor: reload the index so autosaved edits (program name,
+  // day count, exercise count, updatedAt sort, etc.) appear immediately.
+  const handleCancel = () => { setEditMode(false); clearPlan(); reloadIndex(); };
   const handleDuplicate = async (planId) => {
     const { supabase: sb } = await import('./supabase');
     const { data } = await sb.from('plans').select('*').eq('id', planId).single();
