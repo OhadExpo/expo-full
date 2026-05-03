@@ -133,16 +133,16 @@ export const DEMO_CLIENT_WORKOUTS = [
   },
 ];
 
-export const DEMO_BW_LOG = {
-  'plan_demo_active|Block #4 — Hypertrophy|2': [
-    { day: daysAgo(13), value: 77.4 },
-    { day: daysAgo(11), value: 77.6 },
-    { day: daysAgo(8),  value: 77.8 },
-    { day: daysAgo(6),  value: 78.0 },
-    { day: daysAgo(4),  value: 78.1 },
-    { day: daysAgo(1),  value: 78.3 },
-  ],
-};
+// Flat array — ClientPortal calls bwLog.filter(b => b.clientId === ci).
+// Each row: { date, clientId, week, bw, blockName, planId }.
+export const DEMO_BW_LOG = [
+  { date: daysAgo(13), clientId: DEMO_CLIENT_ID, week: 1, bw: 77.4, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
+  { date: daysAgo(11), clientId: DEMO_CLIENT_ID, week: 1, bw: 77.6, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
+  { date: daysAgo(8),  clientId: DEMO_CLIENT_ID, week: 2, bw: 77.8, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
+  { date: daysAgo(6),  clientId: DEMO_CLIENT_ID, week: 2, bw: 78.0, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
+  { date: daysAgo(4),  clientId: DEMO_CLIENT_ID, week: 2, bw: 78.1, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
+  { date: daysAgo(1),  clientId: DEMO_CLIENT_ID, week: 2, bw: 78.3, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
+];
 
 export const DEMO_WEEKLY_FOCUS = {
   'Block #4 — Hypertrophy|Day A — Push|e221|W2': 'Pause longer at lockout — really squeeze the lats',
