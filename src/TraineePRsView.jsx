@@ -246,12 +246,12 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
       {header}
       <div style={innerStyle}>
         {!embedded && (
-          <div style={{ fontSize: 9, fontFamily: FN, color: C.td, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>RECORDS</div>
+          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>RECORDS</div>
         )}
 
         {rows.length === 0 ? (
           <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
-            <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1.5, marginBottom: 8 }}>NO RECORDS YET</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO RECORDS YET</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
               Log a few sessions with weights and your records will show up here.
             </div>
@@ -261,7 +261,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
             {/* Exercise picker — search-as-you-type combobox over only the
                 exercises this athlete has logged a top set for. */}
             <div ref={wrapRef} style={{ marginBottom: 14, position: 'relative' }}>
-              <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 6 }}>EXERCISE</div>
+              <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>EXERCISE</div>
               <input
                 value={open ? query : (picked ? `${picked.title} (${picked.sessionCount} session${picked.sessionCount === 1 ? '' : 's'})` : '')}
                 onChange={e => { setQuery(e.target.value); setOpen(true); }}
@@ -319,7 +319,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   background: 'transparent', border: `1px solid ${C.ac}`, borderRadius: 0,
                   padding: '20px 18px', textAlign: 'center', marginBottom: 14,
                 }}>
-                  <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>
+                  <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>
                   <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
                     {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 8 }}>kg</span>
                     {picked.allTimePRReps > 0 && (
@@ -337,7 +337,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 </div>
 
                 {/* Session history */}
-                <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 6 }}>
+                <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
                   SESSION HISTORY · {picked.sessionCount} ENTR{picked.sessionCount === 1 ? 'Y' : 'IES'}
                 </div>
                 <div style={{ border: `0.25px solid ${C.ac}4D` }}>

@@ -1248,8 +1248,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
-          <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.18em',fontWeight:700}}>BODYWEIGHT</div>
-          <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {bwData.length} ENTRIES</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>BODYWEIGHT</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {bwData.length} ENTRIES</div>
         </div>
 
         {/* Quick log */}
@@ -1261,7 +1261,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}}>
             {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'6px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
           </div>}
-          <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8,textAlign:'center'}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:8,textAlign:'center',letterSpacing:'0.18em',fontWeight:700}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
           <div style={{display:'flex',gap:8}}>
             <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:'transparent',border:`1px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
             <button disabled={!activePlan} onClick={()=>{const val=bw||bwDisplay;if(val&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
@@ -1330,16 +1330,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {/* Stats */}
             <div style={{display:'flex',gap:8,marginTop:10}}>
               <div style={{flex:1,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.12em'}}>LATEST</div>
+                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>LATEST</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData[bwData.length-1].bw}kg</div>
               </div>
               <div style={{flex:1,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.12em'}}>CHANGE</div>
+                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>CHANGE</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:(bwData[bwData.length-1].bw-bwData[0].bw)<=0?C.gn:C.or}}>
                   {(bwData[bwData.length-1].bw-bwData[0].bw)>0?'+':''}{(bwData[bwData.length-1].bw-bwData[0].bw).toFixed(1)}kg</div>
               </div>
               <div style={{flex:1,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.12em'}}>ENTRIES</div>
+                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>ENTRIES</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData.length}</div>
               </div>
             </div>
@@ -1347,7 +1347,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         )}
 
         {/* Log history */}
-        <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>HISTORY</div>
+        <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>HISTORY</div>
         {bwData.slice().reverse().map((d,i) => {
           const onEdit = () => { setBw(String(d.bw)); setWk((d.week||1)-1); if (d.blockName) setSelectedBlockName(d.blockName); };
           const onDelete = (e) => { e.stopPropagation(); setBwDeleteConfirm(d); };
@@ -1386,11 +1386,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   if (vw === 'hist' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
     <div style={{padding:'14px 20px 20px'}}>
-      <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.18em',fontWeight:700,marginBottom:14}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
+      <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700,marginBottom:14}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         cw.slice().reverse().map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'transparent',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
-          <div style={{fontWeight:600,fontSize:13}}>{w.dayName} <span style={{color:C.tm,fontWeight:400}}>({w.planName})</span></div>
-          <div style={{fontSize:11,color:C.tm,marginBottom:4}}>{new Date(w.date).toLocaleDateString()} · W{w.week}</div>
+          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em'}}>{w.dayName} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
+          <div style={{fontSize:10,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.08em'}}>{new Date(w.date).toLocaleDateString()} · W{w.week}</div>
           {w.exercises.map((x,i) => {
             const fv = (w.formVideos || [])[i];
             const hasVideo = !!(fv && fv.cloudUrl);
@@ -1401,8 +1401,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             return (
               <div key={i} style={{marginTop:2}}>
                 <div onClick={canExpand ? () => setExpandedHistEx(isOpen ? null : expandKey) : undefined}
-                  style={{fontSize:11,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'2px 0'}}>
-                  <span style={{flex:1}}>{i+1}. {x.title} ({x.prescribed}) — {x.sets.filter(s=>s.done).length}/{x.sets.length}</span>
+                  style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'3px 0'}}>
+                  <span style={{flex:1}}>{i+1}. {x.title} <span style={{color:C.td}}>{x.prescribed} · {x.sets.filter(s=>s.done).length}/{x.sets.length}</span></span>
                   {hasVideo && <span style={{color:C.gn,fontSize:12}}>📹</span>}
                   {notesCount > 0 && <span style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:0}}>💬 {notesCount}</span>}
                   {canExpand && <span style={{color:C.td,fontSize:10}}>{isOpen ? '▲' : '▼'}</span>}
