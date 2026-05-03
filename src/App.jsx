@@ -32,9 +32,9 @@ const CoachLanding = lazy(() => import('./CoachLanding'));
 // Front-door chooser at / for unauthed visitors — splits Sign In vs the
 // coach-sales landing so existing users aren't dumped into a marketing pitch.
 const EntryChooser = lazy(() => import('./EntryChooser'));
-// /try is the full COACH-side interactive demo (Dashboard, Trainees,
-// Programs, Exercises, Review tabs with mock data). /demo stays as the
-// trainee-side engine sandbox.
+// /demo/coach is the full COACH-side interactive demo (Dashboard, Trainees,
+// Programs, Exercises, Review tabs with mock data). /try is the public
+// engine sandbox (TrySandbox above). /demo/trainee is the client-portal demo.
 const CoachDemo = lazy(() => import('./CoachDemo'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
