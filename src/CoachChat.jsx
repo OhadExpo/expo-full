@@ -245,10 +245,14 @@ export default function CoachChat() {
               {messages.length > 0 && (
                 <button onClick={() => { setMessages([]); setErr(''); setCapturePrompted(false); setCaptureEmail(''); setCaptureState('idle'); setCaptureErr(''); }}
                   aria-label="Start a new conversation" title="Start a new conversation"
-                  style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 0, borderRadius: 6, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>↻</button>
+                  style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', lineHeight: 0, padding: 0, borderRadius: 6, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+                </button>
               )}
               <button onClick={() => setOpen(false)} aria-label="Close chat"
-                style={{ background: 'transparent', border: 'none', color: C.tm, fontSize: 20, cursor: 'pointer', lineHeight: 1, padding: 0, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', lineHeight: 0, padding: 0, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
             </div>
           </div>
 
