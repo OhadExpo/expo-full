@@ -674,13 +674,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       {/* Hover preview popover */}
       {previewPlan && hoverPos && (() => {
         const GAP = 16;
-        const PW = 320;
         const spaceRight = window.innerWidth - hoverPos.x - GAP;
-        const left = spaceRight >= PW ? hoverPos.x + GAP : hoverPos.x - PW - GAP;
-        const maxTop = window.innerHeight - 20;
-        const top = Math.min(hoverPos.y - 8, maxTop);
+        const leftAnchored = spaceRight >= 200;
+        const left = leftAnchored ? hoverPos.x + GAP : 'auto';
+        const right = leftAnchored ? 'auto' : window.innerWidth - hoverPos.x + GAP;
+        const top = Math.min(hoverPos.y - 8, window.innerHeight - 20);
         return (
-          <div style={{position:'fixed',zIndex:900,top:top,left:Math.max(8,left),width:PW,background:C.bg,border:`1px solid ${C.ac}60`,borderRadius:0,padding:16,pointerEvents:'none',boxShadow:'0 8px 32px rgba(0,0,0,0.7)'}}>
+          <div style={{position:'fixed',zIndex:900,top:top,left:leftAnchored?Math.max(8,left):undefined,right:leftAnchored?undefined:Math.max(8,right),maxWidth:'min(420px,90vw)',background:C.bg,border:`1px solid ${C.ac}60`,borderRadius:0,padding:16,pointerEvents:'none',boxShadow:'0 8px 32px rgba(0,0,0,0.7)',whiteSpace:'nowrap'}}>
             <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:C.ac,letterSpacing:'0.04em',marginBottom:2}}>{previewPlan.name||"Untitled"}</div>
             <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:12}}>{previewPlan.days.length} DAYS · {previewPlan.days.reduce((n,d)=>n+d.exercises.length,0)} EX{previewPlan.phase?` · ${previewPlan.phase}`:''}</div>
             {previewPlan.days.map((d,di) => (
@@ -691,7 +691,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   const title = ex?.title || pe.title || '—';
                   return (
                     <div key={pe.id||ei} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'2px 0',borderBottom:`0.25px solid ${C.ac}1A`}}>
-                      <span style={{fontSize:11,color:C.tm,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ei+1}. {title}</span>
+                      <span style={{fontSize:11,color:C.tm,marginRight:16}}>{ei+1}. {title}</span>
                       <span style={{fontSize:10,fontFamily:FN,color:C.ac,flexShrink:0,marginLeft:8}}>{pe.sets}×{pe.reps}</span>
                     </div>
                   );
