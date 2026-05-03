@@ -21,8 +21,8 @@ function PatternCoverage({ plan, exercises }) {
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
   if (exercises.length === 0) return null;
   return (<div style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
-    <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: missing.length > 0 ? C.or : C.gn, marginBottom: 8 }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
-    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.rd}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
+    <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
+    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={pats.has(p) ? {} : {fontWeight:500,opacity:0.65}}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
 }
 
@@ -319,7 +319,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600,marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{display:"grid",gridTemplateColumns:"22px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center"}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"22px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:600}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>)}
                   {dayExs.map((ex, exIdx) => {
@@ -362,7 +362,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         style={{background:"none",border:"none",color:C.rd,cursor:"pointer",fontSize:13,opacity:0.55,padding:0}}>🗑</button>
                     </React.Fragment>;
                   })}
-                </div>
+                </div></div>
               }
             </div>
           );
@@ -456,10 +456,10 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   const libCues = exData?.cues || '';
                   const value = ex.notes || libCues;
                   return (
-                    <Input value={value}
+                    <textarea value={value}
                       onChange={e=>updateEx(exIdx,{notes:e.target.value})}
                       placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."}
-                      style={{marginTop:6}} />
+                      style={{...baseInput,marginTop:6,textAlign:'start',minHeight:64,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
                   );
                 })()}
                 {(() => {
@@ -598,13 +598,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
   return (
     <div>
-      <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"center",flexWrap:"wrap"}}>
-        <div style={{flex:1,minWidth:180}}><input placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,paddingLeft:12}} /></div>
-        <select value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,width:180}}>
+      <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch",flexWrap:"wrap"}}>
+        <div style={{flex:1,minWidth:180,display:'flex'}}><input placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,padding:'10px 14px',lineHeight:'20px'}} /></div>
+        <select value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,width:180,padding:'10px 14px',lineHeight:'20px'}}>
           <option value="">All Athletes ({planIndex.length})</option>
           {traineeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        <Btn onClick={handleNewPlan}>+ New Program</Btn>
+        <Btn onClick={handleNewPlan} style={{padding:'10px 18px',lineHeight:'20px'}}>+ New Program</Btn>
       </div>
       {/* Sort controls. Click an inactive field to activate it (keeps current dir);
           click the active field to flip direction. Arrow points 'up' for asc. */}
@@ -636,7 +636,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <div style={{fontSize:12,color:C.td,marginBottom:12,fontFamily:FN}}>
         Showing {visible.length} of {filtered.length} programs{filtered.length !== planIndex.length ? ` (${planIndex.length} total)` : ''}
       </div>
-      {filtered.length===0?<EmptyState icon="📋" message="No programs match your search." />:(
+      {filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
         <div style={{display:"grid",gap:10}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
           return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)}>
@@ -644,9 +644,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <div><div style={{fontWeight:700,fontSize:15,color:C.tx}}>{p.name||"Untitled"}</div>
                 <div style={{fontSize:12,color:C.tm,marginTop:4}}>{tName} · {p.dayCount} days · {p.exerciseCount} exercises</div>
                 {p.phase&&<Badge color={C.ac} style={{marginTop:6}}>{p.phase}</Badge>}</div>
-              <div style={{display:"flex",gap:4}}>
-                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4}}>📋</button>
-                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button>
+              <div style={{display:"flex",gap:6}}>
+                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'4px 12px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em'}}>DUPLICATE</button>
+                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'4px 12px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em'}}>DELETE</button>
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>)}
