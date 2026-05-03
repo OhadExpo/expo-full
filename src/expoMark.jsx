@@ -16,7 +16,7 @@ export function EXPOMark({ height = 22, style = {} }) {
         height, width: 'auto',
         display: 'inline-block',
         verticalAlign: 'middle',
-        transform: 'translateY(-13%)',
+        transform: 'translateY(-18.5%)',
         ...style,
       }}
     />
