@@ -455,6 +455,18 @@ function Hero({ onOpenQuiz }) {
         }}>
           {t('hero.cta.browse')}
         </a>
+        <a href="https://expo-app.co.il/try"
+           target="_blank" rel="noopener"
+           onClick={() => trackAndOpen('try_click', { from: 'hero' })}
+           style={{
+             ...baseBtn,
+             background: 'transparent', color: C.ac,
+             border: `1px solid ${C.ac}`, padding: '12px 24px',
+             fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
+             textDecoration: 'none',
+           }}>
+          {t('hero.cta.try')}
+        </a>
         <button onClick={onOpenQuiz} style={{
           ...baseBtn,
           background: 'transparent', color: C.tx,
@@ -1398,13 +1410,13 @@ function WhatsInside() {
         {t('inside.note')}
       </p>
 
-      {/* Outbound CTA → public client-framed demo at expo-app.co.il/demo.
-          The PhoneFrame mocks above are for browse-engagement; this button
-          is the conversion lever — visitor lands on the live engine with
-          their own clip and gets routed back to the program catalog. */}
+      {/* Outbound CTA → public sandbox at expo-app.co.il/try where the visitor
+          uploads their own clip and runs it through pose detection + rep
+          counter live. PhoneFrame mocks above are browse-engagement; this is
+          the conversion lever. */}
       <div style={{ textAlign: 'center', marginTop: 22 }}>
-        <a href="https://expo-app.co.il/demo/trainee"
-           onClick={() => trackAndOpen('client_demo_click', { from: 'whats_inside' })}
+        <a href="https://expo-app.co.il/try"
+           onClick={() => trackAndOpen('try_click', { from: 'whats_inside' })}
            target="_blank" rel="noopener"
            style={{
              display: 'inline-block',

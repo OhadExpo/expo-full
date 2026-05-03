@@ -181,16 +181,17 @@ function AuthGate() {
     }
   }, [inPwa, isMarketingPath]);
 
-  // Backward-compat: legacy /try, /coaches, /coaches/try, /coaches/demo,
+  // Backward-compat: legacy /coaches, /coaches/try, /coaches/demo,
   // /coaches/demo/* URLs redirect to /demo* canonical homes. External links
-  // from social posts / expo-il / chat shares keep working without 404s.
+  // from social posts / chat shares keep working without 404s.
+  // /try is NO LONGER redirected — it now serves the public TrySandbox.
   useEffect(() => {
     if (inPwa) return;
     if (path === '/coaches' || path === '/coaches/') {
       window.history.replaceState(null, '', '/demo' + (window.location.hash || ''));
       return;
     }
-    if (path === '/try' || path === '/coaches/try' || path === '/coaches/demo/coach') {
+    if (path === '/coaches/try' || path === '/coaches/demo/coach') {
       window.history.replaceState(null, '', '/demo/coach');
       return;
     }
@@ -200,14 +201,20 @@ function AuthGate() {
     }
   }, [inPwa, path]);
 
-  // Browser-mode public demo routes:
+  // Browser-mode public routes:
   //   /demo          → CoachLanding (marketing pitch + waitlist)
   //   /demo/coach    → CoachDemo (full coach-side tour)
   //   /demo/trainee  → DemoTraineePortal (real ClientPortal in demoMode w/ fixture data)
-  //   /demo/sandbox  → TrySandbox pov="trainee" (engine sandbox; legacy demo)
-  // Both end-CTAs converge at /demo#waitlist. Hidden in PWA mode.
+  //   /demo/sandbox  → TrySandbox pov="trainee" (legacy alias)
+  //   /try           → TrySandbox (public engine sandbox — visitor uploads
+  //                    their own clip; pose detect + rep count + compare)
+  // All hidden in PWA mode.
   if (!inPwa) {
-    if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach' || path === '/coaches/try' || path === '/try') {
+    // /try short-circuits BEFORE the auth check so the route stays public.
+    if (path === '/try' || path.startsWith('/try/')) {
+      return <Suspense fallback={<BootSplash />}><TrySandbox /></Suspense>;
+    }
+    if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach') {
       return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
     }
     if (path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
