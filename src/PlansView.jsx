@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { C, FN, FB, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput } from './ui';
 import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
+import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: 3, reps: "8-12", load: "", rpe: "", tempo: "", rest: "90", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
@@ -221,87 +222,9 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [overview, setOverview] = useState(false);
-  // Autosave: every plan mutation queues a savePlan() through a serial chain
-  // so writes never race and the last edit always wins. Triggers cover every
-  // way out of the editor: debounced 600ms after edits, immediately on
-  // visibilitychange/pagehide (tab switch, screen lock, browser nav, refresh,
-  // tab close), Back button (awaits the chain), and unmount (fire-and-forget,
-  // chain keeps resolving outside the component lifecycle).
-  const [autoStatus, setAutoStatus] = useState('idle'); // 'idle'|'pending'|'saving'|'saved'|'error'
-  const planRef = useRef(plan);
-  const dirtyRef = useRef(false);
-  const chainRef = useRef(Promise.resolve());
-  const isMountRef = useRef(true);
-  const debounceRef = useRef(null);
-  const savedTimerRef = useRef(null);
-
-  const enqueueSave = useCallback(() => {
-    if (!dirtyRef.current) return chainRef.current;
-    const next = chainRef.current.then(async () => {
-      if (!dirtyRef.current) return;
-      setAutoStatus('saving');
-      // Snapshot now and clear dirty before awaiting; if a new edit lands
-      // during the save it re-flips dirty and will be picked up by the next
-      // enqueueSave (debounce, visibilitychange, Back, or unmount).
-      const snap = planRef.current;
-      dirtyRef.current = false;
-      const ok = await savePlan(snap);
-      if (!ok) {
-        dirtyRef.current = true;
-        setAutoStatus('error');
-        return;
-      }
-      if (!dirtyRef.current) {
-        setAutoStatus('saved');
-        if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-        savedTimerRef.current = setTimeout(
-          () => setAutoStatus(prev => (prev === 'saved' ? 'idle' : prev)),
-          1800
-        );
-      }
-    }).catch(e => {
-      console.error('autosave error:', e);
-      dirtyRef.current = true;
-      setAutoStatus('error');
-    });
-    chainRef.current = next;
-    return next;
-  }, []);
-
-  // Mark dirty + debounce a save on every plan mutation.
-  useEffect(() => {
-    planRef.current = plan;
-    if (isMountRef.current) { isMountRef.current = false; return; }
-    dirtyRef.current = true;
-    setAutoStatus('pending');
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => { enqueueSave(); }, 600);
-  }, [plan, enqueueSave]);
-
-  // Catch every "leaving" path the browser exposes — visibilitychange fires
-  // on tab switch / screen lock / minimize, pagehide fires on hard nav and
-  // close (more reliable than beforeunload, which Safari/iOS ignore).
-  useEffect(() => {
-    const flushOnLeave = () => {
-      if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
-      enqueueSave();
-    };
-    window.addEventListener('visibilitychange', flushOnLeave);
-    window.addEventListener('pagehide', flushOnLeave);
-    return () => {
-      window.removeEventListener('visibilitychange', flushOnLeave);
-      window.removeEventListener('pagehide', flushOnLeave);
-    };
-  }, [enqueueSave]);
-
-  // Final save on unmount (SPA nav away from /coach/programs, modal close,
-  // route change). Fire-and-forget; the chain promise resolves outside the
-  // component and the fetch completes against the still-loaded SPA.
-  useEffect(() => () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-    enqueueSave();
-  }, [enqueueSave]);
+  // Autosave: shared hook serializes saves, flushes on tab switch / screen
+  // lock / browser back / refresh / close / unmount.
+  const { status: autoStatus, flush: flushAutosave, markClean } = useAutosave(plan, savePlan);
 
   const updateDay = (i, u) => setPlan(p => ({...p, days: p.days.map((d,idx) => idx===i ? {...d,...u} : d)}));
   const addDay = () => { setPlan(p => ({...p, days: [...p.days, defaultDay(p.days.length+1)]})); setActiveDay(plan.days.length); };
@@ -327,29 +250,19 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const day = plan.days[activeDay];
   const handleSave = async () => {
     setSaving(true);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
     await onSave(plan);
     // Explicit save covered everything pending — clear dirty so the
     // visibilitychange/unmount paths don't issue a redundant write.
-    dirtyRef.current = false;
+    markClean();
     setSaving(false);
   };
   const handleBack = async () => {
-    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
-    // Awaiting enqueueSave() resolves only after every queued + in-flight
+    // Awaiting flushAutosave resolves only after every queued + in-flight
     // save lands, so the latest data is on disk before the editor unmounts.
-    await enqueueSave();
+    await flushAutosave();
     onCancel();
   };
-  const statusLabel = (() => {
-    switch (autoStatus) {
-      case 'pending': return { text: 'Editing…', color: C.tm };
-      case 'saving': return { text: 'Saving…', color: C.tm };
-      case 'saved': return { text: '✓ Saved', color: C.gn };
-      case 'error': return { text: '⚠ Save failed', color: C.rd };
-      default: return null;
-    }
-  })();
+  const statusLabel = autosaveStatusLabel(autoStatus, C);
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>

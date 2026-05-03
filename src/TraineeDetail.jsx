@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { C, FN, FB, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput } from './ui';
 import { savePlan } from './usePlansStore';
@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
 import TraineePRsView from './TraineePRsView';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId } from './traineeUtils';
+import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
@@ -68,10 +69,24 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const handleAddPayment=()=>{if(!payForm.amount)return;if(editPayId){setPayments(prev=>prev.map(p=>p.id===editPayId?{...p,...payForm}:p));setEditPayId(null)}else{setPayments(prev=>[...prev,{id:uid(),traineeId:trainee,...payForm,createdAt:new Date().toISOString()}])}setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});setShowPayForm(false)};
   const handleEditPay=(p)=>{setPayForm({amount:p.amount,method:p.method,date:p.date,notes:p.notes||"",status:p.status});setEditPayId(p.id);setShowPayForm(true)};
   const handleDeletePay=(pid)=>{setPayments(prev=>prev.filter(p=>p.id!==pid))};
+  // Edit-modal draft. Persisted to localStorage on every keystroke (via
+  // useAutosave below) so closing the modal / refreshing / browser-backing
+  // mid-edit no longer loses the typed content. Restored on the next openEdit.
+  // Cleared explicitly on Save (commit) and Cancel (discard).
+  const draftKey = `expo-edit-trainee-${trainee}`;
+  const [hasDraft, setHasDraft] = useState(false);
   const openEdit=()=>{
-    const ef = {...td, _emails: emailsToArr(td.email)};
-    if (couple) ef._members = td.members.map(m => ({...m, _emails: emailsToArr(m.email)}));
-    setEditForm(ef);
+    let restored = null;
+    try { const raw = localStorage.getItem(draftKey); restored = raw ? JSON.parse(raw) : null; } catch {}
+    if (restored) {
+      setEditForm(restored);
+      setHasDraft(true);
+    } else {
+      const ef = {...td, _emails: emailsToArr(td.email)};
+      if (couple) ef._members = td.members.map(m => ({...m, _emails: emailsToArr(m.email)}));
+      setEditForm(ef);
+      setHasDraft(false);
+    }
     setShowEdit(true);
   };
   const saveEdit=()=>{
@@ -87,8 +102,29 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       delete toSave._members;
     }
     setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,...toSave}:t));
+    try { localStorage.removeItem(draftKey); } catch {}
+    editAutosave.markClean();
+    setHasDraft(false);
     setShowEdit(false);
   };
+  const cancelEdit = () => {
+    try { localStorage.removeItem(draftKey); } catch {}
+    editAutosave.markClean();
+    setHasDraft(false);
+    setShowEdit(false);
+  };
+  // Autosave the draft to localStorage. Save fn is sync but wrapped in async
+  // shape; debounce keeps writes off the main thread under fast typing.
+  const editAutosave = useAutosave(
+    showEdit ? editForm : null,
+    async (form) => {
+      if (!form) return true;
+      try { localStorage.setItem(draftKey, JSON.stringify(form)); return true; }
+      catch { return false; }
+    },
+    { debounceMs: 400 }
+  );
+  const editStatus = autosaveStatusLabel(editAutosave.status, C);
   const assignPlan=async(planId, targetId)=>{
     const tid = targetId || trainee; // default to parent ID (shared)
     const{data:src}=await supabase.from('plans').select('*').eq('id',planId).single();
@@ -380,8 +416,19 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <Btn variant="danger" onClick={()=>{if(unassignTyped.trim().toLowerCase()==="remove"){unassignPlan(confirmUnassign);setConfirmUnassign(null);setUnassignTyped("")}}} style={{opacity:unassignTyped.trim().toLowerCase()==="remove"?1:0.3,pointerEvents:unassignTyped.trim().toLowerCase()==="remove"?"auto":"none"}}>Remove</Btn></div></div></div>}
 
       {/* Edit trainee modal */}
-      <Modal open={showEdit} onClose={()=>setShowEdit(false)} title={`Edit — ${td.name}`} wide>
-        {editForm&&<>{couple && editForm._members ? <>
+      <Modal open={showEdit} onClose={cancelEdit} title={`Edit — ${td.name}`} wide>
+        {editForm&&<>
+        {/* Status row: draft-restored banner + autosave indicator. The banner
+            tells the coach the form contents are typed-but-uncommitted leftover
+            from a prior session, so they know "Save" is still required. */}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,marginBottom:10,minHeight:18}}>
+          {hasDraft ? (
+            <span style={{fontSize:11,fontFamily:FN,color:C.or,fontWeight:600}}>
+              ↻ Restored auto-saved draft — click Save to commit, Cancel to discard
+            </span>
+          ) : <span/>}
+          {editStatus && <span aria-live="polite" style={{fontSize:11,fontFamily:FN,color:editStatus.color,fontWeight:600,letterSpacing:'0.04em'}}>{editStatus.text}</span>}
+        </div>{couple && editForm._members ? <>
           {/* === COUPLE EDIT: shared fields === */}
           <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>Shared</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
@@ -467,7 +514,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </div>
         </>}
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
-          <Btn variant="ghost" onClick={()=>setShowEdit(false)}>Cancel</Btn>
+          <Btn variant="ghost" onClick={cancelEdit}>Cancel</Btn>
           <Btn onClick={saveEdit}>Save</Btn></div></>}
       </Modal>
       {/* Archive confirm */}

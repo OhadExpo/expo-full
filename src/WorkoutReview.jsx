@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import WorkoutsView from './WorkoutsView';
 import { C, FN, FB, ytId, EXPO_ICON } from './theme';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
+import useAutosave from './hooks/useAutosave';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
@@ -94,13 +95,42 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // All state declarations up front — derived values and callbacks below
   // reference them, and placing state after the derivations would trip
   // the temporal-dead-zone at render time.
-  const [composing, setComposing] = useState(null);
-  const [composeText, setComposeText] = useState('');
+  // Hydrate compose state from a localStorage draft so a tab-switch /
+  // refresh / accidental nav mid-comment doesn't lose the typed text or
+  // drawings. Cleared on submit/cancel below. Keyed by video URL — distinct
+  // videos keep distinct drafts.
+  const draftKey = `expo-fv-compose-${url || 'unknown'}`;
+  const _initialDraft = (() => {
+    if (role !== 'trainer') return null;
+    try { const raw = localStorage.getItem(draftKey); return raw ? JSON.parse(raw) : null; }
+    catch { return null; }
+  })();
+  const [composing, setComposing] = useState(_initialDraft?.composing || null);
+  const [composeText, setComposeText] = useState(_initialDraft?.composeText || '');
   const [commentsEnabled, setCommentsEnabled] = useState(true);
   const [activeDrawColor, setActiveDrawColor] = useState(null);
   const [rulerMode, setRulerMode] = useState(false);
   const [activeStroke, setActiveStroke] = useState(null);
-  const [composeDrawings, setComposeDrawings] = useState([]);
+  const [composeDrawings, setComposeDrawings] = useState(_initialDraft?.composeDrawings || []);
+  // Autosave the in-progress comment (text + drawings + which note is being
+  // edited / replied-to / created at what timestamp) to localStorage. Tab
+  // switch / refresh / nav restores it on next mount via _initialDraft above.
+  // Bundled into a single object so the hook has one stable value to track;
+  // useMemo prevents needless re-fires when references look new but contents
+  // haven't changed.
+  const composeDraft = useMemo(
+    () => (composing ? { composing, composeText, composeDrawings } : null),
+    [composing, composeText, composeDrawings]
+  );
+  const composeAutosave = useAutosave(
+    role === 'trainer' ? composeDraft : null,
+    async (draft) => {
+      if (!draft) return true;
+      try { localStorage.setItem(draftKey, JSON.stringify(draft)); return true; }
+      catch { return false; }
+    },
+    { debounceMs: 300 }
+  );
   const [pausedAtCommentId, setPausedAtCommentId] = useState(null);
   const [videoPaused, setVideoPaused] = useState(true);
   const [videoEnded, setVideoEnded] = useState(false);
@@ -152,7 +182,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     setComposing({ ts: null, replyToId: parentId });
     setComposeText('');
   };
-  const cancelCompose = () => { setComposing(null); setComposeText(''); setComposeDrawings([]); };
+  const cancelCompose = () => {
+    setComposing(null); setComposeText(''); setComposeDrawings([]);
+    try { localStorage.removeItem(draftKey); } catch {}
+    composeAutosave.markClean();
+  };
   const startEdit = (note, isReply = false, parentId = null) => {
     try { videoRef.current?.pause(); } catch {}
     setComposing({ ts: note.ts ?? null, replyToId: null, editId: note.id, isReply, parentId });

@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import useAutosave from './hooks/useAutosave';
 import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
@@ -141,10 +142,22 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const wuCount = warmup.length;
   const exCount = day.ex.length;
 
+  // Session draft. Persisted to localStorage on every change so a phone call,
+  // backgrounded app, screen lock, or tab close mid-workout doesn't wipe the
+  // logged sets/RPE/notes. Restored on mount. Cleared on onComplete (workout
+  // finished and committed) or onBack (trainee explicitly leaves). Keyed by
+  // (clientId, plan.name, day.name, weekNum) so resuming the same day in the
+  // same week brings back the in-progress entries.
+  const sessionKey = `expo-stepLogger-${clientId}-${plan.name}-${day.name}-w${weekNum}`;
+  const _restoredSession = (() => {
+    try { const raw = localStorage.getItem(sessionKey); return raw ? JSON.parse(raw) : null; }
+    catch { return null; }
+  })();
+
   // Per-session substitutions: { [originalEid]: libraryExercise }. Resets on
   // workout finish or if the trainee navigates away from this day. The
   // prescribed plan is never mutated — substitution lives only in this state.
-  const [substitutions, setSubstitutions] = useState({});
+  const [substitutions, setSubstitutions] = useState(_restoredSession?.substitutions || {});
   const [swapOpenForEid, setSwapOpenForEid] = useState(null);
 
   // Group consecutive exercises sharing the same superset letter.
@@ -161,9 +174,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   })();
   const groupCount = groups.length;
 
-  const [step, setStep] = useState(wuCount > 0 ? 'wu0' : 'pre');
-  const [ar, setAr] = useState({pain:'',energy:'',sleep:''});
-  const [notes, setNotes] = useState('');
+  const [step, setStep] = useState(_restoredSession?.step || (wuCount > 0 ? 'wu0' : 'pre'));
+  const [ar, setAr] = useState(_restoredSession?.ar || {pain:'',energy:'',sleep:''});
+  const [notes, setNotes] = useState(_restoredSession?.notes || '');
   // Per-week sets (ex.wkS) takes precedence over the scalar ex.s for allocating log rows.
   // weekNum is 0-indexed; fall back to the flat sets count (or 3) if the week is missing.
   const setCountFor = (ex) => {
@@ -196,17 +209,30 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
     return best;
   };
-  const [allSets, setAllSets] = useState(() => day.ex.map(ex => {
-    const count = setCountFor(ex);
-    const prior = priorTopFor(ex.eid);
-    // Only the first set carries the prior numbers; subsequent sets stay blank
-    // so the trainee makes a deliberate call set-by-set instead of robotically
-    // copying last session across all four sets.
-    return Array.from({ length: count }, (_, i) => i === 0 && prior
-      ? { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false }
-      : { reps: '', load: '', rpe: '', done: false });
-  }));
-  const [fv, setFv] = useState(() => day.ex.map(() => ({note:'',has:false})));
+  const [allSets, setAllSets] = useState(() => {
+    // Resume from draft if the cached row count matches the current day shape.
+    // Mismatch means the trainer reshaped the day since the draft was written
+    // (added/removed exercises or sets) — safer to rebuild from the prescribed
+    // plan than to splice partial old data into the new structure.
+    if (_restoredSession?.allSets?.length === day.ex.length) {
+      const sizesOk = _restoredSession.allSets.every((rows, i) => rows.length === setCountFor(day.ex[i]));
+      if (sizesOk) return _restoredSession.allSets;
+    }
+    return day.ex.map(ex => {
+      const count = setCountFor(ex);
+      const prior = priorTopFor(ex.eid);
+      // Only the first set carries the prior numbers; subsequent sets stay blank
+      // so the trainee makes a deliberate call set-by-set instead of robotically
+      // copying last session across all four sets.
+      return Array.from({ length: count }, (_, i) => i === 0 && prior
+        ? { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false }
+        : { reps: '', load: '', rpe: '', done: false });
+    });
+  });
+  const [fv, setFv] = useState(() => {
+    if (_restoredSession?.fv?.length === day.ex.length) return _restoredSession.fv;
+    return day.ex.map(() => ({note:'',has:false}));
+  });
 
   // When the trainee swaps to a different exercise mid-session, prefill the
   // first set with that exercise's prior top — same behavior as initial mount,
@@ -232,8 +258,32 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [substitutions]);
-  const [wuDone, setWuDone] = useState(() => warmup.map(() => false));
+  const [wuDone, setWuDone] = useState(() => {
+    if (_restoredSession?.wuDone?.length === warmup.length) return _restoredSession.wuDone;
+    return warmup.map(() => false);
+  });
   const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
+
+  // Persist the in-progress session to localStorage on every state change.
+  // Bundle once so the autosave hook has a single stable value to track.
+  // 200ms debounce keeps writes off the hot path while a trainee taps through
+  // sets quickly. Cleared on onComplete / onBack via the wrappers below.
+  const sessionDraft = React.useMemo(
+    () => ({ step, ar, notes, allSets, fv, wuDone, substitutions, savedAt: Date.now() }),
+    [step, ar, notes, allSets, fv, wuDone, substitutions]
+  );
+  const sessionAutosave = useAutosave(
+    sessionDraft,
+    async (draft) => {
+      try { localStorage.setItem(sessionKey, JSON.stringify(draft)); return true; }
+      catch { return false; }
+    },
+    { debounceMs: 200 }
+  );
+  const clearSessionDraft = () => {
+    try { localStorage.removeItem(sessionKey); } catch {}
+    sessionAutosave.markClean();
+  };
 
   // Smart video handling: Safari/iOS skips compression (iOS pre-compresses),
   // Chrome/Android uses Canvas+MediaRecorder at accelerated playback.
@@ -496,6 +546,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         };
       }),
     });
+    // Workout committed — drop the in-progress draft. The trainee can start a
+    // fresh log next time without seeing stale set values from this session.
+    // Exit (← Exit / browser nav) intentionally KEEPS the draft so a trainee
+    // can resume the same day mid-workout.
+    clearSessionDraft();
   };
 
   // Navigation helpers
@@ -524,12 +579,21 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     else if (step === 'end') setStep(groupCount - 1);
   };
 
-  // Progress bar with EXPO icon
+  // Progress bar with EXPO icon. The "↻ Resumed" pill (orange) appears for
+  // ~6s after mount IF a draft was restored, so the trainee notices that the
+  // logged state isn't a glitch but their own prior session.
+  const [showResumedPill, setShowResumedPill] = useState(!!_restoredSession);
+  useEffect(() => {
+    if (!showResumedPill) return;
+    const t = setTimeout(() => setShowResumedPill(false), 6000);
+    return () => clearTimeout(t);
+  }, [showResumedPill]);
   const bar = <div style={{padding:'10px 16px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',height:32}}>
       <EXPOMark height={22} style={{flexShrink:0}} />
       <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
-      <button onClick={onBack} style={{marginLeft:'auto',background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
+      {showResumedPill && <span title="Restored from your last session" style={{marginLeft:'auto',background:C.orD,border:`1px solid ${C.or}40`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,letterSpacing:'0.04em'}}>↻ RESUMED</span>}
+      <button onClick={onBack} style={{marginLeft:showResumedPill?8:'auto',background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
       {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:2,background:stepIndex>i?C.or:stepIndex===i?C.or+'80':C.bd}} />)}
