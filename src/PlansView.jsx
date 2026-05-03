@@ -599,12 +599,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   return (
     <div>
       <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch",flexWrap:"wrap"}}>
-        <div style={{flex:1,minWidth:180,display:'flex'}}><input placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,padding:'10px 14px',lineHeight:'20px'}} /></div>
-        <select value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,width:180,padding:'10px 14px',lineHeight:'20px'}}>
+        <div style={{flex:1,minWidth:180,display:'flex'}}><input placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,height:42,padding:'0 14px',fontSize:13,lineHeight:'42px',display:'flex',alignItems:'center',textAlignLast:'center'}} /></div>
+        <select value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,width:200,height:42,padding:'0 14px',fontSize:13,lineHeight:'42px',textAlignLast:'center',textAlign:'center'}}>
           <option value="">All Athletes ({planIndex.length})</option>
           {traineeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
-        <Btn onClick={handleNewPlan} style={{padding:'10px 18px',lineHeight:'20px'}}>+ New Program</Btn>
+        <Btn onClick={handleNewPlan} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+ New Program</Btn>
       </div>
       {/* Sort controls. Click an inactive field to activate it (keeps current dir);
           click the active field to flip direction. Arrow points 'up' for asc. */}
