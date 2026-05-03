@@ -197,6 +197,7 @@ export default async function handler(req, res) {
     try { body = JSON.parse(body); } catch { res.status(400).json({ error: 'Bad JSON' }); return; }
   }
   const sessionId = String(body?.sessionId || '').slice(0, 64) || null;
+  const lang = String(body?.lang || '').toLowerCase().slice(0, 8);
   const userAgent = (req.headers['user-agent'] || '').toString();
   const messages = Array.isArray(body?.messages) ? body.messages : null;
   if (!messages || messages.length === 0) {
@@ -244,8 +245,14 @@ export default async function handler(req, res) {
         model: 'claude-sonnet-4-6',
         max_tokens: 800,
         // Cache the long system prompt so repeated turns within 5min only
-        // pay once for the system tokens.
-        system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+        // pay once for the system tokens. The lang-lock block is appended
+        // uncached so EN vs HE share the same cached prefix.
+        system: lang === 'he'
+          ? [
+              { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: 'LANGUAGE LOCK: The visitor is browsing the Hebrew interface. Reply in natural Israeli Hebrew on every turn — even if their input is in English (e.g. "hi"), even if they switch mid-thread. The "match the visitor language" rule above is overridden for this session.' },
+            ]
+          : [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
         messages: assembled,
         stream: wantStream,
       }),
