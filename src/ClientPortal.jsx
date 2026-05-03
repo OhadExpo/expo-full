@@ -1192,38 +1192,41 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   })();
   const renderTopHeader = () => (
     <>
-      <div style={{background:`linear-gradient(135deg,${C.sf},${C.sf2})`,padding:'20px 20px 16px',borderBottom:`1px solid ${C.bd}`}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+      <div style={{background:C.bg,padding:'20px 20px 18px',borderBottom:`0.25px solid ${C.bd2}`}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <EXPOMark height={22} style={{marginLeft:3}} />
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{display:'flex',alignItems:'center',gap:14}}>
             <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0}}>Log Out →</button>
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>LOG OUT →</button>
           </div>
         </div>
-        <h1 style={{margin:'0 0 6px',fontFamily:FN,fontSize:20,color:C.tx,textAlign:'center'}}>Hey {clientName.split(' ')[0]} 💪</h1>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:18}}>
+          <h1 style={{margin:0,fontFamily:FN,fontSize:18,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}>Hey {clientName.split(' ')[0]} 💪</h1>
+          <div style={{width:24,height:1,background:C.ac,marginTop:8,opacity:0.5}}/>
+        </div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:14}}>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>{visPlans.map(p=><Bg key={p.name} color={C.ac}>{p.name}</Bg>)}</div>
+            <div style={{display:'flex',flexDirection:'column',gap:4}}>{visPlans.map(p=><span key={p.name} style={{display:'inline-block',padding:'2px 0 2px 10px',borderLeft:`2px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase'}}>{p.name}</span>)}</div>
           </div>
           {streak >= 2 && (
             <div style={{textAlign:'right',flexShrink:0}} title={`${streak} consecutive days with a logged workout`}>
-              <div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:C.or}}>🔥{streak}</div>
-              <div style={{fontSize:9,color:C.tm,fontFamily:FN}}>STREAK</div>
+              <div style={{fontSize:24,fontWeight:700,fontFamily:FN,color:C.or,lineHeight:1,letterSpacing:'-0.02em'}}>{streak}<span style={{fontSize:11,marginLeft:3,verticalAlign:'4px'}}>🔥</span></div>
+              <div style={{fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.18em',fontWeight:700,marginTop:5}}>STREAK</div>
             </div>
           )}
           <div style={{textAlign:'right',flexShrink:0}}>
-            <div style={{fontSize:22,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.gn}}>{sl}</div>
-            <div style={{fontSize:9,color:C.tm,fontFamily:FN}}>SESSIONS</div>
+            <div style={{fontSize:24,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.ac,lineHeight:1,letterSpacing:'-0.02em'}}>{sl}</div>
+            <div style={{fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.18em',fontWeight:700,marginTop:5}}>SESSIONS</div>
           </div>
         </div>
       </div>
-      <div style={{padding:'14px 20px 0',display:'flex',gap:4}}>
-        {[['prog','Program'],['bwt','BW'],['pr','PRs'],['hist',`History (${cw.length})`]].map(([k,l]) =>
+      <div style={{padding:'14px 20px 0',display:'flex',gap:0}}>
+        {[['prog','PROGRAM'],['bwt','BW'],['pr','PRs'],['hist',`HISTORY (${cw.length})`]].map(([k,l],i,arr) =>
           <button key={k} onClick={() => setVw(k)}
-            style={{flex:1,padding:8,borderRadius:6,border:`${vw===k?'2px':'0.25px'} solid ${C.ac}${vw===k?'':'4D'}`,background:vw===k?C.acD:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer',position:'relative'}}>
-            {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:2,right:6,background:C.rd,color:'#fff',fontSize:9,fontFamily:FN,fontWeight:700,padding:'1px 5px',borderRadius:8}}>{unreadCoachNotes}</span>}
+            style={{flex:1,padding:'10px 4px',borderRadius:0,border:'none',borderBottom:`${vw===k?'2px':'0.25px'} solid ${C.ac}${vw===k?'':'4D'}`,background:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',position:'relative'}}>
+            {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>}
           </button>
         )}
       </div>
@@ -1433,29 +1436,29 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
-        <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center'}}>
-          <div style={{flex:1}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>Week</div>
-            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:6,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}</div></div>
-          <div style={{width:120}}><div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:4}}>BW {lb?`(${lb}kg)`:''}</div>
+        <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'center'}}>
+          <div style={{flex:1}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.18em',fontWeight:700}}>WEEK</div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',cursor:'pointer'}}>W{w+1}</button>)}</div></div>
+          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.18em',fontWeight:700}}>BW{lb?` · ${lb}KG`:''}</div>
             <div style={{display:'flex',gap:4}}>
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" disabled={!activePlan} style={{background:C.sf2,border:`0.25px solid ${C.ac}4D`,borderRadius:6,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
-            {bw && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:C.acD,border:'none',borderRadius:6,padding:'4px 8px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>Save</button>}
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+            {bw && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'transparent',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>SAVE</button>}
             </div></div></div>
-        {activePlan?.rest && <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm}}>⏱ {activePlan.rest}</div>}
+        {activePlan?.rest && <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{activePlan.rest}</div>}
         {unreadCoachNotes > 0 && <div onClick={() => setVw('hist')}
-          style={{background:C.acD,border:`1px solid ${C.ac}60`,borderRadius:10,padding:'10px 14px',marginBottom:14,cursor:'pointer',display:'flex',alignItems:'center',gap:10}}>
-          <span style={{fontSize:20}}>📬</span>
+          style={{background:'transparent',border:`1px solid ${C.ac}`,borderRadius:0,padding:'12px 14px',marginBottom:14,cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
+          <div style={{width:6,height:6,background:C.ac,flexShrink:0}}/>
           <div style={{flex:1}}>
-            <div style={{fontSize:13,color:C.ac,fontWeight:700}}>Ohad left {unreadCoachNotes} new note{unreadCoachNotes===1?'':'s'} on your workouts</div>
-            <div style={{fontSize:11,color:C.tm,marginTop:2}}>Tap to view in History →</div>
+            <div style={{fontSize:13,color:C.ac,fontWeight:700,fontFamily:FN,letterSpacing:'0.02em'}}>{unreadCoachNotes} new note{unreadCoachNotes===1?'':'s'} from Ohad</div>
+            <div style={{fontSize:9,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.12em',textTransform:'uppercase'}}>View in History →</div>
           </div>
         </div>}
-        {plansLoadError && <div style={{background:C.rdD||'#3a1a1a',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:12,padding:14,marginBottom:14}}>
-          <div style={{fontSize:13,color:C.rd||'#ff6b6b',fontWeight:600,marginBottom:4}}>Couldn't load your programs</div>
-          <div style={{fontSize:11,color:C.tm,marginBottom:8}}>{plansLoadError}</div>
-          <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:6,padding:'6px 12px',fontFamily:FB,fontSize:12,fontWeight:600,cursor:'pointer'}}>Retry</button>
+        {plansLoadError && <div style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:14,marginBottom:14}}>
+          <div style={{fontSize:11,color:C.rd||'#ff6b6b',fontWeight:700,fontFamily:FN,letterSpacing:'0.1em',marginBottom:6,textTransform:'uppercase'}}>Couldn't load programs</div>
+          <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{plansLoadError}</div>
+          <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>RETRY</button>
         </div>}
-        {visPlans.length===0 && !plansLoadError && <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:30,textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:20,marginBottom:8}}>📋</div><div style={{fontSize:13}}>No active programs right now. Contact your coach.</div></div>}
+        {visPlans.length===0 && !plansLoadError && <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>NO ACTIVE PROGRAM</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
         {/* Per-plan block: divider → warm-up → rest → training days */}
         {(()=>{ let globalDayIdx = 0; return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
@@ -1464,30 +1467,32 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}
             <div style={{flex:1,height:1,background:C.bd2}}/>
           </div>}
-          {vp.warmup?.length > 0 && <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:14,marginBottom:14}}>
-            <div style={{fontSize:11,fontFamily:FN,color:C.or,marginBottom:8,fontWeight:700}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
+          {vp.warmup?.length > 0 && <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:14,marginBottom:14}}>
+            <div style={{fontSize:10,fontFamily:FN,color:C.or,marginBottom:10,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase'}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
             {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid ${C.bd}22`:'none'}}>
               <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
-              <div style={{display:'flex',gap:6,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
-                {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4}}>▶</a>}</div></div>)}</div>}
-          {vp.rest && visPlans.length>1 && <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:8,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm}}>⏱ {vp.rest}</div>}
+              <div style={{display:'flex',gap:10,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
+                {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em'}}>VIDEO →</a>}</div></div>)}</div>}
+          {vp.rest && visPlans.length>1 && <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++; const done = cw.some(w => w.dayName === day.name && w.week === wk + 1);
-          return <div key={vp.name+'-'+di} style={{background:C.sf,border:`0.25px solid ${done?C.gn+'40':C.ac}`,borderRadius:12,marginBottom:12,padding:'14px 18px'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
-              <div><span style={{fontWeight:700,fontSize:15}}>{day.name}</span>{done && <Bg color={C.gn} style={{fontSize:9,padding:'2px 6px',marginLeft:6}}>✓</Bg>}
-                <div style={{fontSize:11,color:C.tm,marginTop:2}}>{day.ex.length} exercises</div></div>
-              <button onClick={() => setLg(dayIdx)} style={{padding:'6px 12px',borderRadius:6,border:'none',background:done?C.gnD:C.acD,color:done?C.gn:C.ac,fontFamily:FB,fontSize:11,fontWeight:600,cursor:'pointer'}}>{done?'Again':'📝 Log'}</button></div>
+          return <div key={vp.name+'-'+di} style={{background:'transparent',border:`${done?'0.25px':'1px'} solid ${done?C.gn+'40':C.ac}`,borderRadius:0,marginBottom:12,padding:'14px 18px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{day.name}</span>{done && <span style={{display:'inline-block',marginLeft:10,padding:'2px 7px',border:`0.25px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'2px'}}>DONE</span>}
+                <div style={{fontSize:10,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase'}}>{day.ex.length} exercises</div></div>
+              <button onClick={() => setLg(dayIdx)} style={{padding:'6px 14px',borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer'}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
               const focus = weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk+1}`];
-              return <div key={i} style={{display:'flex',gap:8,alignItems:'flex-start',padding:'4px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
-                <div style={{width:22,height:22,borderRadius:4,background:C.acD,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:10,fontWeight:700,color:C.ac,flexShrink:0}}>{i+1}</div>
+              return <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'6px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
+                <div style={{width:20,height:20,borderRadius:0,background:'transparent',border:`0.25px solid ${C.ac}4D`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:10,fontWeight:700,color:C.ac,flexShrink:0,letterSpacing:'0.04em'}}>{i+1}</div>
                 <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
-                  <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN}}>{hw?(wr||''):((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+ex.r}</span>
-                  {ex.tempo && <span style={{fontSize:9,color:C.or,marginLeft:4}}>{ex.tempo}</span>}
-                  {focus && <div style={{fontSize:11,color:C.ac,marginTop:3,opacity:0.85,lineHeight:1.4,display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'}}>💡 {focus}</div>}</div>
+                  <div style={{display:'flex',alignItems:'baseline',gap:10,marginTop:3}}>
+                    <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{hw?(wr||''):((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+ex.r}</span>
+                    {ex.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{ex.tempo}</span>}
+                  </div>
+                  {focus && <div style={{fontSize:11,color:C.ac,marginTop:4,opacity:0.85,lineHeight:1.4,display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'}}><span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>FOCUS</span>{focus}</div>}</div>
                 {(() => {
                   const v = 'vid' in ex ? ex.vid : d.vid;
-                  return v ? <a href={v} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.rd,fontSize:10,textDecoration:'none',padding:'2px 6px',background:C.rdD,borderRadius:4,flexShrink:0}}>▶</a> : null;
+                  return v ? <a href={v} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em',flexShrink:0}}>VIDEO →</a> : null;
                 })()}
               </div>})}
           </div>})}</React.Fragment>)})()}
