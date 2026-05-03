@@ -661,8 +661,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             }}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
               <div style={{minWidth:0,flex:1,direction:'ltr',unicodeBidi:'isolate',display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
-                <div style={{fontWeight:700,fontSize:16,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.01em',flexShrink:0}}><bdi>{tName}</bdi></div>
-                <div style={{fontWeight:700,fontSize:14,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{p.name||"Untitled"}</div>
+                <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.01em',flexShrink:0}}><bdi>{tName}</bdi></div>
+                <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{p.name||"Untitled"}</div>
                 <div style={{fontSize:10,color:C.tm,fontFamily:FN,letterSpacing:'0.1em',textTransform:'uppercase',flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount} DAYS · {p.exerciseCount} EX{p.phase?` · ${p.phase}`:''}</div>
               </div>
               <div style={{display:"flex",gap:6,flexShrink:0}}>
