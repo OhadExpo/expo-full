@@ -67,10 +67,10 @@ export const TextArea = ({ label, ...props }) => (
 );
 export const Badge = ({ children, color = C.ac, style: s }) =>
   <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: 'transparent', border: `0.25px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
-export const Card = ({ children, style, onClick }) => (
+export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) => (
   <div onClick={onClick} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 18, cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}
-    onMouseEnter={e => { if(onClick) { e.currentTarget.style.borderColor = C.ac; }}}
-    onMouseLeave={e => { if(onClick) { e.currentTarget.style.borderColor = C.ac + '4D'; }}}>{children}</div>
+    onMouseEnter={e => { if(onClick) e.currentTarget.style.borderColor = C.ac; if(onMouseEnter) onMouseEnter(e); }}
+    onMouseLeave={e => { if(onClick) e.currentTarget.style.borderColor = C.ac + '4D'; if(onMouseLeave) onMouseLeave(e); }}>{children}</div>
 );
 export const Modal = ({ open, onClose, title, children, wide }) => {
   if (!open) return null;
