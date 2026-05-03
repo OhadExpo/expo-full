@@ -46,7 +46,7 @@ export default function ExercisesView({ exercises, setExercises }) {
       </div>
       <div style={{ background: 'transparent', border:`0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 10, fontFamily: FN, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
             Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}
           </div>
           {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>}
@@ -72,16 +72,16 @@ export default function ExercisesView({ exercises, setExercises }) {
           </select>
         </div>
       </div>
-      <div style={{ fontSize: 12, color: C.td, marginBottom: 12, fontFamily: FN }}>{filtered.length} exercise{filtered.length !== 1 ? "s" : ""}</div>
+      <div style={{ fontSize: 11, color: C.tm, marginBottom: 12, fontFamily: FN }}>{filtered.length} exercise{filtered.length !== 1 ? "s" : ""}</div>
       {filtered.length === 0 ? <EmptyState icon="🏋️" message="No exercises. Build your library." /> : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FB, fontSize: 13 }}>
-            <thead><tr style={{ borderBottom: `1px solid ${C.bd}` }}>
+            <thead><tr style={{ borderBottom: `0.25px solid ${C.ac}4D` }}>
               {["Title","Category","Resistance","Pattern","Laterality",""].map(h =>
-                <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 10, fontFamily: FN, color: C.td, textTransform: "uppercase" }}>{h}</th>)}
+                <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 9, fontFamily: FN, color: C.tm, textTransform: "uppercase", letterSpacing: '0.18em' }}>{h}</th>)}
             </tr></thead>
             <tbody>{filtered.map(ex => (
-              <tr key={ex.id} style={{ borderBottom: `1px solid ${C.bd}` }} onMouseEnter={e => e.currentTarget.style.background = C.sf2} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <tr key={ex.id} style={{ borderBottom: `0.25px solid ${C.ac}4D` }} onMouseEnter={e => e.currentTarget.style.background = C.sf2} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <td style={{ padding: "10px", color: C.tx, fontWeight: 600 }}>{ex.title}</td>
                 <td style={{ padding: "10px" }}><Badge>{ex.category || "—"}</Badge></td>
                 <td style={{ padding: "10px", color: C.tm }}>{ex.resistanceType || "—"}</td>

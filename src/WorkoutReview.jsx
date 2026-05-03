@@ -8,7 +8,7 @@ import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
 
-const bi = {background:C.sf2,border:`1px solid ${C.bd}`,padding:"8px 10px",borderRadius:6,
+const bi = {background:'transparent',border:`1px solid ${C.ac}4D`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
 
 // Cmd/Ctrl + Enter shortcut for the "mark reviewed & next" CTA. Bound at the
@@ -1278,7 +1278,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   const pauseBoth = () => { leftVid?.pause(); rightVid?.pause(); };
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:1200,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
-      <div onClick={e => e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.bd}`,borderRadius:12,width:'min(1400px, 96vw)',padding:20}}>
+      <div onClick={e => e.stopPropagation()} style={{background:C.bg,border:`0.25px solid ${C.ac}4D`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Compare</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
@@ -1356,7 +1356,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     <div style={{display:"flex",gap:4,marginBottom:16}}>
       {[["review","Review Athlete Workouts"],["log","Log In-Person Session"]].map(([k,l]) => (
         <button key={k} onClick={() => {setSubTab(k);setSelectedWo(null);setExpandedEx(null)}}
-          style={{flex:1,padding:"10px 0",borderRadius:8,border:`1px solid ${subTab===k?C.ac:C.bd}`,
+          style={{flex:1,padding:"10px 0",borderRadius:0,border:`${subTab===k?'1px':'0.25px'} solid ${subTab===k?C.ac:C.ac+'4D'}`,
             background:subTab===k?C.acD:"transparent",color:subTab===k?C.ac:C.tm,
             fontFamily:FB,fontSize:13,fontWeight:600,cursor:"pointer"}}>{l}</button>
       ))}
@@ -1384,7 +1384,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     <div onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
       style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
       <div onClick={e => e.stopPropagation()}
-        style={{background:C.sf,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:12,padding:20,maxWidth:380,width:'100%'}}>
+        style={{background:C.bg,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:20,maxWidth:380,width:'100%'}}>
         <div style={{fontFamily:FN,fontSize:13,color:C.rd||'#ff6b6b',marginBottom:6,fontWeight:700,textAlign:'center'}}>DELETE WORKOUT</div>
         <div style={{fontSize:13,color:C.tx,marginBottom:6,textAlign:'center'}}>
           {woForConfirm.dayName} · {woForConfirm.planName} · W{woForConfirm.week}
@@ -1398,7 +1398,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           style={{width:'100%',background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
         <div style={{display:'flex',gap:8}}>
           <button onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
-            style={{flex:1,padding:'10px 0',borderRadius:8,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
+            style={{flex:1,padding:'10px 0',borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
             Cancel
           </button>
           <button disabled={!confirmOk} onClick={onDeleteConfirm}
@@ -1477,7 +1477,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{comparePicker.candidates.length} other video{comparePicker.candidates.length===1?'':'s'} from this client:</div>
               {comparePicker.candidates.map((c, i) => (
                 <div key={i} onClick={() => { setCompareActive({ left: comparePicker.left, right: { url: c.cloudUrl, label: c.label, title: c.title } }); setComparePicker(null); }}
-                  style={{background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
+                  style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
                   onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                   onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}>
                   <div style={{fontSize:12,color:C.tx}}>{c.label}</div>
@@ -1500,7 +1500,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         </button>
 
         {/* Workout header */}
-        <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:10,padding:16,marginBottom:16}}>
+        <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:16,marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
               <h2 style={{margin:0,fontFamily:FN,fontSize:18,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -1518,7 +1518,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             </div>
             <div style={{textAlign:"right"}}>
               <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.gn}}>{completedSets}/{totalSets}</div>
-              <div style={{fontSize:9,fontFamily:FN,color:C.td}}>SETS DONE</div>
+              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>SETS DONE</div>
             </div>
           </div>
 
@@ -1526,16 +1526,16 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           {wo.autoregulation && (
             <div style={{display:"flex",gap:12,marginTop:12}}>
               {[['Pain',wo.autoregulation.pain,C.rd],['Energy',wo.autoregulation.energy,C.gn],['Sleep',wo.autoregulation.sleep,C.pu]].map(([l,v,col]) => (
-                <div key={l} style={{flex:1,background:C.sf2,borderRadius:6,padding:8,textAlign:"center"}}>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.td}}>{l.toUpperCase()}</div>
+                <div key={l} style={{flex:1,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:8,textAlign:"center"}}>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>{l.toUpperCase()}</div>
                   <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:v?col:C.td}}>{v || '—'}</div>
                 </div>
               ))}
             </div>
           )}
           {wo.notes && (
-            <div style={{marginTop:10,background:C.sf2,borderRadius:6,padding:10}}>
-              <div style={{fontSize:9,fontFamily:FN,color:C.td,marginBottom:4}}>ATHLETE NOTES</div>
+            <div style={{marginTop:10,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:10}}>
+              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',marginBottom:4}}>ATHLETE NOTES</div>
               <div style={{fontSize:13,color:C.tx}}>{wo.notes}</div>
             </div>
           )}
@@ -1553,11 +1553,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           const nextFocus = getFocus(wo.planName, wo.dayName, ex.eid, nextWeek);
 
           return (
-            <div key={i} data-ex-idx={i} style={{background:C.sf,border:`1px solid ${isExpanded?C.ac+'40':C.bd}`,borderRadius:10,marginBottom:8,overflow:"hidden"}}>
+            <div key={i} data-ex-idx={i} style={{background:'transparent',border:`${isExpanded?'1px':'0.25px'} solid ${isExpanded?C.ac:C.ac+'4D'}`,borderRadius:0,marginBottom:8,overflow:"hidden"}}>
               {/* Header row — click to expand */}
               <div onClick={() => setExpandedEx(isExpanded?null:i)}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
-                <div style={{width:26,height:26,borderRadius:6,background:doneSets===ex.sets.length?C.gnD:C.acD,
+                <div style={{width:26,height:26,borderRadius:0,background:doneSets===ex.sets.length?C.gnD:C.acD,
                   display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FN,fontSize:11,fontWeight:700,
                   color:doneSets===ex.sets.length?C.gn:C.ac,flexShrink:0}}>{i+1}</div>
                 <div style={{flex:1}}>
@@ -1588,12 +1588,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
               {/* Expanded detail */}
               {isExpanded && (
-                <div style={{padding:"0 14px 14px",borderTop:`1px solid ${C.bd}`}}>
+                <div style={{padding:"0 14px 14px",borderTop:`0.25px solid ${C.ac}4D`}}>
                   {/* Set-by-set data — every column centered for visual symmetry */}
                   <div style={{marginTop:10,marginBottom:12}}>
                     <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,marginBottom:4}}>
                       {['SET','REPS','LOAD','RPE'].map(h =>
-                        <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{h}</div>)}
+                        <div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:'center'}}>{h}</div>)}
                     </div>
                     {ex.sets.map((set, si) => (
                       <div key={si} style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"3px 0",
@@ -1608,7 +1608,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
                   {/* Client's form video */}
                   {(formVideo?.has || formVideo?.cloudUrl) ? (
-                    <div style={{background:C.gnD,border:`1px solid ${C.gn}30`,borderRadius:8,padding:12,marginBottom:10}}>
+                    <div style={{background:C.gnD,border:`1px solid ${C.gn}30`,borderRadius:0,padding:12,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                         <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
                         {formVideo.cloudUrl && (() => {
@@ -1646,14 +1646,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>Client note: {formVideo.note}</div>}
                     </div>
                   ) : (
-                    <div style={{background:C.sf2,borderRadius:8,padding:10,marginBottom:10,textAlign:"center"}}>
-                      <div style={{fontSize:11,color:C.td}}>No form video submitted</div>
+                    <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:10,marginBottom:10,textAlign:"center"}}>
+                      <div style={{fontSize:11,color:C.tm}}>No form video submitted</div>
                     </div>
                   )}
 
                   {/* Weekly Focus editor — for NEXT week of the same block,
                       or an END-OF-BLOCK takeaway when this is the final week. */}
-                  <div style={{background:C.acD,borderRadius:8,padding:12,border:`1px solid ${C.ac}20`}}>
+                  <div style={{background:C.acD,borderRadius:0,padding:12,border:`1px solid ${C.ac}20`}}>
                     <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,textAlign:'center'}}>
                       {isLastWeekOfBlock
                         ? `END-OF-BLOCK NOTE — W${currentWeek}/${planWeeks}`
@@ -1677,7 +1677,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         const isCurrent = w === currentWeek;
                         const isNext = !isLastWeekOfBlock && w === nextWeek;
                         return (
-                          <div key={w} style={{padding:"3px 4px",borderRadius:3,
+                          <div key={w} style={{padding:"3px 4px",borderRadius:0,
                             background:isNext?C.ac+'15':isCurrent?C.gn+'10':C.sf2,
                             border:`1px solid ${isNext?C.ac+'40':isCurrent?C.gn+'20':f?C.ac+'15':C.bd}`,
                             textAlign:"center"}}>
@@ -1712,7 +1712,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 50);
                       }
                     }}
-                      style={{padding:'8px 18px',borderRadius:6,border:`1px solid ${C.ac}`,
+                      style={{padding:'8px 18px',borderRadius:0,border:`1px solid ${C.ac}`,
                         background:C.acD,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,
                         letterSpacing:0.5,cursor:'pointer'}}>
                       {i < wo.exercises.length - 1 ? '✓ NEXT EXERCISE →' : '✓ DONE — FINISH REVIEW ↓'}
@@ -1734,7 +1734,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           {deleteWorkout && (
             <button onClick={() => { setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
               title="Delete this workout"
-              style={{padding:"12px 16px",borderRadius:8,border:`1px solid ${C.rd||'#c94444'}`,
+              style={{padding:"12px 16px",borderRadius:0,border:`1px solid ${C.rd||'#c94444'}`,
                 background:"transparent",color:C.rd||'#ff6b6b',fontFamily:FN,fontSize:12,fontWeight:600,
                 cursor:"pointer"}}>
               DELETE
@@ -1746,7 +1746,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               appears when the workout is already marked reviewed. */}
           {wo.reviewedAt && (
             <button onClick={() => { markReviewed && markReviewed(wo.id, false); }}
-              style={{padding:"12px 16px",borderRadius:8,border:`1px solid ${C.bd}`,
+              style={{padding:"12px 16px",borderRadius:0,border:`1px solid ${C.ac}4D`,
                 background:"transparent",color:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,
                 cursor:"pointer"}}>
               UNMARK
@@ -1754,7 +1754,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           )}
           <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
             title="Return to the review queue"
-            style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.bd2}`,
+            style={{flex:1,padding:"12px 0",borderRadius:0,border:`0.25px solid ${C.ac}4D`,
               background:"transparent",color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,
               letterSpacing:0.5,cursor:"pointer"}}>
             ← BACK TO REVIEW
@@ -1763,14 +1763,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             findNextUnreviewed() ? (
               <button onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}
                 title="Jump to next pending workout"
-                style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.ac}`,
+                style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                   background:C.ac,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
                 → NEXT PENDING ({remainingAfter})
               </button>
             ) : (
               <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
-                style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.gn}`,
+                style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.gn}`,
                   background:C.gn,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
                 ✓ REVIEWED — BACK TO LIST
@@ -1779,7 +1779,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           ) : (
             <button onClick={saveAndNext}
               title="Mark reviewed and jump to the next pending workout (⌘/Ctrl + Enter)"
-              style={{flex:1,padding:"12px 0",borderRadius:8,border:`1px solid ${C.ac}`,
+              style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                 background:C.ac,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
                 letterSpacing:0.5,cursor:"pointer"}}>
               ✓ MARK REVIEWED {remainingAfter > 0 ? `& NEXT (${remainingAfter} LEFT)` : '— BACK TO LIST'}
@@ -1798,7 +1798,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   if (allWorkouts.length === 0) return (
     <div>
       {subNav}
-      <h2 style={{fontFamily:FN,fontSize:18,marginBottom:8}}>Workout Review</h2>
+      <div style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:8}}>WORKOUT REVIEW</div>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>
         Review completed workouts, watch client form videos, and set weekly focus for next week.
       </div>
@@ -1813,8 +1813,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   return (
     <div>
       {subNav}
-      <h2 style={{fontFamily:FN,fontSize:18,marginBottom:4}}>Workout Review</h2>
-      <div style={{color:C.tm,fontSize:13,marginBottom:16}}>
+      <div style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:4}}>WORKOUT REVIEW</div>
+      <div style={{color:C.tm,fontSize:11,marginBottom:16,fontFamily:FB}}>
         Review completed workouts, watch client form videos, and write focus notes for next week.
       </div>
 
@@ -1826,12 +1826,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         return (
           <div style={{
             display:'flex',justifyContent:'space-between',alignItems:'center',
-            background:C.sf, border:`1px solid ${C.ac}40`, borderRadius:10,
+            background:'transparent', border:`1px solid ${C.ac}`, borderRadius:0,
             padding:'10px 14px', marginBottom:14,
           }}>
             <div style={{display:'flex',alignItems:'center',gap:10}}>
               <div style={{
-                width:28,height:28,borderRadius:8,background:C.acD,
+                width:28,height:28,borderRadius:0,background:C.acD,
                 display:'flex',alignItems:'center',justifyContent:'center',
                 fontFamily:FN,fontSize:12,fontWeight:700,color:C.ac,
               }}>{queue.length}</div>
@@ -1867,7 +1867,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const reviewed = !!wo.reviewedAt;
             return (
               <div key={wo.id} onClick={() => setSelectedWo(wo.id)}
-                style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:8,padding:"12px 16px",
+                style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:"12px 16px",
                   marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
