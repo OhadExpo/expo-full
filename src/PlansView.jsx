@@ -20,8 +20,8 @@ function PatternCoverage({ plan, exercises }) {
   }, [plan.days, exercises]);
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
   if (exercises.length === 0) return null;
-  return (<div style={{ background: 'transparent', border:`0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
-    <div style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: missing.length > 0 ? C.or : C.gn, marginBottom: 8, letterSpacing: '0.12em' }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
+  return (<div style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+    <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: missing.length > 0 ? C.or : C.gn, marginBottom: 8 }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.rd}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
 }
@@ -97,10 +97,10 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border:`0.25px solid ${C.ac}4D`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 14, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px 12px' }}>
-          <h3 style={{ margin: 0, fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{title || 'Select Exercise'}</h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
+          <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700 }}>{title || 'Select Exercise'}</h3>
+          <button onClick={onClose} style={{ background: C.sf2, border: `1px solid ${C.bd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 6, fontSize: 14 }}>✕</button>
         </div>
         <div style={{ padding: '0 22px' }}>
           <input
@@ -140,9 +140,9 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
                     onMouseEnter={() => setActiveIdx(idx)}
                     style={{
                       textAlign: 'left', padding: '10px 12px',
-                      background: 'transparent',
-                      border: `${isActive || isSelected ? '1px' : '0.25px'} solid ${isActive ? C.ac : (isSelected ? C.ac : C.ac + '4D')}`,
-                      borderRadius: 0, cursor: 'pointer', fontFamily: FB, color: C.tx,
+                      background: isActive ? C.sf2 : (isSelected ? C.acD : C.sf),
+                      border: `1px solid ${isActive ? C.ac + '60' : (isSelected ? C.ac + '80' : C.bd)}`,
+                      borderRadius: 8, cursor: 'pointer', fontFamily: FB, color: C.tx,
                       transition: 'all 0.1s'
                     }}
                   >
@@ -198,9 +198,9 @@ function WarmupEditor({ plan, setPlan }) {
   const add = () => setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] }));
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   return (
-    <div style={{ background: 'transparent', border:`0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
+    <div style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: warmup.length ? 10 : 0 }}>
-        <div style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.15em' }}>WARM-UP ({warmup.length})</div>
+        <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or }}>WARM-UP ({warmup.length})</div>
         <Btn variant="ghost" onClick={add} style={{ padding: '4px 10px', fontSize: 11 }}>+ Add Warm-Up</Btn>
       </div>
       {warmup.map((w, i) => (
@@ -269,7 +269,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:11,fontWeight:600,color:statusLabel.color,letterSpacing:"0.04em"}}>{statusLabel.text}</span>}
-          <button onClick={()=>setOverview(v=>!v)} style={{background:'transparent',border:`${overview?'2px':'0.25px'} solid ${overview?C.ac:`${C.ac}4D`}`,borderRadius:0,padding:"6px 14px",color:overview?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em'}}>OVERVIEW</button>
+          <button onClick={()=>setOverview(v=>!v)} style={{background:overview?C.ac:C.sf2,border:`${overview?'2px':'0.25px'} solid ${overview?C.ac:`${C.ac}4D`}`,borderRadius:6,padding:"6px 12px",color:overview?"#fff":C.tm,cursor:"pointer",fontFamily:FN,fontSize:11,fontWeight:600}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
           <Btn onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
@@ -298,8 +298,8 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
       <WarmupEditor plan={plan} setPlan={setPlan} />
       {!overview && <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
         {plan.days.map((d,i) => <div key={d.id} style={{display:"flex"}}>
-          <button onClick={()=>setActiveDay(i)} style={{padding:"6px 14px",fontSize:11,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,borderRight:plan.days.length>1?'none':undefined,background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase'}}>{d.name} ({d.exercises.length})</button>
-          {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"6px 8px",fontSize:11,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,borderLeft:'none',background:'transparent',color:i===activeDay?C.ac:C.td,cursor:"pointer"}}>×</button>}
+          <button onClick={()=>setActiveDay(i)} style={{padding:"6px 14px",fontSize:12,borderRadius:"6px 0 0 6px",border:"none",background:i===activeDay?C.ac:C.sf2,color:i===activeDay?"#fff":C.tm,cursor:"pointer",fontFamily:FB,fontWeight:600}}>{d.name} ({d.exercises.length})</button>
+          {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"6px 6px",fontSize:10,borderRadius:"0 6px 6px 0",border:"none",borderLeft:`1px solid ${C.bd}`,background:i===activeDay?C.ac:C.sf2,color:i===activeDay?"#fff":C.td,cursor:"pointer",opacity:0.7}}>×</button>}
         </div>)}
         <Btn variant="ghost" onClick={addDay} style={{padding:"6px 12px",fontSize:12}}>+</Btn>
       </div>}
@@ -310,13 +310,13 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           return (
-            <div key={d.id} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12}}>
+            <div key={d.id} style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:8,padding:12}}>
               <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
                 <span style={{color:C.td,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
                 <button onClick={()=>{setActiveDay(dayIdx);setOverview(false)}} title="Open this day in the detail editor — needed to add exercises, change the exercise itself, or edit notes/URL"
-                  style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:"3px 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',marginLeft:"auto"}}>DETAIL ▸</button>
+                  style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600,marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
                 <div style={{display:"grid",gridTemplateColumns:"22px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center"}}>
@@ -376,7 +376,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
           const exData = exercises.find(e=>e.id===ex.exerciseId);
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
-          return(<div key={ex.id} style={{background:'transparent',border:`0.25px solid ${ex.superset?sc:C.ac+'4D'}`,borderLeft:ex.superset?`3px solid ${sc}`:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:8}}>
+          return(<div key={ex.id} style={{background:C.sf,border:`1px solid ${ex.superset?sc+"60":C.bd}`,borderLeft:ex.superset?`3px solid ${sc}`:`1px solid ${C.bd}`,borderRadius:8,padding:12,marginBottom:8}}>
             <div style={{display:"grid",gridTemplateColumns:"40px 1fr",gap:12,alignItems:"start"}}>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,paddingTop:4}}>
                 <span style={{fontFamily:FN,fontSize:12,color:C.td,fontWeight:700}}>{exIdx+1}</span>
@@ -478,7 +478,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         placeholder="📹 Insert video URL" />
                       {effective && <a href={effective} target="_blank" rel="noreferrer"
                         title={hasOverride?"Per-program URL":"From exercise library"}
-                        style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.1em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 12px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.ac+'4D'}`,borderRadius:0,whiteSpace:"nowrap"}}>
+                        style={{fontSize:11,fontFamily:FN,color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`1px solid ${hasOverride?C.ac:C.bd}`,borderRadius:6,whiteSpace:"nowrap"}}>
                         {hasOverride?"OPEN ▸":"LIB ▸"}
                       </a>}
                     </div>
@@ -490,13 +490,13 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   // to 4, hiding focus inputs for weeks 5+ on longer plans.
                   const weeks = plan.weeks || 4;
                   return (
-                    <div style={{marginTop:6,background:'transparent',borderRadius:0,padding:"8px 10px",border:`0.25px solid ${C.ac}4D`}}>
-                      <div style={{fontSize:9,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,letterSpacing:'0.15em'}}>WEEKLY FOCUS</div>
+                    <div style={{marginTop:6,background:C.acD,borderRadius:6,padding:"8px 10px",border:`1px solid ${C.ac}20`}}>
+                      <div style={{fontSize:9,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:4}}>WEEKLY FOCUS</div>
                       <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},1fr)`,gap:4}}>
                         {Array.from({length:weeks}, (_, i) => i + 1).map(w => {
                           const fk = `${plan.name}|${day.name}|${ex.exerciseId}|W${w}`;
                           return <input key={w} value={weeklyFocus?.[fk]||""} onChange={e=>{const v=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:v}))}}
-                            placeholder={`W${w}`} style={{background:'transparent',border:`0.25px solid ${weeklyFocus?.[fk]?C.ac:C.ac+'4D'}`,borderRadius:0,padding:"4px 6px",color:C.tx,fontFamily:FB,fontSize:11,outline:"none",boxSizing:"border-box"}} />;
+                            placeholder={`W${w}`} style={{background:C.sf2,border:`1px solid ${weeklyFocus?.[fk]?C.ac+"40":C.bd}`,borderRadius:4,padding:"4px 6px",color:C.tx,fontFamily:FB,fontSize:11,outline:"none",boxSizing:"border-box"}} />;
                         })}
                       </div>
                     </div>
@@ -621,11 +621,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
               else setSortField(field);
             }} style={{
-              padding:"4px 12px",borderRadius:0,
-              border:`${active?'1px':'0.25px'} solid ${active?C.ac:C.ac+'4D'}`,
-              background:'transparent',
+              padding:"4px 10px",borderRadius:4,
+              border:`1px solid ${active?C.ac:C.bd}`,
+              background:active?C.acD:"transparent",
               color:active?C.ac:C.tm,
-              fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',
+              fontFamily:FN,fontSize:11,fontWeight:active?700:500,
               cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4
             }}>
               {label}{active && <span style={{fontSize:10}}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
@@ -636,7 +636,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       <div style={{fontSize:12,color:C.td,marginBottom:12,fontFamily:FN}}>
         Showing {visible.length} of {filtered.length} programs{filtered.length !== planIndex.length ? ` (${planIndex.length} total)` : ''}
       </div>
-      {filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
+      {filtered.length===0?<EmptyState icon="📋" message="No programs match your search." />:(
         <div style={{display:"grid",gap:10}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
           return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)}>
@@ -644,9 +644,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <div><div style={{fontWeight:700,fontSize:15,color:C.tx}}>{p.name||"Untitled"}</div>
                 <div style={{fontSize:12,color:C.tm,marginTop:4}}>{tName} · {p.dayCount} days · {p.exerciseCount} exercises</div>
                 {p.phase&&<Badge color={C.ac} style={{marginTop:6}}>{p.phase}</Badge>}</div>
-              <div style={{display:"flex",gap:6}}>
-                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'4px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>DUP</button>
-                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'4px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>DEL</button>
+              <div style={{display:"flex",gap:4}}>
+                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4}}>📋</button>
+                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button>
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>)}
