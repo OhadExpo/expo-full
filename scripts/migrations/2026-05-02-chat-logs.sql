@@ -35,28 +35,28 @@ CREATE INDEX IF NOT EXISTS chat_logs_created_idx ON public.chat_logs (created_at
 CREATE INDEX IF NOT EXISTS chat_logs_site_idx ON public.chat_logs (site, created_at DESC);
 
 -- RLS: visitors must NOT read this table; coaches (is_trainer) can. Inserts
--- happen exclusively server-side via the service role / function path —
--- but we keep RLS on with no anon policy so a misconfigured client still
--- can't peek.
+-- happen via the publishable anon key from /api/chat — append-only from the
+-- visitor side.
 ALTER TABLE public.chat_logs ENABLE ROW LEVEL SECURITY;
 
+-- IMPORTANT — see memory `reference_supabase_rls_anon_gotchas.md`:
+--   1. Use `auth.jwt() ->> 'email'` instead of querying auth.users — anon
+--      can't read auth.users, and Postgres evaluates all policies during
+--      plan-time, so even a SELECT-only policy referencing it will break
+--      anon INSERTs with "permission denied for table users".
+--   2. Always specify `TO anon, authenticated` explicitly. PostgREST does
+--      not reliably honor the implicit PUBLIC role for anon clients.
 DROP POLICY IF EXISTS "chat_logs_trainer_select" ON public.chat_logs;
 CREATE POLICY "chat_logs_trainer_select" ON public.chat_logs
-  FOR SELECT USING (
-    auth.role() = 'authenticated' AND
-    EXISTS (
-      SELECT 1 FROM auth.users u
-      WHERE u.id = auth.uid()
-        AND u.email = 'ohadyproductions@gmail.com'
-    )
-  );
+  FOR SELECT
+  TO authenticated
+  USING ((auth.jwt() ->> 'email') = 'ohadyproductions@gmail.com');
 
--- The /api/chat function uses the publishable anon key for inserts. Allow
--- anon INSERT but no SELECT/UPDATE/DELETE — append-only from the visitor
--- side. (If we later move to service-role inserts we can drop this policy.)
 DROP POLICY IF EXISTS "chat_logs_anon_insert" ON public.chat_logs;
 CREATE POLICY "chat_logs_anon_insert" ON public.chat_logs
-  FOR INSERT WITH CHECK (true);
+  FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
 
 GRANT SELECT ON public.chat_logs TO authenticated;
 GRANT INSERT ON public.chat_logs TO anon;
