@@ -246,12 +246,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
       {header}
       <div style={innerStyle}>
         {!embedded && (
-          <>
-            <h2 style={{ fontFamily: FN, fontSize: 18, margin: '0 0 4px', textAlign: 'center' }}>Records</h2>
-            <div style={{ color: C.tm, fontSize: 12, marginBottom: 14, textAlign: 'center' }}>
-              Pick an exercise — see the heaviest weight you've lifted on it and how many reps you hit at that weight.
-            </div>
-          </>
+          <div style={{ fontSize: 9, fontFamily: FN, color: C.td, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>RECORDS</div>
         )}
 
         {rows.length === 0 ? (
@@ -326,7 +321,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 }}>
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>
                   <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 36, color: C.ac, letterSpacing: -0.5, lineHeight: 1 }}>
-                    {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 4 }}>kg</span>
+                    {picked.allTimePR}<span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 8 }}>kg</span>
                     {picked.allTimePRReps > 0 && (
                       <span style={{ fontSize: 18, color: C.tm, fontWeight: 400, marginLeft: 8 }}>× {picked.allTimePRReps}</span>
                     )}
@@ -345,36 +340,29 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 6 }}>
                   SESSION HISTORY · {picked.sessionCount} ENTR{picked.sessionCount === 1 ? 'Y' : 'IES'}
                 </div>
-                <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, overflow: 'hidden' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 60px 60px', padding: '8px 12px', borderBottom: `1px solid ${C.bd}` }}>
-                    {['DATE', 'WEIGHT', 'REPS', 'RPE'].map(h => (
-                      <div key={h} style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 1, textAlign: 'center', fontWeight: 700 }}>{h}</div>
-                    ))}
-                  </div>
-                  {picked.series.slice().reverse().map((s, i, arr) => (
-                    <div key={i} style={{
-                      display: 'grid', gridTemplateColumns: '1fr 80px 60px 60px',
-                      padding: '8px 12px', alignItems: 'center',
-                      borderBottom: i < arr.length - 1 ? `1px solid ${C.bd}22` : 'none',
-                      background: s.load === picked.allTimePR ? `${C.ac}10` : 'transparent',
-                    }}>
-                      <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, textAlign: 'center' }}>
-                        {fmtDate(s.date)}
-                        {s.week ? <span style={{ color: C.td, marginLeft: 4 }}>W{s.week}</span> : null}
-                      </div>
-                      <div style={{
-                        fontFamily: FN, fontSize: 13, color: s.load === picked.allTimePR ? C.ac : C.tx,
-                        fontWeight: s.load === picked.allTimePR ? 700 : 600, textAlign: 'center',
+                <div style={{ border: `0.25px solid ${C.ac}4D` }}>
+                  {picked.series.slice().reverse().map((s, i, arr) => {
+                    const isPR = s.load === picked.allTimePR;
+                    return (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        borderBottom: i < arr.length - 1 ? `0.25px solid ${C.ac}4D` : 'none',
+                        background: isPR ? `${C.ac}0A` : 'transparent',
                       }}>
-                        {s.load}<span style={{ fontSize: 10, color: C.tm, marginLeft: 1 }}>kg</span>
-                        {s.load === picked.allTimePR && (
-                          <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, marginLeft: 4, letterSpacing: 0.5, fontWeight: 700 }}>PR</span>
-                        )}
+                        <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 70 }}>
+                          {fmtDate(s.date)}
+                          {s.week ? <span style={{ color: C.td, marginLeft: 4 }}>W{s.week}</span> : null}
+                        </div>
+                        <div style={{ fontFamily: FN, fontSize: 14, color: isPR ? C.ac : C.tx, fontWeight: 700, textAlign: 'right' }}>
+                          {s.load}<span style={{ fontSize: 10, color: C.tm, marginLeft: 6, fontWeight: 400 }}>kg</span>
+                          {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginLeft: 8, fontWeight: 400 }}>× {s.reps}</span>}
+                          {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginLeft: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
+                          {isPR && <span style={{ fontSize: 9, color: C.ac, marginLeft: 8, letterSpacing: '0.1em', fontWeight: 700, border: `0.25px solid ${C.ac}`, padding: '1px 5px' }}>PR</span>}
+                        </div>
                       </div>
-                      <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, textAlign: 'center' }}>{s.reps || '—'}</div>
-                      <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, textAlign: 'center' }}>{s.rpe ?? '—'}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}

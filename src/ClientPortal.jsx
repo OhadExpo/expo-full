@@ -1247,8 +1247,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
-        <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18}}>Bodyweight Tracking</h2>
-        <div style={{color:C.tm,fontSize:12,marginBottom:16}}>{clientName} · {bwData.length} entries</div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
+          <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.18em',fontWeight:700}}>BODYWEIGHT</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {bwData.length} ENTRIES</div>
+        </div>
 
         {/* Quick log */}
         <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:14,marginBottom:16}}>
@@ -1384,7 +1386,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   if (vw === 'hist' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
     <div style={{padding:'14px 20px 20px'}}>
-      <h2 style={{margin:'0 0 12px',fontFamily:FN,fontSize:18}}>History ({cw.length})</h2>
+      <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.18em',fontWeight:700,marginBottom:14}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         cw.slice().reverse().map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'transparent',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
           <div style={{fontWeight:600,fontSize:13}}>{w.dayName} <span style={{color:C.tm,fontWeight:400}}>({w.planName})</span></div>
