@@ -221,61 +221,87 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [overview, setOverview] = useState(false);
-  // Autosave state machine. Every change to `plan` schedules a debounced
-  // savePlan() so any text-box edit (name, day name, sets/reps grids, load,
-  // RPE, tempo, notes, video URL, warm-up rows, athlete picker, etc.) is
-  // persisted without the user clicking Save Program. Weekly Focus inputs
-  // already autosave via useSupaWeeklyFocus in App.jsx.
+  // Autosave: every plan mutation queues a savePlan() through a serial chain
+  // so writes never race and the last edit always wins. Triggers cover every
+  // way out of the editor: debounced 600ms after edits, immediately on
+  // visibilitychange/pagehide (tab switch, screen lock, browser nav, refresh,
+  // tab close), Back button (awaits the chain), and unmount (fire-and-forget,
+  // chain keeps resolving outside the component lifecycle).
   const [autoStatus, setAutoStatus] = useState('idle'); // 'idle'|'pending'|'saving'|'saved'|'error'
   const planRef = useRef(plan);
-  const versionRef = useRef(0);
-  const savedVersionRef = useRef(0);
-  const savingRef = useRef(false);
+  const dirtyRef = useRef(false);
+  const chainRef = useRef(Promise.resolve());
   const isMountRef = useRef(true);
   const debounceRef = useRef(null);
   const savedTimerRef = useRef(null);
 
-  const flush = useCallback(async () => {
-    if (savingRef.current) return;
-    if (savedVersionRef.current === versionRef.current) return;
-    savingRef.current = true;
-    setAutoStatus('saving');
-    const verAtStart = versionRef.current;
-    const ok = await savePlan(planRef.current);
-    savingRef.current = false;
-    if (ok) {
-      savedVersionRef.current = verAtStart;
-      if (versionRef.current > savedVersionRef.current) {
-        // More edits arrived during the save → run again so the latest lands.
-        flush();
-      } else {
+  const enqueueSave = useCallback(() => {
+    if (!dirtyRef.current) return chainRef.current;
+    const next = chainRef.current.then(async () => {
+      if (!dirtyRef.current) return;
+      setAutoStatus('saving');
+      // Snapshot now and clear dirty before awaiting; if a new edit lands
+      // during the save it re-flips dirty and will be picked up by the next
+      // enqueueSave (debounce, visibilitychange, Back, or unmount).
+      const snap = planRef.current;
+      dirtyRef.current = false;
+      const ok = await savePlan(snap);
+      if (!ok) {
+        dirtyRef.current = true;
+        setAutoStatus('error');
+        return;
+      }
+      if (!dirtyRef.current) {
         setAutoStatus('saved');
         if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-        savedTimerRef.current = setTimeout(() => setAutoStatus('idle'), 1800);
+        savedTimerRef.current = setTimeout(
+          () => setAutoStatus(prev => (prev === 'saved' ? 'idle' : prev)),
+          1800
+        );
       }
-    } else {
+    }).catch(e => {
+      console.error('autosave error:', e);
+      dirtyRef.current = true;
       setAutoStatus('error');
-    }
+    });
+    chainRef.current = next;
+    return next;
   }, []);
 
+  // Mark dirty + debounce a save on every plan mutation.
   useEffect(() => {
     planRef.current = plan;
     if (isMountRef.current) { isMountRef.current = false; return; }
-    versionRef.current += 1;
+    dirtyRef.current = true;
     setAutoStatus('pending');
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => { flush(); }, 600);
-  }, [plan, flush]);
+    debounceRef.current = setTimeout(() => { enqueueSave(); }, 600);
+  }, [plan, enqueueSave]);
 
-  // Safety net: if the editor unmounts with pending changes (e.g., page nav),
-  // fire a last save. The Back button awaits flush() directly so this is rare.
+  // Catch every "leaving" path the browser exposes — visibilitychange fires
+  // on tab switch / screen lock / minimize, pagehide fires on hard nav and
+  // close (more reliable than beforeunload, which Safari/iOS ignore).
+  useEffect(() => {
+    const flushOnLeave = () => {
+      if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
+      enqueueSave();
+    };
+    window.addEventListener('visibilitychange', flushOnLeave);
+    window.addEventListener('pagehide', flushOnLeave);
+    return () => {
+      window.removeEventListener('visibilitychange', flushOnLeave);
+      window.removeEventListener('pagehide', flushOnLeave);
+    };
+  }, [enqueueSave]);
+
+  // Final save on unmount (SPA nav away from /coach/programs, modal close,
+  // route change). Fire-and-forget; the chain promise resolves outside the
+  // component and the fetch completes against the still-loaded SPA.
   useEffect(() => () => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-    if (versionRef.current > savedVersionRef.current && !savingRef.current) {
-      savePlan(planRef.current);
-    }
-  }, []);
+    enqueueSave();
+  }, [enqueueSave]);
 
   const updateDay = (i, u) => setPlan(p => ({...p, days: p.days.map((d,idx) => idx===i ? {...d,...u} : d)}));
   const addDay = () => { setPlan(p => ({...p, days: [...p.days, defaultDay(p.days.length+1)]})); setActiveDay(plan.days.length); };
@@ -287,6 +313,15 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
   };
   const updateEx = (ei,u) => { const exs=[...plan.days[activeDay].exercises]; exs[ei]={...exs[ei],...u}; updateDay(activeDay,{exercises:exs}); };
+  // Per-day variants — used by the overview table so a row in any day can be
+  // edited without first switching `activeDay` (and without leaving overview).
+  const updateExInDay = (di, ei, u) => setPlan(p => ({...p, days: p.days.map((d, idx) => {
+    if (idx !== di) return d;
+    const exs = [...(d.exercises || [])];
+    exs[ei] = {...exs[ei], ...u};
+    return {...d, exercises: exs};
+  })}));
+  const removeExFromDay = (di, ei) => setPlan(p => ({...p, days: p.days.map((d, idx) => idx === di ? {...d, exercises: (d.exercises||[]).filter((_,i) => i !== ei)} : d)}));
   const removeEx = ei => updateDay(activeDay, {exercises:plan.days[activeDay].exercises.filter((_,i)=>i!==ei)});
   const moveEx = (ei,dir) => { const exs=[...plan.days[activeDay].exercises]; const si=ei+dir; if(si<0||si>=exs.length) return; [exs[ei],exs[si]]=[exs[si],exs[ei]]; updateDay(activeDay,{exercises:exs}); };
   const day = plan.days[activeDay];
@@ -294,14 +329,16 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
     setSaving(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     await onSave(plan);
-    // Mark the in-editor autosave caught up so the safety-net unmount flush
-    // doesn't issue a redundant write.
-    savedVersionRef.current = versionRef.current;
+    // Explicit save covered everything pending — clear dirty so the
+    // visibilitychange/unmount paths don't issue a redundant write.
+    dirtyRef.current = false;
     setSaving(false);
   };
   const handleBack = async () => {
     if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
-    await flush();
+    // Awaiting enqueueSave() resolves only after every queued + in-flight
+    // save lands, so the latest data is on disk before the editor unmounts.
+    await enqueueSave();
     onCancel();
   };
   const statusLabel = (() => {
@@ -354,32 +391,62 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         <Btn variant="ghost" onClick={addDay} style={{padding:"6px 12px",fontSize:12}}>+</Btn>
       </div>}
       {overview && <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
-        {plan.days.map((d,i) => {
+        {plan.days.map((d, dayIdx) => {
           const dayExs = d.exercises || [];
+          const weeks = plan.weeks || 4;
+          const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
+          const tinyInput = {...baseInput, padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           return (
             <div key={d.id} style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:8,padding:12}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                <div style={{fontFamily:FB,fontWeight:700,color:C.tx,fontSize:14}}>{d.name} <span style={{color:C.td,fontWeight:400,marginLeft:6}}>({dayExs.length} ex)</span></div>
-                <button onClick={()=>{setActiveDay(i);setOverview(false)}} style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600}}>EDIT</button>
+              <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
+                <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
+                  style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
+                <span style={{color:C.td,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
+                <button onClick={()=>{setActiveDay(dayIdx);setOverview(false)}} title="Open this day in the detail editor — needed to add exercises, change the exercise itself, or edit notes/URL"
+                  style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600,marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{display:"grid",gridTemplateColumns:"24px minmax(140px,2fr) minmax(40px,50px) minmax(44px,60px) minmax(60px,1.2fr) minmax(50px,1fr) minmax(40px,60px) minmax(50px,70px)",gap:"6px 8px",fontSize:12,alignItems:"center"}}>
-                  {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO"].map(h =>
-                    <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>)}
+                <div style={{display:"grid",gridTemplateColumns:"22px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center"}}>
+                  {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
+                    <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>)}
                   {dayExs.map((ex, exIdx) => {
                     const exData = exercises.find(e=>e.id===ex.exerciseId);
                     const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
                     const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
-                    const cell = (color) => ({color, minWidth:0, overflowWrap:"anywhere", wordBreak:"break-word"});
+                    const update = (u) => updateExInDay(dayIdx, exIdx, u);
                     return <React.Fragment key={ex.id}>
-                      <div style={{...cell(C.td), fontFamily:FN}}>{exIdx+1}</div>
-                      <div style={{...cell(C.tx), borderLeft:ex.superset?`3px solid ${sc}`:"none", paddingLeft:ex.superset?6:0}}>{title}</div>
-                      <div style={{...cell(sc), fontFamily:FN, fontWeight:600}}>{ex.superset||"—"}</div>
-                      <div style={cell(C.tx)}>{ex.wkS && ex.wkS.length ? ex.wkS.map(w=>w||"—").join(" / ") : (ex.sets||"—")}</div>
-                      <div style={cell(C.tx)}>{ex.wk && ex.wk.length ? ex.wk.map(w=>w||"—").join(" / ") : (ex.reps||"—")}</div>
-                      <div style={cell(C.tm)}>{ex.load||"—"}</div>
-                      <div style={cell(C.tm)}>{ex.rpe||"—"}</div>
-                      <div style={cell(C.tm)}>{ex.tempo||"—"}</div>
+                      <div style={{color:C.td, fontFamily:FN, minWidth:0}}>{exIdx+1}</div>
+                      <div title="Exercise name links to the library — open DETAIL to swap the exercise or edit notes/URL"
+                        style={{color:C.tx, minWidth:0, overflowWrap:"anywhere", wordBreak:"break-word", borderLeft:ex.superset?`3px solid ${sc}`:"none", paddingLeft:ex.superset?6:0}}>{title}</div>
+                      <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
+                        style={{...tinyInput, color:sc, fontFamily:FN, fontWeight:600}}>
+                        {SUPERSET_LABELS.map(s => <option key={s} value={s}>{s||"—"}</option>)}
+                      </select>
+                      {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
+                        <div style={{display:"grid", gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
+                          {Array.from({length:weeks}).map((_,wi) => (
+                            <input key={wi} value={ex.wkS[wi]||""} onChange={e=>{const next=resize(ex.wkS,weeks,""); next[wi]=e.target.value; update({wkS:next});}}
+                              placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
+                          ))}
+                        </div>
+                      ) : (
+                        <input type="number" value={ex.sets||""} onChange={e=>update({sets:parseInt(e.target.value)||0})} style={tinyInput} />
+                      )}
+                      {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (
+                        <div style={{display:"grid", gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
+                          {Array.from({length:weeks}).map((_,wi) => (
+                            <input key={wi} value={ex.wk[wi]||""} onChange={e=>{const next=resize(ex.wk,weeks,""); next[wi]=e.target.value; update({wk:next});}}
+                              placeholder={"W"+(wi+1)} style={{...tinyInput, padding:"3px 4px", fontSize:10}} />
+                          ))}
+                        </div>
+                      ) : (
+                        <input value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder="8-12" style={tinyInput} />
+                      )}
+                      <input value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder="kg/%" style={tinyInput} />
+                      <input value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" style={tinyInput} />
+                      <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
+                      <button onClick={()=>removeExFromDay(dayIdx, exIdx)} title="Remove exercise from this day"
+                        style={{background:"none",border:"none",color:C.rd,cursor:"pointer",fontSize:13,opacity:0.55,padding:0}}>🗑</button>
                     </React.Fragment>;
                   })}
                 </div>
