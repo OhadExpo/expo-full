@@ -1,9 +1,11 @@
 // Tiny i18n helper for the EXPO landing page.
 //
-// Two locales: 'he' (default — Israeli market) and 'en'. The user's choice is
-// stored in localStorage under 'expo-il-lang' and applied to
-// `document.documentElement.lang` + `dir` so the whole page flips direction
-// in one place.
+// Two locales: 'he' (default — Israeli market) and 'en'. Resolution order:
+//   1. URL path: /he*  → he, /en*  → en  (explicit, share-friendly, wins)
+//   2. localStorage  ('expo-il-lang')      (returning visitor's choice)
+//   3. DEFAULT ('he')
+// The URL is the single source of truth when present, so a shared /he link
+// lands in Hebrew even for a visitor who previously toggled to English.
 //
 // Adding a string: drop a new key under STRINGS with both languages.
 // Using a string from a component: const t = useT(); ...{t('hero.h1.line1')}.
@@ -14,6 +16,15 @@ import { useEffect, useState } from 'react';
 export const LANGS = ['he', 'en'];
 const STORAGE_KEY = 'expo-il-lang';
 const DEFAULT = 'he';
+
+// Returns 'he' / 'en' if the path explicitly pins a language, otherwise null
+// so the caller can fall through to localStorage / DEFAULT.
+function langFromPath(path) {
+  const p = path || '/';
+  if (/^\/he(\/|$)/.test(p)) return 'he';
+  if (/^\/en(\/|$)/.test(p)) return 'en';
+  return null;
+}
 
 const STRINGS = {
   // ─── Nav ──────────────────────────────────────────────────────────
@@ -507,17 +518,48 @@ function applyDocLang(lang) {
 
 const listeners = new Set();
 let current = (() => {
+  // URL pin wins; otherwise fall back to localStorage; otherwise DEFAULT.
+  if (typeof window !== 'undefined') {
+    const fromPath = langFromPath(window.location.pathname);
+    if (fromPath) return fromPath;
+  }
   if (typeof localStorage === 'undefined') return DEFAULT;
   const v = localStorage.getItem(STORAGE_KEY);
   return LANGS.includes(v) ? v : DEFAULT;
 })();
 applyDocLang(current);
 
+// Keep lang in sync with browser back/forward between /, /he, /en.
+if (typeof window !== 'undefined') {
+  window.addEventListener('popstate', () => {
+    const fromPath = langFromPath(window.location.pathname);
+    const next = fromPath || (() => {
+      try { const v = localStorage.getItem(STORAGE_KEY); return LANGS.includes(v) ? v : DEFAULT; }
+      catch { return DEFAULT; }
+    })();
+    if (next === current) return;
+    current = next;
+    applyDocLang(next);
+    for (const l of listeners) { try { l(next); } catch {} }
+  });
+}
+
 export function setLang(next) {
   if (!LANGS.includes(next) || next === current) return;
   current = next;
   try { localStorage.setItem(STORAGE_KEY, next); } catch {}
   applyDocLang(next);
+  // Sync the URL so /he and /en mirror the chosen language. We always pin
+  // an explicit path so the resulting URL is share-friendly. Hash + query
+  // are preserved so the current view (catalog vs program detail) survives.
+  if (typeof window !== 'undefined') {
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+    const newPath = next === 'he' ? '/he' : '/en';
+    if (window.location.pathname !== newPath) {
+      window.history.pushState(null, '', newPath + search + hash);
+    }
+  }
   for (const l of listeners) {
     try { l(next); } catch {}
   }
