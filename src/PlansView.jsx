@@ -524,7 +524,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterTrainee, setFilterTrainee] = useState("");
-  const [hoverRect, setHoverRect] = useState(null);
+  const [hoverPos, setHoverPos] = useState(null);
   const hoverTimerRef = useRef(null);
   // Sort: field is 'name' | 'created' | 'updated'; dir is 'asc' | 'desc'.
   // Default 'created desc' matches the old creation-order-newest-first list.
@@ -647,16 +647,16 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           const tName = traineeMap[p.traineeId] || "Unassigned";
           return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px'}}
             onMouseEnter={e => {
-              const rect = e.currentTarget.getBoundingClientRect();
+              const x = e.clientX, y = e.clientY;
               clearTimeout(hoverTimerRef.current);
               hoverTimerRef.current = setTimeout(() => {
-                setHoverRect(rect);
+                setHoverPos({ x, y });
                 loadPreviewPlan(p.id);
               }, 220);
             }}
             onMouseLeave={() => {
               clearTimeout(hoverTimerRef.current);
-              setHoverRect(null);
+              setHoverPos(null);
               clearPreviewPlan();
             }}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
@@ -672,14 +672,15 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>)}
       {/* Hover preview popover */}
-      {previewPlan && hoverRect && (() => {
-        const GAP = 12;
+      {previewPlan && hoverPos && (() => {
+        const GAP = 16;
         const PW = 320;
-        const spaceRight = window.innerWidth - hoverRect.right - GAP;
-        const left = spaceRight >= PW ? hoverRect.right + GAP : hoverRect.left - PW - GAP;
-        const top = Math.min(hoverRect.top + window.scrollY, window.innerHeight - 20);
+        const spaceRight = window.innerWidth - hoverPos.x - GAP;
+        const left = spaceRight >= PW ? hoverPos.x + GAP : hoverPos.x - PW - GAP;
+        const maxTop = window.innerHeight - 20;
+        const top = Math.min(hoverPos.y - 8, maxTop);
         return (
-          <div style={{position:'fixed',zIndex:900,top:hoverRect.top,left:Math.max(8,left),width:PW,background:C.bg,border:`1px solid ${C.ac}60`,borderRadius:0,padding:16,pointerEvents:'none',boxShadow:'0 8px 32px rgba(0,0,0,0.7)'}}>
+          <div style={{position:'fixed',zIndex:900,top:top,left:Math.max(8,left),width:PW,background:C.bg,border:`1px solid ${C.ac}60`,borderRadius:0,padding:16,pointerEvents:'none',boxShadow:'0 8px 32px rgba(0,0,0,0.7)'}}>
             <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:C.ac,letterSpacing:'0.04em',marginBottom:2}}>{previewPlan.name||"Untitled"}</div>
             <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:12}}>{previewPlan.days.length} DAYS · {previewPlan.days.reduce((n,d)=>n+d.exercises.length,0)} EX{previewPlan.phase?` · ${previewPlan.phase}`:''}</div>
             {previewPlan.days.map((d,di) => (
