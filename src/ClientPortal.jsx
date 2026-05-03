@@ -1251,31 +1251,31 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         <div style={{color:C.tm,fontSize:12,marginBottom:16}}>{clientName} · {bwData.length} entries</div>
 
         {/* Quick log */}
-        <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:14,marginBottom:16}}>
+        <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:14,marginBottom:16}}>
           {visPlans.length > 1 && <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
             {visPlans.map(p => <button key={p.name} onClick={() => setSelectedBlockName(p.name)}
-              style={{padding:'4px 10px',borderRadius:14,border:`${activePlan?.name===p.name?'2px':'0.25px'} solid ${C.ac}${activePlan?.name===p.name?'':'4D'}`,background:activePlan?.name===p.name?C.acD:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
+              style={{padding:'4px 10px',borderRadius:0,border:`${activePlan?.name===p.name?'2px':'0.25px'} solid ${C.ac}${activePlan?.name===p.name?'':'4D'}`,background:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
           </div>}
           {visPlans.length > 1 && <div style={{display:'flex',gap:4,marginBottom:10,flexWrap:'wrap'}}>
-            {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'6px 0',borderRadius:6,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:wk===w?C.acD:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
+            {Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'6px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>W{w+1}</button>)}
           </div>}
           <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8,textAlign:'center'}}>LOG W{wk+1} · {activePlan?.name || 'NO ACTIVE BLOCK'}</div>
           <div style={{display:'flex',gap:8}}>
-            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:C.sf2,border:`0.25px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
+            <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:'transparent',border:`1px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
             <button disabled={!activePlan} onClick={()=>{const val=bw||bwDisplay;if(val&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
-              style={{padding:'10px 20px',borderRadius:8,border:'none',background:(bw&&activePlan)?C.ac:C.sf3,color:(bw&&activePlan)?'#fff':C.td,fontFamily:FB,fontSize:13,fontWeight:700,cursor:(bw&&activePlan)?'pointer':'default'}}>Save</button>
+              style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${(bw&&activePlan)?C.ac:C.ac+'4D'}`,background:'transparent',color:(bw&&activePlan)?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:(bw&&activePlan)?'pointer':'default'}}>SAVE</button>
           </div>
           {!activePlan && <div style={{fontSize:10,color:C.td,marginTop:6}}>Assign an active program to log bodyweight.</div>}
         </div>
 
         {/* Graph */}
         {bwData.length < 2 ? (
-          <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
+          <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
             <div style={{fontSize:24,marginBottom:8}}>📊</div>
             <div style={{fontSize:13}}>Log at least 2 weigh-ins to see your trend</div>
           </div>
         ) : (
-          <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:14,marginBottom:16}}>
+          <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:14,marginBottom:16}}>
             <div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:10}}>TREND</div>
             <svg viewBox={`0 -10 ${Math.max(bwData.length * 60, 300)} 185`} style={{width:'100%',height:185}}>
               {/* Grid lines */}
@@ -1326,18 +1326,18 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               })}
             </svg>
             {/* Stats */}
-            <div style={{display:'flex',gap:12,marginTop:10}}>
-              <div style={{flex:1,background:C.sf2,borderRadius:8,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.td}}>LATEST</div>
+            <div style={{display:'flex',gap:8,marginTop:10}}>
+              <div style={{flex:1,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:10,textAlign:'center'}}>
+                <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.12em'}}>LATEST</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData[bwData.length-1].bw}kg</div>
               </div>
-              <div style={{flex:1,background:C.sf2,borderRadius:8,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.td}}>CHANGE</div>
+              <div style={{flex:1,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:10,textAlign:'center'}}>
+                <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.12em'}}>CHANGE</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:(bwData[bwData.length-1].bw-bwData[0].bw)<=0?C.gn:C.or}}>
                   {(bwData[bwData.length-1].bw-bwData[0].bw)>0?'+':''}{(bwData[bwData.length-1].bw-bwData[0].bw).toFixed(1)}kg</div>
               </div>
-              <div style={{flex:1,background:C.sf2,borderRadius:8,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.td}}>ENTRIES</div>
+              <div style={{flex:1,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:10,textAlign:'center'}}>
+                <div style={{fontSize:9,fontFamily:FN,color:C.td,letterSpacing:'0.12em'}}>ENTRIES</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData.length}</div>
               </div>
             </div>
@@ -1349,26 +1349,26 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {bwData.slice().reverse().map((d,i) => {
           const onEdit = () => { setBw(String(d.bw)); setWk((d.week||1)-1); if (d.blockName) setSelectedBlockName(d.blockName); };
           const onDelete = (e) => { e.stopPropagation(); setBwDeleteConfirm(d); };
-          return <div key={i} onClick={onEdit} title="Click to edit" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:i%2===0?C.sf:'transparent',borderRadius:6,marginBottom:2,cursor:'pointer'}}>
+          return <div key={i} onClick={onEdit} title="Click to edit" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,marginBottom:4,cursor:'pointer'}}>
             <div>
-              <span style={{fontSize:13,fontWeight:600,color:C.tx}}>{d.bw} kg</span>
-              <span style={{fontSize:11,color:C.tm,marginLeft:8}}>{d.blockName||'?'} · W{d.week||'?'}</span>
+              <span style={{fontSize:13,fontWeight:600,fontFamily:FN,color:C.tx}}>{d.bw} kg</span>
+              <span style={{fontSize:11,color:C.tm,marginLeft:8,fontFamily:FN}}>{d.blockName||'?'} · W{d.week||'?'}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontSize:10,color:C.td}}>{new Date(d.date).toLocaleDateString()}</span>
-              <button onClick={onDelete} title="Delete entry" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:14,padding:'2px 6px',borderRadius:4,lineHeight:1}}>×</button>
+              <span style={{fontSize:10,color:C.td,fontFamily:FN}}>{new Date(d.date).toLocaleDateString()}</span>
+              <button onClick={onDelete} title="Delete entry" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.td,cursor:'pointer',fontSize:14,padding:'2px 6px',borderRadius:0,lineHeight:1}}>×</button>
             </div>
           </div>;
         })}
         {bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
       </div>
-      {bwDeleteConfirm && <div onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
-        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:20,maxWidth:320,width:'100%'}}>
-          <div style={{fontFamily:FN,fontSize:13,color:C.td,marginBottom:6}}>DELETE ENTRY</div>
-          <div style={{fontSize:14,color:C.tx,marginBottom:16}}>Remove {bwDeleteConfirm.bw}kg from {bwDeleteConfirm.blockName || '?'} · W{bwDeleteConfirm.week || '?'}?</div>
+      {bwDeleteConfirm && <div onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
+          <div style={{fontFamily:FN,fontSize:10,color:C.td,marginBottom:8,letterSpacing:'0.12em',fontWeight:700}}>DELETE ENTRY</div>
+          <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>Remove {bwDeleteConfirm.bw}kg from {bwDeleteConfirm.blockName || '?'} · W{bwDeleteConfirm.week || '?'}?</div>
           <div style={{display:'flex',gap:8}}>
-            <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:8,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>Cancel</button>
-            <button onClick={() => { const d = bwDeleteConfirm; setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:8,border:'none',background:C.rd,color:'#fff',fontFamily:FB,fontSize:13,fontWeight:700,cursor:'pointer'}}>Delete</button>
+            <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>CANCEL</button>
+            <button onClick={() => { const d = bwDeleteConfirm; setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>DELETE</button>
           </div>
         </div>
       </div>}
@@ -1386,7 +1386,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     <div style={{padding:'14px 20px 20px'}}>
       <h2 style={{margin:'0 0 12px',fontFamily:FN,fontSize:18}}>History ({cw.length})</h2>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
-        cw.slice().reverse().map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:C.sf,border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:10,padding:12,marginBottom:8}}>
+        cw.slice().reverse().map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'transparent',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
           <div style={{fontWeight:600,fontSize:13}}>{w.dayName} <span style={{color:C.tm,fontWeight:400}}>({w.planName})</span></div>
           <div style={{fontSize:11,color:C.tm,marginBottom:4}}>{new Date(w.date).toLocaleDateString()} · W{w.week}</div>
           {w.exercises.map((x,i) => {
@@ -1402,11 +1402,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   style={{fontSize:11,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'2px 0'}}>
                   <span style={{flex:1}}>{i+1}. {x.title} ({x.prescribed}) — {x.sets.filter(s=>s.done).length}/{x.sets.length}</span>
                   {hasVideo && <span style={{color:C.gn,fontSize:12}}>📹</span>}
-                  {notesCount > 0 && <span style={{background:C.acD,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:8}}>💬 {notesCount}</span>}
+                  {notesCount > 0 && <span style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:0}}>💬 {notesCount}</span>}
                   {canExpand && <span style={{color:C.td,fontSize:10}}>{isOpen ? '▲' : '▼'}</span>}
                 </div>
                 {isOpen && hasVideo && (
-                  <div style={{marginTop:6,marginBottom:10,background:C.sf2,border:`0.25px solid ${C.ac}4D`,borderRadius:8,padding:8}}>
+                  <div style={{marginTop:6,marginBottom:10,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:8}}>
                     <FormVideoPlayer url={fv.cloudUrl} exerciseTitle={x.title}
                       role="client"
                       reviewNotes={fv.reviewNotes || []}
@@ -1420,7 +1420,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>
             );
           })}
-          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:C.sf2,padding:6,borderRadius:4}}>📝 {w.notes}</div>}
+          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:'transparent',border:`0.25px solid ${C.ac}4D`,padding:6,borderRadius:0,fontFamily:FN}}>📝 {w.notes}</div>}
         </div>; })}</div></div>;
 
   // Program view
