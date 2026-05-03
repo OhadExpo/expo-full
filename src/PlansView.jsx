@@ -605,7 +605,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             <option value="">All Athletes ({planIndex.length})</option>
             {traineeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
-          <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:13,lineHeight:1}}>▾</span>
+          <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:16,lineHeight:1}}>▾</span>
         </div>
         <Btn onClick={handleNewPlan} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+ New Program</Btn>
       </div>

@@ -1482,8 +1482,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 14px',borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer'}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
               const focus = weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk+1}`];
-              return <div key={i} style={{display:'flex',gap:10,alignItems:'flex-start',padding:'6px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
-                <div style={{width:20,height:20,borderRadius:0,background:'transparent',border:`0.25px solid ${C.ac}4D`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:10,fontWeight:700,color:C.ac,flexShrink:0,letterSpacing:'0.04em'}}>{i+1}</div>
+              return <div key={i} style={{display:'flex',gap:10,alignItems:'stretch',padding:'6px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
+                <div style={{width:20,borderRadius:0,background:'transparent',border:`0.25px solid ${C.ac}4D`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:10,fontWeight:700,color:C.ac,flexShrink:0,letterSpacing:'0.04em'}}>{i+1}</div>
                 <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
                   <div style={{display:'flex',alignItems:'baseline',gap:10,marginTop:3}}>
                     <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{hw?(wr||''):((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+ex.r}</span>
