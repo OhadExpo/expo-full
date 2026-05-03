@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { C, FN, FB, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
+import { C, FN, FB, FH, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput } from './ui';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
@@ -186,7 +186,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             {[['Age',m.age||'—'],['Weight',m.weight?`${m.weight}kg`:'—'],['Height',m.height?`${m.height}cm`:'—']].map(([l,v])=>
               <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
-          {m.injuries&&<div style={{marginTop:10,padding:8,background:'transparent',border:`0.25px solid ${C.or}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Injuries</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center'}}>{m.injuries}</div></div>}
+          {m.injuries&&<div style={{marginTop:10,padding:8,background:'transparent',border:`0.25px solid ${C.or}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Injuries</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.injuries)?FH:undefined}}>{m.injuries}</div></div>}
           {m.goals&&<div style={{marginTop:6,padding:8,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,textAlign:'center'}}>{m.goals}</div></div>}
           {m.notes&&<div style={{marginTop:6,padding:8,background:'transparent',border:`0.25px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,textAlign:'center'}}>{m.notes}</div></div>}
         </Card>
@@ -274,9 +274,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>
             <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
-        {td.injuries&&<div style={{marginTop:12,padding:10,background:'transparent',border:`0.25px solid ${C.or}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center'}}>{td.injuries}</div></div>}
-        {td.goals&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center'}}>{td.goals}</div></div>}
-        {td.notes&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center'}}>{td.notes}</div></div>}
+        {td.injuries&&<div style={{marginTop:12,padding:10,background:'transparent',border:`0.25px solid ${C.or}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
+        {td.goals&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
+        {td.notes&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
       </Card>
       </>}
 

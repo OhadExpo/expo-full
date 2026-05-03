@@ -10,7 +10,7 @@
 // No checkout, no signup, no multi-tenancy yet — this is a waitlist page.
 // Stripe + the trainers table get built once the waitlist proves demand.
 import React, { useState, useEffect } from 'react';
-import { C, FN, FB } from './theme';
+import { C, FN, FB, FH } from './theme';
 import { EXPOMark } from './expoMark';
 import CoachChat from './CoachChat';
 
@@ -414,7 +414,7 @@ export default function CoachLanding({ lang = 'en' }) {
   }, [lang, isHe, t]);
   return (
     <div dir={isHe ? 'rtl' : 'ltr'} style={{
-      background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
+      background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: isHe ? FH : FB,
       display: 'flex', flexDirection: 'column',
     }}>
       <style>{`

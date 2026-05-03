@@ -2,9 +2,9 @@
 // Color Palette: #39BDFF (EXPO Blue) / #000000 / #FFFFFF
 // Typography: Nord (English) / DM Sans (fallback)
 
-export const FN = "'Nord', 'DM Sans', sans-serif";  // UI/labels/mono-style — Nord weight 500-700
-export const FB = "'Nord', 'DM Sans', sans-serif";  // Body text — Nord weight 300-400
-export const FH = "'Nord', 'DM Sans', sans-serif";   // Hebrew fallback
+export const FN = "'Nord', 'Heebo', 'DM Sans', sans-serif";  // UI/labels/mono-style — Nord weight 500-700
+export const FB = "'Nord', 'Heebo', 'DM Sans', sans-serif";  // Body text — Nord weight 300-400
+export const FH = "'Heebo', 'DM Sans', sans-serif";           // Explicit Hebrew-first contexts
 
 export const C = {
   // Surfaces — true black base per BSG

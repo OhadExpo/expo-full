@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import useAutosave from './hooks/useAutosave';
-import { C, FN, FB, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
+import { C, FN, FB, FH, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
@@ -874,9 +874,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       {(d.q || ex.n) && <div style={{background:C.puD,borderRadius:10,padding:12,marginTop:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6}}>
         <div style={{fontSize:10,fontFamily:FN,color:C.pu,marginBottom:6,fontWeight:700,textAlign:'center'}}>EXERCISE NOTES</div>
-        {d.q && <div style={{textAlign:/[\u0590-\u05FF]/.test(d.q)?'right':'left',direction:/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr'}}>{d.q}</div>}
+        {d.q && <div style={{textAlign:/[\u0590-\u05FF]/.test(d.q)?'right':'left',direction:/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(d.q)?FH:undefined}}>{d.q}</div>}
         {d.q && ex.n && <div style={{borderTop:`1px solid ${C.pu}30`,margin:'8px 0'}}/>}
-        {ex.n && <div style={{color:C.or,textAlign:/[\u0590-\u05FF]/.test(ex.n)?'right':'left',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr'}}>{ex.n}</div>}</div>}
+        {ex.n && <div style={{color:C.or,textAlign:/[\u0590-\u05FF]/.test(ex.n)?'right':'left',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(ex.n)?FH:undefined}}>{ex.n}</div>}</div>}
 
       {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
