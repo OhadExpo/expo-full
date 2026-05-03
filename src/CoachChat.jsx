@@ -238,9 +238,9 @@ export default function CoachChat() {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             background: C.sf2, gap: 10, minHeight: 44,
           }}>
-            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 20, width: 'auto', display: 'block', flexShrink: 0, transform: 'translateY(-2px)' }} />
+            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 20, width: 'auto', display: 'block', flexShrink: 0 }} />
             <span style={{
-              position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)',
+              position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, calc(-50% + 2px))',
               fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.tm,
               lineHeight: 1, whiteSpace: 'nowrap', pointerEvents: 'none',
             }}>ASK ANYTHING.</span>
