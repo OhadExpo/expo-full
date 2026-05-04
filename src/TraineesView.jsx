@@ -530,14 +530,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 {arr.length > 1 && <button onClick={() => {
                   const next = [...arr]; next.splice(i, 1);
                   setForm({...form, _emails: next});
-                }} style={{ background: C.rdD, border: 'none', borderRadius: 6, padding: '0 8px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
+                }} style={{ background: 'transparent', border: `0.25px solid ${C.rd}`, borderRadius: 0, padding: '0 8px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
               </div>
             ))}
             {(form._emails || emailsToArr(form.email)).length < 3 && (
               <button onClick={() => {
                 const next = [...(form._emails || emailsToArr(form.email)), ''];
                 setForm({...form, _emails: next});
-              }} style={{ background: 'none', border: `1px dashed ${C.bd}`, borderRadius: 6, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 11, fontWeight: 600 }}>+ Add Email</button>
+              }} style={{ background: 'transparent', border: `0.25px dashed ${C.ac}4D`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>+ Add Email</button>
             )}
           </div>
           <Input label="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+972..." />

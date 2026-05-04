@@ -20,7 +20,7 @@ function PatternCoverage({ plan, exercises }) {
   }, [plan.days, exercises]);
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
   if (exercises.length === 0) return null;
-  return (<div style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+  return (<div style={{ background: 'transparent', border:`0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
     <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={pats.has(p) ? {} : {fontWeight:500,opacity:0.65}}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
@@ -97,10 +97,10 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 14, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border:`0.25px solid ${C.ac}4D`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px 12px' }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700 }}>{title || 'Select Exercise'}</h3>
-          <button onClick={onClose} style={{ background: C.sf2, border: `1px solid ${C.bd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 6, fontSize: 14 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>
         <div style={{ padding: '0 22px' }}>
           <input
@@ -140,9 +140,9 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
                     onMouseEnter={() => setActiveIdx(idx)}
                     style={{
                       textAlign: 'left', padding: '10px 12px',
-                      background: isActive ? C.sf2 : (isSelected ? C.acD : C.sf),
-                      border: `1px solid ${isActive ? C.ac + '60' : (isSelected ? C.ac + '80' : C.bd)}`,
-                      borderRadius: 8, cursor: 'pointer', fontFamily: FB, color: C.tx,
+                      background: 'transparent',
+                      border: `${isSelected||isActive?'1px':'0.25px'} solid ${isActive ? C.ac : (isSelected ? C.ac : C.ac + '4D')}`,
+                      borderRadius: 0, cursor: 'pointer', fontFamily: FB, color: C.tx,
                       transition: 'all 0.1s'
                     }}
                   >
@@ -198,7 +198,7 @@ function WarmupEditor({ plan, setPlan }) {
   const add = () => setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] }));
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   return (
-    <div style={{ background: C.sf, border:`0.25px solid ${C.ac}4D`, borderRadius: 8, padding: 12, marginBottom: 16 }}>
+    <div style={{ background: 'transparent', border:`0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: warmup.length ? 10 : 0 }}>
         <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or }}>WARM-UP ({warmup.length})</div>
         <Btn variant="ghost" onClick={add} style={{ padding: '4px 10px', fontSize: 11 }}>+ Add Warm-Up</Btn>
@@ -282,7 +282,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:11,fontWeight:600,color:statusLabel.color,letterSpacing:"0.04em"}}>{statusLabel.text}</span>}
-          <button onClick={()=>setOverview(v=>!v)} style={{background:overview?C.ac:C.sf2,border:`${overview?'2px':'0.25px'} solid ${overview?C.ac:`${C.ac}4D`}`,borderRadius:6,padding:"6px 12px",color:overview?"#fff":C.tm,cursor:"pointer",fontFamily:FN,fontSize:11,fontWeight:600}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
+          <button onClick={()=>setOverview(v=>!v)} style={{background:'transparent',border:`${overview?'1px':'0.25px'} solid ${overview?C.ac:C.ac+'4D'}`,borderRadius:0,padding:"6px 12px",color:overview?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
           <Btn onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
@@ -329,7 +329,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
                 <span style={{color:C.td,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
                 <button onClick={()=>{setActiveDay(dayIdx);setOverview(false)}} title="Open this day in the detail editor — needed to add exercises, change the exercise itself, or edit notes/URL"
-                  style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600,marginLeft:"auto"}}>DETAIL ▸</button>
+                  style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.18em',marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
                 <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:614}}>
@@ -399,7 +399,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
           const exData = exercises.find(e=>e.id===ex.exerciseId);
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
-          return(<div key={ex.id} style={{background:C.sf,border:`1px solid ${ex.superset?sc+"60":C.bd}`,borderLeft:ex.superset?`3px solid ${sc}`:`1px solid ${C.bd}`,borderRadius:8,padding:12,marginBottom:8}}>
+          return(<div key={ex.id} style={{background:'transparent',border:`0.25px solid ${ex.superset?sc:C.ac+'4D'}`,borderLeft:ex.superset?`3px solid ${sc}`:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:8}}>
             <div style={{display:"grid",gridTemplateColumns:"54px 1fr",gap:12,alignItems:"start"}}>
               <div draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${activeDay}:${exIdx}`); setDragSrc({dayIdx: activeDay, exIdx}); }}
@@ -507,7 +507,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         placeholder="📹 Insert video URL" />
                       {effective && <a href={effective} target="_blank" rel="noreferrer"
                         title={hasOverride?"Per-program URL":"From exercise library"}
-                        style={{fontSize:11,fontFamily:FN,color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`1px solid ${hasOverride?C.ac:C.bd}`,borderRadius:6,whiteSpace:"nowrap"}}>
+                        style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.ac+'4D'}`,borderRadius:0,whiteSpace:"nowrap"}}>
                         {hasOverride?"OPEN ▸":"LIB ▸"}
                       </a>}
                     </div>
@@ -519,13 +519,13 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   // to 4, hiding focus inputs for weeks 5+ on longer plans.
                   const weeks = plan.weeks || 4;
                   return (
-                    <div style={{marginTop:6,background:C.acD,borderRadius:6,padding:"8px 10px",border:`1px solid ${C.ac}20`}}>
+                    <div style={{marginTop:6,background:'transparent',borderRadius:0,padding:"8px 10px",border:`0.25px solid ${C.ac}4D`}}>
                       <div style={{fontSize:9,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:4}}>WEEKLY FOCUS</div>
                       <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},1fr)`,gap:4}}>
                         {Array.from({length:weeks}, (_, i) => i + 1).map(w => {
                           const fk = `${plan.name}|${day.name}|${ex.exerciseId}|W${w}`;
                           return <input key={w} value={weeklyFocus?.[fk]||""} onChange={e=>{const v=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:v}))}}
-                            placeholder={`W${w}`} style={{background:C.sf2,border:`1px solid ${weeklyFocus?.[fk]?C.ac+"40":C.bd}`,borderRadius:4,padding:"4px 6px",color:C.tx,fontFamily:FB,fontSize:11,outline:"none",boxSizing:"border-box"}} />;
+                            placeholder={`W${w}`} style={{background:'transparent',border:`0.25px solid ${weeklyFocus?.[fk]?C.ac:C.ac+'4D'}`,borderRadius:0,padding:"4px 6px",color:C.tx,fontFamily:FB,fontSize:11,outline:"none",boxSizing:"border-box"}} />;
                         })}
                       </div>
                     </div>
@@ -656,11 +656,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
               else setSortField(field);
             }} style={{
-              padding:"4px 10px",borderRadius:4,
-              border:`1px solid ${active?C.ac:C.bd}`,
-              background:active?C.acD:"transparent",
+              padding:"4px 10px",borderRadius:0,
+              border:`${active?'1px':'0.25px'} solid ${active?C.ac:C.ac+'4D'}`,
+              background:'transparent',
               color:active?C.ac:C.tm,
-              fontFamily:FN,fontSize:11,fontWeight:active?700:500,
+              fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',
               cursor:"pointer",display:"inline-flex",alignItems:"center",gap:4
             }}>
               {label}{active && <span style={{fontSize:10}}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
