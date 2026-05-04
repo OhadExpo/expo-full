@@ -20,18 +20,18 @@ export default function SwUpdateBanner() {
     <div style={{
       position: 'fixed', bottom: 14, left: '50%', transform: 'translateX(-50%)',
       zIndex: 200,
-      background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 10,
+      background: C.bg, border: `1px solid ${C.ac}`, borderRadius: 0,
       padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
       boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
       maxWidth: 'calc(100vw - 24px)',
     }}>
       <span style={{
-        fontFamily: FN, fontSize: 11, color: C.tx, letterSpacing: 1,
+        fontFamily: FN, fontSize: 9, color: C.tx, letterSpacing: '0.18em', fontWeight: 700,
       }}>NEW VERSION AVAILABLE</span>
       <button onClick={() => updateServiceWorker(true)} style={{
-        background: C.ac, color: '#000', border: 'none', borderRadius: 6,
+        background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, borderRadius: 0,
         padding: '6px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700,
-        letterSpacing: 1.5, cursor: 'pointer',
+        letterSpacing: '0.18em', cursor: 'pointer',
       }}>REFRESH</button>
       <button onClick={() => setNeedRefresh(false)} title="Dismiss" style={{
         background: 'transparent', color: C.tm, border: 'none',

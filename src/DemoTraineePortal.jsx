@@ -31,10 +31,10 @@ export default function DemoTraineePortal() {
       {/* Demo banner — slim, fixed at the top, non-intrusive */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 60,
-        background: `linear-gradient(90deg, ${C.ac}22 0%, ${C.ac}10 100%)`,
-        borderBottom: `1px solid ${C.ac}55`,
+        background: 'transparent',
+        borderBottom: `1px solid ${C.ac}`,
         padding: '6px 14px',
-        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+        fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em',
         color: C.ac, textAlign: 'center',
       }}>
         DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST

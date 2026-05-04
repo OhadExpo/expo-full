@@ -14,7 +14,7 @@ import { EXPOMark } from './expoMark';
 const tileBase = {
   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
   textAlign: 'center', textDecoration: 'none',
-  borderRadius: 16, padding: '48px 28px',
+  borderRadius: 0, padding: '48px 28px',
   cursor: 'pointer', transition: 'transform 0.15s ease, border-color 0.15s ease, background 0.15s ease',
   minHeight: 280,
 };
@@ -23,15 +23,15 @@ function Tile({ href, badge, title, sub, primary }) {
   return (
     <a href={href} style={{
       ...tileBase,
-      background: primary ? `linear-gradient(135deg, ${C.acD} 0%, ${C.sf} 100%)` : C.sf,
-      border: primary ? `1px solid rgba(57,189,255,0.40)` : `1px solid ${C.bd}`,
+      background: 'transparent',
+      border: primary ? `1px solid ${C.ac}` : `0.25px solid ${C.ac}4D`,
       color: C.tx,
     }}
     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = C.ac; }}
-    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = primary ? 'rgba(57,189,255,0.40)' : C.bd; }}
+    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = primary ? C.ac : `${C.ac}4D`; }}
     >
       <div style={{
-        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 2.5, fontWeight: 700,
+        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
         marginBottom: 14,
       }}>{badge}</div>
       <h2 style={{
@@ -45,7 +45,7 @@ function Tile({ href, badge, title, sub, primary }) {
       <div style={{
         marginTop: 22,
         fontFamily: FN, color: primary ? C.ac : C.tm,
-        fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
+        fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
       }}>CONTINUE →</div>
     </a>
   );
@@ -58,7 +58,7 @@ export default function EntryChooser() {
       fontFamily: FB, display: 'flex', flexDirection: 'column',
     }}>
       <header style={{
-        background: C.sf, borderBottom: `1px solid ${C.bd}`,
+        background: 'transparent', borderBottom: `0.25px solid ${C.ac}4D`,
       }}>
         <div style={{
           maxWidth: 1180, margin: '0 auto', padding: '0 16px',
@@ -74,7 +74,7 @@ export default function EntryChooser() {
         padding: '40px 16px',
       }}>
         <div style={{
-          fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+          fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
           marginBottom: 14, textAlign: 'center',
         }}>WELCOME TO EXPO</div>
         <h1 style={{
@@ -103,7 +103,7 @@ export default function EntryChooser() {
         </div>
 
         <div style={{
-          marginTop: 28, fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
+          marginTop: 28, fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.18em',
           textAlign: 'center',
         }}>
           <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>FULL COACH DEMO</a>
@@ -115,7 +115,7 @@ export default function EntryChooser() {
       </main>
 
       <footer style={{
-        borderTop: `1px solid ${C.bd}`, padding: '14px 16px', textAlign: 'center',
+        borderTop: `0.25px solid ${C.ac}4D`, padding: '14px 16px', textAlign: 'center',
       }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,

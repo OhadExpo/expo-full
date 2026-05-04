@@ -67,8 +67,8 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
         @keyframes fv-slide-up { from { transform: translateY(24px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
       `}</style>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: C.sf, border: `1px solid ${C.bd2}`, borderTop: `2px solid ${C.ac}`,
-        borderTopLeftRadius: 18, borderTopRightRadius: 18,
+        background: C.bg, border: `0.25px solid ${C.ac}4D`, borderTop: `1px solid ${C.ac}`,
+        borderTopLeftRadius: 0, borderTopRightRadius: 0,
         width: '100%', maxWidth: 520, maxHeight: '88vh', overflowY: 'auto',
         padding: '14px 16px 22px',
         animation: 'fv-slide-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1)',
@@ -76,7 +76,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
       }}>
         {/* Pull-tab + title row */}
         <div style={{
-          width: 40, height: 4, borderRadius: 2, background: C.bd2,
+          width: 40, height: 2, borderRadius: 0, background: `${C.ac}4D`,
           margin: '0 auto 14px',
         }} />
         <div style={{
@@ -85,7 +85,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
+              fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700,
               marginBottom: 4,
             }}>
               FIND AN ALTERNATE
@@ -104,11 +104,11 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
           }}>×</button>
         </div>
 
-        <div style={{ height: 1, background: C.bd, margin: '12px -16px 14px' }} />
+        <div style={{ height: 1, background: `${C.ac}4D`, margin: '12px -16px 14px' }} />
 
         {alternates.length === 0 && (
           <div style={{ padding: '36px 20px', textAlign: 'center' }}>
-            <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1, marginBottom: 6 }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
               NO CLOSE MATCHES
             </div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
@@ -123,25 +123,23 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             const eqDifferent = eq && targetEquip && eq !== targetEquip;
             return (
               <button key={exercise.id} onClick={() => { onPick(exercise); onClose(); }} style={{
-                textAlign: 'left', background: C.sf, border: `1px solid ${C.bd}`,
-                borderRadius: 10, padding: '12px 14px', cursor: 'pointer',
+                textAlign: 'left', background: 'transparent', border: `0.25px solid ${C.ac}4D`,
+                borderRadius: 0, padding: '12px 14px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 10,
                 transition: 'border-color 120ms, background 120ms, transform 120ms',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = C.ac;
-                e.currentTarget.style.background = C.acD;
                 e.currentTarget.style.transform = 'translateX(2px)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = C.bd;
-                e.currentTarget.style.background = C.sf;
+                e.currentTarget.style.borderColor = `${C.ac}4D`;
                 e.currentTarget.style.transform = 'translateX(0)';
               }}>
                 {/* Rank index */}
                 <div style={{
-                  flex: '0 0 auto', width: 24, height: 24, borderRadius: 6,
-                  background: C.acD, color: C.ac,
+                  flex: '0 0 auto', width: 24, height: 24, borderRadius: 0,
+                  background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: FN, fontSize: 11, fontWeight: 700,
                 }}>
@@ -154,7 +152,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
                   }}>{exercise.title}</div>
                   {eq && (
                     <div style={{
-                      marginTop: 4, fontFamily: FN, fontSize: 9, letterSpacing: 1, fontWeight: 700,
+                      marginTop: 4, fontFamily: FN, fontSize: 9, letterSpacing: '0.18em', fontWeight: 700,
                       color: eqDifferent ? C.ac : C.tm,
                     }}>
                       {eqDifferent && '⇄ '}{eq}
@@ -171,8 +169,8 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
         </div>
 
         <div style={{
-          marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.bd}`,
-          fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8, textAlign: 'center',
+          marginTop: 14, paddingTop: 12, borderTop: `0.25px solid ${C.ac}4D`,
+          fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', textAlign: 'center',
         }}>
           Just for today's session — the prescribed plan stays intact.
         </div>

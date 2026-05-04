@@ -34,9 +34,9 @@ export function WhatsAppCheckInButton({ name, phone, days, size = 14, padding = 
     <button onClick={handleClick}
       title={`Send WhatsApp check-in to ${name || ''}`}
       style={{
-        background: WA_GREEN + '20', border: `1px solid ${WA_GREEN}55`, color: WA_GREEN,
-        borderRadius: 6, padding, fontFamily: FN, fontSize: 10,
-        fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
+        background: 'transparent', border: `0.25px solid ${WA_GREEN}`, color: WA_GREEN,
+        borderRadius: 0, padding, fontFamily: FN, fontSize: 10,
+        fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       }}>
       <svg width={size} height={size} viewBox="0 0 24 24" fill={WA_GREEN} aria-hidden="true">
