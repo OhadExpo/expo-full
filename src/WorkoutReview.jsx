@@ -11,24 +11,40 @@ import {
 const bi = {background:'transparent',border:`1px solid ${C.ac}4D`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
 
-// Cmd/Ctrl + Enter shortcut for the "mark reviewed & next" CTA. Bound at the
-// detail-screen level so the shortcut only fires while a workout is actually
-// open, never on the list view. Skips when the user is typing into a textarea
-// (so it doesn't fire while the trainer is composing a review note).
-function SaveAndNextHotkey({ enabled, onFire }) {
+// Review-screen keyboard shortcuts. Bound at the detail-screen level so they
+// only fire while a workout is actually open, never on the list view. Always
+// skip when the user is typing into a textarea / input / contentEditable.
+//
+//   ⌘/Ctrl + Enter  → mark reviewed + jump to next pending  (saveAndNext)
+//   M               → same (single-key alias for keyboard-only review pass)
+//   J               → jump to next pending without marking the current one
+//                     reviewed (lets the trainer skip ahead, come back later)
+//
+// onFire = saveAndNext, onJump = findNext+setSelectedWo. enabled gates them
+// against the delete-confirm modal so accidental keystrokes don't fire while
+// the user is typing 'delete'.
+function ReviewHotkeys({ enabled, onFire, onJump }) {
   useEffect(() => {
     if (!enabled) return;
     const handler = (e) => {
-      const isModEnter = (e.metaKey || e.ctrlKey) && e.key === 'Enter';
-      if (!isModEnter) return;
       const tag = (e.target?.tagName || '').toLowerCase();
-      if (tag === 'textarea' || tag === 'input') return;
-      e.preventDefault();
-      onFire();
+      if (tag === 'textarea' || tag === 'input' || tag === 'select') return;
+      if (e.target?.isContentEditable) return;
+      // Mark reviewed + next: ⌘/Ctrl+Enter or bare M.
+      const isModEnter = (e.metaKey || e.ctrlKey) && e.key === 'Enter';
+      const isM = !e.metaKey && !e.ctrlKey && !e.altKey && (e.key === 'm' || e.key === 'M');
+      if (isModEnter || isM) {
+        e.preventDefault(); onFire(); return;
+      }
+      // Jump only (no mark): bare J.
+      const isJ = !e.metaKey && !e.ctrlKey && !e.altKey && (e.key === 'j' || e.key === 'J');
+      if (isJ && onJump) {
+        e.preventDefault(); onJump(); return;
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [enabled, onFire]);
+  }, [enabled, onFire, onJump]);
   return null;
 }
 
@@ -178,6 +194,43 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     setComposing({ ts: v.currentTime, replyToId: null });
     setComposeText('');
   };
+  // Trainer-only `C` shortcut: drop a comment at the current playhead time.
+  // No modifier — typing into a textarea / input is filtered out at the top
+  // of the handler so it never collides with composing the comment itself.
+  // Stored in a ref so the closure always sees the latest addComment.
+  const addCommentRef = useRef(addComment);
+  useEffect(() => { addCommentRef.current = addComment; });
+  useEffect(() => {
+    if (role !== 'trainer') return;
+    const handler = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key !== 'c' && e.key !== 'C') return;
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'textarea' || tag === 'input' || tag === 'select') return;
+      if (e.target?.isContentEditable) return;
+      // Already composing — pressing C again would replace the in-progress
+      // draft, which is exactly what the user doesn't want.
+      if (composing) return;
+      e.preventDefault();
+      addCommentRef.current && addCommentRef.current();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [role, composing]);
+  // Auto-play once the metadata loads so the trainer doesn't have to click
+  // play on every clip in a 60-clip review session. Browsers block autoplay
+  // with sound, so we mute on the trainer side. Athlete role keeps the
+  // explicit-click default (no surprise sound on their own clip).
+  useEffect(() => {
+    if (role !== 'trainer') return;
+    const v = videoRef.current;
+    if (!v || !url) return;
+    const onMeta = () => {
+      try { v.muted = true; v.play().catch(() => {}); } catch {}
+    };
+    v.addEventListener('loadedmetadata', onMeta);
+    return () => v.removeEventListener('loadedmetadata', onMeta);
+  }, [role, url]);
   const addReply = (parentId) => {
     setComposing({ ts: null, replyToId: parentId });
     setComposeText('');
@@ -403,7 +456,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // approach kept resetting count to 1 on every rep).
   const repsCountRef = useRef(0);
   const lastTempoRef = useRef(null);
-  const [speed, setSpeed] = useState(1);
+  // Trainers default to 1.5x — they review dozens of clips per session and
+  // always start by getting the gist of the lift before scrubbing back to
+  // commentable frames. Athletes (own-portal playback) keep 1x so they don't
+  // unconsciously absorb a sped-up version of their own movement.
+  const [speed, setSpeed] = useState(role === 'trainer' ? 1.5 : 1);
   const [loop, setLoop] = useState(false);
   const [poseOn, setPoseOn] = useState(false);
   const [poseLoading, setPoseLoading] = useState(false);
@@ -1448,7 +1505,36 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         setSelectedWo(null); setExpandedEx(null); window.scrollTo(0, 0);
       }
     };
+    // Jump-without-marking: skip the current workout and move to the next
+    // pending one. Used when the trainer wants to defer a clip (waiting on
+    // more form video, athlete clarification, etc.) but keep working through
+    // the queue. Bound to bare J.
+    const jumpNext = () => {
+      const nextId = findNextUnreviewed();
+      if (nextId) {
+        setSelectedWo(nextId);
+        setExpandedEx(null);
+        window.scrollTo(0, 0);
+      }
+    };
     const remainingAfter = (clientWorkouts || []).filter(w => w.id !== wo.id && !w.reviewedAt).length;
+    // Pre-fetch the next two pending workouts' form videos so the next
+    // ⌘+Enter / M lands on a clip that's already in the browser cache. We
+    // pull cloudUrls from each workout's exercises array (skip pending /
+    // failed uploads). Hidden <video preload> tags below trigger the warm.
+    const prefetchUrls = (() => {
+      const sorted = (clientWorkouts || [])
+        .filter(w => w.id !== wo.id && !w.reviewedAt)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+      const urls = [];
+      for (const w of sorted) {
+        for (const fv of (w.formVideos || [])) {
+          if (fv?.cloudUrl) { urls.push(fv.cloudUrl); break; } // first video per workout
+        }
+        if (urls.length >= 2) break;
+      }
+      return urls;
+    })();
     // Look up the plan's actual length (default 4 if we can't find it).
     // Match by trainee + plan name so we don't pick up another trainee's
     // plan with the same name.
@@ -1727,9 +1813,25 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         {/* Done — delete (with text-typed confirm), mark reviewed / unmark, back.
             Save & next: the primary CTA below jumps to the next pending workout
             (oldest-first) once the trainer marks the current one reviewed.
-            Cmd/Ctrl+Enter is bound to the same action so a keyboard-driven
-            review pass doesn't require any clicks. */}
-        <SaveAndNextHotkey enabled={!wo.reviewedAt && !deleteConfirmFor} onFire={saveAndNext} />
+            ⌘/Ctrl+Enter and bare M both trigger save+next. Bare J jumps
+            without marking — for clips you want to defer. C (handled inside
+            FormVideoPlayer) drops a comment at the playhead. */}
+        <ReviewHotkeys
+          enabled={!deleteConfirmFor}
+          onFire={() => { if (!wo.reviewedAt) saveAndNext(); }}
+          onJump={jumpNext}
+        />
+        {/* Hidden prefetch tags — warm the browser cache for the next two
+            pending workouts' form videos so the trainer doesn't wait on the
+            first paint after pressing M / ⌘+Enter. preload="auto" hints to
+            the browser to download bytes immediately. */}
+        {prefetchUrls.map(u => <video key={u} src={u} preload="auto" muted style={{display:'none'}} />)}
+        {/* One-line hotkey legend so the keyboard flow is discoverable
+            without a tour. Sits above the action bar, FN caps, low-contrast
+            so it doesn't compete with the primary CTA. */}
+        <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.18em',fontWeight:700,textAlign:'center',marginTop:14,marginBottom:-6}}>
+          M · MARK + NEXT · &nbsp; J · SKIP · &nbsp; C · COMMENT AT PLAYHEAD
+        </div>
         <div style={{display:"flex",gap:8,marginTop:20,marginBottom:8}}>
           {deleteWorkout && (
             <button onClick={() => { setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
