@@ -189,7 +189,7 @@ export function LoginScreen() {
           <button
             onClick={() => handleOAuth('google')}
             disabled={submitting}
-            style={{ width: '100%', padding: 12, borderRadius: 10, border: `1px solid ${C.bd}`, background: '#fff', color: '#1f1f1f', fontFamily: FB, fontSize: 14, fontWeight: 600, cursor: submitting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10, opacity: submitting ? 0.6 : 1 }}
+            style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${C.ac}4D`, background: '#fff', color: '#1f1f1f', fontFamily: FB, fontSize: 14, fontWeight: 600, cursor: submitting ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 10, opacity: submitting ? 0.6 : 1 }}
           >
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.3 5.8 29.4 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34.3 5.8 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 10-2 13.6-5.2l-6.3-5.3c-2 1.4-4.5 2.5-7.3 2.5-5.2 0-9.6-3.3-11.2-8l-6.5 5C9.5 39.7 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4 5.5l6.3 5.3C41 35.2 44 30 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
             Continue with Google
@@ -199,9 +199,9 @@ export function LoginScreen() {
 
           {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '0 0 14px' }}>
-            <div style={{ flex: 1, height: 1, background: C.bd }} />
-            <span style={{ fontSize: 11, color: C.td, fontFamily: FN }}>OR</span>
-            <div style={{ flex: 1, height: 1, background: C.bd }} />
+            <div style={{ flex: 1, height: 1, background: `${C.ac}4D` }} />
+            <span style={{ fontSize: 9, color: C.tm, fontFamily: FN, letterSpacing: '0.18em', fontWeight: 700 }}>OR</span>
+            <div style={{ flex: 1, height: 1, background: `${C.ac}4D` }} />
           </div>
 
           {/* Email + password */}
@@ -211,7 +211,7 @@ export function LoginScreen() {
             placeholder="your@email.com"
             type="email"
             autoComplete="email"
-            style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 8, textAlign: 'center' }}
+            style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 8, textAlign: 'center' }}
           />
           <input
             value={password}
@@ -220,13 +220,13 @@ export function LoginScreen() {
             placeholder="password"
             type="password"
             autoComplete="current-password"
-            style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }}
+            style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }}
           />
           {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
           <button
             onClick={handlePassword}
             disabled={!canSubmit}
-            style={{ width: '100%', padding: 12, borderRadius: 10, border: 'none', background: canSubmit ? C.ac : C.sf3, color: canSubmit ? '#000' : C.td, fontFamily: FB, fontSize: 14, fontWeight: 700, cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
+            style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${canSubmit ? C.ac : C.ac+'4D'}`, background: 'transparent', color: canSubmit ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
           >
             {submitting ? '...' : 'Sign in'}
           </button>
@@ -237,7 +237,7 @@ export function LoginScreen() {
         {!isStandalone && (
           <button
             onClick={handleInstall}
-            style={{ width: '100%', marginTop: 16, padding: showInstallHelp ? '14px 16px' : 12, borderRadius: 10, border: `1px solid ${C.bd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: showInstallHelp ? 12 : 14, fontWeight: showInstallHelp ? 400 : 600, cursor: 'pointer', lineHeight: showInstallHelp ? 1.5 : 1.2, textAlign: 'center' }}
+            style={{ width: '100%', marginTop: 16, padding: showInstallHelp ? '14px 16px' : 12, borderRadius: 0, border: `0.25px solid ${C.ac}4D`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: showInstallHelp ? 12 : 14, fontWeight: showInstallHelp ? 400 : 600, cursor: 'pointer', lineHeight: showInstallHelp ? 1.5 : 1.2, textAlign: 'center' }}
           >
             {showInstallHelp
               ? (isIOS
@@ -291,22 +291,22 @@ export function PasswordChangeModal({ onClose }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12, padding: 24, maxWidth: 360, width: '100%' }}>
-        <div style={{ fontFamily: FN, fontSize: 13, color: C.td, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
+        <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
         {ok ? (
           <div style={{ color: C.gn, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Password updated ✓</div>
         ) : (
           <>
             <input value={currentPw} onChange={e => { setCurrentPw(e.target.value); setError(''); }} type="password" placeholder="Current password" autoComplete="current-password" autoFocus
-              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+              style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             <input value={pw} onChange={e => { setPw(e.target.value); setError(''); }} type="password" placeholder="New password" autoComplete="new-password"
-              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+              style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             <input value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleSave()} type="password" placeholder="Confirm new password" autoComplete="new-password"
-              style={{ width: '100%', background: C.sf2, border: `1px solid ${error ? C.rd : C.bd}`, borderRadius: 10, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+              style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: `1px solid ${C.bd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 8, border: 'none', background: (!saving && currentPw && pw && confirmPw) ? C.ac : C.sf3, color: (!saving && currentPw && pw && confirmPw) ? '#000' : C.td, fontFamily: FB, fontSize: 13, fontWeight: 700, cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>
+              <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `0.25px solid ${C.ac}4D`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${(!saving && currentPw && pw && confirmPw) ? C.ac : C.ac+'4D'}`, background: 'transparent', color: (!saving && currentPw && pw && confirmPw) ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>
             </div>
           </>
         )}
@@ -334,8 +334,8 @@ export function SaveErrorToast() {
   return (
     <div style={{ position: 'fixed', bottom: 20, right: 20, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 2000, maxWidth: 360 }}>
       {errors.map(e => (
-        <div key={e.id} style={{ background: C.rdD || '#3a1a1a', border: `1px solid ${C.rd || '#c94444'}`, color: C.rd || '#ff6b6b', borderRadius: 10, padding: '12px 14px', fontFamily: FB, fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
-          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 11, marginBottom: 4 }}>SAVE FAILED — {e.key} · {e.op}</div>
+        <div key={e.id} style={{ background: C.bg, border: `1px solid ${C.rd || '#c94444'}`, color: C.rd || '#ff6b6b', borderRadius: 0, padding: '12px 14px', fontFamily: FB, fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+          <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 9, letterSpacing: '0.18em', marginBottom: 4 }}>SAVE FAILED — {e.key} · {e.op}</div>
           <div style={{ color: C.tx, fontSize: 12 }}>{e.msg}</div>
           <div style={{ color: C.tm, fontSize: 10, marginTop: 4 }}>Your data is still in local memory. Check connection and retry.</div>
         </div>
@@ -380,8 +380,8 @@ export function OfflineStatusPill() {
     <div onClick={() => { if (online) { drainQueue(); drainBlobs(); } }}
       title={offline ? "You're offline. Changes are saved locally and will sync when connection returns." : 'Replaying queued changes…'}
       style={{ position: 'fixed', bottom: 20, left: 20, display: 'flex', alignItems: 'center', gap: 8,
-        background: bg, border: `1px solid ${fg}40`, color: fg, borderRadius: 999,
-        padding: '6px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+        background: 'transparent', border: `1px solid ${fg}`, color: fg, borderRadius: 0,
+        padding: '6px 12px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
         cursor: online ? 'pointer' : 'default', zIndex: 1500, userSelect: 'none' }}>
       <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotBg }} />
       {text}
@@ -400,13 +400,13 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
     <button
       onClick={() => onPick(side)}
       style={{
-        background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 14, padding: '28px 24px',
+        background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '28px 24px',
         color: C.tx, fontFamily: FB, cursor: 'pointer', textAlign: 'center',
         display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220,
         transition: 'border-color 120ms, transform 120ms',
       }}
       onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = C.bd; e.currentTarget.style.transform = 'translateY(0)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = `${C.ac}4D`; e.currentTarget.style.transform = 'translateY(0)'; }}
     >
       <div style={{ fontSize: 32 }}>{side === 'trainer' ? '🧠' : '💪'}</div>
       <div style={{ fontSize: 16, fontWeight: 700 }}>{label}</div>
@@ -450,7 +450,7 @@ export function UnauthorizedScreen({ email, onSignOut }) {
           </div>
           <button
             onClick={onSignOut}
-            style={{ marginTop: 20, background: C.rdD, border: 'none', borderRadius: 8, padding: '10px 20px', color: C.rd, fontFamily: FB, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            style={{ marginTop: 20, background: 'transparent', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '10px 20px', color: C.rd, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
             Sign Out
           </button>
@@ -471,5 +471,5 @@ const wrapStyle = {
 };
 
 const cardStyle = {
-  background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 14, padding: 28,
+  background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 28,
 };
