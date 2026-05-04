@@ -545,7 +545,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
     </div>);
 }
 
-export default function PlansView({ planIndex, reloadIndex, trainees, exercises, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened }) {
+export default function PlansView({ planIndex, reloadIndex, trainees, exercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
   const [editMode, setEditMode] = useState(false);
@@ -566,6 +566,16 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       loadFullPlan(openPlanId).then(() => { setEditMode(true); if (onPlanOpened) onPlanOpened(); });
     }
   }, [openPlanId]);
+
+  // Athlete-grouped view: collapsed by default, expanded individually per
+  // athlete row. Lives in a Set so toggling one row doesn't churn other rows
+  // and we can reset cheaply when filters/search change.
+  const [expandedAthletes, setExpandedAthletes] = useState(() => new Set());
+  const toggleAthlete = (id) => setExpandedAthletes(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   const traineeMap = useMemo(() => {
     const m = {};
@@ -623,6 +633,73 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     return ids.map(id => ({ value: id, label: traineeMap[id] || id })).sort((a,b) => a.label.localeCompare(b.label));
   }, [planIndex, traineeMap]);
 
+  // Default view: athlete-grouped, current-block-first. Activates when the
+  // user isn't searching or filtering by trainee — those modes fall back to
+  // the flat list because cross-athlete results don't group sensibly.
+  // For each non-archived trainee:
+  //   • currentBlock = highest-block-# active plan (or most recent createdAt)
+  //   • lastSession = most recent clientWorkout date (any plan)
+  //   • daysSince  = derived from lastSession
+  //   • earlier    = remaining plans, sorted by block# desc
+  // Couples with sub-IDs (__0/__1) collapse under the parent member view —
+  // we attribute every plan to whichever sub-id-or-parent owns it.
+  const blockNum = (n) => { const m = /(?:block|phase)\s*#?\s*(\d+)|#(\d+)/i.exec(n || ''); return m ? parseInt(m[1] || m[2], 10) : -Infinity; };
+  const isComeback = (n) => /comeback/i.test(n || '');
+  const sortByRecency = (a, b) => {
+    // Comeback floats above numbered blocks; then highest block#; then newest createdAt.
+    const cb = (isComeback(b.name) ? 1 : 0) - (isComeback(a.name) ? 1 : 0);
+    if (cb !== 0) return cb;
+    const bn = blockNum(b.name) - blockNum(a.name);
+    if (bn !== 0) return bn;
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  };
+  const grouped = useMemo(() => {
+    if (search || filterTrainee) return null; // flat-list fallback for filtered modes
+    // Bucket plans by athlete (parent or sub-id).
+    const buckets = new Map();
+    for (const p of planIndex) {
+      const tid = p.traineeId || '__unassigned__';
+      if (!buckets.has(tid)) buckets.set(tid, []);
+      buckets.get(tid).push(p);
+    }
+    // Last session per trainee from clientWorkouts. Match by either parent or
+    // sub-id so couples roll up where appropriate.
+    const lastByTid = new Map();
+    for (const w of (clientWorkouts || [])) {
+      const ts = new Date(w.date || w.createdAt || 0).getTime();
+      if (!isFinite(ts)) continue;
+      const cur = lastByTid.get(w.clientId) || 0;
+      if (ts > cur) lastByTid.set(w.clientId, ts);
+    }
+    const now = Date.now();
+    const rows = [];
+    for (const [tid, plans] of buckets.entries()) {
+      const sorted = plans.slice().sort(sortByRecency);
+      const current = sorted[0];
+      const earlier = sorted.slice(1);
+      const lastTs = lastByTid.get(tid) || 0;
+      const daysSince = lastTs ? Math.floor((now - lastTs) / 86400000) : null;
+      rows.push({
+        tid,
+        name: traineeMap[tid] || (tid === '__unassigned__' ? 'Unassigned' : tid),
+        current,
+        earlier,
+        daysSince,
+        totalCount: plans.length,
+      });
+    }
+    // Sort athletes: most-recently-trained first; never-trained at bottom.
+    rows.sort((a, b) => {
+      if (a.tid === '__unassigned__') return 1;
+      if (b.tid === '__unassigned__') return -1;
+      const aT = lastByTid.get(a.tid) || 0;
+      const bT = lastByTid.get(b.tid) || 0;
+      if (aT !== bT) return bT - aT;
+      return a.name.localeCompare(b.name);
+    });
+    return rows;
+  }, [planIndex, clientWorkouts, search, filterTrainee, traineeMap]);
+
   if (editMode) {
     if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
     return <PlanEditor plan={editPlanData} onSave={handleSave} onCancel={handleCancel} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} />;
@@ -669,9 +746,77 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         })}
       </div>
       <div style={{fontSize:12,color:C.td,marginBottom:12,fontFamily:FN}}>
-        Showing {visible.length} of {filtered.length} programs{filtered.length !== planIndex.length ? ` (${planIndex.length} total)` : ''}
+        {grouped
+          ? `${grouped.length} athlete${grouped.length===1?'':'s'} · ${planIndex.length} program${planIndex.length===1?'':'s'} total`
+          : `Showing ${visible.length} of ${filtered.length} programs${filtered.length !== planIndex.length ? ` (${planIndex.length} total)` : ''}`}
       </div>
-      {filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
+      {/* Athlete-grouped default view. Each row = one athlete, current block
+          surfaced prominently with last-session signal. (N earlier blocks)
+          chevron expands the older blocks inline so nothing is lost — they
+          just stay out of the daily scan path. */}
+      {grouped && grouped.length > 0 && (
+        <div style={{display:"grid",gap:8}}>
+          {grouped.map(row => {
+            const expanded = expandedAthletes.has(row.tid);
+            const cur = row.current;
+            const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
+            const tagText = row.daysSince == null ? 'NEVER LOGGED' : row.daysSince === 0 ? 'TRAINED TODAY' : `${row.daysSince}D AGO`;
+            return (
+              <div key={row.tid} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}>
+                {/* Current-block row — clicking opens the plan editor. */}
+                <div onClick={()=>handleOpenPlan(cur.id)}
+                  onMouseEnter={e => {
+                    const x = e.clientX, y = e.clientY;
+                    clearTimeout(hoverTimerRef.current);
+                    hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 220);
+                  }}
+                  onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
+                  style={{cursor:'pointer',padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                  <div style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
+                    <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
+                    <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{cur.name||"Untitled"}</div>
+                    <div style={{fontSize:10,color:C.tm,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount} DAYS · {cur.exerciseCount} EX</div>
+                  </div>
+                  <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>
+                    <span style={{fontSize:9,fontFamily:FN,color:tagColor,letterSpacing:'0.18em',fontWeight:700,border:`0.25px solid ${tagColor}`,padding:'3px 8px'}}>{tagText}</span>
+                    {row.earlier.length > 0 && (
+                      <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
+                        title={expanded?'Hide earlier blocks':'Show earlier blocks'}
+                        style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>
+                        {expanded?`▴ HIDE ${row.earlier.length}`:`▾ +${row.earlier.length} EARLIER`}
+                      </button>
+                    )}
+                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em'}}>DUPLICATE</button>
+                  </div>
+                </div>
+                {/* Expanded earlier blocks — same hover preview, slightly compressed
+                    visual treatment so the eye stays on the current block. */}
+                {expanded && row.earlier.length > 0 && (
+                  <div style={{borderTop:`0.25px solid ${C.ac}4D`,padding:'4px 0'}}>
+                    {row.earlier.map(p => (
+                      <div key={p.id} onClick={()=>handleOpenPlan(p.id)}
+                        onMouseEnter={e => {
+                          const x = e.clientX, y = e.clientY;
+                          clearTimeout(hoverTimerRef.current);
+                          hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 220);
+                        }}
+                        onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
+                        style={{cursor:'pointer',padding:'8px 14px 8px 32px',display:'flex',alignItems:'center',gap:12,opacity:0.78,borderTop:`0.25px solid ${C.ac}1A`}}>
+                        <div style={{flex:1,minWidth:0,fontSize:13,color:C.tm,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN}}>{p.name||"Untitled"}</div>
+                        <div style={{fontSize:9,color:C.td,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}D · {p.exerciseCount}EX</div>
+                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>DUPLICATE</button>
+                        <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>DELETE</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {/* Flat-list fallback — only when search/trainee-filter is active. */}
+      {!grouped && (filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
         <div style={{display:"grid",gap:6}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
           return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px'}}
@@ -699,7 +844,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>DELETE</button>
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
-        </div>)}
+        </div>))}
       {/* Hover preview popover */}
       {previewPlan && hoverPos && (() => {
         const GAP = 16;
