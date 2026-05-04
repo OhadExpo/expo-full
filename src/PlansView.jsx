@@ -311,8 +311,8 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
       <WarmupEditor plan={plan} setPlan={setPlan} />
       {!overview && <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
         {plan.days.map((d,i) => <div key={d.id} style={{display:"flex"}}>
-          <button onClick={()=>setActiveDay(i)} style={{padding:"6px 14px",fontSize:12,borderRadius:"6px 0 0 6px",border:"none",background:i===activeDay?C.ac:C.sf2,color:i===activeDay?"#fff":C.tm,cursor:"pointer",fontFamily:FB,fontWeight:600}}>{d.name} ({d.exercises.length})</button>
-          {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"6px 6px",fontSize:10,borderRadius:"0 6px 6px 0",border:"none",borderLeft:`1px solid ${C.bd}`,background:i===activeDay?C.ac:C.sf2,color:i===activeDay?"#fff":C.td,cursor:"pointer",opacity:0.7}}>×</button>}
+          <button onClick={()=>setActiveDay(i)} style={{padding:"6px 14px",fontSize:11,borderRadius:0,border:`${i===activeDay?'1px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,borderRight:'none',background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{d.name} ({d.exercises.length})</button>
+          {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"6px 8px",fontSize:11,borderRadius:0,border:`${i===activeDay?'1px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",opacity:0.7}}>×</button>}
         </div>)}
         <Btn variant="ghost" onClick={addDay} style={{padding:"6px 12px",fontSize:12}}>+</Btn>
       </div>}
@@ -323,7 +323,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           return (
-            <div key={d.id} style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:8,padding:12}}>
+            <div key={d.id} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12}}>
               <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
