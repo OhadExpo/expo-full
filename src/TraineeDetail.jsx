@@ -224,6 +224,20 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
   return (
     <div>
+      {/* Couples-layout responsive stacking. The two member cards sit
+          side-by-side on tablet+ (gap:12, vertical hairline divider). On a
+          phone the row is too narrow for that — body stats labels truncate,
+          program names wrap awkwardly. Below 720px we flip to flex-direction
+          column and turn the 1px-wide vertical divider into a 1px-tall
+          horizontal line so the two members stack cleanly with the same
+          visual separation. Nothing is hidden — all stats, injuries, goals,
+          notes, and program lists stay visible, just one above the other. */}
+      <style>{`
+        @media (max-width: 720px) {
+          .td-couple-row { flex-direction: column; }
+          .td-couple-divider { width: 100% !important; height: 1px !important; align-self: stretch; }
+        }
+      `}</style>
       {/* Back + actions bar */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back to Athletes</button>
@@ -251,9 +265,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         {/* Two-column member split — body stats / injuries / goals only.
             Programs render at the bottom of the page (after Overload chart),
             grouped per member, instead of inline inside each column. */}
-        <div style={{display:'flex',gap:12}}>
+        <div className="td-couple-row" style={{display:'flex',gap:12}}>
           {renderMemberColumn(td.members[0], 0, false)}
-          <div style={{width:1,background:`${C.ac}4D`,alignSelf:'stretch',flexShrink:0}} />
+          <div className="td-couple-divider" style={{width:1,background:`${C.ac}4D`,alignSelf:'stretch',flexShrink:0}} />
           {renderMemberColumn(td.members[1], 1, false)}
         </div>
       </> : <>
@@ -332,7 +346,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn>
           </div>
         </div>
-        <div style={{display:'flex',gap:12}}>
+        <div className="td-couple-row" style={{display:'flex',gap:12}}>
           {[0,1].map(mi => {
             const m = td.members[mi];
             const memberPlans = tpMember(mi);
@@ -340,7 +354,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
             return (
               <React.Fragment key={mi}>
-                {mi === 1 && <div style={{width:1,background:`${C.ac}4D`,alignSelf:'stretch',flexShrink:0}} />}
+                {mi === 1 && <div className="td-couple-divider" style={{width:1,background:`${C.ac}4D`,alignSelf:'stretch',flexShrink:0}} />}
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'6px 0',gap:8}}>
                     <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600}}>{m.name} — {sorted.length}</div>
