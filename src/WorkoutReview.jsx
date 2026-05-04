@@ -68,10 +68,10 @@ class FormVideoErrorBoundary extends React.Component {
   render() {
     if (this.state.err) {
       return (
-        <div style={{background:'#3a1a1a',border:`1px solid #c94444`,borderRadius:8,padding:12,color:'#ff6b6b',fontSize:12,fontFamily:FB}}>
+        <div style={{background:'#3a1a1a',border:`1px solid #c94444`,borderRadius:0,padding:12,color:'#ff6b6b',fontSize:12,fontFamily:FB}}>
           <div style={{fontWeight:700,marginBottom:4}}>Video player crashed — reload to retry</div>
           <div style={{fontSize:11,opacity:0.8,whiteSpace:'pre-wrap',fontFamily:'monospace'}}>{String(this.state.err?.message || this.state.err)}</div>
-          <button onClick={() => this.setState({ err: null })} style={{marginTop:8,background:'transparent',border:`1px solid #c94444`,color:'#ff6b6b',borderRadius:4,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>Retry</button>
+          <button onClick={() => this.setState({ err: null })} style={{marginTop:8,background:'transparent',border:`1px solid #c94444`,color:'#ff6b6b',borderRadius:0,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>Retry</button>
         </div>
       );
     }
@@ -995,12 +995,12 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           controlsList={isFullscreen ? '' : 'nofullscreen'}
           playsInline crossOrigin="anonymous"
           onError={() => setVideoLoadError(true)}
-          style={{display:'block',width:'100%',borderRadius:8,maxHeight:400,background:C.sf2}} />
+          style={{display:'block',width:'100%',borderRadius:0,maxHeight:400,background:C.sf2}} />
         {videoLoadError && (
           <a href={url} target="_blank" rel="noopener noreferrer"
             style={{position:'absolute',bottom:8,right:8,zIndex:6,
               background:'rgba(10,10,11,0.85)',border:`1px solid ${C.ac}`,color:C.ac,
-              fontFamily:FN,fontSize:10,padding:'4px 8px',borderRadius:4,
+              fontFamily:FN,fontSize:10,padding:'4px 8px',borderRadius:0,
               textDecoration:'none',letterSpacing:0.5}}>
             OPEN IN NEW TAB ↗
           </a>
@@ -1032,7 +1032,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             style={{position:'absolute',top:6,right:6,
               transform:`translate(${hudPos.x}px, ${hudPos.y}px)`,
               background:'rgba(10,10,11,0.78)',
-              borderRadius:6,padding:'6px 8px',
+              borderRadius:0,padding:'6px 8px',
               border:`1px solid ${hudDragArmed?C.ac:'transparent'}`,
               fontFamily:FN,fontSize:10,color:'#fff',lineHeight:1.5,
               fontVariantNumeric:'tabular-nums',
@@ -1058,7 +1058,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       {/* Mini-timeline with comment tick marks. Hidden when comments are
           disabled. Click a tick to seek. */}
       {commentsEnabled && notes.length > 0 && videoRef.current?.duration > 0 && (
-        <div style={{position:'relative',height:14,background:C.sf2,borderRadius:3,marginBottom:8,overflow:'hidden'}}>
+        <div style={{position:'relative',height:14,background:C.sf2,borderRadius:0,marginBottom:8,overflow:'hidden'}}>
           {notes.map(n => {
             if (n.ts == null || !videoRef.current?.duration) return null;
             const pct = Math.min(100, Math.max(0, (n.ts / videoRef.current.duration) * 100));
@@ -1079,14 +1079,14 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
         <div style={{flex:1,display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-start'}}>
           <button onClick={togglePose} disabled={poseLoading}
-            style={{padding:'3px 10px',borderRadius:4,border:`${poseOn?'2px':'0px'} solid ${C.ac}`,
+            style={{padding:'3px 10px',borderRadius:0,border:`${poseOn?'2px':'0px'} solid ${C.ac}`,
               background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
             {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
           </button>
           <button onClick={toggleReps} disabled={poseLoading}
             title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-            style={{padding:'3px 10px',borderRadius:4,border:`${repsOn?'2px':'0px'} solid ${C.gn}`,
+            style={{padding:'3px 10px',borderRadius:0,border:`${repsOn?'2px':'0px'} solid ${C.gn}`,
               background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
             {repsOn ? `REPS ${reps}` : 'REPS'}
@@ -1094,7 +1094,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {repsOn && (
             <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
               title="Which joint pair to count peaks on"
-              style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
+              style={{padding:'3px 6px',borderRadius:0,border:`1px solid ${C.bd}`,
                 background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
               <option value="auto">AUTO ({(autoPick.kind || 'none').toUpperCase()})</option>
               <option value="hip">HIP</option>
@@ -1113,20 +1113,20 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {notes.length > 0 && role !== 'trainer' && (
             <button onClick={toggleComments}
               title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
-              style={{padding:'3px 10px',borderRadius:4,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
+              style={{padding:'3px 10px',borderRadius:0,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
                 background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
               💬 {commentsEnabled ? 'ON' : 'OFF'}
             </button>
           )}
           {onReviewNotesChange && role === 'trainer' && (
             <button onClick={addComment} title="Comment & draw at this timestamp — color swatches appear once a comment is open"
-              style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.ac}40`,
+              style={{padding:'3px 10px',borderRadius:0,border:`1px solid ${C.ac}40`,
                 background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬✏️ COMMENT</button>
           )}
         </div>
         <div style={{flex:1,display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end'}}>
           <button onClick={fullscreen}
-            style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${C.bd}`,
+            style={{padding:'3px 10px',borderRadius:0,border:`1px solid ${C.bd}`,
               background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
         </div>
       </div>
@@ -1136,18 +1136,18 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       <div style={{display:'flex',gap:4,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
         {speeds.map(s => (
           <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
-            style={{padding:'3px 6px',borderRadius:4,border:`${speed===s?'2px':'0px'} solid ${C.ac}`,
+            style={{padding:'3px 6px',borderRadius:0,border:`${speed===s?'2px':'0px'} solid ${C.ac}`,
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
         ))}
         <button onClick={() => stepFrame(-1)} title="Previous frame"
-          style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
+          style={{padding:'3px 6px',borderRadius:0,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>◀</button>
         <button onClick={() => stepFrame(1)} title="Next frame"
-          style={{padding:'3px 6px',borderRadius:4,border:`1px solid ${C.bd}`,
+          style={{padding:'3px 6px',borderRadius:0,border:`1px solid ${C.bd}`,
             background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>▶</button>
         <button onClick={() => setLoop(v => !v)} title="Loop the video"
-          style={{padding:'3px 10px',borderRadius:4,border:`1px solid ${loop?C.ac:C.bd}`,
+          style={{padding:'3px 10px',borderRadius:0,border:`1px solid ${loop?C.ac:C.bd}`,
             background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
       </div>
       {/* Drawing toolbar — only visible when the trainer is in a drawing
@@ -1170,21 +1170,21 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             );
           })}
           <button onClick={() => setRulerMode(v => !v)} title={rulerMode ? 'Straight-line mode ON' : 'Freehand mode — click for straight-line'}
-            style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${rulerMode?C.ac:C.bd}`,
+            style={{padding:'3px 8px',borderRadius:0,border:`1px solid ${rulerMode?C.ac:C.bd}`,
               background:rulerMode?C.acD:'transparent',color:rulerMode?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
             📏 {rulerMode ? 'LINE' : 'FREE'}
           </button>
           <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title="Undo last stroke"
-            style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
+            style={{padding:'3px 8px',borderRadius:0,border:`1px solid ${C.bd}`,
               background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>↶ UNDO</button>
           <button onClick={clearDrawings} disabled={currentStrokes.length === 0} title="Clear all drawings on this comment"
-            style={{padding:'3px 8px',borderRadius:4,border:`1px solid ${C.bd}`,
+            style={{padding:'3px 8px',borderRadius:0,border:`1px solid ${C.bd}`,
               background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>✕ CLEAR</button>
         </div>
       )}
       {/* Compose input (new comment or reply). Appears inline when composing is active. */}
       {composing && (
-        <div style={{background:C.sf2,border:`1px solid ${C.ac}60`,borderRadius:8,padding:10,marginTop:8}}>
+        <div style={{background:C.sf2,border:`1px solid ${C.ac}60`,borderRadius:0,padding:10,marginTop:8}}>
           <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,textAlign:'center'}}>
             {composing.editId
               ? (composing.isReply ? '✏️ EDITING REPLY' : `✏️ EDITING COMMENT AT ${fmtTs(composing.ts)}`)
@@ -1194,10 +1194,10 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             onChange={e => setComposeText(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitCompose(); } }}
             placeholder={composing.replyToId ? 'Type your reply…' : 'What should the athlete focus on at this moment?'}
-            style={{width:'100%',minHeight:60,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:6,padding:8,color:C.tx,fontFamily:FB,fontSize:13,boxSizing:'border-box',resize:'vertical',textAlign:'center'}}/>
+            style={{width:'100%',minHeight:60,background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,padding:8,color:C.tx,fontFamily:FB,fontSize:13,boxSizing:'border-box',resize:'vertical',textAlign:'center'}}/>
           <div style={{display:'flex',gap:6,justifyContent:'flex-end',marginTop:6}}>
-            <button onClick={cancelCompose} style={{padding:'4px 10px',borderRadius:4,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>Cancel</button>
-            <button onClick={submitCompose} disabled={!composeText.trim()} style={{padding:'4px 10px',borderRadius:4,border:'none',background:composeText.trim()?C.ac:C.sf3,color:composeText.trim()?'#fff':C.td,fontFamily:FB,fontSize:11,fontWeight:700,cursor:composeText.trim()?'pointer':'default'}}>Save</button>
+            <button onClick={cancelCompose} style={{padding:'4px 10px',borderRadius:0,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>Cancel</button>
+            <button onClick={submitCompose} disabled={!composeText.trim()} style={{padding:'4px 10px',borderRadius:0,border:'none',background:composeText.trim()?C.ac:C.sf3,color:composeText.trim()?'#fff':C.td,fontFamily:FB,fontSize:11,fontWeight:700,cursor:composeText.trim()?'pointer':'default'}}>Save</button>
           </div>
         </div>
       )}
@@ -1218,9 +1218,9 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         return (
           <div style={{marginTop:10,display:'flex',flexDirection:'column',gap:8}}>
             {visible.map(n => (
-              <div key={n.id} style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderLeft:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:6,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none'}}>
+              <div key={n.id} style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderLeft:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:0,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-                  <button onClick={() => seekTo(n.ts)} style={{background:C.acD,border:`1px solid ${C.ac}40`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
+                  <button onClick={() => seekTo(n.ts)} style={{background:C.acD,border:`1px solid ${C.ac}40`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
                   <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
                   <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
@@ -1282,8 +1282,8 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Compare</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <button onClick={playBoth} style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:6,cursor:'pointer'}}>▶ PLAY BOTH</button>
-            <button onClick={pauseBoth} style={{background:C.sf2,border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:6,cursor:'pointer'}}>❚❚ PAUSE</button>
+            <button onClick={playBoth} style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>▶ PLAY BOTH</button>
+            <button onClick={pauseBoth} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>❚❚ PAUSE</button>
             <button onClick={onClose} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
           </div>
         </div>
@@ -1294,9 +1294,9 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
             <button onClick={() => sync('right')} title="Copy left timestamp to right"
-              style={{background:C.sf2,border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
+              style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
             <button onClick={() => sync('left')} title="Copy right timestamp to left"
-              style={{background:C.sf2,border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:4,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
+              style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
           </div>
           <div>
             <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{rightLabel}</div>
@@ -1395,14 +1395,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         <input autoFocus value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && confirmOk) onDeleteConfirm(); }}
           placeholder='type "delete"'
-          style={{width:'100%',background:C.sf2,border:`1px solid ${C.bd}`,borderRadius:8,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
+          style={{width:'100%',background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
         <div style={{display:'flex',gap:8}}>
           <button onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
             style={{flex:1,padding:'10px 0',borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
             Cancel
           </button>
           <button disabled={!confirmOk} onClick={onDeleteConfirm}
-            style={{flex:1,padding:'10px 0',borderRadius:8,border:'none',
+            style={{flex:1,padding:'10px 0',borderRadius:0,border:'none',
               background: confirmOk ? (C.rd||'#c94444') : C.sf3,
               color: confirmOk ? '#fff' : C.td,
               fontFamily:FB,fontSize:13,fontWeight:700,
@@ -1469,7 +1469,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         {/* Compare picker: pick second video from the same client */}
         {comparePicker && (
           <div onClick={() => setComparePicker(null)} style={{position:'fixed',inset:0,zIndex:1100,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
-            <div onClick={e => e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:12,width:520,maxHeight:'80vh',overflow:'auto',padding:20}}>
+            <div onClick={e => e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxHeight:'80vh',overflow:'auto',padding:20}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                 <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>Compare with…</h3>
                 <button onClick={() => setComparePicker(null)} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:16}}>✕</button>
@@ -1507,7 +1507,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 {nameOf(wo.clientId)} — {wo.planName}
                 {wo.reviewedAt && (
                   <span style={{fontSize:9,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
-                    padding:"2px 6px",borderRadius:3,border:`1px solid ${C.gn}40`,background:C.gnD}}>
+                    padding:"2px 6px",borderRadius:0,border:`1px solid ${C.gn}40`,background:C.gnD}}>
                     ✓ REVIEWED
                   </span>
                 )}
@@ -1625,7 +1625,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${new Date(wo.date).toLocaleDateString()}`;
                           return (
                             <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel, title: ex.title || exName }, candidates })}
-                              style={{background:'transparent',border:`1px solid ${C.gn}60`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:4,cursor:'pointer',letterSpacing:0.5}}>
+                              style={{background:'transparent',border:`1px solid ${C.gn}60`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>
                               ⇄ COMPARE
                             </button>
                           );
@@ -1878,7 +1878,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{wo.planName}</span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
-                        padding:"1px 5px",borderRadius:3,border:`1px solid ${C.gn}40`,background:C.gnD}}>
+                        padding:"1px 5px",borderRadius:0,border:`1px solid ${C.gn}40`,background:C.gnD}}>
                         ✓ REVIEWED
                       </span>
                     )}
@@ -1894,7 +1894,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
                         title="Delete this workout"
                         style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}40`,color:C.rd||'#ff6b6b',
-                          borderRadius:6,padding:'2px 8px',fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1.4}}>
+                          borderRadius:0,padding:'2px 8px',fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1.4}}>
                         DELETE
                       </button>
                     )}
