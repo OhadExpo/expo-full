@@ -217,7 +217,7 @@ function WaitlistForm({ t }) {
   if (state === 'done') {
     return (
       <div style={{
-        fontFamily: FN, color: C.gn, fontSize: 13, letterSpacing: 1.2, fontWeight: 700,
+        fontFamily: FN, color: C.gn, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700,
         padding: '14px 20px', border: `1px solid ${C.gn}40`, borderRadius: 0,
         textAlign: 'center', maxWidth: 460, margin: '0 auto',
       }}>
@@ -235,7 +235,7 @@ function WaitlistForm({ t }) {
           onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
           placeholder={t('wl.placeholder')}
           style={{
-            background: C.sf, border: `1px solid ${C.bd2}`,
+            background: 'transparent', border: `0.25px solid ${C.ac}4D`,
             borderRadius: 0, padding: '12px 14px', color: C.tx,
             fontFamily: FB, fontSize: 14, outline: 'none',
             flex: '1 1 220px', minWidth: 0,
@@ -249,7 +249,7 @@ function WaitlistForm({ t }) {
       </div>
       {state === 'error' && (
         <div style={{
-          fontFamily: FN, color: C.rd, fontSize: 11, letterSpacing: 1, textAlign: 'center',
+          fontFamily: FN, color: C.rd, fontSize: 11, letterSpacing: '0.18em', textAlign: 'center',
         }}>{err}</div>
       )}
     </form>
@@ -267,7 +267,7 @@ function DemoEmbed({ t }) {
   return (
     <div>
       <div className="cl-embed" style={{
-        background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
+        background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
         overflow: 'hidden', maxWidth: 1180, margin: '0 auto', position: 'relative',
         boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
       }}>
@@ -283,16 +283,16 @@ function DemoEmbed({ t }) {
             position: 'absolute', inset: 0,
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             gap: 14,
-            background: `linear-gradient(180deg, ${C.sf2} 0%, ${C.sf} 100%)`,
-            color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1.8,
+            background: C.bg,
+            color: C.tm, fontFamily: FN, fontSize: 9, letterSpacing: '0.18em', fontWeight: 700,
           }}>
             <div style={{
               width: 36, height: 36, borderRadius: '50%',
-              border: `2px solid ${C.bd}`, borderTopColor: C.ac,
+              border: `2px solid ${C.ac}4D`, borderTopColor: C.ac,
               animation: 'cl-spin 0.9s linear infinite',
             }} />
             <div>{t('demo.embed.loading')}</div>
-            <div style={{ fontSize: 9, color: C.td, letterSpacing: 1.5 }}>{t('demo.embed.modelfoot')}</div>
+            <div style={{ fontSize: 9, color: C.td, letterSpacing: '0.18em' }}>{t('demo.embed.modelfoot')}</div>
           </div>
         )}
         <iframe src="/demo/trainee?embed=1" title="EXPO live engine"
@@ -321,20 +321,21 @@ function DemoEmbed({ t }) {
 function PricingTier({ name, slots, popular, features, cta, price, priceSub, popularLabel, isHe }) {
   return (
     <div style={{
-      background: popular ? `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)` : C.sf,
-      border: popular ? `1px solid rgba(57,189,255,0.40)` : `1px solid ${C.bd}`,
+      background: 'transparent',
+      border: popular ? `1px solid ${C.ac}` : `0.25px solid ${C.ac}4D`,
       borderRadius: 0, padding: '24px 20px', textAlign: isHe ? 'right' : 'left',
       position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 360,
     }}>
       {popular && (
         <div style={{
           position: 'absolute', top: -10, [isHe ? 'left' : 'right']: 14,
-          fontFamily: FN, fontSize: 9, color: '#000', background: C.ac,
-          letterSpacing: 1.5, fontWeight: 700, padding: '3px 8px', borderRadius: 0,
+          fontFamily: FN, fontSize: 9, color: C.ac, background: 'transparent',
+          letterSpacing: '0.18em', fontWeight: 700, padding: '3px 8px', borderRadius: 0,
+          border: `1px solid ${C.ac}`,
         }}>{popularLabel}</div>
       )}
       <div style={{
-        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 2.5, fontWeight: 700,
+        fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
         marginBottom: 10,
       }}>{name}</div>
       {price && (
@@ -346,7 +347,7 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
           }}>{price}</span>
           {priceSub && (
             <span style={{
-              fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1,
+              fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.18em',
             }}>{priceSub}</span>
           )}
         </div>
@@ -381,11 +382,11 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
 function FeatureCard({ tag, title, body, isHe }) {
   return (
     <div style={{
-      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
+      background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
       padding: 22, textAlign: isHe ? 'right' : 'left',
     }}>
       <div style={{
-        fontFamily: FN, color: C.ac, fontSize: 10, letterSpacing: 2, fontWeight: 700,
+        fontFamily: FN, color: C.ac, fontSize: 10, letterSpacing: '0.18em', fontWeight: 700,
         marginBottom: 10,
       }}>{tag}</div>
       <h3 style={{
@@ -436,7 +437,7 @@ export default function CoachLanding({ lang = 'en' }) {
 
       {/* Header */}
       <header style={{
-        background: C.sf, borderBottom: `1px solid ${C.bd}`,
+        background: C.bg, borderBottom: `0.25px solid ${C.ac}4D`,
         position: 'sticky', top: 0, zIndex: 50,
       }}>
         <div style={{
@@ -447,15 +448,15 @@ export default function CoachLanding({ lang = 'en' }) {
             <EXPOMark height={22} style={{ marginBottom: 0 }} />
           </a>
           <span style={{
-            fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
-            padding: '4px 8px', background: C.acD, borderRadius: 0,
-            border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
+            fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.18em', fontWeight: 700,
+            padding: '4px 8px', background: 'transparent', borderRadius: 0,
+            border: `1px solid ${C.ac}`, whiteSpace: 'nowrap',
           }}>{t('header.badge')}</span>
           <div style={{ flex: 1 }} />
           <a href={isHe ? '/demo' : '/he/demo'} style={{
             ...baseBtn, background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '8px 10px', fontSize: 10,
-            letterSpacing: 1, fontWeight: 700,
+            letterSpacing: '0.18em', fontWeight: 700,
           }}>{isHe ? 'EN' : 'עב'}</a>
           <a href="/demo/coach" style={{
             ...baseBtn, background: 'transparent', color: C.tx,
@@ -475,7 +476,7 @@ export default function CoachLanding({ lang = 'en' }) {
         }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
-            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
             marginBottom: 14,
           }}>
             <EXPOMark height={14} />
@@ -505,7 +506,7 @@ export default function CoachLanding({ lang = 'en' }) {
             }}>{t('hero.cta.waitlist')}</a>
           </div>
           <div style={{
-            fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5, fontWeight: 700,
+            fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.18em', fontWeight: 700,
           }}>{t('hero.smallprint')}</div>
         </section>
 
@@ -514,7 +515,7 @@ export default function CoachLanding({ lang = 'en' }) {
           maxWidth: 1180, margin: '0 auto', padding: '8px 16px 40px',
         }}>
           <div style={{
-            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
             marginBottom: 14, textAlign: 'center',
           }}>{t('demo.badge')}</div>
           <h2 style={{
@@ -535,7 +536,7 @@ export default function CoachLanding({ lang = 'en' }) {
           maxWidth: 1180, margin: '0 auto', padding: '60px 16px 20px',
         }}>
           <div style={{
-            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
             marginBottom: 12, textAlign: 'center',
           }}>{t('features.badge')}</div>
           <h2 style={{
@@ -560,7 +561,7 @@ export default function CoachLanding({ lang = 'en' }) {
           maxWidth: 920, margin: '0 auto', padding: '60px 16px 30px', textAlign: 'center',
         }}>
           <div style={{
-            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
             marginBottom: 12,
           }}>{t('about.badge')}</div>
           <h2 style={{
@@ -580,7 +581,7 @@ export default function CoachLanding({ lang = 'en' }) {
           maxWidth: 1180, margin: '0 auto', padding: '60px 16px 20px',
         }}>
           <div style={{
-            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+            fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
             marginBottom: 12, textAlign: 'center',
           }}>{t('pricing.badge')}</div>
           <h2 style={{
@@ -646,7 +647,7 @@ export default function CoachLanding({ lang = 'en' }) {
           </div>
           <div style={{
             marginTop: 18, textAlign: 'center',
-            fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
+            fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.18em',
           }}>{t('pricing.note')}</div>
         </section>
 
@@ -655,12 +656,12 @@ export default function CoachLanding({ lang = 'en' }) {
           maxWidth: 720, margin: '0 auto', padding: '40px 16px 80px', textAlign: 'center',
         }}>
           <div style={{
-            background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
-            border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
+            background: 'transparent',
+            border: `1px solid ${C.ac}`, borderRadius: 0,
             padding: '36px 24px',
           }}>
             <div style={{
-              fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
+              fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
               marginBottom: 10,
             }}>{t('wl.badge')}</div>
             <h2 style={{
@@ -681,7 +682,7 @@ export default function CoachLanding({ lang = 'en' }) {
       {/* Sticky mobile-only CTA bar — see <style> block at top of component. */}
       <div className="cl-sticky-cta" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60,
-        background: C.sf, borderTop: `1px solid ${C.bd}`,
+        background: C.bg, borderTop: `0.25px solid ${C.ac}4D`,
         padding: '10px 12px', gap: 8, alignItems: 'stretch',
         boxShadow: '0 -8px 24px rgba(0,0,0,0.4)',
       }}>
@@ -696,14 +697,14 @@ export default function CoachLanding({ lang = 'en' }) {
       </div>
 
       <footer style={{
-        borderTop: `1px solid ${C.bd}`, padding: '20px 16px',
+        borderTop: `0.25px solid ${C.ac}4D`, padding: '20px 16px',
         maxWidth: 1180, margin: '0 auto', width: '100%',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         gap: 12, flexWrap: 'wrap',
       }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
+          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.18em',
         }}>
           <EXPOMark height={14} style={{ opacity: 0.55 }} />
           <span>{t('footer.line', { year: new Date().getFullYear() })}</span>
