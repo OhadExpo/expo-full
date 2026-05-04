@@ -184,11 +184,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,textAlign:'center'}}>
             {[['Age',m.age||'—'],['Weight',m.weight?`${m.weight}kg`:'—'],['Height',m.height?`${m.height}cm`:'—']].map(([l,v])=>
-              <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
+              <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
           {m.injuries&&<div style={{marginTop:10,padding:8,background:'transparent',border:`0.25px solid ${C.or}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Injuries</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.injuries)?FH:undefined}}>{m.injuries}</div></div>}
           {m.goals&&<div style={{marginTop:6,padding:8,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,textAlign:'center'}}>{m.goals}</div></div>}
-          {m.notes&&<div style={{marginTop:6,padding:8,background:'transparent',border:`0.25px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,textAlign:'center'}}>{m.notes}</div></div>}
+          {m.notes&&<div style={{marginTop:6,padding:8,background:'transparent',border:`0.25px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,textAlign:'center'}}>{m.notes}</div></div>}
         </Card>
         {showPrograms && <>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'12px 0 6px',gap:8}}>
@@ -244,7 +244,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(100px, 1fr))',gap:10}}>
             {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',td.lastPayment||'—'],['Since',td.startDate],['Workouts',tAllWorkouts.length]].map(([l,v])=>
-              <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
+              <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
         </Card>
 
@@ -253,7 +253,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             grouped per member, instead of inline inside each column. */}
         <div style={{display:'flex',gap:12}}>
           {renderMemberColumn(td.members[0], 0, false)}
-          <div style={{width:1,background:C.bd,alignSelf:'stretch',flexShrink:0}} />
+          <div style={{width:1,background:`${C.ac}4D`,alignSelf:'stretch',flexShrink:0}} />
           {renderMemberColumn(td.members[1], 1, false)}
         </div>
       </> : <>
@@ -266,17 +266,17 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <Badge color={statusColor[td.status]}>{td.status}</Badge></div>
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:16,textAlign:"center"}}>
           {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",td.lastPayment||"—"],["Since",td.startDate],["Workouts",tAllWorkouts.length]].map(([l,v])=>
-            <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
+            <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
       </Card>
       <Card style={{marginBottom:16,textAlign:"center"}}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12}}>
           {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>
-            <div key={l}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
+            <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
         {td.injuries&&<div style={{marginTop:12,padding:10,background:'transparent',border:`0.25px solid ${C.or}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
         {td.goals&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
-        {td.notes&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
+        {td.notes&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
       </Card>
       </>}
 
@@ -286,8 +286,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <Btn onClick={()=>setShowPayForm(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Add Payment</Btn></div>
       {tPay.length===0?<div style={{color:C.td,fontSize:13}}>No payments recorded.</div>:(
         <div style={{overflowX:"auto",marginBottom:16}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
-          <thead><tr style={{borderBottom:`1px solid ${C.bd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:10,fontFamily:FN,color:C.td,textTransform:"uppercase"}}>{h}</th>)}</tr></thead>
-          <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.bd}`}}>
+          <thead><tr style={{borderBottom:`0.25px solid ${C.ac}4D`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
+          <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`0.25px solid ${C.ac}4D`}}>
             <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{new Date(p.date).toLocaleDateString()}</td>
             <td style={{padding:"8px 10px",color:C.gn,fontWeight:600,textAlign:"center"}}>₪{parseFloat(p.amount).toLocaleString()}</td>
             <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{p.method}</td>
@@ -340,7 +340,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
             return (
               <React.Fragment key={mi}>
-                {mi === 1 && <div style={{width:1,background:C.bd,alignSelf:'stretch',flexShrink:0}} />}
+                {mi === 1 && <div style={{width:1,background:`${C.ac}4D`,alignSelf:'stretch',flexShrink:0}} />}
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'6px 0',gap:8}}>
                     <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600}}>{m.name} — {sorted.length}</div>
@@ -393,11 +393,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         ) : (
         (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&!traineeIds.includes(p.traineeId));const assignedNames=new Set(tp.map(p=>p.name));const available=[...unassigned,...others].filter(p=>!assignedNames.has(p.name)||p.traineeId!==trainee);
           return available.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:20}}>No programs available. Create one in the Programs tab first.</div>:
-          <div>{unassigned.length>0&&<><div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8}}>UNASSIGNED</div>
+          <div>{unassigned.length>0&&<><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>UNASSIGNED</div>
             {unassigned.map(p=><div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.ac+'4D'}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
               <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>)}</>}
-            {others.length>0&&<><div style={{fontSize:11,fontFamily:FN,color:C.td,marginBottom:8,marginTop:12}}>FROM OTHER ATHLETES (will duplicate)</div>
+            {others.length>0&&<><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8,marginTop:12}}>FROM OTHER ATHLETES (will duplicate)</div>
             {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.ac+'4D'}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name} <span style={{fontWeight:400,color:C.tm}}>— {owner?.name||'?'}</span></div>
               <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>})}</>}
@@ -430,7 +430,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {editStatus && <span aria-live="polite" style={{fontSize:11,fontFamily:FN,color:editStatus.color,fontWeight:600,letterSpacing:'0.04em'}}>{editStatus.text}</span>}
         </div>{couple && editForm._members ? <>
           {/* === COUPLE EDIT: shared fields === */}
-          <div style={{fontSize:11,fontFamily:FN,color:C.td,textTransform:'uppercase',marginBottom:8}}>Shared</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>Shared</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
             <Input label="Couple Name" value={editForm.name||""} onChange={e=>setEditForm({...editForm,name:e.target.value})} />
             <Select label="Format" options={TRAINING_FORMATS} value={editForm.format||""} onChange={v=>setEditForm({...editForm,format:v})} />
@@ -452,7 +452,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               };
               return (
                 <div key={mi} style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:11,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:8}}>Member {mi+1}</div>
+                  <div style={{fontSize:9,fontFamily:FN,color:C.ac,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>Member {mi+1}</div>
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
                     <Input label="Name" value={m.name||""} onChange={e=>upd('name',e.target.value)} />
                     <EmailsInput label="Email" value={m._emails || emailsToArr(m.email)} onChange={next=>upd('_emails',next)} />
@@ -493,7 +493,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <button onClick={() => {
                 const next = [...(editForm._emails || emailsToArr(editForm.email)), ''];
                 setEditForm({...editForm, _emails: next});
-              }} style={{ background: 'none', border: `1px dashed ${C.bd}`, borderRadius: 6, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 11, fontWeight: 600 }}>+ Add Email</button>
+              }} style={{ background: 'transparent', border: `0.25px dashed ${C.ac}4D`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ Add Email</button>
             )}
           </div>
           <Input label="Phone" value={editForm.phone||""} onChange={e=>setEditForm({...editForm,phone:e.target.value})} placeholder="+972..." />
@@ -569,11 +569,11 @@ function BWChart({ entries }) {
     <Card style={{padding:14}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',flexWrap:'wrap',gap:10,marginBottom:10}}>
         <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
-          <div><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>Current</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(last)}</div></div>
-          <div><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>Δ from first</div><div style={{fontSize:18,fontWeight:700,color:deltaColor,fontFamily:FN}}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}kg</div></div>
-          <div><div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>Range</div><div style={{fontSize:13,color:C.tm,fontFamily:FN,marginTop:3}}>{fmt(min)} – {fmt(max)}</div></div>
+          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Current</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(last)}</div></div>
+          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Δ from first</div><div style={{fontSize:18,fontWeight:700,color:deltaColor,fontFamily:FN}}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}kg</div></div>
+          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Range</div><div style={{fontSize:13,color:C.tm,fontFamily:FN,marginTop:3}}>{fmt(min)} – {fmt(max)}</div></div>
         </div>
-        <div style={{fontSize:10,fontFamily:FN,color:C.td,textTransform:'uppercase'}}>{entries.length} ENTR{entries.length === 1 ? 'Y' : 'IES'}</div>
+        <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{entries.length} ENTR{entries.length === 1 ? 'Y' : 'IES'}</div>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:140,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">
         <defs>
