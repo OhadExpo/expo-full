@@ -231,8 +231,8 @@ export default function Chat() {
             ...(anchorRight ? { right: 20 } : { left: 20 }),
             width: 'min(380px, calc(100vw - 32px))',
             height: 'min(560px, calc(100vh - 100px))',
-            background: C.sf, color: C.tx,
-            border: `1px solid ${C.bd2}`, borderRadius: 14,
+            background: C.bg, color: C.tx,
+            border: `1px solid ${C.ac}`, borderRadius: 0,
             boxShadow: '0 24px 60px -12px rgba(0,0,0,0.7)',
             display: 'flex', flexDirection: 'column', overflow: 'hidden',
             fontFamily: FB,
@@ -243,21 +243,21 @@ export default function Chat() {
               true geometric centerline regardless of the side widths. */}
           <div style={{
             position: 'relative',
-            padding: '10px 14px', borderBottom: `1px solid ${C.bd}`,
+            padding: '10px 14px', borderBottom: `0.25px solid ${C.ac}4D`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            background: C.sf2, gap: 10, minHeight: 44,
+            background: 'transparent', gap: 10, minHeight: 44,
           }}>
             <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 20, width: 'auto', display: 'block', flexShrink: 0 }} />
             <span style={{
               position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, calc(-50% + 2px))',
-              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, color: C.tm,
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', color: C.tm,
               lineHeight: 1, whiteSpace: 'nowrap', pointerEvents: 'none',
             }}>{isHe ? 'שאל כל שאלה.' : 'ASK ANYTHING.'}</span>
             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
               {messages.length > 0 && (
                 <button onClick={() => { setMessages([]); setErr(''); setCapturePrompted(false); setCaptureEmail(''); setCaptureState('idle'); setCaptureErr(''); }}
                   aria-label={isHe ? 'התחלת שיחה חדשה' : 'Start a new conversation'} title={isHe ? 'התחלת שיחה חדשה' : 'Start a new conversation'}
-                  style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', lineHeight: 0, padding: 0, borderRadius: 6, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  style={{ background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', lineHeight: 0, padding: 0, borderRadius: 0, height: 28, width: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
                 </button>
               )}
@@ -275,7 +275,7 @@ export default function Chat() {
             {messages.length === 0 && (
               <div style={{
                 color: C.tm, fontSize: 13, lineHeight: 1.5,
-                background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 10,
+                background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
                 padding: '12px 14px',
               }}>
                 {isHe
@@ -288,8 +288,8 @@ export default function Chat() {
                 return (
                   <div key={i} style={{
                     alignSelf: 'stretch',
-                    background: `${C.ac}10`, border: `1px dashed ${C.ac}55`,
-                    borderRadius: 10, padding: '10px 12px',
+                    background: 'transparent', border: `0.25px dashed ${C.ac}`,
+                    borderRadius: 0, padding: '10px 12px',
                   }}>
                     <div style={{ fontSize: 12, color: C.tx, lineHeight: 1.5, marginBottom: captureState === 'done' ? 0 : 8 }}>
                       {captureState === 'done'
@@ -302,15 +302,15 @@ export default function Chat() {
                           onChange={e => { setCaptureEmail(e.target.value); if (captureState === 'error') setCaptureState('idle'); }}
                           placeholder={isHe ? 'your@email.com' : 'your@email.com'}
                           style={{
-                            flex: 1, background: C.bg, border: `1px solid ${C.bd2}`, borderRadius: 6,
+                            flex: 1, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
                             padding: '6px 9px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
                           }} />
                         <button type="submit" disabled={captureState === 'sending'}
                           style={{
-                            background: captureState === 'sending' ? C.bd : C.ac,
-                            color: captureState === 'sending' ? C.tm : '#000',
-                            border: 'none', borderRadius: 6, padding: '6px 10px',
-                            fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 0.5,
+                            background: 'transparent',
+                            color: captureState === 'sending' ? C.tm : C.ac,
+                            border: `1px solid ${captureState === 'sending' ? C.ac+'4D' : C.ac}`, borderRadius: 0, padding: '6px 10px',
+                            fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
                             cursor: captureState === 'sending' ? 'default' : 'pointer',
                           }}>{captureState === 'sending' ? '…' : (isHe ? 'שלח' : 'SEND')}</button>
                       </form>
@@ -325,10 +325,10 @@ export default function Chat() {
                 <div key={i} style={{
                   alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
                   maxWidth: '85%',
-                  background: m.role === 'user' ? C.ac : C.bg,
-                  color: m.role === 'user' ? '#000' : C.tx,
-                  border: m.role === 'user' ? 'none' : `1px solid ${C.bd}`,
-                  borderRadius: 10, padding: '8px 12px',
+                  background: 'transparent',
+                  color: m.role === 'user' ? C.ac : C.tx,
+                  border: `0.25px solid ${m.role === 'user' ? C.ac : C.ac+'4D'}`,
+                  borderRadius: 0, padding: '8px 12px',
                   fontSize: 13.5, lineHeight: 1.5,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                 }}>{m.content}</div>
@@ -345,8 +345,8 @@ export default function Chat() {
               <div style={{
                 alignSelf: 'stretch',
                 color: C.rd, fontSize: 12,
-                background: `${C.rd}15`, border: `1px solid ${C.rd}55`,
-                borderRadius: 8, padding: '8px 10px',
+                background: 'transparent', border: `1px solid ${C.rd}`,
+                borderRadius: 0, padding: '8px 10px',
               }}>{err}</div>
             )}
             {/* Inline suggestions: shown when the conversation is idle (waiting on
@@ -362,8 +362,8 @@ export default function Chat() {
                 {SUGGESTIONS.map((s, i) => (
                   <button key={i} onClick={() => send(s)} disabled={sending}
                     style={{
-                      background: 'transparent', border: `1px solid ${C.bd2}`,
-                      color: C.tx, borderRadius: 16, padding: '6px 12px',
+                      background: 'transparent', border: `0.25px solid ${C.ac}4D`,
+                      color: C.tx, borderRadius: 0, padding: '6px 12px',
                       fontFamily: FB, fontSize: 12, cursor: 'pointer',
                       whiteSpace: 'nowrap', flexShrink: 0,
                     }}>{s}</button>
@@ -374,8 +374,8 @@ export default function Chat() {
 
           {healthy === false ? (
             <div style={{
-              padding: '12px 14px', borderTop: `1px solid ${C.bd}`,
-              background: C.sf2, fontSize: 12, color: C.tm, lineHeight: 1.5, textAlign: 'center',
+              padding: '12px 14px', borderTop: `0.25px solid ${C.ac}4D`,
+              background: 'transparent', fontSize: 12, color: C.tm, lineHeight: 1.5, textAlign: 'center',
             }}>
               {isHe
                 ? 'הצ׳אט לא זמין כרגע. השאר אימייל בטופס למטה ואוהד יחזור אליך.'
@@ -383,26 +383,26 @@ export default function Chat() {
             </div>
           ) : (
             <div style={{
-              padding: 10, borderTop: `1px solid ${C.bd}`,
+              padding: 10, borderTop: `0.25px solid ${C.ac}4D`,
               display: 'flex', gap: 8, alignItems: 'flex-end',
-              background: C.sf2,
+              background: 'transparent',
             }}>
               <textarea ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={onKey}
                 placeholder={isHe ? 'כתוב שאלה…' : 'Type a question…'} rows={1}
                 style={{
                   flex: 1, resize: 'none',
-                  background: C.bg, border: `1px solid ${C.bd2}`, borderRadius: 8,
+                  background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
                   padding: '8px 10px', color: C.tx,
                   fontFamily: FB, fontSize: 13, outline: 'none',
                   minHeight: 36, maxHeight: 100,
                 }} />
               <button onClick={() => send()} disabled={sending || !draft.trim()}
                 style={{
-                  background: draft.trim() && !sending ? C.ac : C.bd,
-                  color: draft.trim() && !sending ? '#000' : C.tm,
-                  border: 'none', borderRadius: 8,
+                  background: 'transparent',
+                  color: draft.trim() && !sending ? C.ac : C.tm,
+                  border: `1px solid ${draft.trim() && !sending ? C.ac : C.ac+'4D'}`, borderRadius: 0,
                   padding: '8px 14px', fontFamily: FN, fontSize: 12, fontWeight: 700,
-                  letterSpacing: 0.5, cursor: draft.trim() && !sending ? 'pointer' : 'default',
+                  letterSpacing: '0.18em', cursor: draft.trim() && !sending ? 'pointer' : 'default',
                 }}>{isHe ? 'שלח' : 'SEND'}</button>
             </div>
           )}

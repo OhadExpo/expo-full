@@ -56,8 +56,8 @@ function buildBuyLink(program, t) {
 // here so expo-il stays self-contained.
 const baseBtn = {
   display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 18px',
-  borderRadius: 8, border: 'none', fontFamily: FB, fontSize: 13, fontWeight: 600,
-  cursor: 'pointer', letterSpacing: '0.02em', transition: 'all 0.15s',
+  borderRadius: 0, border: 'none', fontFamily: FN, fontSize: 11, fontWeight: 700,
+  cursor: 'pointer', letterSpacing: '0.18em', textTransform: 'uppercase', transition: 'all 0.15s',
 };
 
 // Generic modal shell used by the quiz, exit-intent capture, and the
@@ -87,7 +87,7 @@ function Modal({ open, onClose, children, title, maxWidth = 560 }) {
         padding: 16, animation: 'fv-fade 180ms ease',
       }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
+        background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
         width: '100%', maxWidth, maxHeight: '92vh', overflow: 'auto',
         boxShadow: `0 28px 80px -24px ${C.ac}33`,
         position: 'relative', textAlign: 'start',
@@ -103,7 +103,7 @@ function ModalCloseBtn({ onClose, label }) {
   return (
     <button onClick={onClose} aria-label={label} title={label} style={{
       position: 'absolute', top: 10, insetInlineEnd: 10,
-      width: 32, height: 32, borderRadius: 8,
+      width: 32, height: 32, borderRadius: 0,
       background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`,
       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: FN, fontSize: 16, lineHeight: 1, padding: 0,
@@ -193,7 +193,7 @@ function LeadCapture({ context = 'hero', compact = false }) {
         fontFamily: FN, color: C.gn || '#28d95b', fontSize: compact ? 12 : 13,
         letterSpacing: 1.2, fontWeight: 700, textAlign: 'center',
         padding: compact ? '8px 12px' : '14px 18px',
-        border: `1px solid ${(C.gn || '#28d95b') + '40'}`, borderRadius: 8,
+        border: `1px solid ${(C.gn || '#28d95b') + '40'}`, borderRadius: 0,
       }}>
         {t('lead.thanks')}
       </div>
@@ -201,14 +201,14 @@ function LeadCapture({ context = 'hero', compact = false }) {
   }
   const inputStyle = {
     background: '#0d0d10', border: `1px solid ${C.bd}`,
-    borderRadius: 8, padding: '10px 14px', color: C.tx,
+    borderRadius: 0, padding: '10px 14px', color: C.tx,
     fontFamily: FB, fontSize: 14, outline: 'none',
     flex: 1, minWidth: 0, textAlign: 'center',
   };
   const btnStyle = {
     background: state === 'sending' ? C.bd : C.ac,
     color: state === 'sending' ? C.tm : '#000',
-    border: 'none', borderRadius: 8,
+    border: 'none', borderRadius: 0,
     padding: '10px 18px', fontFamily: FN, fontSize: 12, fontWeight: 700,
     letterSpacing: 1.5, cursor: state === 'sending' ? 'wait' : 'pointer',
   };
@@ -255,7 +255,7 @@ function LangToggle() {
       ...baseBtn,
       background: 'transparent', color: C.tm,
       padding: '6px 8px', fontSize: 11, fontWeight: 700, letterSpacing: 1,
-      borderRadius: 6, border: `1px solid ${C.bd}`,
+      borderRadius: 0, border: `1px solid ${C.bd}`,
     }}>
       {label}
     </button>
@@ -351,7 +351,7 @@ function Nav() {
                 ...baseBtn,
                 background: on ? C.acD : 'transparent',
                 color: on ? C.ac : C.tm,
-                borderRadius: 6, padding: '6px 10px',
+                borderRadius: 0, padding: '6px 10px',
                 fontSize: 12, fontWeight: on ? 700 : 500,
                 whiteSpace: 'nowrap',
               }}>
@@ -373,7 +373,7 @@ function Nav() {
             title="Open the EXPO portal" aria-label="Open the EXPO portal" style={{
               ...baseBtn,
               background: 'transparent', color: C.tm,
-              padding: '6px 8px', fontSize: 14, borderRadius: 6,
+              padding: '6px 8px', fontSize: 14, borderRadius: 0,
             }}>
             {/* External-link glyph — same stroke-icon style as the coach header */}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -532,7 +532,7 @@ function ShareButton({ programId, programTitle, size = 'sm' }) {
       background: copied ? C.acD : 'transparent',
       color: copied ? C.ac : C.tm,
       border: `1px solid ${copied ? C.ac : C.bd}`,
-      borderRadius: 6, fontWeight: 700, letterSpacing: 1,
+      borderRadius: 0, fontWeight: 700, letterSpacing: 1,
       ...dim,
     }}>
       {copied ? (
@@ -561,7 +561,7 @@ function ProgramMeta({ p }) {
       {meta.map((m, i) => (
         <span key={i} style={{
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 0.5,
-          border: `1px solid ${C.bd}`, padding: '3px 8px', borderRadius: 6,
+          border: `1px solid ${C.bd}`, padding: '3px 8px', borderRadius: 0,
           background: C.sf2,
         }}>{m.toUpperCase()}</span>
       ))}
@@ -587,7 +587,7 @@ function ProgramCard({ p }) {
       style={{
         background: C.sf,
         border: hover ? `2px solid ${C.ac}` : `0.25px solid ${C.ac4D}`,
-        borderRadius: 12, padding: 14,
+        borderRadius: 0, padding: 14,
         display: 'flex', flexDirection: 'column', gap: 12,
         transition: 'border-color 150ms, transform 150ms, box-shadow 150ms, border-width 150ms',
         transform: hover ? 'translateY(-2px)' : 'translateY(0)',
@@ -596,7 +596,7 @@ function ProgramCard({ p }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
-          background: C.acD, color: C.ac, padding: '4px 10px', borderRadius: 999,
+          background: 'transparent', border: `0.25px solid ${C.ac}`, color: C.ac, padding: '4px 10px', borderRadius: 0,
           border: `1px solid ${C.ac4D}`,
         }}>{(isHe && p.tagHe ? p.tagHe : p.tag).toUpperCase()}</span>
         <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{isHe ? (p.durationHe || p.duration) : p.duration}</span>
@@ -637,7 +637,7 @@ function ProgramCard({ p }) {
             ...baseBtn,
             background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '8px 14px',
-            fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+            fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
           }}>
             {t('card.view')}
           </a>
@@ -646,7 +646,7 @@ function ProgramCard({ p }) {
             style={{
               ...baseBtn,
               background: C.ac, color: '#000', padding: '8px 16px',
-              fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+              fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
             }}>
             {t('card.buy')}
           </a>
@@ -688,7 +688,7 @@ function Catalog() {
               background: on ? C.acD : 'transparent',
               color: on ? C.ac : C.tm,
               border: on ? `1px solid ${C.ac}` : `1px solid ${C.bd}`,
-              padding: '6px 12px', borderRadius: 6,
+              padding: '6px 12px', borderRadius: 0,
               fontSize: 11, fontWeight: 700, letterSpacing: 1,
               gap: 6,
             }}>
@@ -789,7 +789,7 @@ function PhoneFrame({ children, tag, height = 360, onClick, label }) {
           transform: `translateX(-50%) translateY(${hot ? 0 : 4}px)`,
           background: C.ac, color: '#000',
           fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1.5,
-          padding: '5px 12px', borderRadius: 999,
+          padding: '5px 12px', borderRadius: 0,
           opacity: hot ? 1 : 0.85,
           transition: 'opacity 200ms ease, transform 200ms ease',
           whiteSpace: 'nowrap', pointerEvents: 'none',
@@ -852,7 +852,7 @@ function PoseScreen() {
   return (
     <>
       <div style={{
-        flex: 1, position: 'relative', borderRadius: 8,
+        flex: 1, position: 'relative', borderRadius: 0,
         background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
         border: `1px solid ${C.bd}`, overflow: 'hidden',
       }}>
@@ -876,13 +876,13 @@ function PoseScreen() {
         <div style={{
           position: 'absolute', top: 8, left: 8, padding: '3px 6px',
           fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
-          background: C.acD, color: C.ac, borderRadius: 4,
+          background: C.acD, color: C.ac, borderRadius: 0,
           border: `1px solid ${C.ac4D}`,
         }}>KNEE {kneeAngle}°</div>
         <div style={{
           position: 'absolute', bottom: 8, right: 8, padding: '3px 6px',
           fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: 0.8,
-          background: C.acD, color: C.ac, borderRadius: 4,
+          background: C.acD, color: C.ac, borderRadius: 0,
           border: `1px solid ${C.ac4D}`,
         }}>{depthLabel}</div>
       </div>
@@ -937,7 +937,7 @@ function RepCounterScreen() {
   return (
     <>
       <div style={{
-        flex: 1, position: 'relative', borderRadius: 8,
+        flex: 1, position: 'relative', borderRadius: 0,
         background: 'linear-gradient(135deg, #0d0d11 0%, #14141a 50%, #0a0a0c 100%)',
         border: `1px solid ${C.bd}`, overflow: 'hidden',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -962,7 +962,7 @@ function RepCounterScreen() {
       </div>
 
       <div style={{
-        background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 8,
+        background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 0,
         padding: '6px 8px',
       }}>
         <svg viewBox="0 0 200 32" width="100%" height="32"
@@ -995,7 +995,7 @@ function CompareScreen() {
   const Tile = ({ title, sub, dimmed, repsOk }) => (
     <div style={{
       flex: 1, position: 'relative',
-      borderRadius: 8, border: dimmed ? `1px solid ${C.bd}` : `1px solid ${C.ac}`,
+      borderRadius: 0, border: dimmed ? `1px solid ${C.bd}` : `1px solid ${C.ac}`,
       background: dimmed
         ? 'linear-gradient(135deg, #0d0d11 0%, #14141a 100%)'
         : 'linear-gradient(135deg, #101018 0%, #181826 100%)',
@@ -1115,7 +1115,7 @@ function PoseDemoInteractive() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{
-        position: 'relative', borderRadius: 10, height: 280,
+        position: 'relative', borderRadius: 0, height: 280,
         background: 'linear-gradient(180deg, #0e0e12 0%, #08080a 100%)',
         border: `1px solid ${C.bd}`, overflow: 'hidden',
       }}>
@@ -1137,24 +1137,24 @@ function PoseDemoInteractive() {
         <div style={{
           position: 'absolute', top: 10, left: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-          background: C.acD, color: C.ac, borderRadius: 6,
+          background: C.acD, color: C.ac, borderRadius: 0,
           border: `1px solid ${C.ac4D}`,
         }}>KNEE {kneeAngle}°</div>
         <div style={{
           position: 'absolute', top: 10, right: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-          background: C.acD, color: C.ac, borderRadius: 6,
+          background: C.acD, color: C.ac, borderRadius: 0,
           border: `1px solid ${C.ac4D}`,
         }}>HIP {hipAngle}°</div>
         <div style={{
           position: 'absolute', bottom: 10, right: 12, padding: '4px 8px',
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-          background: C.acD, color: C.ac, borderRadius: 6,
+          background: C.acD, color: C.ac, borderRadius: 0,
           border: `1px solid ${C.ac4D}`,
         }}>{depthLabel}</div>
       </div>
       <div style={{
-        background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 10, padding: 12,
+        background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 0, padding: 12,
       }}>
         <div style={{
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 2,
@@ -1193,7 +1193,7 @@ function RepDemoInteractive() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{
-        height: 200, borderRadius: 10,
+        height: 200, borderRadius: 0,
         background: 'linear-gradient(135deg, #0d0d11 0%, #14141a 50%, #0a0a0c 100%)',
         border: `1px solid ${C.bd}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1214,7 +1214,7 @@ function RepDemoInteractive() {
         </div>
       </div>
       <button onClick={inc} aria-label="Add rep" style={{
-        background: C.sf2, border: `1px solid ${C.ac4D}`, borderRadius: 10,
+        background: C.sf2, border: `1px solid ${C.ac4D}`, borderRadius: 0,
         padding: '10px 12px', cursor: 'pointer',
         transition: 'border-color 150ms ease',
       }}>
@@ -1241,7 +1241,7 @@ function RepDemoInteractive() {
           ...baseBtn,
           background: 'transparent', color: C.tm,
           border: `1px solid ${C.bd}`, padding: '6px 12px',
-          fontSize: 10, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+          fontSize: 10, fontWeight: 700, letterSpacing: 1.2, borderRadius: 0,
         }}>
           {t('demo.rep.reset')}
         </button>
@@ -1260,7 +1260,7 @@ function CompareDemoInteractive() {
     return (
       <button onClick={() => setFocus(id)} aria-pressed={active} style={{
         flex: 1, position: 'relative', padding: 12, minHeight: 110,
-        borderRadius: 10,
+        borderRadius: 0,
         border: active ? `2px solid ${C.ac}` : `1px solid ${C.bd}`,
         background: active
           ? 'linear-gradient(135deg, #101018 0%, #181826 100%)'
@@ -1422,7 +1422,7 @@ function WhatsInside() {
              display: 'inline-block',
              fontFamily: FB, fontSize: 14, fontWeight: 700,
              color: '#000', background: C.ac,
-             padding: '12px 22px', borderRadius: 10,
+             padding: '12px 22px', borderRadius: 0,
              textDecoration: 'none', letterSpacing: 0.2,
            }}>
           {t('inside.tryCta')}
@@ -1464,7 +1464,7 @@ function AboutCoach() {
             with the EXPO mark behind a "PHOTO COMING" caption. */}
         <div style={{
           aspectRatio: '4 / 5', position: 'relative',
-          borderRadius: 16, overflow: 'hidden',
+          borderRadius: 0, overflow: 'hidden',
           background: `linear-gradient(160deg, ${C.sf} 0%, ${C.sf2} 100%)`,
           border: `1px solid ${C.bd}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1543,7 +1543,7 @@ function AboutCoach() {
           ].map((v, i) => (
             <div key={i} style={{
               background: C.sf, border: `0.25px solid ${C.ac4D}`,
-              borderRadius: 12, padding: 16,
+              borderRadius: 0, padding: 16,
             }}>
               <div style={{ fontFamily: FB, fontSize: 15, fontWeight: 700, color: C.tx, marginBottom: 6 }}>
                 {v.t}
@@ -1601,7 +1601,7 @@ function WhyTemplates() {
           <div key={col.key} style={{
             background: col.accent ? C.sf2 : C.sf,
             border: col.accent ? `2px solid ${C.ac}` : `0.25px solid ${C.ac4D}`,
-            borderRadius: 12, padding: '18px 16px',
+            borderRadius: 0, padding: '18px 16px',
             display: 'flex', flexDirection: 'column', gap: 12,
             boxShadow: col.accent ? `0 12px 32px -16px ${C.ac}55` : 'none',
           }}>
@@ -1637,7 +1637,7 @@ function WhyTemplates() {
         <a href="#programs" style={{
           ...baseBtn,
           background: C.ac, color: '#000', padding: '12px 24px',
-          fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+          fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {t('why.cta')}
         </a>
@@ -1686,7 +1686,7 @@ function HowItWorks() {
         {steps.map(s => (
           <div key={s.n} style={{
             background: C.sf, border: `0.25px solid ${C.ac4D}`,
-            borderRadius: 12, padding: 14,
+            borderRadius: 0, padding: 14,
           }}>
             <div style={{
               fontFamily: FN, color: C.ac, fontSize: 11, fontWeight: 700,
@@ -1732,7 +1732,7 @@ function Contact() {
           style={{
             ...baseBtn,
             background: C.ac, color: '#000', padding: '10px 20px',
-            fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+            fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
           }}>
           {t('contact.cta.whatsapp')}
         </a>
@@ -1740,7 +1740,7 @@ function Contact() {
           ...baseBtn,
           background: 'transparent', color: C.tm,
           border: `1px solid ${C.bd}`, padding: '10px 20px',
-          fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+          fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {t('contact.cta.email')}
         </a>
@@ -1748,7 +1748,7 @@ function Contact() {
           ...baseBtn,
           background: 'transparent', color: C.tm,
           border: `1px solid ${C.bd}`, padding: '10px 20px',
-          fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+          fontSize: 12, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {t('contact.cta.instagram')}
         </a>
@@ -1803,7 +1803,7 @@ function Testimonials() {
         {TESTIMONIALS.map((q, i) => (
           <div key={i} style={{
             background: C.sf, border: `0.25px solid ${C.ac4D}`,
-            borderRadius: 12, padding: 18,
+            borderRadius: 0, padding: 18,
             display: 'flex', flexDirection: 'column', gap: 12,
             minHeight: 200,
           }}>
@@ -1813,7 +1813,7 @@ function Testimonials() {
                   flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1.5,
                   fontWeight: 700, textAlign: 'center', minHeight: 90,
-                  border: `1px dashed ${C.bd}`, borderRadius: 8,
+                  border: `1px dashed ${C.bd}`, borderRadius: 0,
                 }}>
                   QUOTE · COMING SOON
                 </div>
@@ -2033,7 +2033,7 @@ function QuizModal({ open, onClose }) {
         {matches.length === 0 ? (
           <div style={{
             background: C.sf2, border: `0.25px solid ${C.ac4D}`,
-            borderRadius: 12, padding: 16, marginBottom: 18,
+            borderRadius: 0, padding: 16, marginBottom: 18,
             fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.55,
           }}>
             {t('quiz.r.empty')}
@@ -2048,7 +2048,7 @@ function QuizModal({ open, onClose }) {
                     display: 'block', textDecoration: 'none',
                     background: isBest ? C.sf2 : C.sf,
                     border: isBest ? `2px solid ${C.ac}` : `0.25px solid ${C.ac4D}`,
-                    borderRadius: 12, padding: 14,
+                    borderRadius: 0, padding: 14,
                     boxShadow: isBest ? `0 12px 32px -16px ${C.ac}55` : 'none',
                     color: 'inherit',
                   }}>
@@ -2081,7 +2081,7 @@ function QuizModal({ open, onClose }) {
 
         <div style={{
           background: C.sf2, border: `0.25px solid ${C.ac4D}`,
-          borderRadius: 12, padding: 14, marginBottom: 14,
+          borderRadius: 0, padding: 14, marginBottom: 14,
         }}>
           <div style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx, marginBottom: 6 }}>
             {t('quiz.r.full.h')}
@@ -2095,7 +2095,7 @@ function QuizModal({ open, onClose }) {
               style={{
                 ...baseBtn,
                 background: C.ac, color: '#000', padding: '10px 16px',
-                fontSize: 12, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+                fontSize: 12, fontWeight: 700, letterSpacing: 1.2, borderRadius: 0,
               }}>
               {t('quiz.r.full.cta')}
             </a>
@@ -2106,7 +2106,7 @@ function QuizModal({ open, onClose }) {
                 ...baseBtn,
                 background: 'transparent', color: C.tm,
                 border: `1px solid ${C.bd}`, padding: '10px 16px',
-                fontSize: 12, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+                fontSize: 12, fontWeight: 700, letterSpacing: 1.2, borderRadius: 0,
               }}>
               {t('quiz.r.wa.cta')}
             </a>
@@ -2118,7 +2118,7 @@ function QuizModal({ open, onClose }) {
             ...baseBtn,
             background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '8px 14px',
-            fontSize: 11, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+            fontSize: 11, fontWeight: 700, letterSpacing: 1.2, borderRadius: 0,
           }}>
             {t('quiz.restart')}
           </button>
@@ -2153,7 +2153,7 @@ function QuizModal({ open, onClose }) {
                   background: on ? C.acD : C.sf2,
                   color: on ? C.ac : C.tx,
                   border: on ? `2px solid ${C.ac}` : `0.25px solid ${C.ac4D}`,
-                  padding: '12px 14px', borderRadius: 10,
+                  padding: '12px 14px', borderRadius: 0,
                   fontFamily: FB, fontSize: 14, fontWeight: on ? 700 : 500,
                   letterSpacing: 0,
                 }}>
@@ -2167,7 +2167,7 @@ function QuizModal({ open, onClose }) {
             ...baseBtn,
             background: 'transparent', color: step === 0 ? C.td : C.tm,
             border: `1px solid ${C.bd}`, padding: '8px 14px',
-            fontSize: 11, fontWeight: 700, letterSpacing: 1.2, borderRadius: 6,
+            fontSize: 11, fontWeight: 700, letterSpacing: 1.2, borderRadius: 0,
             opacity: step === 0 ? 0.4 : 1,
           }}>
             {t('quiz.back')}
@@ -2204,7 +2204,7 @@ function QuizSection({ onOpen }) {
     <section id="quiz" style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 16px' }}>
       <div style={{
         background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
-        border: `1px solid ${C.ac4D}`, borderRadius: 14,
+        border: `1px solid ${C.ac4D}`, borderRadius: 0,
         padding: '28px 22px', textAlign: 'center',
       }}>
         <div style={{
@@ -2222,7 +2222,7 @@ function QuizSection({ onOpen }) {
         <button onClick={onOpen} style={{
           ...baseBtn,
           background: C.ac, color: '#000', padding: '12px 24px',
-          fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+          fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
         }}>
           {t('quiz.cta')}
         </button>
@@ -2291,12 +2291,12 @@ function TrustStrip() {
         {items.map((it, i) => (
           <div key={i} style={{
             background: C.sf, border: `0.25px solid ${C.ac4D}`,
-            borderRadius: 12, padding: 14,
+            borderRadius: 0, padding: 14,
             display: 'flex', flexDirection: 'column', gap: 8,
             alignItems: 'flex-start', textAlign: 'start',
           }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 8,
+              width: 36, height: 36, borderRadius: 0,
               background: C.acD, border: `1px solid ${C.ac4D}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
@@ -2365,7 +2365,7 @@ function FAQ() {
         {items.map((it, i) => (
           <details key={i} className="fv-faq-item" style={{
             background: C.sf, border: `0.25px solid ${C.ac4D}`,
-            borderRadius: 12, padding: '14px 16px',
+            borderRadius: 0, padding: '14px 16px',
           }}>
             <summary style={{
               display: 'flex', justifyContent: 'space-between', gap: 10,
@@ -2437,7 +2437,7 @@ function SampleWeek({ sampleWeek, accent }) {
   if (!sampleWeek) {
     return (
       <div style={{
-        background: C.sf, border: `1px dashed ${C.bd}`, borderRadius: 12,
+        background: C.sf, border: `1px dashed ${C.bd}`, borderRadius: 0,
         padding: 28, textAlign: 'center', color: C.td,
         fontFamily: FN, fontSize: 12, letterSpacing: 1,
       }}>
@@ -2457,7 +2457,7 @@ function SampleWeek({ sampleWeek, accent }) {
         return (
           <div key={dayKey} style={{
             background: C.sf, border: `0.25px solid ${C.ac4D}`,
-            borderRadius: 12, padding: 14,
+            borderRadius: 0, padding: 14,
           }}>
             <div style={{
               fontFamily: FN, fontSize: 11, color: accent || C.ac, fontWeight: 700,
@@ -2541,7 +2541,7 @@ function ProgramDetail({ program }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 18, alignItems: 'center', justifyContent: 'center' }}>
           <span style={{
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
-            background: C.acD, color: C.ac, padding: '4px 10px', borderRadius: 999,
+            background: 'transparent', border: `0.25px solid ${C.ac}`, color: C.ac, padding: '4px 10px', borderRadius: 0,
             border: `1px solid ${C.ac4D}`,
           }}>{program.tag.toUpperCase()}</span>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.td }}>{program.duration}</span>
@@ -2577,7 +2577,7 @@ function ProgramDetail({ program }) {
         }}>
           {program.highlights.map((h, i) => (
             <li key={i} style={{
-              background: C.sf, border: `0.25px solid ${C.ac4D}`, borderRadius: 12,
+              background: C.sf, border: `0.25px solid ${C.ac4D}`, borderRadius: 0,
               padding: 14, display: 'flex', gap: 10, alignItems: 'flex-start',
               justifyContent: 'center',
               fontFamily: FB, fontSize: 14, color: C.tx, lineHeight: 1.5, textAlign: 'center',
@@ -2603,7 +2603,7 @@ function ProgramDetail({ program }) {
       </section>
 
       <section style={{
-        background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 12,
+        background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
         padding: 22, display: 'flex', flexWrap: 'wrap', alignItems: 'center',
         justifyContent: 'center', gap: 24,
       }}>
@@ -2623,7 +2623,7 @@ function ProgramDetail({ program }) {
           style={{
             ...baseBtn,
             background: C.ac, color: '#000', padding: '12px 24px',
-            fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+            fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
           }}>
           {t('detail.cta.buy')}
         </a>
@@ -2679,7 +2679,7 @@ function NotFound() {
       <a href="#/" style={{
         ...baseBtn,
         background: C.ac, color: '#000', padding: '12px 24px',
-        fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+        fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
       }}>
         {t('notfound.cta')}
       </a>
@@ -2824,7 +2824,7 @@ function StickyCTA() {
         style={{
           ...baseBtn,
           background: C.ac, color: '#000', padding: '8px 14px',
-          fontSize: 11, fontWeight: 700, letterSpacing: 1.5, borderRadius: 6,
+          fontSize: 11, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
           flex: '0 0 auto',
         }}>
         {t('cta.sticky.btn')}
