@@ -222,6 +222,20 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [overview, setOverview] = useState(false);
+  // Drag-to-reorder state for the Overview view. Source = the row picked up;
+  // over = the row currently being hovered as a drop target (used to draw the
+  // insertion bar). Reorder is constrained to within the source row's day.
+  const [dragSrc, setDragSrc] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
+  // Move exercise from `from` index to `to` index within the same day.
+  const reorderExInDay = (di, from, to) => setPlan(p => ({...p, days: p.days.map((d, idx) => {
+    if (idx !== di) return d;
+    const exs = [...(d.exercises || [])];
+    if (from < 0 || from >= exs.length || to < 0 || to >= exs.length || from === to) return d;
+    const [moved] = exs.splice(from, 1);
+    exs.splice(to, 0, moved);
+    return {...d, exercises: exs};
+  })}));
   // Autosave: shared hook serializes saves, flushes on tab switch / screen
   // lock / browser back / refresh / close / unmount.
   const { status: autoStatus, flush: flushAutosave, markClean } = useAutosave(plan, savePlan);
@@ -247,16 +261,6 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const removeExFromDay = (di, ei) => setPlan(p => ({...p, days: p.days.map((d, idx) => idx === di ? {...d, exercises: (d.exercises||[]).filter((_,i) => i !== ei)} : d)}));
   const removeEx = ei => updateDay(activeDay, {exercises:plan.days[activeDay].exercises.filter((_,i)=>i!==ei)});
   const moveEx = (ei,dir) => { const exs=[...plan.days[activeDay].exercises]; const si=ei+dir; if(si<0||si>=exs.length) return; [exs[ei],exs[si]]=[exs[si],exs[ei]]; updateDay(activeDay,{exercises:exs}); };
-  // Same swap, but on an arbitrary day — used by the Overview view, which
-  // displays every day at once instead of binding to `activeDay`.
-  const moveExInDay = (di, ei, dir) => setPlan(p => ({...p, days: p.days.map((d, idx) => {
-    if (idx !== di) return d;
-    const exs = [...(d.exercises || [])];
-    const si = ei + dir;
-    if (si < 0 || si >= exs.length) return d;
-    [exs[ei], exs[si]] = [exs[si], exs[ei]];
-    return {...d, exercises: exs};
-  })}));
   const day = plan.days[activeDay];
   const handleSave = async () => {
     setSaving(true);
@@ -338,11 +342,15 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                     const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
                     return <React.Fragment key={ex.id}>
-                      <div style={{display:"flex",alignItems:"center",gap:2,minWidth:0}}>
-                        <div style={{display:"flex",flexDirection:"column",gap:1}}>
-                          <button onClick={()=>moveExInDay(dayIdx, exIdx, -1)} disabled={exIdx===0} title="Move up" style={{background:"none",border:"none",color:C.tm,cursor:exIdx===0?"default":"pointer",fontSize:9,lineHeight:1,padding:0,opacity:exIdx===0?.25:.7}}>▲</button>
-                          <button onClick={()=>moveExInDay(dayIdx, exIdx, 1)} disabled={exIdx===dayExs.length-1} title="Move down" style={{background:"none",border:"none",color:C.tm,cursor:exIdx===dayExs.length-1?"default":"pointer",fontSize:9,lineHeight:1,padding:0,opacity:exIdx===dayExs.length-1?.25:.7}}>▼</button>
-                        </div>
+                      <div draggable
+                        onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${dayIdx}:${exIdx}`); setDragSrc({dayIdx, exIdx}); }}
+                        onDragOver={e => { if (dragSrc && dragSrc.dayIdx===dayIdx) { e.preventDefault(); e.dataTransfer.dropEffect='move'; setDragOver({dayIdx, exIdx}); } }}
+                        onDragLeave={() => { if (dragOver && dragOver.dayIdx===dayIdx && dragOver.exIdx===exIdx) setDragOver(null); }}
+                        onDrop={e => { e.preventDefault(); if (dragSrc && dragSrc.dayIdx===dayIdx && dragSrc.exIdx!==exIdx) reorderExInDay(dayIdx, dragSrc.exIdx, exIdx); setDragSrc(null); setDragOver(null); }}
+                        onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
+                        title="Drag to reorder"
+                        style={{display:"flex",alignItems:"center",gap:6,minWidth:0,cursor:"grab",userSelect:"none",padding:"2px 0",opacity:dragSrc&&dragSrc.dayIdx===dayIdx&&dragSrc.exIdx===exIdx?0.4:1,borderTop:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?`2px solid ${C.ac}`:"2px solid transparent"}}>
+                        <span style={{color:C.tm, fontFamily:FN, fontSize:11, lineHeight:1, letterSpacing:1}}>⋮⋮</span>
                         <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:11}}>{exIdx+1}</span>
                       </div>
                       <div title="Exercise name links to the library — open DETAIL to swap the exercise or edit notes/URL"
@@ -696,7 +704,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         const right = leftAnchored ? 'auto' : window.innerWidth - hoverPos.x + GAP;
         const top = Math.min(hoverPos.y - 8, window.innerHeight - 20);
         return (
-          <div style={{position:'fixed',zIndex:900,top:top,left:leftAnchored?Math.max(8,left):undefined,right:leftAnchored?undefined:Math.max(8,right),maxWidth:'min(420px,90vw)',background:C.bg,border:`1px solid ${C.ac}60`,borderRadius:0,padding:16,pointerEvents:'none',boxShadow:'0 8px 32px rgba(0,0,0,0.7)',whiteSpace:'nowrap'}}>
+          <div style={{position:'fixed',zIndex:900,top:top,left:leftAnchored?Math.max(8,left):undefined,right:leftAnchored?undefined:Math.max(8,right),width:'min(440px,90vw)',background:C.bg,border:`1px solid ${C.ac}`,borderRadius:0,padding:16,pointerEvents:'none',boxShadow:'0 8px 32px rgba(0,0,0,0.85)'}}>
             <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:C.ac,letterSpacing:'0.04em',marginBottom:2}}>{previewPlan.name||"Untitled"}</div>
             <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:12}}>{previewPlan.days.length} DAYS · {previewPlan.days.reduce((n,d)=>n+d.exercises.length,0)} EX{previewPlan.phase?` · ${previewPlan.phase}`:''}</div>
             {previewPlan.days.map((d,di) => (
@@ -706,9 +714,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   const ex = exercises.find(e=>e.id===pe.exerciseId);
                   const title = ex?.title || pe.title || '—';
                   return (
-                    <div key={pe.id||ei} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'2px 0',borderBottom:`0.25px solid ${C.ac}1A`}}>
-                      <span style={{fontSize:11,color:C.tm,marginRight:16}}>{ei+1}. {title}</span>
-                      <span style={{fontSize:10,fontFamily:FN,color:C.ac,flexShrink:0,marginLeft:8}}>{pe.sets}×{pe.reps}</span>
+                    <div key={pe.id||ei} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12,padding:'2px 0',borderBottom:`0.25px solid ${C.ac}1A`}}>
+                      <span style={{fontSize:11,color:C.tm,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ei+1}. {title}</span>
+                      <span style={{fontSize:10,fontFamily:FN,color:C.ac,flexShrink:0}}>{pe.sets}×{pe.reps}</span>
                     </div>
                   );
                 })}
