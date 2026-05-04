@@ -260,7 +260,6 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   })}));
   const removeExFromDay = (di, ei) => setPlan(p => ({...p, days: p.days.map((d, idx) => idx === di ? {...d, exercises: (d.exercises||[]).filter((_,i) => i !== ei)} : d)}));
   const removeEx = ei => updateDay(activeDay, {exercises:plan.days[activeDay].exercises.filter((_,i)=>i!==ei)});
-  const moveEx = (ei,dir) => { const exs=[...plan.days[activeDay].exercises]; const si=ei+dir; if(si<0||si>=exs.length) return; [exs[ei],exs[si]]=[exs[si],exs[ei]]; updateDay(activeDay,{exercises:exs}); };
   const day = plan.days[activeDay];
   const handleSave = async () => {
     setSaving(true);
@@ -349,9 +348,9 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         onDrop={e => { e.preventDefault(); if (dragSrc && dragSrc.dayIdx===dayIdx && dragSrc.exIdx!==exIdx) reorderExInDay(dayIdx, dragSrc.exIdx, exIdx); setDragSrc(null); setDragOver(null); }}
                         onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                         title="Drag to reorder"
-                        style={{display:"flex",alignItems:"center",gap:6,minWidth:0,cursor:"grab",userSelect:"none",padding:"2px 0",opacity:dragSrc&&dragSrc.dayIdx===dayIdx&&dragSrc.exIdx===exIdx?0.4:1,borderTop:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?`2px solid ${C.ac}`:"2px solid transparent"}}>
-                        <span style={{color:C.tm, fontFamily:FN, fontSize:11, lineHeight:1, letterSpacing:1}}>⋮⋮</span>
-                        <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:11}}>{exIdx+1}</span>
+                        style={{display:"flex",alignItems:"center",gap:5,minWidth:0,cursor:"grab",userSelect:"none",padding:"2px 0",opacity:dragSrc&&dragSrc.dayIdx===dayIdx&&dragSrc.exIdx===exIdx?0.4:1,borderTop:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?`2px solid ${C.ac}`:"2px solid transparent"}}>
+                        <span style={{color:C.tm, fontFamily:FN, fontSize:11, lineHeight:1, fontWeight:400}}>⇕</span>
+                        <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:11, lineHeight:1}}>{exIdx+1}</span>
                       </div>
                       <div title="Exercise name links to the library — open DETAIL to swap the exercise or edit notes/URL"
                         style={{color:C.tx, minWidth:0, overflowWrap:"anywhere", wordBreak:"break-word", borderLeft:ex.superset?`3px solid ${sc}`:"none", paddingLeft:ex.superset?6:0}}>{title}</div>
@@ -401,11 +400,17 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
           return(<div key={ex.id} style={{background:C.sf,border:`1px solid ${ex.superset?sc+"60":C.bd}`,borderLeft:ex.superset?`3px solid ${sc}`:`1px solid ${C.bd}`,borderRadius:8,padding:12,marginBottom:8}}>
-            <div style={{display:"grid",gridTemplateColumns:"40px 1fr",gap:12,alignItems:"start"}}>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,paddingTop:4}}>
-                <span style={{fontFamily:FN,fontSize:12,color:C.td,fontWeight:700}}>{exIdx+1}</span>
-                <button onClick={()=>moveEx(exIdx,-1)} disabled={exIdx===0} style={{background:"none",border:"none",color:C.td,cursor:"pointer",fontSize:10,opacity:exIdx===0?.3:1}}>▲</button>
-                <button onClick={()=>moveEx(exIdx,1)} disabled={exIdx===day.exercises.length-1} style={{background:"none",border:"none",color:C.td,cursor:"pointer",fontSize:10,opacity:exIdx===day.exercises.length-1?.3:1}}>▼</button>
+            <div style={{display:"grid",gridTemplateColumns:"54px 1fr",gap:12,alignItems:"start"}}>
+              <div draggable
+                onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${activeDay}:${exIdx}`); setDragSrc({dayIdx: activeDay, exIdx}); }}
+                onDragOver={e => { if (dragSrc && dragSrc.dayIdx===activeDay) { e.preventDefault(); e.dataTransfer.dropEffect='move'; setDragOver({dayIdx: activeDay, exIdx}); } }}
+                onDragLeave={() => { if (dragOver && dragOver.dayIdx===activeDay && dragOver.exIdx===exIdx) setDragOver(null); }}
+                onDrop={e => { e.preventDefault(); if (dragSrc && dragSrc.dayIdx===activeDay && dragSrc.exIdx!==exIdx) reorderExInDay(activeDay, dragSrc.exIdx, exIdx); setDragSrc(null); setDragOver(null); }}
+                onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
+                title="Drag to reorder"
+                style={{display:"flex",flexDirection:"row",alignItems:"center",gap:6,paddingTop:4,cursor:"grab",userSelect:"none",opacity:dragSrc&&dragSrc.dayIdx===activeDay&&dragSrc.exIdx===exIdx?0.4:1,borderTop:dragOver&&dragOver.dayIdx===activeDay&&dragOver.exIdx===exIdx?`2px solid ${C.ac}`:"2px solid transparent"}}>
+                <span style={{fontFamily:FN,fontSize:11,color:C.tm,lineHeight:1,fontWeight:400}}>⇕</span>
+                <span style={{fontFamily:FN,fontSize:12,color:C.tm,fontWeight:700,lineHeight:1}}>{exIdx+1}</span>
               </div>
               <div style={{overflowX:"auto"}}>
                 <div style={{display:"grid",gridTemplateColumns:"2fr 90px minmax(70px,auto) minmax(70px,auto) 1fr 1fr 1fr auto",minWidth:720,gap:12,alignItems:"end"}}>
