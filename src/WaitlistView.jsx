@@ -135,7 +135,7 @@ export default function WaitlistView() {
 
   const toggleSort = (k) => { if (sort === k) setDir(d => d * -1); else { setSort(k); setDir(k === 'date' ? -1 : 1); } };
   const SH = ({ k, label }) => (
-    <th onClick={() => toggleSort(k)} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: sort === k ? C.ac : C.td, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+    <th onClick={() => toggleSort(k)} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: sort === k ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
       {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
     </th>
   );
@@ -149,17 +149,17 @@ export default function WaitlistView() {
       {/* Header + gate progress */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
         <div>
-          <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 700, color: C.tx }}>Coach Waitlist</div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 4 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>COACH WAITLIST</div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
             {total} total · {active} uncontacted · gate at {COACH_GATE}+ serious signups
           </div>
         </div>
-        <div style={{ background: C.sf, border: `1px solid ${gateColor}55`, borderRadius: 10, padding: '12px 18px', minWidth: 220 }}>
+        <div style={{ background: 'transparent', border: `1px solid ${gateColor}`, borderRadius: 0, padding: '12px 18px', minWidth: 220 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-            <span style={{ fontFamily: FN, fontSize: 9, color: gateColor, letterSpacing: 1, fontWeight: 700 }}>🎯 MULTI-TENANT GATE</span>
+            <span style={{ fontFamily: FN, fontSize: 9, color: gateColor, letterSpacing: '0.18em', fontWeight: 700 }}>🎯 MULTI-TENANT GATE</span>
             <span style={{ fontFamily: FN, fontSize: 14, color: gateColor, fontWeight: 700 }}>{gateProgress}/{COACH_GATE}</span>
           </div>
-          <div style={{ height: 6, background: C.bd, borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${(gateProgress / COACH_GATE) * 100}%`, background: gateColor, transition: 'width 0.3s' }} />
           </div>
           <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 6 }}>
@@ -171,28 +171,28 @@ export default function WaitlistView() {
       {/* Filter */}
       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-start' }}>
         <input placeholder="Filter by email, source, or notes…" value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 8, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
+          style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
       </div>
 
       {sorted.length === 0 ? (
-        <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1.5, marginBottom: 8 }}>NO COACH SIGNUPS YET</div>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO COACH SIGNUPS YET</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
             When a coach submits the form on /coaches#waitlist, they'll appear here.
           </div>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10 }}>
+        <div style={{ overflowX: 'auto', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: `2px solid ${C.bd}` }}>
+              <tr style={{ borderBottom: `0.25px solid ${C.ac}4D` }}>
                 <SH k="email" label="Email" />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Source</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Source</th>
                 <SH k="intent" label="Intent" />
                 <SH k="date" label="Signed up" />
                 <SH k="status" label="Status" />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase', minWidth: 220 }}>Notes</th>
-                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: C.td, textTransform: 'uppercase' }}>Actions</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>Notes</th>
+                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -200,7 +200,7 @@ export default function WaitlistView() {
                 const stars = '★'.repeat(l.intent) + '☆'.repeat(4 - l.intent);
                 const mailto = `mailto:${l.email}?subject=${encodeURIComponent('EXPO — coach waitlist')}&body=${encodeURIComponent('Hey,\n\nSaw you joined the EXPO coach waitlist. Got 15 minutes for a video call this week to talk shop?\n\n— Ohad\n')}`;
                 return (
-                  <tr key={l.id} style={{ borderBottom: `1px solid ${C.bd}`, opacity: l.contacted ? 0.55 : 1 }}>
+                  <tr key={l.id} style={{ borderBottom: `0.25px solid ${C.ac}4D`, opacity: l.contacted ? 0.55 : 1 }}>
                     <td style={{ padding: '10px 12px' }}>
                       <a href={mailto} style={{ color: C.tx, textDecoration: 'none', fontWeight: 600 }} title={l.email}>{l.email}</a>
                       {l.notes && (
@@ -222,7 +222,7 @@ export default function WaitlistView() {
                               const color = kind === 'program' ? C.ac : (kind === 'pain' ? C.or : C.gn);
                               return (
                                 <span key={`${kind}-${i}`} title={kind}
-                                  style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: `${color}18`, border: `1px solid ${color}44`, borderRadius: 3, padding: '1px 5px', letterSpacing: 0.4 }}>
+                                  style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'transparent', border: `0.25px solid ${color}`, borderRadius: 0, padding: '1px 5px', letterSpacing: '0.18em' }}>
                                   {t}
                                 </span>
                               );
@@ -239,7 +239,7 @@ export default function WaitlistView() {
                         const color = isChat ? C.gn : (isForm ? C.ac : C.tm);
                         return (
                           <span title={isChat ? 'Captured via /coaches chat bot' : (isForm ? 'Submitted via /coaches waitlist form' : l.source)}
-                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: `${color}20`, border: `1px solid ${color}55`, borderRadius: 4, padding: '3px 6px', letterSpacing: 0.5 }}>
+                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'transparent', border: `0.25px solid ${color}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>
                             {label}
                           </span>
                         );
@@ -253,27 +253,27 @@ export default function WaitlistView() {
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {l.contacted ? (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: `${C.gn}20`, border: `1px solid ${C.gn}55`, borderRadius: 4, padding: '3px 6px' }} title={`Contacted ${ago(l.consumed_at)} ago`}>CONTACTED</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'transparent', border: `0.25px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`Contacted ${ago(l.consumed_at)} ago`}>CONTACTED</span>
                       ) : (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: `${C.ac}20`, border: `1px solid ${C.ac}55`, borderRadius: 4, padding: '3px 6px' }}>NEW</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'transparent', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>NEW</span>
                       )}
                     </td>
                     <td style={{ padding: '8px 10px' }}>
                       <textarea value={notes[l.id] || ''} onChange={e => setNote(l.id, e.target.value)} rows={2}
                         placeholder="What did they say in DM?"
-                        style={{ width: '100%', minWidth: 200, background: C.bg, border: `0.25px solid ${C.ac}33`, borderRadius: 6, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+                        style={{ width: '100%', minWidth: 200, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
                       {savingNote === l.id && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>saving…</div>}
                     </td>
                     <td style={{ padding: '8px 10px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {l.contacted ? (
                         <button onClick={() => undoContacted(l.id)} title="Undo contacted"
-                          style={{ background: 'transparent', border: `1px solid ${C.tm}55`, color: C.tm, borderRadius: 6, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginRight: 4 }}>↩ UNDO</button>
+                          style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>↩ UNDO</button>
                       ) : (
                         <button onClick={() => markContacted(l.id)} title="Mark contacted"
-                          style={{ background: `${C.gn}20`, border: `1px solid ${C.gn}55`, color: C.gn, borderRadius: 6, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginRight: 4 }}>✓ DONE</button>
+                          style={{ background: 'transparent', border: `0.25px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>✓ DONE</button>
                       )}
                       <button onClick={() => removeLead(l.id)} title="Delete"
-                        style={{ background: `${C.rd}20`, border: `1px solid ${C.rd}55`, color: C.rd, borderRadius: 6, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                        style={{ background: 'transparent', border: `0.25px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
                     </td>
                   </tr>
                 );

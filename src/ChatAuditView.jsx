@@ -108,15 +108,15 @@ export default function ChatAuditView() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
         <div>
-          <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 700, color: C.tx }}>Chat Audit</div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 4 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>CHAT AUDIT</div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
             {migrationMissing
               ? 'chat_logs table not found — apply scripts/migrations/2026-05-02-chat-logs.sql in Supabase Studio.'
               : `${sessions} session${sessions === 1 ? '' : 's'} · ${total} turn${total === 1 ? '' : 's'} · ${errors} error${errors === 1 ? '' : 's'}`}
           </div>
         </div>
         <button onClick={reload}
-          style={{ background: C.sf, border: `1px solid ${C.bd2}`, color: C.tm, borderRadius: 8, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5 }}>↻ REFRESH</button>
+          style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>↻ REFRESH</button>
       </div>
 
       {/* Filter row */}
@@ -124,32 +124,32 @@ export default function ChatAuditView() {
         {['all', 'expo-app', 'expo-il'].map(s => (
           <button key={s} onClick={() => setSiteFilter(s)}
             style={{
-              background: siteFilter === s ? C.acD : 'transparent',
-              border: `1px solid ${siteFilter === s ? C.ac : C.bd2}`,
+              background: 'transparent',
+              border: `${siteFilter === s ? '1px' : '0.25px'} solid ${siteFilter === s ? C.ac : C.ac+'4D'}`,
               color: siteFilter === s ? C.ac : C.tm,
-              borderRadius: 16, padding: '6px 12px',
-              fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5,
+              borderRadius: 0, padding: '6px 12px',
+              fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
             }}>{s === 'all' ? 'ALL SITES' : s.toUpperCase()}</button>
         ))}
         <button onClick={() => setShowErrorsOnly(v => !v)}
           style={{
-            background: showErrorsOnly ? `${C.rd}20` : 'transparent',
-            border: `1px solid ${showErrorsOnly ? C.rd : C.bd2}`,
+            background: 'transparent',
+            border: `${showErrorsOnly ? '1px' : '0.25px'} solid ${showErrorsOnly ? C.rd : C.ac+'4D'}`,
             color: showErrorsOnly ? C.rd : C.tm,
-            borderRadius: 16, padding: '6px 12px',
-            fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: 0.5,
+            borderRadius: 0, padding: '6px 12px',
+            fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
           }}>⚠ ERRORS ONLY</button>
         <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter by message text…"
           style={{
-            background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 8,
+            background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
             padding: '7px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
             outline: 'none', minWidth: 220, marginLeft: 'auto',
           }} />
       </div>
 
       {grouped.length === 0 ? (
-        <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10, padding: 40, textAlign: 'center' }}>
-          <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 1.5, marginBottom: 8 }}>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>
             {migrationMissing ? 'MIGRATION NOT APPLIED' : 'NO CHAT TURNS YET'}
           </div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
@@ -163,18 +163,18 @@ export default function ChatAuditView() {
           {grouped.map(g => (
             <div key={g.sessionId || g.startedAt}
               style={{
-                background: C.sf,
-                border: `1px solid ${g.errorCount > 0 ? `${C.rd}55` : C.bd2}`,
-                borderRadius: 10, overflow: 'hidden',
+                background: 'transparent',
+                border: `0.25px solid ${g.errorCount > 0 ? C.rd : C.ac+'4D'}`,
+                borderRadius: 0, overflow: 'hidden',
               }}>
               {/* Session header */}
               <div style={{
-                padding: '8px 14px', borderBottom: `1px solid ${C.bd}`,
+                padding: '8px 14px', borderBottom: `0.25px solid ${C.ac}4D`,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                background: C.sf2, fontSize: 11,
+                background: 'transparent', fontSize: 11,
               }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: `${C.ac}18`, border: `1px solid ${C.ac}55`, borderRadius: 4, padding: '2px 6px', letterSpacing: 0.5 }}>{g.site.toUpperCase()}</span>
+                  <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'transparent', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{g.site.toUpperCase()}</span>
                   <span style={{ fontFamily: FB, color: C.tm }}>{g.turns.length} turn{g.turns.length === 1 ? '' : 's'}</span>
                   {g.errorCount > 0 && (
                     <span style={{ fontFamily: FN, color: C.rd, fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount} error{g.errorCount === 1 ? '' : 's'}</span>
@@ -188,33 +188,33 @@ export default function ChatAuditView() {
                   <div key={t.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{
                       alignSelf: 'flex-start', maxWidth: '85%',
-                      background: C.bg, border: `1px solid ${C.bd}`,
-                      borderRadius: 10, padding: '7px 11px',
+                      background: 'transparent', border: `0.25px solid ${C.ac}4D`,
+                      borderRadius: 0, padding: '7px 11px',
                       fontSize: 13, lineHeight: 1.45, color: C.tx,
                       whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                     }}>
-                      <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 0.8, fontWeight: 700, marginRight: 6 }}>VISITOR</span>
+                      <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>VISITOR</span>
                       {t.visitor_msg || <em style={{ color: C.td }}>(empty)</em>}
                     </div>
                     {t.error ? (
                       <div style={{
                         alignSelf: 'flex-end', maxWidth: '85%',
-                        background: `${C.rd}15`, border: `1px solid ${C.rd}55`,
-                        borderRadius: 10, padding: '7px 11px',
+                        background: 'transparent', border: `1px solid ${C.rd}`,
+                        borderRadius: 0, padding: '7px 11px',
                         fontSize: 12, lineHeight: 1.4, color: C.rd,
                       }}>
-                        <span style={{ fontFamily: FN, fontSize: 9, color: C.rd, letterSpacing: 0.8, fontWeight: 700, marginRight: 6 }}>ERROR</span>
+                        <span style={{ fontFamily: FN, fontSize: 9, color: C.rd, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>ERROR</span>
                         {t.error}
                       </div>
                     ) : t.assistant_msg ? (
                       <div style={{
                         alignSelf: 'flex-end', maxWidth: '85%',
-                        background: `${C.ac}10`, border: `1px solid ${C.ac}33`,
-                        borderRadius: 10, padding: '7px 11px',
+                        background: 'transparent', border: `0.25px solid ${C.ac}`,
+                        borderRadius: 0, padding: '7px 11px',
                         fontSize: 13, lineHeight: 1.45, color: C.tx,
                         whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                       }}>
-                        <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: 0.8, fontWeight: 700, marginRight: 6 }}>BOT</span>
+                        <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>BOT</span>
                         {t.assistant_msg}
                       </div>
                     ) : (

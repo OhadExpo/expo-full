@@ -381,8 +381,8 @@ export default function SmartImportView() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 700, color: C.tx }}>Smart Import</div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 4 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>SMART IMPORT</div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
             Drop any document — XLSX, CSV, PDF, image, screenshot. AI reads it, maps it to EXPO's schema, previews before commit.
           </div>
         </div>
@@ -393,9 +393,9 @@ export default function SmartImportView() {
       </div>
 
       {fileName && (
-        <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 12, marginBottom: 12, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 10, alignItems: 'end' }}>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 12, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 10, alignItems: 'end' }}>
           <div>
-            <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginBottom: 4 }}>FILE · {fileKind.toUpperCase()}</div>
+            <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>FILE · {fileKind.toUpperCase()}</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</div>
           </div>
           {sheets.length > 1 && (
@@ -407,16 +407,16 @@ export default function SmartImportView() {
       )}
 
       {sheetGrid && (
-        <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 12, marginBottom: 12 }}>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginBottom: 6, letterSpacing: 1 }}>SHEET PREVIEW · {sheetGrid.headers.length} cols · {sheetGrid.rows.length} rows</div>
-          <div style={{ overflowX: 'auto', maxHeight: 200, overflowY: 'auto', border: `1px solid ${C.bd}`, borderRadius: 6 }}>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, marginBottom: 6, letterSpacing: '0.18em', fontWeight: 700 }}>SHEET PREVIEW · {sheetGrid.headers.length} cols · {sheetGrid.rows.length} rows</div>
+          <div style={{ overflowX: 'auto', maxHeight: 200, overflowY: 'auto', border: `0.25px solid ${C.ac}4D`, borderRadius: 0 }}>
             <table style={{ borderCollapse: 'collapse', fontSize: 11, fontFamily: FB, color: C.tx }}>
-              <thead><tr style={{ background: C.sf2 }}>{sheetGrid.headers.map((h, i) => (
-                <th key={i} style={{ padding: '6px 10px', textAlign: 'left', fontFamily: FN, fontSize: 10, color: C.tm, borderBottom: `1px solid ${C.bd}`, whiteSpace: 'nowrap' }}>{h || `(col ${i + 1})`}</th>
+              <thead><tr style={{ background: 'transparent' }}>{sheetGrid.headers.map((h, i) => (
+                <th key={i} style={{ padding: '6px 10px', textAlign: 'left', fontFamily: FN, fontSize: 10, color: C.tm, borderBottom: `0.25px solid ${C.ac}4D`, whiteSpace: 'nowrap' }}>{h || `(col ${i + 1})`}</th>
               ))}</tr></thead>
               <tbody>{sheetGrid.sample.map((r, ri) => (
                 <tr key={ri}>{sheetGrid.headers.map((_, ci) => (
-                  <td key={ci} style={{ padding: '4px 10px', borderBottom: `1px solid ${C.bd}22`, whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{String(r[ci] ?? '')}</td>
+                  <td key={ci} style={{ padding: '4px 10px', borderBottom: `0.25px solid ${C.ac}4D`, whiteSpace: 'nowrap', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>{String(r[ci] ?? '')}</td>
                 ))}</tr>
               ))}</tbody>
             </table>
@@ -424,12 +424,12 @@ export default function SmartImportView() {
         </div>
       )}
 
-      {err && <div style={{ background: `${C.rd}15`, border: `1px solid ${C.rd}55`, color: C.rd, borderRadius: 8, padding: '10px 12px', marginBottom: 12, fontSize: 12 }}>{err}</div>}
+      {err && <div style={{ background: 'transparent', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '10px 12px', marginBottom: 12, fontSize: 12 }}>{err}</div>}
 
       {mapping && (
-        <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 12, marginBottom: 12 }}>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontFamily: FN, fontSize: 12, color: C.tx, letterSpacing: 1, fontWeight: 700 }}>AI MAPPING <Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% confident</Badge></div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>AI MAPPING <Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% confident</Badge></div>
             <Btn onClick={runTransform} disabled={transforming}>{transforming ? 'Transforming…' : 'Preview Transform'}</Btn>
           </div>
           {mapping.notes && <div style={{ fontSize: 12, color: C.tm, lineHeight: 1.5, marginBottom: 8 }}>💡 {mapping.notes}</div>}
@@ -439,9 +439,9 @@ export default function SmartImportView() {
             </ul>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1fr) minmax(160px,2fr) auto', gap: '6px 10px', alignItems: 'center', fontSize: 12 }}>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>TARGET</div>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>SOURCE COLUMN</div>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>CONF</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>TARGET</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>SOURCE COLUMN</div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>CONF</div>
             {targetFields.map(field => {
               const m = mapping.mapping?.[field] || { source: null };
               const conf = m.confidence ?? 0;
@@ -449,7 +449,7 @@ export default function SmartImportView() {
                 <React.Fragment key={field}>
                   <div style={{ color: C.tx, fontFamily: FB }}>{field}</div>
                   <select value={m.source || ''} onChange={e => updateMappingSource(field, e.target.value)}
-                    style={{ background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 6, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12 }}>
+                    style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12 }}>
                     <option value="">— none —</option>
                     {sheetGrid?.headers.filter(Boolean).map((h, i) => <option key={i} value={h}>{h}</option>)}
                   </select>
@@ -463,9 +463,9 @@ export default function SmartImportView() {
       )}
 
       {transform && (
-        <div style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8, padding: 12, marginBottom: 12 }}>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontFamily: FN, fontSize: 12, color: C.tx, letterSpacing: 1, fontWeight: 700 }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
               PREVIEW <Badge color={C.gn}>{transform.items.length} item{transform.items.length === 1 ? '' : 's'}</Badge>
               {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginLeft: 6 }}>{transform.errors.length} error{transform.errors.length === 1 ? '' : 's'}</Badge>}
             </div>
@@ -476,7 +476,7 @@ export default function SmartImportView() {
               {transform.warnings.map((w, i) => <li key={i} style={{ marginBottom: 2 }}>{w}</li>)}
             </ul>
           )}
-          <div style={{ background: C.bg, border: `1px solid ${C.bd}`, borderRadius: 6, padding: 10, maxHeight: 280, overflowY: 'auto', fontFamily: 'monospace', fontSize: 11, color: C.tm, whiteSpace: 'pre-wrap' }}>
+          <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 10, maxHeight: 280, overflowY: 'auto', fontFamily: 'monospace', fontSize: 11, color: C.tm, whiteSpace: 'pre-wrap' }}>
             {JSON.stringify(transform.items.slice(0, 20), null, 2)}
             {transform.items.length > 20 && `\n…and ${transform.items.length - 20} more`}
           </div>
@@ -491,7 +491,7 @@ export default function SmartImportView() {
         </div>
       )}
 
-      {commitMsg && <div style={{ background: `${C.gn}15`, border: `1px solid ${C.gn}55`, color: C.gn, borderRadius: 8, padding: '10px 12px', fontSize: 13 }}>{commitMsg}</div>}
+      {commitMsg && <div style={{ background: 'transparent', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '10px 12px', fontSize: 13 }}>{commitMsg}</div>}
     </div>
   );
 }
