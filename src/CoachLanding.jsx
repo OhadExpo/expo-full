@@ -168,9 +168,9 @@ function makeT(lang) {
 
 const baseBtn = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-  padding: '12px 22px', borderRadius: 8, border: 'none',
-  fontFamily: FB, fontSize: 13, fontWeight: 700,
-  cursor: 'pointer', letterSpacing: 1.2, transition: 'all 0.15s',
+  padding: '12px 22px', borderRadius: 0, border: 'none',
+  fontFamily: FN, fontSize: 11, fontWeight: 700,
+  cursor: 'pointer', letterSpacing: '0.18em', textTransform: 'uppercase', transition: 'all 0.15s',
   textDecoration: 'none',
 };
 
@@ -218,7 +218,7 @@ function WaitlistForm({ t }) {
     return (
       <div style={{
         fontFamily: FN, color: C.gn, fontSize: 13, letterSpacing: 1.2, fontWeight: 700,
-        padding: '14px 20px', border: `1px solid ${C.gn}40`, borderRadius: 10,
+        padding: '14px 20px', border: `1px solid ${C.gn}40`, borderRadius: 0,
         textAlign: 'center', maxWidth: 460, margin: '0 auto',
       }}>
         {t('wl.done')}
@@ -236,7 +236,7 @@ function WaitlistForm({ t }) {
           placeholder={t('wl.placeholder')}
           style={{
             background: C.sf, border: `1px solid ${C.bd2}`,
-            borderRadius: 8, padding: '12px 14px', color: C.tx,
+            borderRadius: 0, padding: '12px 14px', color: C.tx,
             fontFamily: FB, fontSize: 14, outline: 'none',
             flex: '1 1 220px', minWidth: 0,
           }} />
@@ -267,7 +267,7 @@ function DemoEmbed({ t }) {
   return (
     <div>
       <div className="cl-embed" style={{
-        background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 14,
+        background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
         overflow: 'hidden', maxWidth: 1180, margin: '0 auto', position: 'relative',
         boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
       }}>
@@ -323,14 +323,14 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
     <div style={{
       background: popular ? `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)` : C.sf,
       border: popular ? `1px solid rgba(57,189,255,0.40)` : `1px solid ${C.bd}`,
-      borderRadius: 14, padding: '24px 20px', textAlign: isHe ? 'right' : 'left',
+      borderRadius: 0, padding: '24px 20px', textAlign: isHe ? 'right' : 'left',
       position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 360,
     }}>
       {popular && (
         <div style={{
           position: 'absolute', top: -10, [isHe ? 'left' : 'right']: 14,
           fontFamily: FN, fontSize: 9, color: '#000', background: C.ac,
-          letterSpacing: 1.5, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+          letterSpacing: 1.5, fontWeight: 700, padding: '3px 8px', borderRadius: 0,
         }}>{popularLabel}</div>
       )}
       <div style={{
@@ -381,7 +381,7 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
 function FeatureCard({ tag, title, body, isHe }) {
   return (
     <div style={{
-      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 14,
+      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
       padding: 22, textAlign: isHe ? 'right' : 'left',
     }}>
       <div style={{
@@ -448,7 +448,7 @@ export default function CoachLanding({ lang = 'en' }) {
           </a>
           <span style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
-            padding: '4px 8px', background: C.acD, borderRadius: 6,
+            padding: '4px 8px', background: C.acD, borderRadius: 0,
             border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
           }}>{t('header.badge')}</span>
           <div style={{ flex: 1 }} />
@@ -656,7 +656,7 @@ export default function CoachLanding({ lang = 'en' }) {
         }}>
           <div style={{
             background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
-            border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 14,
+            border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
             padding: '36px 24px',
           }}>
             <div style={{
