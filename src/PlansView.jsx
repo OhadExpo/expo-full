@@ -247,6 +247,16 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const removeExFromDay = (di, ei) => setPlan(p => ({...p, days: p.days.map((d, idx) => idx === di ? {...d, exercises: (d.exercises||[]).filter((_,i) => i !== ei)} : d)}));
   const removeEx = ei => updateDay(activeDay, {exercises:plan.days[activeDay].exercises.filter((_,i)=>i!==ei)});
   const moveEx = (ei,dir) => { const exs=[...plan.days[activeDay].exercises]; const si=ei+dir; if(si<0||si>=exs.length) return; [exs[ei],exs[si]]=[exs[si],exs[ei]]; updateDay(activeDay,{exercises:exs}); };
+  // Same swap, but on an arbitrary day — used by the Overview view, which
+  // displays every day at once instead of binding to `activeDay`.
+  const moveExInDay = (di, ei, dir) => setPlan(p => ({...p, days: p.days.map((d, idx) => {
+    if (idx !== di) return d;
+    const exs = [...(d.exercises || [])];
+    const si = ei + dir;
+    if (si < 0 || si >= exs.length) return d;
+    [exs[ei], exs[si]] = [exs[si], exs[ei]];
+    return {...d, exercises: exs};
+  })}));
   const day = plan.days[activeDay];
   const handleSave = async () => {
     setSaving(true);
@@ -319,7 +329,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   style={{background:"none",border:`1px solid ${C.bd}`,borderRadius:6,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:600,marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"22px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:600}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:614}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>)}
                   {dayExs.map((ex, exIdx) => {
@@ -328,7 +338,13 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                     const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
                     return <React.Fragment key={ex.id}>
-                      <div style={{color:C.td, fontFamily:FN, minWidth:0}}>{exIdx+1}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:2,minWidth:0}}>
+                        <div style={{display:"flex",flexDirection:"column",gap:1}}>
+                          <button onClick={()=>moveExInDay(dayIdx, exIdx, -1)} disabled={exIdx===0} title="Move up" style={{background:"none",border:"none",color:C.tm,cursor:exIdx===0?"default":"pointer",fontSize:9,lineHeight:1,padding:0,opacity:exIdx===0?.25:.7}}>▲</button>
+                          <button onClick={()=>moveExInDay(dayIdx, exIdx, 1)} disabled={exIdx===dayExs.length-1} title="Move down" style={{background:"none",border:"none",color:C.tm,cursor:exIdx===dayExs.length-1?"default":"pointer",fontSize:9,lineHeight:1,padding:0,opacity:exIdx===dayExs.length-1?.25:.7}}>▼</button>
+                        </div>
+                        <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:11}}>{exIdx+1}</span>
+                      </div>
                       <div title="Exercise name links to the library — open DETAIL to swap the exercise or edit notes/URL"
                         style={{color:C.tx, minWidth:0, overflowWrap:"anywhere", wordBreak:"break-word", borderLeft:ex.superset?`3px solid ${sc}`:"none", paddingLeft:ex.superset?6:0}}>{title}</div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
