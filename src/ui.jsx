@@ -67,6 +67,18 @@ export const TextArea = ({ label, ...props }) => (
 );
 export const Badge = ({ children, color = C.ac, style: s }) =>
   <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: 'transparent', border: `0.25px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
+
+// Standard EXPO section heading. Used everywhere we'd otherwise hand-roll
+// `<div style={{fontSize:9, fontFamily:FN, color:C.tm, letterSpacing:'0.18em', fontWeight:700, textTransform:'uppercase'}}>...</div>`
+// Single source of truth for the brand caps style so any future tweak (size,
+// color, tracking) propagates everywhere instead of having to re-grep 18 files.
+// `as` lets the call site choose div vs span vs h3 etc. — defaults to div.
+export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s }) =>
+  <Tag style={{
+    fontFamily: FN, fontSize: 9, fontWeight: 700, color,
+    letterSpacing: '0.18em', textTransform: 'uppercase',
+    ...s,
+  }}>{children}</Tag>;
 export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) => (
   <div onClick={onClick} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 18, cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}
     onMouseEnter={e => { if(onClick) e.currentTarget.style.borderColor = C.ac; if(onMouseEnter) onMouseEnter(e); }}

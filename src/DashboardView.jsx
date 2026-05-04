@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
-import { Badge, baseInput } from './ui';
+import { Badge, baseInput, SectionLabel } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -135,6 +135,36 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
     try { await supabase.from('leads').delete().eq('id', id); } catch {}
   };
 
+  // /coaches funnel — last 30 days. Pulls counts from chat_logs (sessions
+  // + messages) and leads (waitlist signups) since those are the only
+  // first-party signals we own. Visit-count denominator lives in Vercel
+  // Analytics; the dashboard tile shows the absolute funnel-stage counts.
+  // Renders gracefully if chat_logs migration hasn't been applied yet.
+  const [funnel, setFunnel] = useState(null); // null = loading; {sessions, messages, captures, waitlist}
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const since = new Date(Date.now() - 30 * 86400000).toISOString();
+      try {
+        const [chatRes, leadsRes] = await Promise.all([
+          supabase.from('chat_logs').select('session_id, error', { count: 'exact' }).gte('created_at', since),
+          supabase.from('leads').select('id, source, context', { count: 'exact' }).eq('context', 'coach_waitlist').gte('created_at', since),
+        ]);
+        if (cancelled) return;
+        const chatRows = chatRes.data || [];
+        const sessions = new Set(chatRows.map(r => r.session_id).filter(Boolean)).size;
+        const messages = chatRows.length;
+        const leadsRows = leadsRes.data || [];
+        const captures = leadsRows.filter(l => l.source === 'expo-app-chat').length;
+        const formSubmits = leadsRows.filter(l => l.source === 'expo-app').length;
+        setFunnel({ sessions, messages, captures, formSubmits, total: leadsRows.length });
+      } catch {
+        if (!cancelled) setFunnel({ sessions: 0, messages: 0, captures: 0, formSubmits: 0, total: 0 });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   return (
     <div>
       {/* Summary cards */}
@@ -146,7 +176,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
         ].map((s, i) => (
           <div key={i} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '14px 18px' }}>
-            <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>{s.label}</div>
+            <SectionLabel style={{ marginBottom: 6 }}>{s.label}</SectionLabel>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}
               {s.total !== undefined && <span style={{ fontSize: 12, color: C.td, fontWeight: 400 }}> / {s.total}</span>}</div>
             {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 4 }}>{s.sub}</div>}
@@ -162,7 +192,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20, alignItems: 'start' }}>
           {onlineNow.length > 0 && (
             <div style={{ background: 'transparent', border: `0.25px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontFamily: FN, color: C.gn, textTransform: 'uppercase', marginBottom: 8 }}>🟢 Online Now ({onlineNow.length})</div>
+              <SectionLabel color={C.gn} style={{ marginBottom: 8 }}>🟢 Online Now ({onlineNow.length})</SectionLabel>
               {onlineNow.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
                   <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
@@ -173,7 +203,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           )}
           {expiring.length > 0 && (
             <div style={{ background: 'transparent', border: `0.25px solid ${C.or}`, borderRadius: 0, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 8 }}>⚠ Expiring Packages ({expiring.length})</div>
+              <SectionLabel color={C.or} as="div" style={{ marginBottom: 8 }}>⚠ Expiring Packages ({expiring.length})</SectionLabel>
               {expiring.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                   <span style={{ color: C.tx }}>{t.name}</span>
@@ -186,7 +216,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {overduePayment.length > 0 && (
                 <div style={{ background: 'transparent', border: `0.25px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px' }}>
-                  <div style={{ fontSize: 10, fontFamily: FN, color: C.rd, textTransform: 'uppercase', marginBottom: 8 }}>💰 Overdue Payment ({overduePayment.length})</div>
+                  <SectionLabel color={C.rd} style={{ marginBottom: 8 }}>💰 Overdue Payment ({overduePayment.length})</SectionLabel>
                   {overduePayment.map(t => (
                     <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -205,7 +235,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                 return (
                 <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 10, fontFamily: FN, color: C.ac, textTransform: 'uppercase' }}>📩 New Leads ({leads.length})</span>
+                    <SectionLabel as="span" color={C.ac}>📩 New Leads ({leads.length})</SectionLabel>
                     <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
                       style={{ fontFamily: FN, fontSize: 9, color: gateColor, border: `0.25px solid ${gateColor}`, background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
                       🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
@@ -237,7 +267,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           )}
           {dropoutRisk.length > 0 && (
             <div style={{ background: 'transparent', border: `0.25px solid ${C.or}`, borderRadius: 0, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontFamily: FN, color: C.or, textTransform: 'uppercase', marginBottom: 8 }}>💤 Dormant ({dropoutRisk.length})</div>
+              <SectionLabel color={C.or} as="div" style={{ marginBottom: 8 }}>💤 Dormant ({dropoutRisk.length})</SectionLabel>
               {dropoutRisk.map(t => {
                 const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                 return (
@@ -252,6 +282,33 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           )}
         </div>
       )}
+
+      {/* /coaches funnel tile — only renders when there's any signal to show.
+          Visits row is intentionally absent here: the denominator lives in
+          Vercel Analytics. The numbers below are first-party counts from
+          chat_logs + leads, so they keep working even if Analytics isn't
+          enabled. */}
+      {funnel && (funnel.sessions || funnel.messages || funnel.total) ? (
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+            <span style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>/COACHES FUNNEL · 30D</span>
+            <span style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            {[
+              { label: 'CHAT SESSIONS', value: funnel.sessions, color: C.tm },
+              { label: 'MESSAGES SENT', value: funnel.messages, color: C.tm },
+              { label: 'EMAIL CAPTURES', value: funnel.captures, color: funnel.captures > 0 ? C.gn : C.td },
+              { label: 'WAITLIST', value: funnel.total, color: funnel.total > 0 ? C.ac : C.td },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Search */}
       <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
@@ -315,7 +372,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {/* Dropout risk — below the client list */}
       {dropoutRisk.length > 0 && (
         <div style={{ marginTop: 20, background: 'transparent', border: `0.25px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px' }}>
-          <div style={{ fontSize: 10, fontFamily: FN, color: C.rd, textTransform: 'uppercase', marginBottom: 8 }}>🔻 Dropout Risk — 14+ days ({dropoutRisk.length})</div>
+          <SectionLabel color={C.rd} style={{ marginBottom: 8 }}>🔻 Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
           {dropoutRisk.map(t => {
             const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
             const daysLabel = days == null ? 'Never trained' : `${days}d ago`;

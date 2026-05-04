@@ -3,7 +3,14 @@
 // across page loads — fresh conversation each time the page reloads.
 
 import React, { useState, useRef, useEffect } from 'react';
+import { track } from '@vercel/analytics';
 import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
+
+// No-op until Vercel Analytics is enabled in the dashboard. Funnel events:
+//   coach_chat_open          → user clicked the bubble
+//   coach_chat_message_sent  → user actually engaged (sent a turn)
+//   coach_chat_capture_submit → handed over their email mid-chat
+function trackFunnel(event, payload) { try { track(event, payload || {}); } catch {} }
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -94,7 +101,7 @@ export default function CoachChat() {
         }),
       });
       if (captureRes.ok) {
-        setCaptureState('done'); return;
+        setCaptureState('done'); trackFunnel('coach_chat_capture_submit', { path: 'api' }); return;
       }
       // Fallback path — direct REST insert against Supabase.
       const fallback = await fetch(`${SUPA_URL}/rest/v1/leads`, {
@@ -114,6 +121,7 @@ export default function CoachChat() {
       });
       if (!fallback.ok && fallback.status !== 409) throw new Error(`HTTP ${fallback.status}`);
       setCaptureState('done');
+      trackFunnel('coach_chat_capture_submit', { path: 'fallback' });
     } catch {
       setCaptureState('error'); setCaptureErr('Something went wrong. Try again.');
     }
@@ -127,6 +135,11 @@ export default function CoachChat() {
     const next = [...messages, { role: 'user', content: t }];
     setMessages(next);
     setDraft('');
+    // Funnel: every user turn counts. The first turn is the high-signal
+    // "engaged" event, subsequent turns are continuation depth — we send
+    // the turn index so the dashboard can split first-turn vs deep convo.
+    const userTurnCount = next.filter(m => m.role === 'user').length;
+    trackFunnel('coach_chat_message_sent', { turn: userTurnCount });
     setSending(true);
     try {
       const apiMessages = next.filter(m => m.role === 'user' || m.role === 'assistant');
@@ -199,7 +212,7 @@ export default function CoachChat() {
     <>
       {/* Floating bubble — always visible bottom-right when closed */}
       {!open && (
-        <button onClick={() => setOpen(true)} aria-label="Open chat"
+        <button onClick={() => { setOpen(true); trackFunnel('coach_chat_open', {}); }} aria-label="Open chat"
           style={{
             position: 'fixed', bottom: 20, right: 20, zIndex: 80,
             width: 56, height: 56, borderRadius: '50%',

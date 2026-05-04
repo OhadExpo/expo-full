@@ -10,9 +10,22 @@
 // No checkout, no signup, no multi-tenancy yet — this is a waitlist page.
 // Stripe + the trainers table get built once the waitlist proves demand.
 import React, { useState, useEffect } from 'react';
+import { track } from '@vercel/analytics';
 import { C, FN, FB, FH } from './theme';
 import { EXPOMark } from './expoMark';
 import CoachChat from './CoachChat';
+
+// Vercel Analytics is no-op until it's enabled in the project dashboard, so
+// these track() calls are safe to ship before the dashboard is configured.
+// Once enabled, they form the funnel:
+//   coach_landing_view   → page hit (denominator)
+//   coach_demo_open      → clicked any demo CTA
+//   coach_waitlist_view  → scrolled to / opened waitlist
+//   coach_waitlist_submit → form completed
+// Chat events fire from CoachChat.jsx (open + message_sent).
+function trackFunnel(event, payload) {
+  try { track(event, payload || {}); } catch {}
+}
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
@@ -209,6 +222,7 @@ function WaitlistForm({ t }) {
         throw new Error(`HTTP ${res.status}${txt ? ': ' + txt.slice(0, 80) : ''}`);
       }
       setState('done');
+      trackFunnel('coach_waitlist_submit', { duplicate: res.status === 409 });
     } catch (e2) {
       console.error('Waitlist submit failed:', e2);
       setState('error'); setErr(t('wl.err.network'));
@@ -403,6 +417,27 @@ function FeatureCard({ tag, title, body, isHe }) {
 export default function CoachLanding({ lang = 'en' }) {
   const isHe = lang === 'he';
   const t = makeT(lang);
+  // Fire the page-view funnel event once per mount. lang is in the payload
+  // so we can split conversion rates by locale (en vs he).
+  useEffect(() => { trackFunnel('coach_landing_view', { lang }); }, []); // eslint-disable-line
+  // Single delegated click listener for every /demo/* link on the page so
+  // we don't have to chase each <a> tag individually. Captures the href
+  // suffix as `target` so we can split coach-vs-trainee demo opens later.
+  useEffect(() => {
+    const onClick = (e) => {
+      let el = e.target;
+      while (el && el !== document.body && el.tagName !== 'A') el = el.parentElement;
+      if (!el || el.tagName !== 'A') return;
+      const href = el.getAttribute('href') || '';
+      if (href.startsWith('/demo/')) {
+        trackFunnel('coach_demo_open', { target: href.replace('/demo/', '') });
+      } else if (href === '#waitlist') {
+        trackFunnel('coach_waitlist_view', {});
+      }
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
   // Sync <html lang>, <html dir>, and document.title with the active locale.
   useEffect(() => {
     document.documentElement.lang = lang;
