@@ -147,7 +147,7 @@ const MOCK_REVIEW_COMMENTS = [
 // ─── Shared bits ──────────────────────────────────────────────────────────
 const baseBtn = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-  padding: '8px 14px', borderRadius: 6, border: 'none',
+  padding: '8px 14px', borderRadius: 0, border: 'none',
   fontFamily: FB, fontSize: 12, fontWeight: 700, letterSpacing: 1.2,
   cursor: 'pointer', transition: 'all 0.15s', textDecoration: 'none',
 };
@@ -169,7 +169,7 @@ function Badge({ color = C.tm, children }) {
     <span style={{
       fontFamily: FN, fontSize: 9, letterSpacing: 1.2, fontWeight: 700,
       color, background: color + '20', border: `1px solid ${color}40`,
-      borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap',
+      borderRadius: 0, padding: '2px 6px', whiteSpace: 'nowrap',
     }}>{children}</span>
   );
 }
@@ -179,7 +179,7 @@ function Badge({ color = C.tm, children }) {
 function StatCard({ label, value, sub, accent = C.ac, total }) {
   return (
     <div style={{
-      background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+      background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
       padding: '14px 18px', flex: '1 1 170px', minWidth: 170,
     }}>
       <div style={{
@@ -318,7 +318,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           sortable client list. Border is 0.25px ac-dimmed, headers are
           10px FN with 0.05em tracking, body rows hover-tinted. */}
       <div style={{
-        background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+        background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
         overflowX: 'auto', marginBottom: 8,
       }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
@@ -368,7 +368,7 @@ function DemoDashboard({ onJumpToTrainee }) {
 function Panel({ title, tint, children }) {
   return (
     <div style={{
-      background: C.sf, border: `1px solid ${tint}30`, borderRadius: 10,
+      background: C.sf, border: `1px solid ${tint}30`, borderRadius: 0,
       padding: '14px 18px',
     }}>
       <div style={{
@@ -396,7 +396,7 @@ function FakeWaButton() {
   return (
     <button onClick={e => { e.stopPropagation(); }} title="Send WhatsApp check-in" style={{
       background: '#25d36620', border: `1px solid #25d36655`, color: '#25d366',
-      borderRadius: 6, padding: '4px 6px', cursor: 'pointer',
+      borderRadius: 0, padding: '4px 6px', cursor: 'pointer',
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <svg width="13" height="13" viewBox="0 0 24 24" fill="#25d366" aria-hidden="true">
@@ -430,7 +430,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
           onChange={e => setSearch(e.target.value)}
           placeholder="Search by name, email, format…"
           style={{
-            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 8,
+            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
             padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
             outline: 'none', minWidth: 200, flex: '1 1 200px', maxWidth: 320,
           }}
@@ -449,7 +449,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
       </div>
       {filtered.length === 0 ? (
         <div style={{
-          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 12,
+          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0,
           padding: 40, textAlign: 'center',
         }}>
           <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>NO MATCHES</div>
@@ -620,7 +620,7 @@ function BodyweightBlock({ weight, center = false }) {
 }
 
 const cardStyle = {
-  background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+  background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
   padding: 18, cursor: 'pointer', transition: 'all 0.2s',
   // height:100% makes every card stretch to the tallest in its grid row,
   // so a row of 1 single + 1 couple lines up flush. flex-column lets future
@@ -844,7 +844,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES'
           {coupleSplit.map((m, i) => (
             <div key={i}>
               <div style={{
-                background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+                background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
                 padding: 14, marginBottom: 14,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -1089,13 +1089,13 @@ function DemoPrograms() {
         <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 180 }}>
             <input placeholder="Search programs..." value={search} onChange={e => setSearch(e.target.value)} style={{
-              background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 8,
+              background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
               padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
               outline: 'none', width: '100%', boxSizing: 'border-box',
             }} />
           </div>
           <select value={filterTrainee} onChange={e => setFilterTrainee(e.target.value)} style={{
-            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 6,
+            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
             padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
             width: 200,
           }}>
@@ -1117,7 +1117,7 @@ function DemoPrograms() {
                 if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
                 else setSortField(f);
               }} style={{
-                padding: '4px 10px', borderRadius: 4,
+                padding: '4px 10px', borderRadius: 0,
                 border: `1px solid ${active ? C.ac : C.bd}`,
                 background: active ? C.acD : 'transparent',
                 color: active ? C.ac : C.tm,
@@ -1135,7 +1135,7 @@ function DemoPrograms() {
         </div>
 
         {filtered.length === 0 ? (
-          <div style={{ background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 12, padding: 40, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>
+          <div style={{ background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0, padding: 40, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>
             📋 No programs match your search.
           </div>
         ) : (
@@ -1154,7 +1154,7 @@ function DemoPrograms() {
                       <span style={{
                         display: 'inline-block', marginTop: 6,
                         fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700,
-                        padding: '2px 8px', background: C.acD, borderRadius: 4,
+                        padding: '2px 8px', background: C.acD, borderRadius: 0,
                         border: `1px solid rgba(57,189,255,0.30)`,
                       }}>{p.phase}</span>
                     )}
@@ -1197,7 +1197,7 @@ function DemoPrograms() {
       }}>
         {/* Block-history sidebar */}
         <div style={{
-          background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+          background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
           padding: 14, alignSelf: 'start',
         }}>
           <div style={{
@@ -1208,7 +1208,7 @@ function DemoPrograms() {
             const on = b.name === activeBlock;
             return (
               <div key={i} onClick={() => { setActiveBlock(b.name); setSelectedDayIdx(0); setOpenExIdx(null); }} style={{
-                padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                padding: '10px 12px', borderRadius: 0, cursor: 'pointer',
                 marginBottom: 4,
                 background: on ? C.acD : 'transparent',
                 border: `1px solid ${on ? C.ac : 'transparent'}`,
@@ -1230,7 +1230,7 @@ function DemoPrograms() {
         </div>
 
       <div style={{
-        background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 12,
+        background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
         padding: 18,
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
@@ -1337,7 +1337,7 @@ function DemoPrograms() {
                                   color: isCurrent ? C.ac : C.tx, opacity: isCurrent ? 1 : 0.65,
                                   background: isCurrent ? C.acD : C.sf,
                                   border: `1px solid ${isCurrent ? C.ac : C.bd}`,
-                                  borderRadius: 4, padding: '3px 8px',
+                                  borderRadius: 0, padding: '3px 8px',
                                 }}>W{wi + 1} · {load}</span>
                               );
                             })}
@@ -1384,7 +1384,7 @@ function DayChip({ children, muted }) {
       color: muted ? C.td : C.ac,
       background: muted ? 'transparent' : C.acD,
       border: `1px solid ${muted ? C.bd : 'rgba(57,189,255,0.30)'}`,
-      borderRadius: 4, padding: '3px 8px', whiteSpace: 'nowrap',
+      borderRadius: 0, padding: '3px 8px', whiteSpace: 'nowrap',
     }}>{children}</span>
   );
 }
@@ -1395,7 +1395,7 @@ function DayChip({ children, muted }) {
 function ExerciseAction({ icon, label, sub }) {
   return (
     <button onClick={e => e.stopPropagation()} style={{
-      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 8,
+      background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
       padding: '8px 12px', textAlign: 'left',
       cursor: 'pointer', display: 'flex', flexDirection: 'column',
       gap: 3, minWidth: 180, transition: 'border-color 0.15s',
@@ -1446,7 +1446,7 @@ function DemoExercises() {
 
   // Match the real coach-app baseInput look so the demo selects don't drift.
   const selectStyle = {
-    background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 6,
+    background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
     padding: '6px 10px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
   };
 
@@ -1461,7 +1461,7 @@ function DemoExercises() {
           onChange={e => setSearch(e.target.value)}
           placeholder="Search exercises (title, muscle, pattern...)"
           style={{
-            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 8,
+            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
             padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
             outline: 'none', flex: '1 1 200px', minWidth: 200,
           }}
@@ -1472,7 +1472,7 @@ function DemoExercises() {
       </div>
 
       {/* Filter pane — same 6-col grid of selects as the real ExercisesView */}
-      <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 8, padding: 10, marginBottom: 12 }}>
+      <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 10, fontFamily: FN, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}
@@ -1509,7 +1509,7 @@ function DemoExercises() {
 
       {filtered.length === 0 ? (
         <div style={{
-          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 12,
+          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0,
           padding: 40, textAlign: 'center',
         }}>
           <div style={{ fontFamily: FN, fontSize: 11, color: C.td, letterSpacing: 2, fontWeight: 700, marginBottom: 8 }}>NO MATCHES</div>
@@ -1621,7 +1621,7 @@ function DemoReview() {
     <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
       {[['review', 'Review Athlete Workouts'], ['log', 'Log In-Person Session']].map(([k, l]) => (
         <button key={k} onClick={() => { setSubTab(k); setSelectedId(null); }} style={{
-          flex: 1, padding: '10px 0', borderRadius: 8,
+          flex: 1, padding: '10px 0', borderRadius: 0,
           border: `1px solid ${subTab === k ? C.ac : C.bd}`,
           background: subTab === k ? C.acD : 'transparent',
           color: subTab === k ? C.ac : C.tm,
@@ -1645,7 +1645,7 @@ function DemoReview() {
         }}>← Back to queue</button>
 
         <div style={{
-          background: C.sf, border: `1px solid ${C.ac}40`, borderRadius: 10,
+          background: C.sf, border: `1px solid ${C.ac}40`, borderRadius: 0,
           padding: '14px 18px', marginBottom: 16,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1669,12 +1669,12 @@ function DemoReview() {
 
         {selected.exercises.map((ex, i) => (
           <div key={i} style={{
-            background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 10,
+            background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
             marginBottom: 8, padding: '12px 14px',
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
             <div style={{
-              width: 26, height: 26, borderRadius: 6,
+              width: 26, height: 26, borderRadius: 0,
               background: ex.done === ex.sets ? C.gnD : C.acD,
               color: ex.done === ex.sets ? C.gn : C.ac,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1701,17 +1701,17 @@ function DemoReview() {
 
         <div style={{ display: 'flex', gap: 8, marginTop: 20, marginBottom: 8 }}>
           <button onClick={e => e.stopPropagation()} style={{
-            padding: '12px 16px', borderRadius: 8, border: `1px solid ${C.rd || '#c94444'}`,
+            padding: '12px 16px', borderRadius: 0, border: `1px solid ${C.rd || '#c94444'}`,
             background: 'transparent', color: C.rd || '#ff6b6b',
             fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}>DELETE</button>
           <button onClick={e => e.stopPropagation()} style={{
-            padding: '12px 16px', borderRadius: 8, border: `1px solid ${C.bd}`,
+            padding: '12px 16px', borderRadius: 0, border: `1px solid ${C.bd}`,
             background: 'transparent', color: C.tm,
             fontFamily: FN, fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}>UNMARK</button>
           <button onClick={() => setSelectedId(null)} title="Return to the review queue" style={{
-            flex: 1, padding: '12px 0', borderRadius: 8, border: `1px solid ${C.bd2}`,
+            flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.bd2}`,
             background: 'transparent', color: C.tx,
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
           }}>← BACK TO REVIEW</button>
@@ -1720,7 +1720,7 @@ function DemoReview() {
             const next = queue[(idx + 1) % queue.length];
             setSelectedId(next.id);
           }} title="Jump to next pending workout" style={{
-            flex: 1, padding: '12px 0', borderRadius: 8, border: `1px solid ${C.ac}`,
+            flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.ac}`,
             background: C.ac, color: '#0a0a0b',
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
           }}>→ NEXT PENDING ({queue.length - 1})</button>
@@ -1735,12 +1735,12 @@ function DemoReview() {
 
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        background: C.sf, border: `1px solid ${C.ac}40`, borderRadius: 10,
+        background: C.sf, border: `1px solid ${C.ac}40`, borderRadius: 0,
         padding: '10px 14px', marginBottom: 14,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            width: 28, height: 28, borderRadius: 8, background: C.acD,
+            width: 28, height: 28, borderRadius: 0, background: C.acD,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac,
           }}>{queue.length}</div>
@@ -1762,7 +1762,7 @@ function DemoReview() {
             const hasFormVids = wo.exercises.some(e => e.hasVideo);
             return (
               <div key={wo.id} onClick={() => setSelectedId(wo.id)} style={{
-                background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 8,
+                background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
                 padding: '12px 16px', marginBottom: 6, cursor: 'pointer',
                 transition: 'border-color .15s', display: 'flex',
                 justifyContent: 'space-between', alignItems: 'center',
@@ -1828,7 +1828,7 @@ function _DemoReviewLegacy() {
             <span style={{
               fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700,
               background: C.gnD, border: `1px solid ${C.gn}40`,
-              borderRadius: 4, padding: '3px 8px',
+              borderRadius: 0, padding: '3px 8px',
             }}>NEW · 12 MIN AGO</span>
           </div>
           <div style={{
@@ -1892,7 +1892,7 @@ function _DemoReviewLegacy() {
                 }}>
                   <span style={{
                     fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1, fontWeight: 700,
-                    background: C.acD, padding: '2px 6px', borderRadius: 4,
+                    background: C.acD, padding: '2px 6px', borderRadius: 0,
                   }}>{c.time}</span>
                   {c.voice && (
                     <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1 }}>🎙️ VOICE</span>
@@ -1903,7 +1903,7 @@ function _DemoReviewLegacy() {
             ))}
             <div style={{ padding: 12 }}>
               <div style={{
-                background: C.sf2, border: `1px dashed ${C.bd2}`, borderRadius: 8,
+                background: C.sf2, border: `1px dashed ${C.bd2}`, borderRadius: 0,
                 padding: '10px 12px', color: C.tm, fontSize: 12,
               }}>+ Tap any frame in the player to drop a comment / draw on the form</div>
             </div>
@@ -1912,7 +1912,7 @@ function _DemoReviewLegacy() {
           <Panel title="REPLY VIDEO" tint={C.ac}>
             <div style={{ padding: 14 }}>
               <div style={{
-                background: '#000', border: `1px solid ${C.bd}`, borderRadius: 8,
+                background: '#000', border: `1px solid ${C.bd}`, borderRadius: 0,
                 aspectRatio: '16/9', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: 1.5, fontWeight: 700,
               }}>RECORD A 30s REPLY</div>
@@ -1971,7 +1971,7 @@ const TABS = [
 // radius, 18px padding. Used inline so the demo doesn't pull in the
 // real-app's authed Card component.
 const demoCardStyle = (extra = {}) => ({
-  background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 10,
+  background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
   padding: 18, transition: 'all 0.2s', ...extra,
 });
 
@@ -2043,7 +2043,7 @@ function DemoWorkouts() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 20, marginBottom: 12 }}>
         <h3 style={sectionH}>Completed ({completed.length})</h3>
         <select value={filterTrainee} onChange={e => setFilterTrainee(e.target.value)} style={{
-          background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 6,
+          background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
           padding: '4px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
           width: 180,
         }}>
@@ -2053,7 +2053,7 @@ function DemoWorkouts() {
       </div>
       {completed.length === 0 ? (
         <div style={{
-          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 10,
+          background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0,
           padding: 36, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13,
         }}>📊 No completed workouts yet.</div>
       ) : (
@@ -2185,7 +2185,7 @@ export default function CoachDemo() {
           </a>
           <span className="cd-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
-            padding: '4px 8px', background: C.acD, borderRadius: 6,
+            padding: '4px 8px', background: C.acD, borderRadius: 0,
             border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
           }}>COACH DEMO</span>
           <nav role="tablist" aria-label="Coach demo tabs" style={{
@@ -2247,7 +2247,7 @@ export default function CoachDemo() {
             display: 'inline-flex', alignItems: 'center', gap: 6,
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
             background: C.acD, border: `1px solid rgba(57,189,255,0.30)`,
-            borderRadius: 6, padding: '4px 9px', whiteSpace: 'nowrap',
+            borderRadius: 0, padding: '4px 9px', whiteSpace: 'nowrap',
           }}>
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -2289,7 +2289,7 @@ export default function CoachDemo() {
         <div style={{
           marginTop: 48,
           background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
-          border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 14,
+          border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
           padding: '24px 20px', textAlign: 'center',
         }}>
           <div style={{
