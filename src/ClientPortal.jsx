@@ -132,8 +132,8 @@ function trainerPlanToPortal(plan, trainerExercises) {
 }
 
 
-const bi = {background:C.sf2,border:`0.25px solid ${C.ac}4D`,borderRadius:6,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
-const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:5,fontSize:11,fontWeight:600,fontFamily:FN,background:`${color}18`,color,...s}}>{children}</span>;
+const bi = {background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
+const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:0,fontSize:10,fontWeight:700,fontFamily:FN,background:'transparent',border:`0.25px solid ${color}`,color,letterSpacing:'0.18em',textTransform:'uppercase',...s}}>{children}</span>;
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution}) {
@@ -592,15 +592,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',height:32}}>
       <EXPOMark height={22} style={{flexShrink:0}} />
       <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
-      {showResumedPill && <span title="Restored from your last session" style={{marginLeft:'auto',background:C.orD,border:`1px solid ${C.or}40`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:4,letterSpacing:'0.04em'}}>↻ RESUMED</span>}
+      {showResumedPill && <span title="Restored from your last session" style={{marginLeft:'auto',background:'transparent',border:`0.25px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
       <button onClick={onBack} style={{marginLeft:showResumedPill?8:'auto',background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
-      {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:2,background:stepIndex>i?C.or:stepIndex===i?C.or+'80':C.bd}} />)}
+      {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>i?C.or:stepIndex===i?C.or+'80':C.bd}} />)}
       {/* Pre-workout dot */}
-      <div style={{flex:1,height:3,borderRadius:2,background:stepIndex>wuCount?C.pu:stepIndex===wuCount?C.pu+'80':C.bd}} />
+      <div style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount?C.pu:stepIndex===wuCount?C.pu+'80':C.bd}} />
       {/* Group dots (one per superset group or solo exercise) */}
-      {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:2,background:stepIndex>wuCount+1+i?C.gn:stepIndex===wuCount+1+i?C.ac:C.bd}} />)}
+      {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+1+i?C.gn:stepIndex===wuCount+1+i?C.ac:C.bd}} />)}
     </div>
     <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:4,textAlign:'center'}}>
       {typeof step==='string'&&step.startsWith('wu') ? `Warm-Up ${parseInt(step.slice(2))+1}/${wuCount}` :
@@ -618,15 +618,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12}}>
-          <div style={{background:C.orD,borderRadius:8,padding:'4px 10px',fontFamily:FN,fontSize:11,color:C.or,fontWeight:700,minWidth:110,textAlign:'center',fontVariantNumeric:'tabular-nums',boxSizing:'border-box'}}>WARM-UP {wi+1}/{wuCount}</div></div>
+          <div style={{background:'transparent',border:`1px solid ${C.or}`,borderRadius:0,padding:'4px 10px',fontFamily:FN,fontSize:9,color:C.or,fontWeight:700,letterSpacing:'0.18em',minWidth:110,textAlign:'center',fontVariantNumeric:'tabular-nums',boxSizing:'border-box'}}>WARM-UP {wi+1}/{wuCount}</div></div>
         <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{wu.t}</h2>
         <div style={{fontSize:15,color:C.or,fontWeight:700,fontFamily:FN,marginBottom:14}}>{wu.rx}</div>
-        {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
+        {vid && <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'transparent',border:`0.25px solid ${C.ac}4D`}}>
           <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
-        {!vid && <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:30,marginBottom:14,textAlign:'center',color:C.td}}>No video for this exercise</div>}
+        {!vid && <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>No video for this exercise</div>}
         <div style={{display:'flex',gap:8}}>
-          <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
-          <button onClick={goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:C.or,color:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:'pointer'}}>
+          <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+          <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
             {wi === wuCount - 1 ? 'Start Check-In →' : 'Next Warm-Up →'}</button></div>
       </div></div>;
   }
@@ -639,13 +639,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div key={k} style={{marginBottom:20}}>
           <div style={{fontSize:15,fontWeight:600,marginBottom:6}}>{l} ({rng})</div>
           <div style={{display:'flex',gap:4}}>{(rng==='0-10'?[0,1,2,3,4,5,6,7,8,9,10]:[1,2,3,4,5]).map(n =>
-            <div key={n} onClick={() => setAr({...ar,[k]:String(n)})} style={{flex:1,height:40,borderRadius:8,background:ar[k]===String(n)?`${col}25`:C.sf2,border:`2px solid ${ar[k]===String(n)?col:C.bd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:14,color:ar[k]===String(n)?col:C.tm,cursor:'pointer',fontWeight:ar[k]===String(n)?700:400}}>{n}</div>
+            <div key={n} onClick={() => setAr({...ar,[k]:String(n)})} style={{flex:1,height:40,borderRadius:0,background:'transparent',border:`${ar[k]===String(n)?'1px':'0.25px'} solid ${ar[k]===String(n)?col:C.ac+'4D'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:14,color:ar[k]===String(n)?col:C.tm,cursor:'pointer',fontWeight:ar[k]===String(n)?700:400}}>{n}</div>
           )}</div></div>)}
-      {parseInt(ar.pain)>=4 && <div style={{background:C.rdD,borderRadius:10,padding:12,marginBottom:12,fontSize:13,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — Modify: ROM → Tempo → Intensity → Volume</div>}
-      {(parseInt(ar.energy)<=2||parseInt(ar.sleep)<=2) && <div style={{background:C.orD,borderRadius:10,padding:12,marginBottom:12,fontSize:13,color:C.or,fontWeight:600}}>⚠ Low recovery — Auto-regulate down</div>}
+      {parseInt(ar.pain)>=4 && <div style={{background:'transparent',border:`0.25px solid ${C.rd}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — Modify: ROM → Tempo → Intensity → Volume</div>}
+      {(parseInt(ar.energy)<=2||parseInt(ar.sleep)<=2) && <div style={{background:'transparent',border:`0.25px solid ${C.or}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.or,fontWeight:600}}>⚠ Low recovery — Auto-regulate down</div>}
       <div style={{display:'flex',gap:8}}>
-        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
-        <button onClick={goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:C.ac,color:'#fff',fontFamily:FB,fontSize:15,fontWeight:700,cursor:'pointer'}}>Start Workout →</button></div>
+        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+        <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button></div>
     </div></div>;
 
   // ===== FINISH =====
@@ -696,7 +696,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {/* New PRs from this session */}
       {newPRs.length > 0 && (
         <div style={{
-          background: `${C.gn}15`, border: `1px solid ${C.gn}40`, borderRadius: 12,
+          background: 'transparent', border: `1px solid ${C.gn}`, borderRadius: 0,
           padding: '12px 14px', marginBottom: 16, textAlign: 'left',
         }}>
           <div style={{
@@ -724,9 +724,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did it feel? Pain? Modifications?" style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'center'}}/>
       {fv.some(f => f.uploading) ? (
-        <button style={{width:'100%',padding:16,borderRadius:12,border:'none',background:C.sf3,color:C.td,fontFamily:FB,fontSize:16,fontWeight:700,cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
+        <button style={{width:'100%',padding:16,borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
       ) : (
-        <button onClick={finish} style={{width:'100%',padding:16,borderRadius:12,border:'none',background:C.gn,color:'#fff',fontFamily:FB,fontSize:16,fontWeight:700,cursor:'pointer'}}>✓ Complete Workout</button>
+        <button onClick={finish} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>✓ Complete Workout</button>
       )}
       <button onClick={goPrev} style={{width:'100%',padding:12,border:'none',background:'transparent',color:C.tm,cursor:'pointer',marginTop:8}}>← Back</button>
     </div></div>;
@@ -852,7 +852,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
             <div style={{
               padding: '6px 10px',
-              background: C.sf2, border: `0.25px solid ${C.bd}`, borderRadius: 6,
+              background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
               display: 'inline-flex', alignItems: 'baseline', gap: 8,
               fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.4,
             }}>
@@ -866,9 +866,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         );
       })()}
 
-      {hw && <div style={{background:C.sf2,borderRadius:10,padding:10,marginTop:12,marginBottom:14}}>
+      {hw && <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
-          {ex.wk.map((w,i) => <div key={i} style={{background:weekNum===i?C.acD:C.sf3,border:`1px solid ${weekNum===i?C.ac+'60':C.bd}`,borderRadius:6,padding:6,textAlign:'center'}}>
+          {ex.wk.map((w,i) => <div key={i} style={{background:'transparent',border:`${weekNum===i?'1px':'0.25px'} solid ${weekNum===i?C.ac:C.ac+'4D'}`,borderRadius:0,padding:6,textAlign:'center'}}>
             <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
             <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div></div>}
 
@@ -878,14 +878,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {d.q && ex.n && <div style={{borderTop:`0.25px solid ${C.ac}4D`,margin:'8px 0'}}/>}
         {ex.n && <div style={{color:C.or,textAlign:/[\u0590-\u05FF]/.test(ex.n)?'right':'left',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(ex.n)?FH:undefined}}>{ex.n}</div>}</div>}
 
-      {vid && <div style={{marginBottom:14,borderRadius:12,overflow:'hidden',aspectRatio:'16/9',background:C.sf2}}>
+      {vid && <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'transparent',border:`0.25px solid ${C.ac}4D`}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
 
-      <div style={{background:wf?C.acD:C.sf,border:'1px solid '+(wf?C.ac+'30':C.bd),borderLeft:'3px solid '+(wf?C.ac:C.bd),borderRadius:10,padding:12,marginBottom:12,textAlign:'center'}}>
+      <div style={{background:'transparent',border:'0.25px solid '+(wf?C.ac:C.ac+'4D'),borderLeft:'2px solid '+(wf?C.ac:C.ac+'4D'),borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
         <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
         <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>
 
-      <div style={{background:C.sf,border:`0.25px solid ${C.ac}4D`,borderRadius:12,padding:14,marginBottom:14}}>
+      <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
           {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => <div key={si} style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
@@ -896,39 +896,39 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
         </div>)}</div>
 
-      <div style={{background:C.sf,border:`0.25px solid ${f.uploaded?C.gn+'60':C.ac}`,borderRadius:12,padding:14}}>
+      <div style={{background:'transparent',border:`${f.uploaded?'1px':'0.25px'} solid ${f.uploaded?C.gn:C.ac+'4D'}`,borderRadius:0,padding:14}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
           <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>FORM CHECK</div>
-          {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:C.gnD,padding:'3px 10px',borderRadius:20}}>
+          {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'transparent',border:`0.25px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
             <span style={{fontSize:14}}>✅</span><span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>UPLOADED</span></div>}
-          {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:C.acD,padding:'3px 10px',borderRadius:20}}>
+          {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:'transparent',border:`0.25px solid ${C.ac}`,padding:'3px 10px',borderRadius:0}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? `⚙ Compressing ${f.compressProgress||0}%` : `☁ Uploading ${f.uploadProgress||0}%`}</span></div>}
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
-            <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:8,maxHeight:200,background:C.sf2}} />
+            <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:0,maxHeight:200,background:'transparent'}} />
             <div style={{display:'flex',gap:8,marginTop:6}}>
               {/* Replace + Remove are both disabled while an upload is in
                   flight — otherwise picking a new file mid-upload would race
                   the previous upload's setFv against the new one's. */}
-              <label style={{flex:1,padding:8,borderRadius:6,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:12,textAlign:'center',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1,pointerEvents:f.uploading?'none':'auto'}}>
+              <label style={{flex:1,padding:8,borderRadius:0,border:`0.25px dashed ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1,pointerEvents:f.uploading?'none':'auto'}}>
                 Replace
                 <input type="file" accept="video/*" capture="environment" style={{display:'none'}} disabled={f.uploading} onChange={async e => { await handleVideoUpload(e, ei); }} />
               </label>
               <button disabled={f.uploading} onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
-                style={{flex:1,padding:8,borderRadius:6,border:`1px solid ${C.rd}30`,background:C.rdD,color:C.rd,fontFamily:FB,fontSize:12,cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1}}>
+                style={{flex:1,padding:8,borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1}}>
                 Remove
               </button>
             </div>
           </div>
         ) : (
           <div style={{display:'flex',gap:8}}>
-            <label style={{flex:1,padding:'14px 8px',borderRadius:8,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:12,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+            <label style={{flex:1,padding:'14px 8px',borderRadius:0,border:`0.25px dashed ${C.ac}4D`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
               <span style={{fontSize:20}}>🎥</span>
               <span>Record</span>
               <input type="file" accept="video/*" capture="environment" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
             </label>
-            <label style={{flex:1,padding:'14px 8px',borderRadius:8,border:`1px dashed ${C.bd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FB,fontSize:12,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+            <label style={{flex:1,padding:'14px 8px',borderRadius:0,border:`0.25px dashed ${C.ac}4D`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
               <span style={{fontSize:20}}>📁</span>
               <span>Gallery</span>
               <input type="file" accept="video/*" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
@@ -942,7 +942,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
   return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20}}>
-      {isSuperset && <div style={{background:C.acD,border:`1px solid ${C.ac}40`,borderRadius:10,padding:'8px 12px',marginBottom:18,textAlign:'center'}}>
+      {isSuperset && <div style={{background:'transparent',border:`1px solid ${C.ac}`,borderRadius:0,padding:'8px 12px',marginBottom:18,textAlign:'center'}}>
         <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>SUPERSET {group.superset} · {groupExs.length} EXERCISES</div>
         <div style={{fontSize:11,color:C.tm,marginTop:3}}>Alternate between exercises each round</div>
       </div>}
@@ -950,8 +950,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {groupExs.map(renderExerciseBlock)}
 
       <div style={{display:'flex',gap:8,marginTop:20}}>
-        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:10,border:`1px solid ${C.bd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:14,fontWeight:600,cursor:'pointer'}}>← Back</button>
-        <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:10,border:'none',background:anyUploading?C.sf3:C.ac,color:anyUploading?C.td:'#fff',fontFamily:FB,fontSize:14,fontWeight:700,cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
+        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+        <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.ac+'4D':C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
           {anyUploading ? `⚙ Processing video...` : step===groupCount-1 ? 'Finish →' : (isSuperset?'Next Block →':'Next Exercise →')}</button></div>
     </div></div>;
 }
