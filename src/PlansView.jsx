@@ -448,7 +448,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                             <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Sets / Wk</label>
                             <button onClick={()=>updateEx(exIdx,{wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3})} title="Collapse to single sets value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>← flat</button>
                           </div>
-                          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},minmax(42px,1fr))`,gap:3}}>
+                          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},minmax(0,1fr))`,gap:3}}>
                             {Array.from({length:weeks}).map((_,i) => (
                               <input key={i} value={ex.wkS[i]||""} onChange={e=>{const next=resize(ex.wkS,weeks,""); next[i]=e.target.value; updateEx(exIdx,{wkS:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
                             ))}
@@ -469,7 +469,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                             <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps / Wk</label>
                             <button onClick={()=>updateEx(exIdx,{wk:null,reps:ex.wk[0]||"8-12"})} title="Collapse to single reps value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,fontFamily:FN,marginLeft:"auto"}}>← flat</button>
                           </div>
-                          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},minmax(42px,1fr))`,gap:3}}>
+                          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},minmax(0,1fr))`,gap:3}}>
                             {Array.from({length:weeks}).map((_,i) => (
                               <input key={i} value={ex.wk[i]||""} onChange={e=>{const next=resize(ex.wk,weeks,""); next[i]=e.target.value; updateEx(exIdx,{wk:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
                             ))}
