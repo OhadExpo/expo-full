@@ -621,9 +621,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{background:'transparent',border:`1px solid ${C.or}`,borderRadius:0,padding:'4px 10px',fontFamily:FN,fontSize:9,color:C.or,fontWeight:700,letterSpacing:'0.18em',minWidth:110,textAlign:'center',fontVariantNumeric:'tabular-nums',boxSizing:'border-box'}}>WARM-UP {wi+1}/{wuCount}</div></div>
         <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{wu.t}</h2>
         <div style={{fontSize:15,color:C.or,fontWeight:700,fontFamily:FN,marginBottom:14}}>{wu.rx}</div>
-        {vid && <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'transparent',border:`0.25px solid ${C.ac}4D`}}>
-          <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
-        {!vid && <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>No video for this exercise</div>}
+        {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'transparent',border:`0.25px solid ${C.ac}4D`}}>
+          <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
+          : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.ac}4D`}}>
+          <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
+          : <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>No video for this exercise</div>}
         <div style={{display:'flex',gap:8}}>
           <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
@@ -878,8 +880,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {d.q && ex.n && <div style={{borderTop:`0.25px solid ${C.ac}4D`,margin:'8px 0'}}/>}
         {ex.n && <div style={{color:C.or,textAlign:/[\u0590-\u05FF]/.test(ex.n)?'right':'left',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(ex.n)?FH:undefined}}>{ex.n}</div>}</div>}
 
-      {vid && <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'transparent',border:`0.25px solid ${C.ac}4D`}}>
-        <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>}
+      {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'transparent',border:`0.25px solid ${C.ac}4D`}}>
+        <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
+        : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.ac}4D`}}>
+        <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div> : null}
 
       <div style={{background:'transparent',border:'0.25px solid '+(wf?C.ac:C.ac+'4D'),borderLeft:'2px solid '+(wf?C.ac:C.ac+'4D'),borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
         <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
