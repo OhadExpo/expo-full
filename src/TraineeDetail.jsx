@@ -158,15 +158,33 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     setPortalVis(next);
   };
   const anyVisible = (plans, keyFn) => plans.some(p => portalVis?.[keyFn(p)] !== false);
+  // Pin only the most recent block (chronological tip). For an athlete with
+  // 17+ historical blocks this is the one-click "tidy the portal" we'd
+  // otherwise have to do by toggling each block off by hand.
+  const bulkOnlyCurrent = (plans, keyFn) => {
+    if (plans.length === 0) return;
+    const sorted = [...plans].sort(sortProgramsChrono);
+    const current = sorted[0];
+    const next = { ...portalVis };
+    plans.forEach(p => { next[keyFn(p)] = p === current; });
+    setPortalVis(next);
+  };
   const bulkToggleBtn = (plans, keyFn) => {
     if (plans.length === 0) return null;
     const showing = anyVisible(plans, keyFn);
     return (
-      <button onClick={()=>bulkSetVis(plans, keyFn, !showing)}
-        title={showing ? "Hide all from portal" : "Show all on portal"}
-        style={{background:'transparent',border:`0.25px solid ${showing?C.rd:C.gn}`,borderRadius:0,padding:"3px 10px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em'}}>
-        {showing ? 'HIDE ALL' : 'SHOW ALL'}
-      </button>
+      <div style={{display:'flex',gap:6}}>
+        {plans.length > 1 && <button onClick={()=>bulkOnlyCurrent(plans, keyFn)}
+          title="Hide all blocks except the most recent one"
+          style={{background:'transparent',border:`0.25px solid ${C.ac}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em'}}>
+          🎯 ONLY CURRENT
+        </button>}
+        <button onClick={()=>bulkSetVis(plans, keyFn, !showing)}
+          title={showing ? "Hide all from portal" : "Show all on portal"}
+          style={{background:'transparent',border:`0.25px solid ${showing?C.rd:C.gn}`,borderRadius:0,padding:"3px 10px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em'}}>
+          {showing ? 'HIDE ALL' : 'SHOW ALL'}
+        </button>
+      </div>
     );
   };
 

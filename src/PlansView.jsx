@@ -3,6 +3,7 @@ import { C, FN, FB, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTA
 import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput } from './ui';
 import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
+import VideoEmbed from './VideoEmbed';
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: 3, reps: "8-12", load: "", rpe: "", tempo: "", rest: "90", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
@@ -225,6 +226,7 @@ function WarmupEditor({ plan, setPlan }) {
             onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
             placeholder="https://youtube.com/..." />
           <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, marginBottom: 4, opacity: 0.6, fontSize: 16 }}>🗑</button>
+          {w.vid && <div style={{ gridColumn: '1 / -1', marginTop: -2 }}><VideoEmbed url={w.vid} /></div>}
         </div>
       ))}
       {warmup.length === 0 && <div style={{ fontSize: 11, color: C.td, marginTop: 8 }}>No warm-ups. Click "+ Add Warm-Up" to add one.</div>}
@@ -527,6 +529,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.ac+'4D'}`,borderRadius:0,whiteSpace:"nowrap"}}>
                         {hasOverride?"OPEN ▸":"LIB ▸"}
                       </a>}
+                      {effective && <div style={{gridColumn:'1 / -1',marginTop:6}}><VideoEmbed url={effective} /></div>}
                     </div>
                   );
                 })()}
