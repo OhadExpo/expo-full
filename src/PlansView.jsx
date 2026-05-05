@@ -9,6 +9,20 @@ const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
 
 const PAGE_SIZE = 25;
 
+// Resolve a Google Photos share URL to a direct googleusercontent stream
+// once at paste-time. We store the stable URL on the plan so the trainee
+// portal embeds instantly without re-scraping Google on every page load.
+// Falls back to the original URL if the resolver can't reach Google.
+async function maybeResolveGooglePhotos(url) {
+  if (!url || !/photos\.(app\.goo|google)\./i.test(url)) return url;
+  try {
+    const r = await fetch('/api/resolve-video?url=' + encodeURIComponent(url));
+    if (!r.ok) return url;
+    const j = await r.json();
+    return j?.url || url;
+  } catch { return url; }
+}
+
 function PatternCoverage({ plan, exercises }) {
   const pats = useMemo(() => {
     const s = new Set();
@@ -207,7 +221,9 @@ function WarmupEditor({ plan, setPlan }) {
         <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 30px', gap: 8, marginBottom: 6, alignItems: 'end' }}>
           <Input label={i === 0 ? 'Exercise' : ''} value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
           <Input label={i === 0 ? 'Rx' : ''} value={w.rx || ''} onChange={e => update(i, { rx: e.target.value })} placeholder="1x10 E" />
-          <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })} placeholder="https://youtube.com/..." />
+          <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
+            onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
+            placeholder="https://youtube.com/..." />
           <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, marginBottom: 4, opacity: 0.6, fontSize: 16 }}>🗑</button>
         </div>
       ))}
@@ -504,6 +520,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   return (
                     <div style={{marginTop:6,display:"grid",gridTemplateColumns:effective?"1fr auto":"1fr",gap:6,alignItems:"center"}}>
                       <Input value={value} onChange={e=>updateEx(exIdx,{videoUrl:e.target.value})}
+                        onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) updateEx(exIdx, { videoUrl: resolved }); }}
                         placeholder="📹 Insert video URL" />
                       {effective && <a href={effective} target="_blank" rel="noreferrer"
                         title={hasOverride?"Per-program URL":"From exercise library"}

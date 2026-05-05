@@ -8,7 +8,7 @@ import TraineePRsView from './TraineePRsView';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
-export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, portalVis, setPortalVis }) {
+export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, onPreviewPortal, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
   // For couples: plans assigned to parent ID are shared, plans to sub-IDs are per-member
   const traineeIds = traineeIdsFor(trainee);
@@ -242,6 +242,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back to Athletes</button>
         <div style={{display:"flex",gap:6}}>
+          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px"}} title="Open this trainee's portal in preview mode">👁 Preview Portal</Btn>}
           <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px"}}>✏ Edit</Btn>
           {td.status==="Archived" ? <>
             <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>

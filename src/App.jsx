@@ -36,6 +36,7 @@ const EntryChooser = lazy(() => import('./EntryChooser'));
 // Programs, Exercises, Review tabs with mock data). /try is the public
 // engine sandbox (TrySandbox above). /demo/trainee is the client-portal demo.
 const CoachDemo = lazy(() => import('./CoachDemo'));
+const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
 const MemoPlans = React.memo(PlansView);
@@ -357,7 +358,12 @@ function AuthedApp() {
     const p = window.location.pathname;
     if (p === '/coach' || p.startsWith('/coach/')) {
       const sub = p.replace('/coach','').replace(/^\//,'');
-      if (sub.startsWith('trainees/')) return { mode:'coach', tab:'trainees', traineeId:sub.split('/')[1] };
+      if (sub.startsWith('trainees/')) {
+        const parts = sub.split('/');
+        const traineeId = parts[1];
+        const preview = parts[2] === 'preview';
+        return { mode:'coach', tab:'trainees', traineeId, preview };
+      }
       const tabMap = {dashboard:'dashboard',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
@@ -368,6 +374,7 @@ function AuthedApp() {
 
   const [tab,setTab]=useState(isCoach ? (initRoute.tab || 'dashboard') : "client");
   const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
+  const [previewTrainee,setPreviewTrainee]=useState(initRoute.preview ? initRoute.traineeId : null);
   const [selectedPlanId,setSelectedPlanId]=useState(null);
   const [importMsg,setImportMsg]=useState(null);
   const [pendingImport,setPendingImport]=useState(null); // {parsed, type:'multi'|'single'} — awaiting trainee selection
@@ -403,10 +410,21 @@ function AuthedApp() {
   useEffect(() => {
     const onPop = () => {
       const r = getRoute();
-      if (r.mode === 'coach') { setTab(r.tab); setSelectedTrainee(r.traineeId); }
+      if (r.mode === 'coach') { setTab(r.tab); setSelectedTrainee(r.traineeId); setPreviewTrainee(r.preview ? r.traineeId : null); }
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  const openPreview = useCallback((id) => {
+    setTab('trainees'); setSelectedTrainee(id); setPreviewTrainee(id);
+    const path = '/coach/trainees/' + id + '/preview';
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+  }, []);
+  const closePreview = useCallback((id) => {
+    setPreviewTrainee(null);
+    const path = '/coach/trainees/' + id;
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
   }, []);
 
   const navTo = useCallback((newTab, newTrainee) => {
@@ -627,7 +645,8 @@ function AuthedApp() {
           {tab==="chatAudit"&&<ChatAuditView/>}
           {tab==="smartImport"&&<SmartImportView/>}
           {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)}/>}
-          {tab==="trainees"&&selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} setPayments={setPayments} bwLog={bwLog} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
+          {tab==="trainees"&&selectedTrainee&&previewTrainee===selectedTrainee&&<CoachPreviewPortal traineeId={selectedTrainee} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={()=>closePreview(selectedTrainee)}/>}
+          {tab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} setPayments={setPayments} bwLog={bwLog} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
           {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
           {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout}/>}
           {tab==="plans"&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)}/>}
