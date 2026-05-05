@@ -171,9 +171,9 @@ function ExPicker({ exercises, value, onChange, label, fallbackTitle }) {
   const hasDisplay = !!displayTitle;
   const unlinked = !sel && !!fallbackTitle;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', minWidth: 0 }}>
       {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>{label}</label>}
-      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, textAlign: 'left', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderColor: unlinked ? C.or + '60' : undefined }}>
+      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, width: '100%', textAlign: 'center', justifyContent: 'center', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderColor: unlinked ? C.or + '60' : undefined }}>
         <span style={{ color: hasDisplay ? C.tx : C.td, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {unlinked && <span style={{ color: C.or, marginRight: 6, fontSize: 10 }}>📝</span>}
           {hasDisplay ? displayTitle : 'Select exercise...'}
