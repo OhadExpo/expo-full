@@ -507,7 +507,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                     <textarea value={value}
                       onChange={e=>updateEx(exIdx,{notes:e.target.value})}
                       placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."}
-                      style={{...baseInput,marginTop:6,textAlign:'start',minHeight:64,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
+                      style={{...baseInput,marginTop:6,textAlign:'center',minHeight:64,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
                   );
                 })()}
                 {(() => {
