@@ -40,9 +40,9 @@ export default function ExercisesView({ exercises, setExercises }) {
       <style>{`
         @media (max-width: 720px) { .ex-filters { grid-template-columns: repeat(2, 1fr) !important; } }
       `}</style>
-      <div style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 200 }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12 }} /></div>
-        <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }}>+ Add Exercise</Btn>
+      <div style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "stretch", flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px' }} /></div>
+        <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
       <div style={{ background: 'transparent', border:`0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -52,24 +52,21 @@ export default function ExercisesView({ exercises, setExercises }) {
           {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>}
         </div>
         <div className="ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          <select value={filters.category} onChange={e => setF('category', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
-            <option value="">Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
-            <option value="">Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
-            <option value="">Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
-            <option value="">Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
-            <option value="">Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={{ ...baseInput, padding: '6px 10px', fontSize: 12 }}>
-            <option value="">Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          {[
+            ['category', 'Category', CATEGORIES],
+            ['resistanceType', 'Resistance', RESISTANCE_TYPES],
+            ['bodyPosition', 'Body Position', BODY_POSITIONS],
+            ['movementType', 'Movement Type', MOVEMENT_TYPES],
+            ['movementPattern', 'Pattern', MOVEMENT_PATTERNS],
+            ['laterality', 'Laterality', LATERALITY],
+          ].map(([key, label, options]) => (
+            <div key={key} style={{ position: 'relative', display: 'flex' }}>
+              <select value={filters[key]} onChange={e => setF(key, e.target.value)} style={{ ...baseInput, height: 36, padding: '0 32px 0 12px', fontSize: 12, appearance: 'none', WebkitAppearance: 'none', textAlign: 'center', textAlignLast: 'center', flex: 1 }}>
+                <option value="">{label}</option>{options.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+            </div>
+          ))}
         </div>
       </div>
       <div style={{ fontSize: 11, color: C.tm, marginBottom: 12, fontFamily: FN }}>{filtered.length} exercise{filtered.length !== 1 ? "s" : ""}</div>
