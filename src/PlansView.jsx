@@ -432,7 +432,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                 <span style={{fontFamily:FN,fontSize:12,color:C.tm,fontWeight:700,lineHeight:1}}>{exIdx+1}</span>
               </div>
               <div style={{overflowX:"auto"}}>
-                <div style={{display:"grid",gridTemplateColumns:"3fr repeat(6, minmax(0, 1fr)) auto",minWidth:720,gap:12,alignItems:"end"}}>
+                <div style={{display:"grid",gridTemplateColumns:"3fr 1fr 2fr 2fr 1fr 1fr 1fr auto",minWidth:780,gap:12,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
                   <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise." style={{minWidth:0}}>
                     <Select label="Superset" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
@@ -541,12 +541,12 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   const weeks = plan.weeks || 4;
                   return (
                     <div style={{marginTop:6,background:'transparent',borderRadius:0,padding:"8px 10px",border:`0.25px solid ${C.ac}4D`}}>
-                      <div style={{fontSize:9,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:4}}>WEEKLY FOCUS</div>
-                      <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},1fr)`,gap:4}}>
+                      <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,letterSpacing:'0.18em'}}>WEEKLY FOCUS</div>
+                      <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},minmax(0,1fr))`,gap:8}}>
                         {Array.from({length:weeks}, (_, i) => i + 1).map(w => {
                           const fk = `${plan.name}|${day.name}|${ex.exerciseId}|W${w}`;
                           return <input key={w} value={weeklyFocus?.[fk]||""} onChange={e=>{const v=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:v}))}}
-                            placeholder={`W${w}`} style={{background:'transparent',border:`0.25px solid ${weeklyFocus?.[fk]?C.ac:C.ac+'4D'}`,borderRadius:0,padding:"4px 6px",color:C.tx,fontFamily:FB,fontSize:11,outline:"none",boxSizing:"border-box"}} />;
+                            placeholder={`W${w}`} style={{background:'transparent',border:`0.25px solid ${weeklyFocus?.[fk]?C.ac:C.ac+'4D'}`,borderRadius:0,padding:"10px 12px",color:C.tx,fontFamily:FB,fontSize:13,outline:"none",boxSizing:"border-box",textAlign:"center",minWidth:0}} />;
                         })}
                       </div>
                     </div>
