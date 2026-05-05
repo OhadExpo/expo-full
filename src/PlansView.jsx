@@ -562,7 +562,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
     </div>);
 }
 
-export default function PlansView({ planIndex, reloadIndex, trainees, exercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened }) {
+export default function PlansView({ planIndex, reloadIndex, trainees, exercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onPreviewPlan }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
   const [editMode, setEditMode] = useState(false);
@@ -848,6 +848,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         {expanded?`▴ HIDE ${row.earlier.length}`:`▾ +${row.earlier.length} EARLIER`}
                       </button>
                     )}
+                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em'}}>👁 PREVIEW</button>}
                     <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em'}}>DUPLICATE</button>
                   </div>
                 </div>
@@ -866,6 +867,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         style={{cursor:'pointer',padding:'8px 14px 8px 32px',display:'flex',alignItems:'center',gap:12,opacity:0.78,borderTop:`0.25px solid ${C.ac}1A`}}>
                         <div style={{flex:1,minWidth:0,fontSize:13,color:C.tm,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN}}>{p.name||"Untitled"}</div>
                         <div style={{fontSize:9,color:C.td,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}D · {p.exerciseCount}EX</div>
+                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>👁 PREVIEW</button>}
                         <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>DUPLICATE</button>
                         <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>DELETE</button>
                       </div>
@@ -902,6 +904,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <div style={{fontSize:10,color:C.tm,fontFamily:FN,letterSpacing:'0.1em',textTransform:'uppercase',flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount} DAYS · {p.exerciseCount} EX{p.phase?` · ${p.phase}`:''}</div>
               </div>
               <div style={{display:"flex",gap:6,flexShrink:0}}>
+                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>👁 PREVIEW</button>}
                 <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>DUPLICATE</button>
                 <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>DELETE</button>
               </div></div></Card>})}

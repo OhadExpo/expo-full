@@ -234,7 +234,7 @@ const defaultTrainee = () => ({
   notes: "", packagePrice: "",
 });
 
-export default function TraineesView({ trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect }) {
+export default function TraineesView({ trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect, onPreview }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
   const [search, setSearch] = useState("");
@@ -419,7 +419,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   </CardSection>
 
                   {!showArchived && (
-                    <div style={{display:'flex',justifyContent:'flex-end',marginTop:'auto',paddingTop:8}}>
+                    <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
+                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 12px',borderRadius:0}}>👁 PREVIEW</button> : <span/>}
                       <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 12px',borderRadius:0}}>EDIT</button>
                     </div>
                   )}
@@ -468,7 +469,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 <Btn variant="ghost" onClick={(e) => {e.stopPropagation(); handleRestore(t.id)}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
               </div>}
-              {!showArchived && <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',marginTop:'auto',alignSelf:'flex-end',borderRadius:0}}>EDIT</button>}
+              {!showArchived && <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
+                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>👁 PREVIEW</button> : <span/>}
+                <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>EDIT</button>
+              </div>}
             </Card>);
           })}
         </div>)}
