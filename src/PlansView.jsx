@@ -688,17 +688,46 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         totalCount: plans.length,
       });
     }
-    // Sort athletes: most-recently-trained first; never-trained at bottom.
+    // Surface active trainees who have NO plans assigned — easy to overlook
+    // a new athlete and have them silently fall off the radar otherwise. These
+    // get a zero-state row at the bottom of the list so the gap is impossible
+    // to miss when scanning. Couples with sub-IDs are checked at the parent
+    // level; we count an athlete as "covered" if any of their IDs (parent or
+    // sub) appears in the buckets map.
+    const covered = new Set(buckets.keys());
+    const orphans = (trainees || []).filter(t => {
+      if (t.status === 'Archived') return false;
+      const ids = [t.id];
+      if (t.members && t.members.length === 2) {
+        ids.push(t.id + '__0', t.id + '__1');
+      }
+      return ids.every(id => !covered.has(id));
+    });
+    for (const t of orphans) {
+      rows.push({
+        tid: t.id,
+        name: t.name || t.id,
+        current: null,           // zero-state: no current block
+        earlier: [],
+        daysSince: null,
+        totalCount: 0,
+        orphan: true,
+      });
+    }
+    // Sort athletes: most-recently-trained first; never-trained next; orphans
+    // (no plan at all) at the very bottom; unassigned (legacy) last of all.
     rows.sort((a, b) => {
       if (a.tid === '__unassigned__') return 1;
       if (b.tid === '__unassigned__') return -1;
+      if (a.orphan && !b.orphan) return 1;
+      if (b.orphan && !a.orphan) return -1;
       const aT = lastByTid.get(a.tid) || 0;
       const bT = lastByTid.get(b.tid) || 0;
       if (aT !== bT) return bT - aT;
       return a.name.localeCompare(b.name);
     });
     return rows;
-  }, [planIndex, clientWorkouts, search, filterTrainee, traineeMap]);
+  }, [planIndex, clientWorkouts, trainees, search, filterTrainee, traineeMap]);
 
   if (editMode) {
     if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
@@ -761,6 +790,22 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const cur = row.current;
             const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
             const tagText = row.daysSince == null ? 'NEVER LOGGED' : row.daysSince === 0 ? 'TRAINED TODAY' : `${row.daysSince}D AGO`;
+            // Zero-state: active trainee with no plan at all. Skip the
+            // current-block row entirely — render a single "NO PROGRAM ASSIGNED"
+            // line with a + NEW PROGRAM CTA pre-bound to this athlete via
+            // handleNewPlan (which seeds an empty plan; the editor's trainee
+            // picker is right there for assignment after the editor opens).
+            if (row.orphan) {
+              return (
+                <div key={row.tid} style={{background:'transparent',border:`0.25px dashed ${C.or}80`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                  <div style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
+                    <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
+                    <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>NO PROGRAM ASSIGNED</div>
+                  </div>
+                  <button onClick={()=>handleNewPlan()} style={{background:'transparent',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ ASSIGN PROGRAM</button>
+                </div>
+              );
+            }
             return (
               <div key={row.tid} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}>
                 {/* Current-block row — clicking opens the plan editor. */}
