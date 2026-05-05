@@ -330,8 +330,8 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
       <WarmupEditor plan={plan} setPlan={setPlan} />
       {!overview && <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"center",justifyContent:"center"}}>
         {plan.days.map((d,i) => <div key={d.id} style={{display:"flex"}}>
-          <button onClick={()=>setActiveDay(i)} style={{padding:"6px 14px",fontSize:11,borderRadius:0,border:`${i===activeDay?'1px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,borderRight:'none',background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{d.name} ({d.exercises.length})</button>
-          {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"6px 8px",fontSize:11,borderRadius:0,border:`${i===activeDay?'1px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",opacity:0.7}}>×</button>}
+          <button onClick={()=>setActiveDay(i)} style={{padding:"8px 16px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,borderRight:'none',background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{d.name} ({d.exercises.length})</button>
+          {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"8px 10px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",opacity:0.7}}>×</button>}
         </div>)}
         <Btn variant="ghost" onClick={addDay} style={{padding:"6px 12px",fontSize:12}}>+</Btn>
       </div>}
@@ -546,7 +546,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         {Array.from({length:weeks}, (_, i) => i + 1).map(w => {
                           const fk = `${plan.name}|${day.name}|${ex.exerciseId}|W${w}`;
                           return <input key={w} value={weeklyFocus?.[fk]||""} onChange={e=>{const v=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:v}))}}
-                            placeholder={`W${w}`} style={{background:'transparent',border:`0.25px solid ${weeklyFocus?.[fk]?C.ac:C.ac+'4D'}`,borderRadius:0,padding:"10px 12px",color:C.tx,fontFamily:FB,fontSize:13,outline:"none",boxSizing:"border-box",textAlign:"center",minWidth:0}} />;
+                            placeholder={`W${w}`} style={{background:'transparent',border:`0.25px solid ${weeklyFocus?.[fk]?C.ac:C.ac+'4D'}`,borderRadius:0,padding:"14px 12px",minHeight:48,color:C.tx,fontFamily:FB,fontSize:14,outline:"none",boxSizing:"border-box",textAlign:"center",minWidth:0}} />;
                         })}
                       </div>
                     </div>

@@ -909,9 +909,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       {(d.q || ex.n) && <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12,marginTop:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6}}>
         <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,fontWeight:700,textAlign:'center',letterSpacing:'0.18em'}}>EXERCISE NOTES</div>
-        {d.q && <div style={{textAlign:/[\u0590-\u05FF]/.test(d.q)?'right':'left',direction:/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(d.q)?FH:undefined}}>{d.q}</div>}
+        {d.q && <div style={{textAlign:'center',direction:/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(d.q)?FH:undefined}}>{d.q}</div>}
         {d.q && ex.n && <div style={{borderTop:`0.25px solid ${C.ac}4D`,margin:'8px 0'}}/>}
-        {ex.n && <div style={{color:C.or,textAlign:/[\u0590-\u05FF]/.test(ex.n)?'right':'left',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(ex.n)?FH:undefined}}>{ex.n}</div>}</div>}
+        {ex.n && <div style={{color:C.or,textAlign:'center',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(ex.n)?FH:undefined}}>{ex.n}</div>}</div>}
 
       {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'transparent',border:`0.25px solid ${C.ac}4D`}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
