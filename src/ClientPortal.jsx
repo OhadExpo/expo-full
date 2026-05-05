@@ -1200,36 +1200,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
   // and History so the layout stays consistent across tabs.
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
-  // Workout streak: consecutive distinct days with at least one logged
-  // workout, counted backwards from today (or yesterday — gives the trainee
-  // until the end of the current day to add today's session without
-  // breaking the streak).
-  const streak = (() => {
-    if (!cw || cw.length === 0) return 0;
-    const days = new Set();
-    for (const w of cw) {
-      const d = new Date(w.date);
-      if (isNaN(d.getTime())) continue;
-      days.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
-    }
-    let count = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    // Allow today itself OR yesterday to start the streak (trainee may not
-    // have worked out yet today but is still on a roll).
-    const todayKey = `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
-    const yest = new Date(today.getTime() - 86400000);
-    const yestKey = `${yest.getFullYear()}-${yest.getMonth()}-${yest.getDate()}`;
-    let cursor = days.has(todayKey) ? today : (days.has(yestKey) ? yest : null);
-    while (cursor) {
-      const k = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
-      if (days.has(k)) {
-        count++;
-        cursor = new Date(cursor.getTime() - 86400000);
-      } else break;
-    }
-    return count;
-  })();
   const renderTopHeader = () => (
     <>
       <div style={{background:C.bg,padding:'20px 20px 18px',borderBottom:`0.25px solid ${C.bd2}`}}>
@@ -1250,12 +1220,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:'flex',flexDirection:'column',gap:4}}>{visPlans.map(p=><span key={p.name} style={{display:'inline-block',padding:'2px 0 2px 10px',borderLeft:`2px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase'}}>{p.name}</span>)}</div>
           </div>
-          {streak >= 2 && (
-            <div style={{textAlign:'right',flexShrink:0}} title={`${streak} consecutive days with a logged workout`}>
-              <div style={{fontSize:24,fontWeight:700,fontFamily:FN,color:C.or,lineHeight:1,letterSpacing:'-0.02em'}}>{streak}<span style={{fontSize:11,marginLeft:3,verticalAlign:'4px'}}>🔥</span></div>
-              <div style={{fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.18em',fontWeight:700,marginTop:5}}>STREAK</div>
-            </div>
-          )}
           <div style={{textAlign:'center',flexShrink:0}}>
             <div style={{fontSize:24,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.ac,lineHeight:1,letterSpacing:'-0.02em'}}>{sl}</div>
             <div style={{fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.18em',fontWeight:700,marginTop:5}}>SESSIONS</div>

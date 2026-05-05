@@ -869,6 +869,16 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         {expanded?`▴ HIDE ${row.earlier.length}`:`▾ +${row.earlier.length} EARLIER`}
                       </button>
                     )}
+                    {setPortalVis && row.earlier.length > 0 && (() => {
+                      const curKey = visKeyForPlan(cur, trainees);
+                      if (!curKey) return null;
+                      const earlierKeys = row.earlier.map(p => visKeyForPlan(p, trainees)).filter(Boolean);
+                      return <button onClick={e => { e.stopPropagation(); const next = { ...portalVis, [curKey]: true }; earlierKeys.forEach(k => { next[k] = false; }); setPortalVis(next); }}
+                        title="Hide all earlier blocks; keep only the current one visible on portal"
+                        style={{background:'transparent',border:`0.25px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>
+                        🎯 ONLY CURRENT
+                      </button>;
+                    })()}
                     {setPortalVis && (() => {
                       const vk = visKeyForPlan(cur, trainees);
                       if (!vk) return null;

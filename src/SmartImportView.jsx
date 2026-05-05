@@ -273,6 +273,19 @@ export default function SmartImportView() {
     try {
       let summary = '';
       if (target === 'exercises') {
+        // Resolve Google Photos share URLs to direct googleusercontent streams
+        // up-front, so the imported library entries land with stable URLs the
+        // trainee portal can embed without re-scraping on every page load.
+        const resolveGph = async (u) => {
+          if (!u || !/photos\.(app\.goo|google)\./i.test(u)) return u;
+          try {
+            const r = await fetch('/api/resolve-video?url=' + encodeURIComponent(u));
+            if (!r.ok) return u;
+            const j = await r.json();
+            return j?.url || u;
+          } catch { return u; }
+        };
+        await Promise.all(transform.items.map(async it => { it.videoLink = await resolveGph(it.videoLink); }));
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
         const lib = row?.value || [];
         const titles = new Set(lib.map(e => (e.title || '').toLowerCase().trim()));

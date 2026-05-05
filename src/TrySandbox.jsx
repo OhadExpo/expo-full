@@ -230,7 +230,6 @@ function ClientPortalMock({ onPick }) {
     { date: '2026-04-15', bw: 63.7, week: 3 },
     { date: '2026-04-22', bw: 63.3, week: 4 },
   ];
-  const STREAK = 4;
 
   const [vw, setVw] = useState('prog');
   const [bw, setBw] = useState('');
@@ -403,12 +402,6 @@ function ClientPortalMock({ onPick }) {
               ))}
             </div>
           </div>
-          {STREAK >= 2 && (
-            <div style={{ textAlign: 'right', flexShrink: 0 }} title={`${STREAK} consecutive days with a logged workout`}>
-              <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: C.or }}>🔥{STREAK}</div>
-              <div style={{ fontSize: 9, color: C.tm, fontFamily: FN }}>STREAK</div>
-            </div>
-          )}
           <div style={{ textAlign: 'right', flexShrink: 0 }}>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: TRAINEE.sessionsLeft <= 2 ? C.rd : C.gn }}>{TRAINEE.sessionsLeft}</div>
             <div style={{ fontSize: 9, color: C.tm, fontFamily: FN }}>SESSIONS</div>
