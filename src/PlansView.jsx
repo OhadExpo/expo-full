@@ -413,7 +413,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                 <span style={{fontFamily:FN,fontSize:12,color:C.tm,fontWeight:700,lineHeight:1}}>{exIdx+1}</span>
               </div>
               <div style={{overflowX:"auto"}}>
-                <div style={{display:"grid",gridTemplateColumns:"2fr 90px minmax(70px,auto) minmax(70px,auto) 1fr 1fr 1fr auto",minWidth:720,gap:12,alignItems:"end"}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(7, minmax(0, 1fr)) auto",minWidth:720,gap:12,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
                   <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise." style={{minWidth:0}}>
                     <Select label="Superset" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
