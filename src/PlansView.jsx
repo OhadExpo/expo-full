@@ -219,14 +219,15 @@ function WarmupEditor({ plan, setPlan }) {
         <Btn variant="ghost" onClick={add} style={{ padding: '4px 10px', fontSize: 11 }}>+ Add Warm-Up</Btn>
       </div>
       {warmup.map((w, i) => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 30px', gap: 8, marginBottom: 6, alignItems: 'end' }}>
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '54px 2fr 1fr 2fr 30px', gap: 12, marginBottom: 6, alignItems: 'end' }}>
+          <div style={{ paddingBottom: 9, fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, textAlign: 'center', letterSpacing: '0.18em' }}>{i + 1}</div>
           <Input label={i === 0 ? 'Exercise' : ''} value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
           <Input label={i === 0 ? 'Rx' : ''} value={w.rx || ''} onChange={e => update(i, { rx: e.target.value })} placeholder="1x10 E" />
           <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
             onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
             placeholder="https://youtube.com/..." />
           <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, marginBottom: 4, opacity: 0.6, fontSize: 16 }}>🗑</button>
-          {w.vid && <div style={{ gridColumn: '1 / -1', marginTop: -2, display: 'flex', justifyContent: 'flex-end' }}><div style={{ width: 220, maxWidth: '100%' }}><VideoEmbed url={w.vid} /></div></div>}
+          {w.vid && <div style={{ gridColumn: '1 / -1', marginTop: 4, display: 'flex', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 480 }}><VideoEmbed url={w.vid} /></div></div>}
         </div>
       ))}
       {warmup.length === 0 && <div style={{ fontSize: 11, color: C.td, marginTop: 8 }}>No warm-ups. Click "+ Add Warm-Up" to add one.</div>}
@@ -431,7 +432,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                 <span style={{fontFamily:FN,fontSize:12,color:C.tm,fontWeight:700,lineHeight:1}}>{exIdx+1}</span>
               </div>
               <div style={{overflowX:"auto"}}>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(7, minmax(0, 1fr)) auto",minWidth:720,gap:12,alignItems:"end"}}>
+                <div style={{display:"grid",gridTemplateColumns:"3fr repeat(6, minmax(0, 1fr)) auto",minWidth:720,gap:12,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
                   <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise." style={{minWidth:0}}>
                     <Select label="Superset" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
@@ -529,7 +530,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.ac+'4D'}`,borderRadius:0,whiteSpace:"nowrap"}}>
                         {hasOverride?"OPEN ▸":"LIB ▸"}
                       </a>}
-                      {effective && <div style={{gridColumn:'1 / -1',marginTop:6,display:'flex',justifyContent:'flex-end'}}><div style={{width:220,maxWidth:'100%'}}><VideoEmbed url={effective} /></div></div>}
+                      {effective && <div style={{gridColumn:'1 / -1',marginTop:8,display:'flex',justifyContent:'center'}}><div style={{width:'100%',maxWidth:480}}><VideoEmbed url={effective} /></div></div>}
                     </div>
                   );
                 })()}
