@@ -562,7 +562,25 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
     </div>);
 }
 
-export default function PlansView({ planIndex, reloadIndex, trainees, exercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onPreviewPlan }) {
+// Build the same visibility key TraineeDetail uses (`${trainee.name}:${plan.name}:m${memberIndex}`)
+// from a plan in the program list. Couples store plans against tr_xxx__N
+// sub-IDs; we strip the suffix to find the parent name and use the suffix as
+// the member index. Solo plans get m0.
+function visKeyForPlan(p, trainees) {
+  const tid = p?.traineeId || '';
+  if (!tid) return null;
+  const m = tid.match(/^(.+)__(\d+)$/);
+  if (m) {
+    const parent = trainees.find(t => t.id === m[1]);
+    if (!parent) return null;
+    return `${parent.name}:${p.name}:m${m[2]}`;
+  }
+  const trainee = trainees.find(t => t.id === tid);
+  if (!trainee) return null;
+  return `${trainee.name}:${p.name}:m0`;
+}
+
+export default function PlansView({ planIndex, reloadIndex, trainees, exercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onPreviewPlan, portalVis, setPortalVis }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
   const [editMode, setEditMode] = useState(false);
@@ -848,6 +866,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         {expanded?`▴ HIDE ${row.earlier.length}`:`▾ +${row.earlier.length} EARLIER`}
                       </button>
                     )}
+                    {setPortalVis && (() => {
+                      const vk = visKeyForPlan(cur, trainees);
+                      if (!vk) return null;
+                      const isVis = portalVis?.[vk] !== false;
+                      return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center'}}>
+                        <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
+                      </button>;
+                    })()}
                     {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em'}}>👁 PREVIEW</button>}
                     <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em'}}>DUPLICATE</button>
                   </div>
@@ -867,6 +893,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         style={{cursor:'pointer',padding:'8px 14px 8px 32px',display:'flex',alignItems:'center',gap:12,opacity:0.78,borderTop:`0.25px solid ${C.ac}1A`}}>
                         <div style={{flex:1,minWidth:0,fontSize:13,color:C.tm,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN}}>{p.name||"Untitled"}</div>
                         <div style={{fontSize:9,color:C.td,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}D · {p.exerciseCount}EX</div>
+                        {setPortalVis && (() => {
+                          const vk = visKeyForPlan(p, trainees);
+                          if (!vk) return null;
+                          const isVis = portalVis?.[vk] !== false;
+                          return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0}}>
+                            <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
+                          </button>;
+                        })()}
                         {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>👁 PREVIEW</button>}
                         <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>DUPLICATE</button>
                         <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>DELETE</button>
@@ -903,7 +937,15 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{p.name||"Untitled"}</div>
                 <div style={{fontSize:10,color:C.tm,fontFamily:FN,letterSpacing:'0.1em',textTransform:'uppercase',flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount} DAYS · {p.exerciseCount} EX{p.phase?` · ${p.phase}`:''}</div>
               </div>
-              <div style={{display:"flex",gap:6,flexShrink:0}}>
+              <div style={{display:"flex",gap:6,flexShrink:0,alignItems:'center'}}>
+                {setPortalVis && (() => {
+                  const vk = visKeyForPlan(p, trainees);
+                  if (!vk) return null;
+                  const isVis = portalVis?.[vk] !== false;
+                  return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center'}}>
+                    <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
+                  </button>;
+                })()}
                 {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>👁 PREVIEW</button>}
                 <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>DUPLICATE</button>
                 <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>DELETE</button>
