@@ -135,6 +135,36 @@ function trainerPlanToPortal(plan, trainerExercises) {
 const bi = {background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
 const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:0,fontSize:10,fontWeight:700,fontFamily:FN,background:'transparent',border:`0.25px solid ${color}`,color,letterSpacing:'0.18em',textTransform:'uppercase',...s}}>{children}</span>;
 
+// Renders a Google Photos share URL as an inline player. Google blocks
+// iframe embedding of share pages via X-Frame-Options, so /api/resolve-video
+// scrapes the share page server-side and returns a direct googleusercontent
+// stream URL we can hand to <video>. Resolution is cached at the edge for a
+// day, so subsequent loads are instant.
+const _gphResolveCache = new Map();
+function GooglePhotosEmbed({ url }) {
+  const [state, setState] = useState(() => _gphResolveCache.get(url) || { phase: 'loading' });
+  useEffect(() => {
+    if (_gphResolveCache.has(url)) { setState(_gphResolveCache.get(url)); return; }
+    let alive = true;
+    fetch('/api/resolve-video?url=' + encodeURIComponent(url))
+      .then(r => r.json().then(j => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (!alive) return;
+        const next = ok && j?.url ? { phase: 'ok', src: j.url, poster: j.poster || null } : { phase: 'err', error: j?.error || 'Cannot resolve video' };
+        _gphResolveCache.set(url, next);
+        setState(next);
+      })
+      .catch(e => { if (alive) setState({ phase: 'err', error: String(e?.message || e) }); });
+    return () => { alive = false; };
+  }, [url]);
+  const wrap = {marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.ac}4D`};
+  if (state.phase === 'loading') return <div style={{...wrap,display:'flex',alignItems:'center',justifyContent:'center',color:C.tm,fontFamily:FN,fontSize:11,letterSpacing:'0.18em'}}>LOADING VIDEO…</div>;
+  if (state.phase === 'err') return <div style={{...wrap,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.tm,fontFamily:FN,fontSize:11,padding:16,textAlign:'center'}}>
+    <div>VIDEO COULD NOT BE EMBEDDED</div>
+    <a href={url} target="_blank" rel="noopener noreferrer" style={{color:C.ac,textDecoration:'none',letterSpacing:'0.18em'}}>OPEN IN GOOGLE PHOTOS →</a></div>;
+  return <div style={wrap}><video src={state.src} poster={state.poster||undefined} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>;
+}
+
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution}) {
   // Steps: 'wu0','wu1',... → 'pre' → 0,1,2,... (group indices) → 'end'
@@ -625,8 +655,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
           : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.ac}4D`}}>
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
-          : wu.vid && /(photos\.app\.goo\.gl|photos\.google\.com|lh3\.googleusercontent\.com)/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.ac}4D`}}>
-          <iframe src={wu.vid} style={{width:'100%',height:'100%',border:'none'}} allow="autoplay; fullscreen" allowFullScreen/></div>
+          : wu.vid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(wu.vid) ? <GooglePhotosEmbed url={wu.vid} />
+          : wu.vid && /lh3\.googleusercontent\.com/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.ac}4D`}}>
+          <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>No video for this exercise</div>}
         <div style={{display:'flex',gap:8}}>
           <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
@@ -886,8 +917,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
         : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.ac}4D`}}>
         <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
-        : effectiveVid && /(photos\.app\.goo\.gl|photos\.google\.com|lh3\.googleusercontent\.com)/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.ac}4D`}}>
-        <iframe src={effectiveVid} style={{width:'100%',height:'100%',border:'none'}} allow="autoplay; fullscreen" allowFullScreen/></div> : null}
+        : effectiveVid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(effectiveVid) ? <GooglePhotosEmbed url={effectiveVid} />
+        : effectiveVid && /lh3\.googleusercontent\.com/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.ac}4D`}}>
+        <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div> : null}
 
       <div style={{background:'transparent',border:'0.25px solid '+(wf?C.ac:C.ac+'4D'),borderLeft:'2px solid '+(wf?C.ac:C.ac+'4D'),borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
         <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
