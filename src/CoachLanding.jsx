@@ -509,15 +509,15 @@ export default function CoachLanding({ lang = 'en' }) {
         <section style={{
           maxWidth: 920, margin: '0 auto', padding: '64px 20px 40px', textAlign: 'center',
         }}>
-          {/* Logo above, "COACHING PLATFORM" below — both center-aligned.
-              Was an inline row with the mark sitting next to "· COACHING
-              PLATFORM"; the small-mark + bullet read awkwardly. */}
+          {/* EXPO icon (caret-X mark, not the wordmark) above "COACHING
+              PLATFORM" — both center-aligned. /icon-192.png is the same
+              square caret used as the PWA install icon. */}
           <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
             fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
             marginBottom: 14,
           }}>
-            <EXPOMark height={28} />
+            <img src="/icon-192.png" alt="EXPO" width="40" height="40" style={{ display: 'block' }} />
             <span>{t('hero.badge')}</span>
           </div>
           <h1 style={{
