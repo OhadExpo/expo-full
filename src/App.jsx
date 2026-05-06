@@ -572,9 +572,13 @@ function AuthedApp() {
     return <UnauthorizedScreen email={session?.user?.email || ''} onSignOut={signOut} />;
   }
 
-  // Client view — portal for the logged-in client.
+  // Client view — portal for the logged-in client. Dual-role users (an
+  // account that's BOTH a trainer AND a client row, e.g. Ohad himself)
+  // get an `onReturnToCoach` callback wired to pickPortal('trainer') so
+  // they can switch back without signing out.
   if (isClient) return (<Suspense fallback={<ViewFallback />}>
-    <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}/>
+    <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
+      onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
   </Suspense>);
 
   // Wait for small stores + plan index so trainee card counts don't flash 0
