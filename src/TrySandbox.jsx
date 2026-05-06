@@ -882,7 +882,7 @@ function POVBanner({ pov }) {
             padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             textDecoration: 'none',
           }}>COACH</a>
-          <a href="/demo/trainee" style={{
+          <a href="/demo/athlete" style={{
             background: !isCoach ? C.ac : 'transparent',
             color: !isCoach ? '#000' : C.tm,
             padding:'5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,

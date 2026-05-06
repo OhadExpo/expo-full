@@ -309,7 +309,7 @@ function DemoEmbed({ t }) {
             <div style={{ fontSize: 9, color: C.td, letterSpacing: '0.18em' }}>{t('demo.embed.modelfoot')}</div>
           </div>
         )}
-        <iframe src="/demo/trainee?embed=1" title="EXPO live engine"
+        <iframe src="/demo/athlete?embed=1" title="EXPO live engine"
           onLoad={() => setLoaded(true)}
           style={{
             display: 'block', width: '100%', border: 'none', position: 'relative', zIndex: 1,
@@ -323,7 +323,7 @@ function DemoEmbed({ t }) {
         <a href="/demo/coach" target="_blank" rel="noopener" style={{
           ...baseBtn, background: C.ac, color: '#000', padding: '11px 22px', fontSize: 12,
         }}>{t('demo.embed.openCoach')}</a>
-        <a href="/demo/trainee" target="_blank" rel="noopener" style={{
+        <a href="/demo/athlete" target="_blank" rel="noopener" style={{
           ...baseBtn, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd2}`, padding: '11px 22px', fontSize: 12,
         }}>{t('demo.embed.openAthlete')}</a>
@@ -531,7 +531,7 @@ export default function CoachLanding({ lang = 'en' }) {
             <a href="/demo/coach" style={{
               ...baseBtn, background: C.ac, color: '#000', padding: '13px 26px', fontSize: 13,
             }}>{t('hero.cta.coach')}</a>
-            <a href="/demo/trainee" style={{
+            <a href="/demo/athlete" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
               border: `1px solid ${C.bd2}`, padding: '13px 26px', fontSize: 13,
             }}>{t('hero.cta.athlete')}</a>

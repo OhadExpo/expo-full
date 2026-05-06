@@ -133,7 +133,13 @@ function AuthGate() {
       return;
     }
     if (path === '/coaches/demo' || path === '/coaches/demo/trainee') {
-      window.history.replaceState(null, '', '/demo/trainee');
+      window.history.replaceState(null, '', '/demo/athlete');
+      return;
+    }
+    // /demo/trainee → /demo/athlete canonical rename. Keeps existing
+    // shared links / chat-bot CTAs working without 404s.
+    if (path === '/demo/trainee') {
+      window.history.replaceState(null, '', '/demo/athlete');
       return;
     }
   }, [inPwa, path]);
@@ -161,7 +167,7 @@ function AuthGate() {
     if (path === '/demo/coach' || path.startsWith('/demo/coach/') || path === '/coaches/demo/coach') {
       return <Suspense fallback={<BootSplash />}><CoachDemo /></Suspense>;
     }
-    if (path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
+    if (path === '/demo/athlete' || path === '/demo/trainee' || path === '/coaches/demo/trainee' || path === '/coaches/demo') {
       return <Suspense fallback={<BootSplash />}><DemoTraineePortal /></Suspense>;
     }
     if (path === '/demo/sandbox') {
