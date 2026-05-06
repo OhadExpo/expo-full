@@ -106,9 +106,11 @@ export default function EntryChooser() {
           marginTop: 28, fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.18em',
           textAlign: 'center',
         }}>
+          {/* "Athlete view" intentionally NOT surfaced here — the route is
+              still public at /demo/trainee, but visitors should land there
+              via the "For coaches" tile → CoachLanding hero/demo embed,
+              not as a peer link with the coach product. */}
           <a href="/demo/coach" style={{ color: C.td, textDecoration: 'none' }}>FULL COACH DEMO</a>
-          <span style={{ margin: '0 8px' }}>·</span>
-          <a href="/demo/trainee" style={{ color: C.td, textDecoration: 'none' }}>ATHLETE VIEW</a>
           <span style={{ margin: '0 8px' }}>·</span>
           <a href="https://expo-il.co.il/" style={{ color: C.td, textDecoration: 'none' }}>BUY A PROGRAM</a>
         </div>
