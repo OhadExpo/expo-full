@@ -353,7 +353,11 @@ function Nav() {
                 background: on ? C.acD : 'transparent',
                 color: on ? C.ac : C.tm,
                 borderRadius: 0, padding: '6px 10px',
-                fontSize: 12, fontWeight: on ? 700 : 500,
+                // Always 700 — inactive=500 was too thin in Hebrew (Heebo
+                // Medium reads light against bold Nord). Match the
+                // coach-app's tabs: weight stays bold; active state shows
+                // through background tint + color shift.
+                fontSize: 12, fontWeight: 700,
                 whiteSpace: 'nowrap',
               }}>
                 <span>{tab.label}</span>
