@@ -4,6 +4,7 @@ import { Badge, baseInput, SectionLabel } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
+import UpcomingSessionsPanel from './UpcomingSessionsPanel';
 
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
 // For couples we pick the member whose phone is set; if both have phones,
@@ -167,6 +168,11 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
   return (
     <div>
+      {/* Upcoming sessions — pulled from Ohad's Google Calendar via the
+          public iCal URL (EXPO_GCAL_ICS_URL env var). Lives above the
+          summary cards so today's bookings are the first thing scanned. */}
+      <UpcomingSessionsPanel trainees={trainees} onSelectTrainee={onSelectTrainee} />
+
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
