@@ -95,10 +95,20 @@ function summaryDisplayName(ev) {
   return ev.summary || '(unnamed)';
 }
 
+// Supabase URL — used to build the edge function URL for an instant
+// post-save sync trigger. Mirrors what's in supabase.js (kept inline so
+// the panel stays self-contained).
+const SUPABASE_FUNCTIONS_BASE = 'https://gtcbfglttoiyfsnfbhdy.supabase.co/functions/v1';
+
 export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
   const [events, setEvents] = useState(null);
   const [syncMeta, setSyncMeta] = useState(null);
   const [error, setError] = useState(null);
+  const [icsUrl, setIcsUrl] = useState(null); // null=not loaded, ''=not configured, 'url'=configured
+  const [showSettings, setShowSettings] = useState(false);
+  const [draftUrl, setDraftUrl] = useState('');
+  const [savingUrl, setSavingUrl] = useState(false);
+  const [setupError, setSetupError] = useState(null);
 
   const reload = useCallback(async () => {
     try {
@@ -117,6 +127,10 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
       const { data: meta } = await supabase
         .from('store').select('value, updated_at').eq('key', 'expo-calendar-sync').maybeSingle();
       setSyncMeta(meta?.value ? { ...meta.value, updated_at: meta.updated_at } : null);
+
+      const { data: urlRow } = await supabase
+        .from('store').select('value').eq('key', 'expo-calendar-ics-url').maybeSingle();
+      setIcsUrl(urlRow?.value?.url || '');
     } catch (e) {
       setEvents([]); setError(String(e?.message || e));
     }
@@ -124,11 +138,56 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
 
   useEffect(() => {
     reload();
-    // 90s polling — cheap (a single Supabase SELECT) and catches the rare
-    // case where another session resyncs while the dashboard is open.
+    // 90s polling — cheap (a single Supabase SELECT) and catches the
+    // 10-min cron sync that happens server-side.
     const id = setInterval(reload, 90 * 1000);
     return () => clearInterval(id);
   }, [reload]);
+
+  // Trigger an immediate sync via the edge function (rather than wait for
+  // the next cron tick). Used right after saving the URL.
+  const triggerSync = useCallback(async () => {
+    try {
+      await fetch(`${SUPABASE_FUNCTIONS_BASE}/sync-calendar`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+      });
+    } catch {}
+    // Reload from cache regardless — the cron may have already populated.
+    setTimeout(reload, 1500);
+  }, [reload]);
+
+  const saveIcsUrl = useCallback(async () => {
+    const url = String(draftUrl || '').trim();
+    if (!url) { setSetupError('Paste a URL first.'); return; }
+    if (!/^https:\/\/calendar\.google\.com\//i.test(url)) {
+      setSetupError("Doesn't look like a Google Calendar URL. It should start with https://calendar.google.com/");
+      return;
+    }
+    setSavingUrl(true); setSetupError(null);
+    try {
+      const { error: e } = await supabase.from('store').upsert({
+        key: 'expo-calendar-ics-url',
+        value: { url, configured_at: new Date().toISOString() },
+      });
+      if (e) throw e;
+      setIcsUrl(url);
+      setShowSettings(false);
+      setDraftUrl('');
+      await triggerSync();
+    } catch (e) {
+      setSetupError(String(e?.message || e));
+    } finally {
+      setSavingUrl(false);
+    }
+  }, [draftUrl, triggerSync]);
+
+  const removeIcsUrl = useCallback(async () => {
+    if (!confirm('Disconnect Google Calendar? Auto-sync will stop until a URL is pasted again.')) return;
+    try {
+      await supabase.from('store').delete().eq('key', 'expo-calendar-ics-url');
+      setIcsUrl('');
+    } catch {}
+  }, []);
 
   const enriched = useMemo(() => (events || []).map(ev => {
     const trainee = matchTrainee(ev, trainees);
@@ -141,11 +200,62 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
     return out;
   }, [enriched]);
 
-  if (events == null) {
+  if (events == null || icsUrl == null) {
     return (
       <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.ac}4D` }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS</div>
         <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 8 }}>Loading…</div>
+      </div>
+    );
+  }
+
+  // Not configured yet: render the one-time setup form. This is the only
+  // manual step in the entire calendar feature — paste your secret iCal
+  // URL once, after which pg_cron auto-syncs every 10 minutes.
+  if (icsUrl === '' || showSettings) {
+    return (
+      <div style={{ marginBottom: 16, padding: '16px 20px', border: `0.25px dashed ${C.ac}80` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
+            {icsUrl ? 'CONNECT CALENDAR · UPDATE' : 'CONNECT CALENDAR · ONE-TIME'}
+          </div>
+          {icsUrl && <button onClick={() => setShowSettings(false)}
+            style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            ✕ CANCEL
+          </button>}
+        </div>
+        <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, marginTop: 10, lineHeight: 1.6 }}>
+          Paste your Google Calendar's <em>secret iCal URL</em> below. Auto-sync runs every 10 minutes after that — no other setup needed.
+        </div>
+        <ol style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 8, paddingLeft: 20, lineHeight: 1.7 }}>
+          <li>Open <a href="https://calendar.google.com/calendar/r/settings" target="_blank" rel="noreferrer" style={{ color: C.ac, textDecoration: 'underline' }}>Google Calendar settings</a></li>
+          <li>Click your primary calendar → "Integrate calendar"</li>
+          <li>Copy "Secret address in iCal format" (the URL ending in <code>.ics</code>)</li>
+          <li>Paste it below</li>
+        </ol>
+        <input
+          value={draftUrl}
+          onChange={e => setDraftUrl(e.target.value)}
+          placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
+          autoFocus
+          style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none', marginTop: 12 }}
+        />
+        {setupError && <div style={{ color: C.rd, fontFamily: FN, fontSize: 11, marginTop: 6 }}>{setupError}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button onClick={saveIcsUrl} disabled={savingUrl}
+            style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, padding: '8px 18px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', cursor: savingUrl ? 'wait' : 'pointer', borderRadius: 0, textTransform: 'uppercase', opacity: savingUrl ? 0.5 : 1 }}>
+            {savingUrl ? 'CONNECTING…' : 'CONNECT'}
+          </button>
+          {icsUrl && (
+            <button onClick={removeIcsUrl}
+              style={{ background: 'transparent', border: `0.25px solid ${C.rd}`, color: C.rd, padding: '8px 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+              DISCONNECT
+            </button>
+          )}
+        </div>
+        <div style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 14, letterSpacing: '0.06em' }}>
+          The URL is stored in your private Supabase project; only the trainer (you) can read it. The edge function uses it server-side.
+        </div>
       </div>
     );
   }
@@ -217,10 +327,15 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
           <span style={{ fontFamily: FN, fontSize: 9, color: staleColor, letterSpacing: '0.12em', fontWeight: 700 }}>
             {stalenessLabel}
           </span>
-          <button onClick={reload}
-            title="Re-fetch from cache (does not trigger a Calendar resync)"
+          <button onClick={triggerSync}
+            title="Force an immediate calendar resync (otherwise runs every 10 min)"
             style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
-            ↻ Reload
+            ↻ Sync Now
+          </button>
+          <button onClick={() => setShowSettings(true)}
+            title="Update or disconnect the iCal URL"
+            style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            ⚙
           </button>
         </div>
       </div>
