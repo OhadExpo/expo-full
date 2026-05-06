@@ -70,7 +70,7 @@ const STRINGS = {
   // ─── Card ─────────────────────────────────────────────────────────
   'card.price':          { en: 'PRICE',          he: 'מחיר' },
   'card.view':           { en: 'VIEW',           he: 'הצצה' },
-  'card.buy':            { en: 'BUY →',          he: '← קנייה' },
+  'card.buy':            { en: 'BUY →',          he: 'קנייה ←' },
   'card.currency.NIS':   { en: 'NIS',            he: '₪' },
   'card.share':          { en: 'Share program',  he: 'שתף תוכנית' },
   'card.share.copied':   { en: 'LINK COPIED',    he: 'הקישור הועתק' },
@@ -165,7 +165,7 @@ const STRINGS = {
   // own clip — without account, login, or any backend touch.
   'inside.tryCta': {
     en: 'See your own set analysed live →',
-    he: '← תראה את הסט שלך נבדק חי',
+    he: 'תראה את הסט שלך נבדק חי ←',
   },
 
   // ─── About the coach ──────────────────────────────────────────────
@@ -267,7 +267,7 @@ const STRINGS = {
 
   // ─── Sticky bottom CTA (mobile) ───────────────────────────────────
   'cta.sticky.label':    { en: 'Not sure which program?', he: 'לא בטוח איזו תוכנית?' },
-  'cta.sticky.btn':      { en: 'WHATSAPP →',              he: '← וואטסאפ' },
+  'cta.sticky.btn':      { en: 'WHATSAPP →',              he: 'וואטסאפ ←' },
 
   // ─── Contact ──────────────────────────────────────────────────────
   'contact.badge':       { en: 'CONTACT',        he: 'דבר איתי' },
@@ -300,7 +300,7 @@ const STRINGS = {
   'detail.tempo.tmpl':        { en: 'tempo {tempo}',    he: 'טמפו {tempo}' },
   'detail.price':             { en: 'PRICE',            he: 'מחיר' },
   'detail.price.note':        { en: 'One-time payment · lifetime access in the EXPO portal', he: 'תשלום חד-פעמי · גישה לכל החיים בפורטל' },
-  'detail.cta.buy':           { en: 'BUY VIA WHATSAPP →', he: '← קנייה בוואטסאפ' },
+  'detail.cta.buy':           { en: 'BUY VIA WHATSAPP →', he: 'קנייה בוואטסאפ ←' },
 
   // ─── Per-route document title ─────────────────────────────────────
   'doc.title.home':      { en: 'EXPO · Programmed Training', he: 'EXPO · אימון לפי תוכנית' },
@@ -407,13 +407,13 @@ const STRINGS = {
     en: "I built this from the same intake form I use with private athletes — just shorter. Takes about a minute. The full assessment lives behind it for when you are ready.",
     he: 'בניתי את זה מאותו טופס היכרות שאני עובד איתו עם ספורטאים אישיים — רק קצר יותר. דקה. ההערכה המלאה מחכה מאחורה לכשתרצה.',
   },
-  'quiz.cta':         { en: 'START QUIZ →',          he: '← תתחיל קוויז' },
+  'quiz.cta':         { en: 'START QUIZ →',          he: 'תתחיל קוויז ←' },
   'quiz.modal.title': { en: 'Find your program',     he: 'תמצא לך תוכנית' },
   'quiz.modal.close': { en: 'Close',                 he: 'סגירה' },
   'quiz.step.tmpl':   { en: 'STEP {n} OF {total}',   he: 'שלב {n} מתוך {total}' },
-  'quiz.next':        { en: 'NEXT →',                he: '← הבא' },
+  'quiz.next':        { en: 'NEXT →',                he: 'הבא ←' },
   'quiz.back':        { en: '← BACK',                he: 'חזרה →' },
-  'quiz.see':         { en: 'SEE MY MATCHES →',      he: '← תראה התאמות' },
+  'quiz.see':         { en: 'SEE MY MATCHES →',      he: 'תראה התאמות ←' },
   'quiz.restart':     { en: '↺ RESTART',             he: '↺ התחלה מחדש' },
 
   // Q1 — couple
@@ -472,8 +472,8 @@ const STRINGS = {
     en: 'The full intake form is the same one I use with private athletes — body history, sleep, stress, training history, goals. Fills in 6 minutes. After you submit it I will reply with a personalised recommendation.',
     he: 'טופס ההיכרות המלא הוא אותו אחד שאני עובד איתו עם ספורטאים אישיים — היסטוריה גופנית, שינה, לחץ, ניסיון אימוני, מטרות. ממלאים תוך 6 דקות. אחרי שאתה שולח אני חוזר עם המלצה אישית.',
   },
-  'quiz.r.full.cta':   { en: 'OPEN FULL ASSESSMENT →', he: '← תפתח את הטופס המלא' },
-  'quiz.r.wa.cta':     { en: 'OR ASK ON WHATSAPP →', he: '← או תכתוב בוואטסאפ' },
+  'quiz.r.full.cta':   { en: 'OPEN FULL ASSESSMENT →', he: 'תפתח את הטופס המלא ←' },
+  'quiz.r.wa.cta':     { en: 'OR ASK ON WHATSAPP →', he: 'או תכתוב בוואטסאפ ←' },
 
   // ─── Exit-intent / scroll-50% modal ───────────────────────────────
   'exit.title':       { en: 'Before you go —',      he: 'לפני שאתה הולך —' },

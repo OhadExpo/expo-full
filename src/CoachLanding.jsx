@@ -38,7 +38,7 @@ const STRINGS = {
   // Header
   'header.badge':        { en: 'FOR COACHES',          he: 'למאמנים' },
   'header.demo':         { en: 'SEE THE DEMO',         he: 'תראה הדגמה' },
-  'header.signin':       { en: 'SIGN IN →',            he: '← התחברות' },
+  'header.signin':       { en: 'SIGN IN →',            he: 'התחברות ←' },
 
   // Hero
   'hero.badge':          { en: 'COACHING PLATFORM',    he: 'פלטפורמת אימון' },
@@ -47,8 +47,8 @@ const STRINGS = {
     en: 'Pose detection, auto rep counter, side-by-side video review, plan authoring, client portals, and a dormant-client WhatsApp nudge — built by a working coach, running live on real clients.',
     he: 'זיהוי תנוחה, ספירת חזרות אוטומטית, השוואת וידאו צד-לצד, בניית תוכניות, פורטל אישי לכל מתאמן, ותזכורת וואטסאפ למתאמנים ששקטו — מאמן פעיל בונה את זה, רץ חי על מתאמנים אמיתיים.',
   },
-  'hero.cta.coach':      { en: 'SEE COACH VIEW →',     he: '← הצד של המאמן' },
-  'hero.cta.athlete':    { en: 'SEE ATHLETE VIEW →',   he: '← הצד של המתאמן' },
+  'hero.cta.coach':      { en: 'SEE COACH VIEW →',     he: 'הצד של המאמן ←' },
+  'hero.cta.athlete':    { en: 'SEE ATHLETE VIEW →',   he: 'הצד של המתאמן ←' },
   'hero.cta.waitlist':   { en: 'OR JOIN WAITLIST',     he: 'או הצטרף לרשימה' },
   'hero.smallprint':     { en: 'NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP', he: 'בלי כרטיס · בלי הרשמה · ההדגמה רצה על הקליפ שלך' },
 
@@ -61,8 +61,8 @@ const STRINGS = {
   },
   'demo.embed.loading':  { en: 'LOADING ENGINE…',      he: 'טוען מנוע…' },
   'demo.embed.modelfoot':{ en: 'POSE MODEL · ~6MB · FIRST LOAD ONLY', he: 'מודל תנוחה · ~6MB · רק בטעינה ראשונה' },
-  'demo.embed.openCoach':{ en: 'OPEN THE FULL COACH DEMO →', he: '← הדגמת מאמן מלאה' },
-  'demo.embed.openAthlete':{ en: 'OPEN THE ATHLETE VIEW →', he: '← הצד של המתאמן' },
+  'demo.embed.openCoach':{ en: 'OPEN THE FULL COACH DEMO →', he: 'הדגמת מאמן מלאה ←' },
+  'demo.embed.openAthlete':{ en: 'OPEN THE ATHLETE VIEW →', he: 'הצד של המתאמן ←' },
 
   // Features
   'features.badge':      { en: 'WHAT YOU GET',         he: 'מה אתה מקבל' },
@@ -161,7 +161,7 @@ const STRINGS = {
 
   // Sticky mobile + footer
   'sticky.engine':       { en: 'TRY THE ENGINE',       he: 'תנסה את המנוע' },
-  'sticky.waitlist':     { en: 'WAITLIST →',           he: '← לרשימה' },
+  'sticky.waitlist':     { en: 'WAITLIST →',           he: 'לרשימה ←' },
   'footer.line':         { en: '· COACHING PLATFORM · BUILT IN TEL AVIV · © {year} ALL RIGHTS RESERVED', he: '· פלטפורמת אימון · נבנה בתל אביב · © {year} כל הזכויות שמורות' },
   'footer.demo':         { en: 'DEMO',                 he: 'הדגמה' },
   'footer.signin':       { en: 'SIGN IN',              he: 'התחברות' },
