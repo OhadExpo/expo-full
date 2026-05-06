@@ -593,7 +593,7 @@ function AuthedApp() {
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
           {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)}/>}
-          {tab==="waitlist"&&<WaitlistView/>}
+          {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="chatAudit"&&<ChatAuditView/>}
           {tab==="smartImport"&&<SmartImportView/>}
           {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}

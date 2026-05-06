@@ -42,7 +42,28 @@ function scoreLead(l) {
   return Math.min(s, 4);
 }
 
-export default function WaitlistView() {
+// Time-to-contact human formatter.
+function fmtTtc(ms) {
+  if (ms == null || !Number.isFinite(ms)) return '—';
+  const hours = ms / 3600000;
+  if (hours < 1) return `${Math.round(ms / 60000)}m`;
+  if (hours < 24) return `${hours.toFixed(1)}h`;
+  return `${(hours / 24).toFixed(1)}d`;
+}
+
+// Stat tile used in the funnel strip. `sub` is a small caption shown below
+// the main value (e.g. percentage of total). `color` tints the value text.
+function StatTile({ label, value, sub, color }) {
+  return (
+    <div style={{ minWidth: 0 }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontFamily: FN, fontSize: 18, color: color || C.tx, fontWeight: 700, marginTop: 2 }}>{value}</div>
+      {sub && <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 1 }}>{sub}</div>}
+    </div>
+  );
+}
+
+export default function WaitlistView({ trainees }) {
   const [leads, setLeads] = useState(null);
   const [notes, setNotes] = useState({});
   const [savingNote, setSavingNote] = useState(null);
@@ -133,6 +154,53 @@ export default function WaitlistView() {
   const gateOpen = active >= COACH_GATE;
   const gateColor = gateOpen ? C.gn : (active > 0 ? C.or : C.td);
 
+  // Funnel conversion stats. Cross-references lead emails against the live
+  // trainees list so a lead that ended up signing on shows up as conversion
+  // even though we never explicitly tag a lead as "converted". Couple
+  // members are flattened (each member email counts).
+  const stats = useMemo(() => {
+    if (total === 0) return null;
+    const contacted = enriched.filter(l => l.contacted);
+    const contactedCount = contacted.length;
+    const contactRate = total > 0 ? contactedCount / total : 0;
+
+    const sourceCount = { chat: 0, form: 0, paid: 0, other: 0 };
+    for (const l of enriched) {
+      if (l.source === 'expo-app-chat') sourceCount.chat++;
+      else if (l.source === 'expo-app') sourceCount.form++;
+      else if (l.source === 'paid' || l.source === 'ad') sourceCount.paid++;
+      else sourceCount.other++;
+    }
+
+    // Median time-to-contact across leads that have both timestamps.
+    const ttcMs = contacted
+      .map(l => (l.created_at && l.consumed_at) ? new Date(l.consumed_at).getTime() - new Date(l.created_at).getTime() : null)
+      .filter(d => Number.isFinite(d) && d >= 0)
+      .sort((a, b) => a - b);
+    const ttcMedianMs = ttcMs.length ? ttcMs[Math.floor(ttcMs.length / 2)] : null;
+
+    // Build a lowercase email set from trainees (top-level + couple members,
+    // arrays + scalars). Any lead whose email matches counts as converted.
+    const traineeEmails = new Set();
+    const addEmail = (e) => { if (typeof e === 'string' && e.trim()) traineeEmails.add(e.trim().toLowerCase()); };
+    for (const t of trainees || []) {
+      if (Array.isArray(t.email)) t.email.forEach(addEmail);
+      else addEmail(t.email);
+      if (Array.isArray(t.members)) {
+        for (const m of t.members) {
+          if (Array.isArray(m.email)) m.email.forEach(addEmail);
+          else addEmail(m.email);
+        }
+      }
+    }
+    const signupCount = enriched.filter(l => l.email && traineeEmails.has(String(l.email).toLowerCase())).length;
+    const signupRate = contactedCount > 0 ? signupCount / contactedCount : 0;
+
+    const avgIntent = enriched.reduce((a, l) => a + (l.intent || 0), 0) / total;
+
+    return { contactedCount, contactRate, sourceCount, ttcMedianMs, signupCount, signupRate, avgIntent };
+  }, [enriched, trainees, total]);
+
   const toggleSort = (k) => { if (sort === k) setDir(d => d * -1); else { setSort(k); setDir(k === 'date' ? -1 : 1); } };
   const SH = ({ k, label }) => (
     <th onClick={() => toggleSort(k)} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: sort === k ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
@@ -167,6 +235,20 @@ export default function WaitlistView() {
           </div>
         </div>
       </div>
+
+      {/* Funnel conversion strip — six tiles covering volume, contact rate,
+          time-to-contact, source split, signup conversion, and avg intent.
+          Hidden when there are no leads at all. */}
+      {stats && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 14, padding: '14px 18px', border: `0.25px solid ${C.ac}4D` }}>
+          <StatTile label="Leads" value={total} sub={`${active} uncontacted`} />
+          <StatTile label="Contact rate" value={`${(stats.contactRate * 100).toFixed(0)}%`} sub={`${stats.contactedCount} / ${total}`} color={stats.contactRate >= 0.8 ? C.gn : (stats.contactRate >= 0.5 ? C.or : C.rd)} />
+          <StatTile label="Median t→contact" value={fmtTtc(stats.ttcMedianMs)} sub={stats.contactedCount === 0 ? 'no contacted yet' : `across ${stats.contactedCount}`} />
+          <StatTile label="Signed up" value={stats.signupCount} sub={stats.contactedCount === 0 ? '—' : `${(stats.signupRate * 100).toFixed(0)}% of contacted`} color={C.ac} />
+          <StatTile label="Source mix" value={`${stats.sourceCount.chat} · ${stats.sourceCount.form} · ${stats.sourceCount.paid}`} sub="chat · form · paid" />
+          <StatTile label="Avg intent" value={`${stats.avgIntent.toFixed(1)} / 4`} color={stats.avgIntent >= 2.5 ? C.ac : C.tm} />
+        </div>
+      )}
 
       {/* Filter */}
       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-start' }}>
