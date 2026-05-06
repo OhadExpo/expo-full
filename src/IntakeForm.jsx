@@ -296,7 +296,7 @@ export default function IntakeForm() {
   return (
     <div style={wrapper}><div style={card}>
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 32, opacity: 0.85, marginBottom: 12 }} />
+        <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 36, opacity: 0.85, marginBottom: 12 }} />
         <h2 style={{ fontFamily: FN, fontSize: 22, color: C.tx, margin: '0 0 8px' }}>{form?.title}</h2>
         <p style={{ fontSize: 13, color: C.tm, margin: 0, lineHeight: 1.5 }}>{form?.intro}</p>
       </div>

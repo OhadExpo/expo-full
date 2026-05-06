@@ -64,7 +64,7 @@ export default function EntryChooser() {
           maxWidth: 1180, margin: '0 auto', padding: '0 16px',
           display: 'flex', alignItems: 'center', height: 60,
         }}>
-          <EXPOMark height={22} style={{ marginBottom: 0 }} />
+          <EXPOMark height={36} style={{ marginBottom: 0 }} />
         </div>
       </header>
 

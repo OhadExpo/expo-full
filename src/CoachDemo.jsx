@@ -2181,7 +2181,7 @@ export default function CoachDemo() {
           display: 'flex', alignItems: 'center', height: 60, gap: 12, overflowX: 'auto',
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
-            <EXPOMark height={22} style={{ marginBottom: 0 }} />
+            <EXPOMark height={36} style={{ marginBottom: 0 }} />
           </a>
           <span className="cd-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,

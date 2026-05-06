@@ -620,7 +620,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   }, [showResumedPill]);
   const bar = <div style={{padding:'10px 16px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',height:32}}>
-      <EXPOMark height={22} style={{flexShrink:0}} />
+      <EXPOMark height={36} style={{flexShrink:0}} />
       <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
       {showResumedPill && <span title="Restored from your last session" style={{marginLeft:'auto',background:'transparent',border:`0.25px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
       <button onClick={onBack} style={{marginLeft:showResumedPill?8:'auto',background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
@@ -724,7 +724,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   })();
   if (step === 'end') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20,textAlign:'center'}}>
-      <EXPOMark height={22} style={{marginBottom:16}} />
+      <EXPOMark height={36} style={{marginBottom:16}} />
       <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
 

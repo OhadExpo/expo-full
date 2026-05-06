@@ -338,7 +338,7 @@ function Nav() {
           flex: '0 0 auto', display: 'flex', alignItems: 'center',
           marginRight: 12, height: 56,
         }}>
-          <BrandMark height={22} />
+          <BrandMark height={36} />
         </a>
         <nav style={{
           display: 'flex', gap: 2, alignItems: 'center',

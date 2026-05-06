@@ -480,7 +480,7 @@ export default function CoachLanding({ lang = 'en' }) {
           display: 'flex', alignItems: 'center', height: 60, gap: 14,
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
-            <EXPOMark height={22} style={{ marginBottom: 0 }} />
+            <EXPOMark height={36} style={{ marginBottom: 0 }} />
           </a>
           <span style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.18em', fontWeight: 700,

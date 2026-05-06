@@ -385,7 +385,7 @@ function ClientPortalMock({ onPick }) {
     <>
       <div style={{ background: `linear-gradient(135deg,${C.sf},${C.sf2})`, padding: '20px 20px 16px', borderBottom: `1px solid ${C.bd}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <EXPOMark height={22} style={{ marginLeft: 3 }} />
+          <EXPOMark height={36} style={{ marginLeft: 3 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button title="Change password (demo)" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
@@ -732,7 +732,7 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
         display:'flex', alignItems:'center', height: 60, gap: 14,
       }}>
         <a href="/" title="Back to EXPO" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flex:'0 0 auto' }}>
-          <EXPOMark height={22} style={{ marginBottom: 0 }} />
+          <EXPOMark height={36} style={{ marginBottom: 0 }} />
         </a>
         {/* DEMO badge — hidden on narrow screens via the .try-sandbox-badge
             class so the step nav has room to breathe on phones. */}

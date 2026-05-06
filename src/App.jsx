@@ -595,7 +595,7 @@ function AuthedApp() {
       <header style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,position:"sticky",top:0,zIndex:100}}>
         <style>{`.hdr-scroll::-webkit-scrollbar{display:none}`}</style>
         <div className="hdr-scroll" style={{maxWidth:1200,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
-          <EXPOMark height={22} style={{flex:"0 0 auto",marginRight:12}} />
+          <EXPOMark height={36} style={{flex:"0 0 auto",marginRight:12}} />
           <nav style={{display:"flex",gap:2,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:"max-content"}}>
             {tabs.map(t=>(<button key={t.key} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,background:'transparent',border:`${tab===t.key?'1px':'0.25px'} solid ${tab===t.key?C.ac:'transparent'}`,color:tab===t.key?C.ac:C.tm,borderRadius:0,padding:"6px 10px",fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',whiteSpace:"nowrap"}}>
               <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}</nav>
