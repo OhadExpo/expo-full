@@ -1,0 +1,316 @@
+// IntakeView — coach inbox at /coach/intake. Two responsibilities:
+//   1. List incoming intake_submissions with filters (form_type, status,
+//      trainee). Click a row to view the full payload.
+//   2. Generate intake_tokens. The "+ Generate Link" modal picks form type,
+//      locale, optional trainee binding, optional label, and writes a row
+//      then copies a shareable URL.
+//
+// Token-bound links are the entire spam-control story — only people Ohad
+// sends a link to can submit. There is no public /intake landing page.
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { C, FN, FB, FH } from './theme';
+import { Btn, Modal, Card, Badge } from './ui';
+import { supabase } from './supabase';
+import { generateIntakeToken, getForm } from './intakeFormSchemas';
+
+function fmt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function ago(iso) {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor(ms / 3600000);
+  const mins = Math.floor(ms / 60000);
+  if (days >= 1) return `${days}d`;
+  if (hours >= 1) return `${hours}h`;
+  if (mins >= 1) return `${mins}m`;
+  return 'just now';
+}
+
+const RTL = /[֐-׿]/;
+
+function PayloadDetail({ form, payload }) {
+  if (!form) return <div style={{ color: C.tm, fontSize: 13 }}>Form schema unknown.</div>;
+  return (
+    <div style={{ direction: form.locale === 'he' ? 'rtl' : 'ltr', fontFamily: form.locale === 'he' ? FH : FB }}>
+      {form.questions.map(q => {
+        const v = payload?.[q.id];
+        const isEmpty = v == null || v === '';
+        return (
+          <div key={q.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: `0.25px solid ${C.ac}26` }}>
+            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>{q.label}</div>
+            <div style={{ fontFamily: form.locale === 'he' ? FH : FB, fontSize: 14, color: isEmpty ? C.td : C.tx, fontStyle: isEmpty ? 'italic' : 'normal', whiteSpace: 'pre-wrap' }}>
+              {isEmpty ? '—' : String(v)}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function IntakeView({ trainees }) {
+  const [submissions, setSubmissions] = useState(null);
+  const [tokens, setTokens] = useState([]);
+  const [filter, setFilter] = useState(''); // text filter
+  const [showReviewed, setShowReviewed] = useState(false);
+  const [openSubmission, setOpenSubmission] = useState(null);
+  const [showGen, setShowGen] = useState(false);
+  const [genForm, setGenForm] = useState({ formType: 'initial', locale: 'he', traineeId: '', label: '' });
+  const [genResult, setGenResult] = useState(null); // { url, label }
+  const [genError, setGenError] = useState('');
+
+  const reload = useCallback(async () => {
+    try {
+      const { data: subs } = await supabase
+        .from('intake_submissions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(200);
+      setSubmissions(subs || []);
+    } catch { setSubmissions([]); }
+    try {
+      const { data: toks } = await supabase
+        .from('intake_tokens')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(50);
+      setTokens(toks || []);
+    } catch { setTokens([]); }
+  }, []);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  const enriched = useMemo(() => (submissions || []).map(s => {
+    const trainee = (trainees || []).find(t => {
+      if (t.id === s.trainee_id) return true;
+      if (Array.isArray(t.email) && s.email && t.email.some(e => String(e).toLowerCase() === String(s.email).toLowerCase())) return true;
+      if (typeof t.email === 'string' && s.email && t.email.toLowerCase() === String(s.email).toLowerCase()) return true;
+      return false;
+    });
+    return { ...s, traineeName: trainee?.name || null };
+  }), [submissions, trainees]);
+
+  const visible = useMemo(() => enriched.filter(s => {
+    if (!showReviewed && s.reviewed_at) return false;
+    if (!filter) return true;
+    const f = filter.toLowerCase();
+    return [s.email, s.name, s.traineeName, s.form_type, s.locale]
+      .filter(Boolean)
+      .some(v => String(v).toLowerCase().includes(f));
+  }), [enriched, filter, showReviewed]);
+
+  const counts = useMemo(() => {
+    const open = enriched.filter(s => !s.reviewed_at);
+    return {
+      total: enriched.length,
+      open: open.length,
+      initial: open.filter(s => s.form_type === 'initial').length,
+      progress: open.filter(s => s.form_type === 'progress').length,
+    };
+  }, [enriched]);
+
+  const markReviewed = async (id) => {
+    setSubmissions(curr => (curr || []).map(s => s.id === id ? { ...s, reviewed_at: new Date().toISOString() } : s));
+    try { await supabase.from('intake_submissions').update({ reviewed_at: new Date().toISOString() }).eq('id', id); } catch {}
+  };
+  const undoReviewed = async (id) => {
+    setSubmissions(curr => (curr || []).map(s => s.id === id ? { ...s, reviewed_at: null } : s));
+    try { await supabase.from('intake_submissions').update({ reviewed_at: null }).eq('id', id); } catch {}
+  };
+  const deleteSubmission = async (id) => {
+    if (!confirm('Delete this submission permanently?')) return;
+    setSubmissions(curr => (curr || []).filter(s => s.id !== id));
+    try { await supabase.from('intake_submissions').delete().eq('id', id); } catch {}
+  };
+
+  const generateLink = async () => {
+    setGenError('');
+    const token = generateIntakeToken();
+    const row = {
+      token,
+      form_type: genForm.formType,
+      locale: genForm.locale,
+      trainee_id: genForm.traineeId || null,
+      label: genForm.label || null,
+    };
+    try {
+      const { error } = await supabase.from('intake_tokens').insert(row);
+      if (error) throw error;
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const path = genForm.formType === 'progress'
+        ? `/intake/${genForm.locale}` // progress shares the same /intake path; form picks by token's form_type
+        : `/intake/${genForm.locale}`;
+      const url = `${origin}${path}?t=${token}`;
+      try { await navigator.clipboard.writeText(url); } catch {}
+      setGenResult({ url, label: row.label || `${genForm.formType} · ${genForm.locale}` });
+      reload();
+    } catch (e) {
+      setGenError(String(e?.message || e) || 'Could not generate link.');
+    }
+  };
+
+  const closeGen = () => {
+    setShowGen(false); setGenResult(null); setGenError('');
+    setGenForm({ formType: 'initial', locale: 'he', traineeId: '', label: '' });
+  };
+
+  if (submissions == null) {
+    return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>Loading intake…</div>;
+  }
+
+  const detailForm = openSubmission ? getForm(openSubmission.form_type, openSubmission.locale) : null;
+
+  return (
+    <div>
+      {/* Header — counts + Generate Link CTA */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+        <div>
+          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>INTAKE</div>
+          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
+            {counts.open} open · {counts.initial} initial · {counts.progress} progress · {counts.total} total
+          </div>
+        </div>
+        <Btn onClick={() => setShowGen(true)} style={{ height: 36, padding: '0 18px' }}>+ Generate Link</Btn>
+      </div>
+
+      {/* Filter bar */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+        <input placeholder="Filter by name / email / form type…" value={filter} onChange={e => setFilter(e.target.value)}
+          style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
+        <button onClick={() => setShowReviewed(s => !s)}
+          style={{ background: 'transparent', border: `0.25px solid ${showReviewed ? C.ac : C.ac + '4D'}`, color: showReviewed ? C.ac : C.tm, padding: '8px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0 }}>
+          {showReviewed ? 'Showing reviewed' : 'Hide reviewed'}
+        </button>
+      </div>
+
+      {/* Recent unused tokens (so Ohad can re-copy a link he just made) */}
+      {tokens.filter(t => !t.used_at).length > 0 && (
+        <div style={{ marginBottom: 18, padding: '10px 12px', border: `0.25px solid ${C.ac}4D` }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>UNUSED LINKS</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {tokens.filter(t => !t.used_at).slice(0, 5).map(t => {
+              const origin = typeof window !== 'undefined' ? window.location.origin : '';
+              const url = `${origin}/intake/${t.locale}?t=${t.token}`;
+              return (
+                <div key={t.token} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: FB }}>
+                  <Badge color={t.form_type === 'initial' ? C.ac : C.gn}>{t.form_type}</Badge>
+                  <span style={{ color: C.tm }}>{t.locale.toUpperCase()}</span>
+                  {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
+                  <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
+                  <button onClick={async () => { try { await navigator.clipboard.writeText(url); } catch {} }}
+                    style={{ marginLeft: 'auto', background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
+                    Copy URL
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* List */}
+      {visible.length === 0 ? (
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, padding: 40, textAlign: 'center' }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO INTAKE YET</div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
+            Generate a link from the button above and send it to a prospect or trainee.
+          </div>
+        </div>
+      ) : visible.map(s => (
+        <Card key={s.id} style={{ marginBottom: 8, opacity: s.reviewed_at ? 0.55 : 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpenSubmission(s)}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Badge color={s.form_type === 'initial' ? C.ac : C.gn}>{s.form_type}</Badge>
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.18em' }}>{s.locale.toUpperCase()}</span>
+                <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, direction: RTL.test(s.name || '') ? 'rtl' : 'ltr' }}>{s.name || '(no name)'}</span>
+                {s.traineeName && (
+                  <span style={{ fontFamily: FB, fontSize: 12, color: C.ac }}>→ {s.traineeName}</span>
+                )}
+              </div>
+              <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
+                {s.email || '—'} · {fmt(s.created_at)} · {ago(s.created_at)} ago
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {s.reviewed_at ? (
+                <button onClick={() => undoReviewed(s.id)} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ UNDO</button>
+              ) : (
+                <button onClick={() => markReviewed(s.id)} style={{ background: 'transparent', border: `0.25px solid ${C.gn}`, color: C.gn, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>✓ DONE</button>
+              )}
+              <button onClick={() => deleteSubmission(s.id)} style={{ background: 'transparent', border: `0.25px solid ${C.rd}`, color: C.rd, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', borderRadius: 0 }}>✕</button>
+            </div>
+          </div>
+        </Card>
+      ))}
+
+      {/* Detail modal */}
+      <Modal open={!!openSubmission} onClose={() => setOpenSubmission(null)} title={openSubmission ? `${openSubmission.form_type} · ${openSubmission.locale.toUpperCase()} — ${openSubmission.name || openSubmission.email || ''}` : ''} wide>
+        {openSubmission && <PayloadDetail form={detailForm} payload={openSubmission.payload} />}
+      </Modal>
+
+      {/* Generate-link modal */}
+      <Modal open={showGen} onClose={closeGen} title="Generate Intake Link">
+        {genResult ? (
+          <div>
+            <div style={{ fontSize: 13, color: C.tx, marginBottom: 10 }}>Link generated and copied to clipboard.</div>
+            <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, padding: 10, fontFamily: FN, fontSize: 12, color: C.tm, wordBreak: 'break-all' }}>{genResult.url}</div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+              <Btn variant="ghost" onClick={() => { setGenResult(null); }}>Generate another</Btn>
+              <Btn onClick={closeGen}>Done</Btn>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>FORM TYPE</div>
+                <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value }))}
+                  style={{ width: '100%', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
+                  <option value="initial">Initial intake</option>
+                  <option value="progress">Progress check-in</option>
+                </select>
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>LOCALE</div>
+                <select value={genForm.locale} onChange={e => setGenForm(f => ({ ...f, locale: e.target.value }))}
+                  style={{ width: '100%', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
+                  <option value="he">Hebrew (HE)</option>
+                  <option value="en">English (EN)</option>
+                </select>
+              </div>
+            </div>
+            {genForm.formType === 'progress' && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>TRAINEE (optional)</div>
+                <select value={genForm.traineeId} onChange={e => setGenForm(f => ({ ...f, traineeId: e.target.value }))}
+                  style={{ width: '100%', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
+                  <option value="">— none —</option>
+                  {(trainees || []).filter(t => t.status !== 'Archived').map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>LABEL (optional)</div>
+              <input value={genForm.label} onChange={e => setGenForm(f => ({ ...f, label: e.target.value }))}
+                placeholder='e.g. "for Yossi"'
+                style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
+            </div>
+            {genError && <div style={{ color: C.rd, fontFamily: FN, fontSize: 12, marginBottom: 8 }}>{genError}</div>}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <Btn variant="ghost" onClick={closeGen}>Cancel</Btn>
+              <Btn onClick={generateLink}>Generate</Btn>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}

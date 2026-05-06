@@ -40,6 +40,12 @@ const EntryChooser = lazy(() => import('./EntryChooser'));
 // engine sandbox (TrySandbox above). /demo/trainee is the client-portal demo.
 const CoachDemo = lazy(() => import('./CoachDemo'));
 const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
+// /intake/<locale>?t=<token> is the public-facing intake form (HE/EN initial
+// + HE progress check-in). /coach/intake (inside AuthedApp) is the coach
+// inbox + token generator. Both lazy so the form-renderer code only ships
+// when actually needed.
+const IntakeForm = lazy(() => import('./IntakeForm'));
+const IntakeView = lazy(() => import('./IntakeView'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
 const MemoPlans = React.memo(PlansView);
@@ -140,6 +146,13 @@ function AuthGate() {
   //   /try           → TrySandbox (public engine sandbox — visitor uploads
   //                    their own clip; pose detect + rep count + compare)
   // All hidden in PWA mode.
+  // Public intake form route — works in PWA mode AND browser mode because
+  // a trainee getting a check-in link should be able to fill it from inside
+  // the installed app or any browser. Stays before the auth gate.
+  if (path.startsWith('/intake/he') || path.startsWith('/intake/en')) {
+    return <Suspense fallback={<BootSplash />}><IntakeForm /></Suspense>;
+  }
+
   if (!inPwa) {
     // /try short-circuits BEFORE the auth check so the route stays public.
     if (path === '/try' || path.startsWith('/try/')) {
@@ -304,7 +317,7 @@ function AuthedApp() {
         const parts = sub.split('/');
         return { mode:'coach', tab:'plans', planPreviewId: parts[1] };
       }
-      const tabMap = {dashboard:'dashboard',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport'};
+      const tabMap = {dashboard:'dashboard',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -341,7 +354,7 @@ function AuthedApp() {
   // Sync URL when tab or trainee changes (coach mode only)
   const updateURL = useCallback((newTab, newTrainee) => {
     if (tab === 'client' && !isCoach) return;
-    const tabUrl = {dashboard:'dashboard',trainees:'trainees',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import'};
+    const tabUrl = {dashboard:'dashboard',trainees:'trainees',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import'};
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
@@ -514,7 +527,7 @@ function AuthedApp() {
     setImportSelectedTrainees(prev=>prev.includes(tid)?prev.filter(x=>x!==tid):[...prev,tid]);
   };
 
-  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Athletes",count:trainees.filter(t=>t.status!=='Archived').length},{key:"plans",label:"Programs",count:null},{key:"exercises",label:"Exercises",count:null},{key:"review",label:"Review",count:null},{key:"waitlist",label:"Waitlist",count:null},{key:"client",label:"Portal",count:null},{key:"chatAudit",label:"Chat Audit",count:null}];
+  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Athletes",count:trainees.filter(t=>t.status!=='Archived').length},{key:"plans",label:"Programs",count:null},{key:"exercises",label:"Exercises",count:null},{key:"review",label:"Review",count:null},{key:"intake",label:"Intake",count:null},{key:"waitlist",label:"Waitlist",count:null},{key:"client",label:"Portal",count:null},{key:"chatAudit",label:"Chat Audit",count:null}];
 
   // Pre-compute plan counts per trainee. Counts roll up to the parent ID:
   // a plan on tr_xxx__0 or __1 (couple sub-members) also increments tr_xxx so
@@ -594,6 +607,7 @@ function AuthedApp() {
         <Suspense fallback={<ViewFallback />}>
           {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
+          {tab==="intake"&&<IntakeView trainees={trainees}/>}
           {tab==="chatAudit"&&<ChatAuditView/>}
           {tab==="smartImport"&&<SmartImportView/>}
           {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}
