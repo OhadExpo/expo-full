@@ -510,10 +510,11 @@ export default function CoachLanding({ lang = 'en' }) {
           maxWidth: 920, margin: '0 auto', padding: '64px 20px 40px', textAlign: 'center',
         }}>
           {/* EXPO icon (caret-X mark, not the wordmark) above "COACHING
-              PLATFORM" — both center-aligned. /icon-192.png is the same
-              square caret used as the PWA install icon. */}
+              PLATFORM" — both center-aligned. gap and marginBottom kept
+              equal at 14px so icon → badge → h1 reads as three evenly-
+              spaced rows. */}
           <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
             fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
             marginBottom: 14,
           }}>

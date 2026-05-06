@@ -407,8 +407,11 @@ function Hero({ onOpenQuiz }) {
           surfaces read as one product. Was a 92px wordmark (`expo-hero-
           logo.png`) — that file is no longer referenced here but stays
           on disk for any inbound link / OG previews. */}
+      {/* gap and marginBottom kept equal so the rhythm icon → badge → h1
+          reads as three evenly-spaced rows. With gap < marginBottom the
+          icon felt glued to the badge. */}
       <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3, fontWeight: 700,
         marginBottom: 14,
       }}>
