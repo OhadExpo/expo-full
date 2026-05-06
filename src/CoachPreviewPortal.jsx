@@ -43,7 +43,17 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
           return;
         }
         if (traineeId) {
-          // Couples: trainees may have plans under parent ID OR sub-member IDs.
+          // Defensive: trainee IDs are always [a-zA-Z0-9_-] in our schema. A
+          // URL with anything else is malformed and could otherwise inject
+          // PostgREST .or() syntax (commas, parens) or LIKE wildcards.
+          if (!/^[A-Za-z0-9_-]+$/.test(traineeId)) {
+            setError('Invalid trainee identifier.');
+            return;
+          }
+          // Couples: trainees may have plans under parent ID OR sub-member IDs
+          // (e.g. tr_couple__0). The literal underscores in the LIKE pattern
+          // are SQL wildcards but trainee IDs in our schema don't collide with
+          // that, so the loose match is acceptable.
           const { data, error: e } = await supabase.from('plans').select('*').or(`trainee_id.eq.${traineeId},trainee_id.like.${traineeId}__%`).eq('active', true);
           if (e) throw e;
           if (!alive) return;

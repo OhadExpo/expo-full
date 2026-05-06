@@ -30,7 +30,7 @@ function trackFunnel(event, payload) {
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
 
-// Inline i18n. The page is mounted at /demo (English default) and /he/demo
+// Inline i18n. The page is mounted at /demo (English default) and /demo/he
 // (Hebrew). Translations are natural Israeli "dugri" — direct, practical,
 // no marketing fluff or formal/literary phrasing. Add a key under both
 // languages or `t()` returns the key string back.
