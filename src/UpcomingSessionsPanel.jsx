@@ -1,28 +1,31 @@
 // UpcomingSessionsPanel — surfaces today/tomorrow/this-week sessions on
-// the coach dashboard. Pulls /api/calendar/upcoming which parses Ohad's
-// public iCal feed and filters to EXPO-tagged events. Matches each event
-// to a trainee row by attendee email (most reliable) with a name-in-parens
-// summary fallback (e.g. "EXPO חדר כושר (Maya Yaniv)").
+// the coach dashboard. Reads directly from `expo_calendar_events` (RLS:
+// trainer SELECT only) populated by Claude via the Google Calendar MCP.
 //
-// Empty states:
-//   - configured=false  → "Set EXPO_GCAL_ICS_URL on Vercel" hint
-//   - error             → red error banner with the message
-//   - 0 events          → quiet "No upcoming sessions in the next 21 days"
+// No env vars, no Vercel function, no OAuth. The trade-off is that the
+// data is only as fresh as the last sync — Ohad asks Claude to "resync
+// calendar" whenever a new booking should be reflected. The "last synced"
+// banner makes the staleness visible.
 //
-// Click a row → onSelectTrainee(traineeId) when matched, otherwise no-op.
+// Trainee match priority at render-time (NOT pre-resolved at sync, so
+// adds/edits to the trainees table take effect without a resync):
+//   1. attendee_emails ∩ trainee.email (top-level + couple-member emails)
+//   2. cached trainee_id column (set during sync if the email matched then)
+//   3. name-in-parens fallback ("EXPO חדר כושר (Maya Yaniv)") against
+//      trainees.name (exact + substring)
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
+import { supabase } from './supabase';
 
 const RTL = /[֐-׿]/;
 
 function matchTrainee(ev, trainees) {
   const list = trainees || [];
   const lc = (s) => String(s || '').toLowerCase();
-  const emails = ev.attendeeEmails || [];
 
-  // Pass 1 — top-level attendee email match against trainee.email or any
-  // couple-member email.
-  for (const email of emails) {
+  // Pass 1 — attendee email match against trainee.email (top-level + couple
+  // members, scalar or array forms).
+  for (const email of ev.attendee_emails || []) {
     for (const t of list) {
       const tEmails = Array.isArray(t.email) ? t.email : (t.email ? [t.email] : []);
       if (tEmails.some(e => lc(e) === email)) return t;
@@ -34,7 +37,14 @@ function matchTrainee(ev, trainees) {
       }
     }
   }
-  // Pass 2 — name-in-parens fallback: "EXPO חדר כושר (Name Here)".
+  // Pass 2 — cached trainee_id from the sync (if the resolver knew at sync
+  // time). Useful for events whose attendee email was already removed from
+  // the trainees table by the time of render.
+  if (ev.trainee_id) {
+    const t = list.find(t => t.id === ev.trainee_id);
+    if (t) return t;
+  }
+  // Pass 3 — name-in-parens fallback ("EXPO חדר כושר (Name Here)").
   const m = /\(([^)]+)\)/.exec(ev.summary || '');
   if (m) {
     const name = m[1].trim();
@@ -61,53 +71,69 @@ function dayBucket(iso) {
 
 function fmtTime(iso) {
   if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
-
 function fmtDayLabel(iso) {
   if (!iso) return '';
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return new Date(iso).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function ago(iso) {
+  if (!iso) return '';
+  const ms = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor(ms / 3600000);
+  const mins = Math.floor(ms / 60000);
+  if (days >= 1) return `${days}d`;
+  if (hours >= 1) return `${hours}h`;
+  if (mins >= 1) return `${mins}m`;
+  return 'just now';
 }
 
 function summaryDisplayName(ev) {
-  // Strip "EXPO חדר כושר (" prefix and trailing ")" to get just the name.
   const m = /\(([^)]+)\)\s*$/.exec(ev.summary || '');
   if (m) return m[1].trim();
   return ev.summary || '(unnamed)';
 }
 
 export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
-  const [data, setData] = useState({ events: [], loading: true, configured: true, error: null });
+  const [events, setEvents] = useState(null);
+  const [syncMeta, setSyncMeta] = useState(null);
+  const [error, setError] = useState(null);
 
   const reload = useCallback(async () => {
     try {
-      const r = await fetch('/api/calendar/upcoming');
-      const j = await r.json();
-      setData({
-        events: j.events || [],
-        loading: false,
-        configured: j.configured !== false,
-        error: j.error || null,
-      });
+      const fromIso = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const toIso = new Date(Date.now() + 21 * 86400000).toISOString();
+      const { data, error: e } = await supabase
+        .from('expo_calendar_events')
+        .select('uid, summary, description, location, start_at, end_at, attendee_emails, trainee_id, synced_at')
+        .gte('start_at', fromIso)
+        .lte('start_at', toIso)
+        .order('start_at');
+      if (e) throw e;
+      setEvents(data || []);
+      setError(null);
+
+      const { data: meta } = await supabase
+        .from('store').select('value, updated_at').eq('key', 'expo-calendar-sync').maybeSingle();
+      setSyncMeta(meta?.value ? { ...meta.value, updated_at: meta.updated_at } : null);
     } catch (e) {
-      setData({ events: [], loading: false, configured: true, error: String(e?.message || e) });
+      setEvents([]); setError(String(e?.message || e));
     }
   }, []);
 
   useEffect(() => {
     reload();
-    // 5-minute polling — comfortably faster than how quickly bookings come
-    // in, slow enough not to hammer Google's iCal CDN.
-    const id = setInterval(reload, 5 * 60 * 1000);
+    // 90s polling — cheap (a single Supabase SELECT) and catches the rare
+    // case where another session resyncs while the dashboard is open.
+    const id = setInterval(reload, 90 * 1000);
     return () => clearInterval(id);
   }, [reload]);
 
-  const enriched = useMemo(() => (data.events || []).map(ev => {
+  const enriched = useMemo(() => (events || []).map(ev => {
     const trainee = matchTrainee(ev, trainees);
-    return { ...ev, trainee, _bucket: ev.start?.iso ? dayBucket(ev.start.iso) : 'LATER' };
-  }), [data.events, trainees]);
+    return { ...ev, _trainee: trainee, _bucket: ev.start_at ? dayBucket(ev.start_at) : 'LATER' };
+  }), [events, trainees]);
 
   const buckets = useMemo(() => {
     const out = { TODAY: [], TOMORROW: [], 'THIS WEEK': [], LATER: [] };
@@ -115,8 +141,7 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
     return out;
   }, [enriched]);
 
-  // Loading state — silent placeholder so the dashboard doesn't pop in.
-  if (data.loading) {
+  if (events == null) {
     return (
       <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.ac}4D` }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS</div>
@@ -125,57 +150,58 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
     );
   }
 
-  // Not configured — show a polite setup nudge once. Hidden on production
-  // once Ohad has set the env var.
-  if (!data.configured) {
+  if (error) {
     return (
-      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px dashed ${C.or}80` }}>
-        <div style={{ fontFamily: FN, fontSize: 9, color: C.or, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS · SETUP REQUIRED</div>
-        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 6, lineHeight: 1.5 }}>
-          Set <code style={{ background: C.sf2, padding: '1px 5px', color: C.ac, fontFamily: FN }}>EXPO_GCAL_ICS_URL</code> on Vercel to your calendar's <em>Secret address in iCal format</em> (Calendar settings → Integrate calendar) and reload.
+      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.rd}80` }}>
+        <div style={{ fontFamily: FN, fontSize: 9, color: C.rd, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS · ERROR</div>
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 6 }}>{error}</div>
+      </div>
+    );
+  }
+
+  // Sync staleness: green ≤2h, orange ≤24h, red beyond.
+  const lastSyncIso = syncMeta?.at || syncMeta?.updated_at;
+  const lastSyncMs = lastSyncIso ? Date.now() - new Date(lastSyncIso).getTime() : null;
+  const staleColor = lastSyncMs == null ? C.tm
+    : lastSyncMs <= 2 * 3600_000 ? C.gn
+    : lastSyncMs <= 24 * 3600_000 ? C.or
+    : C.rd;
+  const stalenessLabel = lastSyncIso ? `synced ${ago(lastSyncIso)} ago` : 'never synced';
+
+  if (enriched.length === 0) {
+    return (
+      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.ac}4D` }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS</div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: staleColor, letterSpacing: '0.12em', fontWeight: 700 }}>{stalenessLabel}</div>
+        </div>
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 6 }}>
+          No upcoming sessions in the next 21 days. {lastSyncMs > 24 * 3600_000 && 'Ask Claude to resync to refresh.'}
         </div>
       </div>
     );
   }
 
-  if (data.error) {
-    return (
-      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.rd}80` }}>
-        <div style={{ fontFamily: FN, fontSize: 9, color: C.rd, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS · ERROR</div>
-        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 6 }}>{data.error}</div>
-      </div>
-    );
-  }
-
-  if (enriched.length === 0) {
-    return (
-      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.ac}4D` }}>
-        <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS</div>
-        <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 6 }}>No upcoming sessions in the next 21 days.</div>
-      </div>
-    );
-  }
-
   const renderRow = (ev) => {
-    const name = ev.trainee?.name || summaryDisplayName(ev);
+    const name = ev._trainee?.name || summaryDisplayName(ev);
     const isHebrew = RTL.test(name);
-    const onClick = ev.trainee && onSelectTrainee ? () => onSelectTrainee(ev.trainee.id) : null;
+    const onClick = ev._trainee && onSelectTrainee ? () => onSelectTrainee(ev._trainee.id) : null;
     return (
-      <div key={ev.uid || `${ev.start?.iso}-${name}`}
+      <div key={ev.uid || `${ev.start_at}-${name}`}
         onClick={onClick}
         style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
           borderTop: `0.25px solid ${C.ac}26`, cursor: onClick ? 'pointer' : 'default',
         }}>
-        <div style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700, minWidth: 50 }}>{fmtTime(ev.start?.iso)}</div>
-        <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 600, minWidth: 70 }}>{fmtDayLabel(ev.start?.iso)}</div>
+        <div style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700, minWidth: 50 }}>{fmtTime(ev.start_at)}</div>
+        <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 600, minWidth: 70 }}>{fmtDayLabel(ev.start_at)}</div>
         <div style={{
           flex: 1, minWidth: 0, fontFamily: isHebrew ? FH : FB, fontSize: 14, color: C.tx,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           direction: isHebrew ? 'rtl' : 'ltr',
         }}>
           {name}
-          {!ev.trainee && <span style={{ color: C.td, fontFamily: FN, fontSize: 10, marginLeft: 6 }}>· unmatched</span>}
+          {!ev._trainee && <span style={{ color: C.td, fontFamily: FN, fontSize: 10, marginLeft: 6 }}>· unmatched</span>}
         </div>
       </div>
     );
@@ -183,15 +209,20 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
 
   return (
     <div style={{ marginBottom: 16, border: `0.25px solid ${C.ac}4D` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
           SESSIONS · {enriched.length} upcoming
         </div>
-        <button onClick={reload}
-          title="Refresh from Google Calendar"
-          style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
-          ↻ Refresh
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontFamily: FN, fontSize: 9, color: staleColor, letterSpacing: '0.12em', fontWeight: 700 }}>
+            {stalenessLabel}
+          </span>
+          <button onClick={reload}
+            title="Re-fetch from cache (does not trigger a Calendar resync)"
+            style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            ↻ Reload
+          </button>
+        </div>
       </div>
       {['TODAY', 'TOMORROW', 'THIS WEEK', 'LATER'].map(b => (
         buckets[b] && buckets[b].length > 0 && (
