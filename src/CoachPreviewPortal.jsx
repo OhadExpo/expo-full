@@ -85,7 +85,11 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
         setBwLog={() => {}}
         weeklyFocus={weeklyFocus}
         setWeeklyFocus={() => {}}
-        portalVis={portalVis}
+        /* planId preview = explicit single-program request → bypass the
+           portalVis filter so a hidden block still renders when the coach
+           clicks Preview on its row. traineeId preview keeps the filter so
+           it reflects what the athlete actually sees. */
+        portalVis={planId ? null : portalVis}
         trainerPlans={plans}
         trainerExercises={exercises}
         trainees={trainees}
