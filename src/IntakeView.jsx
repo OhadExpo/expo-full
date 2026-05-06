@@ -270,31 +270,40 @@ export default function IntakeView({ trainees }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>FORM TYPE</div>
-                <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value }))}
-                  style={{ width: '100%', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
-                  <option value="initial">Initial intake</option>
-                  <option value="progress">Progress check-in</option>
-                </select>
+                <div style={{ position: 'relative', display: 'flex' }}>
+                  <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value }))}
+                    style={{ flex: 1, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
+                    <option value="initial">Initial intake</option>
+                    <option value="progress">Progress check-in</option>
+                  </select>
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                </div>
               </div>
               <div>
                 <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>LOCALE</div>
-                <select value={genForm.locale} onChange={e => setGenForm(f => ({ ...f, locale: e.target.value }))}
-                  style={{ width: '100%', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
-                  <option value="he">Hebrew (HE)</option>
-                  <option value="en">English (EN)</option>
-                </select>
+                <div style={{ position: 'relative', display: 'flex' }}>
+                  <select value={genForm.locale} onChange={e => setGenForm(f => ({ ...f, locale: e.target.value }))}
+                    style={{ flex: 1, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
+                    <option value="he">Hebrew (HE)</option>
+                    <option value="en">English (EN)</option>
+                  </select>
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                </div>
               </div>
             </div>
             {genForm.formType === 'progress' && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>TRAINEE (optional)</div>
-                <select value={genForm.traineeId} onChange={e => setGenForm(f => ({ ...f, traineeId: e.target.value }))}
-                  style={{ width: '100%', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
-                  <option value="">— none —</option>
-                  {(trainees || []).filter(t => t.status !== 'Archived').map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
+                <div style={{ position: 'relative', display: 'flex' }}>
+                  <select value={genForm.traineeId} onChange={e => setGenForm(f => ({ ...f, traineeId: e.target.value }))}
+                    style={{ flex: 1, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
+                    <option value="">— none —</option>
+                    {(trainees || []).filter(t => t.status !== 'Archived').map(t => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                  <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                </div>
               </div>
             )}
             <div style={{ marginBottom: 12 }}>

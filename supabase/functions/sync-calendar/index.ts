@@ -144,14 +144,34 @@ function resolveTraineeId(emails: string[], trainees: any[]): string | null {
   return null;
 }
 
-Deno.serve(async (_req: Request) => {
+// Browser fetches from expo-app.co.il need CORS. Without these headers,
+// the panel's "Sync Now" button preflight fails and the click silently
+// no-ops. pg_cron doesn't go through CORS so this is browser-only impact.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
+};
+
+function corsJson(body: unknown, status = 200) {
+  return Response.json(body, { status, headers: CORS_HEADERS });
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS_HEADERS });
+  }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   try {
     const { data: urlRow } = await supabase
       .from("store").select("value").eq("key", "expo-calendar-ics-url").maybeSingle();
     const url: string | undefined = urlRow?.value?.url;
     if (!url) {
-      return Response.json({ ok: false, error: "No iCal URL configured. Paste it in the EXPO dashboard panel." }, { status: 503 });
+      // Stamp the sync row even on this branch so the dashboard's
+      // "synced Xm ago" advances when the user clicks Sync Now — otherwise
+      // the timestamp looks broken when in fact the function did run.
+      await stampSync(supabase, 0, "No iCal URL configured. Paste it in the dashboard.");
+      return corsJson({ ok: false, error: "No iCal URL configured. Paste it in the EXPO dashboard panel." }, 503);
     }
 
     const ctrl = new AbortController();
@@ -161,7 +181,7 @@ Deno.serve(async (_req: Request) => {
       const r = await fetch(url, { signal: ctrl.signal, headers: { "user-agent": "expo-edge-cron/1.0" } });
       if (!r.ok) {
         await stampSync(supabase, 0, `ICS fetch ${r.status}`);
-        return Response.json({ ok: false, error: `ICS fetch failed: ${r.status}` }, { status: 502 });
+        return corsJson({ ok: false, error: `ICS fetch failed: ${r.status}` }, 502);
       }
       text = await r.text();
     } finally { clearTimeout(timeout); }
@@ -220,9 +240,9 @@ Deno.serve(async (_req: Request) => {
     }
 
     await stampSync(supabase, rows.length, null);
-    return Response.json({ ok: true, count: rows.length, totalEvents: allEvents.length, expoEvents: expoEvents.length });
+    return corsJson({ ok: true, count: rows.length, totalEvents: allEvents.length, expoEvents: expoEvents.length });
   } catch (e: any) {
-    return Response.json({ ok: false, error: String(e?.message || e) }, { status: 500 });
+    return corsJson({ ok: false, error: String(e?.message || e) }, 500);
   }
 });
 

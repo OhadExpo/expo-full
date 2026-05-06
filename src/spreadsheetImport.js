@@ -50,14 +50,22 @@ export function parseSingleSheet(ws, sheetName) {
     if (r===0 && !a && b && !blockName) { blockName = b; continue; }
     if (a==='#' && b) { if (currentDay?.ex.length>0) days.push(currentDay); currentDay={name:b,ex:[]}; continue; }
     if (!a||a==='#'||a.toLowerCase().includes('rest')||a.toLowerCase().includes('off')) continue;
-    if (!b||b.toLowerCase()==='exercise'||b.toLowerCase()==='name') continue;
+    if (b.toLowerCase()==='exercise'||b.toLowerCase()==='name') continue;
     if (b.toLowerCase().includes('rest')&&b.toLowerCase().includes('off')) continue;
     if (a.toLowerCase()==='instructions'||a.toLowerCase().startsWith('bb -')||a.toLowerCase().startsWith('bb exercises')) continue;
     const tempo=String(row[4]||'').trim(); const setsRaw=String(row[5]||'3').trim(); const repsRaw=String(row[6]||'').trim();
     let sets=parseInt(setsRaw)||3; const wave=[];
     if (repsRaw.includes('>')) { for(let ci=7;ci<=10;ci++){if(row[ci])wave.push(String(row[ci]).trim())} }
     let superset=''; const ssMatch=a.match(/\d+([a-e])/i); if(ssMatch)superset=ssMatch[1].toUpperCase();
-    const eid='ex_'+uid(); const exName=b||String(row[2]||'').trim(); if(!exName)continue;
+    // Resolve exercise title. Col B is the canonical column, BUT some
+    // sheets put the actual name in col C and use col B for a paired-set
+    // marker like "SuperSet:" — fall through to col C in that case so we
+    // don't misread the label as an exercise name (or drop the row when
+    // col B is empty).
+    const eid='ex_'+uid();
+    let exName = b;
+    if (!exName || /^superset:?$/i.test(exName)) exName = String(row[2]||'').trim();
+    if (!exName) continue;
     const videoLink=getHyperlink(r, 3);
     exercises.push({id:eid,title:exName,videoLink,cues:'',category:'',resistanceType:'',movementPattern:'',laterality:'',primaryMuscles:'',secondaryMuscles:'',primaryJoints:'',jointMovements:'',bodyPosition:'',movementType:'',notes:''});
     const dayEx={eid,s:sets,r:repsRaw||'8-12'}; if(tempo&&tempo.toLowerCase()!=='tempo'&&tempo.toLowerCase()!=='none')dayEx.tempo=tempo; if(wave.length>0)dayEx.wk=wave; if(superset)dayEx.superset=superset;

@@ -1,8 +1,12 @@
 import React from 'react';
 import { C, FN, FB } from './theme';
 
+// Per stroke ruling (`feedback_stroke_ruling.md`): default-state inputs use
+// 0.25px C.ac4D (30% alpha). Bright 1px C.ac is reserved for primary CTAs
+// (Btn primary variant). Active focus would step up to 2px C.ac, but we
+// don't track focus inline — :focus styling lives in a global stylesheet.
 export const baseInput = {
-  background: 'transparent', border: `1px solid ${C.ac}`, borderRadius: 0,
+  background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
   padding: "9px 14px", color: C.tx, fontFamily: FB, fontSize: 13,
   outline: "none", width: "100%", boxSizing: "border-box",
   transition: "border-color 0.2s",
