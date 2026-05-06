@@ -33,9 +33,8 @@ function Field({ q, value, onChange, dir }) {
     direction: dir,
   };
   const labelStyle = {
-    fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, letterSpacing: '0.06em',
+    fontFamily: dir === 'rtl' ? FH : FN, fontSize: 11, fontWeight: 700, color: C.tx, letterSpacing: '0.06em',
     textTransform: 'uppercase', display: 'block', marginBottom: 6, direction: dir,
-    fontFamily: dir === 'rtl' ? FH : FN,
   };
 
   const required = q.required ? <span style={{ color: C.rd, marginLeft: 4 }}>*</span> : null;
