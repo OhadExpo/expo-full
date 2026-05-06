@@ -471,9 +471,12 @@ export default function CoachLanding({ lang = 'en' }) {
              "FOR COACHES" badge is implied by being on /demo, and the
              header "SEE THE DEMO" link is redundant with the hero CTAs
              below + the sticky bottom bar. Hidden under 720px so the
-             remaining items (logo + lang toggle + SIGN IN) breathe. */
+             remaining items (logo + lang toggle + SIGN IN) breathe.
+             !important needed because baseBtn spreads `display:
+             inline-flex` as inline style, which beats a stylesheet
+             rule on specificity. */
           .cl-header-badge,
-          .cl-header-demo-btn { display: none; }
+          .cl-header-demo-btn { display: none !important; }
         }
       `}</style>
 
