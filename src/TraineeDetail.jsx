@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { C, FN, FB, FH, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput } from './ui';
 import { savePlan } from './usePlansStore';
+// Lazy-loaded so the diff modal's pairing/render code only ships when the
+// coach actually opens it. Bigger-than-typical button can't justify being
+// in the eager TraineeDetail chunk.
+const PlanDiff = lazy(() => import('./PlanDiff'));
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
 import TraineePRsView from './TraineePRsView';
@@ -44,6 +48,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const [deleteTyped,setDeleteTyped]=useState("");
   const [programSort,setProgramSort]=useState('chrono'); // 'chrono' | 'alpha'
+  const [showDiff,setShowDiff]=useState(false);
   // Sort programs newest-first by "#N" in the name. Comeback/rehab blocks
   // float to the top since they replace numbered progressions. createdAt
   // only breaks ties — drive-imported plans share a single timestamp.
@@ -361,6 +366,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"28px 0 12px"}}>
           <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
+            {tp.length >= 2 && <button onClick={()=>setShowDiff(true)}
+              title="Compare two programs side-by-side"
+              style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <Btn onClick={()=>setShowAssign(true)} style={{fontSize:11,height:32,padding:"0 14px",lineHeight:'32px',display:'inline-flex',alignItems:'center'}}>+ Assign Program</Btn>
           </div>
@@ -405,12 +413,26 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
+            {tp.length >= 2 && <button onClick={()=>setShowDiff(true)}
+              title="Compare two programs side-by-side"
+              style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <Btn onClick={()=>setShowAssign(true)} style={{fontSize:11,height:32,padding:"0 14px",lineHeight:'32px',display:'inline-flex',alignItems:'center'}}>+ Assign Program</Btn>
           </div>
         </div>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
       </>}
+
+      {showDiff && (
+        <Suspense fallback={null}>
+          <PlanDiff
+            open={showDiff}
+            onClose={()=>setShowDiff(false)}
+            traineePlans={[...tp].sort(sortProgramsChrono)}
+            exercises={exercises}
+          />
+        </Suspense>
+      )}
 
       <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null)}} title="Assign Program">
         {pendingAssignPlan && couple ? (
