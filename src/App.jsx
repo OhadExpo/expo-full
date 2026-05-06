@@ -172,6 +172,7 @@ function AuthGate() {
   const isMarketingPath = path === '/' || path === ''
     || path.startsWith('/demo')
     || path.startsWith('/he/demo')
+    || path.startsWith('/demo/he')
     || path.startsWith('/coaches')
     || path === '/try';
   useEffect(() => {
@@ -247,7 +248,13 @@ function AuthGate() {
     if (path === '/' || path === '') {
       return <Suspense fallback={<BootSplash />}><EntryChooser /></Suspense>;
     }
+    // Hebrew lang suffix: /demo/he is the canonical Hebrew route. /he/demo
+    // kept as a redirect for any existing inbound link or bookmark.
+    if (path === '/demo/he' || path === '/demo/he/') {
+      return <Suspense fallback={<BootSplash />}><CoachLanding lang="he" /></Suspense>;
+    }
     if (path === '/he/demo' || path === '/he/demo/') {
+      window.history.replaceState(null, '', '/demo/he');
       return <Suspense fallback={<BootSplash />}><CoachLanding lang="he" /></Suspense>;
     }
     if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
@@ -577,7 +584,7 @@ function AuthedApp() {
     setImportSelectedTrainees(prev=>prev.includes(tid)?prev.filter(x=>x!==tid):[...prev,tid]);
   };
 
-  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Athletes",count:trainees.filter(t=>t.status!=='Archived').length},{key:"plans",label:"Programs",count:planIndex.length},{key:"exercises",label:"Exercises",count:exercises.length},{key:"review",label:"Review",count:null},{key:"waitlist",label:"Waitlist",count:null},{key:"client",label:"Portal",count:null},{key:"chatAudit",label:"Chat Audit",count:null}];
+  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Athletes",count:trainees.filter(t=>t.status!=='Archived').length},{key:"plans",label:"Programs",count:null},{key:"exercises",label:"Exercises",count:null},{key:"review",label:"Review",count:null},{key:"waitlist",label:"Waitlist",count:null},{key:"client",label:"Portal",count:null},{key:"chatAudit",label:"Chat Audit",count:null}];
 
   // Pre-compute plan counts per trainee. Counts roll up to the parent ID:
   // a plan on tr_xxx__0 or __1 (couple sub-members) also increments tr_xxx so

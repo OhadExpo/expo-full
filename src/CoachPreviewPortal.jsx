@@ -16,6 +16,17 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
   const [resolvedTraineeId, setResolvedTraineeId] = useState(traineeId || null);
   const [error, setError] = useState(null);
 
+  // Reshape Supabase plan rows (snake_case + nested data) into the shape
+  // ClientPortal expects (camelCase, days/warmup/weeks pulled to top level).
+  // Without this, demoMode hands raw rows to ClientPortal which then renders
+  // an empty program list.
+  const reshape = (p) => ({
+    id: p.id, name: p.name, traineeId: p.trainee_id, phase: p.phase,
+    notes: p.notes, active: p.active, createdAt: p.created_at,
+    days: p.data?.days || [], warmup: p.data?.warmup || [],
+    weeks: p.data?.weeks || 4,
+  });
+
   useEffect(() => {
     let alive = true;
     setPlans(null); setError(null);
@@ -28,15 +39,16 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
           const p = Array.isArray(data) && data[0];
           if (!p) { setError('Program not found.'); return; }
           setResolvedTraineeId(p.trainee_id || null);
-          setPlans([p]);
+          setPlans([reshape(p)]);
           return;
         }
         if (traineeId) {
-          const { data, error: e } = await supabase.from('plans').select('*').eq('trainee_id', traineeId).eq('active', true);
+          // Couples: trainees may have plans under parent ID OR sub-member IDs.
+          const { data, error: e } = await supabase.from('plans').select('*').or(`trainee_id.eq.${traineeId},trainee_id.like.${traineeId}__%`).eq('active', true);
           if (e) throw e;
           if (!alive) return;
           setResolvedTraineeId(traineeId);
-          setPlans(Array.isArray(data) ? data : []);
+          setPlans(Array.isArray(data) ? data.map(reshape) : []);
         }
       } catch (err) {
         if (alive) setError(String(err?.message || err));

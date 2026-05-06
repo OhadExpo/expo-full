@@ -1698,14 +1698,23 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                         <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
                         {formVideo.cloudUrl && (() => {
-                          // Build picker candidates: every other form video for this client.
+                          // Compare candidates: only the SAME exercise from
+                          // OTHER weeks of the SAME block (same client). Apples
+                          // to apples — never another exercise, never another
+                          // block. Filters by plan name + exercise title.
+                          const sameTitle = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
+                          const currentTitle = ex.title || exName;
                           const candidates = clientWorkouts
-                            .filter(w => w.clientId === wo.clientId)
-                            .flatMap(w => (w.formVideos || []).map((fv, fi) => fv?.cloudUrl ? {
-                              cloudUrl: fv.cloudUrl,
-                              title: w.exercises?.[fi]?.title || '',
-                              label: `${w.planName} · W${w.week} · ${w.dayName} — ${w.exercises?.[fi]?.title || 'Exercise ' + (fi+1)} · ${new Date(w.date).toLocaleDateString()}`,
-                            } : null))
+                            .filter(w => w.clientId === wo.clientId && w.planName === wo.planName)
+                            .flatMap(w => (w.formVideos || []).map((fv, fi) => {
+                              const t = w.exercises?.[fi]?.title || '';
+                              if (!fv?.cloudUrl || !sameTitle(t, currentTitle)) return null;
+                              return {
+                                cloudUrl: fv.cloudUrl,
+                                title: t,
+                                label: `W${w.week} · ${w.dayName} · ${new Date(w.date).toLocaleDateString()}`,
+                              };
+                            }))
                             .filter(v => v && v.cloudUrl !== formVideo.cloudUrl);
                           if (candidates.length === 0) return null;
                           const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${new Date(wo.date).toLocaleDateString()}`;

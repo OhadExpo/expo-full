@@ -173,15 +173,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     if (plans.length === 0) return null;
     const showing = anyVisible(plans, keyFn);
     return (
-      <div style={{display:'flex',gap:6}}>
+      <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
         {plans.length > 1 && <button onClick={()=>bulkOnlyCurrent(plans, keyFn)}
           title="Hide all blocks except the most recent one"
-          style={{background:'transparent',border:`0.25px solid ${C.ac}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em'}}>
+          style={{background:'transparent',border:`0.25px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>
           🎯 ONLY CURRENT
         </button>}
         <button onClick={()=>bulkSetVis(plans, keyFn, !showing)}
           title={showing ? "Hide all from portal" : "Show all on portal"}
-          style={{background:'transparent',border:`0.25px solid ${showing?C.rd:C.gn}`,borderRadius:0,padding:"3px 10px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em'}}>
+          style={{background:'transparent',border:`0.25px solid ${showing?C.rd:C.gn}`,borderRadius:0,height:32,padding:"0 12px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>
           {showing ? 'HIDE ALL' : 'SHOW ALL'}
         </button>
       </div>
@@ -361,8 +361,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"28px 0 12px"}}>
           <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:"4px 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-            <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <Btn onClick={()=>setShowAssign(true)} style={{fontSize:11,height:32,padding:"0 14px",lineHeight:'32px',display:'inline-flex',alignItems:'center'}}>+ Assign Program</Btn>
           </div>
         </div>
         <div className="td-couple-row" style={{display:'flex',gap:12}}>
@@ -405,8 +405,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:"4px 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-            <Btn onClick={()=>setShowAssign(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Assign Program</Btn>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <Btn onClick={()=>setShowAssign(true)} style={{fontSize:11,height:32,padding:"0 14px",lineHeight:'32px',display:'inline-flex',alignItems:'center'}}>+ Assign Program</Btn>
           </div>
         </div>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}

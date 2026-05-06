@@ -488,7 +488,7 @@ export default function CoachLanding({ lang = 'en' }) {
             border: `1px solid ${C.ac}`, whiteSpace: 'nowrap',
           }}>{t('header.badge')}</span>
           <div style={{ flex: 1 }} />
-          <a href={isHe ? '/demo' : '/he/demo'} style={{
+          <a href={isHe ? '/demo' : '/demo/he'} style={{
             ...baseBtn, background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '8px 10px', fontSize: 10,
             letterSpacing: '0.18em', fontWeight: 700,
