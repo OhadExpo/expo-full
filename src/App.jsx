@@ -169,12 +169,12 @@ function AuthGate() {
     }
   }
 
-  // Signed-out /coach entry bounces to /login (the trainer portal needs auth).
-  // Match `/coach` or `/coach/...` exactly — NOT /coaches (the marketing
-  // landing), which incidentally also starts with "coach".
+  // Signed-out /coach or /athlete entry bounces to /login. Both surfaces
+  // require auth. Match exact paths — NOT /coaches (marketing landing).
   useEffect(() => {
     if (!auth || auth.loading || auth.session) return;
-    if (path === '/coach' || path.startsWith('/coach/')) {
+    if (path === '/coach' || path.startsWith('/coach/')
+        || path === '/athlete' || path.startsWith('/athlete/')) {
       window.history.replaceState(null, '', '/login');
     }
   }, [auth, path]);
@@ -281,9 +281,12 @@ function AuthedApp() {
       }
       setTab('dashboard');
     } else if (side === 'client') {
+      // Canonical client URL is /athlete (trainee portal). Anything else
+      // — / front-door, /coach/* coach surfaces — gets rewritten so the
+      // address bar stays in sync with the rendered portal.
       const p = window.location.pathname;
-      if (p === '/coach' || p.startsWith('/coach/')) {
-        window.history.replaceState(null, '', '/');
+      if (p !== '/athlete' && !p.startsWith('/athlete/')) {
+        window.history.replaceState(null, '', '/athlete');
       }
       setTab('client');
     }
@@ -337,17 +340,17 @@ function AuthedApp() {
   const [showPwModal,setShowPwModal]=useState(false);
   const fileRef=useRef(null);
 
-  // Send a client who landed on /coach (or /login) back to /, and a trainer
-  // on / or /login to /coach/dashboard. Covers the post-sign-in case where
-  // the form lives at /login: after auth flips, this redirect routes the
-  // user to the right surface so the URL reflects their role.
+  // Post-sign-in URL routing: trainers go to /coach/dashboard, clients go
+  // to /athlete. Covers the case where the form lives at /login — after
+  // auth flips, this redirect rewrites the address bar to the canonical
+  // surface URL for the user's role.
   useEffect(() => {
     if (!tL) return;
     const p = window.location.pathname;
-    // Match /coach exactly or /coach/... — NOT /coaches (the marketing page).
     const onCoach = p === '/coach' || p.startsWith('/coach/');
+    const onAthlete = p === '/athlete' || p.startsWith('/athlete/');
     const onLogin = p.startsWith('/login');
-    if (isClient && (onCoach || onLogin)) window.history.replaceState(null, '', '/');
+    if (isClient && !onAthlete) window.history.replaceState(null, '', '/athlete');
     else if (isTrainer && !onCoach) { window.history.replaceState(null, '', '/coach/dashboard'); setTab('dashboard'); }
   }, [tL, isClient, isTrainer]);
 
