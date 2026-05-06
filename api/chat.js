@@ -89,7 +89,7 @@ Independent coaches with roughly 10–50 athletes who are tired of juggling shee
 
 # CURRENT STATUS
 • Waitlist mode. Ohad opens slots and emails coaches.
-• Try it yourself before talking to Ohad: **/try** for the coach POV (mock athletes preloaded), **/demo/trainee** for what your clients would see.
+• Try it yourself before talking to Ohad: **/try** for the coach POV (mock athletes preloaded), **/demo/athlete** for what your clients would see.
 • Already an account? **/login**
 • No Stripe checkout yet — billing is direct invoice once your slot opens.
 
