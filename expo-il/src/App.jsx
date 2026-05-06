@@ -669,7 +669,7 @@ function Catalog() {
   const [active, setActive] = useState('__all');
   const list = active === '__all' ? PROGRAMS : PROGRAMS.filter(p => p.tag === active);
   return (
-    <section id="programs" style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 16px 60px' }}>
+    <section id="programs" style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 16px' }}>
       <div style={{ marginBottom: 24 }}>
         <div style={{
           fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
@@ -1714,7 +1714,7 @@ function Contact() {
   const t = useT();
   return (
     <section id="contact" style={{
-      maxWidth: 720, margin: '0 auto', padding: '40px 16px 32px', textAlign: 'center',
+      maxWidth: 720, margin: '0 auto', padding: '40px 16px', textAlign: 'center',
     }}>
       <div style={{
         fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: 3,
@@ -2208,7 +2208,7 @@ function QuizModal({ open, onClose }) {
 function QuizSection({ onOpen }) {
   const t = useT();
   return (
-    <section id="quiz" style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 16px' }}>
+    <section id="quiz" style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 16px' }}>
       <div style={{
         background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
         border: `1px solid ${C.ac4D}`, borderRadius: 0,
