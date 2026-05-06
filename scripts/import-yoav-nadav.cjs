@@ -81,7 +81,16 @@ function parseSingleSheet(ws, sheetName) {
     const sets = parseInt(setsRaw)||3;
     const wave=[];
     if (repsRaw.includes('>')) { for(let ci=7;ci<=10;ci++){if(row[ci])wave.push(String(row[ci]).trim())} }
-    let superset=''; const ssMatch=a.match(/\d+([a-e])/i); if (ssMatch) superset=ssMatch[1].toUpperCase();
+    // Source uses "6a"/"6b" pairs; map group number to a single EXPO letter
+    // so both rows end up in the same superset block (mod-5 cycle).
+    let superset='';
+    const ssMatch=a.match(/(\d+)[a-e]/i);
+    if (ssMatch) {
+      const groupN = parseInt(ssMatch[1], 10);
+      if (Number.isFinite(groupN) && groupN >= 1) {
+        superset = String.fromCharCode(64 + (((groupN - 1) % 5) + 1));
+      }
+    }
     // Col B may carry a "SuperSet:" label; col C has the real name.
     // Falling through to col C also salvages rows where col B is empty.
     let exName = b;

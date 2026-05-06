@@ -56,7 +56,18 @@ export function parseSingleSheet(ws, sheetName) {
     const tempo=String(row[4]||'').trim(); const setsRaw=String(row[5]||'3').trim(); const repsRaw=String(row[6]||'').trim();
     let sets=parseInt(setsRaw)||3; const wave=[];
     if (repsRaw.includes('>')) { for(let ci=7;ci<=10;ci++){if(row[ci])wave.push(String(row[ci]).trim())} }
-    let superset=''; const ssMatch=a.match(/\d+([a-e])/i); if(ssMatch)superset=ssMatch[1].toUpperCase();
+    // Source rows mark supersets like "6a", "6b" — group 6, parts a/b. Both
+    // parts must share the same EXPO superset letter so the day-grouper
+    // (ClientPortal + PlansView) keeps consecutive rows in one block. Map
+    // the GROUP NUMBER to A..E (cyclic via mod 5) — NOT the part letter.
+    let superset='';
+    const ssMatch=a.match(/(\d+)[a-e]/i);
+    if (ssMatch) {
+      const groupN = parseInt(ssMatch[1], 10);
+      if (Number.isFinite(groupN) && groupN >= 1) {
+        superset = String.fromCharCode(64 + (((groupN - 1) % 5) + 1));
+      }
+    }
     // Resolve exercise title. Col B is the canonical column, BUT some
     // sheets put the actual name in col C and use col B for a paired-set
     // marker like "SuperSet:" — fall through to col C in that case so we
