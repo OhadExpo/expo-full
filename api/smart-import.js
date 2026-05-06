@@ -155,7 +155,13 @@ async function execTool(name, input, authToken) {
     }
     return { error: 'unknown tool: ' + name };
   } catch (e) {
-    return { error: 'tool error: ' + (e?.message || String(e)) };
+    // Sanitize before returning to the model: error messages from upstream
+    // (Supabase, fetch) can echo Authorization headers or JWT fragments.
+    const raw = String(e?.message || e);
+    const safe = raw
+      .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [REDACTED]')
+      .replace(/eyJ[A-Za-z0-9._-]{20,}/g, '[JWT_REDACTED]');
+    return { error: 'tool error: ' + safe };
   }
 }
 

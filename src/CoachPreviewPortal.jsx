@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
+import { isSafeTraineeId } from './traineeUtils';
 import ClientPortal from './ClientPortal';
 
 // Coach-side preview. Two modes:
@@ -43,10 +44,10 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
           return;
         }
         if (traineeId) {
-          // Defensive: trainee IDs are always [a-zA-Z0-9_-] in our schema. A
-          // URL with anything else is malformed and could otherwise inject
-          // PostgREST .or() syntax (commas, parens) or LIKE wildcards.
-          if (!/^[A-Za-z0-9_-]+$/.test(traineeId)) {
+          // Block anything that isn't a real trainee ID before it lands in
+          // the .or() filter string. Shared helper so any future call site
+          // building PostgREST filters from URL params can do the same.
+          if (!isSafeTraineeId(traineeId)) {
             setError('Invalid trainee identifier.');
             return;
           }

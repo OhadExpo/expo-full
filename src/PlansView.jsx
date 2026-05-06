@@ -448,7 +448,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                             <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Sets / Wk</label>
                             <button onClick={()=>updateEx(exIdx,{wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3})} title="Collapse to single sets value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>← flat</button>
                           </div>
-                          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},minmax(0,1fr))`,gap:3}}>
+                          <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},minmax(40px,1fr))`,gap:3}}>
                             {Array.from({length:weeks}).map((_,i) => (
                               <input key={i} value={ex.wkS[i]||""} onChange={e=>{const next=resize(ex.wkS,weeks,""); next[i]=e.target.value; updateEx(exIdx,{wkS:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
                             ))}
@@ -469,7 +469,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                             <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps / Wk</label>
                             <button onClick={()=>updateEx(exIdx,{wk:null,reps:ex.wk[0]||"8-12"})} title="Collapse to single reps value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,fontFamily:FN,marginLeft:"auto"}}>← flat</button>
                           </div>
-                          <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},minmax(0,1fr))`,gap:3}}>
+                          <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},minmax(40px,1fr))`,gap:3}}>
                             {Array.from({length:weeks}).map((_,i) => (
                               <input key={i} value={ex.wk[i]||""} onChange={e=>{const next=resize(ex.wk,weeks,""); next[i]=e.target.value; updateEx(exIdx,{wk:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
                             ))}
@@ -542,7 +542,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   return (
                     <div style={{marginTop:6,background:'transparent',borderRadius:0,padding:"8px 10px",border:`0.25px solid ${C.ac}4D`}}>
                       <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,letterSpacing:'0.18em'}}>WEEKLY FOCUS</div>
-                      <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(weeks,6)},minmax(0,1fr))`,gap:8}}>
+                      <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(80px,1fr))`,gap:8}}>
                         {Array.from({length:weeks}, (_, i) => i + 1).map(w => {
                           const fk = `${plan.name}|${day.name}|${ex.exerciseId}|W${w}`;
                           return <input key={w} value={weeklyFocus?.[fk]||""} onChange={e=>{const v=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:v}))}}

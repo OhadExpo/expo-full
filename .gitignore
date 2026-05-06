@@ -16,3 +16,19 @@ backups/
 .tmp.driveupload/
 sheets/
 expo-il/.qa/
+
+# Local-only investigation artefacts. Chrome leveldb dumps contain real
+# session tokens and third-party API keys (Discord, AWS, Google OAuth,
+# Azure). NEVER commit anything from these paths.
+claude pctolap/
+New Programs/
+*.png
+*.jpg
+*.jpeg
+amit-*.png
+chat-*.png
+coach-*.png
+trainee-*.png
+verify-*.png
+demo-*.png
+he-demo-*.png

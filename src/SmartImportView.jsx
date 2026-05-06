@@ -276,6 +276,9 @@ export default function SmartImportView() {
         // Resolve Google Photos share URLs to direct googleusercontent streams
         // up-front, so the imported library entries land with stable URLs the
         // trainee portal can embed without re-scraping on every page load.
+        // Bounded concurrency so a 200-row import doesn't fan out into 200
+        // simultaneous /api/resolve-video calls and trip Vercel's per-region
+        // function concurrency cap.
         const resolveGph = async (u) => {
           if (!u || !/photos\.(app\.goo|google)\./i.test(u)) return u;
           try {
@@ -285,7 +288,16 @@ export default function SmartImportView() {
             return j?.url || u;
           } catch { return u; }
         };
-        await Promise.all(transform.items.map(async it => { it.videoLink = await resolveGph(it.videoLink); }));
+        const MAX_PARALLEL = 5;
+        let cursor = 0;
+        const workers = Array.from({ length: Math.min(MAX_PARALLEL, transform.items.length) }, async () => {
+          while (cursor < transform.items.length) {
+            const i = cursor++;
+            const it = transform.items[i];
+            it.videoLink = await resolveGph(it.videoLink);
+          }
+        });
+        await Promise.all(workers);
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
         const lib = row?.value || [];
         const titles = new Set(lib.map(e => (e.title || '').toLowerCase().trim()));

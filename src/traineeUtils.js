@@ -50,3 +50,15 @@ export const memberIndexFromId = (tid, parentId) => {
 
 /** True if tid is a sub-member of parentId. */
 export const isSubMemberId = (tid, parentId) => memberIndexFromId(tid, parentId) !== null;
+
+// --- Validation -------------------------------------------------------------
+
+/**
+ * Validate a trainee ID before interpolating it into a Supabase filter
+ * string (e.g. `.or(...)`, `.like(...)`). All real trainee IDs in our
+ * schema are `[A-Za-z0-9_-]+`. Anything outside that alphabet — commas,
+ * parens, percent signs — could inject extra PostgREST clauses or LIKE
+ * wildcards. Use this whenever you accept a trainee ID from a URL or
+ * any other untrusted boundary.
+ */
+export const isSafeTraineeId = (tid) => typeof tid === 'string' && /^[A-Za-z0-9_-]+$/.test(tid);
