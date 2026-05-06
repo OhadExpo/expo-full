@@ -517,7 +517,7 @@ export default function CoachLanding({ lang = 'en' }) {
             fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
             marginBottom: 14,
           }}>
-            <img src="/icon-192.png" alt="EXPO" width="40" height="40" style={{ display: 'block' }} />
+            <img src="/icon-512.png" alt="EXPO" width="80" height="80" style={{ display: 'block' }} />
             <span>{t('hero.badge')}</span>
           </div>
           <h1 style={{
