@@ -41,7 +41,7 @@ const STRINGS = {
   'header.signin':       { en: 'SIGN IN →',            he: '← התחברות' },
 
   // Hero
-  'hero.badge':          { en: '· COACHING PLATFORM',  he: '· פלטפורמת אימון' },
+  'hero.badge':          { en: 'COACHING PLATFORM',    he: 'פלטפורמת אימון' },
   'hero.h1':             { en: 'Run your roster on the same engine your clients film with.', he: 'תריץ את כל הרוסטר שלך על אותו מנוע שהמתאמנים מצלמים בו.' },
   'hero.body': {
     en: 'Pose detection, auto rep counter, side-by-side video review, plan authoring, client portals, and a dormant-client WhatsApp nudge — built by a working coach, running live on real clients.',
@@ -509,12 +509,15 @@ export default function CoachLanding({ lang = 'en' }) {
         <section style={{
           maxWidth: 920, margin: '0 auto', padding: '64px 20px 40px', textAlign: 'center',
         }}>
+          {/* Logo above, "COACHING PLATFORM" below — both center-aligned.
+              Was an inline row with the mark sitting next to "· COACHING
+              PLATFORM"; the small-mark + bullet read awkwardly. */}
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
             fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
             marginBottom: 14,
           }}>
-            <EXPOMark height={14} />
+            <EXPOMark height={28} />
             <span>{t('hero.badge')}</span>
           </div>
           <h1 style={{
