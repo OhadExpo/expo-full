@@ -237,7 +237,7 @@ function DemoDashboard({ onJumpToTrainee }) {
                 <span style={{ fontWeight: 600, color: C.tx, flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
                   {t.name}<OnlineDot />
                 </span>
-                <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>IN PORTAL</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: 1 }}>IN PORTAL</span>
                 <FakeWaButton />
               </Row>
             ))}
@@ -290,9 +290,9 @@ function DemoDashboard({ onJumpToTrainee }) {
               <Row key={i}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
-                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
                 </div>
-                <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>{l.when}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: 1 }}>{l.when}</span>
               </Row>
             ))}
           </Panel>
@@ -444,7 +444,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
           padding: '8px 14px', fontSize: 11,
         }}>+ ADD ATHLETE ▾</button>
         <span style={{
-          fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1.5,
+          fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: 1.5,
         }}>{filtered.length} / {MOCK_TRAINEES.length}</span>
       </div>
       {filtered.length === 0 ? (
@@ -755,7 +755,7 @@ function CoupleCard({ t, onClick }) {
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>{memberMeta[mi].email}</div>
                   <div style={{
-                    fontFamily: FN, fontSize: 10, color: C.tm, marginTop: 2, letterSpacing: 0.5,
+                    fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, marginTop: 2, letterSpacing: 0.5,
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>{memberMeta[mi].phone}</div>
                 </div>
@@ -1016,11 +1016,11 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES'
           <Panel title="GOALS / INJURIES" tint={C.tm}>
             <div style={{ padding: 14, fontSize: 13, lineHeight: 1.55, color: C.tx, opacity: 0.85 }}>
               <div style={{ marginBottom: 10 }}>
-                <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, marginBottom: 4 }}>GOALS</div>
+                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1.5, marginBottom: 4 }}>GOALS</div>
                 {trainee.goals}
               </div>
               <div>
-                <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, marginBottom: 4 }}>INJURIES</div>
+                <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1.5, marginBottom: 4 }}>INJURIES</div>
                 {trainee.injuries}
               </div>
             </div>
@@ -1222,7 +1222,7 @@ function DemoPrograms() {
                   fontFamily: FB, fontSize: 11.5, color: C.tx, opacity: 0.7,
                 }}>{b.tag}</div>
                 <div style={{
-                  fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, marginTop: 2,
+                  fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1, marginTop: 2,
                 }}>{b.when}</div>
               </div>
             );
