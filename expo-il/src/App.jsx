@@ -121,16 +121,15 @@ function ModalCloseBtn({ onClose, label }) {
 // the same product, not a generic re-skin. Never inline alternate cropped PNGs
 // in expo-il/public/ — those drifted from the canonical mark before.
 function BrandMark({ height = 22 }) {
-  // The nav PNG packs caret + wordmark + transparent breathing room above
-  // and below. We previously added a translateY percentage to lift the
-  // wordmark onto the line's optical center; that was tuned at h=22 and
-  // overcorrected at h=36 (wordmark floated above adjacent menu text).
-  // Now we let `align-items: center` on the parent flex row do the
-  // centering — reads correctly at all sizes we use.
+  // The nav PNG packs caret + wordmark + transparent breathing room
+  // above and below; the visible wordmark sits in the lower ~63% of
+  // the image. Use a fixed-pixel lift so the wordmark sits visually
+  // centered across every height we use (h=14 footer through h=36 nav).
+  // Was percentage-based; that overcorrected at h=36 after the bump.
   return (
     <img src={EXPO_LOGO_NAV} alt="EXPO"
       decoding="async"
-      style={{ height, width: 'auto', display: 'block' }} />
+      style={{ height, width: 'auto', display: 'block', transform: 'translateY(-3px)' }} />
   );
 }
 

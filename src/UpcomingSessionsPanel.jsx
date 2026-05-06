@@ -305,8 +305,12 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
         }}>
         <div style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700, minWidth: 50 }}>{fmtTime(ev.start_at)}</div>
         <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 600, minWidth: 70 }}>{fmtDayLabel(ev.start_at)}</div>
+        {/* Use FN (Nord) and let the unicode-range @font-face route Hebrew
+            glyphs to Heebo via fallback. Same chain the rest of the app
+            uses — keeps the calendar row visually consistent with the
+            sessions header and the trainee-card text elsewhere. */}
         <div style={{
-          flex: 1, minWidth: 0, fontFamily: isHebrew ? FH : FB, fontSize: 14, color: C.tx,
+          flex: 1, minWidth: 0, fontFamily: FN, fontSize: 14, color: C.tx, fontWeight: 600,
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           direction: isHebrew ? 'rtl' : 'ltr',
         }}>
