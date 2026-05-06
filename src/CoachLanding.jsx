@@ -467,6 +467,13 @@ export default function CoachLanding({ lang = 'en' }) {
           /* Reserve room at the bottom of the page so the sticky bar
              doesn't cover the footer or last form. */
           main { padding-bottom: 76px; }
+          /* Header items that overcrowd the row on narrow screens. The
+             "FOR COACHES" badge is implied by being on /demo, and the
+             header "SEE THE DEMO" link is redundant with the hero CTAs
+             below + the sticky bottom bar. Hidden under 720px so the
+             remaining items (logo + lang toggle + SIGN IN) breathe. */
+          .cl-header-badge,
+          .cl-header-demo-btn { display: none; }
         }
       `}</style>
 
@@ -482,7 +489,7 @@ export default function CoachLanding({ lang = 'en' }) {
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
             <EXPOMark height={36} style={{ marginBottom: 0 }} />
           </a>
-          <span style={{
+          <span className="cl-header-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.18em', fontWeight: 700,
             padding: '4px 8px', background: 'transparent', borderRadius: 0,
             border: `1px solid ${C.ac}`, whiteSpace: 'nowrap',
@@ -493,7 +500,7 @@ export default function CoachLanding({ lang = 'en' }) {
             border: `1px solid ${C.bd}`, padding: '8px 10px', fontSize: 10,
             letterSpacing: '0.18em', fontWeight: 700,
           }}>{isHe ? 'EN' : 'עב'}</a>
-          <a href="/demo/coach" style={{
+          <a href="/demo/coach" className="cl-header-demo-btn" style={{
             ...baseBtn, background: 'transparent', color: C.tx,
             border: `1px solid ${C.bd2}`, padding: '8px 14px', fontSize: 11,
           }}>{t('header.demo')}</a>
