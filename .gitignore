@@ -16,6 +16,7 @@ backups/
 .tmp.driveupload/
 sheets/
 expo-il/.qa/
+scripts/meakav-out/
 
 # Local-only investigation artefacts. Chrome leveldb dumps contain real
 # session tokens and third-party API keys (Discord, AWS, Google OAuth,
