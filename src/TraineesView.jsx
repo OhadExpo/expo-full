@@ -14,18 +14,23 @@ function EmailsCell({ email, style }) {
   const arr = emailsToArr(email).filter(Boolean);
   const [expanded, setExpanded] = useState(false);
   if (arr.length === 0) return null;
-  const collapsedStyle = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
-  const expandedStyle = { whiteSpace: 'normal', wordBreak: 'break-all' };
   if (arr.length <= 2) {
-    return <div style={{ ...style, ...collapsedStyle }}>{arr.join(', ')}</div>;
+    return <div style={{ ...style, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{arr.join(', ')}</div>;
   }
   const visible = expanded ? arr : arr.slice(0, 2);
   return (
-    <div style={{ ...style, ...(expanded ? expandedStyle : collapsedStyle) }}>
-      {visible.join(', ')}
+    <div style={{
+      ...style,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+      flexWrap: expanded ? 'wrap' : 'nowrap',
+    }}>
+      <span style={expanded
+        ? { wordBreak: 'break-all' }
+        : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }
+      }>{visible.join(', ')}</span>
       <span
         onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-        style={{ marginInlineStart: 6, color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap' }}
+        style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1 }}
       >
         {expanded ? 'LESS' : `+${arr.length - 2}`}
       </span>
