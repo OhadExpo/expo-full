@@ -157,8 +157,10 @@ export default function IntakeForm() {
 
   // When no token, render the locale's initial form anyway (preview mode).
   // No DB write happens until phase === 'ready'.
+  // trainee_id is resolved server-side by submit_intake_form() now — the
+  // verify RPC no longer echoes it, so a leaked token can't be used to
+  // submit AS a specific trainee from the public form.
   const formType = tokenInfo?.form_type || 'initial';
-  const traineeId = tokenInfo?.trainee_id || null;
   const form = useMemo(() => getForm(formType, locale), [formType, locale]);
 
   const setAnswer = (qid, v) => setAnswers(a => ({ ...a, [qid]: v }));
@@ -179,23 +181,31 @@ export default function IntakeForm() {
     setErrorMsg('');
     setPhase('submitting');
     try {
-      const row = {
-        form_type: form.formType,
-        locale: form.locale,
-        trainee_id: traineeId,
-        token: token || null,
-        email: String(answers.email || '').trim() || null,
-        name: String(answers.name || '').trim() || null,
-        payload: answers,
-      };
-      const { error } = await supabase.from('intake_submissions').insert(row);
-      if (error) throw error;
-      // Mark the token used. Failure here is non-fatal — submission already
-      // landed and Ohad sees it in the inbox.
+      // Token-bearing submissions: route through the server-side RPC so
+      // trainee_id is resolved from the token by SECURITY DEFINER code.
+      // The RPC also marks the token used atomically.
       if (token) {
-        try { await supabase.rpc('mark_intake_token_used', { p_token: token }); } catch {}
+        const { data, error } = await supabase.rpc('submit_intake_form', {
+          p_token: token,
+          p_payload: answers,
+          p_email: String(answers.email || '').trim() || null,
+          p_name:  String(answers.name  || '').trim() || null,
+        });
+        if (error) throw error;
+        if (!data) {
+          // Token race: was used between verify and submit, or invalidated.
+          setPhase('used');
+          return;
+        }
+        setPhase('done');
+        return;
       }
-      setPhase('done');
+      // No token at all (Ohad's preview-mode testing): the anon INSERT
+      // policy was removed in the 2026-05-07 migration, so this path now
+      // requires the trainer to be signed in. We surface a clear message
+      // rather than letting the RLS error reach the UI.
+      setPhase('ready');
+      setErrorMsg('Submitting without a coach link requires sign-in. Ask Ohad for an intake link.');
     } catch (e) {
       setPhase('ready');
       setErrorMsg(String(e?.message || e) || 'Submit failed — try again.');

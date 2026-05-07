@@ -189,12 +189,16 @@ function ExPicker({ exercises, value, onChange, label, fallbackTitle }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', minWidth: 0 }}>
       {label && <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>{label}</label>}
-      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, width: '100%', textAlign: 'center', justifyContent: 'center', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderColor: unlinked ? C.or + '60' : undefined }}>
-        <span style={{ color: hasDisplay ? C.tx : C.td, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <button onClick={() => setModalOpen(true)} style={{ ...baseInput, width: '100%', textAlign: 'center', cursor: 'pointer', position: 'relative', borderColor: unlinked ? C.or + '60' : undefined, paddingRight: 24 }}>
+        {/* Text takes the full button width with text-align:center, so the
+            displayed exercise name lands at the true column center —
+            matching where the EXERCISE label above is centered. The ▼
+            sits absolutely on the right so it doesn't shift the text. */}
+        <span style={{ color: hasDisplay ? C.tx : C.td, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {unlinked && <span style={{ color: C.or, marginRight: 6, fontSize: 10 }}>📝</span>}
           {hasDisplay ? displayTitle : 'Select exercise...'}
         </span>
-        <span style={{ color: C.td, fontSize: 10 }}>▼</span>
+        <span style={{ color: C.td, fontSize: 10, position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)' }}>▼</span>
       </button>
       <ExerciseBrowserModal
         open={modalOpen}
@@ -255,19 +259,34 @@ function WarmupEditor({ plan, setPlan }) {
 // renders an editor-shaped read-only view (day tabs, warm-up, exercise
 // rows with sets/reps/load/RPE/tempo/notes). The compared plan is never
 // mutated — every input is replaced with display text.
-function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, onClose }) {
-  const candidates = useMemo(() => {
-    const tid = currentPlan?.traineeId || '';
-    if (!tid) return [];
-    return (planIndex || [])
-      .filter(p => p.id !== currentPlan.id && p.traineeId === tid)
-      .slice()
-      .sort(sortProgramsChrono);
-  }, [planIndex, currentPlan?.id, currentPlan?.traineeId]);
-  const [pickedId, setPickedId] = useState(() => candidates[0]?.id || '');
-  const [activeDay, setActiveDay] = useState(0);
+function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClose }) {
+  // Athlete filter drives everything: until one is chosen, the program
+  // dropdown is empty/disabled. Defaults to the current plan's athlete so
+  // the most useful comparison appears first.
+  const [selectedAthleteId, setSelectedAthleteId] = useState(() => currentPlan?.traineeId || '');
   const [warmOpen, setWarmOpen] = useState(false);
   const { plan: cmpPlan, load: loadCmp, clear: clearCmp, loading } = useFullPlan();
+  // Athlete options for the dropdown — flatten couples to per-member rows
+  // so the picker matches the rest of the app.
+  const athleteOptions = useMemo(() => {
+    const opts = (trainees || []).flatMap(t => {
+      if (t.members && t.members.length === 2) {
+        return t.members.map((m, i) => ({ value: t.id + '__' + i, label: m.name || ('Member ' + (i + 1)) }));
+      }
+      return [{ value: t.id, label: t.name }];
+    });
+    return opts.sort((a, b) => (a.label || '').localeCompare(b.label || '', 'he'));
+  }, [trainees]);
+  // Programs of the chosen athlete. Empty when no athlete is selected so
+  // the program dropdown stays unusable until the user picks one.
+  const candidates = useMemo(() => {
+    if (!selectedAthleteId) return [];
+    return (planIndex || [])
+      .filter(p => p.id !== currentPlan?.id && p.traineeId === selectedAthleteId)
+      .slice()
+      .sort(sortProgramsChrono);
+  }, [planIndex, currentPlan?.id, selectedAthleteId]);
+  const [pickedId, setPickedId] = useState(() => candidates[0]?.id || '');
 
   // Default the picker to the most recent prior program every time the set
   // of candidates shrinks/grows (e.g. a new athlete is assigned mid-edit).
@@ -282,39 +301,47 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, onClose }) {
     if (pickedId) loadCmp(pickedId); else clearCmp();
   }, [pickedId, loadCmp, clearCmp]);
 
-  // Reset day when the selected plan changes — Block #16's Day C may not
-  // exist in Block #17 and we'd render an empty body otherwise.
-  useEffect(() => { setActiveDay(0); }, [pickedId]);
-
-  const day = cmpPlan?.days?.[activeDay];
-
   return (
-    <div style={{flex:1, minWidth:0, border:`0.25px solid ${C.ac}4D`, padding:14, background:'transparent', alignSelf:'stretch'}}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, marginBottom:10}}>
-        <div style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.tm, letterSpacing:'0.18em'}}>↔ COMPARE — READ-ONLY</div>
-        <button onClick={onClose} title="Close compare panel"
-          style={{background:'transparent', border:`0.25px solid ${C.ac}4D`, color:C.tm, cursor:'pointer', padding:'2px 8px', borderRadius:0, fontSize:12}}>✕</button>
-      </div>
-      {candidates.length === 0 ? (
-        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>
-          {currentPlan?.traineeId
-            ? 'No earlier programs for this athlete yet.'
-            : 'Assign this program to an athlete to compare against their earlier programs.'}
+    <div style={{flex:1, minWidth:0, alignSelf:'stretch', position:'relative'}}>
+      {/* Faded vertical divider as an absolute-positioned 1px strip with a
+          vertical gradient — fades to transparent at the top and bottom
+          edges, low alpha (~25%) in the middle. Sits at x=-8 so it lands
+          in the middle of the flex gap between halves. pointerEvents:none
+          so it never intercepts clicks. */}
+      <div style={{position:'absolute', top:0, bottom:0, left:-8, width:1, background:`linear-gradient(to bottom, transparent 0%, ${C.td}59 12%, ${C.td}59 88%, transparent 100%)`, pointerEvents:'none', zIndex:0}} />
+      {/* Filter row is ALWAYS rendered. Hiding it on empty-state would trap
+          the user (e.g. picked athlete with no programs and couldn't change
+          back). Empty states below render after the filter row so the
+          athlete dropdown stays reachable. */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:12,marginBottom:20,position:'relative'}}>
+        <div style={{gridColumn:'span 2', minWidth:0}}>
+          <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder="Pick athlete…" />
         </div>
+        <div style={{gridColumn:'span 2', minWidth:0}}>
+          <Select label="Program Filter"
+            options={selectedAthleteId ? candidates.map(p => ({value: p.id, label: p.name})) : []}
+            value={pickedId}
+            onChange={setPickedId}
+            placeholder={selectedAthleteId ? (candidates.length ? 'Pick program…' : 'No programs for this athlete') : 'Choose athlete first'} />
+        </div>
+        <button onClick={onClose} title="Close compare panel"
+          style={{position:'absolute', top:-2, right:-2, background:C.bg, border:`0.25px solid ${C.ac}4D`, color:C.tm, cursor:'pointer', padding:'1px 6px', borderRadius:0, fontSize:11, lineHeight:1, zIndex:2}}>✕</button>
+      </div>
+      {!selectedAthleteId ? (
+        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick an athlete from the filter above to compare.</div>
+      ) : candidates.length === 0 ? (
+        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>No programs for this athlete yet.</div>
+      ) : !pickedId ? (
+        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick a program from the filter above to compare.</div>
+      ) : loading || !cmpPlan ? (
+        <div style={{padding:'30px 12px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FN, letterSpacing:'0.18em'}}>LOADING…</div>
       ) : (
         <>
-          <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:12}}>
-            <span style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.tm, letterSpacing:'0.18em', whiteSpace:'nowrap'}}>VIEWING</span>
-            <select value={pickedId} onChange={e => setPickedId(e.target.value)}
-              style={{...baseInput, height:36, padding:'0 32px 0 12px', fontSize:13, flex:1, minWidth:0}}>
-              {candidates.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          </div>
-          {loading || !cmpPlan ? (
-            <div style={{padding:'30px 12px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FN, letterSpacing:'0.18em'}}>LOADING…</div>
-          ) : (
-            <>
-              {/* Warm-up (collapsed by default to mirror the editor's foldable behaviour). */}
+          {/* Pattern coverage of the compared plan. Same component the
+              editor renders on the left, so the box sits at the same
+              vertical position on both halves. */}
+          <PatternCoverage plan={cmpPlan} exercises={exercises} />
+              {/* Warm-up (foldable, mirrors editor). */}
               {Array.isArray(cmpPlan.warmup) && cmpPlan.warmup.length > 0 && (
                 <div style={{border:`0.25px solid ${C.ac}4D`, padding:10, marginBottom:12}}>
                   <button onClick={() => setWarmOpen(o => !o)}
@@ -333,51 +360,91 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, onClose }) {
                   </div>}
                 </div>
               )}
-              {/* Day tabs — read-only navigation, mirrors the editor visual. */}
-              {(cmpPlan.days || []).length > 1 && (
-                <div style={{display:'flex', gap:4, marginBottom:12, flexWrap:'wrap', alignItems:'stretch', justifyContent:'center'}}>
-                  {(cmpPlan.days || []).map((d, i) => (
-                    <button key={d.id || i} onClick={() => setActiveDay(i)}
-                      style={{padding:'6px 12px', fontSize:11, borderRadius:0, border:`${i === activeDay ? '2px' : '0.25px'} solid ${i === activeDay ? C.ac : C.ac + '4D'}`, background:'transparent', color:i === activeDay ? C.ac : C.tm, cursor:'pointer', fontFamily:FN, fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase'}}>
-                      {d.name} ({d.exercises.length})
-                    </button>
-                  ))}
-                </div>
-              )}
-              {/* Exercises body — same visual rhythm as the editor's exercise
-                  cards but every field collapses to display text. */}
-              {!day || (day.exercises || []).length === 0 ? (
-                <div style={{padding:'20px 12px', color:C.td, fontSize:12, textAlign:'center', fontStyle:'italic'}}>No exercises in this day.</div>
-              ) : (
-                <div>
-                  {day.exercises.map((pe, ei) => {
-                    const exData = exercises.find(e => e.id === pe.exerciseId);
-                    const title = exData?.title || pe.title || (pe.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
-                    const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : 'transparent';
-                    const repsDisplay = Array.isArray(pe.wk) && pe.wk.length ? pe.wk.join(' › ') : (pe.reps || '—');
-                    const setsDisplay = Array.isArray(pe.wkS) && pe.wkS.length ? pe.wkS.join(' › ') : (pe.sets ?? '—');
-                    return (
-                      <div key={pe.id || ei} style={{border:`0.25px solid ${pe.superset ? sc : C.ac + '4D'}`, borderLeft:pe.superset ? `3px solid ${sc}` : `0.25px solid ${C.ac}4D`, padding:'10px 12px', marginBottom:8}}>
-                        <div style={{display:'flex', alignItems:'baseline', gap:10, flexWrap:'wrap'}}>
-                          <span style={{fontFamily:FN, fontSize:11, color:C.tm, fontWeight:700}}>{ei + 1}</span>
-                          {pe.superset && <span style={{fontFamily:FN, fontSize:10, color:sc, fontWeight:700, letterSpacing:'0.18em'}}>{pe.superset}</span>}
-                          <span style={{fontFamily:FB, fontSize:13, color:C.tx, fontWeight:600, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis'}}>{title}</span>
+              {/* Overview body — pixel-mirror of the editor's overview grid.
+                  Each cell is rendered with the same `tinyInput` box style
+                  the editor uses, so row heights and column widths match
+                  exactly when the two halves are scanned side-by-side. */}
+              {(cmpPlan.days || []).map((d, di) => {
+                const dayExs = d.exercises || [];
+                const tinyInputRO = {...baseInput, padding:'3px 6px', fontSize:11, minWidth:0, width:'100%', boxSizing:'border-box', color:C.tm, cursor:'default'};
+                return (
+                  <div key={d.id || di} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:12}}>
+                    <div style={{display:'flex',alignItems:'center',marginBottom:8,gap:10}}>
+                      <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
+                        style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
+                      <span style={{color:C.td,fontSize:12,whiteSpace:'nowrap'}}>({dayExs.length} ex)</span>
+                    </div>
+                    {dayExs.length === 0 ? (
+                      <div style={{color:C.td,fontSize:12,fontStyle:'italic'}}>No exercises.</div>
+                    ) : (
+                      <div style={{overflowX:'auto',margin:'0 -12px',padding:'0 12px'}}>
+                        {/* LOAD column intentionally omitted on the read-only
+                            compare side — load values change every block and
+                            aren't useful for delta-scanning. Same column
+                            template otherwise. */}
+                        <div style={{display:'grid',gridTemplateColumns:'36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(48px,60px) minmax(56px,72px) 24px',gap:'6px 8px',fontSize:12,alignItems:'center',minWidth:554}}>
+                          {['#','EXERCISE','GRP','SETS','REPS','RPE','TEMPO',''].map((h,hi) =>
+                            hi === 0 ? (
+                              <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
+                                <span style={{fontFamily:FN, fontSize:12, lineHeight:1, fontWeight:400, opacity:0}}>⇕</span>
+                                <span style={{fontSize:9, fontFamily:FN, color:C.td}}>{h}</span>
+                              </div>
+                            ) : hi === 1 ? (
+                              // EXERCISE header — identical box-model
+                              // structure to the exercise-name cells below
+                              // (3px transparent borderLeft + 6px paddingLeft)
+                              // so the text x-position is computed by the
+                              // browser the exact same way. No reliance on
+                              // adding pixel values manually.
+                              <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0, borderLeft:'3px solid transparent', paddingLeft:6}}>{h}</div>
+                            ) : (
+                              <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>
+                            )
+                          )}
+                          {dayExs.map((pe, ei) => {
+                            const exData = exercises.find(e => e.id === pe.exerciseId);
+                            const title = exData?.title || pe.title || (pe.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
+                            const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : C.td;
+                            const weeks = Math.max((pe.wk?.length||0), (pe.wkS?.length||0), 1);
+                            return <React.Fragment key={pe.id || ei}>
+                              {/* Same flex+⇕ structure as the left side's
+                                  number cell. fontSize:12 matches the grid
+                                  default, so the number's baseline aligns
+                                  with the exercise-name text in the next
+                                  column. */}
+                              <div style={{display:'flex',alignItems:'center',gap:5,minWidth:0,padding:0}}>
+                                <span style={{fontFamily:FN, fontSize:12, fontWeight:400, opacity:0}}>⇕</span>
+                                <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:12}}>{ei + 1}</span>
+                              </div>
+                              <div title={title}
+                                style={{color:C.tx, minWidth:0, overflowWrap:'anywhere', wordBreak:'break-word', borderLeft:`3px solid ${pe.superset?sc:'transparent'}`, paddingLeft:6}}>{title}</div>
+                              <input value={pe.superset || ''} readOnly tabIndex={-1}
+                                style={{...tinyInputRO, color:pe.superset?sc:C.td, fontFamily:FN, fontWeight:600}} />
+                              {Array.isArray(pe.wkS) && pe.wkS.length > 0 ? (
+                                <div style={{display:'grid', gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
+                                  {pe.wkS.map((v, wi) => <input key={wi} value={v||''} readOnly tabIndex={-1} style={{...tinyInputRO, padding:'3px 4px', fontSize:10}} />)}
+                                </div>
+                              ) : (
+                                <input value={pe.sets ?? ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                              )}
+                              {Array.isArray(pe.wk) && pe.wk.length > 0 ? (
+                                <div style={{display:'grid', gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
+                                  {pe.wk.map((v, wi) => <input key={wi} value={v||''} readOnly tabIndex={-1} style={{...tinyInputRO, padding:'3px 4px', fontSize:10}} />)}
+                                </div>
+                              ) : (
+                                <input value={pe.reps || ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                              )}
+                              <input value={pe.rpe || ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                              <input value={pe.tempo || ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                              <div />
+                            </React.Fragment>;
+                          })}
                         </div>
-                        <div style={{display:'flex', flexWrap:'wrap', gap:'4px 12px', marginTop:6, fontFamily:FN, fontSize:11, color:C.tm}}>
-                          <span><span style={{color:C.td}}>SETS</span> {setsDisplay}</span>
-                          <span><span style={{color:C.td}}>REPS</span> {repsDisplay}</span>
-                          {pe.load && <span><span style={{color:C.td}}>LOAD</span> {pe.load}</span>}
-                          {pe.rpe && <span><span style={{color:C.td}}>RPE</span> {pe.rpe}</span>}
-                          {pe.tempo && <span><span style={{color:C.td}}>TEMPO</span> {pe.tempo}</span>}
-                        </div>
-                        {pe.notes && <div style={{marginTop:6, fontSize:12, color:C.tm, fontFamily:FB, fontStyle:'italic', lineHeight:1.4}}>{pe.notes}</div>}
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
+                    )}
+                  </div>
+                );
+              })}
         </>
       )}
     </div>
@@ -390,11 +457,15 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [overview, setOverview] = useState(false);
-  // Compare mode: split the editor body 50/50 with a read-only view of a
-  // previous program (same athlete). Forced off when in Overview because
-  // the wide overview table doesn't fit a half-width column.
+  // Compare mode: side-by-side 50/50 split with a read-only view of a
+  // previous program (same athlete). Only available WHEN Overview is on —
+  // anchored to the wide grid where row-by-row delta-scanning actually pays
+  // off. Layout matches the original side-by-side pattern.
   const [compareOpen, setCompareOpen] = useState(false);
-  const compareActive = compareOpen && !overview;
+  const compareActive = compareOpen && overview;
+  // Auto-close compare when the user leaves Overview, so the state doesn't
+  // linger and re-fire if Overview is toggled back on later.
+  React.useEffect(() => { if (!overview && compareOpen) setCompareOpen(false); }, [overview, compareOpen]);
   // Drag-to-reorder state for the Overview view. Source = the row picked up;
   // over = the row currently being hovered as a drop target (used to draw the
   // insertion bar). Reorder is constrained to within the source row's day.
@@ -455,13 +526,14 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
         <div style={{display:"flex",gap:8,alignItems:"stretch"}}>
           {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:11,fontWeight:600,color:statusLabel.color,letterSpacing:"0.04em",alignSelf:'center'}}>{statusLabel.text}</span>}
-          {/* COMPARE: split-view a previous program of this athlete on the
-              right (read-only). Disabled in Overview because that grid is
-              already very wide and squeezing it to 50% breaks the layout. */}
-          <button onClick={()=>{ if (overview) return; setCompareOpen(v=>!v); }}
-            disabled={overview}
-            title={overview ? 'Exit Overview to use Compare' : 'Compare with a previous program (read-only)'}
-            style={{background:'transparent',border:`${compareActive?'1px':'0.25px'} solid ${compareActive?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:overview?C.td:(compareActive?C.ac:C.tm),cursor:overview?'not-allowed':'pointer',opacity:overview?0.5:1,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{compareActive?'✓ COMPARE':'↔ COMPARE'}</button>
+          {/* COMPARE: read-only view of a previous program for the same
+              athlete, stacked below the Overview grid. Only enabled when
+              Overview is on — single-day detail-view comparisons were too
+              cramped to be useful, so we anchor compare to the wide grid. */}
+          <button onClick={()=>{ if (!overview) return; setCompareOpen(v=>!v); }}
+            disabled={!overview}
+            title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous program (read-only)'}
+            style={{background:'transparent',border:`${compareActive?'1px':'0.25px'} solid ${compareActive?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:!overview?C.td:(compareActive?C.ac:C.tm),cursor:!overview?'not-allowed':'pointer',opacity:!overview?0.5:1,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{compareActive?'✓ COMPARE':'↔ COMPARE'}</button>
           <button onClick={()=>setOverview(v=>!v)} style={{background:'transparent',border:`${overview?'1px':'0.25px'} solid ${overview?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:overview?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
           <Btn onClick={handleSave} disabled={saving} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
@@ -520,7 +592,21 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
                 <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:614}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
-                    <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>)}
+                    hi === 0 ? (
+                      <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
+                        <span style={{fontFamily:FN, fontSize:12, lineHeight:1, fontWeight:400, opacity:0}}>⇕</span>
+                        <span style={{fontSize:9, fontFamily:FN, color:C.td}}>{h}</span>
+                      </div>
+                    ) : hi === 1 ? (
+                      // Same structure as the exercise-name cells below — 3px
+                      // transparent borderLeft + 6px paddingLeft — so the
+                      // browser computes header text x-position identically
+                      // to content text x-position. Pixel-perfect by design.
+                      <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0, borderLeft:'3px solid transparent', paddingLeft:6}}>{h}</div>
+                    ) : (
+                      <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>
+                    )
+                  )}
                   {dayExs.map((ex, exIdx) => {
                     const exData = exercises.find(e=>e.id===ex.exerciseId);
                     const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
@@ -534,12 +620,12 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         onDrop={e => { e.preventDefault(); if (dragSrc && dragSrc.dayIdx===dayIdx && dragSrc.exIdx!==exIdx) reorderExInDay(dayIdx, dragSrc.exIdx, exIdx); setDragSrc(null); setDragOver(null); }}
                         onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                         title="Drag to reorder"
-                        style={{display:"flex",alignItems:"center",gap:5,minWidth:0,cursor:"grab",userSelect:"none",padding:"2px 0",opacity:dragSrc&&dragSrc.dayIdx===dayIdx&&dragSrc.exIdx===exIdx?0.4:1,borderTop:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?`2px solid ${C.ac}`:"2px solid transparent"}}>
-                        <span style={{color:C.tm, fontFamily:FN, fontSize:11, lineHeight:1, fontWeight:400}}>⇕</span>
-                        <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:11, lineHeight:1}}>{exIdx+1}</span>
+                        style={{display:"flex",alignItems:"center",gap:5,minWidth:0,cursor:"grab",userSelect:"none",padding:0,opacity:dragSrc&&dragSrc.dayIdx===dayIdx&&dragSrc.exIdx===exIdx?0.4:1,borderTop:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?`2px solid ${C.ac}`:"none"}}>
+                        <span style={{color:C.tm, fontFamily:FN, fontSize:12, fontWeight:400}}>⇕</span>
+                        <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:12}}>{exIdx+1}</span>
                       </div>
                       <div title="Exercise name links to the library — open DETAIL to swap the exercise or edit notes/URL"
-                        style={{color:C.tx, minWidth:0, overflowWrap:"anywhere", wordBreak:"break-word", borderLeft:ex.superset?`3px solid ${sc}`:"none", paddingLeft:ex.superset?6:0}}>{title}</div>
+                        style={{color:C.tx, minWidth:0, overflowWrap:"anywhere", wordBreak:"break-word", borderLeft:`3px solid ${ex.superset?sc:'transparent'}`, paddingLeft:6}}>{title}</div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
                         style={{...tinyInput, color:sc, fontFamily:FN, fontWeight:600}}>
                         {SUPERSET_LABELS.map(s => <option key={s} value={s}>{s||"—"}</option>)}
@@ -585,8 +671,8 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
           const exData = exercises.find(e=>e.id===ex.exerciseId);
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
-          return(<div key={ex.id} style={{background:'transparent',border:`0.25px solid ${ex.superset?sc:C.ac+'4D'}`,borderLeft:ex.superset?`3px solid ${sc}`:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:8}}>
-            <div style={{display:"grid",gridTemplateColumns:"54px 1fr",gap:12,alignItems:"start"}}>
+          return(<div key={ex.id} style={{background:'transparent',border:`0.25px solid ${ex.superset?sc:C.ac+'4D'}`,borderLeft:`3px solid ${ex.superset?sc:C.ac+'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
+            <div style={{display:"grid",gridTemplateColumns:"54px 1fr 54px",gap:12,alignItems:"start"}}>
               <div draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${activeDay}:${exIdx}`); setDragSrc({dayIdx: activeDay, exIdx}); }}
                 onDragOver={e => { if (dragSrc && dragSrc.dayIdx===activeDay) { e.preventDefault(); e.dataTransfer.dropEffect='move'; setDragOver({dayIdx: activeDay, exIdx}); } }}
@@ -594,7 +680,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                 onDrop={e => { e.preventDefault(); if (dragSrc && dragSrc.dayIdx===activeDay && dragSrc.exIdx!==exIdx) reorderExInDay(activeDay, dragSrc.exIdx, exIdx); setDragSrc(null); setDragOver(null); }}
                 onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                 title="Drag to reorder"
-                style={{display:"flex",flexDirection:"row",alignItems:"center",gap:6,paddingTop:4,cursor:"grab",userSelect:"none",opacity:dragSrc&&dragSrc.dayIdx===activeDay&&dragSrc.exIdx===exIdx?0.4:1,borderTop:dragOver&&dragOver.dayIdx===activeDay&&dragOver.exIdx===exIdx?`2px solid ${C.ac}`:"2px solid transparent"}}>
+                style={{display:"flex",flexDirection:"row",alignItems:"center",gap:6,cursor:"grab",userSelect:"none",opacity:dragSrc&&dragSrc.dayIdx===activeDay&&dragSrc.exIdx===exIdx?0.4:1,borderTop:dragOver&&dragOver.dayIdx===activeDay&&dragOver.exIdx===exIdx?`2px solid ${C.ac}`:"none"}}>
                 <span style={{fontFamily:FN,fontSize:11,color:C.tm,lineHeight:1,fontWeight:400}}>⇕</span>
                 <span style={{fontFamily:FN,fontSize:12,color:C.tm,fontWeight:700,lineHeight:1}}>{exIdx+1}</span>
               </div>
@@ -697,12 +783,11 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.ac+'4D'}`,borderRadius:0,whiteSpace:"nowrap"}}>
                         {hasOverride?"OPEN ▸":"LIB ▸"}
                       </a>}
-                      {/* Symmetric gaps above/below the video. The 12px padding
-                          sits on this wrapper so the embed has the same visual
-                          breathing room from the URL row above and the WEEKLY
-                          FOCUS card below — earlier the gap was 8px above and
-                          6px below which read as misaligned. */}
-                      {effective && <div style={{gridColumn:'1 / -1',padding:'12px 0',display:'flex',justifyContent:'center'}}><div style={{width:'100%',maxWidth:480}}><VideoEmbed url={effective} /></div></div>}
+                      {/* Symmetric padding within the wrapper so the video
+                          sits centered between the URL row above and the
+                          next content below. alignItems:center reinforces
+                          vertical centering inside the flex box. */}
+                      {effective && <div style={{gridColumn:'1 / -1',padding:'14px 0',display:'flex',justifyContent:'center',alignItems:'center'}}><div style={{width:'100%',maxWidth:480}}><VideoEmbed url={effective} /></div></div>}
                     </div>
                   );
                 })()}
@@ -741,7 +826,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                     </div>
                   );
                 })()}
-              </div></div></div>);
+              </div><div /></div></div>);
         })}
         <Btn variant="ghost" onClick={()=>setAddExerciseOpen(true)} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
       </div>)}
@@ -751,6 +836,7 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
           planIndex={planIndex}
           currentPlan={plan}
           exercises={exercises}
+          trainees={trainees}
           onClose={() => setCompareOpen(false)}
         />
       )}
@@ -1051,15 +1137,15 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{cur.name||"Untitled"}</div>
-                    <div style={{fontSize:10,color:C.tm,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount} DAYS · {cur.exerciseCount} EX</div>
+                    <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
                   </div>
-                  <div style={{display:'flex',gap:6,alignItems:'center',flexShrink:0}}>
-                    <span style={{fontSize:9,fontFamily:FN,color:tagColor,letterSpacing:'0.18em',fontWeight:700,border:`0.25px solid ${tagColor}`,padding:'3px 8px'}}>{tagText}</span>
+                  <div style={{display:'flex',gap:4,alignItems:'center',flexShrink:0}}>
+                    <span title={`Last session: ${tagText.toLowerCase()}`} style={{fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`0.25px solid ${tagColor}`,padding:'3px 7px',whiteSpace:'nowrap'}}>{tagText.toLowerCase()}</span>
                     {row.earlier.length > 0 && (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
-                        title={expanded?'Hide earlier blocks':'Show earlier blocks'}
-                        style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>
-                        {expanded?`▴ HIDE ${row.earlier.length}`:`▾ +${row.earlier.length} EARLIER`}
+                        title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
+                        style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:'pointer',padding:'3px 8px',fontFamily:FN,fontSize:11,fontWeight:600,letterSpacing:'0.04em',whiteSpace:'nowrap',minWidth:34,textAlign:'center'}}>
+                        {expanded?`▴ ${row.earlier.length}`:`▾ +${row.earlier.length}`}
                       </button>
                     )}
                     {setPortalVis && row.earlier.length > 0 && (() => {
@@ -1067,9 +1153,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       if (!curKey) return null;
                       const earlierKeys = row.earlier.map(p => visKeyForPlan(p, trainees)).filter(Boolean);
                       return <button onClick={e => { e.stopPropagation(); const next = { ...portalVis, [curKey]: true }; earlierKeys.forEach(k => { next[k] = false; }); setPortalVis(next); }}
-                        title="Hide all earlier blocks; keep only the current one visible on portal"
-                        style={{background:'transparent',border:`0.25px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>
-                        🎯 ONLY CURRENT
+                        title="Hide earlier blocks on portal; keep only current"
+                        style={{background:'transparent',border:`0.25px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1,fontWeight:700,whiteSpace:'nowrap'}}>
+                        🎯
                       </button>;
                     })()}
                     {setPortalVis && (() => {
@@ -1080,8 +1166,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                       </button>;
                     })()}
-                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em'}}>👁 PREVIEW</button>}
-                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em'}}>DUPLICATE</button>
+                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
+                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
@@ -1096,9 +1182,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 220);
                         }}
                         onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                        style={{cursor:'pointer',padding:'8px 14px 8px 32px',display:'flex',alignItems:'center',gap:12,opacity:0.78,borderTop:`0.25px solid ${C.ac}1A`}}>
+                        style={{cursor:'pointer',padding:'7px 14px 7px 32px',display:'flex',alignItems:'center',gap:8,opacity:0.78,borderTop:`0.25px solid ${C.ac}1A`}}>
                         <div style={{flex:1,minWidth:0,fontSize:13,color:C.tm,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN}}>{p.name||"Untitled"}</div>
-                        <div style={{fontSize:9,color:C.td,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}D · {p.exerciseCount}EX</div>
+                        <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex</div>
                         {setPortalVis && (() => {
                           const vk = visKeyForPlan(p, trainees);
                           if (!vk) return null;
@@ -1107,9 +1193,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                             <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                           </button>;
                         })()}
-                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>👁 PREVIEW</button>}
-                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>DUPLICATE</button>
-                        <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>DELETE</button>
+                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>👁</button>}
+                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>⎘</button>
+                        <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>×</button>
                       </div>
                     ))}
                   </div>
@@ -1141,9 +1227,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <div style={{minWidth:0,flex:1,direction:'ltr',unicodeBidi:'isolate',display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                 <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.01em',flexShrink:0}}><bdi>{tName}</bdi></div>
                 <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{p.name||"Untitled"}</div>
-                <div style={{fontSize:10,color:C.tm,fontFamily:FN,letterSpacing:'0.1em',textTransform:'uppercase',flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount} DAYS · {p.exerciseCount} EX{p.phase?` · ${p.phase}`:''}</div>
+                <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex{p.phase?` · ${p.phase}`:''}</div>
               </div>
-              <div style={{display:"flex",gap:6,flexShrink:0,alignItems:'center'}}>
+              <div style={{display:"flex",gap:4,flexShrink:0,alignItems:'center'}}>
                 {setPortalVis && (() => {
                   const vk = visKeyForPlan(p, trainees);
                   if (!vk) return null;
@@ -1152,9 +1238,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                   </button>;
                 })()}
-                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>👁 PREVIEW</button>}
-                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>DUPLICATE</button>
-                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em'}}>DELETE</button>
+                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
+                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
+                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>×</button>
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>))}

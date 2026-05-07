@@ -33,6 +33,12 @@ const BLOCK_DATA = {
   'Block #4': {
     title: 'Block #4 — Push/Pull Volume',
     when: 'WEEK 2 OF 4',
+    warmup: [
+      { t: 'Cat-Cow + Thread the Needle', rx: '8 each side' },
+      { t: 'Banded Pull-Apart',           rx: '2 × 12'      },
+      { t: 'Glute Bridge w/ Pause',       rx: '2 × 10'      },
+      { t: 'World\'s Greatest Stretch',   rx: '5 / side'    },
+    ],
     days: [
       { name: 'Day A · Push', exercises: [
         { name: 'BB Bench Press',          sets: 4, reps: '6-8',  tempo: '3-1-1', superset: '', wk: ['57.5kg', '60kg', '62.5kg', '65kg'] },
@@ -62,6 +68,11 @@ const BLOCK_DATA = {
   'Block #3': {
     title: 'Block #3 — Strength Base',
     when: 'COMPLETED · APR · 4 WEEKS',
+    warmup: [
+      { t: 'Foam Roll Quads + T-Spine', rx: '60s each' },
+      { t: 'Hip 90/90',                 rx: '6 / side' },
+      { t: 'Goblet Squat',              rx: '2 × 8'    },
+    ],
     days: [
       { name: 'Day A · Lower', exercises: [
         { name: 'Back Squat',              sets: 5, reps: '5',    tempo: '3-1-1', superset: '', wk: ['80kg', '82.5kg', '85kg', '87.5kg'] },
@@ -1064,6 +1075,16 @@ function DemoPrograms() {
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
   const [openExIdx, setOpenExIdx] = useState(null);
   const [activeBlock, setActiveBlock] = useState('Block #4');
+  // Parity with the real PlanEditor — Overview multi-day grid + read-only
+  // Compare against an earlier block (only available in Overview mode).
+  // Mirrors src/PlansView.jsx PlanEditor exactly.
+  const [overview, setOverview] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const compareActive = compareOpen && overview;
+  const [compareBlockKey, setCompareBlockKey] = useState('Block #3');
+  const [warmOpen, setWarmOpen] = useState(false);
+  const [cmpWarmOpen, setCmpWarmOpen] = useState(false);
+  React.useEffect(() => { if (!overview && compareOpen) setCompareOpen(false); }, [overview, compareOpen]);
   const block = BLOCK_DATA[activeBlock];
 
   const traineeName = (id) => MOCK_TRAINEES.find(t => t.id === id)?.name || 'Unassigned';
@@ -1147,8 +1168,8 @@ function DemoPrograms() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                   <div>
                     <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx }}>{p.name}</div>
-                    <div style={{ fontSize: 12, color: C.tm, marginTop: 4 }}>
-                      {traineeName(p.traineeId)} · {p.dayCount} days · {p.exerciseCount} exercises
+                    <div style={{ fontSize: 12, color: C.tm, marginTop: 4, fontFamily: FN, letterSpacing: '0.04em' }}>
+                      {traineeName(p.traineeId)} · {p.dayCount}d · {p.exerciseCount}ex
                     </div>
                     {p.phase && (
                       <span style={{
@@ -1233,14 +1254,56 @@ function DemoPrograms() {
         background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
         padding: 18,
       }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
           <h3 style={{ fontFamily: FB, fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>{block.title}</h3>
           <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>נועה לוי · {block.when}</span>
           <span style={{ flex: 1 }} />
           <span style={{
-            fontFamily: FN, fontSize: 10, color: isActiveBlock ? C.gn : C.td, letterSpacing: 1.5, fontWeight: 700,
+            fontFamily: FN, fontSize: 10, color: isActiveBlock ? C.gn : C.td, letterSpacing: 1.5, fontWeight: 700, marginRight: 8,
           }}>{isActiveBlock ? '✓ SAVED · 12 MIN AGO' : '🔒 ARCHIVED · READ-ONLY'}</span>
+          {/* COMPARE — only enabled in Overview, same gate as the real
+              PlanEditor (src/PlansView.jsx). */}
+          <button onClick={() => { if (!overview) return; setCompareOpen(v => !v); }}
+            disabled={!overview}
+            title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous block (read-only)'}
+            style={{ background: 'transparent', border: `${compareActive ? '1px' : '0.25px'} solid ${compareActive ? C.ac : C.ac + '4D'}`, borderRadius: 0, padding: '6px 14px', color: !overview ? C.td : (compareActive ? C.ac : C.tm), cursor: !overview ? 'not-allowed' : 'pointer', opacity: !overview ? 0.5 : 1, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
+          <button onClick={() => setOverview(v => !v)}
+            title={overview ? 'Switch back to per-day detail view' : 'Switch to multi-day overview grid'}
+            style={{ background: 'transparent', border: `${overview ? '1px' : '0.25px'} solid ${overview ? C.ac : C.ac + '4D'}`, borderRadius: 0, padding: '6px 14px', color: overview ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{overview ? '✓ OVERVIEW' : 'OVERVIEW'}</button>
         </div>
+
+        {/* Foldable warm-up — same shape the real PlanEditor uses. Collapsed
+            by default so it doesn't push the day editor below the fold. */}
+        {Array.isArray(block.warmup) && block.warmup.length > 0 && (
+          <div style={{ border: `0.25px solid ${C.ac}4D`, padding: 10, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={() => setWarmOpen(o => !o)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                <span style={{ fontSize: 10, color: C.or, fontFamily: FN, fontWeight: 700, width: 10, textAlign: 'center' }}>{warmOpen ? '▾' : '▸'}</span>
+                <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>WARM-UP ({block.warmup.length})</span>
+              </button>
+              <button onClick={e => e.stopPropagation()} title="Demo only"
+                style={{ background: 'transparent', border: `0.25px solid ${C.or}66`, borderRadius: 0, padding: '3px 10px', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ ADD WARM-UP</button>
+            </div>
+            {warmOpen && (
+              <div style={{ marginTop: 8 }}>
+                {block.warmup.map((w, i) => (
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '24px 2fr 1fr', gap: 8, padding: '4px 0', alignItems: 'center', borderTop: i === 0 ? 'none' : `0.25px solid ${C.ac}1A` }}>
+                    <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, textAlign: 'center' }}>{i + 1}</div>
+                    <div style={{ fontSize: 13, color: C.tx, fontFamily: FB }}>{w.t}</div>
+                    <div style={{ fontSize: 12, color: C.tm, fontFamily: FN }}>{w.rx}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {/* Compare-mode flex wrapper — when compareActive, the editor body
+            shrinks to 50% on the left and the read-only compare panel takes
+            the right 50%. Mirrors the real PlanEditor layout exactly. */}
+        <div style={{ display: compareActive ? 'flex' : 'block', gap: 16, alignItems: 'flex-start' }}>
+        <div style={{ flex: compareActive ? 1 : 'unset', width: compareActive ? '50%' : 'auto', minWidth: 0 }}>
+        {!overview && (<>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {block.days.map((d, i) => (
             <button key={i} onClick={() => { setSelectedDayIdx(i); setOpenExIdx(null); }} style={{
@@ -1301,7 +1364,10 @@ function DemoPrograms() {
                     background: isOpen ? C.sf2 : 'transparent',
                     transition: 'background 0.15s',
                   }}>
-                    <td style={tdStyle()}>{i + 1}{e.superset ? e.superset.toLowerCase() : ''}</td>
+                    <td style={{...tdStyle(), padding:'10px', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
+                      <span style={{display:'inline-block', minWidth:14, textAlign:'right', color:C.tx, fontWeight:700}}>{i + 1}</span>
+                      {e.superset && <span style={{fontSize:10, fontWeight:700, letterSpacing:'0.06em', marginLeft:1, color: e.superset === 'A' ? C.ac : e.superset === 'B' ? C.pu : C.or}}>{e.superset}</span>}
+                    </td>
                     <td style={{ ...tdStyle(), color: C.tx, fontWeight: 600, borderLeft: e.superset ? `3px solid ${e.superset === 'A' ? C.ac : C.pu}` : 'none', paddingLeft: e.superset ? 7 : 10 }}>{e.name}</td>
                     <td style={tdStyle()}>{e.sets}</td>
                     <td style={tdStyle()}>{e.reps}</td>
@@ -1359,6 +1425,120 @@ function DemoPrograms() {
             })}
           </tbody>
         </table></div>
+        </>)}
+        {overview && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
+            {block.days.map((d, dayIdx) => (
+              <div key={dayIdx} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 10 }}>
+                  <input value={d.name} readOnly tabIndex={-1}
+                    style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '4px 8px', color: C.tx, fontFamily: FB, fontWeight: 700, fontSize: 14, outline: 'none', maxWidth: 260, boxSizing: 'border-box', textAlign: 'center', cursor: 'default' }} />
+                  <span style={{ color: C.td, fontSize: 12, whiteSpace: 'nowrap' }}>({d.exercises.length} ex)</span>
+                  <button onClick={() => { setSelectedDayIdx(dayIdx); setOverview(false); }}
+                    title="Open this day in the detail editor"
+                    style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '3px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginLeft: 'auto' }}>DETAIL ▸</button>
+                </div>
+                <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
+                    {['#', 'EXERCISE', 'GRP', 'SETS', 'REPS', 'TEMPO', 'WAVE', ''].map((h, hi) =>
+                      <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>)}
+                    {d.exercises.map((ex, ei) => {
+                      const sc = ex.superset === 'A' ? C.ac : ex.superset === 'B' ? C.pu : ex.superset === 'C' ? C.or : C.td;
+                      const tinyRO = { background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '3px 6px', color: C.tm, fontFamily: FB, fontSize: 11, outline: 'none', width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: 'default' };
+                      return <React.Fragment key={ei}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, padding: '2px 0' }}>
+                          <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 11, lineHeight: 1 }}>{ei + 1}</span>
+                        </div>
+                        <div title={ex.name}
+                          style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word', borderLeft: ex.superset ? `3px solid ${sc}` : 'none', paddingLeft: ex.superset ? 6 : 0 }}>{ex.name}</div>
+                        <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, color: ex.superset ? sc : C.td, fontFamily: FN, fontWeight: 600 }} />
+                        <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
+                        <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
+                        <input value={ex.tempo || ''} readOnly tabIndex={-1} style={tinyRO} />
+                        <input value={Array.isArray(ex.wk) ? ex.wk.join(' › ') : ''} readOnly tabIndex={-1} style={tinyRO} title={Array.isArray(ex.wk) ? ex.wk.join(' / ') : ''} />
+                        <div />
+                      </React.Fragment>;
+                    })}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        </div>
+        {compareActive && (() => {
+          const cmpBlock = BLOCK_DATA[compareBlockKey] || BLOCK_DATA['Block #3'];
+          const cmpCandidates = Object.keys(BLOCK_DATA).filter(k => k !== activeBlock);
+          return (
+            <div style={{ flex: 1, minWidth: 0, border: `0.25px solid ${C.ac}4D`, padding: 14, background: 'transparent', alignSelf: 'stretch' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, letterSpacing: '0.18em' }}>↔ COMPARE — READ-ONLY · OVERVIEW</div>
+                <button onClick={() => setCompareOpen(false)} title="Close compare panel"
+                  style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, cursor: 'pointer', padding: '2px 8px', borderRadius: 0, fontSize: 12 }}>✕</button>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', whiteSpace: 'nowrap' }}>VIEWING</span>
+                <select value={compareBlockKey} onChange={e => setCompareBlockKey(e.target.value)}
+                  style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, height: 36, padding: '0 32px 0 12px', color: C.tx, fontFamily: FB, fontSize: 13, flex: 1, minWidth: 0, outline: 'none' }}>
+                  {cmpCandidates.map(k => <option key={k} value={k}>{BLOCK_DATA[k].title}</option>)}
+                </select>
+              </div>
+              {Array.isArray(cmpBlock.warmup) && cmpBlock.warmup.length > 0 && (
+                <div style={{ border: `0.25px solid ${C.ac}4D`, padding: 10, marginBottom: 12 }}>
+                  <button onClick={() => setCmpWarmOpen(o => !o)}
+                    style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 10, color: C.or, fontFamily: FN, fontWeight: 700, width: 10, textAlign: 'center' }}>{cmpWarmOpen ? '▾' : '▸'}</span>
+                    <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>WARM-UP ({cmpBlock.warmup.length})</span>
+                  </button>
+                  {cmpWarmOpen && (
+                    <div style={{ marginTop: 8 }}>
+                      {cmpBlock.warmup.map((w, i) => (
+                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '24px 2fr 1fr', gap: 8, padding: '4px 0', alignItems: 'center', borderTop: i === 0 ? 'none' : `0.25px solid ${C.ac}1A` }}>
+                          <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, textAlign: 'center' }}>{i + 1}</div>
+                          <div style={{ fontSize: 13, color: C.tx, fontFamily: FB }}>{w.t}</div>
+                          <div style={{ fontSize: 12, color: C.tm, fontFamily: FN }}>{w.rx}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {cmpBlock.days.map((d, dayIdx) => (
+                <div key={dayIdx} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 10 }}>
+                    <input value={d.name} readOnly tabIndex={-1}
+                      style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '4px 8px', color: C.tx, fontFamily: FB, fontWeight: 700, fontSize: 14, outline: 'none', maxWidth: 260, boxSizing: 'border-box', textAlign: 'center', cursor: 'default' }} />
+                    <span style={{ color: C.td, fontSize: 12, whiteSpace: 'nowrap' }}>({d.exercises.length} ex)</span>
+                  </div>
+                  <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
+                      {['#', 'EXERCISE', 'GRP', 'SETS', 'REPS', 'TEMPO', 'WAVE', ''].map((h, hi) =>
+                        <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>)}
+                      {d.exercises.map((ex, ei) => {
+                        const sc = ex.superset === 'A' ? C.ac : ex.superset === 'B' ? C.pu : ex.superset === 'C' ? C.or : C.td;
+                        const tinyRO = { background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '3px 6px', color: C.tm, fontFamily: FB, fontSize: 11, outline: 'none', width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: 'default' };
+                        return <React.Fragment key={ei}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, padding: '2px 0' }}>
+                            <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 11, lineHeight: 1 }}>{ei + 1}</span>
+                          </div>
+                          <div title={ex.name}
+                            style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word', borderLeft: ex.superset ? `3px solid ${sc}` : 'none', paddingLeft: ex.superset ? 6 : 0 }}>{ex.name}</div>
+                          <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, color: ex.superset ? sc : C.td, fontFamily: FN, fontWeight: 600 }} />
+                          <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
+                          <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
+                          <input value={ex.tempo || ''} readOnly tabIndex={-1} style={tinyRO} />
+                          <input value={Array.isArray(ex.wk) ? ex.wk.join(' › ') : ''} readOnly tabIndex={-1} style={tinyRO} title={Array.isArray(ex.wk) ? ex.wk.join(' / ') : ''} />
+                          <div />
+                        </React.Fragment>;
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+        </div>
       </div>
       </div>
 

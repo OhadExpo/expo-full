@@ -9,6 +9,13 @@
 
 const ALLOWED = /^https:\/\/(photos\.app\.goo\.gl|photos\.google\.com)\//i;
 
+// Each redirect hop must land on one of these hosts. Anything else (an
+// attacker-controlled redirector, an unknown subdomain) breaks the chain
+// and we 502. Keeps SSRF surface tight even if Google ever reflects an
+// open-redirect through their share infrastructure.
+const REDIRECT_HOSTS = /^(photos\.app\.goo\.gl|photos\.google\.com|accounts\.google\.com|[a-z0-9-]+\.googleusercontent\.com|lh3\.googleusercontent\.com)$/i;
+const MAX_HOPS = 5;
+
 export default async function handler(req, res) {
   const url = req.query?.url || '';
   if (!ALLOWED.test(url)) {
@@ -16,15 +23,36 @@ export default async function handler(req, res) {
     return;
   }
   try {
-    const r = await fetch(url, {
-      redirect: 'follow',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; EXPOBot/1.0; +https://expo-app.co.il)',
-        'Accept': 'text/html,application/xhtml+xml',
-      },
-    });
-    if (!r.ok) {
-      res.status(502).json({ error: `Upstream ${r.status}` });
+    // Manual redirect loop with hop cap + per-hop host allowlist.
+    let current = url;
+    let r = null;
+    for (let hop = 0; hop <= MAX_HOPS; hop++) {
+      r = await fetch(current, {
+        redirect: 'manual',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; EXPOBot/1.0; +https://expo-app.co.il)',
+          'Accept': 'text/html,application/xhtml+xml',
+        },
+      });
+      if (r.status >= 300 && r.status < 400) {
+        const loc = r.headers.get('location');
+        if (!loc) break;
+        const next = new URL(loc, current);
+        if (next.protocol !== 'https:' || !REDIRECT_HOSTS.test(next.hostname)) {
+          res.status(502).json({ error: 'Redirect target outside allowlist' });
+          return;
+        }
+        if (hop === MAX_HOPS) {
+          res.status(502).json({ error: 'Redirect chain too long' });
+          return;
+        }
+        current = next.toString();
+        continue;
+      }
+      break;
+    }
+    if (!r || !r.ok) {
+      res.status(502).json({ error: `Upstream ${r?.status || 'unreachable'}` });
       return;
     }
     const html = await r.text();

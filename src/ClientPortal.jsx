@@ -7,7 +7,7 @@ import { supabase } from './supabase';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId, sortProgramsChrono } from './traineeUtils';
 import { FormVideoPlayer } from './WorkoutReview';
-import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob } from './blobQueue';
+import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
 import { toast, confirmToast } from './ui';
@@ -314,6 +314,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     try { localStorage.removeItem(sessionKey); } catch {}
     sessionAutosave.markClean();
   };
+
+  // Visible "did my data make it?" signal in the sticky session bar.
+  // Tracks (a) the last time autosave wrote to localStorage, and (b) the
+  // pending blob count from the offline upload queue. Both surface as a
+  // single small pill so the trainee never has to guess.
+  const [lastSavedAt, setLastSavedAt] = React.useState(null);
+  React.useEffect(() => {
+    if (sessionAutosave.status === 'saved') setLastSavedAt(new Date());
+  }, [sessionAutosave.status]);
+  const [pendingBlobs, setPendingBlobs] = React.useState(0);
+  React.useEffect(() => subscribeBlobs(setPendingBlobs), []);
 
   // Smart video handling: Safari/iOS skips compression (iOS pre-compresses),
   // Chrome/Android uses Canvas+MediaRecorder at accelerated playback.
@@ -622,8 +633,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',height:32}}>
       <EXPOMark height={36} style={{flexShrink:0}} />
       <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
-      {showResumedPill && <span title="Restored from your last session" style={{marginLeft:'auto',background:'transparent',border:`0.25px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
-      <button onClick={onBack} style={{marginLeft:showResumedPill?8:'auto',background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
+      {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
+        <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{marginLeft:'auto',background:'transparent',border:`0.25px solid ${sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn}4D`,color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.06em',whiteSpace:'nowrap'}}>
+          {sessionAutosave.status === 'saving' ? '… SAVING' :
+           sessionAutosave.status === 'error' ? '⚠ SAVE FAILED' :
+           lastSavedAt ? `✓ ${lastSavedAt.toTimeString().slice(0,5)}` : ''}
+          {pendingBlobs > 0 && <span style={{marginLeft:6,opacity:0.85}}>· ↑{pendingBlobs}</span>}
+        </span>
+      )}
+      {showResumedPill && <span title="Restored from your last session" style={{marginLeft:8,background:'transparent',border:`0.25px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
+      <button onClick={onBack} style={{marginLeft:8,background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
       {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>i?C.or:stepIndex===i?C.or+'80':C.bd}} />)}
@@ -1175,7 +1194,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   React.useEffect(() => {
     if (!activePlan) return;
     const max = (activePlan.weeks || 4) - 1;
-    if (wk > max) setWk(max);
+    if (wk > max) {
+      // Surface the clamp so the trainee notices when a block-swap moves
+      // them. Silent clamping was producing log-misdating reports.
+      toast(`Moved to week ${max + 1} — this block has ${activePlan.weeks || 4} weeks`, 'info', { ttl: 5000 });
+      setWk(max);
+    }
   }, [activePlan?.weeks, wk]);
 
   const cw = clientWorkouts.filter(w => w.clientId === ci);
@@ -1453,7 +1477,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'center'}}>
           <div style={{flex:1}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.18em',fontWeight:700}}>WEEK</div>
-            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{Array.from({length: activePlan?.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',cursor:'pointer'}}>W{w+1}</button>)}</div></div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',cursor:'pointer'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{flex:'1 1 40px',padding:'8px 0',border:`0.25px solid ${C.ac}4D`,opacity:0.3,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',color:C.tm,textAlign:'center'}}>—</div>)}</div></div>
           <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.18em',fontWeight:700}}>BW{lb?` · ${lb}KG`:''}</div>
             <div style={{display:'flex',gap:4}}>
             <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>

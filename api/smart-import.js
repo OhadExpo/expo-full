@@ -429,9 +429,38 @@ GOOD OUTPUT (abridged):
   "notes": "Handwritten 1-page program with Day 1 / Day 2 sections. Numbers like 6a/6b indicate supersets — flagged in the analyze step."
 }`;
 
+// Per-IP rate limit. Opus 4.7 + 8-hop tool loop = up to ~$0.80 per request,
+// so 5/IP/hour is the cost-ceiling we want during unattended cold-start
+// periods. Resets when the function instance recycles — fine for a solo
+// operator at this scale; revisit when multi-tenant lands.
+const importBuckets = new Map();
+const IMPORT_LIMIT = 5;
+const IMPORT_WINDOW_MS = 60 * 60 * 1000;
+function checkImportRate(ip) {
+  const now = Date.now();
+  const arr = (importBuckets.get(ip) || []).filter(t => now - t < IMPORT_WINDOW_MS);
+  if (arr.length >= IMPORT_LIMIT) { importBuckets.set(ip, arr); return false; }
+  arr.push(now); importBuckets.set(ip, arr);
+  return true;
+}
+// Hard payload cap before JSON.parse. Vercel's default is ~4.5MB; we keep
+// it tighter so a malformed/abusive workbookSummary can't wedge the function.
+const MAX_BODY_BYTES = 2_000_000;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' }); return;
+  }
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  if (!checkImportRate(ip)) {
+    res.status(429).json({ error: 'Smart-import rate limit reached — try again in a bit.' }); return;
+  }
+  // Reject oversized payloads up front. content-length can be spoofed but
+  // Vercel sets it from the actual transfer; tightening here protects us
+  // from accidental and malicious large bodies before parsing.
+  const cl = parseInt(req.headers['content-length'] || '0', 10);
+  if (cl && cl > MAX_BODY_BYTES) {
+    res.status(413).json({ error: 'Payload too large (limit 2MB).' }); return;
   }
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
