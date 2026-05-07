@@ -1,10 +1,37 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput } from './ui';
-import { emailsToArr, emailsToStore, emailsDisplay, subMemberId, traineeIdsFor } from './traineeUtils';
+import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { WhatsAppCheckInButton } from './whatsappButton';
 
 const isCouple = (t) => t.members && t.members.length === 2;
+
+// Trainee-card email cell. 1–2 emails render inline as today. 3+ collapses
+// to "first, second  +N" with a click-to-expand toggle so the card stays a
+// single neat line for the common case. Click stops propagation so toggling
+// doesn't also open the trainee detail view.
+function EmailsCell({ email, style }) {
+  const arr = emailsToArr(email).filter(Boolean);
+  const [expanded, setExpanded] = useState(false);
+  if (arr.length === 0) return null;
+  const collapsedStyle = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+  const expandedStyle = { whiteSpace: 'normal', wordBreak: 'break-all' };
+  if (arr.length <= 2) {
+    return <div style={{ ...style, ...collapsedStyle }}>{arr.join(', ')}</div>;
+  }
+  const visible = expanded ? arr : arr.slice(0, 2);
+  return (
+    <div style={{ ...style, ...(expanded ? expandedStyle : collapsedStyle) }}>
+      {visible.join(', ')}
+      <span
+        onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
+        style={{ marginInlineStart: 6, color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap' }}
+      >
+        {expanded ? 'LESS' : `+${arr.length - 2}`}
+      </span>
+    </div>
+  );
+}
 
 const ONLINE_THRESHOLD = 2 * 60 * 1000; // 2 minutes
 const isOnline = (tid, presence) => {
@@ -368,10 +395,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                             }}>{m.name || `Member ${mi+1}`}</div>
                             <WhatsAppCheckInButton name={m.name || t.name} phone={m.phone} />
                           </div>
-                          <div style={{
-                            fontSize:12,color:C.tm,marginTop:2,textAlign:'center',width:'100%',
-                            whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
-                          }}>{emailsDisplay(m.email)}</div>
+                          <EmailsCell email={m.email} style={{ fontSize:12, color:C.tm, marginTop:2, textAlign:'center', width:'100%' }} />
                           {m.phone && (
                             <div style={{
                               fontFamily:FN,fontSize:10,color:C.tm,marginTop:2,letterSpacing:0.5,textAlign:'center',width:'100%',
@@ -452,10 +476,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} />
                 </div>
-                <div style={{
-                  fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%',
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>{emailsDisplay(t.email)}</div>
+                <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
                 {t.phone && (
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
                 )}
