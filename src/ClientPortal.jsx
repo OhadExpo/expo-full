@@ -5,7 +5,7 @@ import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
 import { PasswordChangeModal } from './auth';
-import { traineeIdsFor, memberIndexFromId } from './traineeUtils';
+import { traineeIdsFor, memberIndexFromId, sortProgramsChrono } from './traineeUtils';
 import { FormVideoPlayer } from './WorkoutReview';
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob } from './blobQueue';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
@@ -1147,9 +1147,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     ? clientPlans.map(p => ({ ...trainerPlanToPortal(p, trainerExercises || []), traineeId: p.traineeId }))
     : [];
 
-  // Filter by portal visibility toggles, then sort blocks newest-first by "#N" in the name.
-  // Plans without a block number fall to the end preserving their original order.
-  const blockNum = n => { const m = /#(\d+)/.exec(n || ''); return m ? parseInt(m[1], 10) : -Infinity; };
+  // Filter by portal visibility toggles, then sort newest-first via the
+  // canonical sortProgramsChrono — handles "Block N" without # (Drive imports),
+  // floats Comeback/rehab blocks to the top, falls back to createdAt.
   // visKey matches the trainer-side TraineeDetail keying. Couple member plans
   // get a `:m{N}` suffix so toggling one member's plan doesn't ghost into the other's.
   const visKeyFor = (p) => {
@@ -1159,7 +1159,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const visPlans = mergedPlans.filter(p => {
     if (!portalVis || !clientName) return true;
     return portalVis[visKeyFor(p)] !== false;
-  }).slice().sort((a, b) => blockNum(b.name) - blockNum(a.name));
+  }).slice().sort(sortProgramsChrono);
 
   // Active block for bodyweight logging — scopes uniqueness to (client, block, week)
   // Falls back to the first visible plan when no manual selection (or selection no longer visible).

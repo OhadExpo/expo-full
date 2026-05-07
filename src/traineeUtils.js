@@ -62,3 +62,35 @@ export const isSubMemberId = (tid, parentId) => memberIndexFromId(tid, parentId)
  * any other untrusted boundary.
  */
 export const isSafeTraineeId = (tid) => typeof tid === 'string' && /^[A-Za-z0-9_-]+$/.test(tid);
+
+// --- Program sort (newest → oldest) ---------------------------------------
+// Block number from a program name. Matches "#N", "Block N", "Block #N",
+// "Phase N" (Hebrew or English). Drive-imported names often drop the # —
+// "Block 8 - High VOL/Conditioning", "Block 1 - Start Moving" — so we
+// must accept both shapes.
+export const blockNum = (n) => {
+  const m = /(?:block|phase)\s*#?\s*(\d+)|#(\d+)/i.exec(n || '');
+  return m ? parseInt(m[1] || m[2], 10) : -Infinity;
+};
+
+const isComeback = (n) => /comeback/i.test(n || '');
+
+/**
+ * Canonical chronological sort for programs (newest first).
+ *
+ *   1. "Comeback" / rehab blocks float to the top — they replace the active
+ *      numbered progression while a trainee is rebuilding.
+ *   2. Higher block# wins. "Block #17" before "Block #16" before "Block #4".
+ *   3. createdAt only breaks ties — Drive-imported plans share a single
+ *      import timestamp, so without the block# fallback they were random.
+ *
+ * Use this everywhere a program list is displayed so the order is stable
+ * across the coach + athlete portals.
+ */
+export const sortProgramsChrono = (a, b) => {
+  const cb = (isComeback(b.name) ? 1 : 0) - (isComeback(a.name) ? 1 : 0);
+  if (cb !== 0) return cb;
+  const bn = blockNum(b.name) - blockNum(a.name);
+  if (bn !== 0) return bn;
+  return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+};

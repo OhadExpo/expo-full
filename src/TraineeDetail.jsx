@@ -9,7 +9,7 @@ const PlanDiff = lazy(() => import('./PlanDiff'));
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
 import TraineePRsView from './TraineePRsView';
-import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId } from './traineeUtils';
+import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, onPreviewPortal, portalVis, setPortalVis }) {
@@ -49,20 +49,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const [deleteTyped,setDeleteTyped]=useState("");
   const [programSort,setProgramSort]=useState('chrono'); // 'chrono' | 'alpha'
   const [showDiff,setShowDiff]=useState(false);
-  // Sort programs newest-first by "#N" in the name. Comeback/rehab blocks
-  // float to the top since they replace numbered progressions. createdAt
-  // only breaks ties — drive-imported plans share a single timestamp.
-  // Matches "#N", "Block N", "Block #N", "Phase N" — drive-imported names
-  // often drop the # (e.g. "Block 8 - High VOL/Conditioning", "Block 1 - Start Moving").
-  const blockNum = n => { const m = /(?:block|phase)\s*#?\s*(\d+)|#(\d+)/i.exec(n || ''); return m ? parseInt(m[1] || m[2], 10) : -Infinity; };
-  const isComeback = n => /comeback/i.test(n || '');
-  const sortProgramsChrono = (a, b) => {
-    const cb = (isComeback(b.name) ? 1 : 0) - (isComeback(a.name) ? 1 : 0);
-    if (cb !== 0) return cb;
-    const bn = blockNum(b.name) - blockNum(a.name);
-    if (bn !== 0) return bn;
-    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-  };
+  // sortProgramsChrono is the canonical newest-first program sort; lives
+  // in traineeUtils.js so PlansView, ClientPortal, etc. share one definition.
   const handleArchive = () => { if(setTrainees) setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Archived",archivedAt:new Date().toISOString()}:t)); setShowArchiveConfirm(false); onBack(); };
   const handlePermanentDelete = () => { if(setTrainees) setTrainees(prev=>prev.filter(t=>t.id!==trainee)); setShowDeleteConfirm(false); setDeleteTyped(""); onBack(); };
   const [payForm,setPayForm]=useState({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});

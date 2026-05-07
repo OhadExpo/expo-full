@@ -4,6 +4,7 @@ import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput }
 import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
+import { sortProgramsChrono } from './traineeUtils';
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: 3, reps: "8-12", load: "", rpe: "", tempo: "", rest: "90", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
@@ -209,38 +210,191 @@ function ExPicker({ exercises, value, onChange, label, fallbackTitle }) {
 
 function WarmupEditor({ plan, setPlan }) {
   const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
+  // Collapsed by default whenever there's content, so the warm-up doesn't
+  // dominate the editor when the coach is iterating on the main exercise
+  // list. Empty programs default to expanded so the "+ Add Warm-Up" button
+  // is one click away (otherwise a coach would have to expand the empty
+  // card just to discover the add control).
+  const [open, setOpen] = useState(warmup.length === 0);
   const update = (idx, patch) => setPlan(p => ({ ...p, warmup: (p.warmup || []).map((w, i) => i === idx ? { ...w, ...patch } : w) }));
-  const add = () => setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] }));
+  const add = () => { setOpen(true); setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] })); };
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   return (
     <div style={{ background: 'transparent', border:`0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: warmup.length ? 10 : 0 }}>
-        <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or }}>WARM-UP ({warmup.length})</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: open && warmup.length ? 10 : 0 }}>
+        <button onClick={() => setOpen(o => !o)} title={open ? 'Collapse warm-up' : 'Expand warm-up'}
+          style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:10, color:C.or, fontFamily:FN, fontWeight:700, width:10, display:'inline-block', textAlign:'center' }}>{open ? '▾' : '▸'}</span>
+          <span style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing:'0.06em' }}>WARM-UP ({warmup.length})</span>
+        </button>
         <Btn variant="ghost" onClick={add} style={{ padding: '4px 10px', fontSize: 11 }}>+ Add Warm-Up</Btn>
       </div>
-      {warmup.map((w, i) => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: '54px 2fr 1fr 2fr 30px', gap: 12, marginBottom: 6, alignItems: 'end' }}>
-          <div style={{ paddingBottom: 9, fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, textAlign: 'center', letterSpacing: '0.18em' }}>{i + 1}</div>
-          <Input label={i === 0 ? 'Exercise' : ''} value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
-          <Input label={i === 0 ? 'Rx' : ''} value={w.rx || ''} onChange={e => update(i, { rx: e.target.value })} placeholder="1x10 E" />
-          <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
-            onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
-            placeholder="https://youtube.com/..." />
-          <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, marginBottom: 4, opacity: 0.6, fontSize: 16 }}>🗑</button>
-          {w.vid && <div style={{ gridColumn: '1 / -1', marginTop: 4, display: 'flex', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 480 }}><VideoEmbed url={w.vid} /></div></div>}
-        </div>
-      ))}
-      {warmup.length === 0 && <div style={{ fontSize: 11, color: C.td, marginTop: 8 }}>No warm-ups. Click "+ Add Warm-Up" to add one.</div>}
+      {open && <>
+        {warmup.map((w, i) => (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '54px 2fr 1fr 2fr 30px', gap: 12, marginBottom: 6, alignItems: 'end' }}>
+            <div style={{ paddingBottom: 9, fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, textAlign: 'center', letterSpacing: '0.18em' }}>{i + 1}</div>
+            <Input label={i === 0 ? 'Exercise' : ''} value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
+            <Input label={i === 0 ? 'Rx' : ''} value={w.rx || ''} onChange={e => update(i, { rx: e.target.value })} placeholder="1x10 E" />
+            <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
+              onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
+              placeholder="https://youtube.com/..." />
+            <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, marginBottom: 4, opacity: 0.6, fontSize: 16 }}>🗑</button>
+            {w.vid && <div style={{ gridColumn: '1 / -1', marginTop: 4, display: 'flex', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 480 }}><VideoEmbed url={w.vid} /></div></div>}
+          </div>
+        ))}
+        {warmup.length === 0 && <div style={{ fontSize: 11, color: C.td, marginTop: 8 }}>No warm-ups. Click "+ Add Warm-Up" to add one.</div>}
+      </>}
     </div>
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyFocus, setWeeklyFocus }) {
+// Read-only side-by-side compare panel — surfaces inside PlanEditor when
+// the coach hits the "↔ COMPARE" toggle. Lists previous programs for the
+// same athlete (by traineeId, exact match — couples with separate sub-IDs
+// only see their own line). Picking a program loads the full plan and
+// renders an editor-shaped read-only view (day tabs, warm-up, exercise
+// rows with sets/reps/load/RPE/tempo/notes). The compared plan is never
+// mutated — every input is replaced with display text.
+function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, onClose }) {
+  const candidates = useMemo(() => {
+    const tid = currentPlan?.traineeId || '';
+    if (!tid) return [];
+    return (planIndex || [])
+      .filter(p => p.id !== currentPlan.id && p.traineeId === tid)
+      .slice()
+      .sort(sortProgramsChrono);
+  }, [planIndex, currentPlan?.id, currentPlan?.traineeId]);
+  const [pickedId, setPickedId] = useState(() => candidates[0]?.id || '');
+  const [activeDay, setActiveDay] = useState(0);
+  const [warmOpen, setWarmOpen] = useState(false);
+  const { plan: cmpPlan, load: loadCmp, clear: clearCmp, loading } = useFullPlan();
+
+  // Default the picker to the most recent prior program every time the set
+  // of candidates shrinks/grows (e.g. a new athlete is assigned mid-edit).
+  useEffect(() => {
+    if (!pickedId && candidates[0]) setPickedId(candidates[0].id);
+    if (pickedId && !candidates.some(c => c.id === pickedId) && candidates[0]) setPickedId(candidates[0].id);
+  }, [candidates, pickedId]);
+
+  // Load the full picked plan; clear when the panel unmounts so we don't
+  // leak the previous selection into a future open.
+  useEffect(() => {
+    if (pickedId) loadCmp(pickedId); else clearCmp();
+  }, [pickedId, loadCmp, clearCmp]);
+
+  // Reset day when the selected plan changes — Block #16's Day C may not
+  // exist in Block #17 and we'd render an empty body otherwise.
+  useEffect(() => { setActiveDay(0); }, [pickedId]);
+
+  const day = cmpPlan?.days?.[activeDay];
+
+  return (
+    <div style={{flex:1, minWidth:0, border:`0.25px solid ${C.ac}4D`, padding:14, background:'transparent', alignSelf:'stretch'}}>
+      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, marginBottom:10}}>
+        <div style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.tm, letterSpacing:'0.18em'}}>↔ COMPARE — READ-ONLY</div>
+        <button onClick={onClose} title="Close compare panel"
+          style={{background:'transparent', border:`0.25px solid ${C.ac}4D`, color:C.tm, cursor:'pointer', padding:'2px 8px', borderRadius:0, fontSize:12}}>✕</button>
+      </div>
+      {candidates.length === 0 ? (
+        <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>
+          {currentPlan?.traineeId
+            ? 'No earlier programs for this athlete yet.'
+            : 'Assign this program to an athlete to compare against their earlier programs.'}
+        </div>
+      ) : (
+        <>
+          <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:12}}>
+            <span style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.tm, letterSpacing:'0.18em', whiteSpace:'nowrap'}}>VIEWING</span>
+            <select value={pickedId} onChange={e => setPickedId(e.target.value)}
+              style={{...baseInput, height:36, padding:'0 32px 0 12px', fontSize:13, flex:1, minWidth:0}}>
+              {candidates.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          {loading || !cmpPlan ? (
+            <div style={{padding:'30px 12px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FN, letterSpacing:'0.18em'}}>LOADING…</div>
+          ) : (
+            <>
+              {/* Warm-up (collapsed by default to mirror the editor's foldable behaviour). */}
+              {Array.isArray(cmpPlan.warmup) && cmpPlan.warmup.length > 0 && (
+                <div style={{border:`0.25px solid ${C.ac}4D`, padding:10, marginBottom:12}}>
+                  <button onClick={() => setWarmOpen(o => !o)}
+                    style={{background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8}}>
+                    <span style={{fontSize:10, color:C.or, fontFamily:FN, fontWeight:700, width:10, textAlign:'center'}}>{warmOpen ? '▾' : '▸'}</span>
+                    <span style={{fontSize:11, fontFamily:FN, fontWeight:700, color:C.or, letterSpacing:'0.06em'}}>WARM-UP ({cmpPlan.warmup.length})</span>
+                  </button>
+                  {warmOpen && <div style={{marginTop:8}}>
+                    {cmpPlan.warmup.map((w, i) => (
+                      <div key={i} style={{display:'grid', gridTemplateColumns:'24px 2fr 1fr', gap:8, padding:'4px 0', alignItems:'center', borderTop:i === 0 ? 'none' : `0.25px solid ${C.ac}1A`}}>
+                        <div style={{fontFamily:FN, fontSize:11, color:C.tm, fontWeight:700, textAlign:'center'}}>{i + 1}</div>
+                        <div style={{fontSize:13, color:C.tx, fontFamily:FB, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{w.t || '—'}</div>
+                        <div style={{fontSize:12, color:C.tm, fontFamily:FN}}>{w.rx || '—'}</div>
+                      </div>
+                    ))}
+                  </div>}
+                </div>
+              )}
+              {/* Day tabs — read-only navigation, mirrors the editor visual. */}
+              {(cmpPlan.days || []).length > 1 && (
+                <div style={{display:'flex', gap:4, marginBottom:12, flexWrap:'wrap', alignItems:'stretch', justifyContent:'center'}}>
+                  {(cmpPlan.days || []).map((d, i) => (
+                    <button key={d.id || i} onClick={() => setActiveDay(i)}
+                      style={{padding:'6px 12px', fontSize:11, borderRadius:0, border:`${i === activeDay ? '2px' : '0.25px'} solid ${i === activeDay ? C.ac : C.ac + '4D'}`, background:'transparent', color:i === activeDay ? C.ac : C.tm, cursor:'pointer', fontFamily:FN, fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase'}}>
+                      {d.name} ({d.exercises.length})
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Exercises body — same visual rhythm as the editor's exercise
+                  cards but every field collapses to display text. */}
+              {!day || (day.exercises || []).length === 0 ? (
+                <div style={{padding:'20px 12px', color:C.td, fontSize:12, textAlign:'center', fontStyle:'italic'}}>No exercises in this day.</div>
+              ) : (
+                <div>
+                  {day.exercises.map((pe, ei) => {
+                    const exData = exercises.find(e => e.id === pe.exerciseId);
+                    const title = exData?.title || pe.title || (pe.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
+                    const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : 'transparent';
+                    const repsDisplay = Array.isArray(pe.wk) && pe.wk.length ? pe.wk.join(' › ') : (pe.reps || '—');
+                    const setsDisplay = Array.isArray(pe.wkS) && pe.wkS.length ? pe.wkS.join(' › ') : (pe.sets ?? '—');
+                    return (
+                      <div key={pe.id || ei} style={{border:`0.25px solid ${pe.superset ? sc : C.ac + '4D'}`, borderLeft:pe.superset ? `3px solid ${sc}` : `0.25px solid ${C.ac}4D`, padding:'10px 12px', marginBottom:8}}>
+                        <div style={{display:'flex', alignItems:'baseline', gap:10, flexWrap:'wrap'}}>
+                          <span style={{fontFamily:FN, fontSize:11, color:C.tm, fontWeight:700}}>{ei + 1}</span>
+                          {pe.superset && <span style={{fontFamily:FN, fontSize:10, color:sc, fontWeight:700, letterSpacing:'0.18em'}}>{pe.superset}</span>}
+                          <span style={{fontFamily:FB, fontSize:13, color:C.tx, fontWeight:600, flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis'}}>{title}</span>
+                        </div>
+                        <div style={{display:'flex', flexWrap:'wrap', gap:'4px 12px', marginTop:6, fontFamily:FN, fontSize:11, color:C.tm}}>
+                          <span><span style={{color:C.td}}>SETS</span> {setsDisplay}</span>
+                          <span><span style={{color:C.td}}>REPS</span> {repsDisplay}</span>
+                          {pe.load && <span><span style={{color:C.td}}>LOAD</span> {pe.load}</span>}
+                          {pe.rpe && <span><span style={{color:C.td}}>RPE</span> {pe.rpe}</span>}
+                          {pe.tempo && <span><span style={{color:C.td}}>TEMPO</span> {pe.tempo}</span>}
+                        </div>
+                        {pe.notes && <div style={{marginTop:6, fontSize:12, color:C.tm, fontFamily:FB, fontStyle:'italic', lineHeight:1.4}}>{pe.notes}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyFocus, setWeeklyFocus, planIndex }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [overview, setOverview] = useState(false);
+  // Compare mode: split the editor body 50/50 with a read-only view of a
+  // previous program (same athlete). Forced off when in Overview because
+  // the wide overview table doesn't fit a half-width column.
+  const [compareOpen, setCompareOpen] = useState(false);
+  const compareActive = compareOpen && !overview;
   // Drag-to-reorder state for the Overview view. Source = the row picked up;
   // over = the row currently being hovered as a drop target (used to draw the
   // insertion bar). Reorder is constrained to within the source row's day.
@@ -301,10 +455,19 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
         <div style={{display:"flex",gap:8,alignItems:"stretch"}}>
           {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:11,fontWeight:600,color:statusLabel.color,letterSpacing:"0.04em",alignSelf:'center'}}>{statusLabel.text}</span>}
+          {/* COMPARE: split-view a previous program of this athlete on the
+              right (read-only). Disabled in Overview because that grid is
+              already very wide and squeezing it to 50% breaks the layout. */}
+          <button onClick={()=>{ if (overview) return; setCompareOpen(v=>!v); }}
+            disabled={overview}
+            title={overview ? 'Exit Overview to use Compare' : 'Compare with a previous program (read-only)'}
+            style={{background:'transparent',border:`${compareActive?'1px':'0.25px'} solid ${compareActive?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:overview?C.td:(compareActive?C.ac:C.tm),cursor:overview?'not-allowed':'pointer',opacity:overview?0.5:1,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{compareActive?'✓ COMPARE':'↔ COMPARE'}</button>
           <button onClick={()=>setOverview(v=>!v)} style={{background:'transparent',border:`${overview?'1px':'0.25px'} solid ${overview?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:overview?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
           <Btn onClick={handleSave} disabled={saving} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
+      <div style={{display:compareActive?'flex':'block',gap:16,alignItems:'flex-start'}}>
+      <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto'}}>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         <Select label="Assign to Athlete" options={[{value:"",label:"Unassigned"}, ...trainees.flatMap(t => {
@@ -328,12 +491,16 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
       </div>
       <PatternCoverage plan={plan} exercises={exercises} />
       <WarmupEditor plan={plan} setPlan={setPlan} />
-      {!overview && <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"center",justifyContent:"center"}}>
-        {plan.days.map((d,i) => <div key={d.id} style={{display:"flex"}}>
+      {!overview && <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"stretch",justifyContent:"center"}}>
+        {plan.days.map((d,i) => <div key={d.id} style={{display:"flex",alignItems:"stretch"}}>
           <button onClick={()=>setActiveDay(i)} style={{padding:"8px 16px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,borderRight:'none',background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{d.name} ({d.exercises.length})</button>
           {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"8px 10px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",opacity:0.7}}>×</button>}
         </div>)}
-        <Btn variant="ghost" onClick={addDay} style={{padding:"6px 12px",fontSize:12}}>+</Btn>
+        {/* "+" matches the day tabs: same padding (8/16), same border weight,
+            same font sizing — uses a plain <button> rather than <Btn> so the
+            ghost variant's slimmer 6/12 padding doesn't shorten the row. */}
+        <button onClick={addDay} title="Add day"
+          style={{padding:"8px 16px",fontSize:12,borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.ac,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>+</button>
       </div>}
       {overview && <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
         {plan.days.map((d, dayIdx) => {
@@ -530,7 +697,12 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                         style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.ac+'4D'}`,borderRadius:0,whiteSpace:"nowrap"}}>
                         {hasOverride?"OPEN ▸":"LIB ▸"}
                       </a>}
-                      {effective && <div style={{gridColumn:'1 / -1',marginTop:8,display:'flex',justifyContent:'center'}}><div style={{width:'100%',maxWidth:480}}><VideoEmbed url={effective} /></div></div>}
+                      {/* Symmetric gaps above/below the video. The 12px padding
+                          sits on this wrapper so the embed has the same visual
+                          breathing room from the URL row above and the WEEKLY
+                          FOCUS card below — earlier the gap was 8px above and
+                          6px below which read as misaligned. */}
+                      {effective && <div style={{gridColumn:'1 / -1',padding:'12px 0',display:'flex',justifyContent:'center'}}><div style={{width:'100%',maxWidth:480}}><VideoEmbed url={effective} /></div></div>}
                     </div>
                   );
                 })()}
@@ -540,13 +712,30 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
                   // to 4, hiding focus inputs for weeks 5+ on longer plans.
                   const weeks = plan.weeks || 4;
                   return (
-                    <div style={{marginTop:6,background:'transparent',borderRadius:0,padding:"8px 10px",border:`0.25px solid ${C.ac}4D`}}>
-                      <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,letterSpacing:'0.18em'}}>WEEKLY FOCUS</div>
-                      <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fill,minmax(80px,1fr))`,gap:8}}>
+                    <div style={{marginTop:6,background:'transparent',borderRadius:0,padding:"10px 12px",border:`0.25px solid ${C.ac}4D`}}>
+                      <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:8,letterSpacing:'0.18em',textAlign:'center'}}>WEEKLY FOCUS</div>
+                      {/* Bigger, expandable boxes. minmax(180,1fr) keeps each
+                          cell wide enough to actually write a sentence
+                          ("W1: tempo eccentric 4s", not just a single word).
+                          textarea + resize:vertical lets the coach drag any
+                          one cell taller for a longer cue without forcing
+                          every cell to grow. Cells auto-fit per row, so a 4-week
+                          plan typically lays out 4-across on desktop and stacks
+                          to 2-across on phones. */}
+                      <div style={{display:"grid",gridTemplateColumns:`repeat(auto-fit,minmax(180px,1fr))`,gap:10}}>
                         {Array.from({length:weeks}, (_, i) => i + 1).map(w => {
                           const fk = `${plan.name}|${day.name}|${ex.exerciseId}|W${w}`;
-                          return <input key={w} value={weeklyFocus?.[fk]||""} onChange={e=>{const v=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:v}))}}
-                            placeholder={`W${w}`} style={{background:'transparent',border:`0.25px solid ${weeklyFocus?.[fk]?C.ac:C.ac+'4D'}`,borderRadius:0,padding:"14px 12px",minHeight:48,color:C.tx,fontFamily:FB,fontSize:14,outline:"none",boxSizing:"border-box",textAlign:"center",minWidth:0}} />;
+                          const v = weeklyFocus?.[fk] || '';
+                          return (
+                            <div key={w} style={{display:'flex',flexDirection:'column',gap:4}}>
+                              <div style={{fontSize:9,fontFamily:FN,fontWeight:700,color:v?C.ac:C.tm,letterSpacing:'0.18em',textAlign:'center'}}>{`W${w}`}</div>
+                              <textarea value={v}
+                                onChange={e=>{const nv=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:nv}))}}
+                                placeholder="—"
+                                rows={2}
+                                style={{background:'transparent',border:`0.25px solid ${v?C.ac:C.ac+'4D'}`,borderRadius:0,padding:'10px 12px',minHeight:64,color:C.tx,fontFamily:FB,fontSize:13,lineHeight:1.45,outline:'none',boxSizing:'border-box',textAlign:'center',minWidth:0,resize:'vertical',width:'100%'}} />
+                            </div>
+                          );
                         })}
                       </div>
                     </div>
@@ -556,6 +745,16 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
         })}
         <Btn variant="ghost" onClick={()=>setAddExerciseOpen(true)} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
       </div>)}
+      </div>
+      {compareActive && (
+        <ReadOnlyPlanPanel
+          planIndex={planIndex}
+          currentPlan={plan}
+          exercises={exercises}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
+      </div>
       <ExerciseBrowserModal
         open={addExerciseOpen}
         onClose={()=>setAddExerciseOpen(false)}
@@ -634,15 +833,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     let result = planIndex;
     if (search) { const q = search.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
     if (filterTrainee) result = result.filter(p => p.traineeId === filterTrainee);
-    // Apply the user-chosen sort. Hebrew-aware localeCompare for names so
-    // חימום / Block #N / Comeback order predictably. Date fields fall back
-    // to 0 when missing (pre-migration plans) so they sort to the bottom in
-    // desc mode rather than throwing NaN.
+    // Apply the user-chosen sort. 'created' uses block-number-aware chrono
+    // sort (sortProgramsChrono) so Drive-imported plans that share a single
+    // import timestamp don't end up in random order — they fall back to
+    // Block #N parsed from the name. Hebrew-aware localeCompare for names.
+    // Date fields fall back to 0 when missing.
     const dirMul = sortDir === 'asc' ? 1 : -1;
     const sorted = result.slice().sort((a, b) => {
       if (sortField === 'name') return (a.name || '').localeCompare(b.name || '', 'he') * dirMul;
-      const ta = new Date(sortField === 'updated' ? (a.updatedAt || a.createdAt || 0) : (a.createdAt || 0)).getTime();
-      const tb = new Date(sortField === 'updated' ? (b.updatedAt || b.createdAt || 0) : (b.createdAt || 0)).getTime();
+      if (sortField === 'created') return sortProgramsChrono(a, b) * (sortDir === 'asc' ? -1 : 1);
+      const ta = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const tb = new Date(b.updatedAt || b.createdAt || 0).getTime();
       return (ta - tb) * dirMul;
     });
     return sorted;
@@ -682,16 +883,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   //   • earlier    = remaining plans, sorted by block# desc
   // Couples with sub-IDs (__0/__1) collapse under the parent member view —
   // we attribute every plan to whichever sub-id-or-parent owns it.
-  const blockNum = (n) => { const m = /(?:block|phase)\s*#?\s*(\d+)|#(\d+)/i.exec(n || ''); return m ? parseInt(m[1] || m[2], 10) : -Infinity; };
-  const isComeback = (n) => /comeback/i.test(n || '');
-  const sortByRecency = (a, b) => {
-    // Comeback floats above numbered blocks; then highest block#; then newest createdAt.
-    const cb = (isComeback(b.name) ? 1 : 0) - (isComeback(a.name) ? 1 : 0);
-    if (cb !== 0) return cb;
-    const bn = blockNum(b.name) - blockNum(a.name);
-    if (bn !== 0) return bn;
-    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-  };
+  const sortByRecency = sortProgramsChrono;
   const grouped = useMemo(() => {
     if (search || filterTrainee) return null; // flat-list fallback for filtered modes
     // Bucket plans by athlete (parent or sub-id).
@@ -770,7 +962,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
   if (editMode) {
     if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
-    return <PlanEditor plan={editPlanData} onSave={handleSave} onCancel={handleCancel} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} />;
+    return <PlanEditor plan={editPlanData} onSave={handleSave} onCancel={handleCancel} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} />;
   }
 
   return (

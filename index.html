@@ -38,6 +38,16 @@
     ::-webkit-scrollbar-thumb{background:#1a1a1e;border-radius:3px}
     ::-webkit-scrollbar-thumb:hover{background:#39BDFF40}
     input,select,textarea{font-family:'Nord','Heebo','DM Sans',system-ui,sans-serif;text-align:center}
+    /* Native <select> dropdown options. Without this, Chrome/Edge renders
+       options using OS theme — on dark Windows themes the unselected items
+       render as low-contrast grey-on-grey, which is unreadable in our dark
+       UI (the athlete picker on /coach/programs was the worst offender).
+       Forcing the dark surface + white text gives a consistent, readable
+       dropdown without replacing every <select> with a custom component. */
+    select{color:#fff;background:#0a0a0b}
+    select option{background:#0a0a0b;color:#fff}
+    select option:disabled{color:#666}
+    select option:checked,select option:hover{background:#39BDFF30;color:#fff}
     /* Hide spinner buttons on number inputs so the centered text stays
        visually centered (otherwise the spinner area shifts the centered
        glyph slightly to the left). */
