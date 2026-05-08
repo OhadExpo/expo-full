@@ -1752,12 +1752,13 @@ function DemoPrograms() {
             boxSizing: 'border-box',
           });
           return (
-            <div style={{ flex: 1, minWidth: 0, border: `0.25px solid ${C.ac}4D`, padding: 14, background: 'transparent', alignSelf: 'stretch' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <div style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, letterSpacing: '0.18em' }}>↔ COMPARE — READ-ONLY · OVERVIEW</div>
-                <button onClick={() => setCompareOpen(false)} title="Close compare panel"
-                  style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, cursor: 'pointer', padding: '2px 8px', borderRadius: 0, fontSize: 12 }}>✕</button>
-              </div>
+            <div style={{ flex: 1, minWidth: 0, border: 'none', padding: 0, background: 'transparent', alignSelf: 'stretch', position: 'relative' }}>
+              {/* Close button = absolute corner-button only, mirrors PlansView
+                  CompareSidebar (no header text row above the filters; that
+                  was pushing the right side's content down by ~30px and
+                  misaligning the days vs the editor's left half). */}
+              <button onClick={() => setCompareOpen(false)} title="Close compare panel"
+                style={{ position: 'absolute', top: -2, right: -2, background: C.bg, border: `0.25px solid ${C.ac}4D`, color: C.tm, cursor: 'pointer', padding: '1px 6px', borderRadius: 0, fontSize: 11, lineHeight: 1, zIndex: 2 }}>✕</button>
               {/* Dual picker: Athlete + Program. STACKED single-column to
                   mirror the real PlansView CompareSidebar layout (each
                   filter is a full-width input). Same number of pre-day
