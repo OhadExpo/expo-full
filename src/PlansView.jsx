@@ -451,7 +451,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyFocus, setWeeklyFocus, planIndex }) {
+function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, weeklyFocus, setWeeklyFocus, planIndex }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -522,8 +522,40 @@ function PlanEditor({ plan: init, onSave, onCancel, trainees, exercises, weeklyF
   const statusLabel = autosaveStatusLabel(autoStatus, C);
   return (
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12,flexWrap:'wrap'}}>
+        <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flex:'1 1 240px'}}>
+          <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0,whiteSpace:'nowrap'}}>← Back</button>
+          {/* Switch-program dropdown — lets the coach scroll between this
+              athlete's programs (current + earlier blocks) without leaving
+              the editor. Saves any pending edits first. Mounted only when
+              there are 2+ programs to switch between. */}
+          {(() => {
+            const sameAthlete = (planIndex || [])
+              .filter(p => p.traineeId === plan.traineeId)
+              .slice()
+              .sort(sortProgramsChrono);
+            if (sameAthlete.length < 2 || !onSwitchProgram) return null;
+            // Styled to match the COMPARE / OVERVIEW / SAVE buttons in the
+            // same row — same height, font, weight, letter-spacing, border
+            // thickness, transparent background. Reads as one of the four
+            // controls in the row, not a different control family.
+            return (
+              <div style={{position:'relative',display:'flex',minWidth:0,flex:'1 1 240px',maxWidth:360}}>
+                <select value={plan.id} onChange={async e => {
+                  const nextId = e.target.value;
+                  if (nextId === plan.id) return;
+                  await flushAutosave();
+                  onSwitchProgram(nextId);
+                }}
+                  title="Switch to another program for this athlete"
+                  style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  {sameAthlete.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
+                </select>
+                <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
+              </div>
+            );
+          })()}
+        </div>
         <div style={{display:"flex",gap:8,alignItems:"stretch"}}>
           {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:11,fontWeight:600,color:statusLabel.color,letterSpacing:"0.04em",alignSelf:'center'}}>{statusLabel.text}</span>}
           {/* COMPARE: read-only view of a previous program for the same
@@ -1048,7 +1080,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
   if (editMode) {
     if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
-    return <PlanEditor plan={editPlanData} onSave={handleSave} onCancel={handleCancel} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} />;
+    // key={editPlanData.id} forces a remount when the visitor switches
+    // programs via the new in-editor dropdown — PlanEditor's internal `plan`
+    // state is initialized from `init` only once, so a remount is the
+    // simplest way to load fresh data without rewiring its state plumbing.
+    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} />;
   }
 
   return (
@@ -1139,7 +1175,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{cur.name||"Untitled"}</div>
                     <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
                   </div>
-                  <div style={{display:'flex',gap:4,alignItems:'center',flexShrink:0}}>
+                  <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
                     <span title={`Last session: ${tagText.toLowerCase()}`} style={{fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`0.25px solid ${tagColor}`,padding:'3px 7px',whiteSpace:'nowrap'}}>{tagText.toLowerCase()}</span>
                     {row.earlier.length > 0 && (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
@@ -1229,7 +1265,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{p.name||"Untitled"}</div>
                 <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex{p.phase?` · ${p.phase}`:''}</div>
               </div>
-              <div style={{display:"flex",gap:4,flexShrink:0,alignItems:'center'}}>
+              <div style={{display:"flex",gap:8,flexShrink:0,alignItems:'center'}}>
                 {setPortalVis && (() => {
                   const vk = visKeyForPlan(p, trainees);
                   if (!vk) return null;

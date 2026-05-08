@@ -1047,19 +1047,22 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES'
 // 12 mock programs spread across the 3 mock trainees — same shape as the
 // real planIndex (id, name, traineeId, dayCount, exerciseCount, phase,
 // created, updated) so the demo list view mirrors PlansView 1:1.
+// Mock days-since-last-workout per athlete — drives the recency tag color
+// in the athlete-grouped list view (≤3 green, ≤7 amber-yellow, ≤14 orange,
+// >14 red, missing = never trained). Picked to make Noa & Gal visibly
+// different so the visitor sees the gradient, not a uniform color.
+const MOCK_LAST_SESSION_DAYS = { t1: 2, t2: 9 };
+
+// Trimmed deliberately: 2 athletes, 3 programs total (Noa: 2, Gal: 1).
+// Two athletes is the minimum that lets the filter dropdown demonstrate
+// switching between clients; the 2/1 split makes the Compare picker
+// instructive — Gal's lone program forces the visitor to switch the
+// Athlete picker to Noa to see anything in Compare, which is precisely
+// the cross-athlete feature this demo is meant to showcase.
 const MOCK_PROGRAM_INDEX = [
-  { id: 'p1',  name: 'Block #4 — Push/Pull Volume',     traineeId: 't1', dayCount: 3, exerciseCount: 22, phase: 'Volume',     created: '2026-04-12', updated: '2026-04-29' },
-  { id: 'p2',  name: 'Block #3 — Strength Base',        traineeId: 't1', dayCount: 3, exerciseCount: 18, phase: 'Strength',   created: '2026-03-15', updated: '2026-04-09' },
-  { id: 'p3',  name: 'Block #2 — Reset',                traineeId: 't1', dayCount: 3, exerciseCount: 14, phase: 'Reset',      created: '2026-02-22', updated: '2026-03-12' },
-  { id: 'p4',  name: 'Block #4 — Pull Specialization',  traineeId: 't2', dayCount: 4, exerciseCount: 26, phase: 'Volume',     created: '2026-04-14', updated: '2026-04-28' },
-  { id: 'p5',  name: 'Block #3 — Volume',               traineeId: 't2', dayCount: 4, exerciseCount: 24, phase: 'Volume',     created: '2026-03-18', updated: '2026-04-11' },
-  { id: 'p6',  name: 'Block #2 — Hypertrophy',          traineeId: 't2', dayCount: 3, exerciseCount: 21, phase: 'Hypertrophy',created: '2026-02-25', updated: '2026-03-15' },
-  { id: 'p7',  name: 'Block #1 — Intake',               traineeId: 't2', dayCount: 2, exerciseCount: 12, phase: 'Intake',     created: '2026-02-04', updated: '2026-02-18' },
-  { id: 'p8',  name: 'Block #4 — Couple Volume',        traineeId: 't3', dayCount: 3, exerciseCount: 24, phase: 'Volume',     created: '2026-04-13', updated: '2026-04-30' },
-  { id: 'p9',  name: 'Block #3 — Couple Base',          traineeId: 't3', dayCount: 3, exerciseCount: 20, phase: 'Strength',   created: '2026-03-16', updated: '2026-04-10' },
-  { id: 'p10', name: 'Block #2 — Onboarding',           traineeId: 't3', dayCount: 2, exerciseCount: 14, phase: 'Onboarding', created: '2026-02-21', updated: '2026-03-13' },
-  { id: 'p11', name: 'Block #1 — Couple Intake',        traineeId: 't3', dayCount: 2, exerciseCount: 10, phase: 'Intake',     created: '2026-02-01', updated: '2026-02-15' },
-  { id: 'p12', name: 'Foundation Template',             traineeId: '',   dayCount: 4, exerciseCount: 28, phase: 'Template',   created: '2026-01-10', updated: '2026-04-22' },
+  { id: 'p1', name: 'Block #4 — Push/Pull Volume',    traineeId: 't1', dayCount: 3, exerciseCount: 22, phase: 'Volume',   created: '2026-04-12', updated: '2026-04-29' },
+  { id: 'p2', name: 'Block #3 — Strength Base',       traineeId: 't1', dayCount: 3, exerciseCount: 18, phase: 'Strength', created: '2026-03-15', updated: '2026-04-09' },
+  { id: 'p3', name: 'Block #4 — Pull Specialization', traineeId: 't2', dayCount: 4, exerciseCount: 26, phase: 'Volume',   created: '2026-04-14', updated: '2026-04-28' },
 ];
 
 function DemoPrograms() {
@@ -1081,13 +1084,103 @@ function DemoPrograms() {
   const [overview, setOverview] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const compareActive = compareOpen && overview;
-  const [compareBlockKey, setCompareBlockKey] = useState('Block #3');
+  // Compare panel = dual-dropdown (athlete + program), mirroring the real
+  // PlansView CompareSidebar so visitors can pivot between athletes' prior
+  // programs the same way the live coach app does.
+  const [compareAthleteId, setCompareAthleteId] = useState('');
+  const [comparePickedId, setComparePickedId] = useState('');
   const [warmOpen, setWarmOpen] = useState(false);
   const [cmpWarmOpen, setCmpWarmOpen] = useState(false);
+  // Athlete-grouped list state — which athlete rows are expanded to show
+  // their earlier blocks, and which program ids are visible on the (mock)
+  // athlete portal. Both stay local to the demo; nothing persists.
+  const [expandedAthletes, setExpandedAthletes] = useState(() => new Set());
+  const toggleAthlete = (id) => setExpandedAthletes(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  // Default-visible: every program shown unless explicitly toggled off.
+  const [portalVis, setPortalVis] = useState({});
   React.useEffect(() => { if (!overview && compareOpen) setCompareOpen(false); }, [overview, compareOpen]);
   const block = BLOCK_DATA[activeBlock];
 
   const traineeName = (id) => MOCK_TRAINEES.find(t => t.id === id)?.name || 'Unassigned';
+
+  // Selected program → derive athlete + block-history dynamically. Each
+  // athlete's programs map onto the shared BLOCK_DATA content underneath
+  // (the demo only has one set of blocks), but headings, history sidebar,
+  // and compare candidates pivot on the chosen athlete so the visitor
+  // experience matches the real multi-athlete coach app.
+  const blockNumOf = (name) => parseInt(name?.match(/Block\s*#(\d+)/i)?.[1] || '0', 10);
+  const blockKeyOf = (name) => {
+    const n = blockNumOf(name);
+    return (n >= 1 && n <= 4) ? `Block #${n}` : 'Block #4';
+  };
+  const monthLabel = (iso) => {
+    try { return new Date(iso).toLocaleString('en-US', { month: 'short' }); } catch { return ''; }
+  };
+  const selectedProgram = selectedProgramId ? MOCK_PROGRAM_INDEX.find(p => p.id === selectedProgramId) : null;
+  const selectedTraineeId = selectedProgram?.traineeId || '';
+  const selectedAthleteName = traineeName(selectedTraineeId);
+
+  // When the visitor opens a program, jump activeBlock to that program's
+  // block number. Prevents the header label and the rendered block from
+  // disagreeing (e.g. opening "Block #1 — Intake" should show Block #1).
+  React.useEffect(() => {
+    if (!selectedProgramId || !selectedProgram) return;
+    const key = blockKeyOf(selectedProgram.name);
+    setActiveBlock(key);
+    setSelectedDayIdx(0);
+    setOpenExIdx(null);
+  }, [selectedProgramId]);
+
+  // Compare panel state defaults. Athlete pivots to the current program's
+  // athlete every time the visitor opens a new program (so Compare on Gal's
+  // editor doesn't sticky-stay on Noa). When the current athlete has no
+  // OTHER programs to compare against (e.g. Gal in the trimmed demo data),
+  // default to the first different athlete who does have candidates — that
+  // way Compare opens useful instead of in a "No other programs" dead-end.
+  React.useEffect(() => {
+    const currHasComparables = MOCK_PROGRAM_INDEX.some(p =>
+      p.traineeId === selectedTraineeId && p.id !== selectedProgramId);
+    let nextAthlete = selectedTraineeId;
+    if (!nextAthlete || !currHasComparables) {
+      const otherWithPrograms = [...new Set(MOCK_PROGRAM_INDEX.map(p => p.traineeId).filter(Boolean))]
+        .find(id => id !== selectedTraineeId);
+      nextAthlete = otherWithPrograms || selectedTraineeId || MOCK_TRAINEES[0]?.id || '';
+    }
+    setCompareAthleteId(nextAthlete);
+    setComparePickedId(''); // forces the program useEffect to re-pick a default
+  }, [selectedProgramId]);
+  const cmpCandidates = React.useMemo(() => {
+    if (!compareAthleteId) return [];
+    return MOCK_PROGRAM_INDEX
+      .filter(p => p.traineeId === compareAthleteId && p.id !== selectedProgramId)
+      .slice()
+      .sort((a, b) => blockNumOf(b.name) - blockNumOf(a.name));
+  }, [compareAthleteId, selectedProgramId]);
+  React.useEffect(() => {
+    if (cmpCandidates.length === 0) { if (comparePickedId) setComparePickedId(''); return; }
+    if (!comparePickedId || !cmpCandidates.some(c => c.id === comparePickedId)) {
+      // Prefer a program with a different block # than the currently-edited
+      // one — guarantees the compare panel actually shows different content
+      // even when switching to a new athlete (since the demo's BLOCK_DATA is
+      // shared across athletes and keyed only by block number).
+      const curN = blockNumOf(selectedProgram?.name || '');
+      const diff = cmpCandidates.find(c => blockNumOf(c.name) !== curN);
+      setComparePickedId((diff || cmpCandidates[0]).id);
+    }
+  }, [cmpCandidates, comparePickedId]);
+  const cmpProgram = MOCK_PROGRAM_INDEX.find(p => p.id === comparePickedId);
+  const cmpBlockData = BLOCK_DATA[blockKeyOf(cmpProgram?.name || '')] || BLOCK_DATA['Block #3'];
+  // Compare picker athlete options — same source as the list-view filter:
+  // only athletes who actually have programs in MOCK_PROGRAM_INDEX. Sorted
+  // alphabetically. Avoids dead-end picks where visitor selects an athlete
+  // with zero programs and lands on a "No other programs" message.
+  const cmpAthleteOptions = [...new Set(MOCK_PROGRAM_INDEX.map(p => p.traineeId).filter(Boolean))]
+    .map(id => ({ value: id, label: MOCK_TRAINEES.find(t => t.id === id)?.name || id }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   if (!selectedProgramId) {
     // ─── LIST view (matches src/PlansView.jsx root) ───
@@ -1107,24 +1200,42 @@ function DemoPrograms() {
     return (
       <section>
 
-        <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 180 }}>
+        {/* Mirrors PlansView's filter row: stretch alignment, height:42 inputs,
+            custom ▾ chevron over the select, centered text. */}
+        <div style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'stretch', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 180, display: 'flex' }}>
             <input placeholder="Search programs..." value={search} onChange={e => setSearch(e.target.value)} style={{
               background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
-              padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
+              height: 42, padding: '0 14px', lineHeight: '42px',
+              color: C.tx, fontFamily: FB, fontSize: 13,
               outline: 'none', width: '100%', boxSizing: 'border-box',
+              textAlign: 'center',
             }} />
           </div>
-          <select value={filterTrainee} onChange={e => setFilterTrainee(e.target.value)} style={{
-            background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
-            padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
-            width: 200,
-          }}>
-            <option value="">All Athletes ({MOCK_PROGRAM_INDEX.length})</option>
-            {MOCK_TRAINEES.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
+          <div style={{ position: 'relative', width: 200, display: 'flex' }}>
+            <select value={filterTrainee} onChange={e => setFilterTrainee(e.target.value)} style={{
+              background: C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0,
+              height: 42, padding: '0 36px 0 14px',
+              color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none',
+              appearance: 'none', WebkitAppearance: 'none',
+              textAlign: 'center', textAlignLast: 'center',
+              flex: 1, boxSizing: 'border-box',
+            }}>
+              <option value="">All Athletes ({MOCK_PROGRAM_INDEX.length})</option>
+              {/* Mirrors PlansView traineeOptions — only athletes who actually
+                  have programs show up, sorted by name. Keeps the picker
+                  honest when MOCK_PROGRAM_INDEX is trimmed. */}
+              {[...new Set(MOCK_PROGRAM_INDEX.map(p => p.traineeId).filter(Boolean))]
+                .map(id => ({ id, name: MOCK_TRAINEES.find(t => t.id === id)?.name || id }))
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 16, lineHeight: 1 }}>▾</span>
+          </div>
           <button onClick={e => e.stopPropagation()} style={{
-            ...baseBtn, background: C.ac, color: '#0a0a0b', padding: '8px 16px', fontSize: 13, fontWeight: 700,
+            ...baseBtn, background: C.ac, color: '#0a0a0b',
+            height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', fontWeight: 700,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>+ New Program</button>
         </div>
 
@@ -1139,10 +1250,10 @@ function DemoPrograms() {
                 else setSortField(f);
               }} style={{
                 padding: '4px 10px', borderRadius: 0,
-                border: `1px solid ${active ? C.ac : C.bd}`,
-                background: active ? C.acD : 'transparent',
+                border: `${active ? '1px' : '0.25px'} solid ${active ? C.ac : C.ac + '4D'}`,
+                background: 'transparent',
                 color: active ? C.ac : C.tm,
-                fontFamily: FN, fontSize: 11, fontWeight: active ? 700 : 500,
+                fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4,
               }}>
                 {l}{active && <span style={{ fontSize: 10 }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
@@ -1151,44 +1262,132 @@ function DemoPrograms() {
           })}
         </div>
 
-        <div style={{ fontSize: 12, color: C.td, marginBottom: 12, fontFamily: FN }}>
-          Showing {filtered.length} of {MOCK_PROGRAM_INDEX.length} programs
-        </div>
+        {/* Athlete-grouped list, mirroring src/PlansView.jsx. Each visible
+            athlete = ONE row showing their current (highest block#) program.
+            An expand chevron reveals earlier blocks inline. The same
+            transparent border + sparse styling as the real coach app. */}
+        {(() => {
+          // Bucket the filtered programs by athlete id, then derive a row
+          // per athlete with current + earlier programs.
+          const buckets = new Map();
+          for (const p of filtered) {
+            const tid = p.traineeId || '__unassigned__';
+            if (!buckets.has(tid)) buckets.set(tid, []);
+            buckets.get(tid).push(p);
+          }
+          const rows = [];
+          for (const [tid, plans] of buckets.entries()) {
+            const sorted = plans.slice().sort((a, b) => blockNumOf(b.name) - blockNumOf(a.name));
+            const current = sorted[0];
+            const earlier = sorted.slice(1);
+            const daysSince = MOCK_LAST_SESSION_DAYS[tid] ?? null;
+            rows.push({
+              tid,
+              name: traineeName(tid),
+              current,
+              earlier,
+              daysSince,
+              totalCount: plans.length,
+            });
+          }
+          rows.sort((a, b) => {
+            const aT = a.daysSince ?? 999;
+            const bT = b.daysSince ?? 999;
+            if (aT !== bT) return aT - bT;
+            return (a.name || '').localeCompare(b.name || '');
+          });
 
-        {filtered.length === 0 ? (
-          <div style={{ background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0, padding: 40, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>
-            📋 No programs match your search.
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gap: 10 }}>
-            {filtered.map(p => (
-              <div key={p.id} onClick={() => setSelectedProgramId(p.id)} style={demoCardStyle({ cursor: 'pointer' })}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                  <div>
-                    <div style={{ fontFamily: FB, fontWeight: 700, fontSize: 15, color: C.tx }}>{p.name}</div>
-                    <div style={{ fontSize: 12, color: C.tm, marginTop: 4, fontFamily: FN, letterSpacing: '0.04em' }}>
-                      {traineeName(p.traineeId)} · {p.dayCount}d · {p.exerciseCount}ex
-                    </div>
-                    {p.phase && (
-                      <span style={{
-                        display: 'inline-block', marginTop: 6,
-                        fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1, fontWeight: 700,
-                        padding: '2px 8px', background: C.acD, borderRadius: 0,
-                        border: `1px solid rgba(57,189,255,0.30)`,
-                      }}>{p.phase}</span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button onClick={e => e.stopPropagation()} title="Demo only" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 4 }}>📋</button>
-                    <button onClick={e => e.stopPropagation()} title="Demo only" style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, opacity: 0.6 }}>🗑</button>
-                  </div>
-                </div>
+          const meta = `${rows.length} athlete${rows.length === 1 ? '' : 's'} · ${filtered.length} program${filtered.length === 1 ? '' : 's'} total`;
+
+          if (rows.length === 0) return (
+            <>
+              <div style={{ fontSize: 12, color: C.td, marginBottom: 12, fontFamily: FN }}>{meta}</div>
+              <div style={{ background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0, padding: 40, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>
+                📋 No programs match your search.
               </div>
-            ))}
-          </div>
-        )}
+            </>
+          );
+
+          return (
+            <>
+              <div style={{ fontSize: 12, color: C.td, marginBottom: 12, fontFamily: FN }}>{meta}</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {rows.map(row => {
+                  const expanded = expandedAthletes.has(row.tid);
+                  const cur = row.current;
+                  const tagColor = row.daysSince == null ? C.td
+                    : row.daysSince <= 3 ? C.gn
+                    : row.daysSince <= 7 ? C.tm
+                    : row.daysSince <= 14 ? C.or
+                    : C.rd;
+                  const tagText = row.daysSince == null ? 'NEVER LOGGED'
+                    : row.daysSince === 0 ? 'TRAINED TODAY'
+                    : `${row.daysSince}D AGO`;
+                  const portalKey = (id) => 'pv_' + id;
+                  const isVis = (id) => portalVis[portalKey(id)] !== false;
+                  const togglePortal = (id) => setPortalVis(v => ({ ...v, [portalKey(id)]: !isVis(id) }));
+                  return (
+                    <div key={row.tid} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0 }}>
+                      {/* Current-block row — clicking opens the program. */}
+                      <div onClick={() => setSelectedProgramId(cur.id)}
+                        style={{ cursor: 'pointer', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                        <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap' }}>
+                          <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, whiteSpace: 'nowrap', letterSpacing: '0.01em', flexShrink: 0 }}><bdi>{row.name}</bdi></div>
+                          <div style={{ fontWeight: 700, fontSize: 15, color: C.ac, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.04em', fontFamily: FN, minWidth: 0, flex: 1 }}>{cur.name || 'Untitled'}</div>
+                          <div style={{ fontSize: 11, color: C.tm, fontFamily: FN, letterSpacing: '0.04em', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                          <span title={`Last session: ${tagText.toLowerCase()}`} style={{ fontSize: 10, fontFamily: FN, color: tagColor, letterSpacing: '0.04em', fontWeight: 600, border: `0.25px solid ${tagColor}`, padding: '3px 7px', whiteSpace: 'nowrap' }}>{tagText.toLowerCase()}</span>
+                          {row.earlier.length > 0 && (
+                            <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
+                              title={expanded ? `Hide ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}` : `Show ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}`}
+                              style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '3px 8px', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', whiteSpace: 'nowrap', minWidth: 34, textAlign: 'center' }}>
+                              {expanded ? `▴ ${row.earlier.length}` : `▾ +${row.earlier.length}`}
+                            </button>
+                          )}
+                          <button onClick={e => { e.stopPropagation(); togglePortal(cur.id); }}
+                            title={isVis(cur.id) ? 'Visible on athlete portal — click to hide' : 'Hidden from athlete portal — click to show'}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                            <div style={{ width: 28, height: 16, borderRadius: 8, background: isVis(cur.id) ? C.gn + '40' : C.sf3, border: `1px solid ${isVis(cur.id) ? C.gn + '60' : C.bd2}`, position: 'relative', transition: 'all .15s' }}>
+                              <div style={{ width: 12, height: 12, borderRadius: 6, background: isVis(cur.id) ? C.gn : C.td, position: 'absolute', top: 1, left: isVis(cur.id) ? 14 : 1, transition: 'all .15s' }} />
+                            </div>
+                          </button>
+                          <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)"
+                            style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>👁</button>
+                          <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)"
+                            style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>⎘</button>
+                        </div>
+                      </div>
+                      {/* Expanded earlier blocks — slightly compressed look. */}
+                      {expanded && row.earlier.length > 0 && (
+                        <div style={{ borderTop: `0.25px solid ${C.ac}4D`, padding: '4px 0' }}>
+                          {row.earlier.map(p => (
+                            <div key={p.id} onClick={() => setSelectedProgramId(p.id)}
+                              style={{ cursor: 'pointer', padding: '7px 14px 7px 32px', display: 'flex', alignItems: 'center', gap: 8, opacity: 0.78, borderTop: `0.25px solid ${C.ac}1A` }}>
+                              <div style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.04em', fontFamily: FN }}>{p.name || 'Untitled'}</div>
+                              <div style={{ fontSize: 11, color: C.td, fontFamily: FN, letterSpacing: '0.04em', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>{p.dayCount}d · {p.exerciseCount}ex</div>
+                              <button onClick={e => { e.stopPropagation(); togglePortal(p.id); }}
+                                title={isVis(p.id) ? 'Visible on athlete portal — click to hide' : 'Hidden from athlete portal — click to show'}
+                                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+                                <div style={{ width: 28, height: 16, borderRadius: 8, background: isVis(p.id) ? C.gn + '40' : C.sf3, border: `1px solid ${isVis(p.id) ? C.gn + '60' : C.bd2}`, position: 'relative', transition: 'all .15s' }}>
+                                  <div style={{ width: 12, height: 12, borderRadius: 6, background: isVis(p.id) ? C.gn : C.td, position: 'absolute', top: 1, left: isVis(p.id) ? 14 : 1, transition: 'all .15s' }} />
+                                </div>
+                              </button>
+                              <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)"
+                                style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>👁</button>
+                              <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)"
+                                style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>⎘</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          );
+        })()}
       </section>
     );
   }
@@ -1198,82 +1397,135 @@ function DemoPrograms() {
   // and crash on `day.exercises`.
   const dayIdx = Math.min(selectedDayIdx, block.days.length - 1);
   const day = block.days[dayIdx];
-  const BLOCK_HISTORY = [
-    { name: 'Block #4', tag: 'Push/Pull Volume', when: 'Active · Week 2/4' },
-    { name: 'Block #3', tag: 'Strength Base',    when: 'Apr · 4 weeks'    },
-    { name: 'Block #2', tag: 'Reset',            when: 'Mar · 3 weeks'    },
-    { name: 'Block #1', tag: 'Intake',           when: 'Feb · 2 weeks'    },
-  ];
-  const isActiveBlock = activeBlock === 'Block #4';
+  // BLOCK_HISTORY = the chosen athlete's programs from MOCK_PROGRAM_INDEX,
+  // sorted by block # desc. Falls back to a single-row history of just the
+  // selected program when the athlete has no other programs (e.g. unassigned
+  // template). Each row maps back to a key in BLOCK_DATA via blockKeyOf so
+  // clicking the sidebar swaps the editor pane just like before.
+  const athletePrograms = MOCK_PROGRAM_INDEX
+    .filter(p => p.traineeId === selectedTraineeId)
+    .slice()
+    .sort((a, b) => blockNumOf(b.name) - blockNumOf(a.name));
+  const BLOCK_HISTORY = (athletePrograms.length > 0 ? athletePrograms : (selectedProgram ? [selectedProgram] : []))
+    .map((p, i) => {
+      const blockMatch = p.name.match(/Block\s*#\d+/);
+      const isBlock = !!blockMatch;
+      // For real blocks: row name = "Block #N", tag = the second half of
+      // "Block #N — Phase Name" (or fall back to p.phase). For stand-alone
+      // programs (templates etc.): row name = the full program name, tag =
+      // the phase. Avoids the "Template / Template" duplication that happens
+      // when name and tag both fall back to the same string.
+      const blkLabel = isBlock ? blockMatch[0] : p.name;
+      const tag = isBlock ? ((p.name.split('—')[1] || '').trim() || p.phase || '') : (p.phase || '');
+      return {
+        name: blkLabel,
+        tag,
+        when: i === 0
+          ? (isBlock ? 'Active · Week 2/4' : 'Stand-alone')
+          : `${monthLabel(p.created)} · ${Math.max(2, p.dayCount)} weeks`,
+        key: blockKeyOf(p.name),
+      };
+    });
+  const isActiveBlock = BLOCK_HISTORY[0]?.key === activeBlock;
+  // Title shown above the block contents — pivots on the selected program
+  // (e.g. "Block #4 — Pull Specialization") so each athlete's view feels
+  // distinct, even though the underlying block data is shared in this demo.
+  const headingTitle = selectedProgram?.name || block.title;
+  // Subtitle clock label — show "TEMPLATE" instead of "WEEK 2 OF 4" when the
+  // selected program isn't a numbered block. Otherwise the visitor reads a
+  // wave-week label on a one-off template, which feels off.
+  const isCurrentBlock = !!selectedProgram?.name?.match(/Block\s*#\d+/);
+  const headingWhen = isCurrentBlock ? block.when : 'TEMPLATE';
   return (
     <section>
-      <button onClick={() => setSelectedProgramId(null)} style={{
-        background: 'none', border: 'none', color: C.ac,
-        cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, marginBottom: 14,
-      }}>← Back to programs</button>
-
-      <div className="cd-prog-grid" style={{
-        display: 'grid', gap: 14, marginBottom: 14,
-        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 3fr)',
-      }}>
-        {/* Block-history sidebar */}
-        <div style={{
-          background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
-          padding: 14, alignSelf: 'start',
-        }}>
-          <div style={{
-            fontFamily: FN, color: C.tm, fontSize: 10, letterSpacing: 1.5, fontWeight: 700,
-            marginBottom: 10,
-          }}>BLOCK HISTORY</div>
-          {BLOCK_HISTORY.map((b, i) => {
-            const on = b.name === activeBlock;
-            return (
-              <div key={i} onClick={() => { setActiveBlock(b.name); setSelectedDayIdx(0); setOpenExIdx(null); }} style={{
-                padding: '10px 12px', borderRadius: 0, cursor: 'pointer',
-                marginBottom: 4,
-                background: on ? C.acD : 'transparent',
-                border: `1px solid ${on ? C.ac : 'transparent'}`,
-                transition: 'all 0.15s',
-              }}>
-                <div style={{
-                  fontFamily: FB, fontSize: 13, fontWeight: 700,
-                  color: on ? C.ac : C.tx,
-                }}>{b.name}</div>
-                <div style={{
-                  fontFamily: FB, fontSize: 11.5, color: C.tx, opacity: 0.7,
-                }}>{b.tag}</div>
-                <div style={{
-                  fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1, marginTop: 2,
-                }}>{b.when}</div>
-              </div>
-            );
-          })}
+      {/* Editor top row — mirrors PlansView's PlanEditor: BACK / program-switch
+          dropdown / COMPARE / OVERVIEW / SAVE PROGRAM. Drops the previous
+          BLOCK HISTORY sidebar in favour of the dropdown so the editor uses
+          the full width like the real app. */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0, flex: '1 1 240px' }}>
+          <button onClick={() => setSelectedProgramId(null)} style={{
+            background: 'none', border: 'none', color: C.ac,
+            cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, whiteSpace: 'nowrap',
+          }}>← Back</button>
+          {athletePrograms.length >= 2 && (
+            <div style={{ position: 'relative', display: 'flex', minWidth: 0, flex: '1 1 240px', maxWidth: 360 }}>
+              <select value={selectedProgramId || ''} onChange={e => {
+                const nextId = e.target.value;
+                if (nextId && nextId !== selectedProgramId) setSelectedProgramId(nextId);
+              }}
+                title="Switch to another program for this athlete"
+                style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, height: 42, padding: '0 36px 0 18px', lineHeight: '42px', color: C.tm, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', outline: 'none', appearance: 'none', WebkitAppearance: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box', cursor: 'pointer', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {athletePrograms.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
+              </select>
+              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 12, lineHeight: 1 }}>▾</span>
+            </div>
+          )}
         </div>
-
-      <div style={{
-        background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0,
-        padding: 18,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-          <h3 style={{ fontFamily: FB, fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: -0.2 }}>{block.title}</h3>
-          <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>נועה לוי · {block.when}</span>
-          <span style={{ flex: 1 }} />
-          <span style={{
-            fontFamily: FN, fontSize: 10, color: isActiveBlock ? C.gn : C.td, letterSpacing: 1.5, fontWeight: 700, marginRight: 8,
-          }}>{isActiveBlock ? '✓ SAVED · 12 MIN AGO' : '🔒 ARCHIVED · READ-ONLY'}</span>
-          {/* COMPARE — only enabled in Overview, same gate as the real
-              PlanEditor (src/PlansView.jsx). */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
           <button onClick={() => { if (!overview) return; setCompareOpen(v => !v); }}
             disabled={!overview}
-            title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous block (read-only)'}
-            style={{ background: 'transparent', border: `${compareActive ? '1px' : '0.25px'} solid ${compareActive ? C.ac : C.ac + '4D'}`, borderRadius: 0, padding: '6px 14px', color: !overview ? C.td : (compareActive ? C.ac : C.tm), cursor: !overview ? 'not-allowed' : 'pointer', opacity: !overview ? 0.5 : 1, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
+            title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous program (read-only)'}
+            style={{ background: 'transparent', border: `${compareActive ? '1px' : '0.25px'} solid ${compareActive ? C.ac : C.ac + '4D'}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: !overview ? C.td : (compareActive ? C.ac : C.tm), cursor: !overview ? 'not-allowed' : 'pointer', opacity: !overview ? 0.5 : 1, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
           <button onClick={() => setOverview(v => !v)}
-            title={overview ? 'Switch back to per-day detail view' : 'Switch to multi-day overview grid'}
-            style={{ background: 'transparent', border: `${overview ? '1px' : '0.25px'} solid ${overview ? C.ac : C.ac + '4D'}`, borderRadius: 0, padding: '6px 14px', color: overview ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{overview ? '✓ OVERVIEW' : 'OVERVIEW'}</button>
+            style={{ background: 'transparent', border: `${overview ? '1px' : '0.25px'} solid ${overview ? C.ac : C.ac + '4D'}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: overview ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{overview ? '✓ OVERVIEW' : 'OVERVIEW'}</button>
+          <button onClick={e => e.stopPropagation()} title="Demo only"
+            style={{ ...baseBtn, background: C.ac, color: '#0a0a0b', height: 42, padding: '0 18px', lineHeight: '42px', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Save Program</button>
+        </div>
+      </div>
+
+      {/* Compare-mode flex wrapper opens AT THE TOP — mirrors the real
+          PlanEditor exactly. Input grid + Pattern Coverage + Warm-up all
+          live INSIDE the left half so when Compare opens, the right half
+          (which has its own filter row + Pattern Coverage + warmup) lines
+          up vertically with the left. Otherwise the days drift apart. */}
+      <div style={{ display: compareActive ? 'flex' : 'block', gap: 16, alignItems: 'flex-start' }}>
+      <div style={{ flex: compareActive ? 1 : 'unset', width: compareActive ? '50%' : 'auto', minWidth: 0 }}>
+        {/* Row 2: 4-cell input grid mirroring PlansView's PROGRAM NAME /
+            ATHLETE / PHASE / WEEKS row. Read-only since the demo doesn't
+            write. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 20 }}>
+          {[
+            { label: 'Program Name', value: selectedProgram?.name || '' },
+            { label: 'Assign to Athlete', value: selectedAthleteName },
+            { label: 'Phase / Block', value: selectedProgram?.phase || '' },
+            { label: 'Weeks', value: '4 weeks' },
+          ].map((field, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'center' }}>{field.label}</label>
+              <input value={field.value} readOnly tabIndex={-1}
+                style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default' }} />
+            </div>
+          ))}
         </div>
 
-        {/* Foldable warm-up — same shape the real PlanEditor uses. Collapsed
-            by default so it doesn't push the day editor below the fold. */}
+        {/* PATTERN COVERAGE chart (mock) — mirrors the real PlanEditor's
+            PatternCoverage component. */}
+        <div style={{ border: `0.25px solid ${C.or}66`, padding: 12, marginBottom: 16 }}>
+          <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>PATTERN COVERAGE: 5/8</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Horizontal Push', hit: true },
+              { label: 'Horizontal Pull', hit: true },
+              { label: 'Vertical Push', hit: true },
+              { label: 'Vertical Pull', hit: false },
+              { label: 'Hip Hinge', hit: true },
+              { label: 'Squat', hit: true },
+              { label: 'Lunge', hit: false },
+              { label: 'Carry/Loaded Locomotion', hit: false },
+            ].map((p, i) => (
+              <span key={i} style={{
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+                padding: '4px 10px', borderRadius: 0,
+                border: `0.25px solid ${p.hit ? C.gn + '80' : C.bd2}`,
+                color: p.hit ? C.gn : C.td,
+                background: 'transparent',
+              }}>{p.hit ? '✓' : 'x'} {p.label.toUpperCase()}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Foldable warm-up — same shape the real PlanEditor uses. */}
         {Array.isArray(block.warmup) && block.warmup.length > 0 && (
           <div style={{ border: `0.25px solid ${C.ac}4D`, padding: 10, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1298,11 +1550,6 @@ function DemoPrograms() {
             )}
           </div>
         )}
-        {/* Compare-mode flex wrapper — when compareActive, the editor body
-            shrinks to 50% on the left and the read-only compare panel takes
-            the right 50%. Mirrors the real PlanEditor layout exactly. */}
-        <div style={{ display: compareActive ? 'flex' : 'block', gap: 16, alignItems: 'flex-start' }}>
-        <div style={{ flex: compareActive ? 1 : 'unset', width: compareActive ? '50%' : 'auto', minWidth: 0 }}>
         {!overview && (<>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {block.days.map((d, i) => (
@@ -1338,93 +1585,104 @@ function DemoPrograms() {
           );
         })()}
 
-        <div className="cd-prog-table-wrap"><table className="cd-prog-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-          <thead>
-            <tr>
-              {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'SS', 'VID'].map((h, i) => (
-                <th key={i} style={{
-                  padding: '8px 10px', textAlign: 'left',
-                  fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
-                  borderBottom: `1px solid ${C.bd}`,
-                  width: i === 1 ? 'auto' : i === 0 ? 32 : 70,
-                }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {day.exercises.map((e, i) => {
-              const isOpen = openExIdx === i;
-              return (
-                <React.Fragment key={i}>
-                  <tr onClick={() => setOpenExIdx(isOpen ? null : i)}
-                    onMouseEnter={ev => { if (!isOpen) ev.currentTarget.style.background = C.sf2; }}
-                    onMouseLeave={ev => { if (!isOpen) ev.currentTarget.style.background = 'transparent'; }}
-                    style={{
-                    cursor: 'pointer',
-                    background: isOpen ? C.sf2 : 'transparent',
-                    transition: 'background 0.15s',
-                  }}>
-                    <td style={{...tdStyle(), padding:'10px', whiteSpace:'nowrap', fontVariantNumeric:'tabular-nums'}}>
-                      <span style={{display:'inline-block', minWidth:14, textAlign:'right', color:C.tx, fontWeight:700}}>{i + 1}</span>
-                      {e.superset && <span style={{fontSize:10, fontWeight:700, letterSpacing:'0.06em', marginLeft:1, color: e.superset === 'A' ? C.ac : e.superset === 'B' ? C.pu : C.or}}>{e.superset}</span>}
-                    </td>
-                    <td style={{ ...tdStyle(), color: C.tx, fontWeight: 600, borderLeft: e.superset ? `3px solid ${e.superset === 'A' ? C.ac : C.pu}` : 'none', paddingLeft: e.superset ? 7 : 10 }}>{e.name}</td>
-                    <td style={tdStyle()}>{e.sets}</td>
-                    <td style={tdStyle()}>{e.reps}</td>
-                    <td style={tdStyle()}>{e.tempo || '—'}</td>
-                    <td style={{ ...tdStyle(), color: e.superset === 'A' ? C.ac : e.superset === 'B' ? C.pu : C.tm, fontWeight: 700 }}>{e.superset || '—'}</td>
-                    <td style={tdStyle()}><span style={{ color: C.ac }}>{isOpen ? '▼' : '▶'}</span></td>
-                  </tr>
-                  {isOpen && (
-                    <tr>
-                      <td colSpan={7} style={{
-                        padding: '10px 14px 14px',
-                        background: C.sf2,
-                        borderBottom: `1px solid ${C.bd}`,
-                      }}>
-                        {/* Wave log (per-week loads) when present — same
-                            data shape as the real Plans editor's `ex.wk`
-                            array. Shown as W1/W2/W3/W4 cells with the active
-                            week highlighted. */}
-                        {e.wk && (
-                          <div style={{
-                            display: 'flex', gap: 6, flexWrap: 'wrap',
-                            marginBottom: 10, alignItems: 'center',
-                          }}>
-                            <span style={{
-                              fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
-                              marginRight: 4,
-                            }}>WAVE</span>
-                            {e.wk.map((load, wi) => {
-                              const isCurrent = wi === 1; // mock: week 2 active
-                              return (
-                                <span key={wi} style={{
-                                  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
-                                  color: isCurrent ? C.ac : C.tx, opacity: isCurrent ? 1 : 0.65,
-                                  background: isCurrent ? C.acD : C.sf,
-                                  border: `1px solid ${isCurrent ? C.ac : C.bd}`,
-                                  borderRadius: 0, padding: '3px 8px',
-                                }}>W{wi + 1} · {load}</span>
-                              );
-                            })}
-                          </div>
-                        )}
-                        <div style={{
-                          display: 'flex', gap: 8, flexWrap: 'wrap',
-                        }}>
-                          <ExerciseAction icon="▶"  label="WATCH DEMO"   sub={`${e.name} · 0:24`} />
-                          <ExerciseAction icon="🔄" label="SWAP EXERCISE" sub="Suggest similar movement pattern" />
-                          <ExerciseAction icon="🗒"  label="ADD NOTE"     sub="Cue, regression, contraindication…" />
-                          <ExerciseAction icon="📈" label="PROGRESSION"  sub={e.wk ? `Wave · ${e.wk.join(' / ')}` : `Last week: ${e.sets}×${e.reps} · keep ↗ next`} />
+        {/* Per-day-name input — mirrors the real PlanEditor `Day N Name`
+            field that sits above the per-exercise cards in detail mode. */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 4, textAlign: 'center' }}>Day {dayIdx + 1} Name</label>
+          <input value={day.name} readOnly tabIndex={-1}
+            style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' }} />
+        </div>
+
+        {/* Per-exercise cards — mirrors PlansView PlanEditor's per-exercise
+            card layout (detail mode). Each card has the multi-input grid
+            (EXERCISE / SUPERSET / SETS / REPS / LOAD / RPE / TEMPO) plus
+            notes textarea + video link row. Read-only in the demo. */}
+        <div>
+          {day.exercises.map((e, ei) => {
+            const sc = e.superset === 'A' ? C.ac : e.superset === 'B' ? C.pu : e.superset === 'C' ? C.or : 'transparent';
+            const cardBorderColor = e.superset ? sc : C.ac + '4D';
+            const labelStyle = { fontSize: 10, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FN };
+            const inputStyleRO = { background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' };
+            const tinyStyleRO = { ...inputStyleRO, padding: '4px 6px', fontSize: 11 };
+            // Mock load + rpe per row so the inputs aren't all empty (matches
+            // the look of a populated real-app card). Derived deterministically
+            // from index so re-renders stay stable.
+            const mockLoad = e.wk?.[1] || ['60kg', '50%', '20kg', 'BW', '15kg', 'BW'][ei % 6];
+            const mockRpe = ['7', '8', '7-8', 'RIR 2', '8-9', 'RIR 1'][ei % 6];
+            return (
+              <div key={ei} style={{ background: 'transparent', border: `0.25px solid ${cardBorderColor}`, borderLeft: `3px solid ${cardBorderColor}`, borderRadius: 0, padding: 12, marginBottom: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 12, alignItems: 'start' }}>
+                  {/* Drag handle + exercise index. Visual only in the demo. */}
+                  <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 22, userSelect: 'none' }}>
+                    <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, lineHeight: 1, fontWeight: 400 }}>⇕</span>
+                    <span style={{ fontFamily: FN, fontSize: 12, color: C.tm, fontWeight: 700, lineHeight: 1 }}>{ei + 1}</span>
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    {/* Multi-input grid mirroring PlansView line 720:
+                        EXERCISE / SUPERSET / SETS / REPS / LOAD / RPE / TEMPO. */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.4fr 1.4fr 1fr 1fr 1fr', minWidth: 760, gap: 12, alignItems: 'end' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                        <label style={labelStyle}>Exercise</label>
+                        <input value={e.name || ''} readOnly tabIndex={-1} style={inputStyleRO} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                        <label style={labelStyle}>Superset</label>
+                        <input value={e.superset || '—'} readOnly tabIndex={-1} style={{ ...inputStyleRO, color: e.superset ? sc : C.td, fontWeight: 700, fontFamily: FN }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                        <label style={labelStyle}>Sets</label>
+                        <input value={e.sets ?? ''} readOnly tabIndex={-1} style={inputStyleRO} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                        <label style={labelStyle}>Reps</label>
+                        <input value={e.reps || ''} readOnly tabIndex={-1} style={inputStyleRO} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                        <label style={labelStyle}>Load</label>
+                        <input value={mockLoad} readOnly tabIndex={-1} placeholder="kg/%" style={inputStyleRO} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                        <label style={labelStyle}>RPE</label>
+                        <input value={mockRpe} readOnly tabIndex={-1} placeholder="7-8" style={inputStyleRO} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                        <label style={labelStyle}>Tempo</label>
+                        <input value={e.tempo || ''} readOnly tabIndex={-1} placeholder="3010" style={inputStyleRO} />
+                      </div>
+                    </div>
+                    {/* Wave loads (per-week) — present when ex.wk is set, just
+                        like the real PlanEditor's per-week reps grid. */}
+                    {Array.isArray(e.wk) && e.wk.length > 0 && (
+                      <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <label style={labelStyle}>Load / Wk</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${e.wk.length}, minmax(40px, 1fr))`, gap: 3 }}>
+                          {e.wk.map((load, wi) => (
+                            <input key={wi} value={load} readOnly tabIndex={-1}
+                              placeholder={`W${wi + 1}`}
+                              style={{ ...tinyStyleRO, color: wi === 1 ? C.ac : C.tx, borderColor: wi === 1 ? C.ac : C.ac + '4D' }} />
+                          ))}
                         </div>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-        </table></div>
+                      </div>
+                    )}
+                    {/* Notes textarea + video URL row, matching the real card. */}
+                    <textarea value={['Pause 1s on chest, drive heels.', 'Glutes locked, ribs down.', '', 'Lead with elbows, soft thumb.', '', 'Squeeze cuff at top, no swing.'][ei % 6]} readOnly tabIndex={-1}
+                      placeholder="Notes / modifications..."
+                      style={{ ...inputStyleRO, marginTop: 8, minHeight: 64, padding: '10px 12px', lineHeight: 1.5, resize: 'none', fontSize: 13 }} />
+                    <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr auto', gap: 6, alignItems: 'center' }}>
+                      <input value="https://youtu.be/demo" readOnly tabIndex={-1}
+                        placeholder="📹 Insert video URL"
+                        style={inputStyleRO} />
+                      <a href="#" onClick={ev => ev.preventDefault()} title="Demo only"
+                        style={{ fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', color: C.tm, textDecoration: 'none', padding: '6px 10px', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, whiteSpace: 'nowrap' }}>
+                        LIB ▸
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
         </>)}
         {overview && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
@@ -1441,16 +1699,27 @@ function DemoPrograms() {
                 <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
                     {['#', 'EXERCISE', 'GRP', 'SETS', 'REPS', 'TEMPO', 'WAVE', ''].map((h, hi) =>
-                      <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>)}
+                      hi === 0 ? (
+                        <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                          <span style={{ fontFamily: FN, fontSize: 12, lineHeight: 1, fontWeight: 400, opacity: 0 }}>⇕</span>
+                          <span style={{ fontSize: 9, fontFamily: FN, color: C.td }}>{h}</span>
+                        </div>
+                      ) : hi === 1 ? (
+                        <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, borderLeft: '3px solid transparent', paddingLeft: 6 }}>{h}</div>
+                      ) : (
+                        <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>
+                      )
+                    )}
                     {d.exercises.map((ex, ei) => {
                       const sc = ex.superset === 'A' ? C.ac : ex.superset === 'B' ? C.pu : ex.superset === 'C' ? C.or : C.td;
                       const tinyRO = { background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '3px 6px', color: C.tm, fontFamily: FB, fontSize: 11, outline: 'none', width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: 'default' };
                       return <React.Fragment key={ei}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, padding: '2px 0' }}>
-                          <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 11, lineHeight: 1 }}>{ei + 1}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, padding: 0 }}>
+                          <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 400, opacity: 0 }}>⇕</span>
+                          <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 12 }}>{ei + 1}</span>
                         </div>
                         <div title={ex.name}
-                          style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word', borderLeft: ex.superset ? `3px solid ${sc}` : 'none', paddingLeft: ex.superset ? 6 : 0 }}>{ex.name}</div>
+                          style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word', borderLeft: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingLeft: 6 }}>{ex.name}</div>
                         <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, color: ex.superset ? sc : C.td, fontFamily: FN, fontWeight: 600 }} />
                         <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
                         <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
@@ -1467,8 +1736,21 @@ function DemoPrograms() {
         )}
         </div>
         {compareActive && (() => {
-          const cmpBlock = BLOCK_DATA[compareBlockKey] || BLOCK_DATA['Block #3'];
-          const cmpCandidates = Object.keys(BLOCK_DATA).filter(k => k !== activeBlock);
+          const cmpBlock = cmpBlockData;
+          const noCandidates = cmpCandidates.length === 0;
+          // Tiny styled select factory — same border + height + centered text
+          // as the main filter row, so the compare pickers feel like they
+          // belong to the same control family.
+          const pickerStyle = (disabled) => ({
+            background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+            height: 36, padding: '0 32px 0 12px',
+            color: disabled ? C.td : C.tx, fontFamily: FB, fontSize: 13,
+            flex: 1, minWidth: 0, outline: 'none',
+            appearance: 'none', WebkitAppearance: 'none',
+            textAlign: 'center', textAlignLast: 'center',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            boxSizing: 'border-box',
+          });
           return (
             <div style={{ flex: 1, minWidth: 0, border: `0.25px solid ${C.ac}4D`, padding: 14, background: 'transparent', alignSelf: 'stretch' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -1476,12 +1758,58 @@ function DemoPrograms() {
                 <button onClick={() => setCompareOpen(false)} title="Close compare panel"
                   style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, cursor: 'pointer', padding: '2px 8px', borderRadius: 0, fontSize: 12 }}>✕</button>
               </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', whiteSpace: 'nowrap' }}>VIEWING</span>
-                <select value={compareBlockKey} onChange={e => setCompareBlockKey(e.target.value)}
-                  style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, height: 36, padding: '0 32px 0 12px', color: C.tx, fontFamily: FB, fontSize: 13, flex: 1, minWidth: 0, outline: 'none' }}>
-                  {cmpCandidates.map(k => <option key={k} value={k}>{BLOCK_DATA[k].title}</option>)}
-                </select>
+              {/* Dual picker: Athlete + Program. STACKED single-column to
+                  mirror the real PlansView CompareSidebar layout (each
+                  filter is a full-width input). Same number of pre-day
+                  rows as the editor's left half (4 inputs vs 2) so the
+                  DAY A boxes line up vertically. */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                  <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'center' }}>Athlete Filter</label>
+                  <div style={{ position: 'relative', display: 'flex' }}>
+                    <select value={compareAthleteId} onChange={e => setCompareAthleteId(e.target.value)} style={pickerStyle(false)}>
+                      {cmpAthleteOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                  <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'center' }}>Program Filter</label>
+                  <div style={{ position: 'relative', display: 'flex' }}>
+                    <select value={comparePickedId} onChange={e => setComparePickedId(e.target.value)} disabled={noCandidates} style={pickerStyle(noCandidates)}>
+                      {noCandidates
+                        ? <option value="">No other programs for this athlete</option>
+                        : cmpCandidates.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                    <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: noCandidates ? C.td : C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* PATTERN COVERAGE chart on the compare side too — matches the
+                  left half so the WARM-UP + DAY A boxes line up vertically. */}
+              <div style={{ border: `0.25px solid ${C.or}66`, padding: 12, marginBottom: 16 }}>
+                <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>PATTERN COVERAGE: 4/8</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Horizontal Push', hit: false },
+                    { label: 'Horizontal Pull', hit: true },
+                    { label: 'Vertical Push', hit: false },
+                    { label: 'Vertical Pull', hit: true },
+                    { label: 'Hip Hinge', hit: true },
+                    { label: 'Squat', hit: true },
+                    { label: 'Lunge', hit: false },
+                    { label: 'Carry/Loaded Locomotion', hit: false },
+                  ].map((p, i) => (
+                    <span key={i} style={{
+                      fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+                      padding: '4px 10px', borderRadius: 0,
+                      border: `0.25px solid ${p.hit ? C.gn + '80' : C.bd2}`,
+                      color: p.hit ? C.gn : C.td,
+                      background: 'transparent',
+                    }}>{p.hit ? '✓' : 'x'} {p.label.toUpperCase()}</span>
+                  ))}
+                </div>
               </div>
               {Array.isArray(cmpBlock.warmup) && cmpBlock.warmup.length > 0 && (
                 <div style={{ border: `0.25px solid ${C.ac}4D`, padding: 10, marginBottom: 12 }}>
@@ -1513,16 +1841,27 @@ function DemoPrograms() {
                   <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
                       {['#', 'EXERCISE', 'GRP', 'SETS', 'REPS', 'TEMPO', 'WAVE', ''].map((h, hi) =>
-                        <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>)}
+                        hi === 0 ? (
+                          <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                            <span style={{ fontFamily: FN, fontSize: 12, lineHeight: 1, fontWeight: 400, opacity: 0 }}>⇕</span>
+                            <span style={{ fontSize: 9, fontFamily: FN, color: C.td }}>{h}</span>
+                          </div>
+                        ) : hi === 1 ? (
+                          <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, borderLeft: '3px solid transparent', paddingLeft: 6 }}>{h}</div>
+                        ) : (
+                          <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>
+                        )
+                      )}
                       {d.exercises.map((ex, ei) => {
                         const sc = ex.superset === 'A' ? C.ac : ex.superset === 'B' ? C.pu : ex.superset === 'C' ? C.or : C.td;
                         const tinyRO = { background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '3px 6px', color: C.tm, fontFamily: FB, fontSize: 11, outline: 'none', width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: 'default' };
                         return <React.Fragment key={ei}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, padding: '2px 0' }}>
-                            <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 11, lineHeight: 1 }}>{ei + 1}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, padding: 0 }}>
+                            <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 400, opacity: 0 }}>⇕</span>
+                            <span style={{ color: C.tm, fontFamily: FN, fontWeight: 700, fontSize: 12 }}>{ei + 1}</span>
                           </div>
                           <div title={ex.name}
-                            style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word', borderLeft: ex.superset ? `3px solid ${sc}` : 'none', paddingLeft: ex.superset ? 6 : 0 }}>{ex.name}</div>
+                            style={{ color: C.tx, fontFamily: FB, fontSize: 12, minWidth: 0, overflowWrap: 'anywhere', wordBreak: 'break-word', borderLeft: `3px solid ${ex.superset ? sc : 'transparent'}`, paddingLeft: 6 }}>{ex.name}</div>
                           <input value={ex.superset || ''} readOnly tabIndex={-1} style={{ ...tinyRO, color: ex.superset ? sc : C.td, fontFamily: FN, fontWeight: 600 }} />
                           <input value={ex.sets ?? ''} readOnly tabIndex={-1} style={tinyRO} />
                           <input value={ex.reps || ''} readOnly tabIndex={-1} style={tinyRO} />
@@ -1538,8 +1877,6 @@ function DemoPrograms() {
             </div>
           );
         })()}
-        </div>
-      </div>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -2141,7 +2478,7 @@ const MOCK_WORKOUTS = [
 const TABS = [
   { key: 'dashboard', label: 'DASHBOARD', count: null },
   { key: 'trainees',  label: 'ATHLETES',  count: MOCK_TRAINEES.length },
-  { key: 'programs',  label: 'PROGRAMS',  count: 12 },
+  { key: 'programs',  label: 'PROGRAMS',  count: MOCK_PROGRAM_INDEX.length },
   { key: 'exercises', label: 'EXERCISES', count: MOCK_EXERCISES.length },
   { key: 'workouts',  label: 'WORKOUTS',  count: MOCK_WORKOUTS.length },
   { key: 'review',    label: 'REVIEW',    count: null },
