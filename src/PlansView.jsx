@@ -806,13 +806,17 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   const value = hasOverride ? (ex.videoUrl || '') : libUrl;
                   const effective = value;
                   return (
-                    <div style={{marginTop:6,display:"grid",gridTemplateColumns:effective?"1fr auto":"1fr",gap:6,alignItems:"center"}}>
+                    <div style={{marginTop:6,display:"grid",gridTemplateColumns:effective?"1fr auto":"1fr",gap:6,alignItems:"stretch"}}>
                       <Input value={value} onChange={e=>updateEx(exIdx,{videoUrl:e.target.value})}
                         onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) updateEx(exIdx, { videoUrl: resolved }); }}
                         placeholder="📹 Insert video URL" />
+                      {/* alignItems:'stretch' on the parent + display:'inline-flex'
+                          here makes the LIB/OPEN pill match the URL input's exact
+                          height (input padding + font-13 was taller than the
+                          pill's padding + font-10). */}
                       {effective && <a href={effective} target="_blank" rel="noreferrer"
                         title={hasOverride?"Per-program URL":"From exercise library"}
-                        style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"6px 10px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.ac+'4D'}`,borderRadius:0,whiteSpace:"nowrap"}}>
+                        style={{display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"0 10px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.ac+'4D'}`,borderRadius:0,whiteSpace:"nowrap",boxSizing:"border-box"}}>
                         {hasOverride?"OPEN ▸":"LIB ▸"}
                       </a>}
                       {/* Symmetric padding within the wrapper so the video

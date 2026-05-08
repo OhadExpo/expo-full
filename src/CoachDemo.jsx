@@ -1602,7 +1602,12 @@ function DemoPrograms() {
             const sc = e.superset === 'A' ? C.ac : e.superset === 'B' ? C.pu : e.superset === 'C' ? C.or : 'transparent';
             const cardBorderColor = e.superset ? sc : C.ac + '4D';
             const labelStyle = { fontSize: 10, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FN };
-            const inputStyleRO = { background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' };
+            // Mirrors `baseInput` in src/ui.jsx (the style PlansView's
+            // <Input> renders) so the demo's read-only inputs match the
+            // real card pixel-for-pixel — same padding, font, letter
+            // spacing. Demo-only additions: cursor:'default' (read-only)
+            // and explicit transition removed (no hover state needed).
+            const inputStyleRO = { background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '9px 14px', color: C.tx, fontFamily: FB, fontSize: 13, fontWeight: 400, letterSpacing: '0.01em', outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' };
             const tinyStyleRO = { ...inputStyleRO, padding: '4px 6px', fontSize: 11 };
             // Mock load + rpe per row so the inputs aren't all empty (matches
             // the look of a populated real-app card). Derived deterministically
@@ -1676,12 +1681,16 @@ function DemoPrograms() {
                     <textarea value={['Pause 1s on chest, drive heels.', 'Glutes locked, ribs down.', '', 'Lead with elbows, soft thumb.', '', 'Squeeze cuff at top, no swing.'][ei % 6]} readOnly tabIndex={-1}
                       placeholder="Notes / modifications..."
                       style={{ ...inputStyleRO, marginTop: 8, minHeight: 64, padding: '10px 12px', lineHeight: 1.5, resize: 'none', fontSize: 13 }} />
-                    <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr auto', gap: 6, alignItems: 'center' }}>
+                    <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: '1fr auto', gap: 6, alignItems: 'stretch' }}>
                       <input value="https://youtu.be/demo" readOnly tabIndex={-1}
                         placeholder="📹 Insert video URL"
                         style={inputStyleRO} />
+                      {/* alignItems:'stretch' on the parent + display:'inline-flex'
+                          here makes the LIB pill match the URL input's exact
+                          height instead of being a hair shorter (6px padding +
+                          10px font vs 8px padding + 13px font). */}
                       <a href="#" onClick={ev => ev.preventDefault()} title="Demo only"
-                        style={{ fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', color: C.tm, textDecoration: 'none', padding: '6px 10px', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, whiteSpace: 'nowrap' }}>
+                        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', color: C.tm, textDecoration: 'none', padding: '0 10px', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, whiteSpace: 'nowrap', boxSizing: 'border-box' }}>
                         LIB ▸
                       </a>
                     </div>
