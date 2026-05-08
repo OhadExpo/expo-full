@@ -34,3 +34,18 @@ trainee-*.png
 verify-*.png
 demo-*.png
 he-demo-*.png
+
+# Training program source files dropped at repo root (xlsx + handwritten
+# PDFs). They feed the import scripts under scripts/import-*.cjs and
+# stay local-only — the imported state lives in Supabase. Anchored to
+# the root with a leading slash so _branding/*.pdf and other tracked
+# subdir binaries are unaffected.
+/*.xlsx
+/*.pdf
+
+# One-shot investigation outputs from data-quality work (SuperSet rot,
+# data audits, etc.). Re-runnable from the source script — committing
+# them just rots fast.
+scripts/audit-*.json
+scripts/verify-*.json
+scripts/fix-*.dryrun.json
