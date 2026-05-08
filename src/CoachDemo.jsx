@@ -2754,6 +2754,13 @@ export default function CoachDemo() {
                 data-key={t.key}
                 style={{
                   ...baseBtn,
+                  // baseBtn has alignItems:'center', which centers the LINE
+                  // BOXES of label (font-size 11) and count (font-size 10).
+                  // Visually that floats the count above the label's baseline
+                  // because digits in JetBrains Mono align to cap-height, not
+                  // x-height. Switching to baseline pins both glyphs' baselines
+                  // to the same line — the count tucks right next to the label.
+                  alignItems: 'baseline',
                   background: tab === t.key ? C.acD : 'transparent',
                   color: tab === t.key ? C.ac : C.tm,
                   padding: '6px 12px', fontSize: 11, letterSpacing: 1.5,
