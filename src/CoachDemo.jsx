@@ -1611,7 +1611,11 @@ function DemoPrograms() {
             const mockRpe = ['7', '8', '7-8', 'RIR 2', '8-9', 'RIR 1'][ei % 6];
             return (
               <div key={ei} style={{ background: 'transparent', border: `0.25px solid ${cardBorderColor}`, borderLeft: `3px solid ${cardBorderColor}`, borderRadius: 0, padding: 12, marginBottom: 8 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr', gap: 12, alignItems: 'start' }}>
+                {/* Outer grid mirrors PlansView line 707 exactly: 54px drag,
+                    1fr content, 54px right gutter. Without the right gutter
+                    the inner inputs visually shift left (off-center inside
+                    the card). */}
+                <div style={{ display: 'grid', gridTemplateColumns: '54px 1fr 54px', gap: 12, alignItems: 'start' }}>
                   {/* Drag handle + exercise index. Visual only in the demo. */}
                   <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 22, userSelect: 'none' }}>
                     <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, lineHeight: 1, fontWeight: 400 }}>⇕</span>
@@ -1619,8 +1623,8 @@ function DemoPrograms() {
                   </div>
                   <div style={{ overflowX: 'auto' }}>
                     {/* Multi-input grid mirroring PlansView line 720:
-                        EXERCISE / SUPERSET / SETS / REPS / LOAD / RPE / TEMPO. */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 1.4fr 1.4fr 1fr 1fr 1fr', minWidth: 760, gap: 12, alignItems: 'end' }}>
+                        EXERCISE / SUPERSET / SETS / REPS / LOAD / RPE / TEMPO / trash. */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr 2fr 2fr 1fr 1fr 1fr auto', minWidth: 780, gap: 12, alignItems: 'end' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                         <label style={labelStyle}>Exercise</label>
                         <input value={e.name || ''} readOnly tabIndex={-1} style={inputStyleRO} />
@@ -1649,6 +1653,10 @@ function DemoPrograms() {
                         <label style={labelStyle}>Tempo</label>
                         <input value={e.tempo || ''} readOnly tabIndex={-1} placeholder="3010" style={inputStyleRO} />
                       </div>
+                      {/* Trash slot mirrors PlansView line 777 so the 7 input
+                          columns get the same widths under `auto`. Demo is
+                          read-only — the icon is a non-interactive span. */}
+                      <span aria-hidden="true" style={{ color: C.rd, padding: 4, marginBottom: 4, opacity: 0.4, fontSize: 14, lineHeight: 1, alignSelf: 'end' }}>🗑</span>
                     </div>
                     {/* Wave loads (per-week) — present when ex.wk is set, just
                         like the real PlanEditor's per-week reps grid. */}
@@ -1678,6 +1686,10 @@ function DemoPrograms() {
                       </a>
                     </div>
                   </div>
+                  {/* Right gutter mirrors PlansView line 861 (<div /> after
+                      content). Without this, the inner inputs are visually
+                      shifted left and the card looks off-center. */}
+                  <div />
                 </div>
               </div>
             );
