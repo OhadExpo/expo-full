@@ -59,12 +59,13 @@
   --c-sf: #FFFFFF;                /* card surface — bright white, lifts off bg */
   --c-sf2: #F4F6F9;               /* secondary surface (input fills, hover rows) */
   --c-sf3: #E0E4EA;               /* pressed/sunken surface */
-  /* Borders use the BSG cyan with alpha — same approach as dark mode where
-     `rgba(57,189,255,0.30)` reads as a subtle brand-tinted glow. On white
-     bg the same alpha looks like a faint cyan hint, restoring the
-     brand-identity feel that pure neutral grays were losing. */
-  --c-bd: rgba(57,189,255,0.40);  /* primary border — cyan tint, visible on white */
-  --c-bd2: rgba(57,189,255,0.60); /* stronger divider */
+  /* Structural borders are NEUTRAL gray — parity with dark mode's
+     `#1e1e24` / `#2a2a32`. The brand-cyan glow lives on cardBd (used
+     for actual card edges); using cyan for both bd AND cardBd would
+     double-tint the page and read 'over-branded'. Neutrals here +
+     cyan on cardBd matches the exact dark-mode pattern. */
+  --c-bd: #B8BDC4;                /* primary structural border — neutral gray */
+  --c-bd2: #8B9097;               /* stronger divider */
   --c-tx: #0E0F12;                /* near-black, premium feel */
   --c-tm: #5F6368;                /* muted body — Google-style cool gray */
   --c-td: #9AA0A6;                /* faint helper text */
