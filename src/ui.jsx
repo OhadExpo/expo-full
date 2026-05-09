@@ -6,7 +6,11 @@ import { C, FN, FB } from './theme';
 // (Btn primary variant). Active focus would step up to 2px C.ac, but we
 // don't track focus inline — :focus styling lives in a global stylesheet.
 export const baseInput = {
-  background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
+  // Input fills use the secondary surface (--c-sf2). In dark mode that's
+  // the same as --c-sf so behavior is unchanged. In light mode it's a
+  // soft cool gray, which keeps inputs distinct when they sit inside a
+  // white card (they would otherwise vanish white-on-white).
+  background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
   padding: "9px 14px", color: C.tx, fontFamily: FB, fontSize: 13,
   outline: "none", width: "100%", boxSizing: "border-box",
   transition: "border-color 0.2s",
