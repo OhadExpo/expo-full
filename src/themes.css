@@ -131,6 +131,47 @@ button, a, input, select, textarea, [role="button"], [data-hover-lift] {
 }
 
 /*
+ * Input/select/textarea hover + focus states. The codebase sets
+ * `outline: none` inline on most inputs, so the default browser focus
+ * ring never paints. These rules restore visible feedback:
+ *
+ *  - HOVER: border darkens to acH (slightly stronger cyan than default)
+ *  - FOCUS (mouse OR keyboard): border becomes solid brand cyan + a
+ *    soft 3px cyan glow ring around the input. The `!important` is
+ *    needed because every input inlines its own border color, which
+ *    would otherwise override the rule.
+ *
+ * Buttons get a parallel rule that lifts/brightens on hover.
+ */
+input:hover:not(:disabled),
+select:hover:not(:disabled),
+textarea:hover:not(:disabled) {
+  border-color: var(--c-acH) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none !important;
+  border-color: var(--c-ac) !important;
+  box-shadow: 0 0 0 3px rgba(57,189,255,0.18) !important;
+}
+
+/* Buttons: subtle background tint on hover (so the cyan-bordered ghost
+   buttons get a soft fill instead of feeling static). The !important is
+   required because most buttons inline their background. The 6% alpha
+   keeps the tint subtle enough to layer on red/orange-bordered buttons
+   without looking discordant. */
+button:hover:not(:disabled),
+a[role="button"]:hover:not(:disabled) {
+  background-color: rgba(57,189,255,0.08) !important;
+}
+button:active:not(:disabled),
+a[role="button"]:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/*
  * Selection color: cyan-tinted highlight matching the brand. Keeps text
  * readable on the highlight (var(--c-tx) flips with theme).
  */
