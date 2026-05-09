@@ -224,7 +224,7 @@ export default function IntakeForm() {
 
   if (phase === 'verifying') {
     return (
-      <div style={wrapper}><div style={card}>
+      <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 12 }}>
           {dir === 'rtl' ? 'בודק את הקישור…' : 'Checking link…'}
         </div>
@@ -233,7 +233,7 @@ export default function IntakeForm() {
   }
   if (phase === 'invalid') {
     return (
-      <div style={wrapper}><div style={card}>
+      <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontFamily: FN, fontSize: 18, color: C.rd, margin: 0 }}>
             {dir === 'rtl' ? 'הקישור אינו תקף' : 'Link not valid'}
@@ -247,7 +247,7 @@ export default function IntakeForm() {
   }
   if (phase === 'used') {
     return (
-      <div style={wrapper}><div style={card}>
+      <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontFamily: FN, fontSize: 18, color: C.or, margin: 0 }}>
             {dir === 'rtl' ? 'הקישור כבר שומש' : 'Link already used'}
@@ -261,7 +261,7 @@ export default function IntakeForm() {
   }
   if (phase === 'done') {
     return (
-      <div style={wrapper}><div style={card}>
+      <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center' }}>
           <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 36, marginBottom: 16, opacity: 0.9 }} />
           <h2 style={{ fontFamily: FN, fontSize: 22, color: C.ac, margin: 0 }}>{form?.thanksTitle}</h2>
@@ -272,7 +272,7 @@ export default function IntakeForm() {
   }
   if (phase === 'error') {
     return (
-      <div style={wrapper}><div style={card}>
+      <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center' }}>
           <h2 style={{ fontFamily: FN, fontSize: 18, color: C.rd, margin: 0 }}>
             {dir === 'rtl' ? 'אירעה תקלה' : 'Something went wrong'}
@@ -286,7 +286,7 @@ export default function IntakeForm() {
     // Preview mode — show the form but don't submit. Useful for Ohad's QA.
     // Real prospects will always have a ?t= since the link is what was sent.
     return (
-      <div style={wrapper}><div style={card}>
+      <div data-theme="dark" style={wrapper}><div style={card}>
         <div style={{ textAlign: 'center', color: C.or, fontFamily: FN, fontSize: 11, marginBottom: 16 }}>
           PREVIEW · NO TOKEN · {dir === 'rtl' ? 'הקישור החי כולל את t= בכתובת' : 'Live link must include ?t=...'}
         </div>
@@ -304,7 +304,7 @@ export default function IntakeForm() {
 
   // ready / submitting
   return (
-    <div style={wrapper}><div style={card}>
+    <div data-theme="dark" style={wrapper}><div style={card}>
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
         <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 36, opacity: 0.85, marginBottom: 12 }} />
         <h2 style={{ fontFamily: FN, fontSize: 22, color: C.tx, margin: '0 0 8px' }}>{form?.title}</h2>

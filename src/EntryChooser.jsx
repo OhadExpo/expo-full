@@ -10,7 +10,6 @@
 import React from 'react';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
-import { ThemeToggle } from './ThemeToggle';
 
 const tileBase = {
   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -53,8 +52,11 @@ function Tile({ href, badge, title, sub, primary }) {
 }
 
 export default function EntryChooser() {
+  // Public surface — force dark while light-mode rollout is gated to the
+  // coach app only. Once Ohad approves coach light mode, this attribute
+  // will be removed so the surface follows the user's preference.
   return (
-    <div style={{
+    <div data-theme="dark" style={{
       background: C.bg, color: C.tx, minHeight: '100vh',
       fontFamily: FB, display: 'flex', flexDirection: 'column',
     }}>
@@ -65,8 +67,7 @@ export default function EntryChooser() {
           maxWidth: 1180, margin: '0 auto', padding: '0 16px',
           display: 'flex', alignItems: 'center', height: 60,
         }}>
-          <EXPOMark height={36} style={{ marginBottom: 0 }} />
-          <div style={{ marginLeft: 'auto' }}><ThemeToggle size={32}/></div>
+          <EXPOMark theme="dark" height={36} style={{ marginBottom: 0 }} />
         </div>
       </header>
 
@@ -125,7 +126,7 @@ export default function EntryChooser() {
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
         }}>
-          <EXPOMark height={14} style={{ opacity: 0.55 }} />
+          <EXPOMark theme="dark" height={14} style={{ opacity: 0.55 }} />
           <span>· COACHING PLATFORM · © {new Date().getFullYear()} ALL RIGHTS RESERVED</span>
         </span>
       </footer>

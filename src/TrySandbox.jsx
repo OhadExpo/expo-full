@@ -10,7 +10,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
-import { ThemeToggle } from './ThemeToggle';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
@@ -109,7 +108,9 @@ export default function TrySandbox({ pov = 'trainee' } = {}) {
   const isTraineePortal = pov === 'trainee' && !isEmbedded && step === 'exercise';
 
   return (
-    <div style={{
+    // /try sandbox is a public marketing surface — force dark while light
+    // mode is gated to the coach app only.
+    <div data-theme="dark" style={{
       background: C.bg, color: C.tx, minHeight:'100vh',
       fontFamily: FB, display:'flex', flexDirection:'column',
     }}>
@@ -386,7 +387,7 @@ function ClientPortalMock({ onPick }) {
     <>
       <div style={{ background: `linear-gradient(135deg,${C.sf},${C.sf2})`, padding: '20px 20px 16px', borderBottom: `1px solid ${C.bd}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <EXPOMark height={36} style={{ marginLeft: 3 }} />
+          <EXPOMark theme="dark" height={36} style={{ marginLeft: 3 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button title="Change password (demo)" style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
@@ -733,7 +734,7 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
         display:'flex', alignItems:'center', height: 60, gap: 14,
       }}>
         <a href="/" title="Back to EXPO" style={{ display:'flex', alignItems:'center', gap:10, textDecoration:'none', flex:'0 0 auto' }}>
-          <EXPOMark height={36} style={{ marginBottom: 0 }} />
+          <EXPOMark theme="dark" height={36} style={{ marginBottom: 0 }} />
         </a>
         {/* DEMO badge — hidden on narrow screens via the .try-sandbox-badge
             class so the step nav has room to breathe on phones. */}
@@ -768,7 +769,6 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
             );
           })}
         </nav>
-        <ThemeToggle size={32}/>
         <button onClick={onRestart} title="Start over" style={{
           ...baseBtn,
           background:'transparent', color: C.tm,
@@ -2071,7 +2071,7 @@ function Footer() {
         display: 'inline-flex', alignItems: 'center', gap: 6,
         fontFamily:FN, fontSize:10, color: C.td, letterSpacing: 1,
       }}>
-        <EXPOMark height={14} style={{ opacity: 0.55 }} />
+        <EXPOMark theme="dark" height={14} style={{ opacity: 0.55 }} />
         <span>· TRY THE PLATFORM · NO ACCOUNT REQUIRED</span>
       </span>
       <span style={{ fontFamily:FN, fontSize:10, color: C.td, letterSpacing: 1 }}>

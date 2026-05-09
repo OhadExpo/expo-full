@@ -13,7 +13,6 @@ import React, { useState, useEffect } from 'react';
 import { track } from '@vercel/analytics';
 import { C, FN, FB, FH } from './theme';
 import { EXPOMark } from './expoMark';
-import { ThemeToggle } from './ThemeToggle';
 import CoachChat from './CoachChat';
 
 // Vercel Analytics is no-op until it's enabled in the project dashboard, so
@@ -450,7 +449,9 @@ export default function CoachLanding({ lang = 'en' }) {
     };
   }, [lang, isHe, t]);
   return (
-    <div dir={isHe ? 'rtl' : 'ltr'} style={{
+    // Marketing surface — force dark while light-mode rollout is gated to
+    // the coach app. Removes data-theme attribute later when expanding scope.
+    <div dir={isHe ? 'rtl' : 'ltr'} data-theme="dark" style={{
       background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: isHe ? FH : FB,
       display: 'flex', flexDirection: 'column',
     }}>
@@ -490,7 +491,7 @@ export default function CoachLanding({ lang = 'en' }) {
           display: 'flex', alignItems: 'center', height: 60, gap: 14,
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
-            <EXPOMark height={36} style={{ marginBottom: 0 }} />
+            <EXPOMark theme="dark" height={36} style={{ marginBottom: 0 }} />
           </a>
           <span className="cl-header-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.18em', fontWeight: 700,
@@ -498,7 +499,6 @@ export default function CoachLanding({ lang = 'en' }) {
             border: `1px solid ${C.ac}`, whiteSpace: 'nowrap',
           }}>{t('header.badge')}</span>
           <div style={{ flex: 1 }} />
-          <ThemeToggle size={32} style={{marginRight:2}}/>
           <a href={isHe ? '/demo' : '/demo/he'} style={{
             ...baseBtn, background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '8px 10px', fontSize: 10,
@@ -756,7 +756,7 @@ export default function CoachLanding({ lang = 'en' }) {
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.18em',
         }}>
-          <EXPOMark height={14} style={{ opacity: 0.55 }} />
+          <EXPOMark theme="dark" height={14} style={{ opacity: 0.55 }} />
           <span>{t('footer.line', { year: new Date().getFullYear() })}</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>

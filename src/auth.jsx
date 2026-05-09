@@ -176,7 +176,7 @@ export function LoginScreen() {
   const canSubmit = email.trim() && password && !submitting;
 
   return (
-    <div style={wrapStyle}>
+    <div data-theme="dark" style={wrapStyle}>
       <div style={{ width: '100%', maxWidth: 380 }}>
         <div style={{ textAlign: 'center', marginBottom: 16, padding: '0 28px', boxSizing: 'border-box' }}>
           <a href="/" title="EXPO" style={{ display: 'block', textDecoration: 'none' }}>
@@ -414,7 +414,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
     </button>
   );
   return (
-    <div style={{ ...wrapStyle, padding: '20px' }}>
+    <div data-theme="dark" style={{ ...wrapStyle, padding: '20px' }}>
       <div style={{ width: '100%', maxWidth: 380, padding: '0 28px', boxSizing: 'border-box', textAlign: 'center', marginBottom: 28 }}>
         <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '20vh', objectFit: 'contain', marginBottom: 12 }} />
         <div style={{ color: C.tm, fontSize: 15 }}>Hey {name || 'there'} — which side today?</div>
@@ -436,7 +436,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
 // Unauthorized screen — when email doesn't match any known user
 export function UnauthorizedScreen({ email, onSignOut }) {
   return (
-    <div style={wrapStyle}>
+    <div data-theme="dark" style={wrapStyle}>
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <img src={EXPO_LOGO} alt="EXPO" style={{ height: 36, marginBottom: 12 }} />
       </div>

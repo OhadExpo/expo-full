@@ -631,7 +631,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   }, [showResumedPill]);
   const bar = <div style={{padding:'10px 16px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',height:32}}>
-      <EXPOMark height={36} style={{flexShrink:0}} />
+      <EXPOMark theme="dark" height={36} style={{flexShrink:0}} />
       <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
       {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
         <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{marginLeft:'auto',background:'transparent',border:`0.25px solid ${sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn}4D`,color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.06em',whiteSpace:'nowrap'}}>
@@ -743,7 +743,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   })();
   if (step === 'end') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20,textAlign:'center'}}>
-      <EXPOMark height={36} style={{marginBottom:16}} />
+      <EXPOMark theme="dark" height={36} style={{marginBottom:16}} />
       <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>Session complete. Any notes?</div>
 
@@ -1241,10 +1241,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <button onClick={onReturnToCoach}
               title="Switch to the coach portal"
               style={{background:'transparent',border:'none',padding:0,marginLeft:3,cursor:'pointer',display:'flex',alignItems:'center'}}>
-              <EXPOMark height={36} style={{marginLeft:0}} />
+              <EXPOMark theme="dark" height={36} style={{marginLeft:0}} />
             </button>
           ) : (
-            <EXPOMark height={36} style={{marginLeft:3}} />
+            <EXPOMark theme="dark" height={36} style={{marginLeft:3}} />
           )}
           <div style={{display:'flex',alignItems:'center',gap:14}}>
             <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>

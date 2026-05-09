@@ -8,13 +8,24 @@
 //   - 0                  — overcorrected the other way (logo sat too low).
 //   - translateY(-3px)   — current; fixed-pixel offset works across all
 //                          sizes we use (h=14..50).
+//
+// Theme awareness: in light mode the cyan caret survives only on the
+// black-on-transparent variant in /logos/expo-logo-nav-light.png. The
+// dark variant has a white wordmark which would disappear on white bg.
+// `theme` prop overrides — needed for surfaces wrapped in
+// data-theme="dark" while light-mode rollout is gated to the coach app.
 import React from 'react';
-import { EXPO_LOGO_NAV } from './theme';
+import { useTheme } from './hooks/useTheme';
 
-export function EXPOMark({ height = 22, style = {} }) {
+export function EXPOMark({ height = 22, style = {}, theme: overrideTheme }) {
+  const { theme: ctxTheme } = useTheme();
+  const theme = overrideTheme || ctxTheme;
+  const src = theme === 'light'
+    ? '/logos/expo-logo-nav-light.png'
+    : '/logos/expo-logo-nav.png';
   return (
     <img
-      src={EXPO_LOGO_NAV}
+      src={src}
       alt="EXPO"
       style={{
         height, width: 'auto',

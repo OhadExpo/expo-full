@@ -2674,7 +2674,9 @@ export default function CoachDemo() {
 
 
   return (
-    <div style={{
+    // /demo/coach — public marketing demo of the coach app. Force dark
+    // while the live coach app's light-mode rollout is gated.
+    <div data-theme="dark" style={{
       background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
       display: 'flex', flexDirection: 'column',
     }}>
@@ -2720,7 +2722,7 @@ export default function CoachDemo() {
           display: 'flex', alignItems: 'center', height: 60, gap: 12, overflowX: 'auto',
         }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto', textDecoration: 'none' }}>
-            <EXPOMark height={36} style={{ marginBottom: 0 }} />
+            <EXPOMark theme="dark" height={36} style={{ marginBottom: 0 }} />
           </a>
           <span className="cd-badge" style={{
             fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 2, fontWeight: 700,
@@ -2867,7 +2869,7 @@ export default function CoachDemo() {
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1,
         }}>
-          <EXPOMark height={14} style={{ opacity: 0.55 }} />
+          <EXPOMark theme="dark" height={14} style={{ opacity: 0.55 }} />
           <span>· COACH DEMO · MOCK DATA · NOTHING WRITES BACK</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>

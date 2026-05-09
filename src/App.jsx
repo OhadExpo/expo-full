@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, lazy } from 'react';
-import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
+import { C, FN, FB, uid } from './theme';
 import { ThemeToggle } from './ThemeToggle';
+import { useLogoSrc } from './hooks/useTheme';
 import { EXPOMark } from './expoMark';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
@@ -76,9 +77,10 @@ export default function App() {
 }
 
 function BootSplash() {
+  const logo = useLogoSrc();
   return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
-      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:50}} />
+      <img src={logo.nav} alt="EXPO" style={{height:50}} />
       <div style={{color:C.td,fontSize:13}}>Loading…</div>
     </div>
   );
@@ -220,6 +222,7 @@ function AuthGate() {
 function AuthedApp() {
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
+  const logo = useLogoSrc();
   // Clear the portal choice on sign-out so the next login (potentially a
   // different account) goes through the picker fresh instead of inheriting
   // the previous user's preference.
@@ -586,17 +589,21 @@ function AuthedApp() {
   // account that's BOTH a trainer AND a client row, e.g. Ohad himself)
   // get an `onReturnToCoach` callback wired to pickPortal('trainer') so
   // they can switch back without signing out.
-  if (isClient) return (<Suspense fallback={<ViewFallback />}>
+  // Athlete portal — force dark while light-mode rollout is gated to the
+  // coach app. The wrapper `data-theme="dark"` overrides any html-level
+  // light theme set by a dual-role coach. Removing this attribute later
+  // will let the athlete portal follow the user's preference.
+  if (isClient) return (<div data-theme="dark"><Suspense fallback={<ViewFallback />}>
     <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
       onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
-  </Suspense>);
+  </Suspense></div>);
 
   // Wait for small stores + plan index so trainee card counts don't flash 0
   // while the plans table is still loading.
   const storesReady = tL && wL && pyL && pL;
   if (!storesReady) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
-      <img src={EXPO_LOGO_NAV} alt="EXPO" style={{height:50}} />
+      <img src={logo.nav} alt="EXPO" style={{height:50}} />
       <div style={{color:C.td,fontSize:13}}>Loading data...</div>
     </div>);
 

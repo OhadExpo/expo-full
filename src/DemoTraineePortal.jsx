@@ -27,7 +27,9 @@ export default function DemoTraineePortal() {
   const signOut = async () => { window.location.href = '/demo'; };
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', background: C.bg }}>
+    // /demo/trainee — public marketing demo. Force dark while light-mode
+    // rollout is gated to the coach app only.
+    <div data-theme="dark" style={{ position: 'relative', minHeight: '100vh', background: C.bg }}>
       {/* Demo banner — slim, fixed at the top, non-intrusive */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 60,

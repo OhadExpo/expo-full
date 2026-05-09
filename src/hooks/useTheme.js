@@ -71,3 +71,20 @@ export function useTheme() {
 
   return { theme, setTheme, toggleTheme };
 }
+
+// Convenience hook for consumers that just want theme-aware logo paths.
+// The brand asset PNGs are mirrored at four sizes; light variants carry
+// the black-on-transparent wordmark per BSG page 4. Bicolor (cyan caret
+// + black/white wordmark) means the variants must be chosen at the
+// asset level, not via CSS filter.
+export function useLogoSrc() {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  return {
+    nav:    isLight ? '/logos/expo-logo-nav-light.png' : '/logos/expo-logo-nav.png',
+    full:   isLight ? '/logos/expo-logo-light.png'      : '/logos/expo-logo.png',
+    lg:     isLight ? '/logos/expo-logo-lg-light.png'   : '/logos/expo-logo-lg.png',
+    icon:   isLight ? '/logos/expo-icon-light.png'      : '/logos/expo-icon-lg.png',
+  };
+}
+
