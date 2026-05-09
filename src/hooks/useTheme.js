@@ -28,8 +28,9 @@ function applyTheme(next) {
   if (typeof document === 'undefined') return;
   document.documentElement.setAttribute('data-theme', next);
   // Update <meta name="theme-color"> so iOS/Android system chrome matches.
+  // Light mode is now cyan-bg, so the system chrome paints cyan, not white.
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', next === 'light' ? '#FFFFFF' : '#000000');
+  if (meta) meta.setAttribute('content', next === 'light' ? '#39BDFF' : '#000000');
   // Broadcast so every other useTheme consumer re-renders.
   try { window.dispatchEvent(new CustomEvent(EVT, { detail: next })); } catch {}
 }

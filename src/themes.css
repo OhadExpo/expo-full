@@ -48,44 +48,42 @@
  *     section labels where small cyan text would otherwise look broken.
  *     Filled cyan buttons + borders still use #39BDFF (BSG-strict).
  */
+/*
+ * Light theme — brand cyan as the page bg, white cards for max lift,
+ * deep navy as the primary action color (cyan-on-cyan would vanish).
+ * The earlier off-white-with-cyan-cards light theme is gone — Ohad's
+ * direction 2026-05-09 evening: this IS the light mode.
+ */
 [data-theme="light"] {
-  /*
-   * v3 — push bg darker for stronger card lift. Previous v2 (#F7F8FA) was
-   * only 3% off white, so cards barely stood out. v3 (#ECEFF3) is ~7%,
-   * which gives the same "obvious card elevation" that dark mode achieves
-   * via the #000 → #0a0a0c step.
-   */
-  --c-bg: #ECEFF3;               /* page bg — clearly distinct from cards */
-  --c-sf: #FFFFFF;                /* card surface — bright white, lifts off bg */
-  --c-sf2: #F4F6F9;               /* secondary surface (input fills, hover rows) */
-  --c-sf3: #E0E4EA;               /* pressed/sunken surface */
-  /* Structural borders are NEUTRAL gray — parity with dark mode's
-     `#1e1e24` / `#2a2a32`. The brand-cyan glow lives on cardBd (used
-     for actual card edges); using cyan for both bd AND cardBd would
-     double-tint the page and read 'over-branded'. Neutrals here +
-     cyan on cardBd matches the exact dark-mode pattern. */
-  --c-bd: #B8BDC4;                /* primary structural border — neutral gray */
-  --c-bd2: #8B9097;               /* stronger divider */
-  --c-tx: #0E0F12;                /* near-black, premium feel */
-  --c-tm: #5F6368;                /* muted body — Google-style cool gray */
-  --c-td: #9AA0A6;                /* faint helper text */
-  --c-ac: #1A9FE0;                /* mid-cyan — vibrant brand presence, AA at 3.8:1 for UI elements */
-  --c-acH: #0E8FD3;               /* hover steps darker for tactile feedback */
-  --c-acText: #0A78B0;            /* darker variant — used where small cyan text needs AA 4.5:1+ */
-  --c-acSurface: #39BDFF;         /* BSG-sanctioned bright cyan panel fill (rare — hero CTAs) */
-  --c-acOnSurface: #000000;       /* black text on cyan panels (10.4:1 AAA) */
-  --c-cardBd: rgba(57,189,255,0.35); /* card border in light mode — BSG cyan with alpha, parity with dark's brand-tint glow */
-  --c-rd: #D62839;
-  --c-rdD: rgba(214,40,57,0.10);
-  --c-gn: #1E9E5C;
-  --c-gnD: rgba(30,158,92,0.10);
-  --c-or: #CC7A00;
-  --c-orD: rgba(204,122,0,0.10);
-  --c-pu: #7B3FBF;
-  --c-puD: rgba(123,63,191,0.10);
-  --c-scrim: rgba(14,15,18,0.45);  /* slightly cool scrim */
-  --c-shadow: rgba(14,15,18,0.10);
-  --c-cardShadow: 0 1px 3px rgba(14,15,18,0.10), 0 1px 2px rgba(14,15,18,0.06);
+  --c-bg: #39BDFF;                 /* brand cyan as the page bg */
+  --c-sf: #FFFFFF;                 /* card surface — pure white for max lift off cyan */
+  --c-sf2: rgba(255,255,255,0.85); /* secondary fill (input bg) — slightly translucent */
+  --c-sf3: rgba(255,255,255,0.65); /* pressed/sunken */
+  --c-bd: #0E8FD3;                 /* deeper cyan structural border */
+  --c-bd2: #0A78B0;                /* stronger divider */
+  --c-tx: #061425;                 /* near-black on cyan — AA at 9.6:1 */
+  --c-tm: #1A2B3F;                 /* muted body text */
+  --c-td: #3D5670;                 /* faint helper text */
+  /* Action accents flip: the page is cyan, so cyan-on-cyan vanishes.
+     Deep navy works on the cyan page AND pops on the white cards. */
+  --c-ac: #00405E;                 /* deep navy — primary action color */
+  --c-acH: #002B40;                /* hover steps darker */
+  --c-acText: #00405E;             /* AA-safe on white (10.4:1), borderline on cyan (3.2:1) */
+  --c-acSurface: #00405E;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(0,64,94,0.30);  /* card border — navy-30% reads on white card edge */
+  --c-rd: #B8121F;
+  --c-rdD: rgba(184,18,31,0.10);
+  --c-gn: #0A6E3D;
+  --c-gnD: rgba(10,110,61,0.10);
+  --c-or: #8C5400;
+  --c-orD: rgba(140,84,0,0.10);
+  --c-pu: #5C2A8F;
+  --c-puD: rgba(92,42,143,0.10);
+  --c-scrim: rgba(6,20,37,0.55);
+  --c-shadow: rgba(0,40,68,0.18);
+  /* Cards lift HARD off cyan — heavier shadow than the old light theme. */
+  --c-cardShadow: 0 4px 12px rgba(0,40,68,0.18), 0 2px 4px rgba(0,40,68,0.10);
 }
 
 html, body {

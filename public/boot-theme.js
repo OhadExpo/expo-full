@@ -3,6 +3,7 @@
 (function () {
   try {
     var saved = localStorage.getItem('expo-theme');
+    if (saved !== 'light' && saved !== 'dark') saved = null;
     var pref = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
     document.documentElement.setAttribute('data-theme', pref);
   } catch (e) {
