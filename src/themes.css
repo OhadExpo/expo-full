@@ -49,30 +49,33 @@
  *     Filled cyan buttons + borders still use #39BDFF (BSG-strict).
  */
 /*
- * Light theme — brand cyan as the page bg, white cards for max lift,
- * deep navy as the primary action color (cyan-on-cyan would vanish).
- * The earlier off-white-with-cyan-cards light theme is gone — Ohad's
- * direction 2026-05-09 evening: this IS the light mode.
+ * Light theme — BSG-strict 3-color: cyan #39BDFF + white + black.
+ * Cyan is the page bg, white cards lift on top, black is the action /
+ * stroke / text accent. Cyan-on-cyan would vanish, so the action color
+ * has to be black or white — BSG allows only those, and black wins on
+ * both the cyan bg AND the white cards. The cyan accent re-appears in
+ * filled panels (--c-acSurface) and the page background itself.
  */
 [data-theme="light"] {
   --c-bg: #39BDFF;                 /* brand cyan as the page bg */
   --c-sf: #FFFFFF;                 /* card surface — pure white for max lift off cyan */
-  --c-sf2: rgba(255,255,255,0.85); /* secondary fill (input bg) — slightly translucent */
-  --c-sf3: rgba(255,255,255,0.65); /* pressed/sunken */
-  --c-bd: #0E8FD3;                 /* deeper cyan structural border */
-  --c-bd2: #0A78B0;                /* stronger divider */
-  --c-tx: #061425;                 /* near-black on cyan — AA at 9.6:1 */
-  --c-tm: #1A2B3F;                 /* muted body text */
-  --c-td: #3D5670;                 /* faint helper text */
-  /* Action accents flip: the page is cyan, so cyan-on-cyan vanishes.
-     Deep navy works on the cyan page AND pops on the white cards. */
-  --c-ac: #00405E;                 /* deep navy — primary action color */
-  --c-acH: #002B40;                /* hover steps darker */
-  --c-acText: #00405E;             /* AA-safe on white (10.4:1), borderline on cyan (3.2:1) */
-  --c-acSurface: #00405E;
-  --c-acOnSurface: #FFFFFF;
-  --c-cardBd: rgba(0,64,94,0.30);  /* card border — navy-30% reads on white card edge */
-  --c-rd: #B8121F;
+  --c-sf2: rgba(255,255,255,0.88); /* secondary fill (input bg) */
+  --c-sf3: rgba(255,255,255,0.70); /* pressed/sunken */
+  --c-bd: #000000;                 /* primary structural border (BSG black) */
+  --c-bd2: rgba(0,0,0,0.55);       /* secondary divider */
+  --c-tx: #000000;                 /* body text — BSG black */
+  --c-tm: rgba(0,0,0,0.65);        /* muted body text */
+  --c-td: rgba(0,0,0,0.45);        /* faint helper text */
+  /* Action color = BSG black. Works on both the cyan bg AND the white
+     cards, so no per-surface special-casing. Cyan stays cyan only as
+     a fill (--c-acSurface) and the page background itself. */
+  --c-ac: #000000;                 /* action / focus / active state */
+  --c-acH: rgba(0,0,0,0.85);       /* hover steps slightly translucent */
+  --c-acText: #000000;             /* AA at 21:1 on white, 9.6:1 on cyan — perfect */
+  --c-acSurface: #39BDFF;          /* BSG cyan panel fill (rare — CTAs sitting on white cards) */
+  --c-acOnSurface: #000000;        /* black text on cyan panels — 9.6:1 */
+  --c-cardBd: rgba(0,0,0,0.15);    /* hairline neutral on white cards */
+  --c-rd: #B8121F;                 /* functional reds — necessary, not BSG-strict */
   --c-rdD: rgba(184,18,31,0.10);
   --c-gn: #0A6E3D;
   --c-gnD: rgba(10,110,61,0.10);
@@ -80,10 +83,10 @@
   --c-orD: rgba(140,84,0,0.10);
   --c-pu: #5C2A8F;
   --c-puD: rgba(92,42,143,0.10);
-  --c-scrim: rgba(6,20,37,0.55);
-  --c-shadow: rgba(0,40,68,0.18);
+  --c-scrim: rgba(0,0,0,0.55);
+  --c-shadow: rgba(0,0,0,0.18);
   /* Cards lift HARD off cyan — heavier shadow than the old light theme. */
-  --c-cardShadow: 0 4px 12px rgba(0,40,68,0.18), 0 2px 4px rgba(0,40,68,0.10);
+  --c-cardShadow: 0 4px 12px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.10);
 }
 
 html, body {
