@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo, Suspense, lazy } from 'react';
 import { C, FN, FB, uid, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
+import { ThemeToggle } from './ThemeToggle';
 import { EXPOMark } from './expoMark';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
@@ -613,6 +614,7 @@ function AuthedApp() {
             {tabs.map(t=>(<button key={t.key} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'baseline',background:'transparent',border:`${tab===t.key?'1px':'0.25px'} solid ${tab===t.key?C.ac:'transparent'}`,color:tab===t.key?C.ac:C.tm,borderRadius:0,padding:"6px 10px",fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',whiteSpace:"nowrap"}}>
               <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
+            <ThemeToggle size={32} style={{marginRight:4}}/>
             <button onClick={()=>navTo('smartImport')} title="Smart Import" style={{...baseBtn,background:tab==='smartImport'?C.acD:"transparent",color:tab==='smartImport'?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
             <button onClick={handleExport} title="Export" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
             <button onClick={()=>setShowPwModal(true)} title="Change password" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>

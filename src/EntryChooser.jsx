@@ -10,6 +10,7 @@
 import React from 'react';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
+import { ThemeToggle } from './ThemeToggle';
 
 const tileBase = {
   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -65,6 +66,7 @@ export default function EntryChooser() {
           display: 'flex', alignItems: 'center', height: 60,
         }}>
           <EXPOMark height={36} style={{ marginBottom: 0 }} />
+          <div style={{ marginLeft: 'auto' }}><ThemeToggle size={32}/></div>
         </div>
       </header>
 

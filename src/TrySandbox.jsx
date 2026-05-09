@@ -10,6 +10,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
+import { ThemeToggle } from './ThemeToggle';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
@@ -767,6 +768,7 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
             );
           })}
         </nav>
+        <ThemeToggle size={32}/>
         <button onClick={onRestart} title="Start over" style={{
           ...baseBtn,
           background:'transparent', color: C.tm,

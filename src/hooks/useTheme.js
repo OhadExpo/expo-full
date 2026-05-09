@@ -1,0 +1,73 @@
+// src/hooks/useTheme.js
+// Single source of theme state. Reads/writes data-theme on <html>, persists
+// to localStorage instantly, and (when authenticated) syncs to Supabase Auth
+// user_metadata so the choice follows the user across devices/browsers.
+//
+// Boot priority (resolved by inline script in index.html before this hook
+// even mounts):
+//   1. localStorage('expo-theme')
+//   2. matchMedia('(prefers-color-scheme: light)')
+//   3. dark fallback
+//
+// On hook mount we ALSO check Supabase user_metadata.theme_pref. If it exists
+// and differs from the current value, it wins (cross-device sync on login).
+
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '../supabase';
+
+const KEY = 'expo-theme';
+
+function readCurrent() {
+  if (typeof document === 'undefined') return 'dark';
+  return document.documentElement.getAttribute('data-theme') || 'dark';
+}
+
+function applyTheme(next) {
+  if (typeof document === 'undefined') return;
+  document.documentElement.setAttribute('data-theme', next);
+  // Update <meta name="theme-color"> so iOS/Android system chrome matches.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', next === 'light' ? '#FFFFFF' : '#000000');
+}
+
+export function useTheme() {
+  const [theme, setThemeState] = useState(readCurrent);
+
+  const setTheme = useCallback((next) => {
+    if (next !== 'light' && next !== 'dark') return;
+    setThemeState(next);
+    applyTheme(next);
+    try { localStorage.setItem(KEY, next); } catch (e) { /* private mode */ }
+    // Fire-and-forget Supabase sync; ignore failure (offline, anon, etc.)
+    supabase.auth.getUser().then(({ data }) => {
+      if (data && data.user) {
+        supabase.auth.updateUser({ data: { theme_pref: next } }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, []);
+
+  // On mount: if Supabase has a non-null user_metadata.theme_pref that
+  // differs from the current value, adopt it (cross-device sync on login).
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled || !data || !data.user) return;
+      const remote = data.user.user_metadata && data.user.user_metadata.theme_pref;
+      if (remote === 'light' || remote === 'dark') {
+        const current = readCurrent();
+        if (remote !== current) {
+          setThemeState(remote);
+          applyTheme(remote);
+          try { localStorage.setItem(KEY, remote); } catch (e) { /* private mode */ }
+        }
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  }, [theme, setTheme]);
+
+  return { theme, setTheme, toggleTheme };
+}

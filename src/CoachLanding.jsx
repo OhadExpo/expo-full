@@ -13,6 +13,7 @@ import React, { useState, useEffect } from 'react';
 import { track } from '@vercel/analytics';
 import { C, FN, FB, FH } from './theme';
 import { EXPOMark } from './expoMark';
+import { ThemeToggle } from './ThemeToggle';
 import CoachChat from './CoachChat';
 
 // Vercel Analytics is no-op until it's enabled in the project dashboard, so
@@ -497,6 +498,7 @@ export default function CoachLanding({ lang = 'en' }) {
             border: `1px solid ${C.ac}`, whiteSpace: 'nowrap',
           }}>{t('header.badge')}</span>
           <div style={{ flex: 1 }} />
+          <ThemeToggle size={32} style={{marginRight:2}}/>
           <a href={isHe ? '/demo' : '/demo/he'} style={{
             ...baseBtn, background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '8px 10px', fontSize: 10,
