@@ -68,9 +68,9 @@
   --c-tx: #0E0F12;                /* near-black, premium feel */
   --c-tm: #5F6368;                /* muted body — Google-style cool gray */
   --c-td: #9AA0A6;                /* faint helper text */
-  --c-ac: #0E8FD3;                /* darker cyan — AA-safe everywhere on white (4.7:1 text, 3:1+ UI) */
-  --c-acH: #0A78B0;               /* darker hover */
-  --c-acText: #0E8FD3;            /* same as ac — kept for code clarity */
+  --c-ac: #1A9FE0;                /* mid-cyan — vibrant brand presence, AA at 3.8:1 for UI elements */
+  --c-acH: #0E8FD3;               /* hover steps darker for tactile feedback */
+  --c-acText: #0A78B0;            /* darker variant — used where small cyan text needs AA 4.5:1+ */
   --c-acSurface: #39BDFF;         /* BSG-sanctioned bright cyan panel fill (rare — hero CTAs) */
   --c-acOnSurface: #000000;       /* black text on cyan panels (10.4:1 AAA) */
   --c-cardBd: rgba(57,189,255,0.35); /* card border in light mode — BSG cyan with alpha, parity with dark's brand-tint glow */
@@ -118,4 +118,23 @@ a:focus-visible,
 [data-hover-lift]:hover {
   border-color: var(--c-ac) !important;
   box-shadow: var(--c-cardShadow) !important;
+}
+
+/*
+ * Smooth transitions on every interactive element. Inline-style changes
+ * (e.g. onMouseEnter setting borderColor) are instant by default — adding
+ * a transition makes them feel premium. Targeted at clickable elements
+ * only so non-interactive content doesn't get accidental motion.
+ */
+button, a, input, select, textarea, [role="button"], [data-hover-lift] {
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+/*
+ * Selection color: cyan-tinted highlight matching the brand. Keeps text
+ * readable on the highlight (var(--c-tx) flips with theme).
+ */
+::selection {
+  background: rgba(57,189,255,0.30);
+  color: var(--c-tx);
 }
