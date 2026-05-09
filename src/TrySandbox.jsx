@@ -657,7 +657,7 @@ function ClientPortalMock({ onPick }) {
         {DAYS.map((day, di) => {
           const done = !!doneDays[day.name];
           return (
-            <div key={di} style={{ background: C.sf, border: `0.25px solid ${done ? rgba(46,213,115,0.251) : C.ac}`, borderRadius: 0, marginBottom: 12, padding: '14px 18px' }}>
+            <div key={di} style={{ background: C.sf, border: `0.25px solid ${done ? 'rgba(46,213,115,0.251)' : C.ac}`, borderRadius: 0, marginBottom: 12, padding: '14px 18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <div>
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{day.name}</span>

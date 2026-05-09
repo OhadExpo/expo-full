@@ -1774,7 +1774,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         return (
                           <div key={w} style={{padding:"3px 4px",borderRadius:0,
                             background:isNext?'rgba(57,189,255,0.082)':isCurrent?'rgba(46,213,115,0.063)':C.sf2,
-                            border:`1px solid ${isNext?rgba(57,189,255,0.251):isCurrent?rgba(46,213,115,0.125):f?rgba(57,189,255,0.082):C.bd}`,
+                            border:`1px solid ${isNext?'rgba(57,189,255,0.251)':isCurrent?'rgba(46,213,115,0.125)':f?'rgba(57,189,255,0.082)':C.bd}`,
                             textAlign:"center"}}>
                             <div style={{fontSize:7,fontFamily:FN,color:isNext?C.ac:isCurrent?C.gn:C.td}}>
                               W{w}{isCurrent?' ✓':''}{isNext?' →':''}
