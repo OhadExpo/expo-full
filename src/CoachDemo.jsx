@@ -1327,7 +1327,7 @@ function DemoPrograms() {
                   const isVis = (id) => portalVis[portalKey(id)] !== false;
                   const togglePortal = (id) => setPortalVis(v => ({ ...v, [portalKey(id)]: !isVis(id) }));
                   return (
-                    <div key={row.tid} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0 }}>
+                    <div key={row.tid} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0 }}>
                       {/* Current-block row — clicking opens the program. */}
                       <div onClick={() => setSelectedProgramId(cur.id)}
                         style={{ cursor: 'pointer', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
@@ -1341,7 +1341,7 @@ function DemoPrograms() {
                           {row.earlier.length > 0 && (
                             <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
                               title={expanded ? `Hide ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}` : `Show ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}`}
-                              style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '3px 8px', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', whiteSpace: 'nowrap', minWidth: 34, textAlign: 'center' }}>
+                              style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '3px 8px', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', whiteSpace: 'nowrap', minWidth: 34, textAlign: 'center' }}>
                               {expanded ? `▴ ${row.earlier.length}` : `▾ +${row.earlier.length}`}
                             </button>
                           )}
@@ -1353,9 +1353,9 @@ function DemoPrograms() {
                             </div>
                           </button>
                           <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)"
-                            style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>👁</button>
+                            style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>👁</button>
                           <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)"
-                            style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>⎘</button>
+                            style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>⎘</button>
                         </div>
                       </div>
                       {/* Expanded earlier blocks — slightly compressed look. */}
@@ -1374,9 +1374,9 @@ function DemoPrograms() {
                                 </div>
                               </button>
                               <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)"
-                                style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>👁</button>
+                                style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>👁</button>
                               <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)"
-                                style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>⎘</button>
+                                style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>⎘</button>
                             </div>
                           ))}
                         </div>
@@ -1455,7 +1455,7 @@ function DemoPrograms() {
                 if (nextId && nextId !== selectedProgramId) setSelectedProgramId(nextId);
               }}
                 title="Switch to another program for this athlete"
-                style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 36px 0 18px', lineHeight: '42px', color: C.tm, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', outline: 'none', appearance: 'none', WebkitAppearance: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box', cursor: 'pointer', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 36px 0 18px', lineHeight: '42px', color: C.tm, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', outline: 'none', appearance: 'none', WebkitAppearance: 'none', flex: 1, minWidth: 0, boxSizing: 'border-box', cursor: 'pointer', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {athletePrograms.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
               </select>
               <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 12, lineHeight: 1 }}>▾</span>
@@ -1466,9 +1466,9 @@ function DemoPrograms() {
           <button onClick={() => { if (!overview) return; setCompareOpen(v => !v); }}
             disabled={!overview}
             title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous program (read-only)'}
-            style={{ background: 'transparent', border: `${compareActive ? '1px' : '0.25px'} solid ${compareActive ? C.ac : C.ac + '4D'}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: !overview ? C.td : (compareActive ? C.ac : C.tm), cursor: !overview ? 'not-allowed' : 'pointer', opacity: !overview ? 0.5 : 1, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
+            style={{ background: 'var(--c-sf)', border: `${compareActive ? '1px' : '0.25px'} solid ${compareActive ? C.ac : C.ac + '4D'}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: !overview ? C.td : (compareActive ? C.ac : C.tm), cursor: !overview ? 'not-allowed' : 'pointer', opacity: !overview ? 0.5 : 1, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
           <button onClick={() => setOverview(v => !v)}
-            style={{ background: 'transparent', border: `${overview ? '1px' : '0.25px'} solid ${overview ? C.ac : C.ac + '4D'}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: overview ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{overview ? '✓ OVERVIEW' : 'OVERVIEW'}</button>
+            style={{ background: 'var(--c-sf)', border: `${overview ? '1px' : '0.25px'} solid ${overview ? C.ac : C.ac + '4D'}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: overview ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{overview ? '✓ OVERVIEW' : 'OVERVIEW'}</button>
           <button onClick={e => e.stopPropagation()} title="Demo only"
             style={{ ...baseBtn, background: C.ac, color: '#0a0a0b', height: 42, padding: '0 18px', lineHeight: '42px', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Save Program</button>
         </div>
@@ -1494,7 +1494,7 @@ function DemoPrograms() {
             <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', textAlign: 'center' }}>{field.label}</label>
               <input value={field.value} readOnly tabIndex={-1}
-                style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default' }} />
+                style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default' }} />
             </div>
           ))}
         </div>
@@ -1535,7 +1535,7 @@ function DemoPrograms() {
                 <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>WARM-UP ({block.warmup.length})</span>
               </button>
               <button onClick={e => e.stopPropagation()} title="Demo only"
-                style={{ background: 'transparent', border: `0.25px solid ${C.or}66`, borderRadius: 0, padding: '3px 10px', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ ADD WARM-UP</button>
+                style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.or}66`, borderRadius: 0, padding: '3px 10px', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ ADD WARM-UP</button>
             </div>
             {warmOpen && (
               <div style={{ marginTop: 8 }}>
@@ -1590,7 +1590,7 @@ function DemoPrograms() {
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 4, textAlign: 'center' }}>Day {dayIdx + 1} Name</label>
           <input value={day.name} readOnly tabIndex={-1}
-            style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' }} />
+            style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, height: 42, padding: '0 14px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' }} />
         </div>
 
         {/* Per-exercise cards — mirrors PlansView PlanEditor's per-exercise
@@ -1607,7 +1607,7 @@ function DemoPrograms() {
             // real card pixel-for-pixel — same padding, font, letter
             // spacing. Demo-only additions: cursor:'default' (read-only)
             // and explicit transition removed (no hover state needed).
-            const inputStyleRO = { background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 14px', color: C.tx, fontFamily: FB, fontSize: 13, fontWeight: 400, letterSpacing: '0.01em', outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' };
+            const inputStyleRO = { background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 14px', color: C.tx, fontFamily: FB, fontSize: 13, fontWeight: 400, letterSpacing: '0.01em', outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' };
             const tinyStyleRO = { ...inputStyleRO, padding: '4px 6px', fontSize: 11 };
             // Mock load + rpe per row so the inputs aren't all empty (matches
             // the look of a populated real-app card). Derived deterministically
@@ -1615,7 +1615,7 @@ function DemoPrograms() {
             const mockLoad = e.wk?.[1] || ['60kg', '50%', '20kg', 'BW', '15kg', 'BW'][ei % 6];
             const mockRpe = ['7', '8', '7-8', 'RIR 2', '8-9', 'RIR 1'][ei % 6];
             return (
-              <div key={ei} style={{ background: 'transparent', border: `0.25px solid ${cardBorderColor}`, borderLeft: `3px solid ${cardBorderColor}`, borderRadius: 0, padding: 12, marginBottom: 8 }}>
+              <div key={ei} style={{ background: 'var(--c-sf)', border: `0.25px solid ${cardBorderColor}`, borderLeft: `3px solid ${cardBorderColor}`, borderRadius: 0, padding: 12, marginBottom: 8 }}>
                 {/* Outer grid mirrors PlansView line 707 exactly: 54px drag,
                     1fr content, 54px right gutter. Without the right gutter
                     the inner inputs visually shift left (off-center inside
@@ -1708,14 +1708,14 @@ function DemoPrograms() {
         {overview && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
             {block.days.map((d, dayIdx) => (
-              <div key={dayIdx} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12 }}>
+              <div key={dayIdx} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 10 }}>
                   <input value={d.name} readOnly tabIndex={-1}
-                    style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', color: C.tx, fontFamily: FB, fontWeight: 700, fontSize: 14, outline: 'none', maxWidth: 260, boxSizing: 'border-box', textAlign: 'center', cursor: 'default' }} />
+                    style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', color: C.tx, fontFamily: FB, fontWeight: 700, fontSize: 14, outline: 'none', maxWidth: 260, boxSizing: 'border-box', textAlign: 'center', cursor: 'default' }} />
                   <span style={{ color: C.td, fontSize: 12, whiteSpace: 'nowrap' }}>({d.exercises.length} ex)</span>
                   <button onClick={() => { setSelectedDayIdx(dayIdx); setOverview(false); }}
                     title="Open this day in the detail editor"
-                    style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginLeft: 'auto' }}>DETAIL ▸</button>
+                    style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginLeft: 'auto' }}>DETAIL ▸</button>
                 </div>
                 <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
@@ -1733,7 +1733,7 @@ function DemoPrograms() {
                     )}
                     {d.exercises.map((ex, ei) => {
                       const sc = ex.superset === 'A' ? C.ac : ex.superset === 'B' ? C.pu : ex.superset === 'C' ? C.or : C.td;
-                      const tinyRO = { background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 6px', color: C.tm, fontFamily: FB, fontSize: 11, outline: 'none', width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: 'default' };
+                      const tinyRO = { background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 6px', color: C.tm, fontFamily: FB, fontSize: 11, outline: 'none', width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: 'default' };
                       return <React.Fragment key={ei}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, padding: 0 }}>
                           <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 400, opacity: 0 }}>⇕</span>
@@ -1763,7 +1763,7 @@ function DemoPrograms() {
           // as the main filter row, so the compare pickers feel like they
           // belong to the same control family.
           const pickerStyle = (disabled) => ({
-            background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+            background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
             height: 36, padding: '0 32px 0 12px',
             color: disabled ? C.td : C.tx, fontFamily: FB, fontSize: 13,
             flex: 1, minWidth: 0, outline: 'none',
@@ -1854,10 +1854,10 @@ function DemoPrograms() {
                 </div>
               )}
               {cmpBlock.days.map((d, dayIdx) => (
-                <div key={dayIdx} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
+                <div key={dayIdx} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 10 }}>
                     <input value={d.name} readOnly tabIndex={-1}
-                      style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', color: C.tx, fontFamily: FB, fontWeight: 700, fontSize: 14, outline: 'none', maxWidth: 260, boxSizing: 'border-box', textAlign: 'center', cursor: 'default' }} />
+                      style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '4px 8px', color: C.tx, fontFamily: FB, fontWeight: 700, fontSize: 14, outline: 'none', maxWidth: 260, boxSizing: 'border-box', textAlign: 'center', cursor: 'default' }} />
                     <span style={{ color: C.td, fontSize: 12, whiteSpace: 'nowrap' }}>({d.exercises.length} ex)</span>
                   </div>
                   <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
@@ -1876,7 +1876,7 @@ function DemoPrograms() {
                       )}
                       {d.exercises.map((ex, ei) => {
                         const sc = ex.superset === 'A' ? C.ac : ex.superset === 'B' ? C.pu : ex.superset === 'C' ? C.or : C.td;
-                        const tinyRO = { background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 6px', color: C.tm, fontFamily: FB, fontSize: 11, outline: 'none', width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: 'default' };
+                        const tinyRO = { background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 6px', color: C.tm, fontFamily: FB, fontSize: 11, outline: 'none', width: '100%', boxSizing: 'border-box', textAlign: 'center', cursor: 'default' };
                         return <React.Fragment key={ei}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, padding: 0 }}>
                             <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 400, opacity: 0 }}>⇕</span>

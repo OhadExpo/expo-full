@@ -8,7 +8,7 @@ import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
 
-const bi = {background:'transparent',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
+const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
 
 // Review-screen keyboard shortcuts. Bound at the detail-screen level so they
@@ -87,7 +87,7 @@ class FormVideoErrorBoundary extends React.Component {
         <div style={{background:'#3a1a1a',border:`1px solid #c94444`,borderRadius:0,padding:12,color:'#ff6b6b',fontSize:12,fontFamily:FB}}>
           <div style={{fontWeight:700,marginBottom:4}}>Video player crashed — reload to retry</div>
           <div style={{fontSize:11,opacity:0.8,whiteSpace:'pre-wrap',fontFamily:'monospace'}}>{String(this.state.err?.message || this.state.err)}</div>
-          <button onClick={() => this.setState({ err: null })} style={{marginTop:8,background:'transparent',border:`1px solid #c94444`,color:'#ff6b6b',borderRadius:0,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>Retry</button>
+          <button onClick={() => this.setState({ err: null })} style={{marginTop:8,background:'var(--c-sf)',border:`1px solid #c94444`,color:'#ff6b6b',borderRadius:0,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer'}}>Retry</button>
         </div>
       );
     }
@@ -1340,7 +1340,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
           <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Compare</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
             <button onClick={playBoth} style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>▶ PLAY BOTH</button>
-            <button onClick={pauseBoth} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>❚❚ PAUSE</button>
+            <button onClick={pauseBoth} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>❚❚ PAUSE</button>
             <button onClick={onClose} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
           </div>
         </div>
@@ -1351,9 +1351,9 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
             <button onClick={() => sync('right')} title="Copy left timestamp to right"
-              style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
+              style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
             <button onClick={() => sync('left')} title="Copy right timestamp to left"
-              style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
+              style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
           </div>
           <div>
             <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{rightLabel}</div>
@@ -1452,7 +1452,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         <input autoFocus value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && confirmOk) onDeleteConfirm(); }}
           placeholder='type "delete"'
-          style={{width:'100%',background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
+          style={{width:'100%',background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
         <div style={{display:'flex',gap:8}}>
           <button onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
             style={{flex:1,padding:'10px 0',borderRadius:0,border:`0.25px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
@@ -1563,7 +1563,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{comparePicker.candidates.length} other video{comparePicker.candidates.length===1?'':'s'} from this client:</div>
               {comparePicker.candidates.map((c, i) => (
                 <div key={i} onClick={() => { setCompareActive({ left: comparePicker.left, right: { url: c.cloudUrl, label: c.label, title: c.title } }); setComparePicker(null); }}
-                  style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
+                  style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
                   onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                   onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}>
                   <div style={{fontSize:12,color:C.tx}}>{c.label}</div>
@@ -1586,7 +1586,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         </button>
 
         {/* Workout header */}
-        <div style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:16,marginBottom:16}}>
+        <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:16,marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
               <h2 style={{margin:0,fontFamily:FN,fontSize:18,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -1612,7 +1612,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           {wo.autoregulation && (
             <div style={{display:"flex",gap:12,marginTop:12}}>
               {[['Pain',wo.autoregulation.pain,C.rd],['Energy',wo.autoregulation.energy,C.gn],['Sleep',wo.autoregulation.sleep,C.pu]].map(([l,v,col]) => (
-                <div key={l} style={{flex:1,background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:8,textAlign:"center"}}>
+                <div key={l} style={{flex:1,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:8,textAlign:"center"}}>
                   <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>{l.toUpperCase()}</div>
                   <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:v?col:C.td}}>{v || '—'}</div>
                 </div>
@@ -1620,7 +1620,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             </div>
           )}
           {wo.notes && (
-            <div style={{marginTop:10,background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10}}>
+            <div style={{marginTop:10,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10}}>
               <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',marginBottom:4}}>ATHLETE NOTES</div>
               <div style={{fontSize:13,color:C.tx}}>{wo.notes}</div>
             </div>
@@ -1639,7 +1639,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           const nextFocus = getFocus(wo.planName, wo.dayName, ex.eid, nextWeek);
 
           return (
-            <div key={i} data-ex-idx={i} style={{background:'transparent',border:`${isExpanded?'1px':'0.25px'} solid ${isExpanded?C.ac:C.ac+'4D'}`,borderRadius:0,marginBottom:8,overflow:"hidden"}}>
+            <div key={i} data-ex-idx={i} style={{background:'var(--c-sf)',border:`${isExpanded?'1px':'0.25px'} solid ${isExpanded?C.ac:C.ac+'4D'}`,borderRadius:0,marginBottom:8,overflow:"hidden"}}>
               {/* Header row — click to expand */}
               <div onClick={() => setExpandedEx(isExpanded?null:i)}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
@@ -1720,7 +1720,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${new Date(wo.date).toLocaleDateString()}`;
                           return (
                             <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel, title: ex.title || exName }, candidates })}
-                              style={{background:'transparent',border:`1px solid ${C.gn}60`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>
+                              style={{background:'var(--c-sf)',border:`1px solid ${C.gn}60`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>
                               ⇄ COMPARE
                             </button>
                           );
@@ -1741,7 +1741,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>Client note: {formVideo.note}</div>}
                     </div>
                   ) : (
-                    <div style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10,marginBottom:10,textAlign:"center"}}>
+                    <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10,marginBottom:10,textAlign:"center"}}>
                       <div style={{fontSize:11,color:C.tm}}>No form video submitted</div>
                     </div>
                   )}
@@ -1937,7 +1937,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         return (
           <div style={{
             display:'flex',justifyContent:'space-between',alignItems:'center',
-            background:'transparent', border:`1px solid ${C.ac}`, borderRadius:0,
+            background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0,
             padding:'10px 14px', marginBottom:14,
           }}>
             <div style={{display:'flex',alignItems:'center',gap:10}}>
@@ -1978,7 +1978,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const reviewed = !!wo.reviewedAt;
             return (
               <div key={wo.id} onClick={() => setSelectedWo(wo.id)}
-                style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
+                style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
                   marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
@@ -2004,7 +2004,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     {deleteWorkout && (
                       <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
                         title="Delete this workout"
-                        style={{background:'transparent',border:`1px solid ${C.rd||'#c94444'}40`,color:C.rd||'#ff6b6b',
+                        style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}40`,color:C.rd||'#ff6b6b',
                           borderRadius:0,padding:'2px 8px',fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1.4}}>
                         DELETE
                       </button>

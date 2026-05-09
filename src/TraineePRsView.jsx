@@ -250,7 +250,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
         )}
 
         {rows.length === 0 ? (
-          <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
+          <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO RECORDS YET</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
               Log a few sessions with weights and your records will show up here.
@@ -274,7 +274,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 }}
                 placeholder="Search an exercise…"
                 style={{
-                  width: '100%', background: 'transparent',
+                  width: '100%', background: 'var(--c-sf)',
                   border: `1px solid ${open ? C.ac : `${C.cardBd}`}`,
                   borderRadius: 0, padding: '12px 14px', color: C.tx,
                   fontFamily: FB, fontSize: 15, fontWeight: 600,
@@ -316,7 +316,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
               <>
                 {/* PR hero card */}
                 <div style={{
-                  background: 'transparent', border: `1px solid ${C.ac}`, borderRadius: 0,
+                  background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0,
                   padding: '20px 18px', textAlign: 'center', marginBottom: 14,
                 }}>
                   <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>

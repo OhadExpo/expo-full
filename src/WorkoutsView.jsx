@@ -22,17 +22,17 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
         <Input label="Energy (1-5)" type="number" value={ar.energyLevel||""} onChange={e=>onUpdate({autoregulation:{...ar,energyLevel:e.target.value}})} placeholder="1-5" />
         <Input label="Sleep (1-5)" type="number" value={ar.sleepQuality||""} onChange={e=>onUpdate({autoregulation:{...ar,sleepQuality:e.target.value}})} placeholder="1-5" />
       </div>
-      {parseInt(ar.painScore)>=4&&<div style={{background:'transparent',border:`0.25px solid ${C.rd}`,borderRadius:0,padding:8,marginBottom:12,fontSize:12,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — ROM → Tempo → Intensity → Volume</div>}
-      {(parseInt(ar.energyLevel)<=2||parseInt(ar.sleepQuality)<=2)&&<div style={{background:'transparent',border:`0.25px solid ${C.or}`,borderRadius:0,padding:8,marginBottom:12,fontSize:12,color:C.or,fontWeight:600}}>⚠ Low recovery — auto-regulate down</div>}
+      {parseInt(ar.painScore)>=4&&<div style={{background:'var(--c-sf)',border:`0.25px solid ${C.rd}`,borderRadius:0,padding:8,marginBottom:12,fontSize:12,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — ROM → Tempo → Intensity → Volume</div>}
+      {(parseInt(ar.energyLevel)<=2||parseInt(ar.sleepQuality)<=2)&&<div style={{background:'var(--c-sf)',border:`0.25px solid ${C.or}`,borderRadius:0,padding:8,marginBottom:12,fontSize:12,color:C.or,fontWeight:600}}>⚠ Low recovery — auto-regulate down</div>}
       <div style={{marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
           <span>{workout.dayName} {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
           <span>{doneSets}/{totalSets} · {pct}%</span></div>
-        <div style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
+        <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
       </div>
       {workout.exercises.map((ex,exIdx) => {
         const exData = exercises.find(e=>e.id===ex.exerciseId);
-        return(<div key={ex.id} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:10}}>
+        return(<div key={ex.id} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:10}}>
           <div style={{fontWeight:700,color:C.tx,marginBottom:8}}>{exIdx+1}. {exData?.title||"Unknown"}
             {ex.superset&&<Badge color={C.pu} style={{marginLeft:8}}>Group {ex.superset}</Badge>}
             <span style={{fontWeight:400,color:C.tm,fontSize:12,marginLeft:8}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span></div>

@@ -262,7 +262,7 @@ export default function PlanDiff({ open, onClose, traineePlans, exercises }) {
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{label}</div>
       <select value={value || ''} onChange={e => onChange(e.target.value || null)}
-        style={{ width: '100%', background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
+        style={{ width: '100%', background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
         <option value="">(none)</option>
         {(traineePlans || []).map(p => (
           <option key={p.id} value={p.id}>{p.name}</option>
@@ -276,7 +276,7 @@ export default function PlanDiff({ open, onClose, traineePlans, exercises }) {
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, width: 'min(1180px, 96vw)', maxHeight: '92vh', overflow: 'auto', padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 14, color: C.tx, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>↔ Plan Diff</h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 14, flexWrap: 'wrap' }}>

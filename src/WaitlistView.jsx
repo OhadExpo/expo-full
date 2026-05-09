@@ -222,12 +222,12 @@ export default function WaitlistView({ trainees }) {
             {total} total · {active} uncontacted · gate at {COACH_GATE}+ serious signups
           </div>
         </div>
-        <div style={{ background: 'transparent', border: `1px solid ${gateColor}`, borderRadius: 0, padding: '12px 18px', minWidth: 220 }}>
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${gateColor}`, borderRadius: 0, padding: '12px 18px', minWidth: 220 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
             <span style={{ fontFamily: FN, fontSize: 9, color: gateColor, letterSpacing: '0.18em', fontWeight: 700 }}>🎯 MULTI-TENANT GATE</span>
             <span style={{ fontFamily: FN, fontSize: 14, color: gateColor, fontWeight: 700 }}>{gateProgress}/{COACH_GATE}</span>
           </div>
-          <div style={{ height: 6, background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${(gateProgress / COACH_GATE) * 100}%`, background: gateColor, transition: 'width 0.3s' }} />
           </div>
           <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 6 }}>
@@ -253,18 +253,18 @@ export default function WaitlistView({ trainees }) {
       {/* Filter */}
       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-start' }}>
         <input placeholder="Filter by email, source, or notes…" value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
+          style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
       </div>
 
       {sorted.length === 0 ? (
-        <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO COACH SIGNUPS YET</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
             When a coach submits the form on /coaches#waitlist, they'll appear here.
           </div>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0 }}>
+        <div style={{ overflowX: 'auto', background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: `0.25px solid ${C.cardBd}` }}>
@@ -304,7 +304,7 @@ export default function WaitlistView({ trainees }) {
                               const color = kind === 'program' ? C.ac : (kind === 'pain' ? C.or : C.gn);
                               return (
                                 <span key={`${kind}-${i}`} title={kind}
-                                  style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'transparent', border: `0.25px solid ${color}`, borderRadius: 0, padding: '1px 5px', letterSpacing: '0.18em' }}>
+                                  style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'var(--c-sf)', border: `0.25px solid ${color}`, borderRadius: 0, padding: '1px 5px', letterSpacing: '0.18em' }}>
                                   {t}
                                 </span>
                               );
@@ -321,7 +321,7 @@ export default function WaitlistView({ trainees }) {
                         const color = isChat ? C.gn : (isForm ? C.ac : C.tm);
                         return (
                           <span title={isChat ? 'Captured via /coaches chat bot' : (isForm ? 'Submitted via /coaches waitlist form' : l.source)}
-                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'transparent', border: `0.25px solid ${color}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>
+                            style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color, background: 'var(--c-sf)', border: `0.25px solid ${color}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>
                             {label}
                           </span>
                         );
@@ -335,27 +335,27 @@ export default function WaitlistView({ trainees }) {
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {l.contacted ? (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'transparent', border: `0.25px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`Contacted ${ago(l.consumed_at)} ago`}>CONTACTED</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, background: 'var(--c-sf)', border: `0.25px solid ${C.gn}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }} title={`Contacted ${ago(l.consumed_at)} ago`}>CONTACTED</span>
                       ) : (
-                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'transparent', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>NEW</span>
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '3px 6px', letterSpacing: '0.18em' }}>NEW</span>
                       )}
                     </td>
                     <td style={{ padding: '8px 10px' }}>
                       <textarea value={notes[l.id] || ''} onChange={e => setNote(l.id, e.target.value)} rows={2}
                         placeholder="What did they say in DM?"
-                        style={{ width: '100%', minWidth: 200, background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+                        style={{ width: '100%', minWidth: 200, background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
                       {savingNote === l.id && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>saving…</div>}
                     </td>
                     <td style={{ padding: '8px 10px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {l.contacted ? (
                         <button onClick={() => undoContacted(l.id)} title="Undo contacted"
-                          style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>↩ UNDO</button>
+                          style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>↩ UNDO</button>
                       ) : (
                         <button onClick={() => markContacted(l.id)} title="Mark contacted"
-                          style={{ background: 'transparent', border: `0.25px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>✓ DONE</button>
+                          style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>✓ DONE</button>
                       )}
                       <button onClick={() => removeLead(l.id)} title="Delete"
-                        style={{ background: 'transparent', border: `0.25px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                        style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
                     </td>
                   </tr>
                 );

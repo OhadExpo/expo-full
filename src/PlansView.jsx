@@ -36,7 +36,7 @@ function PatternCoverage({ plan, exercises }) {
   }, [plan.days, exercises]);
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
   if (exercises.length === 0) return null;
-  return (<div style={{ background: 'transparent', border:`0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
+  return (<div style={{ background: 'var(--c-sf)', border:`0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
     <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={pats.has(p) ? {} : {fontWeight:500,opacity:0.65}}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
@@ -116,7 +116,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border:`0.25px solid ${C.cardBd}`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px 12px' }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700 }}>{title || 'Select Exercise'}</h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>
         <div style={{ padding: '0 22px' }}>
           <input
@@ -156,7 +156,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
                     onMouseEnter={() => setActiveIdx(idx)}
                     style={{
                       textAlign: 'left', padding: '10px 12px',
-                      background: 'transparent',
+                      background: 'var(--c-sf)',
                       border: `${isSelected||isActive?'1px':'0.25px'} solid ${isActive ? C.ac : (isSelected ? C.ac : C.ac + '4D')}`,
                       borderRadius: 0, cursor: 'pointer', fontFamily: FB, color: C.tx,
                       transition: 'all 0.1s'
@@ -224,7 +224,7 @@ function WarmupEditor({ plan, setPlan }) {
   const add = () => { setOpen(true); setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] })); };
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   return (
-    <div style={{ background: 'transparent', border:`0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
+    <div style={{ background: 'var(--c-sf)', border:`0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: open && warmup.length ? 10 : 0 }}>
         <button onClick={() => setOpen(o => !o)} title={open ? 'Collapse warm-up' : 'Expand warm-up'}
           style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8 }}>
@@ -368,7 +368,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                 const dayExs = d.exercises || [];
                 const tinyInputRO = {...baseInput, padding:'3px 6px', fontSize:11, minWidth:0, width:'100%', boxSizing:'border-box', color:C.tm, cursor:'default'};
                 return (
-                  <div key={d.id || di} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
+                  <div key={d.id || di} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
                     <div style={{display:'flex',alignItems:'center',marginBottom:8,gap:10}}>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
@@ -548,7 +548,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   onSwitchProgram(nextId);
                 }}
                   title="Switch to another program for this athlete"
-                  style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                   {sameAthlete.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
                 </select>
                 <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
@@ -565,8 +565,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           <button onClick={()=>{ if (!overview) return; setCompareOpen(v=>!v); }}
             disabled={!overview}
             title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous program (read-only)'}
-            style={{background:'transparent',border:`${compareActive?'1px':'0.25px'} solid ${compareActive?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:!overview?C.td:(compareActive?C.ac:C.tm),cursor:!overview?'not-allowed':'pointer',opacity:!overview?0.5:1,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{compareActive?'✓ COMPARE':'↔ COMPARE'}</button>
-          <button onClick={()=>setOverview(v=>!v)} style={{background:'transparent',border:`${overview?'1px':'0.25px'} solid ${overview?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:overview?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
+            style={{background:'var(--c-sf)',border:`${compareActive?'1px':'0.25px'} solid ${compareActive?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:!overview?C.td:(compareActive?C.ac:C.tm),cursor:!overview?'not-allowed':'pointer',opacity:!overview?0.5:1,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{compareActive?'✓ COMPARE':'↔ COMPARE'}</button>
+          <button onClick={()=>setOverview(v=>!v)} style={{background:'var(--c-sf)',border:`${overview?'1px':'0.25px'} solid ${overview?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:overview?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
           <Btn onClick={handleSave} disabled={saving} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
@@ -613,13 +613,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           return (
-            <div key={d.id} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
+            <div key={d.id} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
               <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
                 <span style={{color:C.td,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
                 <button onClick={()=>{setActiveDay(dayIdx);setOverview(false)}} title="Open this day in the detail editor — needed to add exercises, change the exercise itself, or edit notes/URL"
-                  style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.18em',marginLeft:"auto"}}>DETAIL ▸</button>
+                  style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.18em',marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
                 <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:614}}>
@@ -703,7 +703,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const exData = exercises.find(e=>e.id===ex.exerciseId);
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
-          return(<div key={ex.id} style={{background:'transparent',border:`0.25px solid ${ex.superset?sc:C.ac+'4D'}`,borderLeft:`3px solid ${ex.superset?sc:C.ac+'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
+          return(<div key={ex.id} style={{background:'var(--c-sf)',border:`0.25px solid ${ex.superset?sc:C.ac+'4D'}`,borderLeft:`3px solid ${ex.superset?sc:C.ac+'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
             <div style={{display:"grid",gridTemplateColumns:"54px 1fr 54px",gap:12,alignItems:"start"}}>
               <div draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${activeDay}:${exIdx}`); setDragSrc({dayIdx: activeDay, exIdx}); }}
@@ -854,7 +854,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                                 onChange={e=>{const nv=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:nv}))}}
                                 placeholder="—"
                                 rows={2}
-                                style={{background:'transparent',border:`0.25px solid ${v?C.ac:C.ac+'4D'}`,borderRadius:0,padding:'10px 12px',minHeight:64,color:C.tx,fontFamily:FB,fontSize:13,lineHeight:1.45,outline:'none',boxSizing:'border-box',textAlign:'center',minWidth:0,resize:'vertical',width:'100%'}} />
+                                style={{background:'var(--c-sf)',border:`0.25px solid ${v?C.ac:C.ac+'4D'}`,borderRadius:0,padding:'10px 12px',minHeight:64,color:C.tx,fontFamily:FB,fontSize:13,lineHeight:1.45,outline:'none',boxSizing:'border-box',textAlign:'center',minWidth:0,resize:'vertical',width:'100%'}} />
                             </div>
                           );
                         })}
@@ -1154,17 +1154,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             // picker is right there for assignment after the editor opens).
             if (row.orphan) {
               return (
-                <div key={row.tid} style={{background:'transparent',border:`0.25px dashed ${C.or}80`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                <div key={row.tid} style={{background:'var(--c-sf)',border:`0.25px dashed ${C.or}80`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                   <div style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>NO PROGRAM ASSIGNED</div>
                   </div>
-                  <button onClick={()=>handleNewPlan()} style={{background:'transparent',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ ASSIGN PROGRAM</button>
+                  <button onClick={()=>handleNewPlan()} style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'3px 10px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ ASSIGN PROGRAM</button>
                 </div>
               );
             }
             return (
-              <div key={row.tid} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0}}>
+              <div key={row.tid} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0}}>
                 {/* Current-block row — clicking opens the plan editor. */}
                 <div onClick={()=>handleOpenPlan(cur.id)}
                   onMouseEnter={e => {
@@ -1184,7 +1184,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {row.earlier.length > 0 && (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                        style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',padding:'3px 8px',fontFamily:FN,fontSize:11,fontWeight:600,letterSpacing:'0.04em',whiteSpace:'nowrap',minWidth:34,textAlign:'center'}}>
+                        style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',padding:'3px 8px',fontFamily:FN,fontSize:11,fontWeight:600,letterSpacing:'0.04em',whiteSpace:'nowrap',minWidth:34,textAlign:'center'}}>
                         {expanded?`▴ ${row.earlier.length}`:`▾ +${row.earlier.length}`}
                       </button>
                     )}
@@ -1194,7 +1194,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       const earlierKeys = row.earlier.map(p => visKeyForPlan(p, trainees)).filter(Boolean);
                       return <button onClick={e => { e.stopPropagation(); const next = { ...portalVis, [curKey]: true }; earlierKeys.forEach(k => { next[k] = false; }); setPortalVis(next); }}
                         title="Hide earlier blocks on portal; keep only current"
-                        style={{background:'transparent',border:`0.25px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1,fontWeight:700,whiteSpace:'nowrap'}}>
+                        style={{background:'var(--c-sf)',border:`0.25px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1,fontWeight:700,whiteSpace:'nowrap'}}>
                         🎯
                       </button>;
                     })()}
@@ -1206,8 +1206,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                       </button>;
                     })()}
-                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
-                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
+                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
+                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
@@ -1233,9 +1233,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                             <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                           </button>;
                         })()}
-                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>👁</button>}
-                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>⎘</button>
-                        <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>×</button>
+                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>👁</button>}
+                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>⎘</button>
+                        <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'var(--c-sf)',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>×</button>
                       </div>
                     ))}
                   </div>
@@ -1278,9 +1278,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                   </button>;
                 })()}
-                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
-                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
-                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>×</button>
+                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
+                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
+                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'var(--c-sf)',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>×</button>
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>))}

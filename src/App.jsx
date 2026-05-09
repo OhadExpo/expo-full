@@ -618,7 +618,7 @@ function AuthedApp() {
                 count digit (fontSize:10) baseline-aligns with the label
                 (fontSize:11) instead of floating above it. See CoachDemo
                 line ~2755 for the full reasoning. */}
-            {tabs.map(t=>(<button key={t.key} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'baseline',background:'transparent',border:`${tab===t.key?'1px':'0.25px'} solid ${tab===t.key?C.ac:'transparent'}`,color:tab===t.key?C.ac:C.tm,borderRadius:0,padding:"6px 10px",fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',whiteSpace:"nowrap"}}>
+            {tabs.map(t=>(<button key={t.key} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'baseline',background:'var(--c-sf)',border:`${tab===t.key?'1px':'0.25px'} solid ${tab===t.key?C.ac:'transparent'}`,color:tab===t.key?C.ac:C.tm,borderRadius:0,padding:"6px 10px",fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',whiteSpace:"nowrap"}}>
               <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
             <ThemeToggle size={32} style={{marginRight:4}}/>
@@ -628,7 +628,7 @@ function AuthedApp() {
             <button onClick={signOut} title="Sign out" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
-      {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:'transparent',border:`1px solid ${importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn}`,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:0,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
+      {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:'var(--c-sf)',border:`1px solid ${importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn}`,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:0,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
           {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)}/>}
@@ -652,7 +652,7 @@ function AuthedApp() {
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Assign Imported Program</h3>
             <button onClick={()=>setPendingImport(null)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4,fontSize:16}}>✕</button></div>
-          <div style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:16}}>
+          <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:16}}>
             <div style={{fontSize:13,color:C.tx,fontWeight:600}}>{pendingImport.parsed.plans?.length||0} block{(pendingImport.parsed.plans?.length||0)!==1?'s':''} · {pendingImport.parsed.exercises?.length||0} exercises</div>
             <div style={{fontSize:11,color:C.tm,marginTop:4}}>{pendingImport.fileName}</div>
             {pendingImport.parsed.plans?.map(p=><div key={p.id} style={{fontSize:12,color:C.ac,marginTop:4}}>• {p.name} — {p.days?.length||0} days</div>)}
@@ -661,7 +661,7 @@ function AuthedApp() {
           <div style={{maxHeight:300,overflow:"auto",marginBottom:16}}>
             {trainees.filter(t=>t.status!=="Archived").map(t=>{
               const sel=importSelectedTrainees.includes(t.id);
-              return <div key={t.id} onClick={()=>toggleImportTrainee(t.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:0,cursor:"pointer",background:'transparent',border:`${sel?'1px':'0.25px'} solid ${sel?C.ac:C.ac+'4D'}`,marginBottom:4,transition:"all .15s"}}>
+              return <div key={t.id} onClick={()=>toggleImportTrainee(t.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:0,cursor:"pointer",background:'var(--c-sf)',border:`${sel?'1px':'0.25px'} solid ${sel?C.ac:C.ac+'4D'}`,marginBottom:4,transition:"all .15s"}}>
                 <div style={{width:18,height:18,borderRadius:0,border:`1px solid ${sel?C.ac:C.ac+'4D'}`,background:sel?C.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {sel&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
                 </div>

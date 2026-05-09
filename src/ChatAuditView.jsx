@@ -116,7 +116,7 @@ export default function ChatAuditView() {
           </div>
         </div>
         <button onClick={reload}
-          style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>↻ REFRESH</button>
+          style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>↻ REFRESH</button>
       </div>
 
       {/* Filter row */}
@@ -124,7 +124,7 @@ export default function ChatAuditView() {
         {['all', 'expo-app', 'expo-il'].map(s => (
           <button key={s} onClick={() => setSiteFilter(s)}
             style={{
-              background: 'transparent',
+              background: 'var(--c-sf)',
               border: `${siteFilter === s ? '1px' : '0.25px'} solid ${siteFilter === s ? C.ac : C.ac+'4D'}`,
               color: siteFilter === s ? C.ac : C.tm,
               borderRadius: 0, padding: '6px 12px',
@@ -133,7 +133,7 @@ export default function ChatAuditView() {
         ))}
         <button onClick={() => setShowErrorsOnly(v => !v)}
           style={{
-            background: 'transparent',
+            background: 'var(--c-sf)',
             border: `${showErrorsOnly ? '1px' : '0.25px'} solid ${showErrorsOnly ? C.rd : C.ac+'4D'}`,
             color: showErrorsOnly ? C.rd : C.tm,
             borderRadius: 0, padding: '6px 12px',
@@ -141,14 +141,14 @@ export default function ChatAuditView() {
           }}>⚠ ERRORS ONLY</button>
         <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter by message text…"
           style={{
-            background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+            background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
             padding: '7px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
             outline: 'none', minWidth: 220, marginLeft: 'auto',
           }} />
       </div>
 
       {grouped.length === 0 ? (
-        <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>
             {migrationMissing ? 'MIGRATION NOT APPLIED' : 'NO CHAT TURNS YET'}
           </div>
@@ -163,7 +163,7 @@ export default function ChatAuditView() {
           {grouped.map(g => (
             <div key={g.sessionId || g.startedAt}
               style={{
-                background: 'transparent',
+                background: 'var(--c-sf)',
                 border: `0.25px solid ${g.errorCount > 0 ? C.rd : C.ac+'4D'}`,
                 borderRadius: 0, overflow: 'hidden',
               }}>
@@ -174,7 +174,7 @@ export default function ChatAuditView() {
                 background: 'transparent', fontSize: 11,
               }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'transparent', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{g.site.toUpperCase()}</span>
+                  <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{g.site.toUpperCase()}</span>
                   <span style={{ fontFamily: FB, color: C.tm }}>{g.turns.length} turn{g.turns.length === 1 ? '' : 's'}</span>
                   {g.errorCount > 0 && (
                     <span style={{ fontFamily: FN, color: C.rd, fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount} error{g.errorCount === 1 ? '' : 's'}</span>
@@ -188,7 +188,7 @@ export default function ChatAuditView() {
                   <div key={t.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{
                       alignSelf: 'flex-start', maxWidth: '85%',
-                      background: 'transparent', border: `0.25px solid ${C.cardBd}`,
+                      background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`,
                       borderRadius: 0, padding: '7px 11px',
                       fontSize: 13, lineHeight: 1.45, color: C.tx,
                       whiteSpace: 'pre-wrap', wordBreak: 'break-word',
@@ -199,7 +199,7 @@ export default function ChatAuditView() {
                     {t.error ? (
                       <div style={{
                         alignSelf: 'flex-end', maxWidth: '85%',
-                        background: 'transparent', border: `1px solid ${C.rd}`,
+                        background: 'var(--c-sf)', border: `1px solid ${C.rd}`,
                         borderRadius: 0, padding: '7px 11px',
                         fontSize: 12, lineHeight: 1.4, color: C.rd,
                       }}>
@@ -209,7 +209,7 @@ export default function ChatAuditView() {
                     ) : t.assistant_msg ? (
                       <div style={{
                         alignSelf: 'flex-end', maxWidth: '85%',
-                        background: 'transparent', border: `0.25px solid ${C.ac}`,
+                        background: 'var(--c-sf)', border: `0.25px solid ${C.ac}`,
                         borderRadius: 0, padding: '7px 11px',
                         fontSize: 13, lineHeight: 1.45, color: C.tx,
                         whiteSpace: 'pre-wrap', wordBreak: 'break-word',

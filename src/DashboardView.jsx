@@ -181,7 +181,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
           { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
         ].map((s, i) => (
-          <div key={i} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px' }}>
+          <div key={i} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px' }}>
             <SectionLabel style={{ marginBottom: 6 }}>{s.label}</SectionLabel>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}
               {s.total !== undefined && <span style={{ fontSize: 12, color: C.td, fontWeight: 400 }}> / {s.total}</span>}</div>
@@ -197,7 +197,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20, alignItems: 'start' }}>
           {onlineNow.length > 0 && (
-            <div style={{ background: 'transparent', border: `0.25px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px' }}>
+            <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px' }}>
               <SectionLabel color={C.gn} style={{ marginBottom: 8 }}>🟢 Online Now ({onlineNow.length})</SectionLabel>
               {onlineNow.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
@@ -208,7 +208,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             </div>
           )}
           {expiring.length > 0 && (
-            <div style={{ background: 'transparent', border: `0.25px solid ${C.or}`, borderRadius: 0, padding: '14px 18px' }}>
+            <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.or}`, borderRadius: 0, padding: '14px 18px' }}>
               <SectionLabel color={C.or} as="div" style={{ marginBottom: 8 }}>⚠ Expiring Packages ({expiring.length})</SectionLabel>
               {expiring.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
@@ -221,7 +221,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           {(overduePayment.length > 0 || (leads && leads.length > 0)) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {overduePayment.length > 0 && (
-                <div style={{ background: 'transparent', border: `0.25px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px' }}>
+                <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px' }}>
                   <SectionLabel color={C.rd} style={{ marginBottom: 8 }}>💰 Overdue Payment ({overduePayment.length})</SectionLabel>
                   {overduePayment.map(t => (
                     <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
@@ -239,7 +239,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                 const gateOpen = coachLeads >= COACH_GATE;
                 const gateColor = gateOpen ? C.gn : (coachLeads > 0 ? C.or : C.td);
                 return (
-                <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
+                <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <SectionLabel as="span" color={C.ac}>📩 New Leads ({leads.length})</SectionLabel>
                     <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
@@ -257,12 +257,12 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                     return (
                       <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 13 }}>
                         {isCoach && (
-                          <span title="Coach waitlist signup" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'transparent', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '2px 5px', flexShrink: 0 }}>COACH</span>
+                          <span title="Coach waitlist signup" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `0.25px solid ${C.ac}`, borderRadius: 0, padding: '2px 5px', flexShrink: 0 }}>COACH</span>
                         )}
                         <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${l.context} · ${l.source}`}>{l.email}</a>
                         <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>
-                        <button onClick={() => markLeadContacted(l.id)} title="Mark contacted" style={{ background: 'transparent', border: `0.25px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
-                        <button onClick={() => deleteLead(l.id)} title="Delete" style={{ background: 'transparent', border: `0.25px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                        <button onClick={() => markLeadContacted(l.id)} title="Mark contacted" style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
+                        <button onClick={() => deleteLead(l.id)} title="Delete" style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
                       </div>
                     );
                   })}
@@ -272,7 +272,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             </div>
           )}
           {dropoutRisk.length > 0 && (
-            <div style={{ background: 'transparent', border: `0.25px solid ${C.or}`, borderRadius: 0, padding: '14px 18px' }}>
+            <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.or}`, borderRadius: 0, padding: '14px 18px' }}>
               <SectionLabel color={C.or} as="div" style={{ marginBottom: 8 }}>💤 Dormant ({dropoutRisk.length})</SectionLabel>
               {dropoutRisk.map(t => {
                 const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
@@ -295,7 +295,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           chat_logs + leads, so they keep working even if Analytics isn't
           enabled. */}
       {funnel && (funnel.sessions || funnel.messages || funnel.total) ? (
-        <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
+        <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
             <span style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>/COACHES FUNNEL · 30D</span>
             <span style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
@@ -326,7 +326,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {sorted.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: C.td }}>No clients yet. Import your trainee list.</div>
       ) : (
-        <div style={{ overflowX: 'auto', background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0 }}>
+        <div style={{ overflowX: 'auto', background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: `0.25px solid ${C.cardBd}` }}>
@@ -377,7 +377,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
       {/* Dropout risk — below the client list */}
       {dropoutRisk.length > 0 && (
-        <div style={{ marginTop: 20, background: 'transparent', border: `0.25px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px' }}>
+        <div style={{ marginTop: 20, background: 'var(--c-sf)', border: `0.25px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px' }}>
           <SectionLabel color={C.rd} style={{ marginBottom: 8 }}>🔻 Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
           {dropoutRisk.map(t => {
             const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
@@ -395,7 +395,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
       {/* Payment summary */}
       {totalAllPaid>0&&<div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
-        <div style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"14px 20px",maxWidth:300,textAlign:'center'}}>
+        <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"14px 20px",maxWidth:300,textAlign:'center'}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4}}>Total Collected (All Time)</div>
           <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.ac}}>₪{totalAllPaid.toLocaleString()}</div>
         </div>

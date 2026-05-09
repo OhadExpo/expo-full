@@ -123,7 +123,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             const eqDifferent = eq && targetEquip && eq !== targetEquip;
             return (
               <button key={exercise.id} onClick={() => { onPick(exercise); onClose(); }} style={{
-                textAlign: 'left', background: 'transparent', border: `0.25px solid ${C.cardBd}`,
+                textAlign: 'left', background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`,
                 borderRadius: 0, padding: '12px 14px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 10,
                 transition: 'border-color 120ms, background 120ms, transform 120ms',
@@ -139,7 +139,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
                 {/* Rank index */}
                 <div style={{
                   flex: '0 0 auto', width: 24, height: 24, borderRadius: 0,
-                  background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac,
+                  background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: FN, fontSize: 11, fontWeight: 700,
                 }}>

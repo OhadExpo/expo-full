@@ -249,7 +249,7 @@ function WaitlistForm({ t }) {
           onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
           placeholder={t('wl.placeholder')}
           style={{
-            background: 'transparent', border: `0.25px solid ${C.cardBd}`,
+            background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`,
             borderRadius: 0, padding: '12px 14px', color: C.tx,
             fontFamily: FB, fontSize: 14, outline: 'none',
             flex: '1 1 220px', minWidth: 0,
@@ -281,7 +281,7 @@ function DemoEmbed({ t }) {
   return (
     <div>
       <div className="cl-embed" style={{
-        background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+        background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
         overflow: 'hidden', maxWidth: 1180, margin: '0 auto', position: 'relative',
         boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
       }}>
@@ -396,7 +396,7 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
 function FeatureCard({ tag, title, body, isHe }) {
   return (
     <div style={{
-      background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+      background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
       padding: 22, textAlign: isHe ? 'right' : 'left',
     }}>
       <div style={{
@@ -706,7 +706,7 @@ export default function CoachLanding({ lang = 'en' }) {
           maxWidth: 720, margin: '0 auto', padding: '40px 16px 80px', textAlign: 'center',
         }}>
           <div style={{
-            background: 'transparent',
+            background: 'var(--c-sf)',
             border: `1px solid ${C.ac}`, borderRadius: 0,
             padding: '36px 24px',
           }}>

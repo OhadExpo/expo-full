@@ -44,7 +44,7 @@ export default function ExercisesView({ exercises, setExercises }) {
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px' }} /></div>
         <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
-      <div style={{ background: 'transparent', border:`0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
+      <div style={{ background: 'var(--c-sf)', border:`0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
             Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}

@@ -211,7 +211,7 @@ export function LoginScreen() {
             placeholder="your@email.com"
             type="email"
             autoComplete="email"
-            style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 8, textAlign: 'center' }}
+            style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 8, textAlign: 'center' }}
           />
           <input
             value={password}
@@ -220,7 +220,7 @@ export function LoginScreen() {
             placeholder="password"
             type="password"
             autoComplete="current-password"
-            style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }}
+            style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }}
           />
           {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
           <button
@@ -298,11 +298,11 @@ export function PasswordChangeModal({ onClose }) {
         ) : (
           <>
             <input value={currentPw} onChange={e => { setCurrentPw(e.target.value); setError(''); }} type="password" placeholder="Current password" autoComplete="current-password" autoFocus
-              style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+              style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             <input value={pw} onChange={e => { setPw(e.target.value); setError(''); }} type="password" placeholder="New password" autoComplete="new-password"
-              style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+              style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             <input value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleSave()} type="password" placeholder="Confirm new password" autoComplete="new-password"
-              style={{ width: '100%', background: 'transparent', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+              style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `0.25px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
@@ -380,7 +380,7 @@ export function OfflineStatusPill() {
     <div onClick={() => { if (online) { drainQueue(); drainBlobs(); } }}
       title={offline ? "You're offline. Changes are saved locally and will sync when connection returns." : 'Replaying queued changes…'}
       style={{ position: 'fixed', bottom: 20, left: 20, display: 'flex', alignItems: 'center', gap: 8,
-        background: 'transparent', border: `1px solid ${fg}`, color: fg, borderRadius: 0,
+        background: 'var(--c-sf)', border: `1px solid ${fg}`, color: fg, borderRadius: 0,
         padding: '6px 12px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
         cursor: online ? 'pointer' : 'default', zIndex: 1500, userSelect: 'none' }}>
       <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotBg }} />
@@ -400,7 +400,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
     <button
       onClick={() => onPick(side)}
       style={{
-        background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '28px 24px',
+        background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '28px 24px',
         color: C.tx, fontFamily: FB, cursor: 'pointer', textAlign: 'center',
         display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220,
         transition: 'border-color 120ms, transform 120ms',
@@ -450,7 +450,7 @@ export function UnauthorizedScreen({ email, onSignOut }) {
           </div>
           <button
             onClick={onSignOut}
-            style={{ marginTop: 20, background: 'transparent', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '10px 20px', color: C.rd, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
+            style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '10px 20px', color: C.rd, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
           >
             Sign Out
           </button>
@@ -471,5 +471,5 @@ const wrapStyle = {
 };
 
 const cardStyle = {
-  background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 28,
+  background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 28,
 };

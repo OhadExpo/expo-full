@@ -220,7 +220,7 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
             {icsUrl ? 'CONNECT CALENDAR · UPDATE' : 'CONNECT CALENDAR · ONE-TIME'}
           </div>
           {icsUrl && <button onClick={() => setShowSettings(false)}
-            style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
             ✕ CANCEL
           </button>}
         </div>
@@ -238,17 +238,17 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
           onChange={e => setDraftUrl(e.target.value)}
           placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
           autoFocus
-          style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none', marginTop: 12 }}
+          style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none', marginTop: 12 }}
         />
         {setupError && <div style={{ color: C.rd, fontFamily: FN, fontSize: 11, marginTop: 6 }}>{setupError}</div>}
         <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <button onClick={saveIcsUrl} disabled={savingUrl}
-            style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, padding: '8px 18px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', cursor: savingUrl ? 'wait' : 'pointer', borderRadius: 0, textTransform: 'uppercase', opacity: savingUrl ? 0.5 : 1 }}>
+            style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, padding: '8px 18px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', cursor: savingUrl ? 'wait' : 'pointer', borderRadius: 0, textTransform: 'uppercase', opacity: savingUrl ? 0.5 : 1 }}>
             {savingUrl ? 'CONNECTING…' : 'CONNECT'}
           </button>
           {icsUrl && (
             <button onClick={removeIcsUrl}
-              style={{ background: 'transparent', border: `0.25px solid ${C.rd}`, color: C.rd, padding: '8px 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+              style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.rd}`, color: C.rd, padding: '8px 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
               DISCONNECT
             </button>
           )}
@@ -333,12 +333,12 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
           </span>
           <button onClick={triggerSync}
             title="Force an immediate calendar resync (otherwise runs every 10 min)"
-            style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
             ↻ Sync Now
           </button>
           <button onClick={() => setShowSettings(true)}
             title="Update or disconnect the iCal URL"
-            style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
             ⚙
           </button>
         </div>

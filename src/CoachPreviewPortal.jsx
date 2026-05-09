@@ -85,7 +85,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
           <div style={{fontFamily:FB,fontSize:13,color:C.tx,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerLabel}</div>
           <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.04em',whiteSpace:'nowrap'}}>· edits sandboxed</div>
         </div>
-        <button onClick={onBack} style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,padding:'6px 14px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',borderRadius:0}}>← BACK TO COACH</button>
+        <button onClick={onBack} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,padding:'6px 14px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',borderRadius:0}}>← BACK TO COACH</button>
       </div>
       <ClientPortal
         clientId={resolvedTraineeId || 'preview'}
