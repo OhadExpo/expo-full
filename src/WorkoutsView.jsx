@@ -88,7 +88,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           return<Card key={p.id}><div style={{fontWeight:600,color:C.tx,marginBottom:8}}>{p.name} {trainee&&<span style={{fontWeight:400,color:C.tm}}>— {trainee.name}</span>}</div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"4px 12px"}}>▶ {dName}</Btn>)}</div></Card>})}</div>)}
       {inProgress.length>0&&<><h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.or,textTransform:"uppercase",letterSpacing:'0.18em',marginBottom:12}}>In Progress ({inProgress.length})</h3>
-        {inProgress.map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId); return<Card key={w.id} onClick={()=>setActiveWorkout(w.id)} style={{marginBottom:8,borderColor:C.or+"40"}}>
+        {inProgress.map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId); return<Card key={w.id} onClick={()=>setActiveWorkout(w.id)} style={{marginBottom:8,borderColor:rgba(255,165,2,0.251)}}>
           <div style={{fontWeight:600,color:C.tx}}>{w.dayName}</div><div style={{fontSize:12,color:C.tm}}>{trainee?.name||"—"} · {new Date(w.date).toLocaleDateString()}</div></Card>})}</>}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:20,marginBottom:12}}>
         <h3 style={{fontFamily:FN,fontSize:12,color:C.td,textTransform:"uppercase",margin:0}}>Completed ({completed.length})</h3>

@@ -657,7 +657,7 @@ function ClientPortalMock({ onPick }) {
         {DAYS.map((day, di) => {
           const done = !!doneDays[day.name];
           return (
-            <div key={di} style={{ background: C.sf, border: `0.25px solid ${done ? C.gn + '40' : C.ac}`, borderRadius: 0, marginBottom: 12, padding: '14px 18px' }}>
+            <div key={di} style={{ background: C.sf, border: `0.25px solid ${done ? rgba(46,213,115,0.251) : C.ac}`, borderRadius: 0, marginBottom: 12, padding: '14px 18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <div>
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{day.name}</span>
@@ -1247,7 +1247,7 @@ function ExercisePicker({ pov, onPick }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontFamily: FB, fontSize: 16, color: C.ac, fontWeight: 700 }}>{resolvedJoint}</span>
               {joint === 'AUTO' && (
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: C.gn + '20', borderRadius: 0 }}>AUTO</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: rgba(46,213,115,0.125), borderRadius: 0 }}>AUTO</span>
               )}
             </div>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>
