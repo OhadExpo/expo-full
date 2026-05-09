@@ -59,8 +59,12 @@
   --c-sf: #FFFFFF;                /* card surface — bright white, lifts off bg */
   --c-sf2: #F4F6F9;               /* secondary surface (input fills, hover rows) */
   --c-sf3: #E0E4EA;               /* pressed/sunken surface */
-  --c-bd: #B8BDC4;                /* primary border — visible weight, parity with dark mode's #2a2a32 on black */
-  --c-bd2: #8B9097;               /* stronger divider */
+  /* Borders use the BSG cyan with alpha — same approach as dark mode where
+     `rgba(57,189,255,0.30)` reads as a subtle brand-tinted glow. On white
+     bg the same alpha looks like a faint cyan hint, restoring the
+     brand-identity feel that pure neutral grays were losing. */
+  --c-bd: rgba(57,189,255,0.40);  /* primary border — cyan tint, visible on white */
+  --c-bd2: rgba(57,189,255,0.60); /* stronger divider */
   --c-tx: #0E0F12;                /* near-black, premium feel */
   --c-tm: #5F6368;                /* muted body — Google-style cool gray */
   --c-td: #9AA0A6;                /* faint helper text */
@@ -69,7 +73,7 @@
   --c-acText: #0E8FD3;            /* same as ac — kept for code clarity */
   --c-acSurface: #39BDFF;         /* BSG-sanctioned bright cyan panel fill (rare — hero CTAs) */
   --c-acOnSurface: #000000;       /* black text on cyan panels (10.4:1 AAA) */
-  --c-cardBd: #B8BDC4;            /* card border in light mode — visible neutral, gives cards a real edge */
+  --c-cardBd: rgba(57,189,255,0.35); /* card border in light mode — BSG cyan with alpha, parity with dark's brand-tint glow */
   --c-rd: #D62839;
   --c-rdD: rgba(214,40,57,0.10);
   --c-gn: #1E9E5C;
