@@ -1247,7 +1247,7 @@ function ExercisePicker({ pov, onPick }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontFamily: FB, fontSize: 16, color: C.ac, fontWeight: 700 }}>{resolvedJoint}</span>
               {joint === 'AUTO' && (
-                <span style={{ fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: rgba(46,213,115,0.125), borderRadius: 0 }}>AUTO</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700, padding: '2px 6px', background: 'rgba(46,213,115,0.125)', borderRadius: 0 }}>AUTO</span>
               )}
             </div>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, fontWeight: 600 }}>

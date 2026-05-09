@@ -2568,7 +2568,7 @@ function DemoWorkouts() {
         <>
           <h3 style={{ ...sectionH, color: C.or, marginBottom: 12 }}>In Progress ({MOCK_IN_PROGRESS.length})</h3>
           {MOCK_IN_PROGRESS.map(w => (
-            <div key={w.id} style={{ ...demoCardStyle({ marginBottom: 8, borderColor: rgba(255,165,2,0.251), cursor: 'pointer' }) }}>
+            <div key={w.id} style={{ ...demoCardStyle({ marginBottom: 8, borderColor: 'rgba(255,165,2,0.251)', cursor: 'pointer' }) }}>
               <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>{w.dayName}</div>
               <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
                 {traineeName(w.traineeId)} · {new Date(w.date).toLocaleDateString()}
