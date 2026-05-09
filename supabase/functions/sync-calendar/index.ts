@@ -170,32 +170,79 @@ Deno.serve(async (req: Request) => {
     return new Response("ok", { headers: CORS_HEADERS });
   }
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // Test mode — accept a URL via the request body, fetch + parse it, return
+  // the EXPO event count without writing anything to Supabase. The panel
+  // calls this before storing the URL so a paste that returns zero events
+  // (e.g. the calendar UI URL the user landed on by accident) gets
+  // rejected up-front instead of silently saving and breaking the cron.
+  let testUrl: string | null = null;
+  if (req.method === "POST") {
+    try {
+      const body = await req.json().catch(() => null);
+      if (body && typeof body.testUrl === "string" && body.testUrl) testUrl = body.testUrl;
+    } catch { /* ignore */ }
+  }
+
   try {
-    const { data: urlRow } = await supabase
-      .from("store").select("value").eq("key", "expo-calendar-ics-url").maybeSingle();
-    const url: string | undefined = urlRow?.value?.url;
+    let url: string | undefined;
+    if (testUrl) {
+      url = testUrl;
+    } else {
+      const { data: urlRow } = await supabase
+        .from("store").select("value").eq("key", "expo-calendar-ics-url").maybeSingle();
+      url = urlRow?.value?.url;
+    }
     if (!url) {
       // Stamp the sync row even on this branch so the dashboard's
       // "synced Xm ago" advances when the user clicks Sync Now — otherwise
       // the timestamp looks broken when in fact the function did run.
-      await stampSync(supabase, 0, "No iCal URL configured. Paste it in the dashboard.");
+      if (!testUrl) await stampSync(supabase, 0, "No iCal URL configured. Paste it in the dashboard.");
       return corsJson({ ok: false, error: "No iCal URL configured. Paste it in the EXPO dashboard panel." }, 503);
     }
 
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 15000);
     let text: string;
+    let contentType = "";
     try {
       const r = await fetch(url, { signal: ctrl.signal, headers: { "user-agent": "expo-edge-cron/1.0" } });
       if (!r.ok) {
-        await stampSync(supabase, 0, `ICS fetch ${r.status}`);
+        if (!testUrl) await stampSync(supabase, 0, `ICS fetch ${r.status}`);
         return corsJson({ ok: false, error: `ICS fetch failed: ${r.status}` }, 502);
       }
+      contentType = r.headers.get("content-type") || "";
       text = await r.text();
     } finally { clearTimeout(timeout); }
 
+    // Sanity check: the URL must look like an iCal feed. The Calendar UI URL
+    // (https://calendar.google.com/calendar/u/0/r) returns text/html with an
+    // empty body — it's a redirect-app, not a feed — so a content-type that
+    // isn't "text/calendar" plus no BEGIN:VCALENDAR is a sure sign of a
+    // bad paste. Surface that as a clear error rather than upserting zero
+    // events silently.
+    const looksLikeIcal = /text\/calendar|application\/calendar/i.test(contentType) ||
+                          /\bBEGIN:VCALENDAR\b/.test(text);
+    if (!looksLikeIcal) {
+      const msg = "URL does not return iCal data. Make sure it's the 'Secret address in iCal format' from Google Calendar settings (the URL ends in .ics).";
+      if (!testUrl) await stampSync(supabase, 0, msg);
+      return corsJson({ ok: false, error: msg, contentType, sample: text.slice(0, 120) }, 422);
+    }
+
     const allEvents = parseIcs(text);
     const expoEvents = allEvents.filter(isExpoSession);
+
+    if (testUrl) {
+      // Don't write — just report. The panel uses this to validate before
+      // saving the URL into store.
+      return corsJson({
+        ok: true,
+        test: true,
+        totalEvents: allEvents.length,
+        expoEvents: expoEvents.length,
+        sampleSummaries: expoEvents.slice(0, 5).map((e) => e.summary || "").filter(Boolean),
+      });
+    }
 
     const { data: traineesRow } = await supabase
       .from("store").select("value").eq("key", "expo-trainees").maybeSingle();

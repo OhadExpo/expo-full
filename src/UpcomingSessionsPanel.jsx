@@ -159,12 +159,35 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
   const saveIcsUrl = useCallback(async () => {
     const url = String(draftUrl || '').trim();
     if (!url) { setSetupError('Paste a URL first.'); return; }
-    if (!/^https:\/\/calendar\.google\.com\//i.test(url)) {
-      setSetupError("Doesn't look like a Google Calendar URL. It should start with https://calendar.google.com/");
+    // Strict shape check: only the actual iCal feed URL is allowed. The
+    // Calendar UI URL (https://calendar.google.com/calendar/u/0/r) starts
+    // with the same host but isn't a feed — it returns HTML, not iCal.
+    // Catching this client-side prevents the previous "stored URL works
+    // but yields zero events" silent failure mode.
+    if (!/^https:\/\/calendar\.google\.com\/calendar\/ical\//i.test(url) || !/\.ics(\?.*)?$/i.test(url)) {
+      setSetupError("That doesn't look like the iCal feed URL. The right one starts with https://calendar.google.com/calendar/ical/ and ends in .ics. Open Google Calendar → Settings → your calendar → Integrate calendar → copy 'Secret address in iCal format'.");
       return;
     }
     setSavingUrl(true); setSetupError(null);
     try {
+      // Live preflight: ask the edge function to fetch the URL and verify
+      // it returns parseable iCal with at least one EXPO event. If not,
+      // refuse to save — better to fail here than store a broken URL
+      // and have the dashboard show "synced 5m ago, 0 events" forever.
+      const probe = await fetch(`${SUPABASE_FUNCTIONS_BASE}/sync-calendar`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ testUrl: url }),
+      });
+      const probeJson = await probe.json().catch(() => ({}));
+      if (!probe.ok) {
+        setSetupError(probeJson?.error || `Test fetch failed (status ${probe.status}).`);
+        setSavingUrl(false);
+        return;
+      }
+      if ((probeJson.totalEvents | 0) === 0) {
+        setSetupError("Fetched the URL but it returned zero events. Double-check that this is the right calendar's iCal URL (the one with your training sessions on it).");
+        setSavingUrl(false);
+        return;
+      }
       const { error: e } = await supabase.from('store').upsert({
         key: 'expo-calendar-ics-url',
         value: { url, configured_at: new Date().toISOString() },
