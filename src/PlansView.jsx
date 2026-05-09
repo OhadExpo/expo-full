@@ -382,7 +382,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             compare side — load values change every block and
                             aren't useful for delta-scanning. Same column
                             template otherwise. */}
-                        <div style={{display:'grid',gridTemplateColumns:'36px minmax(160px,3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(48px,60px) minmax(100px,1.6fr) 24px',gap:'6px 8px',fontSize:12,alignItems:'center',minWidth:554}}>
+                        <div style={{display:'grid',gridTemplateColumns:'36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(48px,60px) minmax(80px,1.3fr) 24px',gap:'6px 8px',fontSize:12,alignItems:'center',minWidth:554}}>
                           {['#','EXERCISE','GRP','SETS','REPS','RPE','TEMPO',''].map((h,hi) =>
                             hi === 0 ? (
                               <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -622,7 +622,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.18em',marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"36px minmax(160px,3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(60px,80px) minmax(48px,60px) minmax(100px,1.6fr) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:614}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:614}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -717,7 +717,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 <span style={{fontFamily:FN,fontSize:12,color:C.tm,fontWeight:700,lineHeight:1}}>{exIdx+1}</span>
               </div>
               <div style={{overflowX:"auto"}}>
-                <div style={{display:"grid",gridTemplateColumns:"4fr 1fr 1fr 1.5fr 1fr 1fr 2fr auto",minWidth:780,gap:12,alignItems:"end"}}>
+                <div style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr auto",minWidth:780,gap:12,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
                   <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise." style={{minWidth:0}}>
                     <Select label="Superset" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />

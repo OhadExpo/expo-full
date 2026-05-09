@@ -1629,7 +1629,7 @@ function DemoPrograms() {
                   <div style={{ overflowX: 'auto' }}>
                     {/* Multi-input grid mirroring PlansView line 720:
                         EXERCISE / SUPERSET / SETS / REPS / LOAD / RPE / TEMPO / trash. */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '4fr 1fr 1fr 1.5fr 1fr 1fr 2fr auto', minWidth: 780, gap: 12, alignItems: 'end' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr auto', minWidth: 780, gap: 12, alignItems: 'end' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                         <label style={labelStyle}>Exercise</label>
                         <input value={e.name || ''} readOnly tabIndex={-1} style={inputStyleRO} />
@@ -1718,7 +1718,7 @@ function DemoPrograms() {
                     style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '3px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', marginLeft: 'auto' }}>DETAIL ▸</button>
                 </div>
                 <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(160px,3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(100px,1.6fr) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(80px,1.3fr) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
                     {['#', 'EXERCISE', 'GRP', 'SETS', 'REPS', 'TEMPO', 'WAVE', ''].map((h, hi) =>
                       hi === 0 ? (
                         <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
@@ -1861,7 +1861,7 @@ function DemoPrograms() {
                     <span style={{ color: C.td, fontSize: 12, whiteSpace: 'nowrap' }}>({d.exercises.length} ex)</span>
                   </div>
                   <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(160px,3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(100px,1.6fr) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(80px,1.3fr) minmax(56px,72px) 24px', gap: '6px 8px', fontSize: 12, alignItems: 'center', minWidth: 560 }}>
                       {['#', 'EXERCISE', 'GRP', 'SETS', 'REPS', 'TEMPO', 'WAVE', ''].map((h, hi) =>
                         hi === 0 ? (
                           <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
