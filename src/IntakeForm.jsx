@@ -28,7 +28,7 @@ const labelDir = (s) => (RTL_CHARS.test(String(s || '')) ? 'rtl' : 'ltr');
 function Field({ q, value, onChange, dir }) {
   const inputBase = {
     width: '100%', boxSizing: 'border-box',
-    background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+    background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
     padding: '10px 12px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none',
     direction: dir,
   };
@@ -218,7 +218,7 @@ export default function IntakeForm() {
   };
   const card = {
     width: '100%', maxWidth: 720,
-    background: 'transparent', border: `0.25px solid ${C.ac}4D`, padding: '32px 28px',
+    background: 'transparent', border: `0.25px solid ${C.cardBd}`, padding: '32px 28px',
     direction: dir, fontFamily: dir === 'rtl' ? FH : FB,
   };
 

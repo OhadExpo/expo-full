@@ -181,7 +181,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
           { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
         ].map((s, i) => (
-          <div key={i} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '14px 18px' }}>
+          <div key={i} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px' }}>
             <SectionLabel style={{ marginBottom: 6 }}>{s.label}</SectionLabel>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}
               {s.total !== undefined && <span style={{ fontSize: 12, color: C.td, fontWeight: 400 }}> / {s.total}</span>}</div>
@@ -295,7 +295,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           chat_logs + leads, so they keep working even if Analytics isn't
           enabled. */}
       {funnel && (funnel.sessions || funnel.messages || funnel.total) ? (
-        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
             <span style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>/COACHES FUNNEL · 30D</span>
             <span style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
@@ -326,10 +326,10 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {sorted.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: C.td }}>No clients yet. Import your trainee list.</div>
       ) : (
-        <div style={{ overflowX: 'auto', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0 }}>
+        <div style={{ overflowX: 'auto', background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: `0.25px solid ${C.ac}4D` }}>
+              <tr style={{ borderBottom: `0.25px solid ${C.cardBd}` }}>
                 <SH k="name" label="Athlete" />
                 <SH k="status" label="Status" />
                 <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Format</th>
@@ -344,7 +344,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             <tbody>
               {sorted.map(t => (
                 <tr key={t.id} onClick={() => onSelectTrainee(t.id)}
-                  style={{ borderBottom: `0.25px solid ${C.ac}4D`, cursor: 'pointer', transition: 'background 0.1s' }}
+                  style={{ borderBottom: `0.25px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = C.sf2}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '12px', fontWeight: 600, color: C.tx }}>{t.name}</td>
@@ -395,7 +395,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
       {/* Payment summary */}
       {totalAllPaid>0&&<div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
-        <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:"14px 20px",maxWidth:300,textAlign:'center'}}>
+        <div style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"14px 20px",maxWidth:300,textAlign:'center'}}>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4}}>Total Collected (All Time)</div>
           <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.ac}}>₪{totalAllPaid.toLocaleString()}</div>
         </div>

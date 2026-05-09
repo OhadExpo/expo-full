@@ -116,7 +116,7 @@ export default function ChatAuditView() {
           </div>
         </div>
         <button onClick={reload}
-          style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>↻ REFRESH</button>
+          style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em' }}>↻ REFRESH</button>
       </div>
 
       {/* Filter row */}
@@ -141,14 +141,14 @@ export default function ChatAuditView() {
           }}>⚠ ERRORS ONLY</button>
         <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter by message text…"
           style={{
-            background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+            background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
             padding: '7px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
             outline: 'none', minWidth: 220, marginLeft: 'auto',
           }} />
       </div>
 
       {grouped.length === 0 ? (
-        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>
             {migrationMissing ? 'MIGRATION NOT APPLIED' : 'NO CHAT TURNS YET'}
           </div>
@@ -169,7 +169,7 @@ export default function ChatAuditView() {
               }}>
               {/* Session header */}
               <div style={{
-                padding: '8px 14px', borderBottom: `0.25px solid ${C.ac}4D`,
+                padding: '8px 14px', borderBottom: `0.25px solid ${C.cardBd}`,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 background: 'transparent', fontSize: 11,
               }}>
@@ -188,7 +188,7 @@ export default function ChatAuditView() {
                   <div key={t.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{
                       alignSelf: 'flex-start', maxWidth: '85%',
-                      background: 'transparent', border: `0.25px solid ${C.ac}4D`,
+                      background: 'transparent', border: `0.25px solid ${C.cardBd}`,
                       borderRadius: 0, padding: '7px 11px',
                       fontSize: 13, lineHeight: 1.45, color: C.tx,
                       whiteSpace: 'pre-wrap', wordBreak: 'break-word',

@@ -155,7 +155,7 @@ function DayPair({ day, exercises, showSame }) {
         <div style={{ fontFamily: FN, fontSize: 11, color: C.gn, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 6 }}>
           + Day added: {day.name}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: `${C.ac}1a` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: `rgba(57,189,255,0.102)` }}>
           <div style={{ background: C.bg }}>
             <div style={{ padding: '8px 10px', color: C.td, fontFamily: FB, fontSize: 12, fontStyle: 'italic' }}>(not in plan A)</div>
           </div>
@@ -174,7 +174,7 @@ function DayPair({ day, exercises, showSame }) {
         <div style={{ fontFamily: FN, fontSize: 11, color: C.rd, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 6 }}>
           − Day removed: {day.name}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: `${C.ac}1a` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: `rgba(57,189,255,0.102)` }}>
           <div style={{ background: C.bg }}>
             {(day.day.exercises || []).map((ex, i) => (
               <ExCell key={ex.id || i} ex={ex} side="a" kind="removed" changes={[]} exercises={exercises} />
@@ -199,7 +199,7 @@ function DayPair({ day, exercises, showSame }) {
         {!!c.changed && <span style={{ fontFamily: FN, fontSize: 10, color: C.or, fontWeight: 700 }}>~{c.changed}</span>}
         {!!c.same && <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 600 }}>={c.same}</span>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: `${C.ac}26`, border: `0.25px solid ${C.ac}4D` }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: `rgba(57,189,255,0.149)`, border: `0.25px solid ${C.cardBd}` }}>
         {visibleRows.map((row, i) => (
           <React.Fragment key={i}>
             <div style={{ background: C.bg }}>
@@ -262,7 +262,7 @@ export default function PlanDiff({ open, onClose, traineePlans, exercises }) {
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{label}</div>
       <select value={value || ''} onChange={e => onChange(e.target.value || null)}
-        style={{ width: '100%', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
+        style={{ width: '100%', background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }}>
         <option value="">(none)</option>
         {(traineePlans || []).map(p => (
           <option key={p.id} value={p.id}>{p.name}</option>
@@ -273,10 +273,10 @@ export default function PlanDiff({ open, onClose, traineePlans, exercises }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 30, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.ac}4D`, borderRadius: 0, width: 'min(1180px, 96vw)', maxHeight: '92vh', overflow: 'auto', padding: 24 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, width: 'min(1180px, 96vw)', maxHeight: '92vh', overflow: 'auto', padding: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 14, color: C.tx, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>↔ Plan Diff</h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 14, flexWrap: 'wrap' }}>
@@ -294,7 +294,7 @@ export default function PlanDiff({ open, onClose, traineePlans, exercises }) {
           </div>
         ) : (
           <>
-            <div style={{ display: 'flex', gap: 16, padding: '8px 12px', border: `0.25px solid ${C.ac}4D`, marginBottom: 14, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 16, padding: '8px 12px', border: `0.25px solid ${C.cardBd}`, marginBottom: 14, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', flexWrap: 'wrap' }}>
               <span style={{ color: C.gn }}>+ {totals.added} added</span>
               <span style={{ color: C.rd }}>− {totals.removed} removed</span>
               <span style={{ color: C.or }}>~ {totals.changed} changed</span>
@@ -303,7 +303,7 @@ export default function PlanDiff({ open, onClose, traineePlans, exercises }) {
             </div>
 
             {/* Column headers — show plan names on each side. */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: `${C.ac}26`, border: `0.25px solid ${C.ac}4D`, marginBottom: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: `rgba(57,189,255,0.149)`, border: `0.25px solid ${C.cardBd}`, marginBottom: 14 }}>
               <div style={{ background: C.bg, padding: '8px 10px' }}>
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>PLAN A</div>
                 <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 600, marginTop: 2 }}>{planA.name}</div>

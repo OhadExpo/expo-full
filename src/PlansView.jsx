@@ -36,7 +36,7 @@ function PatternCoverage({ plan, exercises }) {
   }, [plan.days, exercises]);
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
   if (exercises.length === 0) return null;
-  return (<div style={{ background: 'transparent', border:`0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
+  return (<div style={{ background: 'transparent', border:`0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
     <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={pats.has(p) ? {} : {fontWeight:500,opacity:0.65}}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
@@ -113,10 +113,10 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border:`0.25px solid ${C.ac}4D`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border:`0.25px solid ${C.cardBd}`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px 12px' }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700 }}>{title || 'Select Exercise'}</h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>
         <div style={{ padding: '0 22px' }}>
           <input
@@ -224,7 +224,7 @@ function WarmupEditor({ plan, setPlan }) {
   const add = () => { setOpen(true); setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] })); };
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   return (
-    <div style={{ background: 'transparent', border:`0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
+    <div style={{ background: 'transparent', border:`0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: open && warmup.length ? 10 : 0 }}>
         <button onClick={() => setOpen(o => !o)} title={open ? 'Collapse warm-up' : 'Expand warm-up'}
           style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8 }}>
@@ -325,7 +325,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
             placeholder={selectedAthleteId ? (candidates.length ? 'Pick program…' : 'No programs for this athlete') : 'Choose athlete first'} />
         </div>
         <button onClick={onClose} title="Close compare panel"
-          style={{position:'absolute', top:-2, right:-2, background:C.bg, border:`0.25px solid ${C.ac}4D`, color:C.tm, cursor:'pointer', padding:'1px 6px', borderRadius:0, fontSize:11, lineHeight:1, zIndex:2}}>✕</button>
+          style={{position:'absolute', top:-2, right:-2, background:C.bg, border:`0.25px solid ${C.cardBd}`, color:C.tm, cursor:'pointer', padding:'1px 6px', borderRadius:0, fontSize:11, lineHeight:1, zIndex:2}}>✕</button>
       </div>
       {!selectedAthleteId ? (
         <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick an athlete from the filter above to compare.</div>
@@ -343,7 +343,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           <PatternCoverage plan={cmpPlan} exercises={exercises} />
               {/* Warm-up (foldable, mirrors editor). */}
               {Array.isArray(cmpPlan.warmup) && cmpPlan.warmup.length > 0 && (
-                <div style={{border:`0.25px solid ${C.ac}4D`, padding:10, marginBottom:12}}>
+                <div style={{border:`0.25px solid ${C.cardBd}`, padding:10, marginBottom:12}}>
                   <button onClick={() => setWarmOpen(o => !o)}
                     style={{background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8}}>
                     <span style={{fontSize:10, color:C.or, fontFamily:FN, fontWeight:700, width:10, textAlign:'center'}}>{warmOpen ? '▾' : '▸'}</span>
@@ -351,7 +351,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                   </button>
                   {warmOpen && <div style={{marginTop:8}}>
                     {cmpPlan.warmup.map((w, i) => (
-                      <div key={i} style={{display:'grid', gridTemplateColumns:'24px 2fr 1fr', gap:8, padding:'4px 0', alignItems:'center', borderTop:i === 0 ? 'none' : `0.25px solid ${C.ac}1A`}}>
+                      <div key={i} style={{display:'grid', gridTemplateColumns:'24px 2fr 1fr', gap:8, padding:'4px 0', alignItems:'center', borderTop:i === 0 ? 'none' : `0.25px solid rgba(57,189,255,0.102)`}}>
                         <div style={{fontFamily:FN, fontSize:11, color:C.tm, fontWeight:700, textAlign:'center'}}>{i + 1}</div>
                         <div style={{fontSize:13, color:C.tx, fontFamily:FB, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{w.t || '—'}</div>
                         <div style={{fontSize:12, color:C.tm, fontFamily:FN}}>{w.rx || '—'}</div>
@@ -368,7 +368,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                 const dayExs = d.exercises || [];
                 const tinyInputRO = {...baseInput, padding:'3px 6px', fontSize:11, minWidth:0, width:'100%', boxSizing:'border-box', color:C.tm, cursor:'default'};
                 return (
-                  <div key={d.id || di} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:12}}>
+                  <div key={d.id || di} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
                     <div style={{display:'flex',alignItems:'center',marginBottom:8,gap:10}}>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
@@ -548,7 +548,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   onSwitchProgram(nextId);
                 }}
                   title="Switch to another program for this athlete"
-                  style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
                   {sameAthlete.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
                 </select>
                 <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
@@ -604,7 +604,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             same font sizing — uses a plain <button> rather than <Btn> so the
             ghost variant's slimmer 6/12 padding doesn't shorten the row. */}
         <button onClick={addDay} title="Add day"
-          style={{padding:"8px 16px",fontSize:12,borderRadius:0,border:`0.25px solid ${C.ac}4D`,background:'transparent',color:C.ac,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>+</button>
+          style={{padding:"8px 16px",fontSize:12,borderRadius:0,border:`0.25px solid ${C.cardBd}`,background:'transparent',color:C.ac,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>+</button>
       </div>}
       {overview && <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
         {plan.days.map((d, dayIdx) => {
@@ -613,13 +613,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           return (
-            <div key={d.id} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12}}>
+            <div key={d.id} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
               <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
                 <span style={{color:C.td,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
                 <button onClick={()=>{setActiveDay(dayIdx);setOverview(false)}} title="Open this day in the detail editor — needed to add exercises, change the exercise itself, or edit notes/URL"
-                  style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.18em',marginLeft:"auto"}}>DETAIL ▸</button>
+                  style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.18em',marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
                 <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"36px minmax(140px,2fr) 56px minmax(80px,1fr) minmax(80px,1.2fr) minmax(60px,80px) minmax(48px,60px) minmax(56px,72px) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:614}}>
@@ -833,7 +833,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   // to 4, hiding focus inputs for weeks 5+ on longer plans.
                   const weeks = plan.weeks || 4;
                   return (
-                    <div style={{marginTop:6,background:'transparent',borderRadius:0,padding:"10px 12px",border:`0.25px solid ${C.ac}4D`}}>
+                    <div style={{marginTop:6,background:'transparent',borderRadius:0,padding:"10px 12px",border:`0.25px solid ${C.cardBd}`}}>
                       <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:8,letterSpacing:'0.18em',textAlign:'center'}}>WEEKLY FOCUS</div>
                       {/* Bigger, expandable boxes. minmax(180,1fr) keeps each
                           cell wide enough to actually write a sentence
@@ -1164,7 +1164,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               );
             }
             return (
-              <div key={row.tid} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}>
+              <div key={row.tid} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0}}>
                 {/* Current-block row — clicking opens the plan editor. */}
                 <div onClick={()=>handleOpenPlan(cur.id)}
                   onMouseEnter={e => {
@@ -1184,7 +1184,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {row.earlier.length > 0 && (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                        style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:'pointer',padding:'3px 8px',fontFamily:FN,fontSize:11,fontWeight:600,letterSpacing:'0.04em',whiteSpace:'nowrap',minWidth:34,textAlign:'center'}}>
+                        style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',padding:'3px 8px',fontFamily:FN,fontSize:11,fontWeight:600,letterSpacing:'0.04em',whiteSpace:'nowrap',minWidth:34,textAlign:'center'}}>
                         {expanded?`▴ ${row.earlier.length}`:`▾ +${row.earlier.length}`}
                       </button>
                     )}
@@ -1206,14 +1206,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                       </button>;
                     })()}
-                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
-                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
+                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
+                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
                     visual treatment so the eye stays on the current block. */}
                 {expanded && row.earlier.length > 0 && (
-                  <div style={{borderTop:`0.25px solid ${C.ac}4D`,padding:'4px 0'}}>
+                  <div style={{borderTop:`0.25px solid ${C.cardBd}`,padding:'4px 0'}}>
                     {row.earlier.map(p => (
                       <div key={p.id} onClick={()=>handleOpenPlan(p.id)}
                         onMouseEnter={e => {
@@ -1222,7 +1222,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 220);
                         }}
                         onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                        style={{cursor:'pointer',padding:'7px 14px 7px 32px',display:'flex',alignItems:'center',gap:8,opacity:0.78,borderTop:`0.25px solid ${C.ac}1A`}}>
+                        style={{cursor:'pointer',padding:'7px 14px 7px 32px',display:'flex',alignItems:'center',gap:8,opacity:0.78,borderTop:`0.25px solid rgba(57,189,255,0.102)`}}>
                         <div style={{flex:1,minWidth:0,fontSize:13,color:C.tm,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN}}>{p.name||"Untitled"}</div>
                         <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex</div>
                         {setPortalVis && (() => {
@@ -1233,8 +1233,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                             <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                           </button>;
                         })()}
-                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>👁</button>}
-                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>⎘</button>
+                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>👁</button>}
+                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>⎘</button>
                         <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>×</button>
                       </div>
                     ))}
@@ -1278,8 +1278,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <div style={{width:28,height:16,borderRadius:8,background:isVis?C.gn+'40':C.sf3,border:`1px solid ${isVis?C.gn+'60':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                   </button>;
                 })()}
-                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
-                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
+                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
+                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
                 <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'transparent',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>×</button>
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
@@ -1303,7 +1303,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   const ex = exercises.find(e=>e.id===pe.exerciseId);
                   const title = ex?.title || pe.title || '—';
                   return (
-                    <div key={pe.id||ei} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12,padding:'2px 0',borderBottom:`0.25px solid ${C.ac}1A`}}>
+                    <div key={pe.id||ei} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12,padding:'2px 0',borderBottom:`0.25px solid rgba(57,189,255,0.102)`}}>
                       <span style={{fontSize:11,color:C.tm,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{ei+1}. {title}</span>
                       <span style={{fontSize:10,fontFamily:FN,color:C.ac,flexShrink:0}}>{pe.sets}×{pe.reps}</span>
                     </div>

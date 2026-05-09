@@ -250,7 +250,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
         )}
 
         {rows.length === 0 ? (
-          <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
+          <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO RECORDS YET</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
               Log a few sessions with weights and your records will show up here.
@@ -275,7 +275,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 placeholder="Search an exercise…"
                 style={{
                   width: '100%', background: 'transparent',
-                  border: `1px solid ${open ? C.ac : `${C.ac}4D`}`,
+                  border: `1px solid ${open ? C.ac : `${C.cardBd}`}`,
                   borderRadius: 0, padding: '12px 14px', color: C.tx,
                   fontFamily: FB, fontSize: 15, fontWeight: 600,
                   outline: 'none', boxSizing: 'border-box', cursor: 'text',
@@ -284,7 +284,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
               {open && (
                 <div style={{
                   position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-                  background: C.bg, border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+                  background: C.bg, border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
                   maxHeight: 280, overflowY: 'auto', zIndex: 20,
                   boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
                 }}>
@@ -298,7 +298,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                       onMouseEnter={() => setHighlight(i)}
                       style={{
                         padding: '10px 14px', cursor: 'pointer',
-                        background: i === highlight ? `${C.ac}18` : (o.id === pickedId ? `${C.ac}0a` : 'transparent'),
+                        background: i === highlight ? `rgba(57,189,255,0.094)` : (o.id === pickedId ? `rgba(57,189,255,0.039)` : 'transparent'),
                         borderBottom: i < filtered.length - 1 ? `1px solid ${C.bd}22` : 'none',
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
                       }}>
@@ -340,15 +340,15 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
                   SESSION HISTORY · {picked.sessionCount} ENTR{picked.sessionCount === 1 ? 'Y' : 'IES'}
                 </div>
-                <div style={{ border: `0.25px solid ${C.ac}4D` }}>
+                <div style={{ border: `0.25px solid ${C.cardBd}` }}>
                   {picked.series.slice().reverse().map((s, i, arr) => {
                     const isPR = s.load === picked.allTimePR;
                     return (
                       <div key={i} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '10px 14px',
-                        borderBottom: i < arr.length - 1 ? `0.25px solid ${C.ac}4D` : 'none',
-                        background: isPR ? `${C.ac}0A` : 'transparent',
+                        borderBottom: i < arr.length - 1 ? `0.25px solid ${C.cardBd}` : 'none',
+                        background: isPR ? `rgba(57,189,255,0.039)` : 'transparent',
                       }}>
                         <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 70 }}>
                           {fmtDate(s.date)}

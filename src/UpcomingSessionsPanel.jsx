@@ -202,7 +202,7 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
 
   if (events == null || icsUrl == null) {
     return (
-      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.ac}4D` }}>
+      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.cardBd}` }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS</div>
         <div style={{ fontFamily: FB, fontSize: 12, color: C.td, marginTop: 8 }}>Loading…</div>
       </div>
@@ -214,13 +214,13 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
   // URL once, after which pg_cron auto-syncs every 10 minutes.
   if (icsUrl === '' || showSettings) {
     return (
-      <div style={{ marginBottom: 16, padding: '16px 20px', border: `0.25px dashed ${C.ac}80` }}>
+      <div style={{ marginBottom: 16, padding: '16px 20px', border: `0.25px dashed rgba(57,189,255,0.502)` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
             {icsUrl ? 'CONNECT CALENDAR · UPDATE' : 'CONNECT CALENDAR · ONE-TIME'}
           </div>
           {icsUrl && <button onClick={() => setShowSettings(false)}
-            style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
             ✕ CANCEL
           </button>}
         </div>
@@ -238,7 +238,7 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
           onChange={e => setDraftUrl(e.target.value)}
           placeholder="https://calendar.google.com/calendar/ical/.../basic.ics"
           autoFocus
-          style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none', marginTop: 12 }}
+          style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none', marginTop: 12 }}
         />
         {setupError && <div style={{ color: C.rd, fontFamily: FN, fontSize: 11, marginTop: 6 }}>{setupError}</div>}
         <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -280,7 +280,7 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
 
   if (enriched.length === 0) {
     return (
-      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.ac}4D` }}>
+      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.cardBd}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS</div>
           <div style={{ fontFamily: FN, fontSize: 9, color: staleColor, letterSpacing: '0.12em', fontWeight: 700 }}>{stalenessLabel}</div>
@@ -301,7 +301,7 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
         onClick={onClick}
         style={{
           display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-          borderTop: `0.25px solid ${C.ac}26`, cursor: onClick ? 'pointer' : 'default',
+          borderTop: `0.25px solid rgba(57,189,255,0.149)`, cursor: onClick ? 'pointer' : 'default',
         }}>
         <div style={{ fontFamily: FN, fontSize: 13, color: C.ac, fontWeight: 700, minWidth: 50 }}>{fmtTime(ev.start_at)}</div>
         <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 600, minWidth: 70 }}>{fmtDayLabel(ev.start_at)}</div>
@@ -322,7 +322,7 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
   };
 
   return (
-    <div style={{ marginBottom: 16, border: `0.25px solid ${C.ac}4D` }}>
+    <div style={{ marginBottom: 16, border: `0.25px solid ${C.cardBd}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', flexWrap: 'wrap', gap: 8 }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
           SESSIONS · {enriched.length} upcoming
@@ -333,12 +333,12 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
           </span>
           <button onClick={triggerSync}
             title="Force an immediate calendar resync (otherwise runs every 10 min)"
-            style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
             ↻ Sync Now
           </button>
           <button onClick={() => setShowSettings(true)}
             title="Update or disconnect the iCal URL"
-            style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '3px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
             ⚙
           </button>
         </div>
@@ -346,7 +346,7 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
       {['TODAY', 'TOMORROW', 'THIS WEEK', 'LATER'].map(b => (
         buckets[b] && buckets[b].length > 0 && (
           <div key={b}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase', padding: '6px 10px', background: `${C.ac}10` }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase', padding: '6px 10px', background: `rgba(57,189,255,0.063)` }}>
               {b}
             </div>
             {buckets[b].map(renderRow)}

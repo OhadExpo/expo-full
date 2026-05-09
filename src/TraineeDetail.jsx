@@ -198,7 +198,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
           {m.injuries&&<div style={{marginTop:10,padding:8,background:'transparent',border:`0.25px solid ${C.or}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Injuries</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.injuries)?FH:undefined}}>{m.injuries}</div></div>}
-          {m.goals&&<div style={{marginTop:6,padding:8,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,textAlign:'center'}}>{m.goals}</div></div>}
+          {m.goals&&<div style={{marginTop:6,padding:8,background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,textAlign:'center'}}>{m.goals}</div></div>}
           {m.notes&&<div style={{marginTop:6,padding:8,background:'transparent',border:`0.25px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,textAlign:'center'}}>{m.notes}</div></div>}
         </Card>
         {showPrograms && <>
@@ -279,7 +279,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             grouped per member, instead of inline inside each column. */}
         <div className="td-couple-row" style={{display:'flex',gap:12}}>
           {renderMemberColumn(td.members[0], 0, false)}
-          <div className="td-couple-divider" style={{width:1,background:`${C.ac}4D`,alignSelf:'stretch',flexShrink:0}} />
+          <div className="td-couple-divider" style={{width:1,background:`${C.cardBd}`,alignSelf:'stretch',flexShrink:0}} />
           {renderMemberColumn(td.members[1], 1, false)}
         </div>
       </> : <>
@@ -301,7 +301,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
         {td.injuries&&<div style={{marginTop:12,padding:10,background:'transparent',border:`0.25px solid ${C.or}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
-        {td.goals&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
+        {td.goals&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
         {td.notes&&<div style={{marginTop:8,padding:10,background:'transparent',border:`0.25px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
       </Card>
       </>}
@@ -312,8 +312,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <Btn onClick={()=>setShowPayForm(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Add Payment</Btn></div>
       {tPay.length===0?<div style={{color:C.td,fontSize:13}}>No payments recorded.</div>:(
         <div style={{overflowX:"auto",marginBottom:16}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
-          <thead><tr style={{borderBottom:`0.25px solid ${C.ac}4D`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
-          <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`0.25px solid ${C.ac}4D`}}>
+          <thead><tr style={{borderBottom:`0.25px solid ${C.cardBd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
+          <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`0.25px solid ${C.cardBd}`}}>
             <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{new Date(p.date).toLocaleDateString()}</td>
             <td style={{padding:"8px 10px",color:C.gn,fontWeight:600,textAlign:"center"}}>₪{parseFloat(p.amount).toLocaleString()}</td>
             <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{p.method}</td>
@@ -356,8 +356,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
             {tp.length >= 2 && <button onClick={()=>setShowDiff(true)}
               title="Compare two programs side-by-side"
-              style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+              style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <Btn onClick={()=>setShowAssign(true)} style={{fontSize:11,height:32,padding:"0 14px",lineHeight:'32px',display:'inline-flex',alignItems:'center'}}>+ Assign Program</Btn>
           </div>
         </div>
@@ -369,7 +369,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
             return (
               <React.Fragment key={mi}>
-                {mi === 1 && <div className="td-couple-divider" style={{width:1,background:`${C.ac}4D`,alignSelf:'stretch',flexShrink:0}} />}
+                {mi === 1 && <div className="td-couple-divider" style={{width:1,background:`${C.cardBd}`,alignSelf:'stretch',flexShrink:0}} />}
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'6px 0',gap:8}}>
                     <div style={{fontSize:12,fontFamily:FN,color:C.tm,fontWeight:600}}>{m.name} — {sorted.length}</div>
@@ -403,8 +403,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
             {tp.length >= 2 && <button onClick={()=>setShowDiff(true)}
               title="Compare two programs side-by-side"
-              style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+              style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <Btn onClick={()=>setShowAssign(true)} style={{fontSize:11,height:32,padding:"0 14px",lineHeight:'32px',display:'inline-flex',alignItems:'center'}}>+ Assign Program</Btn>
           </div>
         </div>
@@ -437,11 +437,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&!traineeIds.includes(p.traineeId));const assignedNames=new Set(tp.map(p=>p.name));const available=[...unassigned,...others].filter(p=>!assignedNames.has(p.name)||p.traineeId!==trainee);
           return available.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:20}}>No programs available. Create one in the Programs tab first.</div>:
           <div>{unassigned.length>0&&<><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>UNASSIGNED</div>
-            {unassigned.map(p=><div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.ac+'4D'}>
+            {unassigned.map(p=><div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.ac+'4D'}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
               <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>)}</>}
             {others.length>0&&<><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8,marginTop:12}}>FROM OTHER ATHLETES (will duplicate)</div>
-            {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.ac+'4D'}>
+            {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.ac+'4D'}>
               <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name} <span style={{fontWeight:400,color:C.tm}}>— {owner?.name||'?'}</span></div>
               <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>})}</>}
           </div>})())}
@@ -536,7 +536,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <button onClick={() => {
                 const next = [...(editForm._emails || emailsToArr(editForm.email)), ''];
                 setEditForm({...editForm, _emails: next});
-              }} style={{ background: 'transparent', border: `0.25px dashed ${C.ac}4D`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ Add Email</button>
+              }} style={{ background: 'transparent', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ Add Email</button>
             )}
           </div>
           <Input label="Phone" value={editForm.phone||""} onChange={e=>setEditForm({...editForm,phone:e.target.value})} placeholder="+972..." />
@@ -562,7 +562,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       </Modal>
       {/* Archive confirm */}
       {showArchiveConfirm && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.7)"}} onClick={()=>setShowArchiveConfirm(false)}>
-        <div onClick={e=>e.stopPropagation()} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,width:380,padding:24}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,width:380,padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.tx}}>Archive {td.name}?</h3>
           <p style={{margin:"0 0 20px",fontSize:13,color:C.tm}}>Client will be moved to archive. Plans, workouts, and payments are preserved. You can restore anytime.</p>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>

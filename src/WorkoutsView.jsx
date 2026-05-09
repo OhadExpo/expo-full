@@ -28,11 +28,11 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
           <span>{workout.dayName} {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
           <span>{doneSets}/{totalSets} · {pct}%</span></div>
-        <div style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
+        <div style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
       </div>
       {workout.exercises.map((ex,exIdx) => {
         const exData = exercises.find(e=>e.id===ex.exerciseId);
-        return(<div key={ex.id} style={{background:'transparent',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:14,marginBottom:10}}>
+        return(<div key={ex.id} style={{background:'transparent',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:10}}>
           <div style={{fontWeight:700,color:C.tx,marginBottom:8}}>{exIdx+1}. {exData?.title||"Unknown"}
             {ex.superset&&<Badge color={C.pu} style={{marginLeft:8}}>Group {ex.superset}</Badge>}
             <span style={{fontWeight:400,color:C.tm,fontSize:12,marginLeft:8}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span></div>

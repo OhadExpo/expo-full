@@ -24,7 +24,7 @@ function GooglePhotos({ url }) {
       .catch(e => { if (alive) setState({ phase: 'err', error: String(e?.message || e) }); });
     return () => { alive = false; };
   }, [url]);
-  const wrap = { borderRadius: 0, overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: `0.25px solid ${C.ac}4D` };
+  const wrap = { borderRadius: 0, overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: `0.25px solid ${C.cardBd}` };
   if (state.phase === 'loading') return <div style={{ ...wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.18em' }}>LOADING…</div>;
   if (state.phase === 'err') return <div style={{ ...wrap, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: C.tm, fontFamily: FN, fontSize: 11, padding: 12, textAlign: 'center' }}>
     <div>NOT EMBEDDABLE</div>
@@ -35,7 +35,7 @@ function GooglePhotos({ url }) {
 
 export default function VideoEmbed({ url }) {
   if (!url) return null;
-  const wrap = { borderRadius: 0, overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: `0.25px solid ${C.ac}4D` };
+  const wrap = { borderRadius: 0, overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: `0.25px solid ${C.cardBd}` };
   const yid = ytId(url);
   if (yid) return <div style={{ ...wrap, background: 'transparent' }}><iframe src={`https://www.youtube.com/embed/${yid}`} style={{ width: '100%', height: '100%', border: 'none' }} allowFullScreen /></div>;
   if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)) return <div style={wrap}><video src={url} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;

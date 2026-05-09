@@ -287,7 +287,7 @@ function ClientPortalMock({ onPick }) {
 
         <div style={{ padding: '14px 20px 24px' }}>
           {/* Pre-workout check (pain / energy / sleep) — same fields as real */}
-          <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
+          <div style={{ background: C.sf, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontFamily: FN, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 10 }}>PRE-WORKOUT CHECK</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
               {[['pain', 'PAIN', '0-10'], ['energy', 'ENERGY', '1-5'], ['sleep', 'SLEEP', '1-5']].map(([k, l, ph]) => (
@@ -400,7 +400,7 @@ function ClientPortalMock({ onPick }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {TRAINEE.plans.map(p => (
-                <span key={p.name} style={{ fontSize: 9, fontFamily: FN, color: C.ac, fontWeight: 700, padding: '2px 6px', borderRadius: 0, border: `1px solid ${C.ac}40`, background: C.acD }}>{p.name}</span>
+                <span key={p.name} style={{ fontSize: 9, fontFamily: FN, color: C.ac, fontWeight: 700, padding: '2px 6px', borderRadius: 0, border: `1px solid rgba(57,189,255,0.251)`, background: C.acD }}>{p.name}</span>
               ))}
             </div>
           </div>
@@ -435,7 +435,7 @@ function ClientPortalMock({ onPick }) {
         <div style={{ padding: '14px 20px 20px' }}>
           <h2 style={{ margin: '0 0 4px', fontFamily: FN, fontSize: 18 }}>Bodyweight Tracking</h2>
           <div style={{ color: C.tm, fontSize: 12, marginBottom: 16 }}>{TRAINEE.name} · {bwData.length} entries</div>
-          <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
+          <div style={{ background: C.sf, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
             <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
               {Array.from({ length: PLAN.weeks }, (_, w) => (
                 <button key={w} onClick={() => setWk(w)} style={{
@@ -466,7 +466,7 @@ function ClientPortalMock({ onPick }) {
               }}>Save</button>
             </div>
           </div>
-          <div style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
+          <div style={{ background: C.sf, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontFamily: FN, color: C.td, marginBottom: 10 }}>TREND</div>
             <svg viewBox={`0 -10 ${Math.max(bwData.length * 60, 300)} 185`} style={{ width: '100%', height: 185 }}>
               {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
@@ -499,7 +499,7 @@ function ClientPortalMock({ onPick }) {
         <div style={{ padding: '14px 20px 20px' }}>
           <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>Personal Records ({PRS.length})</h2>
           {PRS.map((pr, i) => (
-            <div key={i} style={{ background: C.sf, border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={i} style={{ background: C.sf, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>{pr.name}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginTop: 2 }}>{pr.date}</div>
@@ -567,7 +567,7 @@ function ClientPortalMock({ onPick }) {
                         {isOpen && x.hasVideo && (
                           <div style={{
                             marginTop: 6, marginBottom: 10,
-                            background: C.sf2, border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+                            background: C.sf2, border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
                             padding: 8,
                           }}>
                             <div style={{
@@ -621,7 +621,7 @@ function ClientPortalMock({ onPick }) {
             <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginBottom: 4 }}>BW {lb ? `(${lb}kg)` : ''}</div>
             <div style={{ display: 'flex', gap: 4 }}>
               <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" style={{
-                background: C.sf2, border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+                background: C.sf2, border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
                 padding: '8px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none',
                 width: '100%', boxSizing: 'border-box', textAlign: 'center',
               }} />
@@ -642,7 +642,7 @@ function ClientPortalMock({ onPick }) {
         {/* Unread coach notes callout */}
         {unreadCoachNotes > 0 && (
           <div onClick={() => setVw('hist')} style={{
-            background: C.acD, border: `1px solid ${C.ac}60`, borderRadius: 0,
+            background: C.acD, border: `1px solid rgba(57,189,255,0.376)`, borderRadius: 0,
             padding: '10px 14px', marginBottom: 14, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: 10,
           }}>
@@ -741,7 +741,7 @@ function Header({ step, exercise, hasVideo, onRestart, onStep }) {
         <span className="try-sandbox-badge" style={{
           fontFamily:FN, fontSize:10, color: C.ac, letterSpacing:2, fontWeight:700,
           padding:'4px 8px', background: C.acD, borderRadius:0,
-          border:`1px solid rgba(57,189,255,0.30)`, whiteSpace:'nowrap',
+          border:`1px solid ${C.cardBd}`, whiteSpace:'nowrap',
         }}>DEMO</span>
         <nav style={{
           display:'flex', gap:4, flex:1, justifyContent:'center',
@@ -817,7 +817,7 @@ function TraineeContextStrip({ exercise }) {
         <span style={{
           fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
           background: C.acD, padding: '3px 8px', borderRadius: 0,
-          border: `1px solid rgba(57,189,255,0.30)`, whiteSpace: 'nowrap',
+          border: `1px solid ${C.cardBd}`, whiteSpace: 'nowrap',
         }}>BLOCK #4 · DAY A</span>
         <span style={{
           fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
@@ -855,7 +855,7 @@ function POVBanner({ pov }) {
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: 1.8, fontWeight: 700,
-          background: C.acD, border: `1px solid rgba(57,189,255,0.30)`,
+          background: C.acD, border: `1px solid ${C.cardBd}`,
           borderRadius: 0, padding: '4px 9px', whiteSpace: 'nowrap',
         }}>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1149,7 +1149,7 @@ function TraineeHomeMock({ onPick }) {
           real ClientPortal weekly_focus card pattern. */}
       <div style={{
         background: `linear-gradient(135deg, ${C.acD} 0%, ${C.sf} 100%)`,
-        border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
+        border: `1px solid ${C.cardBd}`, borderRadius: 0,
         padding: '14px 18px', marginBottom: 8,
       }}>
         <div style={{
@@ -1549,7 +1549,7 @@ function MockTile({ title, body, chips }) {
           <span key={i} style={{
             fontFamily: FN, fontSize: 9, letterSpacing: 1.2, fontWeight: 700,
             color: C.ac, background: C.acD,
-            border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
+            border: `1px solid ${C.cardBd}`, borderRadius: 0,
             padding: '3px 6px',
           }}>{c}</span>
         ))}
@@ -1919,7 +1919,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false }) {
           <div style={{
             position:'absolute', top: 10, left: '50%', transform:'translateX(-50%)',
             background: C.acD, color: C.ac,
-            border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
+            border: `1px solid ${C.cardBd}`, borderRadius: 0,
             padding:'4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
             zIndex: 5, pointerEvents:'none',
           }}>LOADING POSE MODEL…</div>
@@ -1942,7 +1942,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false }) {
           {(poseOn || repsOn) && hudChannels.map(({ name, val }) => (
             <span key={name} style={{
               background: C.acD, color: C.ac,
-              border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
+              border: `1px solid ${C.cardBd}`, borderRadius: 0,
               padding:'3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1,
             }}>{name} {val != null ? `${val}°` : '—'}</span>
           ))}
@@ -1953,7 +1953,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false }) {
         }}>
           <span style={{
             background: C.acD, color: C.ac,
-            border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
+            border: `1px solid ${C.cardBd}`, borderRadius: 0,
             padding:'4px 10px', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: 1,
           }}>
             {reps} REP{reps === 1 ? '' : 'S'}
@@ -1961,7 +1961,7 @@ function SandboxPlayer({ url, exerciseTitle, compact = false }) {
           {tempo && (
             <span style={{
               background: C.acD, color: C.ac,
-              border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
+              border: `1px solid ${C.cardBd}`, borderRadius: 0,
               padding:'4px 10px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: 1,
             }}>
               {tempo.toFixed(2)}s/REP
@@ -2025,7 +2025,7 @@ function BuyCallToAction({ pov = 'coach' }) {
     <div style={{
       marginTop: 28,
       background: `linear-gradient(135deg, ${C.sf2} 0%, ${C.sf} 100%)`,
-      border: `1px solid rgba(57,189,255,0.30)`, borderRadius: 0,
+      border: `1px solid ${C.cardBd}`, borderRadius: 0,
       padding:'22px 18px', textAlign:'center',
     }}>
       <div style={{

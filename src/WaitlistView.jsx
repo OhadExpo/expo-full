@@ -227,7 +227,7 @@ export default function WaitlistView({ trainees }) {
             <span style={{ fontFamily: FN, fontSize: 9, color: gateColor, letterSpacing: '0.18em', fontWeight: 700 }}>🎯 MULTI-TENANT GATE</span>
             <span style={{ fontFamily: FN, fontSize: 14, color: gateColor, fontWeight: 700 }}>{gateProgress}/{COACH_GATE}</span>
           </div>
-          <div style={{ height: 6, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${(gateProgress / COACH_GATE) * 100}%`, background: gateColor, transition: 'width 0.3s' }} />
           </div>
           <div style={{ fontFamily: FB, fontSize: 10, color: C.tm, marginTop: 6 }}>
@@ -240,7 +240,7 @@ export default function WaitlistView({ trainees }) {
           time-to-contact, source split, signup conversion, and avg intent.
           Hidden when there are no leads at all. */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 14, padding: '14px 18px', border: `0.25px solid ${C.ac}4D` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 14, padding: '14px 18px', border: `0.25px solid ${C.cardBd}` }}>
           <StatTile label="Leads" value={total} sub={`${active} uncontacted`} />
           <StatTile label="Contact rate" value={`${(stats.contactRate * 100).toFixed(0)}%`} sub={`${stats.contactedCount} / ${total}`} color={stats.contactRate >= 0.8 ? C.gn : (stats.contactRate >= 0.5 ? C.or : C.rd)} />
           <StatTile label="Median t→contact" value={fmtTtc(stats.ttcMedianMs)} sub={stats.contactedCount === 0 ? 'no contacted yet' : `across ${stats.contactedCount}`} />
@@ -253,21 +253,21 @@ export default function WaitlistView({ trainees }) {
       {/* Filter */}
       <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-start' }}>
         <input placeholder="Filter by email, source, or notes…" value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
+          style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
       </div>
 
       {sorted.length === 0 ? (
-        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO COACH SIGNUPS YET</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
             When a coach submits the form on /coaches#waitlist, they'll appear here.
           </div>
         </div>
       ) : (
-        <div style={{ overflowX: 'auto', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0 }}>
+        <div style={{ overflowX: 'auto', background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: `0.25px solid ${C.ac}4D` }}>
+              <tr style={{ borderBottom: `0.25px solid ${C.cardBd}` }}>
                 <SH k="email" label="Email" />
                 <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Source</th>
                 <SH k="intent" label="Intent" />
@@ -282,7 +282,7 @@ export default function WaitlistView({ trainees }) {
                 const stars = '★'.repeat(l.intent) + '☆'.repeat(4 - l.intent);
                 const mailto = `mailto:${l.email}?subject=${encodeURIComponent('EXPO — coach waitlist')}&body=${encodeURIComponent('Hey,\n\nSaw you joined the EXPO coach waitlist. Got 15 minutes for a video call this week to talk shop?\n\n— Ohad\n')}`;
                 return (
-                  <tr key={l.id} style={{ borderBottom: `0.25px solid ${C.ac}4D`, opacity: l.contacted ? 0.55 : 1 }}>
+                  <tr key={l.id} style={{ borderBottom: `0.25px solid ${C.cardBd}`, opacity: l.contacted ? 0.55 : 1 }}>
                     <td style={{ padding: '10px 12px' }}>
                       <a href={mailto} style={{ color: C.tx, textDecoration: 'none', fontWeight: 600 }} title={l.email}>{l.email}</a>
                       {l.notes && (
@@ -343,13 +343,13 @@ export default function WaitlistView({ trainees }) {
                     <td style={{ padding: '8px 10px' }}>
                       <textarea value={notes[l.id] || ''} onChange={e => setNote(l.id, e.target.value)} rows={2}
                         placeholder="What did they say in DM?"
-                        style={{ width: '100%', minWidth: 200, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+                        style={{ width: '100%', minWidth: 200, background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '6px 8px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
                       {savingNote === l.id && <div style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>saving…</div>}
                     </td>
                     <td style={{ padding: '8px 10px', whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {l.contacted ? (
                         <button onClick={() => undoContacted(l.id)} title="Undo contacted"
-                          style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>↩ UNDO</button>
+                          style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>↩ UNDO</button>
                       ) : (
                         <button onClick={() => markContacted(l.id)} title="Mark contacted"
                           style={{ background: 'transparent', border: `0.25px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', marginRight: 4 }}>✓ DONE</button>

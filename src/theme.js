@@ -29,7 +29,8 @@ export const C = {
   acText: "var(--c-acText)",     // AA-safe cyan for small text on white; same as ac on dark
   acD: "rgba(57,189,255,0.10)",
   acM: "rgba(57,189,255,0.20)",
-  ac4D: "rgba(57,189,255,0.30)",
+  ac4D: "var(--c-cardBd)",       // legacy alias — same as cardBd, kept for any consumer that imports ac4D directly
+  cardBd: "var(--c-cardBd)",     // theme-aware card border (cyan-30% dark, neutral light)
   acSurface: "var(--c-acSurface)",
   acOnSurface: "var(--c-acOnSurface)",
   // Functional

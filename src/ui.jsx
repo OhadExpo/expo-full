@@ -6,7 +6,7 @@ import { C, FN, FB } from './theme';
 // (Btn primary variant). Active focus would step up to 2px C.ac, but we
 // don't track focus inline — :focus styling lives in a global stylesheet.
 export const baseInput = {
-  background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+  background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
   padding: "9px 14px", color: C.tx, fontFamily: FB, fontSize: 13,
   outline: "none", width: "100%", boxSizing: "border-box",
   transition: "border-color 0.2s",
@@ -20,7 +20,7 @@ export const baseBtn = {
 };
 const variants = {
   primary: { background: 'transparent', color: C.ac, border: `1px solid ${C.ac}` },
-  ghost: { background: "transparent", color: C.tm, border: `0.25px solid ${C.ac}4D` },
+  ghost: { background: "transparent", color: C.tm, border: `0.25px solid ${C.cardBd}` },
   danger: { background: 'transparent', color: C.rd, border: `1px solid ${C.rd}` },
   success: { background: 'transparent', color: C.gn, border: `1px solid ${C.gn}` },
 };
@@ -48,7 +48,7 @@ export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, plac
         </div>
       ))}
       {arr.length < max && (
-        <button onClick={() => onChange([...arr, ''])} style={{ background: 'transparent', border: `0.25px dashed ${C.ac}4D`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ Add Email</button>
+        <button onClick={() => onChange([...arr, ''])} style={{ background: 'transparent', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ Add Email</button>
       )}
     </div>
   );
@@ -84,7 +84,7 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
     ...s,
   }}>{children}</Tag>;
 export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) => (
-  <div onClick={onClick} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: 18, cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}
+  <div onClick={onClick} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 18, cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}
     onMouseEnter={e => { if(onClick) e.currentTarget.style.borderColor = C.ac; if(onMouseEnter) onMouseEnter(e); }}
     onMouseLeave={e => { if(onClick) e.currentTarget.style.borderColor = C.ac + '4D'; if(onMouseLeave) onMouseLeave(e); }}>{children}</div>
 );
@@ -92,17 +92,17 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
   if (!open) return null;
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.ac}4D`, borderRadius: 0, width: wide ? 700 : 480, maxHeight: "80vh", overflow: "auto", padding: 28 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, width: wide ? 700 : 480, maxHeight: "80vh", overflow: "auto", padding: 28 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>{children}</div></div>);
 };
 export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => {
   if (!open) return null;
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.85)" }} onClick={onCancel}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.ac}4D`, borderRadius: 0, width: 400, padding: 28 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, width: 400, padding: 28 }}>
         <h3 style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
         <p style={{ margin: "0 0 22px", fontSize: 13, color: C.tm, fontFamily: FB, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -162,11 +162,11 @@ export function ToastHost() {
   }, []);
   if (!items.length) return null;
   const palette = {
-    info:    { bg: C.sf2,  fg: C.tx,  bd: `${C.ac}66` },
+    info:    { bg: C.sf2,  fg: C.tx,  bd: `rgba(57,189,255,0.4)` },
     success: { bg: C.gnD,  fg: C.gn,  bd: `${C.gn}66` },
     error:   { bg: C.rdD,  fg: C.rd,  bd: `${C.rd}66` },
     warn:    { bg: C.orD,  fg: C.or,  bd: `${C.or}66` },
-    confirm: { bg: C.sf2,  fg: C.tx,  bd: `${C.ac}99` },
+    confirm: { bg: C.sf2,  fg: C.tx,  bd: `rgba(57,189,255,0.6)` },
   };
   return (
     <div style={{ position: 'fixed', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 1300, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', pointerEvents: 'none', maxWidth: 'calc(100vw - 32px)' }}>

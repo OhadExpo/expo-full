@@ -247,7 +247,7 @@ export default function CoachChat() {
               true geometric centerline regardless of the side widths. */}
           <div style={{
             position: 'relative',
-            padding: '10px 14px', borderBottom: `0.25px solid ${C.ac}4D`,
+            padding: '10px 14px', borderBottom: `0.25px solid ${C.cardBd}`,
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             background: 'transparent', gap: 10, minHeight: 44,
           }}>
@@ -280,7 +280,7 @@ export default function CoachChat() {
             {messages.length === 0 && (
               <div style={{
                 color: C.tm, fontSize: 13, lineHeight: 1.5,
-                background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+                background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
                 padding: '12px 14px',
               }}>
                 Hey — I can answer basic questions about EXPO (pricing, features, who it's for, how to try it). For anything specific, email Ohad and he'll reply himself.
@@ -303,7 +303,7 @@ export default function CoachChat() {
                           onChange={e => { setCaptureEmail(e.target.value); if (captureState === 'error') setCaptureState('idle'); }}
                           placeholder="your@email.com"
                           style={{
-                            flex: 1, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+                            flex: 1, background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
                             padding: '6px 9px', color: C.tx, fontFamily: FB, fontSize: 12, outline: 'none',
                           }} />
                         <button type="submit" disabled={captureState === 'sending'}
@@ -363,7 +363,7 @@ export default function CoachChat() {
                 {SUGGESTIONS.map((s, i) => (
                   <button key={i} onClick={() => send(s)} disabled={sending}
                     style={{
-                      background: 'transparent', border: `0.25px solid ${C.ac}4D`,
+                      background: 'transparent', border: `0.25px solid ${C.cardBd}`,
                       color: C.tx, borderRadius: 0, padding: '6px 12px',
                       fontFamily: FB, fontSize: 12, cursor: 'pointer',
                       whiteSpace: 'nowrap', flexShrink: 0,
@@ -376,14 +376,14 @@ export default function CoachChat() {
           {/* Input — degrade to offline notice when the API key isn't configured */}
           {healthy === false ? (
             <div style={{
-              padding: '12px 14px', borderTop: `0.25px solid ${C.ac}4D`,
+              padding: '12px 14px', borderTop: `0.25px solid ${C.cardBd}`,
               background: 'transparent', fontSize: 12, color: C.tm, lineHeight: 1.5, textAlign: 'center',
             }}>
               Chat is offline right now. Drop your email in the waitlist form below and Ohad will reply directly.
             </div>
           ) : (
             <div style={{
-              padding: 10, borderTop: `0.25px solid ${C.ac}4D`,
+              padding: 10, borderTop: `0.25px solid ${C.cardBd}`,
               display: 'flex', gap: 8, alignItems: 'flex-end',
               background: 'transparent',
             }}>
@@ -391,7 +391,7 @@ export default function CoachChat() {
                 placeholder="Type a question…" rows={1}
                 style={{
                   flex: 1, resize: 'none',
-                  background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0,
+                  background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
                   padding: '8px 10px', color: C.tx,
                   fontFamily: FB, fontSize: 13, outline: 'none',
                   minHeight: 36, maxHeight: 100,

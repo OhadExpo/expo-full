@@ -41,7 +41,7 @@ function PayloadDetail({ form, payload }) {
         const v = payload?.[q.id];
         const isEmpty = v == null || v === '';
         return (
-          <div key={q.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: `0.25px solid ${C.ac}26` }}>
+          <div key={q.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: `0.25px solid rgba(57,189,255,0.149)` }}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>{q.label}</div>
             <div style={{ fontFamily: form.locale === 'he' ? FH : FB, fontSize: 14, color: isEmpty ? C.td : C.tx, fontStyle: isEmpty ? 'italic' : 'normal', whiteSpace: 'pre-wrap' }}>
               {isEmpty ? '—' : String(v)}
@@ -181,7 +181,7 @@ export default function IntakeView({ trainees }) {
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         <input placeholder="Filter by name / email / form type…" value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
+          style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
         <button onClick={() => setShowReviewed(s => !s)}
           style={{ background: 'transparent', border: `0.25px solid ${showReviewed ? C.ac : C.ac + '4D'}`, color: showReviewed ? C.ac : C.tm, padding: '8px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0 }}>
           {showReviewed ? 'Showing reviewed' : 'Hide reviewed'}
@@ -190,7 +190,7 @@ export default function IntakeView({ trainees }) {
 
       {/* Recent unused tokens (so Ohad can re-copy a link he just made) */}
       {tokens.filter(t => !t.used_at).length > 0 && (
-        <div style={{ marginBottom: 18, padding: '10px 12px', border: `0.25px solid ${C.ac}4D` }}>
+        <div style={{ marginBottom: 18, padding: '10px 12px', border: `0.25px solid ${C.cardBd}` }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>UNUSED LINKS</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {tokens.filter(t => !t.used_at).slice(0, 5).map(t => {
@@ -203,7 +203,7 @@ export default function IntakeView({ trainees }) {
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
                   <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
                   <button onClick={async () => { try { await navigator.clipboard.writeText(url); } catch {} }}
-                    style={{ marginLeft: 'auto', background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
+                    style={{ marginLeft: 'auto', background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
                     Copy URL
                   </button>
                 </div>
@@ -215,7 +215,7 @@ export default function IntakeView({ trainees }) {
 
       {/* List */}
       {visible.length === 0 ? (
-        <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO INTAKE YET</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
             Generate a link from the button above and send it to a prospect or trainee.
@@ -239,7 +239,7 @@ export default function IntakeView({ trainees }) {
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {s.reviewed_at ? (
-                <button onClick={() => undoReviewed(s.id)} style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, color: C.tm, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ UNDO</button>
+                <button onClick={() => undoReviewed(s.id)} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.tm, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>↩ UNDO</button>
               ) : (
                 <button onClick={() => markReviewed(s.id)} style={{ background: 'transparent', border: `0.25px solid ${C.gn}`, color: C.gn, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>✓ DONE</button>
               )}
@@ -259,7 +259,7 @@ export default function IntakeView({ trainees }) {
         {genResult ? (
           <div>
             <div style={{ fontSize: 13, color: C.tx, marginBottom: 10 }}>Link generated and copied to clipboard.</div>
-            <div style={{ background: 'transparent', border: `0.25px solid ${C.ac}4D`, padding: 10, fontFamily: FN, fontSize: 12, color: C.tm, wordBreak: 'break-all' }}>{genResult.url}</div>
+            <div style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, padding: 10, fontFamily: FN, fontSize: 12, color: C.tm, wordBreak: 'break-all' }}>{genResult.url}</div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
               <Btn variant="ghost" onClick={() => { setGenResult(null); }}>Generate another</Btn>
               <Btn onClick={closeGen}>Done</Btn>
@@ -272,7 +272,7 @@ export default function IntakeView({ trainees }) {
                 <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>FORM TYPE</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value }))}
-                    style={{ flex: 1, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
+                    style={{ flex: 1, background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
                     <option value="initial">Initial intake</option>
                     <option value="progress">Progress check-in</option>
                   </select>
@@ -283,7 +283,7 @@ export default function IntakeView({ trainees }) {
                 <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>LOCALE</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.locale} onChange={e => setGenForm(f => ({ ...f, locale: e.target.value }))}
-                    style={{ flex: 1, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
+                    style={{ flex: 1, background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
                     <option value="he">Hebrew (HE)</option>
                     <option value="en">English (EN)</option>
                   </select>
@@ -296,7 +296,7 @@ export default function IntakeView({ trainees }) {
                 <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>TRAINEE (optional)</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
                   <select value={genForm.traineeId} onChange={e => setGenForm(f => ({ ...f, traineeId: e.target.value }))}
-                    style={{ flex: 1, background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
+                    style={{ flex: 1, background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
                     <option value="">— none —</option>
                     {(trainees || []).filter(t => t.status !== 'Archived').map(t => (
                       <option key={t.id} value={t.id}>{t.name}</option>
@@ -310,7 +310,7 @@ export default function IntakeView({ trainees }) {
               <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>LABEL (optional)</div>
               <input value={genForm.label} onChange={e => setGenForm(f => ({ ...f, label: e.target.value }))}
                 placeholder='e.g. "for Yossi"'
-                style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `0.25px solid ${C.ac}4D`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
+                style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
             </div>
             {genError && <div style={{ color: C.rd, fontFamily: FN, fontSize: 12, marginBottom: 8 }}>{genError}</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>

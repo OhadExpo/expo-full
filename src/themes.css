@@ -16,6 +16,7 @@
   --c-acText: #39BDFF;          /* on dark bg this passes AA at 5.4:1 — same as ac */
   --c-acSurface: #39BDFF;
   --c-acOnSurface: #ffffff;
+  --c-cardBd: rgba(57,189,255,0.30);  /* canonical card border — cyan-30% on dark */
   --c-rd: #FF4757;
   --c-rdD: rgba(255,71,87,0.10);
   --c-gn: #2ED573;
@@ -68,6 +69,7 @@
   --c-acText: #0E8FD3;            /* same as ac — kept for code clarity */
   --c-acSurface: #39BDFF;         /* BSG-sanctioned bright cyan panel fill (rare — hero CTAs) */
   --c-acOnSurface: #000000;       /* black text on cyan panels (10.4:1 AAA) */
+  --c-cardBd: #C8CCD1;            /* card border in light mode — visible neutral, gives cards a real edge */
   --c-rd: #D62839;
   --c-rdD: rgba(214,40,57,0.10);
   --c-gn: #1E9E5C;
