@@ -59,35 +59,34 @@
  */
 [data-theme="light"] {
   --c-bg: #39BDFF;                 /* brand cyan as the page bg */
-  --c-sf: #FFFFFF;                 /* card surface — pure white for max lift off cyan */
-  --c-sf2: #F4F6F9;                /* secondary fill — soft cool gray (input bg, hover row) */
-  --c-sf3: #E0E4EA;                /* sunken / pressed surface — deeper gray */
-  --c-bd: #000000;                 /* primary structural border (BSG black) */
-  --c-bd2: rgba(0,0,0,0.55);       /* secondary divider */
-  --c-tx: #000000;                 /* body text — BSG black */
-  --c-tm: rgba(0,0,0,0.65);        /* muted body text */
-  --c-td: rgba(0,0,0,0.45);        /* faint helper text */
-  /* Action color = BSG black. Works on both the cyan bg AND the white
-     cards, so no per-surface special-casing. Cyan stays cyan only as
-     a fill (--c-acSurface) and the page background itself. */
-  --c-ac: #000000;                 /* action / focus / active state */
-  --c-acH: rgba(0,0,0,0.85);       /* hover steps slightly translucent */
-  --c-acText: #000000;             /* AA at 21:1 on white, 9.6:1 on cyan — perfect */
-  --c-acSurface: #39BDFF;          /* BSG cyan panel fill (rare — CTAs sitting on white cards) */
-  --c-acOnSurface: #000000;        /* black text on cyan panels — 9.6:1 */
-  --c-cardBd: rgba(0,0,0,0.15);    /* hairline neutral on white cards */
-  --c-rd: #B8121F;                 /* functional reds — necessary, not BSG-strict */
-  --c-rdD: rgba(184,18,31,0.10);
-  --c-gn: #0A6E3D;
-  --c-gnD: rgba(10,110,61,0.10);
-  --c-or: #8C5400;
-  --c-orD: rgba(140,84,0,0.10);
-  --c-pu: #5C2A8F;
-  --c-puD: rgba(92,42,143,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0.18);
-  /* Cards lift HARD off cyan — heavier shadow than the old light theme. */
-  --c-cardShadow: 0 4px 12px rgba(0,0,0,0.18), 0 2px 4px rgba(0,0,0,0.10);
+  --c-sf: #FFFFFF;                 /* card surface — pure white */
+  --c-sf2: #F4F6F9;                /* secondary fill — input bg, hover row */
+  --c-sf3: #E0E4EA;                /* sunken / pressed surface */
+  --c-bd: rgba(0,0,0,0.08);        /* primary border — soft hairline, almost invisible */
+  --c-bd2: rgba(0,0,0,0.16);       /* secondary divider */
+  --c-tx: #061425;                 /* body text — near-black, slightly cool */
+  --c-tm: rgba(6,20,37,0.62);      /* muted body */
+  --c-td: rgba(6,20,37,0.42);      /* faint helper */
+  --c-ac: #061425;                 /* action color — near-black */
+  --c-acH: #000000;                /* hover steps to pure black */
+  --c-acText: #061425;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #061425;
+  --c-cardBd: rgba(0,0,0,0.05);    /* card border — practically invisible; shadow does the lift */
+  --c-rd: #C2185B;
+  --c-rdD: rgba(194,24,91,0.10);
+  --c-gn: #2E7D32;
+  --c-gnD: rgba(46,125,50,0.10);
+  --c-or: #E76F00;
+  --c-orD: rgba(231,111,0,0.10);
+  --c-pu: #6A1B9A;
+  --c-puD: rgba(106,27,154,0.10);
+  --c-scrim: rgba(6,20,37,0.45);
+  --c-shadow: rgba(6,20,37,0.10);
+  /* Soft elevated shadow stack — cards lift off the cyan bg via SHADOW
+     alone, no heavy borders. Mirrors how Linear / Vercel / Notion lift
+     cards on saturated bgs. */
+  --c-cardShadow: 0 1px 2px rgba(6,20,37,0.04), 0 8px 24px rgba(6,20,37,0.10);
 }
 
 html, body {

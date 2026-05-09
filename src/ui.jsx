@@ -6,14 +6,14 @@ import { C, FN, FB } from './theme';
 // (Btn primary variant). Active focus would step up to 2px C.ac, but we
 // don't track focus inline — :focus styling lives in a global stylesheet.
 export const baseInput = {
-  // Input fills use the secondary surface (--c-sf2). In dark mode that's
-  // the same as --c-sf so behavior is unchanged. In light mode it's a
-  // soft cool gray, which keeps inputs distinct when they sit inside a
-  // white card (they would otherwise vanish white-on-white).
-  background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
+  // Input fills use the secondary surface (--c-sf2 = soft gray in light,
+  // same as sf in dark). NO border at rest — the gray fill defines the
+  // field against the white card bg. Focus paints a 2px cyan ring via
+  // themes.css :focus rule so the focused field is unambiguous.
+  background: 'var(--c-sf2)', border: '1px solid transparent', borderRadius: 0,
   padding: "9px 14px", color: C.tx, fontFamily: FB, fontSize: 13,
   outline: "none", width: "100%", boxSizing: "border-box",
-  transition: "border-color 0.2s",
+  transition: "border-color 0.2s, background-color 0.2s",
   fontWeight: 400, letterSpacing: "0.01em",
   textAlign: "center",
 };
@@ -81,39 +81,43 @@ export const Badge = ({ children, color = C.ac, style: s }) =>
 // Single source of truth for the brand caps style so any future tweak (size,
 // color, tracking) propagates everywhere instead of having to re-grep 18 files.
 // `as` lets the call site choose div vs span vs h3 etc. — defaults to div.
+// SectionLabel — used for the small caps heading above a stat / panel /
+// form group. Old: fontSize 9 + 0.18em tracking — read as shouty
+// micro-text. New: fontSize 11 + 0.04em tracking + a touch lighter
+// weight. Still a label, no longer screams.
 export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s }) =>
   <Tag style={{
-    fontFamily: FN, fontSize: 9, fontWeight: 700, color,
-    letterSpacing: '0.18em', textTransform: 'uppercase',
+    fontFamily: FN, fontSize: 11, fontWeight: 600, color,
+    letterSpacing: '0.04em', textTransform: 'uppercase',
     ...s,
   }}>{children}</Tag>;
-// Card wraps every trainee-grid item, exercise-list item, summary stat,
-// and similar surface throughout the app. Default state gets a subtle
-// boxShadow (theme-token; ~invisible in dark, real lift in light mode);
-// clickable cards lift a touch more on hover so the affordance is
-// instantly tactile. Border thickens to cyan on hover only — the always-
-// on neutral border keeps the page calm.
+// Card — wraps trainee-grid items, exercise rows, summary stats, etc.
+// Strategy: NO visible border at rest. The cardShadow alone defines the
+// card edge against the cyan page bg (light) or near-black bg (dark).
+// On hover (clickable cards only), the shadow grows + the card lifts
+// 1px. This is the Linear / Vercel / Notion pattern — strokes are
+// noise, shadows are signal.
 export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) => (
   <div onClick={onClick} style={{
     background: 'var(--c-sf)',
-    border: `1px solid ${C.cardBd}`,
+    border: 'none',
     borderRadius: 0,
-    padding: 18,
+    padding: 20,
     cursor: onClick ? "pointer" : "default",
     boxShadow: C.cardShadow,
-    transition: "all 0.2s",
+    transition: "box-shadow 0.2s, transform 0.2s",
     ...style,
   }}
     onMouseEnter={e => {
       if (onClick) {
-        e.currentTarget.style.borderColor = C.ac;
-        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.boxShadow = '0 4px 12px rgba(6,20,37,0.08), 0 16px 32px rgba(6,20,37,0.16)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
       }
       if (onMouseEnter) onMouseEnter(e);
     }}
     onMouseLeave={e => {
       if (onClick) {
-        e.currentTarget.style.borderColor = C.cardBd;
+        e.currentTarget.style.boxShadow = C.cardShadow;
         e.currentTarget.style.transform = 'translateY(0)';
       }
       if (onMouseLeave) onMouseLeave(e);
