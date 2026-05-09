@@ -3,21 +3,11 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <!-- Theme bootstrap: runs synchronously before any other script so
-       data-theme is set before paint, eliminating any flash. Reads
-       localStorage first; falls back to OS prefers-color-scheme; final
-       fallback is dark. Mirrored in expo-il/index.html. -->
-  <script>
-    (function () {
-      try {
-        var saved = localStorage.getItem('expo-theme');
-        var pref = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-        document.documentElement.setAttribute('data-theme', pref);
-      } catch (e) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      }
-    })();
-  </script>
+  <!-- Theme bootstrap: external file (CSP forbids inline script).
+       Sets data-theme before paint so there's no flash. Reads
+       localStorage first; falls back to prefers-color-scheme; final
+       fallback is dark. Source: /public/boot-theme.js -->
+  <script src="/boot-theme.js"></script>
   <meta name="theme-color" content="#000000"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
