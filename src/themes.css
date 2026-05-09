@@ -1,0 +1,59 @@
+/* src/themes.css — single source of truth for theme tokens.
+   Consumed by all inline styles via var(--c-*) values exported from theme.js. */
+
+:root, [data-theme="dark"] {
+  --c-bg: #000000;
+  --c-sf: #0a0a0c;
+  --c-sf2: #111114;
+  --c-sf3: #18181c;
+  --c-bd: #1e1e24;
+  --c-bd2: #2a2a32;
+  --c-tx: #f0f0f4;
+  --c-tm: #7a7a88;
+  --c-td: #444450;
+  --c-ac: #39BDFF;
+  --c-acH: #5FCDFF;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #ffffff;
+  --c-rd: #FF4757;
+  --c-rdD: rgba(255,71,87,0.10);
+  --c-gn: #2ED573;
+  --c-gnD: rgba(46,213,115,0.10);
+  --c-or: #FFA502;
+  --c-orD: rgba(255,165,2,0.10);
+  --c-pu: #A855F7;
+  --c-puD: rgba(168,85,247,0.10);
+  --c-scrim: rgba(0,0,0,0.7);
+  --c-shadow: rgba(0,0,0,0.5);
+}
+
+[data-theme="light"] {
+  --c-bg: #FFFFFF;
+  --c-sf: #FAFAFA;
+  --c-sf2: #F2F2F2;
+  --c-sf3: #E8E8E8;
+  --c-bd: #E0E0E0;
+  --c-bd2: #BFBFBF;
+  --c-tx: #000000;
+  --c-tm: #666666;
+  --c-td: #999999;
+  --c-ac: #39BDFF;
+  --c-acH: #1FA8E8;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #000000;
+  --c-rd: #D62839;
+  --c-rdD: rgba(214,40,57,0.10);
+  --c-gn: #1E9E5C;
+  --c-gnD: rgba(30,158,92,0.10);
+  --c-or: #CC7A00;
+  --c-orD: rgba(204,122,0,0.10);
+  --c-pu: #7B3FBF;
+  --c-puD: rgba(123,63,191,0.10);
+  --c-scrim: rgba(0,0,0,0.45);
+  --c-shadow: rgba(0,0,0,0.15);
+}
+
+html, body {
+  background: var(--c-bg);
+  color: var(--c-tx);
+}

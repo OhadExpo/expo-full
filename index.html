@@ -3,7 +3,22 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <meta name="theme-color" content="#0a0a0b"/>
+  <!-- Theme bootstrap: runs synchronously before any other script so
+       data-theme is set before paint, eliminating any flash. Reads
+       localStorage first; falls back to OS prefers-color-scheme; final
+       fallback is dark. Mirrored in expo-il/index.html. -->
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('expo-theme');
+        var pref = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.setAttribute('data-theme', pref);
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <meta name="theme-color" content="#000000"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -31,23 +46,23 @@
   <link rel="stylesheet" href="/nord-fonts.css"/>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:#000;font-family:'Nord','Heebo','DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#fff}
-    ::selection{background:#39BDFF30;color:#fff}
+    /* body bg/color are owned by themes.css (var(--c-bg)/var(--c-tx)) — see src/themes.css */
+    body{font-family:'Nord','Heebo','DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+    ::selection{background:#39BDFF30;color:var(--c-tx)}
     ::-webkit-scrollbar{width:6px;height:6px}
-    ::-webkit-scrollbar-track{background:#0a0a0a}
-    ::-webkit-scrollbar-thumb{background:#1a1a1e;border-radius:3px}
+    ::-webkit-scrollbar-track{background:var(--c-sf)}
+    ::-webkit-scrollbar-thumb{background:var(--c-bd2);border-radius:3px}
     ::-webkit-scrollbar-thumb:hover{background:#39BDFF40}
     input,select,textarea{font-family:'Nord','Heebo','DM Sans',system-ui,sans-serif;text-align:center}
-    /* Native <select> dropdown options. Without this, Chrome/Edge renders
+    /* Native <select> dropdown options. Without these, Chrome/Edge renders
        options using OS theme — on dark Windows themes the unselected items
        render as low-contrast grey-on-grey, which is unreadable in our dark
-       UI (the athlete picker on /coach/programs was the worst offender).
-       Forcing the dark surface + white text gives a consistent, readable
-       dropdown without replacing every <select> with a custom component. */
-    select{color:#fff;background:#0a0a0b}
-    select option{background:#0a0a0b;color:#fff}
-    select option:disabled{color:#666}
-    select option:checked,select option:hover{background:#39BDFF30;color:#fff}
+       UI. Forcing the theme-aware surface + text keeps the dropdown
+       consistent in both modes without replacing every <select>. */
+    select{color:var(--c-tx);background:var(--c-sf)}
+    select option{background:var(--c-sf);color:var(--c-tx)}
+    select option:disabled{color:var(--c-td)}
+    select option:checked,select option:hover{background:#39BDFF30;color:var(--c-tx)}
     /* Hide spinner buttons on number inputs so the centered text stays
        visually centered (otherwise the spinner area shifts the centered
        glyph slightly to the left). */

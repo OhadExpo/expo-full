@@ -6,33 +6,44 @@ export const FN = "'Nord', 'Heebo', 'DM Sans', sans-serif";  // UI/labels/mono-s
 export const FB = "'Nord', 'Heebo', 'DM Sans', sans-serif";  // Body text — Nord weight 300-400
 export const FH = "'Heebo', 'DM Sans', sans-serif";           // Explicit Hebrew-first contexts
 
+// All values resolve to CSS custom properties defined in src/themes.css.
+// Toggle modes by setting `data-theme="light"` or `"dark"` on <html>.
+// The data-theme attribute is set synchronously by an inline script in
+// index.html before paint, so there is no flash on load.
 export const C = {
-  // Surfaces — true black base per BSG
-  bg: "#000000",
-  sf: "#0a0a0c",
-  sf2: "#111114",
-  sf3: "#18181c",
-  // Borders — subtle, almost invisible
-  bd: "#1e1e24",
-  bd2: "#2a2a32",
+  // Surfaces
+  bg: "var(--c-bg)",
+  sf: "var(--c-sf)",
+  sf2: "var(--c-sf2)",
+  sf3: "var(--c-sf3)",
+  // Borders
+  bd: "var(--c-bd)",
+  bd2: "var(--c-bd2)",
   // Text hierarchy
-  tx: "#f0f0f4",
-  tm: "#7a7a88",
-  td: "#444450",
-  // EXPO Blue — #39BDFF (official from BSG page 5)
-  ac: "#39BDFF",
-  acH: "#5FCDFF",
+  tx: "var(--c-tx)",
+  tm: "var(--c-tm)",
+  td: "var(--c-td)",
+  // EXPO Blue + accent washes (alpha values are theme-agnostic — same hex in both modes)
+  ac: "var(--c-ac)",
+  acH: "var(--c-acH)",
   acD: "rgba(57,189,255,0.10)",
   acM: "rgba(57,189,255,0.20)",
-  // Functional colors (minimal use — brand is 3-color)
-  rd: "#FF4757",
-  rdD: "rgba(255,71,87,0.10)",
-  gn: "#2ED573",
-  gnD: "rgba(46,213,115,0.10)",
-  or: "#FFA502",
-  orD: "rgba(255,165,2,0.10)",
-  pu: "#A855F7",
-  puD: "rgba(168,85,247,0.10)",
+  ac4D: "rgba(57,189,255,0.30)",
+  acSurface: "var(--c-acSurface)",
+  acOnSurface: "var(--c-acOnSurface)",
+  // Functional
+  rd: "var(--c-rd)",
+  rdD: "var(--c-rdD)",
+  gn: "var(--c-gn)",
+  gnD: "var(--c-gnD)",
+  or: "var(--c-or)",
+  orD: "var(--c-orD)",
+  pu: "var(--c-pu)",
+  puD: "var(--c-puD)",
+  // Theme-agnostic semantic tokens
+  scrim: "var(--c-scrim)",       // modal backdrop dim (heavier in dark, lighter in light)
+  videoBg: "#000000",             // video letterbox (always black — cinema convention)
+  shadow: "var(--c-shadow)",     // drop-shadow color baseline
 };
 
 export const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
