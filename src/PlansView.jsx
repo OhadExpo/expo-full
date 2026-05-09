@@ -44,7 +44,7 @@ function PatternCoverage({ plan, exercises }) {
 
 // Shared modal for browsing and picking an exercise.
 // Props: open, onClose, onPick(exerciseId), exercises, currentId, title
-function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, title }) {
+function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, currentEx, fallbackTitle }) {
   const [search, setSearch] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const [filters, setFilters] = useState({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
@@ -114,9 +114,26 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: C.scrim, backdropFilter: 'blur(8px)' }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border:`1px solid ${C.bd}`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `0 20px 60px ${C.shadow}` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px 12px' }}>
-          <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700 }}>{title || 'Select Exercise'}</h3>
-          <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>
+        {/* Header hero — eyebrow tag (action), big exercise name, metadata.
+            Lifts the current exercise out of the page header and into a
+            scannable hierarchy: WHAT you're replacing, in big type, with
+            the relevant biomechanical context one click of glance away. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '18px 22px 14px', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0, flex: 1 }}>
+            <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+              {currentEx ? 'Change Exercise' : (fallbackTitle ? 'Link to Library' : 'Select Exercise')}
+            </div>
+            {(currentEx || fallbackTitle) && (
+              <h3 style={{ margin: 0, fontFamily: FB, fontSize: 22, fontWeight: 700, color: C.tx, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentEx ? currentEx.title : fallbackTitle}
+              </h3>
+            )}
+            {currentEx && (() => {
+              const sub = [currentEx.resistanceType, currentEx.bodyPosition, currentEx.movementType].filter(Boolean).join(' · ');
+              return sub ? <div style={{ fontSize: 11, fontFamily: FN, color: C.tm, letterSpacing: '0.04em' }}>{sub}</div> : null;
+            })()}
+          </div>
+          <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14, flexShrink: 0 }}>✕</button>
         </div>
         <div style={{ padding: '0 22px' }}>
           <input
@@ -206,7 +223,8 @@ function ExPicker({ exercises, value, onChange, label, fallbackTitle }) {
         onPick={id => { onChange(id); setModalOpen(false); }}
         exercises={exercises}
         currentId={value}
-        title={sel ? `Change Exercise (currently: ${sel.title})` : (fallbackTitle ? `Link "${fallbackTitle}" to library` : 'Select Exercise')}
+        currentEx={sel}
+        fallbackTitle={fallbackTitle}
       />
     </div>
   );
