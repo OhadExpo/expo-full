@@ -4,11 +4,11 @@
   try {
     // ?theme=soft / ?theme=accent / ?theme=cream — temporary preview
     // variants. Auto-persist so the auth redirect doesn't drop them.
-    var qs = (window.location.search || '').toLowerCase();
-    var draftMatch = qs.match(/theme=(soft|accent|cream)/);
+    var qs = (window.location.search || '');
+    var draftMatch = qs.match(/theme=([ABC])/i);
     var ssDraft = null;
     try { ssDraft = sessionStorage.getItem('expo-theme-preview'); } catch (e) {}
-    var draft = draftMatch ? draftMatch[1] : (['soft','accent','cream'].indexOf(ssDraft) !== -1 ? ssDraft : null);
+    var draft = draftMatch ? draftMatch[1].toUpperCase() : (['A','B','C'].indexOf(ssDraft) !== -1 ? ssDraft : null);
     if (draft) {
       try { sessionStorage.setItem('expo-theme-preview', draft); } catch (e) {}
       document.documentElement.setAttribute('data-theme', draft);
