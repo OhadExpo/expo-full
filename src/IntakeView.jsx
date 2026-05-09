@@ -168,7 +168,7 @@ export default function IntakeView({ trainees }) {
   return (
     <div>
       {/* Header — counts + Generate Link CTA */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: C.sf, border: `1px solid ${C.bd}`, padding: '14px 18px' }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>INTAKE</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>

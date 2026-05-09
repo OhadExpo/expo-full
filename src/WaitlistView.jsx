@@ -215,7 +215,7 @@ export default function WaitlistView({ trainees }) {
   return (
     <div>
       {/* Header + gate progress */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: C.sf, border: `1px solid ${C.bd}`, padding: '14px 18px' }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>COACH WAITLIST</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
