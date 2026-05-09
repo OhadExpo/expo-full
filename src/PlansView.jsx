@@ -308,7 +308,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           edges, low alpha (~25%) in the middle. Sits at x=-8 so it lands
           in the middle of the flex gap between halves. pointerEvents:none
           so it never intercepts clicks. */}
-      <div style={{position:'absolute', top:0, bottom:0, left:-8, width:1, background:`linear-gradient(to bottom, transparent 0%, ${C.td}59 12%, ${C.td}59 88%, transparent 100%)`, pointerEvents:'none', zIndex:0}} />
+      <div style={{position:'absolute', top:0, bottom:0, left:-8, width:1, background:'linear-gradient(to bottom, transparent 0%, rgba(127,127,131,0.35) 12%, rgba(127,127,131,0.35) 88%, transparent 100%)', pointerEvents:'none', zIndex:0}} />
       {/* Filter row is ALWAYS rendered. Hiding it on empty-state would trap
           the user (e.g. picked athlete with no programs and couldn't change
           back). Empty states below render after the filter row so the
