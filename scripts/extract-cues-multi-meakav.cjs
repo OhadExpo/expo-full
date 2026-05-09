@@ -25,6 +25,9 @@ const SAVED_BLOBS = [
   { name: 'מעקב ישן (יובל גוטליב)',  file: 'mcp-claude_ai_Google_Drive-download_file_content-1778351077236.txt' },
   { name: 'מעקב יובל ברקו',          file: 'mcp-claude_ai_Google_Drive-download_file_content-1778351087521.txt' },
   { name: 'מעקב - רועי הידיד',       file: 'mcp-claude_ai_Google_Drive-download_file_content-1778351097781.txt' },
+  { name: 'מעקב - רועי הצבי',        file: 'mcp-claude_ai_Google_Drive-download_file_content-1778353221758.txt' },
+  { name: 'מעקב - רון יונקר',        file: 'mcp-claude_ai_Google_Drive-download_file_content-1778353234755.txt' },
+  { name: 'מעקב יובל ברקו #2',       file: 'mcp-claude_ai_Google_Drive-download_file_content-1778353247463.txt' },
 ];
 
 const PHRASES = [[/\bpro[-\/]ret\b/gi, 'protraction retraction']];
