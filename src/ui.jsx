@@ -83,10 +83,37 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
     letterSpacing: '0.18em', textTransform: 'uppercase',
     ...s,
   }}>{children}</Tag>;
+// Card wraps every trainee-grid item, exercise-list item, summary stat,
+// and similar surface throughout the app. Default state gets a subtle
+// boxShadow (theme-token; ~invisible in dark, real lift in light mode);
+// clickable cards lift a touch more on hover so the affordance is
+// instantly tactile. Border thickens to cyan on hover only — the always-
+// on neutral border keeps the page calm.
 export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) => (
-  <div onClick={onClick} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 18, cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}
-    onMouseEnter={e => { if(onClick) e.currentTarget.style.borderColor = C.ac; if(onMouseEnter) onMouseEnter(e); }}
-    onMouseLeave={e => { if(onClick) e.currentTarget.style.borderColor = C.cardBd; if(onMouseLeave) onMouseLeave(e); }}>{children}</div>
+  <div onClick={onClick} style={{
+    background: 'var(--c-sf)',
+    border: `1px solid ${C.cardBd}`,
+    borderRadius: 0,
+    padding: 18,
+    cursor: onClick ? "pointer" : "default",
+    boxShadow: C.cardShadow,
+    transition: "all 0.2s",
+    ...style,
+  }}
+    onMouseEnter={e => {
+      if (onClick) {
+        e.currentTarget.style.borderColor = C.ac;
+        e.currentTarget.style.transform = 'translateY(-1px)';
+      }
+      if (onMouseEnter) onMouseEnter(e);
+    }}
+    onMouseLeave={e => {
+      if (onClick) {
+        e.currentTarget.style.borderColor = C.cardBd;
+        e.currentTarget.style.transform = 'translateY(0)';
+      }
+      if (onMouseLeave) onMouseLeave(e);
+    }}>{children}</div>
 );
 export const Modal = ({ open, onClose, title, children, wide }) => {
   if (!open) return null;
