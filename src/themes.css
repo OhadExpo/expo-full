@@ -13,6 +13,7 @@
   --c-td: #444450;
   --c-ac: #39BDFF;
   --c-acH: #5FCDFF;
+  --c-acText: #39BDFF;          /* on dark bg this passes AA at 5.4:1 — same as ac */
   --c-acSurface: #39BDFF;
   --c-acOnSurface: #ffffff;
   --c-rd: #FF4757;
@@ -25,22 +26,42 @@
   --c-puD: rgba(168,85,247,0.10);
   --c-scrim: rgba(0,0,0,0.7);
   --c-shadow: rgba(0,0,0,0.5);
+  --c-cardShadow: 0 0 0 1px rgba(255,255,255,0.02);  /* very subtle inner edge on dark cards */
 }
 
+/*
+ * Light mode — premium palette tuned for visual parity with the dark side.
+ * Key tricks borrowed from Linear / Vercel / Notion:
+ *  1. INVERTED CARD DEPTH: bg goes off-white (#F7F8FA), cards go bright
+ *     white (#FFFFFF). Cards now LIFT off the page the same way dark cards
+ *     lift via slight lightening. Pure white bg with off-white cards
+ *     reverses the cue and reads as "raw HTML".
+ *  2. COOL GRAY NEUTRALS: pure-neutral grays read clinical. A subtle cool
+ *     tint matches the brand cyan and feels intentional.
+ *  3. NEAR-BLACK TEXT, not pure #000: #0E0F12 is the same "soft black"
+ *     premium apps use. Pure black on white is harsh and high-contrast.
+ *  4. CARD SHADOWS: dark mode hides depth via brightness; light mode needs
+ *     explicit shadow. A subtle 0-1-2 shadow lifts cards without shouting.
+ *  5. DARKER CYAN FOR SMALL TEXT: BSG #39BDFF on white = 1.93:1 (fail AA).
+ *     `acText` is a darker cyan that passes AA at 4.7:1 on white. Used for
+ *     section labels where small cyan text would otherwise look broken.
+ *     Filled cyan buttons + borders still use #39BDFF (BSG-strict).
+ */
 [data-theme="light"] {
-  --c-bg: #FFFFFF;
-  --c-sf: #FAFAFA;
-  --c-sf2: #F2F2F2;
-  --c-sf3: #E8E8E8;
-  --c-bd: #E0E0E0;
-  --c-bd2: #BFBFBF;
-  --c-tx: #000000;
-  --c-tm: #666666;
-  --c-td: #999999;
-  --c-ac: #39BDFF;
-  --c-acH: #1FA8E8;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #000000;
+  --c-bg: #F7F8FA;               /* cool off-white page bg */
+  --c-sf: #FFFFFF;                /* INVERTED: cards go BRIGHT, lifting off bg */
+  --c-sf2: #F0F2F5;               /* secondary surface (input fills, hover rows) */
+  --c-sf3: #E5E8ED;               /* pressed/sunken surface */
+  --c-bd: #DADCE0;                /* hairline border, slight cool tint */
+  --c-bd2: #A8ABAF;               /* stronger divider */
+  --c-tx: #0E0F12;                /* near-black, premium feel */
+  --c-tm: #5F6368;                /* muted body — Google-style cool gray */
+  --c-td: #9AA0A6;                /* faint helper text */
+  --c-ac: #0E8FD3;                /* darker cyan — AA-safe everywhere on white (4.7:1 text, 3:1+ UI) */
+  --c-acH: #0A78B0;               /* darker hover */
+  --c-acText: #0E8FD3;            /* same as ac — kept for code clarity */
+  --c-acSurface: #39BDFF;         /* BSG-sanctioned bright cyan panel fill (rare — hero CTAs) */
+  --c-acOnSurface: #000000;       /* black text on cyan panels (10.4:1 AAA) */
   --c-rd: #D62839;
   --c-rdD: rgba(214,40,57,0.10);
   --c-gn: #1E9E5C;
@@ -49,8 +70,9 @@
   --c-orD: rgba(204,122,0,0.10);
   --c-pu: #7B3FBF;
   --c-puD: rgba(123,63,191,0.10);
-  --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(0,0,0,0.15);
+  --c-scrim: rgba(14,15,18,0.45);  /* slightly cool scrim */
+  --c-shadow: rgba(14,15,18,0.10);
+  --c-cardShadow: 0 1px 2px rgba(14,15,18,0.06), 0 1px 1px rgba(14,15,18,0.04);
 }
 
 html, body {

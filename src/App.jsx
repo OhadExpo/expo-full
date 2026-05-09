@@ -609,7 +609,7 @@ function AuthedApp() {
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
-      <header style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,position:"sticky",top:0,zIndex:100}}>
+      <header style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,boxShadow:C.cardShadow,position:"sticky",top:0,zIndex:100}}>
         <style>{`.hdr-scroll::-webkit-scrollbar{display:none}`}</style>
         <div className="hdr-scroll" style={{maxWidth:1200,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
           <EXPOMark height={36} style={{flex:"0 0 auto",marginRight:12}} />

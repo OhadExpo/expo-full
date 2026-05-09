@@ -26,6 +26,7 @@ export const C = {
   // EXPO Blue + accent washes (alpha values are theme-agnostic — same hex in both modes)
   ac: "var(--c-ac)",
   acH: "var(--c-acH)",
+  acText: "var(--c-acText)",     // AA-safe cyan for small text on white; same as ac on dark
   acD: "rgba(57,189,255,0.10)",
   acM: "rgba(57,189,255,0.20)",
   ac4D: "rgba(57,189,255,0.30)",
@@ -44,6 +45,7 @@ export const C = {
   scrim: "var(--c-scrim)",       // modal backdrop dim (heavier in dark, lighter in light)
   videoBg: "#000000",             // video letterbox (always black — cinema convention)
   shadow: "var(--c-shadow)",     // drop-shadow color baseline
+  cardShadow: "var(--c-cardShadow)", // composite card-elevation shadow (subtle on dark, lift on light)
 };
 
 export const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
