@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "node scripts/check-bare-css-fns.js && vite build",
+    "build:nocheck": "vite build",
+    "preview": "vite preview",
+    "guard": "node scripts/check-bare-css-fns.js"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.34",
