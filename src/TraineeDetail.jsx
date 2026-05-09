@@ -358,7 +358,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               title="Compare two programs side-by-side"
               style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-            <Btn onClick={()=>setShowAssign(true)} style={{fontSize:11,height:32,padding:"0 14px",lineHeight:'32px',display:'inline-flex',alignItems:'center'}}>+ Assign Program</Btn>
+            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ Assign Program</button>
           </div>
         </div>
         <div className="td-couple-row" style={{display:'flex',gap:12}}>
@@ -405,7 +405,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               title="Compare two programs side-by-side"
               style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-            <Btn onClick={()=>setShowAssign(true)} style={{fontSize:11,height:32,padding:"0 14px",lineHeight:'32px',display:'inline-flex',alignItems:'center'}}>+ Assign Program</Btn>
+            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ Assign Program</button>
           </div>
         </div>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}

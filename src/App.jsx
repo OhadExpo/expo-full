@@ -343,6 +343,11 @@ function AuthedApp() {
   const [previewTrainee,setPreviewTrainee]=useState(initRoute.preview ? initRoute.traineeId : null);
   const [previewPlan,setPreviewPlan]=useState(initRoute.planPreviewId || null);
   const [selectedPlanId,setSelectedPlanId]=useState(null);
+  // Tracks where the plan editor was entered FROM, so the back button
+  // routes the coach back there instead of always landing on /programs.
+  // null = no editor open; { kind: 'trainees', traineeId: 'tr_xxx' } = came
+  // from a trainee card; { kind: 'plans' } = came from the program list.
+  const [planEditorOrigin,setPlanEditorOrigin]=useState(null);
   const [importMsg,setImportMsg]=useState(null);
   const [pendingImport,setPendingImport]=useState(null); // {parsed, type:'multi'|'single'} — awaiting trainee selection
   const [importSelectedTrainees,setImportSelectedTrainees]=useState([]); // selected trainee IDs for import
@@ -638,11 +643,11 @@ function AuthedApp() {
           {tab==="smartImport"&&<SmartImportView/>}
           {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}
           {tab==="trainees"&&selectedTrainee&&previewTrainee===selectedTrainee&&<CoachPreviewPortal traineeId={selectedTrainee} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={()=>closePreview(selectedTrainee)}/>}
-          {tab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} setPayments={setPayments} bwLog={bwLog} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
+          {tab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} setPayments={setPayments} bwLog={bwLog} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
           {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
           {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout}/>}
           {tab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
-          {tab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVis}/>}
+          {tab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVis} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
           {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
         </Suspense>
       </main>

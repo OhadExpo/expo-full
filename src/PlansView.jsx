@@ -108,6 +108,9 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
   const subtitle = (ex) => [ex.resistanceType, ex.bodyPosition, ex.movementType].filter(Boolean).join(' · ');
   const muscles = (ex) => [ex.primaryMuscles, ex.secondaryMuscles].filter(Boolean).join(' / ');
   const filterSelectStyle = { ...baseInput, padding: '7px 10px', fontSize: 12 };
+  // Active filters get the brand cyan border + subtle bg tint so the coach
+  // can see at a glance which dimensions are constraining the result list.
+  const filterStyleActive = { ...filterSelectStyle, border: `1px solid ${C.ac}`, color: C.tx };
 
   if (!open) return null;
 
@@ -144,27 +147,44 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
             onKeyDown={onKeyDown}
             style={{ ...baseInput, padding: '10px 14px', fontSize: 14 }}
           />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6, marginTop: 10 }}>
-            <select value={filters.category} onChange={e => setF('category', e.target.value)} style={filterSelectStyle}><option value="">Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={filterSelectStyle}><option value="">Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={filterSelectStyle}><option value="">Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={filterSelectStyle}><option value="">Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={filterSelectStyle}><option value="">Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}</select>
-            <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={filterSelectStyle}><option value="">Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}</select>
+          {/* Filter row — auto-fit so phones get 2-col, tablets 3-col,
+              desktop 6-col without a media query. Each select takes the
+              brand-cyan border style when its filter is active (the
+              filterStyleActive variant), so the coach can see which
+              dimensions are narrowing the result set at a glance. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 6, marginTop: 10 }}>
+            <select value={filters.category} onChange={e => setF('category', e.target.value)} style={filters.category ? filterStyleActive : filterSelectStyle}><option value="">Category</option>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.resistanceType} onChange={e => setF('resistanceType', e.target.value)} style={filters.resistanceType ? filterStyleActive : filterSelectStyle}><option value="">Resistance</option>{RESISTANCE_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.bodyPosition} onChange={e => setF('bodyPosition', e.target.value)} style={filters.bodyPosition ? filterStyleActive : filterSelectStyle}><option value="">Body Position</option>{BODY_POSITIONS.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.movementType} onChange={e => setF('movementType', e.target.value)} style={filters.movementType ? filterStyleActive : filterSelectStyle}><option value="">Movement Type</option>{MOVEMENT_TYPES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.movementPattern} onChange={e => setF('movementPattern', e.target.value)} style={filters.movementPattern ? filterStyleActive : filterSelectStyle}><option value="">Pattern</option>{MOVEMENT_PATTERNS.map(c => <option key={c} value={c}>{c}</option>)}</select>
+            <select value={filters.laterality} onChange={e => setF('laterality', e.target.value)} style={filters.laterality ? filterStyleActive : filterSelectStyle}><option value="">Laterality</option>{LATERALITY.map(c => <option key={c} value={c}>{c}</option>)}</select>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, fontSize: 11, fontFamily: FN, color: C.td }}>
-            <span>{filt.length}{(search.trim() || activeFilterCount > 0) && exercises.length > filt.length ? ` of ${exercises.length}` : ''} result{filt.length === 1 ? '' : 's'} · ↑↓ navigate · Enter select · Esc close</span>
-            {(search.trim() || activeFilterCount > 0) && <button onClick={clearAll} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>}
+          {/* Result count + keyboard hints. Count goes bold/cyan to draw the
+              eye — that's the number the coach scans as filters change.
+              Hints stay muted: useful but not part of the primary scan. */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, fontSize: 11, fontFamily: FN, color: C.td, gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ color: C.ac, fontWeight: 700 }}>{filt.length}</span>
+              {(search.trim() || activeFilterCount > 0) && exercises.length > filt.length ? <span style={{ color: C.td }}> of {exercises.length}</span> : null}
+              <span style={{ color: C.td }}> result{filt.length === 1 ? '' : 's'}</span>
+              <span style={{ color: C.td, opacity: 0.6, marginLeft: 10, letterSpacing: '0.04em' }}>↑↓ navigate · Enter select · Esc close</span>
+            </span>
+            {(search.trim() || activeFilterCount > 0) && <button onClick={clearAll} style={{ background: 'transparent', border: `0.25px solid ${C.cardBd}`, color: C.ac, cursor: 'pointer', fontSize: 10, fontFamily: FN, fontWeight: 700, letterSpacing: '0.18em', padding: '4px 10px', borderRadius: 0 }}>× CLEAR ALL</button>}
           </div>
         </div>
-        <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 22px 22px', marginTop: 10 }}>
+        <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 22px 22px', marginTop: 10, borderTop: `0.25px solid ${C.cardBd}` }}>
           {filt.length === 0 ? (
             <div style={{ padding: 40, fontSize: 13, color: C.td, textAlign: 'center' }}>No exercises found. Try relaxing filters or the search term.</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
               {filt.map((ex, idx) => {
                 const isActive = idx === activeIdx;
                 const isSelected = ex.id === currentId;
+                // Active (keyboard/hover focus) → solid cyan border. Selected
+                // (currently linked from the plan) → cyan-left bar + chip, but
+                // keeps neutral border so it doesn't compete with active.
+                // Active+Selected → cyan border AND chip, both signals visible.
                 return (
                   <button
                     key={ex.id}
@@ -173,15 +193,17 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
                     onMouseEnter={() => setActiveIdx(idx)}
                     style={{
                       textAlign: 'left', padding: '10px 12px',
-                      background: 'var(--c-sf)',
-                      border: `${isSelected||isActive?'1px':'0.25px'} solid ${isActive ? C.ac : (isSelected ? C.ac : C.cardBd)}`,
+                      background: isSelected ? 'rgba(59,160,255,0.06)' : 'var(--c-sf)',
+                      border: `${isActive ? '1px' : '0.25px'} solid ${isActive ? C.ac : C.cardBd}`,
+                      borderLeft: isSelected ? `3px solid ${C.ac}` : (isActive ? `1px solid ${C.ac}` : `0.25px solid ${C.cardBd}`),
                       borderRadius: 0, cursor: 'pointer', fontFamily: FB, color: C.tx,
-                      transition: 'all 0.1s'
+                      transition: 'all 0.1s', position: 'relative'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
                       <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ex.title}</div>
-                      {ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.gn, whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
+                      {isSelected && <span title="Currently linked exercise" style={{ fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `0.25px solid ${C.ac}`, padding: '1px 5px' }}>CURRENT</span>}
+                      {!isSelected && ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.gn, whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
                     </div>
                     {subtitle(ex) && <div style={{ fontSize: 10, color: C.tm, fontFamily: FN, marginBottom: 2 }}>{subtitle(ex)}</div>}
                     {muscles(ex) && <div style={{ fontSize: 10, color: C.td, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{muscles(ex)}</div>}
@@ -806,11 +828,22 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   // never touched. Clearing falls back to the library cues again.
                   const libCues = exData?.cues || '';
                   const value = ex.notes || libCues;
+                  // "FROM LIBRARY" tag appears only when the value is the
+                  // unmodified library fallback — once the coach starts
+                  // typing (ex.notes is non-empty), the tag disappears so
+                  // there's no stale "library" claim attached to overrides.
+                  const isFallback = !ex.notes && libCues;
                   return (
-                    <textarea value={value}
-                      onChange={e=>updateEx(exIdx,{notes:e.target.value})}
-                      placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."}
-                      style={{...baseInput,marginTop:6,textAlign:'center',minHeight:64,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
+                    <div style={{marginTop:10,paddingTop:10,borderTop:`0.25px solid ${C.cardBd}`,position:'relative'}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,minHeight:14}}>
+                        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>NOTES</span>
+                        {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.18em'}}>FROM LIBRARY</span>}
+                      </div>
+                      <textarea value={value}
+                        onChange={e=>updateEx(exIdx,{notes:e.target.value})}
+                        placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."}
+                        style={{...baseInput,textAlign:'center',minHeight:64,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
+                    </div>
                   );
                 })()}
                 {(() => {
@@ -923,7 +956,7 @@ function visKeyForPlan(p, trainees) {
   return `${trainee.name}:${p.name}:m0`;
 }
 
-export default function PlansView({ planIndex, reloadIndex, trainees, exercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onPreviewPlan, portalVis, setPortalVis }) {
+export default function PlansView({ planIndex, reloadIndex, trainees, exercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
   const [editMode, setEditMode] = useState(false);
@@ -997,10 +1030,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     setEditPlan({ id: 'pl_' + uid(), name: "", traineeId: "", phase: "", notes: "", active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: [], weeks: 4 });
     setEditMode(true);
   };
-  const handleSave = async (plan) => { await savePlan(plan); setEditMode(false); clearPlan(); await reloadIndex(); };
+  const handleSave = async (plan) => { await savePlan(plan); setEditMode(false); clearPlan(); await reloadIndex(); if (onCloseEditor) onCloseEditor(); };
   // Back from the editor: reload the index so autosaved edits (program name,
   // day count, exercise count, updatedAt sort, etc.) appear immediately.
-  const handleCancel = () => { setEditMode(false); clearPlan(); reloadIndex(); };
+  // onCloseEditor (when provided by App.jsx) routes the coach back to
+  // wherever the editor was opened from — typically the trainee card if
+  // they clicked "Open Plan" there, no-op when opened from the plans list.
+  const handleCancel = () => { setEditMode(false); clearPlan(); reloadIndex(); if (onCloseEditor) onCloseEditor(); };
   const handleDuplicate = async (planId) => {
     const { supabase: sb } = await import('./supabase');
     const { data } = await sb.from('plans').select('*').eq('id', planId).single();
