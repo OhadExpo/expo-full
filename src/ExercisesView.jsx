@@ -44,7 +44,7 @@ export default function ExercisesView({ exercises, setExercises }) {
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px' }} /></div>
         <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
-      <div style={{ background: 'var(--c-sf)', border:`0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
+      <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
             Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}
@@ -73,12 +73,12 @@ export default function ExercisesView({ exercises, setExercises }) {
       {filtered.length === 0 ? <EmptyState icon="🏋️" message="No exercises. Build your library." /> : (
         <div style={{ overflowX: "auto", background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FB, fontSize: 13 }}>
-            <thead><tr style={{ borderBottom: `0.25px solid ${C.cardBd}` }}>
+            <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
               {["Title","Category","Resistance","Pattern","Laterality",""].map(h =>
                 <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 9, fontFamily: FN, color: C.tm, textTransform: "uppercase", letterSpacing: '0.18em' }}>{h}</th>)}
             </tr></thead>
             <tbody>{filtered.map(ex => (
-              <tr key={ex.id} style={{ borderBottom: `0.25px solid ${C.cardBd}` }} onMouseEnter={e => e.currentTarget.style.background = C.sf2} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <tr key={ex.id} style={{ borderBottom: `1px solid ${C.cardBd}` }} onMouseEnter={e => e.currentTarget.style.background = C.sf2} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <td style={{ padding: "10px", color: C.tx, fontWeight: 600 }}>{ex.title}</td>
                 <td style={{ padding: "10px" }}><Badge>{ex.category || "—"}</Badge></td>
                 <td style={{ padding: "10px", color: C.tm }}>{ex.resistanceType || "—"}</td>

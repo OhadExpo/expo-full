@@ -287,14 +287,14 @@ function ClientPortalMock({ onPick }) {
 
         <div style={{ padding: '14px 20px 24px' }}>
           {/* Pre-workout check (pain / energy / sleep) — same fields as real */}
-          <div style={{ background: C.sf, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
+          <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontFamily: FN, color: C.td, letterSpacing: 1.5, fontWeight: 700, marginBottom: 10 }}>PRE-WORKOUT CHECK</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
               {[['pain', 'PAIN', '0-10'], ['energy', 'ENERGY', '1-5'], ['sleep', 'SLEEP', '1-5']].map(([k, l, ph]) => (
                 <div key={k}>
                   <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: 1, fontWeight: 700, marginBottom: 4, textAlign: 'center' }}>{l}</div>
                   <input type="number" placeholder={ph} value={preCheck[k]} onChange={e => setPreCheck(p => ({ ...p, [k]: e.target.value }))} style={{
-                    width: '100%', background: C.sf2, border: `0.25px solid ${C.bd}`, borderRadius: 0,
+                    width: '100%', background: C.sf2, border: `1px solid ${C.bd}`, borderRadius: 0,
                     padding: '6px 8px', color: C.tx, fontFamily: FN, fontSize: 13, outline: 'none',
                     boxSizing: 'border-box', textAlign: 'center',
                   }} />
@@ -435,7 +435,7 @@ function ClientPortalMock({ onPick }) {
         <div style={{ padding: '14px 20px 20px' }}>
           <h2 style={{ margin: '0 0 4px', fontFamily: FN, fontSize: 18 }}>Bodyweight Tracking</h2>
           <div style={{ color: C.tm, fontSize: 12, marginBottom: 16 }}>{TRAINEE.name} · {bwData.length} entries</div>
-          <div style={{ background: C.sf, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
+          <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
             <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
               {Array.from({ length: PLAN.weeks }, (_, w) => (
                 <button key={w} onClick={() => setWk(w)} style={{
@@ -450,7 +450,7 @@ function ClientPortalMock({ onPick }) {
             <div style={{ fontSize: 11, fontFamily: FN, color: C.td, marginBottom: 8, textAlign: 'center' }}>LOG W{wk + 1} · {PLAN.name}</div>
             <div style={{ display: 'flex', gap: 8 }}>
               <input value={bwInput} onChange={e => setBwInput(e.target.value)} placeholder="Weight in kg" type="number" style={{
-                flex: 1, background: C.sf2, border: `0.25px solid ${C.ac}`, borderRadius: 0,
+                flex: 1, background: C.sf2, border: `1px solid ${C.ac}`, borderRadius: 0,
                 padding: '10px 12px', color: C.tx, fontFamily: FN, fontSize: 14, outline: 'none',
                 boxSizing: 'border-box', textAlign: 'center',
               }} />
@@ -466,7 +466,7 @@ function ClientPortalMock({ onPick }) {
               }}>Save</button>
             </div>
           </div>
-          <div style={{ background: C.sf, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
+          <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontFamily: FN, color: C.td, marginBottom: 10 }}>TREND</div>
             <svg viewBox={`0 -10 ${Math.max(bwData.length * 60, 300)} 185`} style={{ width: '100%', height: 185 }}>
               {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
@@ -499,7 +499,7 @@ function ClientPortalMock({ onPick }) {
         <div style={{ padding: '14px 20px 20px' }}>
           <h2 style={{ margin: '0 0 12px', fontFamily: FN, fontSize: 18 }}>Personal Records ({PRS.length})</h2>
           {PRS.map((pr, i) => (
-            <div key={i} style={{ background: C.sf, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div key={i} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '12px 14px', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>{pr.name}</div>
                 <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginTop: 2 }}>{pr.date}</div>
@@ -567,7 +567,7 @@ function ClientPortalMock({ onPick }) {
                         {isOpen && x.hasVideo && (
                           <div style={{
                             marginTop: 6, marginBottom: 10,
-                            background: C.sf2, border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+                            background: C.sf2, border: `1px solid ${C.cardBd}`, borderRadius: 0,
                             padding: 8,
                           }}>
                             <div style={{
@@ -621,7 +621,7 @@ function ClientPortalMock({ onPick }) {
             <div style={{ fontSize: 10, fontFamily: FN, color: C.td, marginBottom: 4 }}>BW {lb ? `(${lb}kg)` : ''}</div>
             <div style={{ display: 'flex', gap: 4 }}>
               <input value={bw} onChange={e => setBw(e.target.value)} placeholder="kg" type="number" style={{
-                background: C.sf2, border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+                background: C.sf2, border: `1px solid ${C.cardBd}`, borderRadius: 0,
                 padding: '8px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none',
                 width: '100%', boxSizing: 'border-box', textAlign: 'center',
               }} />
@@ -657,7 +657,7 @@ function ClientPortalMock({ onPick }) {
         {DAYS.map((day, di) => {
           const done = !!doneDays[day.name];
           return (
-            <div key={di} style={{ background: C.sf, border: `0.25px solid ${done ? 'rgba(46,213,115,0.251)' : C.ac}`, borderRadius: 0, marginBottom: 12, padding: '14px 18px' }}>
+            <div key={di} style={{ background: C.sf, border: `1px solid ${done ? 'rgba(46,213,115,0.251)' : C.ac}`, borderRadius: 0, marginBottom: 12, padding: '14px 18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                 <div>
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{day.name}</span>

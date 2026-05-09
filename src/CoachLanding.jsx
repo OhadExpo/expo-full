@@ -249,7 +249,7 @@ function WaitlistForm({ t }) {
           onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
           placeholder={t('wl.placeholder')}
           style={{
-            background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`,
+            background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
             borderRadius: 0, padding: '12px 14px', color: C.tx,
             fontFamily: FB, fontSize: 14, outline: 'none',
             flex: '1 1 220px', minWidth: 0,
@@ -281,7 +281,7 @@ function DemoEmbed({ t }) {
   return (
     <div>
       <div className="cl-embed" style={{
-        background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+        background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
         overflow: 'hidden', maxWidth: 1180, margin: '0 auto', position: 'relative',
         boxShadow: `0 0 0 1px ${C.bd}, 0 30px 60px -20px rgba(0,0,0,0.6)`,
       }}>
@@ -336,7 +336,7 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
   return (
     <div style={{
       background: 'transparent',
-      border: popular ? `1px solid ${C.ac}` : `0.25px solid ${C.cardBd}`,
+      border: popular ? `1px solid ${C.ac}` : `1px solid ${C.cardBd}`,
       borderRadius: 0, padding: '24px 20px', textAlign: isHe ? 'right' : 'left',
       position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 360,
     }}>
@@ -396,7 +396,7 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
 function FeatureCard({ tag, title, body, isHe }) {
   return (
     <div style={{
-      background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+      background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
       padding: 22, textAlign: isHe ? 'right' : 'left',
     }}>
       <div style={{
@@ -483,7 +483,7 @@ export default function CoachLanding({ lang = 'en' }) {
 
       {/* Header */}
       <header style={{
-        background: C.bg, borderBottom: `0.25px solid ${C.cardBd}`,
+        background: C.bg, borderBottom: `1px solid ${C.cardBd}`,
         position: 'sticky', top: 0, zIndex: 50,
       }}>
         <div style={{
@@ -732,7 +732,7 @@ export default function CoachLanding({ lang = 'en' }) {
       {/* Sticky mobile-only CTA bar — see <style> block at top of component. */}
       <div className="cl-sticky-cta" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 60,
-        background: C.bg, borderTop: `0.25px solid ${C.cardBd}`,
+        background: C.bg, borderTop: `1px solid ${C.cardBd}`,
         padding: '10px 12px', gap: 8, alignItems: 'stretch',
         boxShadow: '0 -8px 24px rgba(0,0,0,0.4)',
       }}>
@@ -747,7 +747,7 @@ export default function CoachLanding({ lang = 'en' }) {
       </div>
 
       <footer style={{
-        borderTop: `0.25px solid ${C.cardBd}`, padding: '20px 16px',
+        borderTop: `1px solid ${C.cardBd}`, padding: '20px 16px',
         maxWidth: 1180, margin: '0 auto', width: '100%',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         gap: 12, flexWrap: 'wrap',

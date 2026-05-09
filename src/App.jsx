@@ -657,7 +657,7 @@ function AuthedApp() {
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Assign Imported Program</h3>
             <button onClick={()=>setPendingImport(null)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4,fontSize:16}}>✕</button></div>
-          <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:16}}>
+          <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:16}}>
             <div style={{fontSize:13,color:C.tx,fontWeight:600}}>{pendingImport.parsed.plans?.length||0} block{(pendingImport.parsed.plans?.length||0)!==1?'s':''} · {pendingImport.parsed.exercises?.length||0} exercises</div>
             <div style={{fontSize:11,color:C.tm,marginTop:4}}>{pendingImport.fileName}</div>
             {pendingImport.parsed.plans?.map(p=><div key={p.id} style={{fontSize:12,color:C.ac,marginTop:4}}>• {p.name} — {p.days?.length||0} days</div>)}

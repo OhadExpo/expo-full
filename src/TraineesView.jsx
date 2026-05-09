@@ -126,7 +126,7 @@ const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>�
 
 function CardSection({ label, children, center = false }) {
   return (
-    <div style={{ marginTop: 12, paddingTop: 10, borderTop: `0.25px solid rgba(57,189,255,0.149)` }}>
+    <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid rgba(57,189,255,0.149)` }}>
       <div style={{
         fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
@@ -332,7 +332,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         </button>
         <div ref={addMenuRef} style={{position:'relative'}}>
           <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ height: 40, padding: '0 18px' }}>+ Add Athlete ▾</Btn>
-          {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.bg,border:`0.25px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
+          {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
             {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple']].map(([label,format])=>(
               <button key={format} onClick={()=>{
                 const f = {...defaultTrainee(), format};
@@ -449,8 +449,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
 
                   {!showArchived && (
                     <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
-                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 12px',borderRadius:0}}>👁 PREVIEW</button> : <span/>}
-                      <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 12px',borderRadius:0}}>EDIT</button>
+                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 12px',borderRadius:0}}>👁 PREVIEW</button> : <span/>}
+                      <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 12px',borderRadius:0}}>EDIT</button>
                     </div>
                   )}
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:'auto',paddingTop:10}}>
@@ -496,8 +496,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
               </div>}
               {!showArchived && <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
-                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>👁 PREVIEW</button> : <span/>}
-                <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>EDIT</button>
+                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>👁 PREVIEW</button> : <span/>}
+                <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>EDIT</button>
               </div>}
             </Card>);
           })}
@@ -560,7 +560,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 {arr.length > 1 && <button onClick={() => {
                   const next = [...arr]; next.splice(i, 1);
                   setForm({...form, _emails: next});
-                }} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.rd}`, borderRadius: 0, padding: '0 8px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
+                }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '0 8px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
               </div>
             ))}
             {(form._emails || emailsToArr(form.email)).length < 3 && (

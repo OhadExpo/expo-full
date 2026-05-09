@@ -24,7 +24,7 @@ function Tile({ href, badge, title, sub, primary }) {
     <a href={href} style={{
       ...tileBase,
       background: 'transparent',
-      border: primary ? `1px solid ${C.ac}` : `0.25px solid ${C.cardBd}`,
+      border: primary ? `1px solid ${C.ac}` : `1px solid ${C.cardBd}`,
       color: C.tx,
     }}
     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = C.ac; }}
@@ -61,7 +61,7 @@ export default function EntryChooser() {
       fontFamily: FB, display: 'flex', flexDirection: 'column',
     }}>
       <header style={{
-        background: 'transparent', borderBottom: `0.25px solid ${C.cardBd}`,
+        background: 'transparent', borderBottom: `1px solid ${C.cardBd}`,
       }}>
         <div style={{
           maxWidth: 1180, margin: '0 auto', padding: '0 16px',
@@ -120,7 +120,7 @@ export default function EntryChooser() {
       </main>
 
       <footer style={{
-        borderTop: `0.25px solid ${C.cardBd}`, padding: '14px 16px', textAlign: 'center',
+        borderTop: `1px solid ${C.cardBd}`, padding: '14px 16px', textAlign: 'center',
       }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,

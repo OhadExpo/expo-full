@@ -123,7 +123,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             const eqDifferent = eq && targetEquip && eq !== targetEquip;
             return (
               <button key={exercise.id} onClick={() => { onPick(exercise); onClose(); }} style={{
-                textAlign: 'left', background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`,
+                textAlign: 'left', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
                 borderRadius: 0, padding: '12px 14px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 10,
                 transition: 'border-color 120ms, background 120ms, transform 120ms',
@@ -169,7 +169,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
         </div>
 
         <div style={{
-          marginTop: 14, paddingTop: 12, borderTop: `0.25px solid ${C.cardBd}`,
+          marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`,
           fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', textAlign: 'center',
         }}>
           Just for today's session — the prescribed plan stays intact.

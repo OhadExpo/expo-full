@@ -28,7 +28,7 @@ const labelDir = (s) => (RTL_CHARS.test(String(s || '')) ? 'rtl' : 'ltr');
 function Field({ q, value, onChange, dir }) {
   const inputBase = {
     width: '100%', boxSizing: 'border-box',
-    background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+    background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
     padding: '10px 12px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none',
     direction: dir,
   };
@@ -218,7 +218,7 @@ export default function IntakeForm() {
   };
   const card = {
     width: '100%', maxWidth: 720,
-    background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, padding: '32px 28px',
+    background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '32px 28px',
     direction: dir, fontFamily: dir === 'rtl' ? FH : FB,
   };
 
@@ -295,7 +295,7 @@ export default function IntakeForm() {
         {(form?.questions || []).map(q => (
           <Field key={q.id} q={q} value={answers[q.id]} onChange={v => setAnswer(q.id, v)} dir={labelDir(q.label)} />
         ))}
-        <button disabled style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.tm}`, color: C.tm, padding: '12px 24px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 0, marginTop: 12, opacity: 0.5 }}>
+        <button disabled style={{ background: 'var(--c-sf)', border: `1px solid ${C.tm}`, color: C.tm, padding: '12px 24px', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', borderRadius: 0, marginTop: 12, opacity: 0.5 }}>
           {form?.submitLabel || 'Submit'} (preview)
         </button>
       </div></div>

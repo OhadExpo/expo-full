@@ -250,7 +250,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
         )}
 
         {rows.length === 0 ? (
-          <div style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
+          <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO RECORDS YET</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
               Log a few sessions with weights and your records will show up here.
@@ -284,7 +284,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
               {open && (
                 <div style={{
                   position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
-                  background: C.bg, border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+                  background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0,
                   maxHeight: 280, overflowY: 'auto', zIndex: 20,
                   boxShadow: '0 8px 24px rgba(0,0,0,0.7)',
                 }}>
@@ -340,14 +340,14 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
                   SESSION HISTORY · {picked.sessionCount} ENTR{picked.sessionCount === 1 ? 'Y' : 'IES'}
                 </div>
-                <div style={{ border: `0.25px solid ${C.cardBd}` }}>
+                <div style={{ border: `1px solid ${C.cardBd}` }}>
                   {picked.series.slice().reverse().map((s, i, arr) => {
                     const isPR = s.load === picked.allTimePR;
                     return (
                       <div key={i} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '10px 14px',
-                        borderBottom: i < arr.length - 1 ? `0.25px solid ${C.cardBd}` : 'none',
+                        borderBottom: i < arr.length - 1 ? `1px solid ${C.cardBd}` : 'none',
                         background: isPR ? `rgba(57,189,255,0.039)` : 'transparent',
                       }}>
                         <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, minWidth: 70 }}>
@@ -358,7 +358,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                           {s.load}<span style={{ fontSize: 10, color: C.tm, marginLeft: 6, fontWeight: 400 }}>kg</span>
                           {s.reps > 0 && <span style={{ fontSize: 11, color: C.tm, marginLeft: 8, fontWeight: 400 }}>× {s.reps}</span>}
                           {s.rpe != null && <span style={{ fontSize: 10, color: C.td, marginLeft: 8, fontWeight: 400 }}>RPE {s.rpe}</span>}
-                          {isPR && <span style={{ fontSize: 9, color: C.ac, marginLeft: 8, letterSpacing: '0.1em', fontWeight: 700, border: `0.25px solid ${C.ac}`, padding: '1px 5px' }}>PR</span>}
+                          {isPR && <span style={{ fontSize: 9, color: C.ac, marginLeft: 8, letterSpacing: '0.1em', fontWeight: 700, border: `1px solid ${C.ac}`, padding: '1px 5px' }}>PR</span>}
                         </div>
                       </div>
                     );

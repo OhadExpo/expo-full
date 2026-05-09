@@ -6,7 +6,7 @@ import { C, FN, FB } from './theme';
 // (Btn primary variant). Active focus would step up to 2px C.ac, but we
 // don't track focus inline — :focus styling lives in a global stylesheet.
 export const baseInput = {
-  background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+  background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
   padding: "9px 14px", color: C.tx, fontFamily: FB, fontSize: 13,
   outline: "none", width: "100%", boxSizing: "border-box",
   transition: "border-color 0.2s",
@@ -20,7 +20,7 @@ export const baseBtn = {
 };
 const variants = {
   primary: { background: 'transparent', color: C.ac, border: `1px solid ${C.ac}` },
-  ghost: { background: "transparent", color: C.tm, border: `0.25px solid ${C.cardBd}` },
+  ghost: { background: "transparent", color: C.tm, border: `1px solid ${C.cardBd}` },
   danger: { background: 'transparent', color: C.rd, border: `1px solid ${C.rd}` },
   success: { background: 'transparent', color: C.gn, border: `1px solid ${C.gn}` },
 };
@@ -44,7 +44,7 @@ export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, plac
       {arr.map((em, i) => (
         <div key={i} style={{ display: 'flex', gap: 4 }}>
           <input value={em} onChange={e => { const next = [...arr]; next[i] = e.target.value; onChange(next); }} placeholder={placeholder} style={{ ...baseInput, flex: 1 }} />
-          {arr.length > 1 && <button onClick={() => { const next = [...arr]; next.splice(i, 1); onChange(next); }} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.rd}`, borderRadius: 0, padding: '0 10px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
+          {arr.length > 1 && <button onClick={() => { const next = [...arr]; next.splice(i, 1); onChange(next); }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '0 10px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
         </div>
       ))}
       {arr.length < max && (
@@ -70,7 +70,7 @@ export const TextArea = ({ label, ...props }) => (
   </div>
 );
 export const Badge = ({ children, color = C.ac, style: s }) =>
-  <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: 'var(--c-sf)', border: `0.25px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
+  <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: 'var(--c-sf)', border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
 
 // Standard EXPO section heading. Used everywhere we'd otherwise hand-roll
 // `<div style={{fontSize:9, fontFamily:FN, color:C.tm, letterSpacing:'0.18em', fontWeight:700, textTransform:'uppercase'}}>...</div>`
@@ -84,7 +84,7 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
     ...s,
   }}>{children}</Tag>;
 export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) => (
-  <div onClick={onClick} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 18, cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}
+  <div onClick={onClick} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 18, cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}
     onMouseEnter={e => { if(onClick) e.currentTarget.style.borderColor = C.ac; if(onMouseEnter) onMouseEnter(e); }}
     onMouseLeave={e => { if(onClick) e.currentTarget.style.borderColor = C.cardBd; if(onMouseLeave) onMouseLeave(e); }}>{children}</div>
 );
@@ -95,7 +95,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
       <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
+          <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>{children}</div></div>);
 };
 export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => {

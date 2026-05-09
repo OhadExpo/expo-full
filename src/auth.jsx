@@ -237,7 +237,7 @@ export function LoginScreen() {
         {!isStandalone && (
           <button
             onClick={handleInstall}
-            style={{ width: '100%', marginTop: 16, padding: showInstallHelp ? '14px 16px' : 12, borderRadius: 0, border: `0.25px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: showInstallHelp ? 12 : 14, fontWeight: showInstallHelp ? 400 : 600, cursor: 'pointer', lineHeight: showInstallHelp ? 1.5 : 1.2, textAlign: 'center' }}
+            style={{ width: '100%', marginTop: 16, padding: showInstallHelp ? '14px 16px' : 12, borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FB, fontSize: showInstallHelp ? 12 : 14, fontWeight: showInstallHelp ? 400 : 600, cursor: 'pointer', lineHeight: showInstallHelp ? 1.5 : 1.2, textAlign: 'center' }}
           >
             {showInstallHelp
               ? (isIOS
@@ -291,7 +291,7 @@ export function PasswordChangeModal({ onClose }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
         {ok ? (
           <div style={{ color: C.gn, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Password updated ✓</div>
@@ -305,7 +305,7 @@ export function PasswordChangeModal({ onClose }) {
               style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `0.25px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${(!saving && currentPw && pw && confirmPw) ? C.ac : C.cardBd}`, background: 'transparent', color: (!saving && currentPw && pw && confirmPw) ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>
             </div>
           </>
@@ -400,7 +400,7 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
     <button
       onClick={() => onPick(side)}
       style={{
-        background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '28px 24px',
+        background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '28px 24px',
         color: C.tx, fontFamily: FB, cursor: 'pointer', textAlign: 'center',
         display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220,
         transition: 'border-color 120ms, transform 120ms',
@@ -471,5 +471,5 @@ const wrapStyle = {
 };
 
 const cardStyle = {
-  background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 28,
+  background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 28,
 };

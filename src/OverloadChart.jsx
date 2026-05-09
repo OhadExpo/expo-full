@@ -96,7 +96,7 @@ export default function OverloadChart({ workouts, exercises }) {
 
   if (exerciseStats.length === 0) {
     return (
-      <div style={{ color: C.tm, fontSize: 13, padding: 20, textAlign: 'center', background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0 }}>
+      <div style={{ color: C.tm, fontSize: 13, padding: 20, textAlign: 'center', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
         Progressive overload tracking will appear here once this client completes workouts with logged loads.
       </div>
     );
@@ -113,7 +113,7 @@ export default function OverloadChart({ workouts, exercises }) {
           const deltaColor = row.deltaTotal > 0 ? C.gn : row.deltaTotal < 0 ? C.rd : C.td;
           const deltaSign = row.deltaTotal > 0 ? '+' : '';
           return (
-            <div key={row.exId} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 14 }}>
+            <div key={row.exId} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, color: C.tx, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.title}</div>

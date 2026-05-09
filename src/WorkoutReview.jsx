@@ -1335,12 +1335,12 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   const pauseBoth = () => { leftVid?.pause(); rightVid?.pause(); };
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
-      <div onClick={e => e.stopPropagation()} style={{background:C.bg,border:`0.25px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
+      <div onClick={e => e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Compare</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
             <button onClick={playBoth} style={{background:C.acD,border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>▶ PLAY BOTH</button>
-            <button onClick={pauseBoth} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>❚❚ PAUSE</button>
+            <button onClick={pauseBoth} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:11,padding:'6px 12px',borderRadius:0,cursor:'pointer'}}>❚❚ PAUSE</button>
             <button onClick={onClose} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:18,padding:'0 8px'}}>✕</button>
           </div>
         </div>
@@ -1351,9 +1351,9 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
           </div>
           <div style={{display:'flex',flexDirection:'column',gap:6,paddingTop:24}}>
             <button onClick={() => sync('right')} title="Copy left timestamp to right"
-              style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
+              style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>SYNC →</button>
             <button onClick={() => sync('left')} title="Copy right timestamp to left"
-              style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
+              style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,padding:'6px 8px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>← SYNC</button>
           </div>
           <div>
             <div style={{fontSize:11,fontFamily:FN,color:C.tm,marginBottom:6}}>{rightLabel}</div>
@@ -1452,10 +1452,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         <input autoFocus value={deleteConfirmText} onChange={e => setDeleteConfirmText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && confirmOk) onDeleteConfirm(); }}
           placeholder='type "delete"'
-          style={{width:'100%',background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
+          style={{width:'100%',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FB,fontSize:14,outline:'none',boxSizing:'border-box',marginBottom:12,textAlign:'center'}} />
         <div style={{display:'flex',gap:8}}>
           <button onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
-            style={{flex:1,padding:'10px 0',borderRadius:0,border:`0.25px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
+            style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FB,fontSize:13,fontWeight:600,cursor:'pointer'}}>
             Cancel
           </button>
           <button disabled={!confirmOk} onClick={onDeleteConfirm}
@@ -1563,7 +1563,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{comparePicker.candidates.length} other video{comparePicker.candidates.length===1?'':'s'} from this client:</div>
               {comparePicker.candidates.map((c, i) => (
                 <div key={i} onClick={() => { setCompareActive({ left: comparePicker.left, right: { url: c.cloudUrl, label: c.label, title: c.title } }); setComparePicker(null); }}
-                  style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
+                  style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
                   onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                   onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}>
                   <div style={{fontSize:12,color:C.tx}}>{c.label}</div>
@@ -1586,7 +1586,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         </button>
 
         {/* Workout header */}
-        <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:16,marginBottom:16}}>
+        <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:16,marginBottom:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
               <h2 style={{margin:0,fontFamily:FN,fontSize:18,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -1612,7 +1612,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           {wo.autoregulation && (
             <div style={{display:"flex",gap:12,marginTop:12}}>
               {[['Pain',wo.autoregulation.pain,C.rd],['Energy',wo.autoregulation.energy,C.gn],['Sleep',wo.autoregulation.sleep,C.pu]].map(([l,v,col]) => (
-                <div key={l} style={{flex:1,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:8,textAlign:"center"}}>
+                <div key={l} style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:8,textAlign:"center"}}>
                   <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>{l.toUpperCase()}</div>
                   <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:v?col:C.td}}>{v || '—'}</div>
                 </div>
@@ -1620,7 +1620,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             </div>
           )}
           {wo.notes && (
-            <div style={{marginTop:10,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10}}>
+            <div style={{marginTop:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10}}>
               <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',marginBottom:4}}>ATHLETE NOTES</div>
               <div style={{fontSize:13,color:C.tx}}>{wo.notes}</div>
             </div>
@@ -1674,7 +1674,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
               {/* Expanded detail */}
               {isExpanded && (
-                <div style={{padding:"0 14px 14px",borderTop:`0.25px solid ${C.cardBd}`}}>
+                <div style={{padding:"0 14px 14px",borderTop:`1px solid ${C.cardBd}`}}>
                   {/* Set-by-set data — every column centered for visual symmetry */}
                   <div style={{marginTop:10,marginBottom:12}}>
                     <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,marginBottom:4}}>
@@ -1741,7 +1741,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       {formVideo.note && <div style={{fontSize:12,color:C.tx,marginTop:6}}>Client note: {formVideo.note}</div>}
                     </div>
                   ) : (
-                    <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10,marginBottom:10,textAlign:"center"}}>
+                    <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginBottom:10,textAlign:"center"}}>
                       <div style={{fontSize:11,color:C.tm}}>No form video submitted</div>
                     </div>
                   )}
@@ -1865,7 +1865,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           )}
           <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
             title="Return to the review queue"
-            style={{flex:1,padding:"12px 0",borderRadius:0,border:`0.25px solid ${C.cardBd}`,
+            style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.cardBd}`,
               background:"transparent",color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,
               letterSpacing:0.5,cursor:"pointer"}}>
             ← BACK TO REVIEW
@@ -1978,7 +1978,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const reviewed = !!wo.reviewedAt;
             return (
               <div key={wo.id} onClick={() => setSelectedWo(wo.id)}
-                style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
+                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
                   marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}

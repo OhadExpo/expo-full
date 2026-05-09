@@ -132,8 +132,8 @@ function trainerPlanToPortal(plan, trainerExercises) {
 }
 
 
-const bi = {background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
-const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:0,fontSize:10,fontWeight:700,fontFamily:FN,background:'var(--c-sf)',border:`0.25px solid ${color}`,color,letterSpacing:'0.18em',textTransform:'uppercase',...s}}>{children}</span>;
+const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
+const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:0,fontSize:10,fontWeight:700,fontFamily:FN,background:'var(--c-sf)',border:`1px solid ${color}`,color,letterSpacing:'0.18em',textTransform:'uppercase',...s}}>{children}</span>;
 
 // Renders a Google Photos share URL as an inline player. Google blocks
 // iframe embedding of share pages via X-Frame-Options, so /api/resolve-video
@@ -157,7 +157,7 @@ function GooglePhotosEmbed({ url }) {
       .catch(e => { if (alive) setState({ phase: 'err', error: String(e?.message || e) }); });
     return () => { alive = false; };
   }, [url]);
-  const wrap = {marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.cardBd}`};
+  const wrap = {marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`};
   if (state.phase === 'loading') return <div style={{...wrap,display:'flex',alignItems:'center',justifyContent:'center',color:C.tm,fontFamily:FN,fontSize:11,letterSpacing:'0.18em'}}>LOADING VIDEO…</div>;
   if (state.phase === 'err') return <div style={{...wrap,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.tm,fontFamily:FN,fontSize:11,padding:16,textAlign:'center'}}>
     <div>VIDEO COULD NOT BE EMBEDDED</div>
@@ -634,14 +634,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <EXPOMark theme="dark" height={36} style={{flexShrink:0}} />
       <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
       {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
-        <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{marginLeft:'auto',background:'var(--c-sf)',border:`0.25px solid ${sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn}4D`,color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.06em',whiteSpace:'nowrap'}}>
+        <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{marginLeft:'auto',background:'var(--c-sf)',border:`1px solid ${sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn}4D`,color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.06em',whiteSpace:'nowrap'}}>
           {sessionAutosave.status === 'saving' ? '… SAVING' :
            sessionAutosave.status === 'error' ? '⚠ SAVE FAILED' :
            lastSavedAt ? `✓ ${lastSavedAt.toTimeString().slice(0,5)}` : ''}
           {pendingBlobs > 0 && <span style={{marginLeft:6,opacity:0.85}}>· ↑{pendingBlobs}</span>}
         </span>
       )}
-      {showResumedPill && <span title="Restored from your last session" style={{marginLeft:8,background:'var(--c-sf)',border:`0.25px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
+      {showResumedPill && <span title="Restored from your last session" style={{marginLeft:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
       <button onClick={onBack} style={{marginLeft:8,background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
@@ -670,16 +670,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,padding:'4px 10px',fontFamily:FN,fontSize:9,color:C.or,fontWeight:700,letterSpacing:'0.18em',minWidth:110,textAlign:'center',fontVariantNumeric:'tabular-nums',boxSizing:'border-box'}}>WARM-UP {wi+1}/{wuCount}</div></div>
         <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{wu.t}</h2>
         <div style={{fontSize:15,color:C.or,fontWeight:700,fontFamily:FN,marginBottom:14}}>{wu.rx}</div>
-        {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`}}>
+        {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
           <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
-          : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.cardBd}`}}>
+          : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : wu.vid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(wu.vid) ? <GooglePhotosEmbed url={wu.vid} />
-          : wu.vid && /lh3\.googleusercontent\.com/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.cardBd}`}}>
+          : wu.vid && /lh3\.googleusercontent\.com/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
-          : <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>No video for this exercise</div>}
+          : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>No video for this exercise</div>}
         <div style={{display:'flex',gap:8}}>
-          <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`0.25px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+          <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.or}`,background:'transparent',color:C.or,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
             {wi === wuCount - 1 ? 'Start Check-In →' : 'Next Warm-Up →'}</button></div>
       </div></div>;
@@ -695,10 +695,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{display:'flex',gap:4}}>{(rng==='0-10'?[0,1,2,3,4,5,6,7,8,9,10]:[1,2,3,4,5]).map(n =>
             <div key={n} onClick={() => setAr({...ar,[k]:String(n)})} style={{flex:1,height:40,borderRadius:0,background:'var(--c-sf)',border:`${ar[k]===String(n)?'1px':'0.25px'} solid ${ar[k]===String(n)?col:C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:14,color:ar[k]===String(n)?col:C.tm,cursor:'pointer',fontWeight:ar[k]===String(n)?700:400}}>{n}</div>
           )}</div></div>)}
-      {parseInt(ar.pain)>=4 && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.rd}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — Modify: ROM → Tempo → Intensity → Volume</div>}
-      {(parseInt(ar.energy)<=2||parseInt(ar.sleep)<=2) && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.or}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.or,fontWeight:600}}>⚠ Low recovery — Auto-regulate down</div>}
+      {parseInt(ar.pain)>=4 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — Modify: ROM → Tempo → Intensity → Volume</div>}
+      {(parseInt(ar.energy)<=2||parseInt(ar.sleep)<=2) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.or,fontWeight:600}}>⚠ Low recovery — Auto-regulate down</div>}
       <div style={{display:'flex',gap:8}}>
-        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`0.25px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
         <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button></div>
     </div></div>;
 
@@ -778,7 +778,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did it feel? Pain? Modifications?" style={{...bi,minHeight:120,resize:'vertical',marginBottom:16,textAlign:'center'}}/>
       {fv.some(f => f.uploading) ? (
-        <button style={{width:'100%',padding:16,borderRadius:0,border:`0.25px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
+        <button style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'wait',opacity:0.6}}>⏳ Video uploading...</button>
       ) : (
         <button onClick={finish} style={{width:'100%',padding:16,borderRadius:0,border:`1px solid ${C.gn}`,background:'transparent',color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>✓ Complete Workout</button>
       )}
@@ -965,9 +965,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{background:'var(--c-sf)',border:`1px solid ${f.uploaded?C.gn:C.cardBd}`,borderRadius:0,padding:14}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
           <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>FORM CHECK</div>
-          {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`0.25px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
+          {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
             <span style={{fontSize:14}}>✅</span><span style={{fontSize:11,fontFamily:FN,color:C.gn,fontWeight:700}}>UPLOADED</span></div>}
-          {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`0.25px solid ${C.ac}`,padding:'3px 10px',borderRadius:0}}>
+          {f.uploading && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`1px solid ${C.ac}`,padding:'3px 10px',borderRadius:0}}>
             <span style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700}}>{f.phase==='compress' ? `⚙ Compressing ${f.compressProgress||0}%` : `☁ Uploading ${f.uploadProgress||0}%`}</span></div>}
         </div>
         {f.has && f.videoUrl ? (
@@ -1016,7 +1016,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {groupExs.map(renderExerciseBlock)}
 
       <div style={{display:'flex',gap:8,marginTop:20}}>
-        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`0.25px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
         <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
           {anyUploading ? `⚙ Processing video...` : step===groupCount-1 ? 'Finish →' : (isSuperset?'Next Block →':'Next Exercise →')}</button></div>
     </div></div>;
@@ -1237,7 +1237,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
   const renderTopHeader = () => (
     <>
-      <div style={{background:C.bg,padding:'20px 20px 18px',borderBottom:`0.25px solid ${C.bd2}`}}>
+      <div style={{background:C.bg,padding:'20px 20px 18px',borderBottom:`1px solid ${C.bd2}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
@@ -1305,7 +1305,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         </div>
 
         {/* Quick log */}
-        <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:16}}>
+        <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:16}}>
           {visPlans.length > 1 && <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
             {visPlans.map(p => <button key={p.name} onClick={() => setSelectedBlockName(p.name)}
               style={{padding:'4px 10px',borderRadius:0,border:`${activePlan?.name===p.name?'2px':'0.25px'} solid ${C.ac}${activePlan?.name===p.name?'':'4D'}`,background:'transparent',color:activePlan?.name===p.name?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer'}}>{p.name}</button>)}
@@ -1324,7 +1324,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
 
         {/* Graph */}
         {bwData.length < 2 ? (
-          <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
+          <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
             <div style={{fontSize:24,marginBottom:8}}>📊</div>
             <div style={{fontSize:13}}>Log at least 2 weigh-ins to see your trend</div>
           </div>
@@ -1381,16 +1381,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             </svg>
             {/* Stats */}
             <div style={{display:'flex',gap:8,marginTop:10}}>
-              <div style={{flex:1,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
+              <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
                 <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>LATEST</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData[bwData.length-1].bw}kg</div>
               </div>
-              <div style={{flex:1,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
+              <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
                 <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>CHANGE</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:(bwData[bwData.length-1].bw-bwData[0].bw)<=0?C.gn:C.or}}>
                   {(bwData[bwData.length-1].bw-bwData[0].bw)>0?'+':''}{(bwData[bwData.length-1].bw-bwData[0].bw).toFixed(1)}kg</div>
               </div>
-              <div style={{flex:1,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
+              <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
                 <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>ENTRIES</div>
                 <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.tx}}>{bwData.length}</div>
               </div>
@@ -1403,25 +1403,25 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {bwData.slice().reverse().map((d,i) => {
           const onEdit = () => { setBw(String(d.bw)); setWk((d.week||1)-1); if (d.blockName) setSelectedBlockName(d.blockName); };
           const onDelete = (e) => { e.stopPropagation(); setBwDeleteConfirm(d); };
-          return <div key={i} onClick={onEdit} title="Click to edit" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,marginBottom:4,cursor:'pointer'}}>
+          return <div key={i} onClick={onEdit} title="Click to edit" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:4,cursor:'pointer'}}>
             <div>
               <span style={{fontSize:13,fontWeight:600,fontFamily:FN,color:C.tx}}>{d.bw} kg</span>
               <span style={{fontSize:11,color:C.tm,marginLeft:8,fontFamily:FN}}>{d.blockName||'?'} · W{d.week||'?'}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
               <span style={{fontSize:10,color:C.td,fontFamily:FN}}>{new Date(d.date).toLocaleDateString()}</span>
-              <button onClick={onDelete} title="Delete entry" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.td,cursor:'pointer',fontSize:14,padding:'2px 6px',borderRadius:0,lineHeight:1}}>×</button>
+              <button onClick={onDelete} title="Delete entry" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.td,cursor:'pointer',fontSize:14,padding:'2px 6px',borderRadius:0,lineHeight:1}}>×</button>
             </div>
           </div>;
         })}
         {bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
       </div>
       {bwDeleteConfirm && <div onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
-        <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
           <div style={{fontFamily:FN,fontSize:10,color:C.td,marginBottom:8,letterSpacing:'0.12em',fontWeight:700}}>DELETE ENTRY</div>
           <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>Remove {bwDeleteConfirm.bw}kg from {bwDeleteConfirm.blockName || '?'} · W{bwDeleteConfirm.week || '?'}?</div>
           <div style={{display:'flex',gap:8}}>
-            <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:0,border:`0.25px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>CANCEL</button>
+            <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>CANCEL</button>
             <button onClick={() => { const d = bwDeleteConfirm; setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>DELETE</button>
           </div>
         </div>
@@ -1456,11 +1456,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'3px 0'}}>
                   <span style={{flex:1}}>{i+1}. {x.title} <span style={{color:C.td}}>{x.prescribed} · {x.sets.filter(s=>s.done).length}/{x.sets.length}</span></span>
                   {hasVideo && <span style={{color:C.gn,fontSize:12}}>📹</span>}
-                  {notesCount > 0 && <span style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:0}}>💬 {notesCount}</span>}
+                  {notesCount > 0 && <span style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:0}}>💬 {notesCount}</span>}
                   {canExpand && <span style={{color:C.td,fontSize:10}}>{isOpen ? '▲' : '▼'}</span>}
                 </div>
                 {isOpen && hasVideo && (
-                  <div style={{marginTop:6,marginBottom:10,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:8}}>
+                  <div style={{marginTop:6,marginBottom:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:8}}>
                     <FormVideoPlayer url={fv.cloudUrl} exerciseTitle={x.title}
                       role="client"
                       reviewNotes={fv.reviewNotes || []}
@@ -1474,7 +1474,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>
             );
           })}
-          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}>📝 {w.notes}</div>}
+          {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}>📝 {w.notes}</div>}
         </div>; })}</div></div>;
 
   // Program view
@@ -1484,13 +1484,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'center'}}>
           <div style={{flex:1}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.18em',fontWeight:700}}>WEEK</div>
-            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',cursor:'pointer'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{flex:'1 1 40px',padding:'8px 0',border:`0.25px solid ${C.cardBd}`,opacity:0.3,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',color:C.tm,textAlign:'center'}}>—</div>)}</div></div>
+            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',cursor:'pointer'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{flex:'1 1 40px',padding:'8px 0',border:`1px solid ${C.cardBd}`,opacity:0.3,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',color:C.tm,textAlign:'center'}}>—</div>)}</div></div>
           <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.18em',fontWeight:700}}>BW{lb?` · ${lb}KG`:''}</div>
             <div style={{display:'flex',gap:4}}>
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>SAVE</button>}
             </div></div></div>
-        {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{activePlan.rest}</div>}
+        {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{activePlan.rest}</div>}
         {unreadCoachNotes > 0 && <div onClick={() => setVw('hist')}
           style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'12px 14px',marginBottom:14,cursor:'pointer',display:'flex',alignItems:'center',gap:12}}>
           <div style={{width:6,height:6,background:C.ac,flexShrink:0}}/>
@@ -1504,7 +1504,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{plansLoadError}</div>
           <button onClick={()=>{setPlansLoadError(null);setPlansReloadKey(k=>k+1);}} style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,color:C.rd||'#ff6b6b',borderRadius:0,padding:'6px 14px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer'}}>RETRY</button>
         </div>}
-        {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>NO ACTIVE PROGRAM</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
+        {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>NO ACTIVE PROGRAM</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
         {/* Per-plan block: divider → warm-up → rest → training days */}
         {(()=>{ let globalDayIdx = 0; return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
@@ -1513,13 +1513,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}
             <div style={{flex:1,height:1,background:C.bd2}}/>
           </div>}
-          {vp.warmup?.length > 0 && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
+          {vp.warmup?.length > 0 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
             <div style={{fontSize:10,fontFamily:FN,color:C.or,marginBottom:10,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase'}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
             {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
               <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
               <div style={{display:'flex',gap:10,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
                 {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em'}}>VIDEO →</a>}</div></div>)}</div>}
-          {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
+          {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++; const done = cw.some(w => w.dayName === day.name && w.week === wk + 1);
           // doneBorderColor hoisted out of the inline template — the
           // build-time guard's parser mis-tracks single-quoted strings
@@ -1529,7 +1529,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           const doneBorderColor = done ? 'rgba(46,213,115,0.251)' : C.ac;
           return <div key={vp.name+'-'+di} style={{background:'var(--c-sf)',border:`${done?'0.25px':'1px'} solid ${doneBorderColor}`,borderRadius:0,marginBottom:12,padding:'14px 18px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{day.name}</span>{done && <span style={{display:'inline-block',marginLeft:10,padding:'2px 7px',border:`0.25px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'2px'}}>DONE</span>}
+              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{day.name}</span>{done && <span style={{display:'inline-block',marginLeft:10,padding:'2px 7px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'2px'}}>DONE</span>}
                 <div style={{fontSize:10,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase'}}>{day.ex.length} exercises</div></div>
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 14px',borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer'}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
@@ -1542,7 +1542,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               // freely without crowding the metadata.
               return <div key={i} style={{padding:'8px 0',borderTop:i?`1px solid ${C.cardBd}`:'none'}}>
                 <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                  <div style={{width:20,borderRadius:0,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,letterSpacing:'0.04em',padding:'1px 0'}}>{i+1}</div>
+                  <div style={{width:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,letterSpacing:'0.04em',padding:'1px 0'}}>{i+1}</div>
                   <div style={{flex:1,minWidth:0,display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
                     <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{hw?(wr||''):((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+ex.r}</span>
                     {ex.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{ex.tempo}</span>}
