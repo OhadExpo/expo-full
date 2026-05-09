@@ -1,7 +1,8 @@
 // src/hooks/useTheme.js
-// Single source of theme state. Reads/writes data-theme on <html>, persists
-// to localStorage instantly, and (when authenticated) syncs to Supabase Auth
-// user_metadata so the choice follows the user across devices/browsers.
+// Shared theme state across the app. Each component that calls useTheme()
+// gets its own React state copy, but a custom 'expo-theme-change' event
+// keeps every instance in sync — when ANY component flips the theme via
+// setTheme, every other consumer re-renders with the new value.
 //
 // Boot priority (resolved by inline script in index.html before this hook
 // even mounts):
@@ -16,6 +17,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../supabase';
 
 const KEY = 'expo-theme';
+const EVT = 'expo-theme-change';
 
 function readCurrent() {
   if (typeof document === 'undefined') return 'dark';
@@ -28,15 +30,28 @@ function applyTheme(next) {
   // Update <meta name="theme-color"> so iOS/Android system chrome matches.
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', next === 'light' ? '#FFFFFF' : '#000000');
+  // Broadcast so every other useTheme consumer re-renders.
+  try { window.dispatchEvent(new CustomEvent(EVT, { detail: next })); } catch {}
 }
 
 export function useTheme() {
   const [theme, setThemeState] = useState(readCurrent);
 
+  // Subscribe to theme changes so EVERY useTheme consumer stays in sync,
+  // not just the one that called setTheme. Without this, the toggle button
+  // updates its own state but other components (logo, content) keep stale.
+  useEffect(() => {
+    const onChange = (e) => {
+      const next = e?.detail || readCurrent();
+      if (next === 'light' || next === 'dark') setThemeState(next);
+    };
+    window.addEventListener(EVT, onChange);
+    return () => window.removeEventListener(EVT, onChange);
+  }, []);
+
   const setTheme = useCallback((next) => {
     if (next !== 'light' && next !== 'dark') return;
-    setThemeState(next);
-    applyTheme(next);
+    applyTheme(next);  // dispatches the event, which updates all consumers including this one
     try { localStorage.setItem(KEY, next); } catch (e) { /* private mode */ }
     // Fire-and-forget Supabase sync; ignore failure (offline, anon, etc.)
     supabase.auth.getUser().then(({ data }) => {
@@ -56,7 +71,6 @@ export function useTheme() {
       if (remote === 'light' || remote === 'dark') {
         const current = readCurrent();
         if (remote !== current) {
-          setThemeState(remote);
           applyTheme(remote);
           try { localStorage.setItem(KEY, remote); } catch (e) { /* private mode */ }
         }
