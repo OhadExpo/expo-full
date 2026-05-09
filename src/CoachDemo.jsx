@@ -1348,7 +1348,7 @@ function DemoPrograms() {
                           <button onClick={e => { e.stopPropagation(); togglePortal(cur.id); }}
                             title={isVis(cur.id) ? 'Visible on athlete portal — click to hide' : 'Hidden from athlete portal — click to show'}
                             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                            <div style={{ width: 28, height: 16, borderRadius: 8, background: isVis(cur.id) ? rgba(46,213,115,0.251) : C.sf3, border: `1px solid ${isVis(cur.id) ? rgba(46,213,115,0.376) : C.bd2}`, position: 'relative', transition: 'all .15s' }}>
+                            <div style={{ width: 28, height: 16, borderRadius: 8, background: isVis(cur.id) ? 'rgba(46,213,115,0.251)' : C.sf3, border: `1px solid ${isVis(cur.id) ? rgba(46,213,115,0.376) : C.bd2}`, position: 'relative', transition: 'all .15s' }}>
                               <div style={{ width: 12, height: 12, borderRadius: 6, background: isVis(cur.id) ? C.gn : C.td, position: 'absolute', top: 1, left: isVis(cur.id) ? 14 : 1, transition: 'all .15s' }} />
                             </div>
                           </button>
@@ -1369,7 +1369,7 @@ function DemoPrograms() {
                               <button onClick={e => { e.stopPropagation(); togglePortal(p.id); }}
                                 title={isVis(p.id) ? 'Visible on athlete portal — click to hide' : 'Hidden from athlete portal — click to show'}
                                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                                <div style={{ width: 28, height: 16, borderRadius: 8, background: isVis(p.id) ? rgba(46,213,115,0.251) : C.sf3, border: `1px solid ${isVis(p.id) ? rgba(46,213,115,0.376) : C.bd2}`, position: 'relative', transition: 'all .15s' }}>
+                                <div style={{ width: 28, height: 16, borderRadius: 8, background: isVis(p.id) ? 'rgba(46,213,115,0.251)' : C.sf3, border: `1px solid ${isVis(p.id) ? rgba(46,213,115,0.376) : C.bd2}`, position: 'relative', transition: 'all .15s' }}>
                                   <div style={{ width: 12, height: 12, borderRadius: 6, background: isVis(p.id) ? C.gn : C.td, position: 'absolute', top: 1, left: isVis(p.id) ? 14 : 1, transition: 'all .15s' }} />
                                 </div>
                               </button>

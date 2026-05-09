@@ -1022,7 +1022,7 @@ function TraineeHomeMock({ onPick }) {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{
                   fontFamily: FN, fontSize: 10, color: isLogged ? C.gn : C.tm, letterSpacing: 1.5, fontWeight: 700,
-                  background: isLogged ? `rgba(46,213,115,0.125)` : C.sf2, border: `1px solid ${isLogged ? `rgba(46,213,115,0.333)` : C.bd}`,
+                  background: isLogged ? `rgba(46,213,115,0.125)` : C.sf2, border: `1px solid ${isLogged ? `'rgba(46,213,115,0.333)'` : C.bd}`,
                   borderRadius: 0, padding: '2px 7px',
                 }}>{isLogged ? '✓ DONE' : `EX ${ei + 1}`}</span>
                 <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx }}>{ex.label}</span>

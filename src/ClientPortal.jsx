@@ -645,9 +645,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <button onClick={onBack} style={{marginLeft:8,background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
-      {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>i?C.or:stepIndex===i?rgba(255,165,2,0.502):C.bd}} />)}
+      {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>i?C.or:stepIndex===i?'rgba(255,165,2,0.502)':C.bd}} />)}
       {/* Pre-workout dot */}
-      <div style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount?C.pu:stepIndex===wuCount?rgba(168,85,247,0.502):C.bd}} />
+      <div style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount?C.pu:stepIndex===wuCount?'rgba(168,85,247,0.502)':C.bd}} />
       {/* Group dots (one per superset group or solo exercise) */}
       {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+1+i?C.gn:stepIndex===wuCount+1+i?C.ac:C.bd}} />)}
     </div>

@@ -1760,7 +1760,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       placeholder={isLastWeekOfBlock
                         ? `Last week of the block. Anything to carry into the next block? Load ceiling, pattern fixes, etc.`
                         : `Based on this performance, what should they focus on next week?`}
-                      style={{...bi,minHeight:50,resize:"vertical",borderColor:nextFocus?rgba(57,189,255,0.251):C.bd,fontSize:12,textAlign:'center'}}
+                      style={{...bi,minHeight:50,resize:"vertical",borderColor:nextFocus?'rgba(57,189,255,0.251)':C.bd,fontSize:12,textAlign:'center'}}
                     />
                     {/* Block weeks mini-view (W1..planWeeks) — adapts to the
                         actual block length. Caps the visible columns at 8 to
@@ -1773,7 +1773,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         const isNext = !isLastWeekOfBlock && w === nextWeek;
                         return (
                           <div key={w} style={{padding:"3px 4px",borderRadius:0,
-                            background:isNext?rgba(57,189,255,0.082):isCurrent?rgba(46,213,115,0.063):C.sf2,
+                            background:isNext?'rgba(57,189,255,0.082)':isCurrent?'rgba(46,213,115,0.063)':C.sf2,
                             border:`1px solid ${isNext?rgba(57,189,255,0.251):isCurrent?rgba(46,213,115,0.125):f?rgba(57,189,255,0.082):C.bd}`,
                             textAlign:"center"}}>
                             <div style={{fontSize:7,fontFamily:FN,color:isNext?C.ac:isCurrent?C.gn:C.td}}>
