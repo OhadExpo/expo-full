@@ -693,7 +693,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         <div key={k} style={{marginBottom:20}}>
           <div style={{fontSize:15,fontWeight:600,marginBottom:6}}>{l} ({rng})</div>
           <div style={{display:'flex',gap:4}}>{(rng==='0-10'?[0,1,2,3,4,5,6,7,8,9,10]:[1,2,3,4,5]).map(n =>
-            <div key={n} onClick={() => setAr({...ar,[k]:String(n)})} style={{flex:1,height:40,borderRadius:0,background:'var(--c-sf)',border:`${ar[k]===String(n)?'1px':'0.25px'} solid ${ar[k]===String(n)?col:C.ac+'4D'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:14,color:ar[k]===String(n)?col:C.tm,cursor:'pointer',fontWeight:ar[k]===String(n)?700:400}}>{n}</div>
+            <div key={n} onClick={() => setAr({...ar,[k]:String(n)})} style={{flex:1,height:40,borderRadius:0,background:'var(--c-sf)',border:`${ar[k]===String(n)?'1px':'0.25px'} solid ${ar[k]===String(n)?col:C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:14,color:ar[k]===String(n)?col:C.tm,cursor:'pointer',fontWeight:ar[k]===String(n)?700:400}}>{n}</div>
           )}</div></div>)}
       {parseInt(ar.pain)>=4 && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.rd}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — Modify: ROM → Tempo → Intensity → Volume</div>}
       {(parseInt(ar.energy)<=2||parseInt(ar.sleep)<=2) && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.or}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.or,fontWeight:600}}>⚠ Low recovery — Auto-regulate down</div>}
@@ -922,7 +922,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       {hw && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
-          {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`${weekNum===i?'1px':'0.25px'} solid ${weekNum===i?C.ac:C.ac+'4D'}`,borderRadius:0,padding:6,textAlign:'center'}}>
+          {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`${weekNum===i?'1px':'0.25px'} solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
             <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
             <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div></div>}
 
@@ -940,7 +940,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         : effectiveVid && /lh3\.googleusercontent\.com/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.cardBd}`}}>
         <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div> : null}
 
-      <div style={{background:'transparent',border:'0.25px solid '+(wf?C.ac:C.ac+'4D'),borderLeft:'2px solid '+(wf?C.ac:C.ac+'4D'),borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
+      <div style={{background:'transparent',border:'0.25px solid '+(wf?C.ac:C.cardBd),borderLeft:'2px solid '+(wf?C.ac:C.cardBd),borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
         <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
         <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>
 
@@ -955,7 +955,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
         </div>)}</div>
 
-      <div style={{background:'var(--c-sf)',border:`${f.uploaded?'1px':'0.25px'} solid ${f.uploaded?C.gn:C.ac+'4D'}`,borderRadius:0,padding:14}}>
+      <div style={{background:'var(--c-sf)',border:`${f.uploaded?'1px':'0.25px'} solid ${f.uploaded?C.gn:C.cardBd}`,borderRadius:0,padding:14}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
           <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>FORM CHECK</div>
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`0.25px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
@@ -1010,7 +1010,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       <div style={{display:'flex',gap:8,marginTop:20}}>
         <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`0.25px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
-        <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.ac+'4D':C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
+        <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
           {anyUploading ? `⚙ Processing video...` : step===groupCount-1 ? 'Finish →' : (isSuperset?'Next Block →':'Next Exercise →')}</button></div>
     </div></div>;
 }
@@ -1310,7 +1310,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{display:'flex',gap:8}}>
             <input value={bwDisplay} onChange={e => setBw(e.target.value)} placeholder="Weight in kg" type="number" disabled={!activePlan} style={{flex:1,background:'var(--c-sf)',border:`1px solid ${existingBw?C.gn+'60':C.ac}`,borderRadius:0,padding:'10px 12px',color:C.tx,fontFamily:FN,fontSize:14,outline:'none',boxSizing:'border-box',opacity:activePlan?1:0.5,textAlign:'center'}}/>
             <button disabled={!activePlan||demoMode} onClick={()=>{if(demoMode)return;const val=bw||bwDisplay;if(val&&activePlan){setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(val),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}}}
-              style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${(bw&&activePlan)?C.ac:C.ac+'4D'}`,background:'transparent',color:(bw&&activePlan)?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:(bw&&activePlan)?'pointer':'default'}}>SAVE</button>
+              style={{padding:'10px 20px',borderRadius:0,border:`1px solid ${(bw&&activePlan)?C.ac:C.cardBd}`,background:'transparent',color:(bw&&activePlan)?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:(bw&&activePlan)?'pointer':'default'}}>SAVE</button>
           </div>
           {!activePlan && <div style={{fontSize:10,color:C.td,marginTop:6}}>Assign an active program to log bodyweight.</div>}
         </div>

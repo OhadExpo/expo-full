@@ -639,7 +639,7 @@ const cardStyle = {
   height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box',
 };
 const cardEnter = (e) => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = C.sf2; };
-const cardLeave = (e) => { e.currentTarget.style.borderColor = C.ac + '4D'; e.currentTarget.style.background = C.sf; };
+const cardLeave = (e) => { e.currentTarget.style.borderColor = C.cardBd; e.currentTarget.style.background = C.sf; };
 
 function TraineeCard({ t, onClick }) {
   if (t.isCouple) return <CoupleCard t={t} onClick={onClick} />;
@@ -1250,7 +1250,7 @@ function DemoPrograms() {
                 else setSortField(f);
               }} style={{
                 padding: '4px 10px', borderRadius: 0,
-                border: `${active ? '1px' : '0.25px'} solid ${active ? C.ac : C.ac + '4D'}`,
+                border: `${active ? '1px' : '0.25px'} solid ${active ? C.ac : C.cardBd}`,
                 background: 'transparent',
                 color: active ? C.ac : C.tm,
                 fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase',
@@ -1466,9 +1466,9 @@ function DemoPrograms() {
           <button onClick={() => { if (!overview) return; setCompareOpen(v => !v); }}
             disabled={!overview}
             title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous program (read-only)'}
-            style={{ background: 'var(--c-sf)', border: `${compareActive ? '1px' : '0.25px'} solid ${compareActive ? C.ac : C.ac + '4D'}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: !overview ? C.td : (compareActive ? C.ac : C.tm), cursor: !overview ? 'not-allowed' : 'pointer', opacity: !overview ? 0.5 : 1, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
+            style={{ background: 'var(--c-sf)', border: `${compareActive ? '1px' : '0.25px'} solid ${compareActive ? C.ac : C.cardBd}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: !overview ? C.td : (compareActive ? C.ac : C.tm), cursor: !overview ? 'not-allowed' : 'pointer', opacity: !overview ? 0.5 : 1, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
           <button onClick={() => setOverview(v => !v)}
-            style={{ background: 'var(--c-sf)', border: `${overview ? '1px' : '0.25px'} solid ${overview ? C.ac : C.ac + '4D'}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: overview ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{overview ? '✓ OVERVIEW' : 'OVERVIEW'}</button>
+            style={{ background: 'var(--c-sf)', border: `${overview ? '1px' : '0.25px'} solid ${overview ? C.ac : C.cardBd}`, borderRadius: 0, height: 42, padding: '0 18px', lineHeight: '42px', color: overview ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>{overview ? '✓ OVERVIEW' : 'OVERVIEW'}</button>
           <button onClick={e => e.stopPropagation()} title="Demo only"
             style={{ ...baseBtn, background: C.ac, color: '#0a0a0b', height: 42, padding: '0 18px', lineHeight: '42px', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Save Program</button>
         </div>
@@ -1600,7 +1600,7 @@ function DemoPrograms() {
         <div>
           {day.exercises.map((e, ei) => {
             const sc = e.superset === 'A' ? C.ac : e.superset === 'B' ? C.pu : e.superset === 'C' ? C.or : 'transparent';
-            const cardBorderColor = e.superset ? sc : C.ac + '4D';
+            const cardBorderColor = e.superset ? sc : C.cardBd;
             const labelStyle = { fontSize: 10, fontWeight: 700, color: C.td, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: FN };
             // Mirrors `baseInput` in src/ui.jsx (the style PlansView's
             // <Input> renders) so the demo's read-only inputs match the
@@ -1672,7 +1672,7 @@ function DemoPrograms() {
                           {e.wk.map((load, wi) => (
                             <input key={wi} value={load} readOnly tabIndex={-1}
                               placeholder={`W${wi + 1}`}
-                              style={{ ...tinyStyleRO, color: wi === 1 ? C.ac : C.tx, borderColor: wi === 1 ? C.ac : C.ac + '4D' }} />
+                              style={{ ...tinyStyleRO, color: wi === 1 ? C.ac : C.tx, borderColor: wi === 1 ? C.ac : C.cardBd }} />
                           ))}
                         </div>
                       </div>
@@ -2307,7 +2307,7 @@ function DemoReview() {
                 justifyContent: 'space-between', alignItems: 'center',
               }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
-                onMouseLeave={e => e.currentTarget.style.borderColor = C.ac + '4D'}>
+                onMouseLeave={e => e.currentTarget.style.borderColor = C.cardBd}>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     {wo.dayName}

@@ -327,7 +327,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 20, alignItems: "center" }}>
         <div style={{ flex: 1 }}><input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12, height: 40, padding: '0 14px' }} /></div>
-        <button onClick={() => setShowArchived(!showArchived)} style={{ background: 'var(--c-sf)', border: `${showArchived?'1px':'0.25px'} solid ${showArchived ? C.rd : C.ac+'4D'}`, borderRadius: 0, height: 40, padding: "0 18px", color: showArchived ? C.rd : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: "pointer", display: 'inline-flex', alignItems: 'center' }}>
+        <button onClick={() => setShowArchived(!showArchived)} style={{ background: 'var(--c-sf)', border: `${showArchived?'1px':'0.25px'} solid ${showArchived ? C.rd : C.cardBd}`, borderRadius: 0, height: 40, padding: "0 18px", color: showArchived ? C.rd : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: "pointer", display: 'inline-flex', alignItems: 'center' }}>
           {showArchived ? `Archive (${archived.length})` : `Archive (${archived.length})`}
         </button>
         <div ref={addMenuRef} style={{position:'relative'}}>

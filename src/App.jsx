@@ -661,8 +661,8 @@ function AuthedApp() {
           <div style={{maxHeight:300,overflow:"auto",marginBottom:16}}>
             {trainees.filter(t=>t.status!=="Archived").map(t=>{
               const sel=importSelectedTrainees.includes(t.id);
-              return <div key={t.id} onClick={()=>toggleImportTrainee(t.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:0,cursor:"pointer",background:'var(--c-sf)',border:`${sel?'1px':'0.25px'} solid ${sel?C.ac:C.ac+'4D'}`,marginBottom:4,transition:"all .15s"}}>
-                <div style={{width:18,height:18,borderRadius:0,border:`1px solid ${sel?C.ac:C.ac+'4D'}`,background:sel?C.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              return <div key={t.id} onClick={()=>toggleImportTrainee(t.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:0,cursor:"pointer",background:'var(--c-sf)',border:`${sel?'1px':'0.25px'} solid ${sel?C.ac:C.cardBd}`,marginBottom:4,transition:"all .15s"}}>
+                <div style={{width:18,height:18,borderRadius:0,border:`1px solid ${sel?C.ac:C.cardBd}`,background:sel?C.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   {sel&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
                 </div>
                 <div>

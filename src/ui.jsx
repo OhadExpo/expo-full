@@ -86,7 +86,7 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
 export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) => (
   <div onClick={onClick} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: 18, cursor: onClick ? "pointer" : "default", transition: "all 0.2s", ...style }}
     onMouseEnter={e => { if(onClick) e.currentTarget.style.borderColor = C.ac; if(onMouseEnter) onMouseEnter(e); }}
-    onMouseLeave={e => { if(onClick) e.currentTarget.style.borderColor = C.ac + '4D'; if(onMouseLeave) onMouseLeave(e); }}>{children}</div>
+    onMouseLeave={e => { if(onClick) e.currentTarget.style.borderColor = C.cardBd; if(onMouseLeave) onMouseLeave(e); }}>{children}</div>
 );
 export const Modal = ({ open, onClose, title, children, wide }) => {
   if (!open) return null;

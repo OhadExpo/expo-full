@@ -211,7 +211,7 @@ export function LoginScreen() {
             placeholder="your@email.com"
             type="email"
             autoComplete="email"
-            style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 8, textAlign: 'center' }}
+            style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 8, textAlign: 'center' }}
           />
           <input
             value={password}
@@ -220,13 +220,13 @@ export function LoginScreen() {
             placeholder="password"
             type="password"
             autoComplete="current-password"
-            style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }}
+            style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }}
           />
           {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
           <button
             onClick={handlePassword}
             disabled={!canSubmit}
-            style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${canSubmit ? C.ac : C.ac+'4D'}`, background: 'transparent', color: canSubmit ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
+            style={{ width: '100%', padding: 12, borderRadius: 0, border: `1px solid ${canSubmit ? C.ac : C.cardBd}`, background: 'transparent', color: canSubmit ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSubmit ? 'pointer' : 'default', opacity: submitting ? 0.6 : 1 }}
           >
             {submitting ? '...' : 'Sign in'}
           </button>
@@ -298,15 +298,15 @@ export function PasswordChangeModal({ onClose }) {
         ) : (
           <>
             <input value={currentPw} onChange={e => { setCurrentPw(e.target.value); setError(''); }} type="password" placeholder="Current password" autoComplete="current-password" autoFocus
-              style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+              style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             <input value={pw} onChange={e => { setPw(e.target.value); setError(''); }} type="password" placeholder="New password" autoComplete="new-password"
-              style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+              style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             <input value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setError(''); }} onKeyDown={e => e.key === 'Enter' && handleSave()} type="password" placeholder="Confirm new password" autoComplete="new-password"
-              style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.ac+'4D'}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
+              style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${error ? C.rd : C.cardBd}`, borderRadius: 0, padding: '12px 14px', color: C.tx, fontFamily: FB, fontSize: 14, outline: 'none', boxSizing: 'border-box', marginBottom: 10, textAlign: 'center' }} />
             {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `0.25px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${(!saving && currentPw && pw && confirmPw) ? C.ac : C.ac+'4D'}`, background: 'transparent', color: (!saving && currentPw && pw && confirmPw) ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>
+              <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${(!saving && currentPw && pw && confirmPw) ? C.ac : C.cardBd}`, background: 'transparent', color: (!saving && currentPw && pw && confirmPw) ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>
             </div>
           </>
         )}

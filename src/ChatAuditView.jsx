@@ -125,7 +125,7 @@ export default function ChatAuditView() {
           <button key={s} onClick={() => setSiteFilter(s)}
             style={{
               background: 'var(--c-sf)',
-              border: `${siteFilter === s ? '1px' : '0.25px'} solid ${siteFilter === s ? C.ac : C.ac+'4D'}`,
+              border: `${siteFilter === s ? '1px' : '0.25px'} solid ${siteFilter === s ? C.ac : C.cardBd}`,
               color: siteFilter === s ? C.ac : C.tm,
               borderRadius: 0, padding: '6px 12px',
               fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
@@ -134,7 +134,7 @@ export default function ChatAuditView() {
         <button onClick={() => setShowErrorsOnly(v => !v)}
           style={{
             background: 'var(--c-sf)',
-            border: `${showErrorsOnly ? '1px' : '0.25px'} solid ${showErrorsOnly ? C.rd : C.ac+'4D'}`,
+            border: `${showErrorsOnly ? '1px' : '0.25px'} solid ${showErrorsOnly ? C.rd : C.cardBd}`,
             color: showErrorsOnly ? C.rd : C.tm,
             borderRadius: 0, padding: '6px 12px',
             fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
@@ -164,7 +164,7 @@ export default function ChatAuditView() {
             <div key={g.sessionId || g.startedAt}
               style={{
                 background: 'var(--c-sf)',
-                border: `0.25px solid ${g.errorCount > 0 ? C.rd : C.ac+'4D'}`,
+                border: `0.25px solid ${g.errorCount > 0 ? C.rd : C.cardBd}`,
                 borderRadius: 0, overflow: 'hidden',
               }}>
               {/* Session header */}

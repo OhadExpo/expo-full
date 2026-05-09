@@ -183,7 +183,7 @@ export default function IntakeView({ trainees }) {
         <input placeholder="Filter by name / email / form type…" value={filter} onChange={e => setFilter(e.target.value)}
           style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280, flex: 1 }} />
         <button onClick={() => setShowReviewed(s => !s)}
-          style={{ background: 'var(--c-sf)', border: `0.25px solid ${showReviewed ? C.ac : C.ac + '4D'}`, color: showReviewed ? C.ac : C.tm, padding: '8px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0 }}>
+          style={{ background: 'var(--c-sf)', border: `0.25px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, padding: '8px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', borderRadius: 0 }}>
           {showReviewed ? 'Showing reviewed' : 'Hide reviewed'}
         </button>
       </div>

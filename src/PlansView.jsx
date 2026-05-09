@@ -157,7 +157,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, tit
                     style={{
                       textAlign: 'left', padding: '10px 12px',
                       background: 'var(--c-sf)',
-                      border: `${isSelected||isActive?'1px':'0.25px'} solid ${isActive ? C.ac : (isSelected ? C.ac : C.ac + '4D')}`,
+                      border: `${isSelected||isActive?'1px':'0.25px'} solid ${isActive ? C.ac : (isSelected ? C.ac : C.cardBd)}`,
                       borderRadius: 0, cursor: 'pointer', fontFamily: FB, color: C.tx,
                       transition: 'all 0.1s'
                     }}
@@ -565,8 +565,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           <button onClick={()=>{ if (!overview) return; setCompareOpen(v=>!v); }}
             disabled={!overview}
             title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous program (read-only)'}
-            style={{background:'var(--c-sf)',border:`${compareActive?'1px':'0.25px'} solid ${compareActive?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:!overview?C.td:(compareActive?C.ac:C.tm),cursor:!overview?'not-allowed':'pointer',opacity:!overview?0.5:1,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{compareActive?'✓ COMPARE':'↔ COMPARE'}</button>
-          <button onClick={()=>setOverview(v=>!v)} style={{background:'var(--c-sf)',border:`${overview?'1px':'0.25px'} solid ${overview?C.ac:C.ac+'4D'}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:overview?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
+            style={{background:'var(--c-sf)',border:`${compareActive?'1px':'0.25px'} solid ${compareActive?C.ac:C.cardBd}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:!overview?C.td:(compareActive?C.ac:C.tm),cursor:!overview?'not-allowed':'pointer',opacity:!overview?0.5:1,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{compareActive?'✓ COMPARE':'↔ COMPARE'}</button>
+          <button onClick={()=>setOverview(v=>!v)} style={{background:'var(--c-sf)',border:`${overview?'1px':'0.25px'} solid ${overview?C.ac:C.cardBd}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:overview?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
           <Btn onClick={handleSave} disabled={saving} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
@@ -597,8 +597,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       <WarmupEditor plan={plan} setPlan={setPlan} />
       {!overview && <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"stretch",justifyContent:"center"}}>
         {plan.days.map((d,i) => <div key={d.id} style={{display:"flex",alignItems:"stretch"}}>
-          <button onClick={()=>setActiveDay(i)} style={{padding:"8px 16px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,borderRight:'none',background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{d.name} ({d.exercises.length})</button>
-          {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"8px 10px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.ac+'4D'}`,background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",opacity:0.7}}>×</button>}
+          <button onClick={()=>setActiveDay(i)} style={{padding:"8px 16px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.cardBd}`,borderRight:'none',background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{d.name} ({d.exercises.length})</button>
+          {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"8px 10px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.cardBd}`,background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",opacity:0.7}}>×</button>}
         </div>)}
         {/* "+" matches the day tabs: same padding (8/16), same border weight,
             same font sizing — uses a plain <button> rather than <Btn> so the
@@ -703,7 +703,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const exData = exercises.find(e=>e.id===ex.exerciseId);
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
-          return(<div key={ex.id} style={{background:'var(--c-sf)',border:`0.25px solid ${ex.superset?sc:C.ac+'4D'}`,borderLeft:`3px solid ${ex.superset?sc:C.ac+'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
+          return(<div key={ex.id} style={{background:'var(--c-sf)',border:`0.25px solid ${ex.superset?sc:C.cardBd}`,borderLeft:`3px solid ${ex.superset?sc:C.cardBd}`,borderRadius:0,padding:12,marginBottom:8}}>
             <div style={{display:"grid",gridTemplateColumns:"54px 1fr 54px",gap:12,alignItems:"start"}}>
               <div draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${activeDay}:${exIdx}`); setDragSrc({dayIdx: activeDay, exIdx}); }}
@@ -816,7 +816,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                           pill's padding + font-10). */}
                       {effective && <a href={effective} target="_blank" rel="noreferrer"
                         title={hasOverride?"Per-program URL":"From exercise library"}
-                        style={{display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"0 10px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.ac+'4D'}`,borderRadius:0,whiteSpace:"nowrap",boxSizing:"border-box"}}>
+                        style={{display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:hasOverride?C.ac:C.tm,textDecoration:"none",padding:"0 10px",border:`${hasOverride?'1px':'0.25px'} solid ${hasOverride?C.ac:C.cardBd}`,borderRadius:0,whiteSpace:"nowrap",boxSizing:"border-box"}}>
                         {hasOverride?"OPEN ▸":"LIB ▸"}
                       </a>}
                       {/* Symmetric padding within the wrapper so the video
@@ -854,7 +854,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                                 onChange={e=>{const nv=e.target.value;setWeeklyFocus(prev=>({...prev,[fk]:nv}))}}
                                 placeholder="—"
                                 rows={2}
-                                style={{background:'var(--c-sf)',border:`0.25px solid ${v?C.ac:C.ac+'4D'}`,borderRadius:0,padding:'10px 12px',minHeight:64,color:C.tx,fontFamily:FB,fontSize:13,lineHeight:1.45,outline:'none',boxSizing:'border-box',textAlign:'center',minWidth:0,resize:'vertical',width:'100%'}} />
+                                style={{background:'var(--c-sf)',border:`0.25px solid ${v?C.ac:C.cardBd}`,borderRadius:0,padding:'10px 12px',minHeight:64,color:C.tx,fontFamily:FB,fontSize:13,lineHeight:1.45,outline:'none',boxSizing:'border-box',textAlign:'center',minWidth:0,resize:'vertical',width:'100%'}} />
                             </div>
                           );
                         })}
@@ -1120,7 +1120,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               else setSortField(field);
             }} style={{
               padding:"4px 10px",borderRadius:0,
-              border:`${active?'1px':'0.25px'} solid ${active?C.ac:C.ac+'4D'}`,
+              border:`${active?'1px':'0.25px'} solid ${active?C.ac:C.cardBd}`,
               background:'transparent',
               color:active?C.ac:C.tm,
               fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',

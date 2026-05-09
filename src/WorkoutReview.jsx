@@ -1413,7 +1413,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     <div style={{display:"flex",gap:4,marginBottom:16}}>
       {[["review","Review Athlete Workouts"],["log","Log In-Person Session"]].map(([k,l]) => (
         <button key={k} onClick={() => {setSubTab(k);setSelectedWo(null);setExpandedEx(null)}}
-          style={{flex:1,padding:"10px 0",borderRadius:0,border:`${subTab===k?'1px':'0.25px'} solid ${subTab===k?C.ac:C.ac+'4D'}`,
+          style={{flex:1,padding:"10px 0",borderRadius:0,border:`${subTab===k?'1px':'0.25px'} solid ${subTab===k?C.ac:C.cardBd}`,
             background:subTab===k?C.acD:"transparent",color:subTab===k?C.ac:C.tm,
             fontFamily:FB,fontSize:13,fontWeight:600,cursor:"pointer"}}>{l}</button>
       ))}
@@ -1639,7 +1639,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           const nextFocus = getFocus(wo.planName, wo.dayName, ex.eid, nextWeek);
 
           return (
-            <div key={i} data-ex-idx={i} style={{background:'var(--c-sf)',border:`${isExpanded?'1px':'0.25px'} solid ${isExpanded?C.ac:C.ac+'4D'}`,borderRadius:0,marginBottom:8,overflow:"hidden"}}>
+            <div key={i} data-ex-idx={i} style={{background:'var(--c-sf)',border:`${isExpanded?'1px':'0.25px'} solid ${isExpanded?C.ac:C.cardBd}`,borderRadius:0,marginBottom:8,overflow:"hidden"}}>
               {/* Header row — click to expand */}
               <div onClick={() => setExpandedEx(isExpanded?null:i)}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
@@ -1982,7 +1982,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
-                onMouseLeave={e=>e.currentTarget.style.borderColor=C.ac+'4D'}>
+                onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{fontWeight:600,fontSize:14,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                     {wo.dayName}

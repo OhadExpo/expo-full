@@ -310,7 +310,7 @@ export default function CoachChat() {
                           style={{
                             background: 'transparent',
                             color: captureState === 'sending' ? C.tm : C.ac,
-                            border: `1px solid ${captureState === 'sending' ? C.ac+'4D' : C.ac}`, borderRadius: 0, padding: '6px 10px',
+                            border: `1px solid ${captureState === 'sending' ? C.cardBd : C.ac}`, borderRadius: 0, padding: '6px 10px',
                             fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
                             cursor: captureState === 'sending' ? 'default' : 'pointer',
                           }}>{captureState === 'sending' ? '…' : 'JOIN'}</button>
@@ -328,7 +328,7 @@ export default function CoachChat() {
                   maxWidth: '85%',
                   background: 'transparent',
                   color: m.role === 'user' ? C.ac : C.tx,
-                  border: `0.25px solid ${m.role === 'user' ? C.ac : C.ac+'4D'}`,
+                  border: `0.25px solid ${m.role === 'user' ? C.ac : C.cardBd}`,
                   borderRadius: 0, padding: '8px 12px',
                   fontSize: 13.5, lineHeight: 1.5,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
@@ -400,7 +400,7 @@ export default function CoachChat() {
                 style={{
                   background: 'transparent',
                   color: draft.trim() && !sending ? C.ac : C.tm,
-                  border: `1px solid ${draft.trim() && !sending ? C.ac : C.ac+'4D'}`, borderRadius: 0,
+                  border: `1px solid ${draft.trim() && !sending ? C.ac : C.cardBd}`, borderRadius: 0,
                   padding: '8px 14px', fontFamily: FN, fontSize: 12, fontWeight: 700,
                   letterSpacing: '0.18em', cursor: draft.trim() && !sending ? 'pointer' : 'default',
                 }}>SEND</button>
