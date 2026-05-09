@@ -42,13 +42,6 @@ const EntryChooser = lazy(() => import('./EntryChooser'));
 // engine sandbox (TrySandbox above). /demo/trainee is the client-portal demo.
 const CoachDemo = lazy(() => import('./CoachDemo'));
 const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
-// Dashboard redesign variants — A=Bold/Sport, B=Editorial, C=Dense/Terminal.
-// Selected via ?dash=A|B|C URL param (auto-persisted to sessionStorage so
-// it survives the auth redirect). When unset, the default DashboardView
-// renders. See DashboardVariants.jsx for full visual specs.
-const DashboardA = lazy(() => import('./DashboardVariants').then(m => ({ default: m.DashboardA })));
-const DashboardB = lazy(() => import('./DashboardVariants').then(m => ({ default: m.DashboardB })));
-const DashboardC = lazy(() => import('./DashboardVariants').then(m => ({ default: m.DashboardC })));
 // /intake/<locale>?t=<token> is the public-facing intake form (HE/EN initial
 // + HE progress check-in). /coach/intake (inside AuthedApp) is the coach
 // inbox + token generator. Both lazy so the form-renderer code only ships
@@ -643,27 +636,7 @@ function AuthedApp() {
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:'var(--c-sf)',border:`1px solid ${importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn}`,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:0,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
-          {tab==="dashboard"&&(() => {
-            // Pick a redesign variant via ?dash=A|B|C URL param OR session.
-            // Falls back to the default DashboardView when unset.
-            let variant = null;
-            try {
-              const qs = (typeof window !== 'undefined' ? window.location.search : '').toLowerCase();
-              const m = qs.match(/dash=(a|b|c)/);
-              if (m) {
-                variant = m[1].toUpperCase();
-                try { sessionStorage.setItem('expo-dash-variant', variant); } catch {}
-              } else {
-                const ss = (typeof sessionStorage !== 'undefined') ? sessionStorage.getItem('expo-dash-variant') : null;
-                if (ss === 'A' || ss === 'B' || ss === 'C') variant = ss;
-              }
-            } catch {}
-            const props = { trainees, planCounts, workouts, clientWorkouts, payments, presence, onSelectTrainee: id => navTo('trainees', id) };
-            if (variant === 'A') return <DashboardA {...props}/>;
-            if (variant === 'B') return <DashboardB {...props}/>;
-            if (variant === 'C') return <DashboardC {...props}/>;
-            return <DashboardView {...props}/>;
-          })()}
+          {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}
           {tab==="chatAudit"&&<ChatAuditView/>}

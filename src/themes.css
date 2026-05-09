@@ -89,6 +89,90 @@
   --c-cardShadow: 0 1px 2px rgba(6,20,37,0.04), 0 8px 24px rgba(6,20,37,0.10);
 }
 
+/* ========== DRAFT VARIANTS (preview only, ?theme= URL switch) ==========
+ * Three alternative directions to evaluate alongside the cyan-bg light:
+ *   ?theme=soft    — pale cyan-tinted page (#E8F7FF), white cards
+ *   ?theme=accent  — clean off-white page, cyan only on primary actions
+ *   ?theme=cream   — warm cream page (#FAF8F3), charcoal text, cyan cool accent
+ * Three blocks below are temporary; pick one and the other two get cut.
+ */
+
+[data-theme="soft"] {
+  --c-bg: #E8F7FF;                 /* pale cyan tint — brand presence, no shout */
+  --c-sf: #FFFFFF;
+  --c-sf2: #F4F8FB;                /* secondary fill — cooler-than-neutral gray */
+  --c-sf3: #E0E8EE;
+  --c-bd: rgba(11,40,62,0.08);
+  --c-bd2: rgba(11,40,62,0.16);
+  --c-tx: #0B283E;                 /* slate near-black */
+  --c-tm: rgba(11,40,62,0.62);
+  --c-td: rgba(11,40,62,0.42);
+  --c-ac: #0E8FD3;                 /* deeper cyan — pops on pale-cyan bg AND on white cards */
+  --c-acH: #0A78B0;
+  --c-acText: #0A78B0;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #061425;
+  --c-cardBd: rgba(11,40,62,0.05);
+  --c-rd: #C2185B;                  --c-rdD: rgba(194,24,91,0.10);
+  --c-gn: #2E7D32;                  --c-gnD: rgba(46,125,50,0.10);
+  --c-or: #E76F00;                  --c-orD: rgba(231,111,0,0.10);
+  --c-pu: #6A1B9A;                  --c-puD: rgba(106,27,154,0.10);
+  --c-scrim: rgba(11,40,62,0.45);
+  --c-shadow: rgba(11,40,62,0.10);
+  --c-cardShadow: 0 1px 2px rgba(11,40,62,0.04), 0 8px 24px rgba(11,40,62,0.10);
+}
+
+[data-theme="accent"] {
+  --c-bg: #F8FAFC;                 /* clean off-white page — calmer than ECEFF3 */
+  --c-sf: #FFFFFF;
+  --c-sf2: #F1F5F9;
+  --c-sf3: #E2E8F0;
+  --c-bd: rgba(15,23,42,0.08);
+  --c-bd2: rgba(15,23,42,0.18);
+  --c-tx: #0F172A;
+  --c-tm: rgba(15,23,42,0.62);
+  --c-td: rgba(15,23,42,0.42);
+  --c-ac: #0EA5E9;                 /* sky-cyan accent — brand presence in 5% of pixels */
+  --c-acH: #0284C7;
+  --c-acText: #0369A1;             /* AA-safe small text */
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #0F172A;
+  --c-cardBd: rgba(15,23,42,0.06);
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
+  --c-scrim: rgba(15,23,42,0.45);
+  --c-shadow: rgba(15,23,42,0.10);
+  --c-cardShadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.06);
+}
+
+[data-theme="cream"] {
+  --c-bg: #FAF7F0;                 /* warm cream — Notion/Roam mood */
+  --c-sf: #FFFFFF;
+  --c-sf2: #F4EFE5;                /* secondary fill — warm beige */
+  --c-sf3: #E8E2D5;
+  --c-bd: rgba(60,46,28,0.10);
+  --c-bd2: rgba(60,46,28,0.20);
+  --c-tx: #1C1917;                 /* warm charcoal */
+  --c-tm: rgba(28,25,23,0.65);
+  --c-td: rgba(28,25,23,0.45);
+  --c-ac: #0891B2;                 /* cool cyan against warm bg — high contrast */
+  --c-acH: #0E7490;
+  --c-acText: #0E7490;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #1C1917;
+  --c-cardBd: rgba(60,46,28,0.06);
+  --c-rd: #B91C1C;                  --c-rdD: rgba(185,28,28,0.10);
+  --c-gn: #15803D;                  --c-gnD: rgba(21,128,61,0.10);
+  --c-or: #C2410C;                  --c-orD: rgba(194,65,12,0.10);
+  --c-pu: #6B21A8;                  --c-puD: rgba(107,33,168,0.10);
+  --c-scrim: rgba(28,25,23,0.45);
+  --c-shadow: rgba(60,46,28,0.10);
+  --c-cardShadow: 0 1px 3px rgba(60,46,28,0.06), 0 8px 24px rgba(60,46,28,0.10);
+}
+/* ========== /DRAFT VARIANTS ========== */
+
 html, body {
   background: var(--c-bg);
   color: var(--c-tx);
