@@ -58,7 +58,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
 
   return (
     <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.78)',
+      position: 'fixed', inset: 0, background: C.scrim,
       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
       zIndex: 1000, animation: 'fv-fade-in 180ms ease',
     }}>
@@ -67,7 +67,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
         @keyframes fv-slide-up { from { transform: translateY(24px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
       `}</style>
       <div onClick={(e) => e.stopPropagation()} style={{
-        background: C.bg, border: `0.25px solid ${C.cardBd}`, borderTop: `1px solid ${C.ac}`,
+        background: C.sf, border: `1px solid ${C.bd}`, borderTop: `1px solid ${C.ac}`,
         borderTopLeftRadius: 0, borderTopRightRadius: 0,
         width: '100%', maxWidth: 520, maxHeight: '88vh', overflowY: 'auto',
         padding: '14px 16px 22px',

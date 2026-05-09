@@ -91,8 +91,8 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) =
 export const Modal = ({ open, onClose, title, children, wide }) => {
   if (!open) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, width: wide ? 700 : 480, maxHeight: "80vh", overflow: "auto", padding: 28 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: C.scrim, backdropFilter: "blur(8px)" }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
           <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
@@ -101,8 +101,8 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
 export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => {
   if (!open) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.85)" }} onClick={onCancel}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `0.25px solid ${C.cardBd}`, borderRadius: 0, width: 400, padding: 28 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={onCancel}>
+      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: 400, padding: 28, boxShadow: C.cardShadow }}>
         <h3 style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
         <p style={{ margin: "0 0 22px", fontSize: 13, color: C.tm, fontFamily: FB, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -173,7 +173,7 @@ export function ToastHost() {
       {items.map(it => {
         const p = palette[it.kind] || palette.info;
         return (
-          <div key={it.id} style={{ pointerEvents: 'auto', background: C.bg, color: p.fg, border: `1px solid ${p.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: '0 8px 24px rgba(0,0,0,0.6)', minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
+          <div key={it.id} style={{ pointerEvents: 'auto', background: C.sf, color: p.fg, border: `1px solid ${p.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
             <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{it.message}</div>
             {it.actions && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>

@@ -647,8 +647,8 @@ function AuthedApp() {
         </Suspense>
       </main>
       {/* Import trainee assignment modal */}
-      {pendingImport&&<div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:60,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(4px)"}} onClick={()=>setPendingImport(null)}>
-        <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`0.25px solid ${C.cardBd}`,borderRadius:0,width:480,maxHeight:"80vh",overflow:"auto",padding:24}}>
+      {pendingImport&&<div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:60,background:C.scrim,backdropFilter:"blur(4px)"}} onClick={()=>setPendingImport(null)}>
+        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:480,maxHeight:"80vh",overflow:"auto",padding:24,boxShadow:C.cardShadow}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Assign Imported Program</h3>
             <button onClick={()=>setPendingImport(null)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4,fontSize:16}}>✕</button></div>

@@ -58,9 +58,9 @@ export default function SwUpdateBanner() {
     <div style={{
       position: 'fixed', bottom: 14, left: '50%', transform: 'translateX(-50%)',
       zIndex: 200,
-      background: C.bg, border: `1px solid ${C.ac}`, borderRadius: 0,
+      background: C.sf, border: `1px solid ${C.ac}`, borderRadius: 0,
       padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10,
-      boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
+      boxShadow: `0 8px 28px ${C.shadow}`,
       maxWidth: 'calc(100vw - 24px)',
     }}>
       <span style={{ fontFamily: FN, fontSize: 9, color: updating ? C.ac : C.tx, letterSpacing: '0.18em', fontWeight: 700 }}>
