@@ -262,7 +262,7 @@ export default function UpcomingSessionsPanel({ trainees, onSelectTrainee }) {
 
   if (error) {
     return (
-      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid ${C.rd}80` }}>
+      <div style={{ marginBottom: 16, padding: '14px 18px', border: `0.25px solid rgba(255,71,87,0.502)` }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.rd, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>SESSIONS · ERROR</div>
         <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 6 }}>{error}</div>
       </div>

@@ -353,7 +353,7 @@ function ClientPortalMock({ onPick }) {
               <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
                 <button onClick={() => onPick({ key: ex.eid, label: ex.t, sample: ex.t })} title="Film a set" style={{
                   ...baseBtn, background: 'transparent', color: C.rd,
-                  border: `1px solid ${C.rd}40`, padding: '6px 12px', fontSize: 11,
+                  border: `1px solid rgba(255,71,87,0.251)`, padding: '6px 12px', fontSize: 11,
                 }}>📹 FILM SET</button>
                 <button onClick={() => {
                   // Mark all sets done
@@ -365,7 +365,7 @@ function ClientPortalMock({ onPick }) {
                   setLogSets(next);
                 }} style={{
                   ...baseBtn, background: 'transparent', color: C.gn,
-                  border: `1px solid ${C.gn}40`, padding: '6px 12px', fontSize: 11,
+                  border: `1px solid rgba(46,213,115,0.251)`, padding: '6px 12px', fontSize: 11,
                 }}>✓ MARK ALL</button>
               </div>
             </div>
@@ -662,7 +662,7 @@ function ClientPortalMock({ onPick }) {
                 <div>
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{day.name}</span>
                   {done && (
-                    <span style={{ fontSize: 9, fontFamily: FN, color: C.gn, fontWeight: 700, padding: '2px 6px', marginLeft: 6, borderRadius: 0, border: `1px solid ${C.gn}40`, background: C.gnD }}>✓</span>
+                    <span style={{ fontSize: 9, fontFamily: FN, color: C.gn, fontWeight: 700, padding: '2px 6px', marginLeft: 6, borderRadius: 0, border: `1px solid rgba(46,213,115,0.251)`, background: C.gnD }}>✓</span>
                   )}
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>{day.ex.length} exercises</div>
                 </div>
@@ -674,7 +674,7 @@ function ClientPortalMock({ onPick }) {
                 }}>{done ? 'Again' : '📝 Log'}</button>
               </div>
               {day.ex.map((ex, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '4px 0', borderTop: i ? `1px solid ${C.bd}22` : 'none' }}>
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '4px 0', borderTop: i ? `1px solid rgba(127,127,131,0.133)` : 'none' }}>
                   <div style={{
                     width: 22, height: 22, borderRadius: 0, background: C.acD,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1022,7 +1022,7 @@ function TraineeHomeMock({ onPick }) {
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{
                   fontFamily: FN, fontSize: 10, color: isLogged ? C.gn : C.tm, letterSpacing: 1.5, fontWeight: 700,
-                  background: isLogged ? `${C.gn}20` : C.sf2, border: `1px solid ${isLogged ? `${C.gn}55` : C.bd}`,
+                  background: isLogged ? `rgba(46,213,115,0.125)` : C.sf2, border: `1px solid ${isLogged ? `rgba(46,213,115,0.333)` : C.bd}`,
                   borderRadius: 0, padding: '2px 7px',
                 }}>{isLogged ? '✓ DONE' : `EX ${ei + 1}`}</span>
                 <span style={{ fontFamily: FB, fontSize: 14, fontWeight: 700, color: C.tx }}>{ex.label}</span>
@@ -1229,7 +1229,7 @@ function ExercisePicker({ pov, onPick }) {
 
       {/* Auto-detected exercise card */}
       <div style={{
-        background: C.sf, border: `1px solid ${C.gn}40`, borderRadius: 0,
+        background: C.sf, border: `1px solid rgba(46,213,115,0.251)`, borderRadius: 0,
         padding: 18, marginBottom: 12,
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>

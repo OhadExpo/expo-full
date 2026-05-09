@@ -1154,7 +1154,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             // picker is right there for assignment after the editor opens).
             if (row.orphan) {
               return (
-                <div key={row.tid} style={{background:'var(--c-sf)',border:`0.25px dashed ${C.or}80`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                <div key={row.tid} style={{background:'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                   <div style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>NO PROGRAM ASSIGNED</div>
@@ -1235,7 +1235,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         })()}
                         {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>👁</button>}
                         <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>⎘</button>
-                        <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'var(--c-sf)',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>×</button>
+                        <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'var(--c-sf)',border:`0.25px solid rgba(255,71,87,0.502)`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>×</button>
                       </div>
                     ))}
                   </div>
@@ -1280,7 +1280,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 })()}
                 {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
                 <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
-                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'var(--c-sf)',border:`0.25px solid ${C.rd}80`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>×</button>
+                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'var(--c-sf)',border:`0.25px solid rgba(255,71,87,0.502)`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>×</button>
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>))}

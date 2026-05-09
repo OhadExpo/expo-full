@@ -163,9 +163,9 @@ export function ToastHost() {
   if (!items.length) return null;
   const palette = {
     info:    { bg: C.sf2,  fg: C.tx,  bd: `rgba(57,189,255,0.4)` },
-    success: { bg: C.gnD,  fg: C.gn,  bd: `${C.gn}66` },
-    error:   { bg: C.rdD,  fg: C.rd,  bd: `${C.rd}66` },
-    warn:    { bg: C.orD,  fg: C.or,  bd: `${C.or}66` },
+    success: { bg: C.gnD,  fg: C.gn,  bd: `rgba(46,213,115,0.4)` },
+    error:   { bg: C.rdD,  fg: C.rd,  bd: `rgba(255,71,87,0.4)` },
+    warn:    { bg: C.orD,  fg: C.or,  bd: `rgba(255,165,2,0.4)` },
     confirm: { bg: C.sf2,  fg: C.tx,  bd: `rgba(57,189,255,0.6)` },
   };
   return (

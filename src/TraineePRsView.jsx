@@ -299,7 +299,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                       style={{
                         padding: '10px 14px', cursor: 'pointer',
                         background: i === highlight ? `rgba(57,189,255,0.094)` : (o.id === pickedId ? `rgba(57,189,255,0.039)` : 'transparent'),
-                        borderBottom: i < filtered.length - 1 ? `1px solid ${C.bd}22` : 'none',
+                        borderBottom: i < filtered.length - 1 ? `1px solid rgba(127,127,131,0.133)` : 'none',
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
                       }}>
                       <span style={{ color: C.tx, fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.title}</span>

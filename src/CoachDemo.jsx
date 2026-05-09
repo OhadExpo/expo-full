@@ -837,7 +837,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES'
         }}>✏️ EDIT</button>
         <button title="Demo only" style={{
           ...baseBtn, background: 'transparent', color: C.rd,
-          border: `1px solid ${C.rd}40`, padding: '8px 14px', fontSize: 11,
+          border: `1px solid rgba(255,71,87,0.251)`, padding: '8px 14px', fontSize: 11,
         }}>📦 ARCHIVE</button>
       </div>
 
@@ -1501,7 +1501,7 @@ function DemoPrograms() {
 
         {/* PATTERN COVERAGE chart (mock) — mirrors the real PlanEditor's
             PatternCoverage component. */}
-        <div style={{ border: `0.25px solid ${C.or}66`, padding: 12, marginBottom: 16 }}>
+        <div style={{ border: `0.25px solid rgba(255,165,2,0.4)`, padding: 12, marginBottom: 16 }}>
           <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>PATTERN COVERAGE: 5/8</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {[
@@ -1535,7 +1535,7 @@ function DemoPrograms() {
                 <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing: '0.06em' }}>WARM-UP ({block.warmup.length})</span>
               </button>
               <button onClick={e => e.stopPropagation()} title="Demo only"
-                style={{ background: 'var(--c-sf)', border: `0.25px solid ${C.or}66`, borderRadius: 0, padding: '3px 10px', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ ADD WARM-UP</button>
+                style={{ background: 'var(--c-sf)', border: `0.25px solid rgba(255,165,2,0.4)`, borderRadius: 0, padding: '3px 10px', color: C.or, cursor: 'pointer', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em' }}>+ ADD WARM-UP</button>
             </div>
             {warmOpen && (
               <div style={{ marginTop: 8 }}>
@@ -1810,7 +1810,7 @@ function DemoPrograms() {
 
               {/* PATTERN COVERAGE chart on the compare side too — matches the
                   left half so the WARM-UP + DAY A boxes line up vertically. */}
-              <div style={{ border: `0.25px solid ${C.or}66`, padding: 12, marginBottom: 16 }}>
+              <div style={{ border: `0.25px solid rgba(255,165,2,0.4)`, padding: 12, marginBottom: 16 }}>
                 <div style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.or, letterSpacing: '0.06em', marginBottom: 8 }}>PATTERN COVERAGE: 4/8</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {[
@@ -2366,7 +2366,7 @@ function _DemoReviewLegacy() {
             </div>
             <span style={{
               fontFamily: FN, fontSize: 9, color: C.gn, letterSpacing: 1.5, fontWeight: 700,
-              background: C.gnD, border: `1px solid ${C.gn}40`,
+              background: C.gnD, border: `1px solid rgba(46,213,115,0.251)`,
               borderRadius: 0, padding: '3px 8px',
             }}>NEW · 12 MIN AGO</span>
           </div>

@@ -1593,7 +1593,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 {nameOf(wo.clientId)} — {wo.planName}
                 {wo.reviewedAt && (
                   <span style={{fontSize:9,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
-                    padding:"2px 6px",borderRadius:0,border:`1px solid ${C.gn}40`,background:C.gnD}}>
+                    padding:"2px 6px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
                     ✓ REVIEWED
                   </span>
                 )}
@@ -1683,7 +1683,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     </div>
                     {ex.sets.map((set, si) => (
                       <div key={si} style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"3px 0",
-                        opacity:set.done?1:0.4,borderBottom:si<ex.sets.length-1?`1px solid ${C.bd}22`:'none'}}>
+                        opacity:set.done?1:0.4,borderBottom:si<ex.sets.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
                         <div style={{fontFamily:FN,fontSize:12,color:set.done?C.gn:C.td,textAlign:"center"}}>{set.done?'✓':si+1}</div>
                         <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.reps||'—'}</div>
                         <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.load?set.load+'kg':'—'}</div>
@@ -1694,7 +1694,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
                   {/* Client's form video */}
                   {(formVideo?.has || formVideo?.cloudUrl) ? (
-                    <div style={{background:C.gnD,border:`1px solid ${C.gn}30`,borderRadius:0,padding:12,marginBottom:10}}>
+                    <div style={{background:C.gnD,border:`1px solid rgba(46,213,115,0.188)`,borderRadius:0,padding:12,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                         <div style={{fontSize:10,fontFamily:FN,color:C.gn,fontWeight:700}}>📹 FORM VIDEO SUBMITTED</div>
                         {formVideo.cloudUrl && (() => {
@@ -1720,7 +1720,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${new Date(wo.date).toLocaleDateString()}`;
                           return (
                             <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel, title: ex.title || exName }, candidates })}
-                              style={{background:'var(--c-sf)',border:`1px solid ${C.gn}60`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>
+                              style={{background:'var(--c-sf)',border:`1px solid rgba(46,213,115,0.376)`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>
                               ⇄ COMPARE
                             </button>
                           );
@@ -1989,7 +1989,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{wo.planName}</span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
-                        padding:"1px 5px",borderRadius:0,border:`1px solid ${C.gn}40`,background:C.gnD}}>
+                        padding:"1px 5px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
                         ✓ REVIEWED
                       </span>
                     )}

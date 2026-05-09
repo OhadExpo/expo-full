@@ -232,7 +232,7 @@ function WaitlistForm({ t }) {
     return (
       <div style={{
         fontFamily: FN, color: C.gn, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700,
-        padding: '14px 20px', border: `1px solid ${C.gn}40`, borderRadius: 0,
+        padding: '14px 20px', border: `1px solid rgba(46,213,115,0.251)`, borderRadius: 0,
         textAlign: 'center', maxWidth: 460, margin: '0 auto',
       }}>
         {t('wl.done')}

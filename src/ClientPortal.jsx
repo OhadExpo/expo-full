@@ -765,7 +765,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <div key={i} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
               padding: '4px 0',
-              borderBottom: i < newPRs.length - 1 ? `1px solid ${C.gn}20` : 'none',
+              borderBottom: i < newPRs.length - 1 ? `1px solid rgba(46,213,115,0.125)` : 'none',
             }}>
               <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 600 }}>{p.title}</span>
               <span style={{ fontFamily: FN, fontSize: 12, color: C.gn, fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -1508,7 +1508,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>}
           {vp.warmup?.length > 0 && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
             <div style={{fontSize:10,fontFamily:FN,color:C.or,marginBottom:10,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase'}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
-            {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid ${C.bd}22`:'none'}}>
+            {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
               <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
               <div style={{display:'flex',gap:10,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{w.rx}</span>
                 {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em'}}>VIDEO →</a>}</div></div>)}</div>}
@@ -1521,7 +1521,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 14px',borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer'}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
               const focus = weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk+1}`];
-              return <div key={i} style={{display:'flex',gap:10,alignItems:'stretch',padding:'6px 0',borderTop:i?`1px solid ${C.bd}22`:'none'}}>
+              return <div key={i} style={{display:'flex',gap:10,alignItems:'stretch',padding:'6px 0',borderTop:i?`1px solid rgba(127,127,131,0.133)`:'none'}}>
                 <div style={{width:20,borderRadius:0,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,letterSpacing:'0.04em'}}>{i+1}</div>
                 <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
                   <div style={{display:'flex',alignItems:'baseline',gap:10,marginTop:3}}>
