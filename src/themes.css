@@ -128,50 +128,51 @@
 }
 
 [data-theme="B"] {
-  /* CYAN HEAVY — brand color dominates. Pure white bg, but cards have
-     STRONG 1.5px cyan borders. sf2 (input fill) is pale cyan tint.
-     Accents heavy on cyan. Loud and visibly EXPO-branded. Cyan + white
-     + black with the supporting status colors layered for data. */
-  --c-bg: #FFFFFF;
+  /* CYAN HEAVY — page bg is pale cyan tint so the WHOLE viewport is
+     visibly branded; cards stay pure white and lift off via shadow.
+     Borders solid cyan-100% at full strength. Cyan tinted shadows
+     to push branding even further. Aggressive EXPO presence. */
+  --c-bg: #B8E5FF;
   --c-sf: #FFFFFF;
   --c-sf2: #E8F7FF;
-  --c-sf3: #BFE7FF;
-  --c-bd: #39BDFF;
-  --c-bd2: #0E8FD3;
-  --c-tx: #000000;
-  --c-tm: #4A4A4A;
-  --c-td: #8A8A8A;
-  --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
+  --c-sf3: #99D9FF;
+  --c-bd: #0E8FD3;
+  --c-bd2: #0A78B0;
+  --c-tx: #001A2C;
+  --c-tm: #093E58;
+  --c-td: #2C6285;
+  --c-ac: #0A78B0;
+  --c-acH: #001A2C;
+  --c-acText: #001A2C;
   --c-acSurface: #39BDFF;
-  --c-acOnSurface: #000000;
+  --c-acOnSurface: #001A2C;
   --c-cardBd: #39BDFF;
   --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
   --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
   --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
   --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(57,189,255,0.18);
-  --c-cardShadow: 0 1px 2px rgba(0,0,0,0.04), 0 6px 18px rgba(57,189,255,0.10);
+  --c-scrim: rgba(0,26,44,0.55);
+  --c-shadow: rgba(0,26,44,0.18);
+  --c-cardShadow: 0 2px 4px rgba(0,26,44,0.08), 0 12px 32px rgba(0,26,44,0.16);
 }
 
 [data-theme="C"] {
-  /* MONO + ACCENT — black-and-white discipline. Pure white bg, cards
-     bordered in BLACK. Text + strokes BLACK. Cyan reserved ONLY for
-     the active state and primary CTA fill. Brand whispered, content
-     reads like a print layout. Most contrast-heavy of the three. */
+  /* MONO + ACCENT — print-layout discipline. Pure white bg, every card
+     surrounded by SOLID BLACK 2px borders. Text BLACK. No subtle
+     hairlines — every stroke is loud and graphic. Cyan reserved for
+     primary CTA fills only. Reads like an editorial spread or a
+     graphic-design brochure. NO ambiguity vs A. */
   --c-bg: #FFFFFF;
   --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
+  --c-sf2: #FFFFFF;
+  --c-sf3: #F4F4F5;
   --c-bd: #000000;
-  --c-bd2: rgba(0,0,0,0.65);
+  --c-bd2: #000000;
   --c-tx: #000000;
-  --c-tm: rgba(0,0,0,0.65);
-  --c-td: rgba(0,0,0,0.45);
+  --c-tm: #000000;
+  --c-td: rgba(0,0,0,0.55);
   --c-ac: #000000;
-  --c-acH: #18181B;
+  --c-acH: #000000;
   --c-acText: #000000;
   --c-acSurface: #39BDFF;
   --c-acOnSurface: #000000;
@@ -181,8 +182,8 @@
   --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
   --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
   --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0.18);
-  --c-cardShadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+  --c-shadow: rgba(0,0,0,0);
+  --c-cardShadow: 0 0 0 2px #000000;
 }
 /* ========== /DRAFT VARIANTS ========== */
 
