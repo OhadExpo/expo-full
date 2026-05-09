@@ -49,18 +49,19 @@
  *     Filled cyan buttons + borders still use #39BDFF (BSG-strict).
  */
 /*
- * Light theme — BSG-strict 3-color: cyan #39BDFF + white + black.
- * Cyan is the page bg, white cards lift on top, black is the action /
- * stroke / text accent. Cyan-on-cyan would vanish, so the action color
- * has to be black or white — BSG allows only those, and black wins on
- * both the cyan bg AND the white cards. The cyan accent re-appears in
- * filled panels (--c-acSurface) and the page background itself.
+ * Light theme — brand cyan as the page bg, white cards on top, black
+ * for text/strokes/actions. Gray is the FOURTH tier: solid cool grays
+ * for secondary surfaces (input fills, hover rows, sunken states),
+ * mirroring how dark mode uses #0a0a0c against #000. Per Ohad: 'on
+ * light mode there can be more than 3 colors' — gray creates depth
+ * inside cards the same way the dark-mode role picker layers gray
+ * cards on a black page.
  */
 [data-theme="light"] {
   --c-bg: #39BDFF;                 /* brand cyan as the page bg */
   --c-sf: #FFFFFF;                 /* card surface — pure white for max lift off cyan */
-  --c-sf2: rgba(255,255,255,0.88); /* secondary fill (input bg) */
-  --c-sf3: rgba(255,255,255,0.70); /* pressed/sunken */
+  --c-sf2: #F4F6F9;                /* secondary fill — soft cool gray (input bg, hover row) */
+  --c-sf3: #E0E4EA;                /* sunken / pressed surface — deeper gray */
   --c-bd: #000000;                 /* primary structural border (BSG black) */
   --c-bd2: rgba(0,0,0,0.55);       /* secondary divider */
   --c-tx: #000000;                 /* body text — BSG black */
