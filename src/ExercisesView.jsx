@@ -71,7 +71,7 @@ export default function ExercisesView({ exercises, setExercises }) {
       </div>
       <div style={{ fontSize: 11, color: C.tm, marginBottom: 12, fontFamily: FN }}>{filtered.length} exercise{filtered.length !== 1 ? "s" : ""}</div>
       {filtered.length === 0 ? <EmptyState icon="🏋️" message="No exercises. Build your library." /> : (
-        <div style={{ overflowX: "auto" }}>
+        <div style={{ overflowX: "auto", background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FB, fontSize: 13 }}>
             <thead><tr style={{ borderBottom: `0.25px solid ${C.cardBd}` }}>
               {["Title","Category","Resistance","Pattern","Laterality",""].map(h =>
