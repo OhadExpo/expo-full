@@ -906,7 +906,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
             <div style={{
               padding: '6px 10px',
-              background: 'var(--c-sf)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0,
+              background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
               display: 'inline-flex', alignItems: 'baseline', gap: 8,
               fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.4,
             }}>
@@ -920,31 +920,38 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         );
       })()}
 
-      {hw && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
+      {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
-          {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`${weekNum===i?'1px':'0.25px'} solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
+          {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`1px solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
             <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
             <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div></div>}
 
-      {(d.q || ex.n) && <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:12,marginTop:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6}}>
+      {/* Cyan-polish pass: every neutral border on this view is now 1px
+          C.cardBd (thicker, gray) instead of 0.25px / C.ac. Cyan is reserved
+          for genuine intent \u2014 the left accent stripe on the focus card,
+          active-week pill, and key inline text. */}
+      {(d.q || ex.n) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginTop:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6}}>
         <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,fontWeight:700,textAlign:'center',letterSpacing:'0.18em'}}>EXERCISE NOTES</div>
         {d.q && <div style={{textAlign:'center',direction:/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(d.q)?FH:undefined}}>{d.q}</div>}
-        {d.q && ex.n && <div style={{borderTop:`0.25px solid ${C.cardBd}`,margin:'8px 0'}}/>}
+        {d.q && ex.n && <div style={{borderTop:`1px solid ${C.cardBd}`,margin:'8px 0'}}/>}
         {ex.n && <div style={{color:C.or,textAlign:'center',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(ex.n)?FH:undefined}}>{ex.n}</div>}</div>}
 
-      {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`}}>
+      {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
-        : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.cardBd}`}}>
+        : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
         <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
         : effectiveVid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(effectiveVid) ? <GooglePhotosEmbed url={effectiveVid} />
-        : effectiveVid && /lh3\.googleusercontent\.com/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`0.25px solid ${C.cardBd}`}}>
+        : effectiveVid && /lh3\.googleusercontent\.com/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
         <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div> : null}
 
-      <div style={{background:'transparent',border:'0.25px solid '+(wf?C.ac:C.cardBd),borderLeft:'2px solid '+(wf?C.ac:C.cardBd),borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
-        <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700}}>WEEKLY FOCUS</div>
+      {/* WEEKLY FOCUS \u2014 outer border is always neutral now; the left accent
+          stripe (3px) is the cyan-when-set indicator. Reads as a calm card
+          with a focused stripe rather than a wholly cyan box. */}
+      <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${wf?C.ac:C.cardBd}`,borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
+        <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700,letterSpacing:'0.18em'}}>WEEKLY FOCUS</div>
         <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>
 
-      <div style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
+      <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
           {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => <div key={si} style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
@@ -955,7 +962,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
         </div>)}</div>
 
-      <div style={{background:'var(--c-sf)',border:`${f.uploaded?'1px':'0.25px'} solid ${f.uploaded?C.gn:C.cardBd}`,borderRadius:0,padding:14}}>
+      <div style={{background:'var(--c-sf)',border:`1px solid ${f.uploaded?C.gn:C.cardBd}`,borderRadius:0,padding:14}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
           <div style={{fontSize:11,fontFamily:FN,color:C.tm}}>FORM CHECK</div>
           {f.uploaded && <div style={{display:'flex',alignItems:'center',gap:4,background:'var(--c-sf)',border:`0.25px solid ${C.gn}`,padding:'3px 10px',borderRadius:0}}>
@@ -1527,18 +1534,23 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 14px',borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer'}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
               const focus = weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk+1}`];
-              return <div key={i} style={{display:'flex',gap:10,alignItems:'stretch',padding:'6px 0',borderTop:i?`1px solid rgba(127,127,131,0.133)`:'none'}}>
-                <div style={{width:20,borderRadius:0,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,letterSpacing:'0.04em'}}>{i+1}</div>
-                <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,fontSize:12}}>{d.t}</div>
-                  <div style={{display:'flex',alignItems:'baseline',gap:10,marginTop:3}}>
+              const v = 'vid' in ex ? ex.vid : d.vid;
+              // Two-row layout: meta row (index + reps + tempo + VIDEO) is
+              // always single-line so the eye never has to track a long
+              // title against a small rep count. The exercise NAME gets a
+              // clean second row (indented past the index) and can wrap
+              // freely without crowding the metadata.
+              return <div key={i} style={{padding:'8px 0',borderTop:i?`1px solid ${C.cardBd}`:'none'}}>
+                <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                  <div style={{width:20,borderRadius:0,background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,letterSpacing:'0.04em',padding:'1px 0'}}>{i+1}</div>
+                  <div style={{flex:1,minWidth:0,display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
                     <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{hw?(wr||''):((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+ex.r}</span>
                     {ex.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{ex.tempo}</span>}
                   </div>
-                  {focus && <div style={{fontSize:11,color:C.ac,marginTop:4,opacity:0.85,lineHeight:1.4,display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'}}><span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>FOCUS</span>{focus}</div>}</div>
-                {(() => {
-                  const v = 'vid' in ex ? ex.vid : d.vid;
-                  return v ? <a href={v} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em',flexShrink:0}}>VIDEO →</a> : null;
-                })()}
+                  {v ? <a href={v} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em',flexShrink:0}}>VIDEO →</a> : null}
+                </div>
+                <div style={{marginInlineStart:30,marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{d.t}</div>
+                {focus && <div style={{marginInlineStart:30,fontSize:11,color:C.ac,marginTop:4,opacity:0.85,lineHeight:1.4,display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'}}><span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>FOCUS</span>{focus}</div>}
               </div>})}
           </div>})}</React.Fragment>)})()}
       </div>
