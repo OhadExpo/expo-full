@@ -112,17 +112,25 @@ function parseIcs(text: string): IcsEvent[] {
   return events;
 }
 
-// EXPO session detection — three patterns to catch both Appointment
-// Schedule auto-events and manually-created training events. See
+// EXPO session detection — patterns catch both Appointment Schedule
+// auto-events and manually-created training events. See
 // reference_calendar_sync_via_mcp.md.
+//
+// EXPO_TRAINING_RE picks up plain "אימון" or "אימון <name>" entries
+// Ohad types into his own calendar — earlier the filter required
+// "אימון אישי" (with אישי) and bare-"אימון" events were silently
+// dropped from the dashboard.
 const EXPO_TITLE_RE = /EXPO\s+חדר\s+כושר/i;
 const EXPO_PERSONAL_RE = /אימון\s+אישי/i;
 const EXPO_SLOT_RE = /שעת\s+אימון/i;
+const EXPO_TRAINING_RE = /\bאימון\b/u;
 
 function isExpoSession(ev: IcsEvent): boolean {
   if (!ev || ev.status === "CANCELLED") return false;
-  if (EXPO_TITLE_RE.test(ev.summary || "")) return true;
-  if (EXPO_PERSONAL_RE.test(ev.summary || "")) return true;
+  const summary = ev.summary || "";
+  if (EXPO_TITLE_RE.test(summary)) return true;
+  if (EXPO_PERSONAL_RE.test(summary)) return true;
+  if (EXPO_TRAINING_RE.test(summary)) return true;
   if (EXPO_SLOT_RE.test(ev.description || "")) return true;
   return false;
 }
