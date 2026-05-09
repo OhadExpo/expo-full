@@ -87,3 +87,31 @@ html, body {
   background: var(--c-bg);
   color: var(--c-tx);
 }
+
+/*
+ * Keyboard-focus ring: subtle cyan outline on tab-navigation only.
+ * Mouse-clicks don't trigger :focus-visible, so click-to-focus never paints
+ * a ring — keyboard users get the affordance, mouse users get the clean look.
+ * Applied globally so every input/button/select/textarea throughout the app
+ * inherits the same ring without having to wire it per-component.
+ */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid var(--c-ac) !important;
+  outline-offset: 1px !important;
+}
+
+/*
+ * Generic interactive-card hover lift. Any element that opts into the
+ * `data-hover-lift` attribute gets a subtle border-darken + tiny shadow
+ * grow on hover. We don't apply this to all .card elements automatically
+ * because most existing cards already manage their own hover state inline.
+ */
+[data-hover-lift]:hover {
+  border-color: var(--c-ac) !important;
+  box-shadow: var(--c-cardShadow) !important;
+}
