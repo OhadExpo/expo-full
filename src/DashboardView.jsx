@@ -191,7 +191,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20, alignItems: 'start' }}>
           {onlineNow.length > 0 && (
-            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderTop: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
               <SectionLabel color={C.gn} style={{ marginBottom: 8 }}>🟢 Online Now ({onlineNow.length})</SectionLabel>
               {onlineNow.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
@@ -202,7 +202,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             </div>
           )}
           {expiring.length > 0 && (
-            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderTop: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
               <SectionLabel color={C.or} as="div" style={{ marginBottom: 8 }}>⚠ Expiring Packages ({expiring.length})</SectionLabel>
               {expiring.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
@@ -215,7 +215,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           {(overduePayment.length > 0 || (leads && leads.length > 0)) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {overduePayment.length > 0 && (
-                <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+                <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderTop: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
                   <SectionLabel color={C.rd} style={{ marginBottom: 8 }}>💰 Overdue Payment ({overduePayment.length})</SectionLabel>
                   {overduePayment.map(t => (
                     <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
@@ -266,7 +266,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             </div>
           )}
           {dropoutRisk.length > 0 && (
-            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderTop: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
               <SectionLabel color={C.or} as="div" style={{ marginBottom: 8 }}>💤 Dormant ({dropoutRisk.length})</SectionLabel>
               {dropoutRisk.map(t => {
                 const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
@@ -371,7 +371,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
       {/* Dropout risk — below the client list */}
       {dropoutRisk.length > 0 && (
-        <div style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+        <div style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderTop: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
           <SectionLabel color={C.rd} style={{ marginBottom: 8 }}>🔻 Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
           {dropoutRisk.map(t => {
             const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;

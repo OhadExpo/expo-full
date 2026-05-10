@@ -31,31 +31,10 @@
 }
 
 /*
- * Light mode — premium palette tuned for visual parity with the dark side.
- * Key tricks borrowed from Linear / Vercel / Notion:
- *  1. INVERTED CARD DEPTH: bg goes off-white (#F7F8FA), cards go bright
- *     white (#FFFFFF). Cards now LIFT off the page the same way dark cards
- *     lift via slight lightening. Pure white bg with off-white cards
- *     reverses the cue and reads as "raw HTML".
- *  2. COOL GRAY NEUTRALS: pure-neutral grays read clinical. A subtle cool
- *     tint matches the brand cyan and feels intentional.
- *  3. NEAR-BLACK TEXT, not pure #000: #0E0F12 is the same "soft black"
- *     premium apps use. Pure black on white is harsh and high-contrast.
- *  4. CARD SHADOWS: dark mode hides depth via brightness; light mode needs
- *     explicit shadow. A subtle 0-1-2 shadow lifts cards without shouting.
- *  5. DARKER CYAN FOR SMALL TEXT: BSG #39BDFF on white = 1.93:1 (fail AA).
- *     `acText` is a darker cyan that passes AA at 4.7:1 on white. Used for
- *     section labels where small cyan text would otherwise look broken.
- *     Filled cyan buttons + borders still use #39BDFF (BSG-strict).
- */
-/*
  * Light theme — brand cyan as the page bg, white cards on top, black
  * for text/strokes/actions. Gray is the FOURTH tier: solid cool grays
  * for secondary surfaces (input fills, hover rows, sunken states),
- * mirroring how dark mode uses #0a0a0c against #000. Per Ohad: 'on
- * light mode there can be more than 3 colors' — gray creates depth
- * inside cards the same way the dark-mode role picker layers gray
- * cards on a black page.
+ * mirroring how dark mode uses #0a0a0c against #000.
  */
 [data-theme="light"] {
   --c-bg: #39BDFF;                 /* brand cyan as the page bg */
@@ -83,97 +62,205 @@
   --c-puD: rgba(106,27,154,0.10);
   --c-scrim: rgba(6,20,37,0.45);
   --c-shadow: rgba(6,20,37,0.10);
-  /* Soft elevated shadow stack — cards lift off the cyan bg via SHADOW
-     alone, no heavy borders. Mirrors how Linear / Vercel / Notion lift
-     cards on saturated bgs. */
   --c-cardShadow: 0 1px 2px rgba(6,20,37,0.04), 0 8px 24px rgba(6,20,37,0.10);
 }
 
 /* ========== DRAFT VARIANTS (preview only, ?theme= URL switch) ==========
- * Three alternative directions to evaluate alongside the cyan-bg light:
- *   ?theme=soft    — pale cyan-tinted page (#E8F7FF), white cards
- *   ?theme=accent  — clean off-white page, cyan only on primary actions
- *   ?theme=cream   — warm cream page (#FAF8F3), charcoal text, cyan cool accent
- * Three blocks below are temporary; pick one and the other two get cut.
+ * Eight light-mode variants. Each is a distinct DESIGN VOICE rather
+ * than a bg+border swap. All use BSG #39BDFF when cyan appears; all
+ * backgrounds are white, gray, or cyan; UI layout matches dark mode.
+ *
+ *   ?theme=N — Linear/Vercel premium hairline
+ *   ?theme=O — Stripe paper, soft warm gray + multi-shadow
+ *   ?theme=P — Editorial mono spread, top+bottom black rules
+ *   ?theme=Q — Apple system gray, layered card shadow, cyan kept
+ *   ?theme=R — iOS Big Sur frosted glass on cyan canvas
+ *   ?theme=S — Banker recessed (inset shadow, carved-into-page)
+ *   ?theme=T — Brutalist hard offset shadow (4px black drop)
+ *   ?theme=U — Pure zen, no chrome at all (typography-only structure)
  */
 
-[data-theme="A"] {
-  /* INVERTED DARK — most literal mirror of dark mode. Bg light gray
-     (mirrors dark's bg #000), cards pure white (cards LIFT toward viewer
-     by being lighter than bg, same as dark's #0a0a0c lifts off #000).
-     Cyan accent kept identical to dark mode. Borders barely-visible
-     cyan-tinted hairlines. Reads as 'dark mode with the lights on'. */
-  --c-bg: #F4F4F5;
+[data-theme="N"] {
+  /* LINEAR — pure white, white cards, ultra-subtle 1px hairline +
+     paper-thin shadow. Type carries hierarchy. Cyan only on
+     interactive. The most restrained option. */
+  --c-bg: #FFFFFF;
   --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: rgba(57,189,255,0.30);
-  --c-bd2: rgba(57,189,255,0.45);
-  --c-tx: #18181B;
-  --c-tm: #71717A;
+  --c-sf2: #FAFAFA;
+  --c-sf3: #F4F4F5;
+  --c-bd: #EAEAEC;
+  --c-bd2: #D4D4D8;
+  --c-tx: #09090B;
+  --c-tm: #52525B;
   --c-td: #A1A1AA;
   --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
+  --c-acH: #0A78B0;
   --c-acText: #0A78B0;
   --c-acSurface: #39BDFF;
-  --c-acOnSurface: #18181B;
-  --c-cardBd: rgba(57,189,255,0.30);
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: #EAEAEC;
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.08);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.08);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.08);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.08);
   --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(0,0,0,0.10);
-  --c-cardShadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+  --c-shadow: rgba(0,0,0,0.06);
+  --c-cardShadow: 0 0 0 1px rgba(9,9,11,0.04), 0 1px 2px rgba(9,9,11,0.06);
 }
 
-[data-theme="B"] {
-  /* CYAN HEAVY — page bg is pale cyan tint so the WHOLE viewport is
-     visibly branded; cards stay pure white and lift off via shadow.
-     Borders solid cyan-100% at full strength. Cyan tinted shadows
-     to push branding even further. Aggressive EXPO presence. */
-  --c-bg: #B8E5FF;
+[data-theme="O"] {
+  /* STRIPE PAPER — warm off-white bg, white cards floating on
+     refined multi-layer shadow. No borders. Premium B2B SaaS. */
+  --c-bg: #FAFAF9;
   --c-sf: #FFFFFF;
-  --c-sf2: #E8F7FF;
-  --c-sf3: #99D9FF;
-  --c-bd: #0E8FD3;
-  --c-bd2: #0A78B0;
-  --c-tx: #001A2C;
-  --c-tm: #093E58;
-  --c-td: #2C6285;
-  --c-ac: #0A78B0;
-  --c-acH: #001A2C;
-  --c-acText: #001A2C;
+  --c-sf2: #F5F5F4;
+  --c-sf3: #E7E5E4;
+  --c-bd: rgba(0,0,0,0);
+  --c-bd2: rgba(0,0,0,0);
+  --c-tx: #1C1917;
+  --c-tm: #57534E;
+  --c-td: #A8A29E;
+  --c-ac: #39BDFF;
+  --c-acH: #0A78B0;
+  --c-acText: #0A78B0;
   --c-acSurface: #39BDFF;
-  --c-acOnSurface: #001A2C;
-  --c-cardBd: #39BDFF;
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,26,44,0.55);
-  --c-shadow: rgba(0,26,44,0.18);
-  --c-cardShadow: 0 2px 4px rgba(0,26,44,0.08), 0 12px 32px rgba(0,26,44,0.16);
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(0,0,0,0);
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.08);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.08);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.08);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.08);
+  --c-scrim: rgba(28,25,23,0.45);
+  --c-shadow: rgba(28,25,23,0.10);
+  --c-cardShadow: 0 1px 2px rgba(28,25,23,0.05), 0 4px 8px rgba(28,25,23,0.04), 0 16px 32px rgba(28,25,23,0.05);
 }
 
-[data-theme="C"] {
-  /* MONO + ACCENT — print-layout discipline. Pure white bg, every card
-     surrounded by SOLID BLACK 2px borders. Text BLACK. No subtle
-     hairlines — every stroke is loud and graphic. Cyan reserved for
-     primary CTA fills only. Reads like an editorial spread or a
-     graphic-design brochure. NO ambiguity vs A. */
-  --c-bg: #FFFFFF;
+[data-theme="P"] {
+  /* EDITORIAL MONO — gray bg, white cards bracketed top + bottom
+     by 2px BLACK rules (no left/right border). Reads like a
+     newspaper section. Cyan reserved for big numbers and CTAs. */
+  --c-bg: #F4F4F5;
   --c-sf: #FFFFFF;
   --c-sf2: #FFFFFF;
   --c-sf3: #F4F4F5;
   --c-bd: #000000;
   --c-bd2: #000000;
   --c-tx: #000000;
-  --c-tm: #000000;
-  --c-td: rgba(0,0,0,0.55);
-  --c-ac: #000000;
+  --c-tm: #1F2937;
+  --c-td: #6B7280;
+  --c-ac: #39BDFF;
   --c-acH: #000000;
-  --c-acText: #000000;
+  --c-acText: #0A78B0;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #000000;
+  --c-cardBd: rgba(0,0,0,0);
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
+  --c-scrim: rgba(0,0,0,0.55);
+  --c-shadow: rgba(0,0,0,0);
+  --c-cardShadow: inset 0 2px 0 0 #000000, inset 0 -2px 0 0 #000000;
+}
+
+[data-theme="Q"] {
+  /* APPLE SYSTEM — Apple-style gray bg (#F2F2F7), white cards
+     with the famous multi-layer shadow. Borderless. Cyan kept
+     identical to dark mode. Reads like a System Settings panel. */
+  --c-bg: #F2F2F7;
+  --c-sf: #FFFFFF;
+  --c-sf2: #F2F2F7;
+  --c-sf3: #E5E5EA;
+  --c-bd: rgba(60,60,67,0.18);
+  --c-bd2: rgba(60,60,67,0.36);
+  --c-tx: #1C1C1E;
+  --c-tm: #3C3C43;
+  --c-td: #8E8E93;
+  --c-ac: #39BDFF;
+  --c-acH: #0A78B0;
+  --c-acText: #0A78B0;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(0,0,0,0);
+  --c-rd: #FF3B30;                  --c-rdD: rgba(255,59,48,0.08);
+  --c-gn: #34C759;                  --c-gnD: rgba(52,199,89,0.08);
+  --c-or: #FF9500;                  --c-orD: rgba(255,149,0,0.08);
+  --c-pu: #AF52DE;                  --c-puD: rgba(175,82,222,0.08);
+  --c-scrim: rgba(0,0,0,0.45);
+  --c-shadow: rgba(0,0,0,0.08);
+  --c-cardShadow: 0 1px 1px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.06);
+}
+
+[data-theme="R"] {
+  /* FROSTED GLASS — vivid BSG cyan canvas, cards are frosted
+     translucent white with backdrop blur. Premium iOS Big Sur. */
+  --c-bg: #39BDFF;
+  --c-sf: rgba(255,255,255,0.85);
+  --c-sf2: rgba(255,255,255,0.70);
+  --c-sf3: rgba(255,255,255,0.55);
+  --c-bd: rgba(255,255,255,0.55);
+  --c-bd2: rgba(255,255,255,0.75);
+  --c-tx: #001A2C;
+  --c-tm: #093E58;
+  --c-td: #2C6285;
+  --c-ac: #001A2C;
+  --c-acH: #000000;
+  --c-acText: #001A2C;
+  --c-acSurface: #001A2C;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(255,255,255,0.55);
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
+  --c-scrim: rgba(0,26,44,0.55);
+  --c-shadow: rgba(0,26,44,0.18);
+  --c-cardShadow: 0 1px 1px rgba(0,26,44,0.05), 0 8px 24px rgba(0,26,44,0.18), inset 0 1px 0 0 rgba(255,255,255,0.60);
+}
+
+[data-theme="S"] {
+  /* BANKER — mid-gray bg, cards appear CARVED INTO the page via
+     inset shadow. Quiet, materials-physical, financial. */
+  --c-bg: #E5E5E5;
+  --c-sf: #FAFAFA;
+  --c-sf2: #F4F4F5;
+  --c-sf3: #E4E4E7;
+  --c-bd: #D4D4D8;
+  --c-bd2: #A1A1AA;
+  --c-tx: #18181B;
+  --c-tm: #3F3F46;
+  --c-td: #71717A;
+  --c-ac: #39BDFF;
+  --c-acH: #0A78B0;
+  --c-acText: #0A78B0;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(0,0,0,0);
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.08);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.08);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.08);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.08);
+  --c-scrim: rgba(0,0,0,0.45);
+  --c-shadow: rgba(0,0,0,0.10);
+  --c-cardShadow: inset 0 2px 4px rgba(0,0,0,0.06), inset 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+[data-theme="T"] {
+  /* BRUTALIST — pure white bg, white cards, hard 4px BLACK offset
+     shadow (no blur). Reads like a poster or zine. Cyan only as
+     filled CTA. Aggressively graphic. */
+  --c-bg: #FFFFFF;
+  --c-sf: #FFFFFF;
+  --c-sf2: #F4F4F5;
+  --c-sf3: #E4E4E7;
+  --c-bd: #000000;
+  --c-bd2: #000000;
+  --c-tx: #000000;
+  --c-tm: #1F2937;
+  --c-td: #6B7280;
+  --c-ac: #39BDFF;
+  --c-acH: #000000;
+  --c-acText: #0A78B0;
   --c-acSurface: #39BDFF;
   --c-acOnSurface: #000000;
   --c-cardBd: #000000;
@@ -182,294 +269,36 @@
   --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
   --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
   --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0);
-  --c-cardShadow: 0 0 0 2px #000000;
+  --c-shadow: rgba(0,0,0,0.20);
+  --c-cardShadow: 0 0 0 1.5px #000000, 4px 4px 0 0 #000000;
 }
 
-[data-theme="D"] {
-  /* CYAN-RING — pure white bg, white cards, every card surrounded by a
-     hard 2px CYAN ring (#39BDFF). Brand owns the structure, not the
-     surface. Reads like a tech-spec sheet. */
+[data-theme="U"] {
+  /* ZEN — pure white, white cards, NO chrome (no border, no shadow).
+     Hierarchy carried entirely by typography weight, scale, and
+     spacing. Cyan only on the active DASHBOARD pill and CTA fills. */
   --c-bg: #FFFFFF;
   --c-sf: #FFFFFF;
   --c-sf2: #FFFFFF;
-  --c-sf3: #F4F4F5;
-  --c-bd: #39BDFF;
-  --c-bd2: #0A78B0;
-  --c-tx: #0E0F12;
-  --c-tm: #1F2937;
-  --c-td: #6B7280;
-  --c-ac: #0A78B0;
-  --c-acH: #0E0F12;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: #39BDFF;
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0);
-  --c-cardShadow: 0 0 0 2px #39BDFF;
-}
-
-[data-theme="E"] {
-  /* CYAN GLOW — light gray canvas (#E4E4E7), white cards, no border.
-     Each card casts a soft CYAN halo shadow so cards appear to glow
-     in the brand color. Reads like a futuristic ops console. */
-  --c-bg: #E4E4E7;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: #D4D4D8;
-  --c-bd2: #A1A1AA;
-  --c-tx: #0E0F12;
-  --c-tm: #3F3F46;
-  --c-td: #71717A;
+  --c-sf3: #FAFAFA;
+  --c-bd: rgba(0,0,0,0);
+  --c-bd2: rgba(0,0,0,0);
+  --c-tx: #09090B;
+  --c-tm: #52525B;
+  --c-td: #A1A1AA;
   --c-ac: #39BDFF;
-  --c-acH: #0E0F12;
+  --c-acH: #0A78B0;
   --c-acText: #0A78B0;
   --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: #D4D4D8;
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(57,189,255,0.20);
-  --c-cardShadow: 0 0 0 1px rgba(57,189,255,0.20), 0 4px 16px rgba(57,189,255,0.30), 0 12px 40px rgba(57,189,255,0.18);
-}
-
-[data-theme="F"] {
-  /* VIVID BSG — full BSG #39BDFF as the canvas. White cards float
-     on loud brand color, capped with hard 2px BLACK borders so they
-     read clearly against cyan. This is the maximum brand-saturation
-     option (B used pale cyan; F uses brand-exact cyan). */
-  --c-bg: #39BDFF;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: #000000;
-  --c-bd2: #000000;
-  --c-tx: #0E0F12;
-  --c-tm: #1F2937;
-  --c-td: #4B5563;
-  --c-ac: #0E0F12;
-  --c-acH: #000000;
-  --c-acText: #0E0F12;
-  --c-acSurface: #0E0F12;
   --c-acOnSurface: #FFFFFF;
-  --c-cardBd: #000000;
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0.20);
-  --c-cardShadow: 0 0 0 2px #000000;
-}
-
-[data-theme="G"] {
-  /* LEFT STRIPE — pure white bg, white cards, each card capped with
-     a thick 6px CYAN LEFT stripe (drawn via inset shadow). Brand
-     reads as a structural mark on every card. Different from H's
-     top-stripe by orientation. */
-  --c-bg: #FFFFFF;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: #E4E4E7;
-  --c-bd2: #D4D4D8;
-  --c-tx: #0E0F12;
-  --c-tm: #1F2937;
-  --c-td: #6B7280;
-  --c-ac: #39BDFF;
-  --c-acH: #0E0F12;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: #39BDFF;
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0.06);
-  --c-cardShadow: inset 6px 0 0 0 #39BDFF, 0 1px 3px rgba(0,0,0,0.06), 0 8px 20px rgba(0,0,0,0.05);
-}
-
-[data-theme="H"] {
-  /* TOP-STRIPE — gray canvas (#F4F4F5), white cards each capped with
-     a 4px CYAN top stripe (drawn via inset shadow). Brand whispers
-     through structural accents instead of fills. Looks like Stripe /
-     Linear admin panels. */
-  --c-bg: #F4F4F5;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: #E4E4E7;
-  --c-bd2: #D4D4D8;
-  --c-tx: #0E0F12;
-  --c-tm: #1F2937;
-  --c-td: #6B7280;
-  --c-ac: #0A78B0;
-  --c-acH: #001A2C;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: #39BDFF;
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0.06);
-  --c-cardShadow: inset 0 4px 0 0 #39BDFF, 0 1px 3px rgba(0,0,0,0.06), 0 8px 20px rgba(0,0,0,0.05);
-}
-
-[data-theme="I"] {
-  /* CYAN TILES — light gray canvas, every card FILLED with full BSG
-     #39BDFF. Text near-black for AA contrast on cyan. Cards are
-     billboards. Maximum brand-on-card saturation. Inverse of F. */
-  --c-bg: #F4F4F5;
-  --c-sf: #39BDFF;
-  --c-sf2: #4FC4FF;
-  --c-sf3: #1FA8F0;
-  --c-bd: #0E0F12;
-  --c-bd2: #000000;
-  --c-tx: #0E0F12;
-  --c-tm: #1F2937;
-  --c-td: #4B5563;
-  --c-ac: #0E0F12;
-  --c-acH: #000000;
-  --c-acText: #0E0F12;
-  --c-acSurface: #0E0F12;
-  --c-acOnSurface: #FFFFFF;
-  --c-cardBd: #0E0F12;
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0.10);
-  --c-cardShadow: 0 1px 3px rgba(0,0,0,0.10), 0 8px 24px rgba(0,0,0,0.08);
-}
-
-[data-theme="J"] {
-  /* DOUBLE FRAME — gray canvas, white cards, each card framed with
-     a TRIPLE-LINE shadow: cyan / white gap / cyan. Editorial /
-     luxury-product spec sheet aesthetic. */
-  --c-bg: #E4E4E7;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: #39BDFF;
-  --c-bd2: #0A78B0;
-  --c-tx: #0E0F12;
-  --c-tm: #1F2937;
-  --c-td: #6B7280;
-  --c-ac: #39BDFF;
-  --c-acH: #0E0F12;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: #39BDFF;
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0.06);
-  --c-cardShadow: 0 0 0 1px #39BDFF, 0 0 0 4px #FFFFFF, 0 0 0 5px #39BDFF;
-}
-
-[data-theme="K"] {
-  /* TAB UNDERLINE — pure white bg, white cards, each card capped
-     with a 4px CYAN BOTTOM stripe. Reads like browser-tab indicators
-     under each module. Different orientation from G (left) and H
-     (top). */
-  --c-bg: #FFFFFF;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: #E4E4E7;
-  --c-bd2: #D4D4D8;
-  --c-tx: #0E0F12;
-  --c-tm: #1F2937;
-  --c-td: #6B7280;
-  --c-ac: #39BDFF;
-  --c-acH: #0E0F12;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: #39BDFF;
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0.06);
-  --c-cardShadow: inset 0 -4px 0 0 #39BDFF, 0 1px 3px rgba(0,0,0,0.06), 0 8px 20px rgba(0,0,0,0.05);
-}
-
-[data-theme="L"] {
-  /* MATERIAL LIFT — pure white bg, white cards, NO border anywhere.
-     Cards float with a deep, dramatic drop shadow. Cyan reserved
-     ONLY for big-number accents and CTA fills. Reads like Material
-     Design / Stripe modern. Most "calm" of the new five. */
-  --c-bg: #FFFFFF;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: #E4E4E7;
-  --c-bd2: #D4D4D8;
-  --c-tx: #0E0F12;
-  --c-tm: #1F2937;
-  --c-td: #6B7280;
-  --c-ac: #39BDFF;
-  --c-acH: #0E0F12;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
   --c-cardBd: rgba(0,0,0,0);
-  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
-  --c-shadow: rgba(0,0,0,0.20);
-  --c-cardShadow: 0 4px 12px rgba(0,0,0,0.10), 0 16px 40px rgba(0,0,0,0.16), 0 32px 64px rgba(0,0,0,0.10);
-}
-
-[data-theme="M"] {
-  /* OUTLINE FRAMES — vivid BSG #39BDFF canvas, cards have NO fill
-     (transparent), only a 2px WHITE outline. Cards read as cutout
-     frames on the cyan canvas — content floats directly on cyan.
-     Inverse of F (F filled cards over cyan; M empties them). */
-  --c-bg: #39BDFF;
-  --c-sf: rgba(255,255,255,0.10);
-  --c-sf2: rgba(255,255,255,0.18);
-  --c-sf3: rgba(255,255,255,0.30);
-  --c-bd: #FFFFFF;
-  --c-bd2: #FFFFFF;
-  --c-tx: #FFFFFF;
-  --c-tm: rgba(255,255,255,0.85);
-  --c-td: rgba(255,255,255,0.70);
-  --c-ac: #FFFFFF;
-  --c-acH: #0E0F12;
-  --c-acText: #FFFFFF;
-  --c-acSurface: #FFFFFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: #FFFFFF;
-  --c-rd: #FFFFFF;                  --c-rdD: rgba(255,255,255,0.10);
-  --c-gn: #FFFFFF;                  --c-gnD: rgba(255,255,255,0.10);
-  --c-or: #FFFFFF;                  --c-orD: rgba(255,255,255,0.10);
-  --c-pu: #FFFFFF;                  --c-puD: rgba(255,255,255,0.10);
-  --c-scrim: rgba(0,0,0,0.55);
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.06);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.06);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.06);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.06);
+  --c-scrim: rgba(0,0,0,0.45);
   --c-shadow: rgba(0,0,0,0);
-  --c-cardShadow: 0 0 0 2px #FFFFFF;
+  --c-cardShadow: none;
 }
 /* ========== /DRAFT VARIANTS ========== */
 
