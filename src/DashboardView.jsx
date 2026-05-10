@@ -5,6 +5,28 @@ import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 
+// Refined dashboard (theme=5b): replace emoji section icons with inline
+// stroke SVGs so the icon vocabulary matches the header's stroke icons.
+// Default (theme=5): emoji unchanged. Detection happens once at render.
+const isRefined5b = () => {
+  if (typeof document === 'undefined') return false;
+  const dt = document.documentElement.getAttribute('data-theme');
+  return dt === '5b' || dt === 'light';
+};
+
+function SectionIcon({ kind, color, size = 14 }) {
+  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { verticalAlign: '-2px', marginRight: 6, flexShrink: 0 } };
+  switch (kind) {
+    case 'alert': return <svg {...common}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+    case 'dollar': return <svg {...common}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+    case 'moon': return <svg {...common}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
+    case 'trendingDown': return <svg {...common}><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>;
+    case 'mail': return <svg {...common}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>;
+    case 'dot': return <svg {...common} fill={color}><circle cx="12" cy="12" r="5"/></svg>;
+    default: return null;
+  }
+}
+
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
 // For couples we pick the member whose phone is set; if both have phones,
 // message the first member only (two conversations would duplicate the nudge).
@@ -175,9 +197,11 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
           { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
         ].map((s, i) => (
-          <div key={i} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
-            <SectionLabel style={{ marginBottom: 8 }}>{s.label}</SectionLabel>
-            <div style={{ fontSize: 30, fontWeight: 700, fontFamily: FN, color: s.color, lineHeight: 1.1, letterSpacing: '-0.01em' }}>{s.value}
+          <div key={i} className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
+            <SectionLabel style={isRefined5b()
+              ? { marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700, color: 'rgba(0,0,0,0.62)' }
+              : { marginBottom: 8 }}>{s.label}</SectionLabel>
+            <div style={{ fontSize: C.kpiNumberSize, fontWeight: isRefined5b() ? 800 : 700, fontFamily: FN, color: s.color, lineHeight: 1.05, letterSpacing: '-0.015em' }}>{s.value}
               {s.total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
             {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
           </div>
@@ -191,8 +215,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20, alignItems: 'start' }}>
           {onlineNow.length > 0 && (
-            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              <SectionLabel color={C.gn} style={{ marginBottom: 8 }}>🟢 Online Now ({onlineNow.length})</SectionLabel>
+            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+              <SectionLabel color={C.gn} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="dot" color={C.gn}/>Online Now ({onlineNow.length})</> : `🟢 Online Now (${onlineNow.length})`}</SectionLabel>
               {onlineNow.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
                   <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
@@ -202,8 +226,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             </div>
           )}
           {expiring.length > 0 && (
-            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              <SectionLabel color={C.or} as="div" style={{ marginBottom: 8 }}>⚠ Expiring Packages ({expiring.length})</SectionLabel>
+            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+              <SectionLabel color={C.or} as="div" style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="alert" color={C.or}/>Expiring Packages ({expiring.length})</> : `⚠ Expiring Packages (${expiring.length})`}</SectionLabel>
               {expiring.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                   <span style={{ color: C.tx }}>{t.name}</span>
@@ -215,8 +239,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           {(overduePayment.length > 0 || (leads && leads.length > 0)) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {overduePayment.length > 0 && (
-                <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-                  <SectionLabel color={C.rd} style={{ marginBottom: 8 }}>💰 Overdue Payment ({overduePayment.length})</SectionLabel>
+                <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+                  <SectionLabel color={C.rd} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="dollar" color={C.rd}/>Overdue Payment ({overduePayment.length})</> : `💰 Overdue Payment (${overduePayment.length})`}</SectionLabel>
                   {overduePayment.map(t => (
                     <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -235,7 +259,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                 return (
                 <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <SectionLabel as="span" color={C.ac}>📩 New Leads ({leads.length})</SectionLabel>
+                    <SectionLabel as="span" color={C.ac} style={{ fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="mail" color={C.ac}/>New Leads ({leads.length})</> : `📩 New Leads (${leads.length})`}</SectionLabel>
                     <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
                       style={{ fontFamily: FN, fontSize: 9, color: gateColor, border: `1px solid ${gateColor}`, background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
                       🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
@@ -266,8 +290,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             </div>
           )}
           {dropoutRisk.length > 0 && (
-            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              <SectionLabel color={C.or} as="div" style={{ marginBottom: 8 }}>💤 Dormant ({dropoutRisk.length})</SectionLabel>
+            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+              <SectionLabel color={C.or} as="div" style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="moon" color={C.or}/>Dormant ({dropoutRisk.length})</> : `💤 Dormant (${dropoutRisk.length})`}</SectionLabel>
               {dropoutRisk.map(t => {
                 const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                 return (
@@ -371,8 +395,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
       {/* Dropout risk — below the client list */}
       {dropoutRisk.length > 0 && (
-        <div style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-          <SectionLabel color={C.rd} style={{ marginBottom: 8 }}>🔻 Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
+        <div className="alert-card" style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+          <SectionLabel color={C.rd} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="trendingDown" color={C.rd}/>Dropout Risk — 14+ days ({dropoutRisk.length})</> : `🔻 Dropout Risk — 14+ days (${dropoutRisk.length})`}</SectionLabel>
           {dropoutRisk.map(t => {
             const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
             const daysLabel = days == null ? 'Never trained' : `${days}d ago`;

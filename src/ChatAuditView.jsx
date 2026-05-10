@@ -138,7 +138,7 @@ export default function ChatAuditView() {
             color: showErrorsOnly ? C.rd : C.tm,
             borderRadius: 0, padding: '6px 12px',
             fontFamily: FN, fontSize: 11, fontWeight: 700, cursor: 'pointer', letterSpacing: '0.18em',
-          }}>⚠ ERRORS ONLY</button>
+          }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: '-1px', marginRight: 4 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>ERRORS ONLY</button>
         <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter by message text…"
           style={{
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,

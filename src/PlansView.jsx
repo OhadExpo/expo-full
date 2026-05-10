@@ -6,6 +6,25 @@ import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
 import { sortProgramsChrono } from './traineeUtils';
 
+// Refined dashboard (theme=5b): replace emoji action icons (🎯👁⎘) with
+// inline stroke SVGs so the icon vocabulary matches the header system.
+const isRefined5b = () => {
+  if (typeof document === 'undefined') return false;
+  const dt = document.documentElement.getAttribute('data-theme');
+  return dt === '5b' || dt === 'light';
+};
+
+function ActionIcon({ kind, fallback, color = 'currentColor', size = 14 }) {
+  if (!isRefined5b()) return fallback;
+  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { verticalAlign: 'middle', display: 'inline-block' } };
+  switch (kind) {
+    case 'target': return <svg {...common}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill={color}/></svg>;
+    case 'eye': return <svg {...common}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
+    case 'duplicate': return <svg {...common}><rect x="9" y="9" width="13" height="13"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
+    default: return fallback;
+  }
+}
+
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: 3, reps: "8-12", load: "", rpe: "", tempo: "", rest: "90", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
 
@@ -1249,7 +1268,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       return <button onClick={e => { e.stopPropagation(); const next = { ...portalVis, [curKey]: true }; earlierKeys.forEach(k => { next[k] = false; }); setPortalVis(next); }}
                         title="Hide earlier blocks on portal; keep only current"
                         style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1,fontWeight:700,whiteSpace:'nowrap'}}>
-                        🎯
+                        <ActionIcon kind="target" fallback="🎯" color={C.ac} />
                       </button>;
                     })()}
                     {setPortalVis && (() => {
@@ -1260,8 +1279,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                       </button>;
                     })()}
-                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
-                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
+                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="eye" fallback="👁" color={C.tm} /></button>}
+                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></button>
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
@@ -1287,8 +1306,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                             <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                           </button>;
                         })()}
-                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>👁</button>}
-                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>⎘</button>
+                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}><ActionIcon kind="eye" fallback="👁" color={C.tm} /></button>}
+                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></button>
                         <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'var(--c-sf)',border:`1px solid rgba(255,71,87,0.502)`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>×</button>
                       </div>
                     ))}
@@ -1332,8 +1351,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                   </button>;
                 })()}
-                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>👁</button>}
-                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>⎘</button>
+                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="eye" fallback="👁" color={C.tm} /></button>}
+                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></button>
                 <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'var(--c-sf)',border:`1px solid rgba(255,71,87,0.502)`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>×</button>
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}

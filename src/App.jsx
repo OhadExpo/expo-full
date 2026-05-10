@@ -614,8 +614,18 @@ function AuthedApp() {
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
-      <header style={{background:C.sf,borderBottom:`1px solid ${C.bd}`,boxShadow:C.cardShadow,position:"sticky",top:0,zIndex:100}}>
-        <style>{`.hdr-scroll::-webkit-scrollbar{display:none}`}</style>
+      <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100}}>
+        <style>{`
+          .hdr-scroll::-webkit-scrollbar{display:none}
+          .nav-item-inactive{transition:color 120ms, background 120ms}
+          .nav-item-inactive:hover{color:#39BDFF !important;background:rgba(57,189,255,0.06) !important}
+          .hdr-icon-btn{transition:color 120ms, background 120ms}
+          .hdr-icon-btn:hover{color:#0E0F12 !important;background:rgba(57,189,255,0.08) !important}
+          [data-theme="5b"] .alert-card,[data-theme="light"] .alert-card{transition:box-shadow 200ms, transform 200ms}
+          [data-theme="5b"] .alert-card:hover,[data-theme="light"] .alert-card:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.30), 0 2px 4px rgba(0,0,0,0.10), 0 10px 24px rgba(0,0,0,0.14);transform:translateY(-1px)}
+          [data-theme="5b"] .alert-row,[data-theme="light"] .alert-row{transition:background 120ms}
+          [data-theme="5b"] .alert-row:hover,[data-theme="light"] .alert-row:hover{background:rgba(255,255,255,0.10)}
+        `}</style>
         <div className="hdr-scroll" style={{maxWidth:1200,margin:"0 auto",padding:"0 16px",display:"flex",alignItems:"center",height:56,overflowX:"auto",WebkitOverflowScrolling:"touch",msOverflowStyle:"none",scrollbarWidth:"none"}}>
           <EXPOMark height={36} style={{flex:"0 0 auto",marginRight:12}} />
           <nav style={{display:"flex",gap:2,alignItems:"center",flex:"1 1 auto",justifyContent:"center",minWidth:"max-content"}}>
@@ -623,14 +633,28 @@ function AuthedApp() {
                 count digit (fontSize:10) baseline-aligns with the label
                 (fontSize:11) instead of floating above it. See CoachDemo
                 line ~2755 for the full reasoning. */}
-            {tabs.map(t=>(<button key={t.key} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'baseline',background:'var(--c-sf)',border:`${tab===t.key?'1px':'0.25px'} solid ${tab===t.key?C.ac:'transparent'}`,color:tab===t.key?C.ac:C.tm,borderRadius:0,padding:"6px 10px",fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',whiteSpace:"nowrap"}}>
-              <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:tab===t.key?C.ac:C.td,fontFamily:FN}}>{t.count}</span>}</button>))}</nav>
-          <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
+            {tabs.map(t=>{
+              const isActive=tab===t.key;
+              // theme=5 (chosen design): inactive nav text is plain BLACK,
+              // active item gets a cyan outlined box + cyan text + a thin
+              // black stroke on the cyan text (so the cyan reads cleanly
+              // against the white header without washing out).
+              const dataTheme=(typeof document!=='undefined'?document.documentElement.getAttribute('data-theme'):null);
+              const isChosen=dataTheme==='5'||dataTheme==='5b'||dataTheme==='light';
+              const CYAN='#39BDFF';
+              const BLACK='#0E0F12';
+              const activeStyle=isChosen
+                ?{background:isActive?CYAN:'transparent',border:'0.25px solid transparent',color:isActive?'#FFFFFF':BLACK,boxShadow:isActive?'0 1px 2px rgba(0,0,0,0.10), 0 4px 12px rgba(57,189,255,0.28)':'none'}
+                :{background:'transparent',border:`${isActive?'1px':'0.25px'} solid ${isActive?C.ac:'transparent'}`,color:isActive?C.ac:C.tm};
+              const countColor=isChosen?(isActive?'rgba(255,255,255,0.78)':BLACK):(isActive?C.ac:C.td);
+              return(<button key={t.key} className={isChosen&&!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'baseline',borderRadius:0,padding:"6px 10px",fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
+                <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
+          <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12,paddingLeft:12,borderLeft:`1px solid ${C.cardBd}`}}>
             <ThemeToggle size={32} style={{marginRight:4}}/>
-            <button onClick={()=>navTo('smartImport')} title="Smart Import" style={{...baseBtn,background:tab==='smartImport'?C.acD:"transparent",color:tab==='smartImport'?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
-            <button onClick={handleExport} title="Export" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
-            <button onClick={()=>setShowPwModal(true)} title="Change password" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-            <button onClick={signOut} title="Sign out" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+            <button className="hdr-icon-btn" onClick={()=>navTo('smartImport')} title="Smart Import" style={{...baseBtn,background:tab==='smartImport'?C.acD:"transparent",color:tab==='smartImport'?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+            <button className="hdr-icon-btn" onClick={handleExport} title="Export" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+            <button className="hdr-icon-btn" onClick={()=>setShowPwModal(true)} title="Change password" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
+            <button className="hdr-icon-btn" onClick={signOut} title="Sign out" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:'var(--c-sf)',border:`1px solid ${importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn}`,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:0,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}

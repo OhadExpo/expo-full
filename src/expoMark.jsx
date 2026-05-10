@@ -20,9 +20,11 @@ import { useTheme } from './hooks/useTheme';
 export function EXPOMark({ height = 22, style = {}, theme: overrideTheme }) {
   const { theme: ctxTheme } = useTheme();
   const theme = overrideTheme || ctxTheme;
-  const src = theme === 'light'
-    ? '/logos/expo-logo-nav-light.png'
-    : '/logos/expo-logo-nav.png';
+  // Any non-'dark' theme renders on a light bg (light, draft 1-6, W),
+  // so use the bicolor (cyan ^ + black wordmark) light variant.
+  const src = theme === 'dark'
+    ? '/logos/expo-logo-nav.png'
+    : '/logos/expo-logo-nav-light.png';
   return (
     <img
       src={src}

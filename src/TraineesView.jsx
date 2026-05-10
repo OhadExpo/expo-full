@@ -126,7 +126,7 @@ const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>�
 
 function CardSection({ label, children, center = false }) {
   return (
-    <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid rgba(57,189,255,0.149)` }}>
+    <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.divider}` }}>
       <div style={{
         fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
@@ -449,7 +449,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
 
                   {!showArchived && (
                     <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
-                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 12px',borderRadius:0}}>👁 PREVIEW</button> : <span/>}
+                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 12px',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PREVIEW</button> : <span/>}
                       <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 12px',borderRadius:0}}>EDIT</button>
                     </div>
                   )}
@@ -496,7 +496,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
               </div>}
               {!showArchived && <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
-                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>👁 PREVIEW</button> : <span/>}
+                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PREVIEW</button> : <span/>}
                 <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>EDIT</button>
               </div>}
             </Card>);

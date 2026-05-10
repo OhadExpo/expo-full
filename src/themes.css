@@ -31,394 +31,334 @@
 }
 
 /*
- * Light theme — brand cyan as the page bg, white cards on top, black
- * for text/strokes/actions. Gray is the FOURTH tier: solid cool grays
- * for secondary surfaces (input fills, hover rows, sunken states),
- * mirroring how dark mode uses #0a0a0c against #000.
+ * Light theme — CHOSEN DESIGN (formerly draft theme=5b, baked in 2026-05-10).
+ * White header (so the bicolor EXPO ^ caret shows), light-gray page bg,
+ * BSG cyan #39BDFF cards, body BLACK, active accents BLACK, severity
+ * saturated. KPI big-numbers headline at 40px. Stroke SVG icons replace
+ * all dashboard/programs emoji. White Status badges + WhatsApp pills.
+ * All bgs are white, gray, or BSG cyan — never tinted.
  */
 [data-theme="light"] {
-  --c-bg: #39BDFF;                 /* brand cyan as the page bg */
-  --c-sf: #FFFFFF;                 /* card surface — pure white */
-  --c-sf2: #F4F6F9;                /* secondary fill — input bg, hover row */
-  --c-sf3: #E0E4EA;                /* sunken / pressed surface */
-  --c-bd: rgba(0,0,0,0.08);        /* primary border — soft hairline, almost invisible */
-  --c-bd2: rgba(0,0,0,0.16);       /* secondary divider */
-  --c-tx: #061425;                 /* body text — near-black, slightly cool */
-  --c-tm: rgba(6,20,37,0.62);      /* muted body */
-  --c-td: rgba(6,20,37,0.42);      /* faint helper */
-  --c-ac: #061425;                 /* action color — near-black */
-  --c-acH: #000000;                /* hover steps to pure black */
-  --c-acText: #061425;
+  --c-bg: #E2E2E5;
+  --c-sf: #39BDFF;
+  --c-sf2: #5FCDFF;
+  --c-sf3: #1FA0E2;
+  --c-headerBg: #FFFFFF;
+  --c-divider: rgba(0,0,0,0.18);
+  --c-badgeBg: #FFFFFF;
+  --c-kpiNumberSize: 40px;
+  --c-alertLabelSize: 13px;
+  --c-bd: rgba(0,0,0,0.10);
+  --c-bd2: rgba(0,0,0,0.20);
+  --c-tx: #0E0F12;
+  --c-tm: #1A2A3F;
+  --c-td: #3A5067;
+  --c-ac: #0E0F12;
+  --c-acH: #000000;
+  --c-acText: #0E0F12;
+  --c-acSurface: #0E0F12;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(0,0,0,0.22);
+  --c-rd: #B91C1C;
+  --c-rdD: rgba(185,28,28,0.18);
+  --c-gn: #15803D;
+  --c-gnD: rgba(21,128,61,0.18);
+  --c-or: #C2410C;
+  --c-orD: rgba(194,65,12,0.18);
+  --c-pu: #6D28D9;
+  --c-puD: rgba(109,40,217,0.18);
+  --c-scrim: rgba(0,0,0,0.45);
+  --c-shadow: rgba(0,0,0,0.10);
+  --c-cardShadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px rgba(0,0,0,0.08);
+}
+
+/* === SAVED — original white-cards light direction (pre-cyan-cards iteration).
+ * Pure white bg + pure white cards + cyan-30% hairline + zero shadow.
+ * Most reductive light variant; the hairline + severity stripe carry the design.
+ * Accessible via ?theme=W. Preserve as a fallback option. */
+[data-theme="W"] {
+  --c-bg: #FFFFFF;
+  --c-sf: #FFFFFF;
+  --c-sf2: #FAFAFA;
+  --c-sf3: #F4F4F5;
+  --c-bd: rgba(57,189,255,0.30);
+  --c-bd2: rgba(57,189,255,0.45);
+  --c-tx: #0E0F12;
+  --c-tm: #4B5563;
+  --c-td: #9CA3AF;
+  --c-ac: #39BDFF;
+  --c-acH: #0E8FD3;
+  --c-acText: #0A78B0;
   --c-acSurface: #39BDFF;
-  --c-acOnSurface: #061425;
-  --c-cardBd: rgba(0,0,0,0.05);    /* card border — practically invisible; shadow does the lift */
-  --c-rd: #C2185B;
-  --c-rdD: rgba(194,24,91,0.10);
-  --c-gn: #2E7D32;
-  --c-gnD: rgba(46,125,50,0.10);
-  --c-or: #E76F00;
-  --c-orD: rgba(231,111,0,0.10);
-  --c-pu: #6A1B9A;
-  --c-puD: rgba(106,27,154,0.10);
-  --c-scrim: rgba(6,20,37,0.45);
-  --c-shadow: rgba(6,20,37,0.10);
-  --c-cardShadow: 0 1px 2px rgba(6,20,37,0.04), 0 8px 24px rgba(6,20,37,0.10);
+  --c-acOnSurface: #0E0F12;
+  --c-cardBd: rgba(57,189,255,0.30);
+  --c-rd: #DC2626;
+  --c-rdD: rgba(220,38,38,0.10);
+  --c-gn: #16A34A;
+  --c-gnD: rgba(22,163,74,0.10);
+  --c-or: #EA580C;
+  --c-orD: rgba(234,88,12,0.10);
+  --c-pu: #7C3AED;
+  --c-puD: rgba(124,58,237,0.10);
+  --c-scrim: rgba(0,0,0,0.45);
+  --c-shadow: rgba(0,0,0,0);
+  --c-cardShadow: none;
 }
 
 /* ========== DRAFT VARIANTS (preview only, ?theme= URL switch) ==========
- * Eight light-mode variants — every one preserves the EXPO dark-mode
- * UI: same Card layout, same cyan-30% hairline border, same accent
- * positions, same severity colors, same JetBrains Mono numbers, same
- * sharp corners. The ONLY axis that varies is the lightness/tint of
- * the page bg and the card surface relationship. Cyan = BSG #39BDFF
- * exactly. All bgs are white, gray, or cyan.
+ * Six light-mode variants — light grey page, BSG #39BDFF cyan cards.
+ * Hairline = black at low alpha on black-text variants, white at low alpha
+ * on white-text variants (cyan-30% would be invisible on cyan cards).
  *
- *   ?theme=1 — pure white bg + pure white cards
- *   ?theme=2 — pure white bg + cards a hair darker
- *   ?theme=3 — soft gray bg + white cards (lift via lightness)
- *   ?theme=4 — cool blue-gray bg + white cards
- *   ?theme=5 — cyan-whisper bg + white cards
- *   ?theme=6 — pale cyan bg + white cards
- *   ?theme=7 — vivid BSG cyan bg + white cards
- *   ?theme=8 — mid gray bg + white cards (cards LIFT clearly)
- *
- * Common to all 8 (the EXPO signature):
- *   --c-cardBd: rgba(57,189,255,0.30)   — cyan-30% hairline (same as dark)
- *   --c-ac: #39BDFF                     — brand accent for big numbers + DASHBOARD pill
- *   --c-tx near-black                   — body text
- *   sharp corners, JetBrains Mono numbers
+ *   ?theme=1 — F4 / cyan / BLACK   softest gray bg, black text on cyan cards
+ *   ?theme=2 — F4 / cyan / WHITE   softest gray bg, white text on cyan cards
+ *   ?theme=3 — E5 / cyan / BLACK   light gray bg, black text on cyan cards
+ *   ?theme=4 — E5 / cyan / WHITE   light gray bg, white text on cyan cards
+ *   ?theme=5 — DD / cyan / MIXED   mid-light gray bg, white headings + black body
+ *   ?theme=6 — PERFECT             synthesis of #1 + #2 + #5: clean gray bg,
+ *                                  mixed text, saturated severity, sharper border
+ */
+
+/* === Five "light grey bg + cyan cards" variants ===
+ * Common to all 5:
+ *   sf = #39BDFF              cards are full BSG cyan
+ *   ac = action color is BLACK on cyan (cyan-on-cyan invisible)
+ *   cardBd = white-30% or black-15% (cyan hairline invisible on cyan)
+ *   severity stripes (rd/gn/or/pu) stay vivid; readable on cyan
  */
 
 [data-theme="1"] {
-  /* Pure white — cards same color as bg, defined entirely by cyan-30% hairline + tiny shadow. Most literal mirror of dark. */
-  --c-bg: #FFFFFF;
-  --c-sf: #FFFFFF;
-  --c-sf2: #FAFAFA;
-  --c-sf3: #F4F4F5;
-  --c-bd: rgba(57,189,255,0.30);
-  --c-bd2: rgba(57,189,255,0.45);
+  /* F4 / cyan / BLACK — softest gray bg, black text on cyan cards. */
+  --c-bg: #F4F4F5;
+  --c-sf: #39BDFF;
+  --c-sf2: #5FCDFF;
+  --c-sf3: #1FA0E2;
+  --c-bd: rgba(0,0,0,0.18);
+  --c-bd2: rgba(0,0,0,0.32);
   --c-tx: #0E0F12;
-  --c-tm: #4B5563;
-  --c-td: #9CA3AF;
-  --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: rgba(57,189,255,0.30);
-  --c-rd: #DC2626;
-  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;
-  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;
-  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;
-  --c-puD: rgba(124,58,237,0.10);
+  --c-tm: #1A2A3F;
+  --c-td: #3A5067;
+  --c-ac: #0E0F12;
+  --c-acH: #000000;
+  --c-acText: #0E0F12;
+  --c-acSurface: #0E0F12;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(0,0,0,0.16);
+  --c-rd: #B91C1C;
+  --c-rdD: rgba(185,28,28,0.16);
+  --c-gn: #15803D;
+  --c-gnD: rgba(21,128,61,0.16);
+  --c-or: #C2410C;
+  --c-orD: rgba(194,65,12,0.16);
+  --c-pu: #6D28D9;
+  --c-puD: rgba(109,40,217,0.16);
   --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(0,0,0,0.06);
-  --c-cardShadow: 0 1px 2px rgba(0,0,0,0.04);
+  --c-shadow: rgba(0,0,0,0.10);
+  --c-cardShadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.08);
 }
 
 [data-theme="2"] {
-  /* Pure white bg, cards a hair darker (#FAFAFA). Inverted dark-mode cue (cards darker, not lighter). */
-  --c-bg: #FFFFFF;
-  --c-sf: #FAFAFA;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: rgba(57,189,255,0.30);
-  --c-bd2: rgba(57,189,255,0.45);
-  --c-tx: #0E0F12;
-  --c-tm: #4B5563;
-  --c-td: #9CA3AF;
-  --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
+  /* F4 / cyan / WHITE — softest gray bg, white text on cyan cards. */
+  --c-bg: #F4F4F5;
+  --c-sf: #39BDFF;
+  --c-sf2: #1FA0E2;
+  --c-sf3: #0E8FD3;
+  --c-bd: rgba(255,255,255,0.32);
+  --c-bd2: rgba(255,255,255,0.50);
+  --c-tx: #FFFFFF;
+  --c-tm: rgba(255,255,255,0.78);
+  --c-td: rgba(255,255,255,0.55);
+  --c-ac: #FFFFFF;
+  --c-acH: #FFFFFF;
+  --c-acText: #FFFFFF;
+  --c-acSurface: #FFFFFF;
   --c-acOnSurface: #0E0F12;
-  --c-cardBd: rgba(57,189,255,0.30);
-  --c-rd: #DC2626;
-  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;
-  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;
-  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;
-  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(0,0,0,0.06);
-  --c-cardShadow: 0 1px 2px rgba(0,0,0,0.03);
+  --c-cardBd: rgba(255,255,255,0.40);
+  --c-rd: #FFE4E1;
+  --c-rdD: rgba(220,38,38,0.55);
+  --c-gn: #DCFCE7;
+  --c-gnD: rgba(22,163,74,0.55);
+  --c-or: #FFEDD5;
+  --c-orD: rgba(234,88,12,0.55);
+  --c-pu: #EDE9FE;
+  --c-puD: rgba(124,58,237,0.55);
+  --c-scrim: rgba(0,26,44,0.45);
+  --c-shadow: rgba(0,26,44,0.12);
+  --c-cardShadow: 0 1px 2px rgba(0,26,44,0.08), 0 4px 12px rgba(0,26,44,0.10);
 }
 
 [data-theme="3"] {
-  /* Soft gray bg + white cards. Cards LIFT off page via brightness (mirrors dark mode lift). */
-  --c-bg: #F4F4F5;
-  --c-sf: #FFFFFF;
-  --c-sf2: #FAFAFA;
-  --c-sf3: #F4F4F5;
-  --c-bd: rgba(57,189,255,0.30);
-  --c-bd2: rgba(57,189,255,0.45);
+  /* E5 / cyan / BLACK — light gray bg, black text on cyan cards. */
+  --c-bg: #E5E7EB;
+  --c-sf: #39BDFF;
+  --c-sf2: #5FCDFF;
+  --c-sf3: #1FA0E2;
+  --c-bd: rgba(0,0,0,0.18);
+  --c-bd2: rgba(0,0,0,0.32);
   --c-tx: #0E0F12;
-  --c-tm: #4B5563;
-  --c-td: #9CA3AF;
-  --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: rgba(57,189,255,0.30);
-  --c-rd: #DC2626;
-  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;
-  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;
-  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;
-  --c-puD: rgba(124,58,237,0.10);
+  --c-tm: #1A2A3F;
+  --c-td: #3A5067;
+  --c-ac: #0E0F12;
+  --c-acH: #000000;
+  --c-acText: #0E0F12;
+  --c-acSurface: #0E0F12;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(0,0,0,0.16);
+  --c-rd: #B91C1C;
+  --c-rdD: rgba(185,28,28,0.16);
+  --c-gn: #15803D;
+  --c-gnD: rgba(21,128,61,0.16);
+  --c-or: #C2410C;
+  --c-orD: rgba(194,65,12,0.16);
+  --c-pu: #6D28D9;
+  --c-puD: rgba(109,40,217,0.16);
   --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(0,0,0,0.06);
-  --c-cardShadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+  --c-shadow: rgba(0,0,0,0.12);
+  --c-cardShadow: 0 2px 4px rgba(0,0,0,0.08), 0 8px 20px rgba(0,0,0,0.10);
 }
 
 [data-theme="4"] {
-  /* Cool blue-gray bg + white cards. Bg picks up a subtle cool tint matching the brand cyan family. */
-  --c-bg: #F0F4F8;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F8FB;
-  --c-sf3: #E5EBF2;
-  --c-bd: rgba(57,189,255,0.30);
-  --c-bd2: rgba(57,189,255,0.45);
-  --c-tx: #0E0F12;
-  --c-tm: #4B5563;
-  --c-td: #9CA3AF;
-  --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
+  /* E5 / cyan / WHITE — light gray bg, white text on cyan cards. */
+  --c-bg: #E5E7EB;
+  --c-sf: #39BDFF;
+  --c-sf2: #1FA0E2;
+  --c-sf3: #0E8FD3;
+  --c-bd: rgba(255,255,255,0.32);
+  --c-bd2: rgba(255,255,255,0.50);
+  --c-tx: #FFFFFF;
+  --c-tm: rgba(255,255,255,0.78);
+  --c-td: rgba(255,255,255,0.55);
+  --c-ac: #FFFFFF;
+  --c-acH: #FFFFFF;
+  --c-acText: #FFFFFF;
+  --c-acSurface: #FFFFFF;
   --c-acOnSurface: #0E0F12;
-  --c-cardBd: rgba(57,189,255,0.30);
-  --c-rd: #DC2626;
-  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;
-  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;
-  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;
-  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(0,0,0,0.06);
-  --c-cardShadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+  --c-cardBd: rgba(255,255,255,0.40);
+  --c-rd: #FFE4E1;
+  --c-rdD: rgba(220,38,38,0.55);
+  --c-gn: #DCFCE7;
+  --c-gnD: rgba(22,163,74,0.55);
+  --c-or: #FFEDD5;
+  --c-orD: rgba(234,88,12,0.55);
+  --c-pu: #EDE9FE;
+  --c-puD: rgba(124,58,237,0.55);
+  --c-scrim: rgba(0,26,44,0.45);
+  --c-shadow: rgba(0,26,44,0.12);
+  --c-cardShadow: 0 2px 4px rgba(0,26,44,0.08), 0 8px 20px rgba(0,26,44,0.10);
 }
 
 [data-theme="5"] {
-  /* Cyan-whisper bg + white cards. Bg is barely-visible cyan tint. Reads as gray-cyan family, brand whispers. */
-  --c-bg: #F4FBFF;
-  --c-sf: #FFFFFF;
-  --c-sf2: #ECF7FF;
-  --c-sf3: #DBF0FF;
-  --c-bd: rgba(57,189,255,0.30);
-  --c-bd2: rgba(57,189,255,0.45);
+  /* CHOSEN — WHITE header (so the bicolor EXPO ^ caret shows), light gray
+     page bg, cyan cards, body BLACK, accents BLACK (active-nav outline +
+     big numbers all in #0E0F12). Severity stripes saturated. */
+  --c-bg: #E2E2E5;
+  --c-sf: #39BDFF;
+  --c-sf2: #5FCDFF;
+  --c-sf3: #1FA0E2;
+  --c-headerBg: #FFFFFF;
+  --c-divider: rgba(0,0,0,0.18);
+  --c-badgeBg: #FFFFFF;
+  --c-kpiNumberSize: 30px;
+  --c-alertLabelSize: 11px;
+  --c-bd: rgba(0,0,0,0.10);
+  --c-bd2: rgba(0,0,0,0.20);
   --c-tx: #0E0F12;
-  --c-tm: #4B5563;
-  --c-td: #9CA3AF;
-  --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: rgba(57,189,255,0.30);
-  --c-rd: #DC2626;
-  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;
-  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;
-  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;
-  --c-puD: rgba(124,58,237,0.10);
+  --c-tm: #1A2A3F;
+  --c-td: #3A5067;
+  --c-ac: #0E0F12;
+  --c-acH: #000000;
+  --c-acText: #0E0F12;
+  --c-acSurface: #0E0F12;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(0,0,0,0.22);
+  --c-rd: #B91C1C;
+  --c-rdD: rgba(185,28,28,0.18);
+  --c-gn: #15803D;
+  --c-gnD: rgba(21,128,61,0.18);
+  --c-or: #C2410C;
+  --c-orD: rgba(194,65,12,0.18);
+  --c-pu: #6D28D9;
+  --c-puD: rgba(109,40,217,0.18);
   --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(0,0,0,0.06);
-  --c-cardShadow: 0 1px 2px rgba(57,189,255,0.10), 0 4px 12px rgba(57,189,255,0.08);
+  --c-shadow: rgba(0,0,0,0.10);
+  --c-cardShadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px rgba(0,0,0,0.08);
+}
+
+[data-theme="5b"] {
+  /* 5b — refinement candidate built on theme=5. Identical except for
+     dashboard-only refinements added incrementally. Each refinement is a
+     new CSS variable so the change is gated and reversible. */
+  --c-bg: #E2E2E5;
+  --c-sf: #39BDFF;
+  --c-sf2: #5FCDFF;
+  --c-sf3: #1FA0E2;
+  --c-headerBg: #FFFFFF;
+  --c-divider: rgba(0,0,0,0.18);
+  --c-badgeBg: #FFFFFF;
+  --c-kpiNumberSize: 40px;  /* refinement: bump KPI big-number from 30px → 40px so they read as the dashboard headline */
+  --c-alertLabelSize: 13px;  /* refinement: bump alert-section labels (Overdue, Dormant, etc.) so urgency reads instantly */
+  --c-bd: rgba(0,0,0,0.10);
+  --c-bd2: rgba(0,0,0,0.20);
+  --c-tx: #0E0F12;
+  --c-tm: #1A2A3F;
+  --c-td: #3A5067;
+  --c-ac: #0E0F12;
+  --c-acH: #000000;
+  --c-acText: #0E0F12;
+  --c-acSurface: #0E0F12;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(0,0,0,0.22);
+  --c-rd: #B91C1C;
+  --c-rdD: rgba(185,28,28,0.18);
+  --c-gn: #15803D;
+  --c-gnD: rgba(21,128,61,0.18);
+  --c-or: #C2410C;
+  --c-orD: rgba(194,65,12,0.18);
+  --c-pu: #6D28D9;
+  --c-puD: rgba(109,40,217,0.18);
+  --c-scrim: rgba(0,0,0,0.45);
+  --c-shadow: rgba(0,0,0,0.10);
+  --c-cardShadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px rgba(0,0,0,0.08);
 }
 
 [data-theme="6"] {
-  /* Pale cyan bg + white cards. Bg visibly carries the brand. Same hairline. Reads as light-mode-with-the-cyan-kept. */
-  --c-bg: #DCF2FF;
-  --c-sf: #FFFFFF;
-  --c-sf2: #ECF7FF;
-  --c-sf3: #BBE5FF;
-  --c-bd: rgba(57,189,255,0.30);
-  --c-bd2: rgba(57,189,255,0.45);
-  --c-tx: #0E0F12;
-  --c-tm: #4B5563;
-  --c-td: #9CA3AF;
-  --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: rgba(57,189,255,0.30);
-  --c-rd: #DC2626;
-  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;
-  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;
-  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;
-  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(57,189,255,0.10);
-  --c-cardShadow: 0 1px 2px rgba(57,189,255,0.10), 0 4px 12px rgba(57,189,255,0.12);
-}
-
-[data-theme="7"] {
-  /* Vivid BSG cyan bg + white cards. Brand-loud canvas. Cards lift via shadow alone; cyan-30% hairline still draws the EXPO mark. */
-  --c-bg: #39BDFF;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F8FB;
-  --c-sf3: #E0E4EA;
-  --c-bd: rgba(57,189,255,0.30);
-  --c-bd2: rgba(57,189,255,0.45);
-  --c-tx: #0E0F12;
-  --c-tm: #4B5563;
-  --c-td: #9CA3AF;
-  --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
-  --c-acOnSurface: #0E0F12;
-  --c-cardBd: rgba(57,189,255,0.30);
-  --c-rd: #DC2626;
-  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;
-  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;
-  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;
-  --c-puD: rgba(124,58,237,0.10);
-  --c-scrim: rgba(0,26,44,0.45);
-  --c-shadow: rgba(0,26,44,0.10);
-  --c-cardShadow: 0 1px 2px rgba(0,26,44,0.08), 0 8px 24px rgba(0,26,44,0.10);
-}
-
-[data-theme="8"] {
-  /* Mid gray bg + white cards. Cards LIFT clearly (most pronounced surface contrast). Reads office/clinical. */
+  /* PERFECT — synthesis of #1 + #2 + #5.
+     • bg #E5E7EB (cleaner than DD, more presence than F4)
+     • body text BLACK for grid/data legibility
+     • DASHBOARD pill + big numbers WHITE (drama only where it earns)
+     • severity stripes saturated (rd/gn/or/pu at full strength)
+     • card hairline black-22% (sharper architectural presence than #5's 16%)
+     • softer body shadow + subtle inner top-edge highlight on card */
   --c-bg: #E5E7EB;
-  --c-sf: #FFFFFF;
-  --c-sf2: #F4F4F5;
-  --c-sf3: #E4E4E7;
-  --c-bd: rgba(57,189,255,0.30);
-  --c-bd2: rgba(57,189,255,0.45);
+  --c-sf: #39BDFF;
+  --c-sf2: #5FCDFF;
+  --c-sf3: #1FA0E2;
+  --c-bd: rgba(0,0,0,0.20);
+  --c-bd2: rgba(0,0,0,0.34);
   --c-tx: #0E0F12;
-  --c-tm: #4B5563;
-  --c-td: #9CA3AF;
-  --c-ac: #39BDFF;
-  --c-acH: #0E8FD3;
-  --c-acText: #0A78B0;
-  --c-acSurface: #39BDFF;
+  --c-tm: #1A2A3F;
+  --c-td: #3A5067;
+  --c-ac: #FFFFFF;
+  --c-acH: #FFFFFF;
+  --c-acText: #FFFFFF;
+  --c-acSurface: #FFFFFF;
   --c-acOnSurface: #0E0F12;
-  --c-cardBd: rgba(57,189,255,0.30);
-  --c-rd: #DC2626;
-  --c-rdD: rgba(220,38,38,0.10);
-  --c-gn: #16A34A;
-  --c-gnD: rgba(22,163,74,0.10);
-  --c-or: #EA580C;
-  --c-orD: rgba(234,88,12,0.10);
-  --c-pu: #7C3AED;
-  --c-puD: rgba(124,58,237,0.10);
+  --c-cardBd: rgba(0,0,0,0.22);
+  --c-rd: #B91C1C;
+  --c-rdD: rgba(185,28,28,0.18);
+  --c-gn: #15803D;
+  --c-gnD: rgba(21,128,61,0.18);
+  --c-or: #C2410C;
+  --c-orD: rgba(194,65,12,0.18);
+  --c-pu: #6D28D9;
+  --c-puD: rgba(109,40,217,0.18);
   --c-scrim: rgba(0,0,0,0.45);
   --c-shadow: rgba(0,0,0,0.10);
-  --c-cardShadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.06);
+  --c-cardShadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px rgba(0,0,0,0.08);
 }
 /* ========== /DRAFT VARIANTS ========== */
 
 html, body {
   background: var(--c-bg);
-  color: var(--c-tx);
-}
-
-/*
- * Keyboard-focus ring: subtle cyan outline on tab-navigation only.
- * Mouse-clicks don't trigger :focus-visible, so click-to-focus never paints
- * a ring — keyboard users get the affordance, mouse users get the clean look.
- * Applied globally so every input/button/select/textarea throughout the app
- * inherits the same ring without having to wire it per-component.
- */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-a:focus-visible,
-[role="button"]:focus-visible {
-  outline: 2px solid var(--c-ac) !important;
-  outline-offset: 1px !important;
-}
-
-/*
- * Generic interactive-card hover lift. Any element that opts into the
- * `data-hover-lift` attribute gets a subtle border-darken + tiny shadow
- * grow on hover. We don't apply this to all .card elements automatically
- * because most existing cards already manage their own hover state inline.
- */
-[data-hover-lift]:hover {
-  border-color: var(--c-ac) !important;
-  box-shadow: var(--c-cardShadow) !important;
-}
-
-/*
- * Smooth transitions on every interactive element. Inline-style changes
- * (e.g. onMouseEnter setting borderColor) are instant by default — adding
- * a transition makes them feel premium. Targeted at clickable elements
- * only so non-interactive content doesn't get accidental motion.
- */
-button, a, input, select, textarea, [role="button"], [data-hover-lift] {
-  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-/*
- * Input/select/textarea hover + focus states. The codebase sets
- * `outline: none` inline on most inputs, so the default browser focus
- * ring never paints. These rules restore visible feedback:
- *
- *  - HOVER: border darkens to acH (slightly stronger cyan than default)
- *  - FOCUS (mouse OR keyboard): border becomes solid brand cyan + a
- *    soft 3px cyan glow ring around the input. The `!important` is
- *    needed because every input inlines its own border color, which
- *    would otherwise override the rule.
- *
- * Buttons get a parallel rule that lifts/brightens on hover.
- */
-input:hover:not(:disabled),
-select:hover:not(:disabled),
-textarea:hover:not(:disabled) {
-  border-color: var(--c-acH) !important;
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none !important;
-  border-color: var(--c-ac) !important;
-  box-shadow: 0 0 0 3px rgba(57,189,255,0.18) !important;
-}
-
-/* Buttons: subtle background tint on hover (so the cyan-bordered ghost
-   buttons get a soft fill instead of feeling static). The !important is
-   required because most buttons inline their background. The 6% alpha
-   keeps the tint subtle enough to layer on red/orange-bordered buttons
-   without looking discordant. */
-button:hover:not(:disabled),
-a[role="button"]:hover:not(:disabled) {
-  background-color: rgba(57,189,255,0.08) !important;
-}
-button:active:not(:disabled),
-a[role="button"]:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-/*
- * Selection color: cyan-tinted highlight matching the brand. Keeps text
- * readable on the highlight (var(--c-tx) flips with theme).
- */
-::selection {
-  background: rgba(57,189,255,0.30);
   color: var(--c-tx);
 }

@@ -16,6 +16,11 @@ export const C = {
   sf: "var(--c-sf)",
   sf2: "var(--c-sf2)",
   sf3: "var(--c-sf3)",
+  headerBg: "var(--c-headerBg, var(--c-sf))",  // sticky header bg — falls back to card surface
+  divider: "var(--c-divider, rgba(57,189,255,0.149))",  // intra-card section hairline; falls back to cyan-15%
+  badgeBg: "var(--c-badgeBg, var(--c-sf))",  // badge fill; falls back to card surface
+  kpiNumberSize: "var(--c-kpiNumberSize, 30px)",  // dashboard KPI tile big-number size; 30px in theme=5, 40px in 5b
+  alertLabelSize: "var(--c-alertLabelSize, 11px)",  // dashboard alert-section header size; 11px in theme=5, 13px in 5b
   // Borders
   bd: "var(--c-bd)",
   bd2: "var(--c-bd2)",

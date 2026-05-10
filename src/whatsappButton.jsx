@@ -12,12 +12,15 @@ export function normalizePhoneIL(raw) {
   return digits;
 }
 
-const WA_GREEN = '#25d366';
+// Darker brand green for better contrast on cyan cards in light mode.
+// #25d366 (WhatsApp brand light) washes out on #39BDFF; #128C7E is
+// WhatsApp's own secondary darker green and reads clearly here.
+const WA_GREEN = '#128C7E';
 
 // Round green pill with the WhatsApp logo. Click → wa.me with prefilled
 // Hebrew check-in. `days` (optional) becomes part of the dormant copy; when
 // omitted, sends a generic catch-up. Returns null when no usable phone.
-export function WhatsAppCheckInButton({ name, phone, days, size = 14, padding = '4px 6px' }) {
+export function WhatsAppCheckInButton({ name, phone, days, size = 16, padding = '1px 2px' }) {
   const num = normalizePhoneIL(phone);
   if (!num) return null;
   const handleClick = (e) => {
@@ -34,7 +37,7 @@ export function WhatsAppCheckInButton({ name, phone, days, size = 14, padding = 
     <button onClick={handleClick}
       title={`Send WhatsApp check-in to ${name || ''}`}
       style={{
-        background: 'var(--c-sf)', border: `1px solid ${WA_GREEN}`, color: WA_GREEN,
+        background: 'var(--c-badgeBg, var(--c-sf))', border: `1px solid ${WA_GREEN}`, color: WA_GREEN,
         borderRadius: 0, padding, fontFamily: FN, fontSize: 10,
         fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

@@ -74,7 +74,7 @@ export const TextArea = ({ label, ...props }) => (
   </div>
 );
 export const Badge = ({ children, color = C.ac, style: s }) =>
-  <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: 'var(--c-sf)', border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
+  <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
 
 // Standard EXPO section heading. Used everywhere we'd otherwise hand-roll
 // `<div style={{fontSize:9, fontFamily:FN, color:C.tm, letterSpacing:'0.18em', fontWeight:700, textTransform:'uppercase'}}>...</div>`
@@ -100,7 +100,7 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
 export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) => (
   <div onClick={onClick} style={{
     background: 'var(--c-sf)',
-    border: 'none',
+    border: `1px solid ${C.cardBd}`,
     borderRadius: 0,
     padding: 20,
     cursor: onClick ? "pointer" : "default",
