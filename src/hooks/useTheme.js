@@ -64,8 +64,12 @@ export function useTheme() {
 
   // On mount: if Supabase has a non-null user_metadata.theme_pref that
   // differs from the current value, adopt it (cross-device sync on login).
+  // Skip when a `?theme=` draft preview is active so it doesn't clobber it.
   useEffect(() => {
     let cancelled = false;
+    let draftActive = false;
+    try { draftActive = !!sessionStorage.getItem('expo-theme-preview'); } catch (e) {}
+    if (draftActive) return;
     supabase.auth.getUser().then(({ data }) => {
       if (cancelled || !data || !data.user) return;
       const remote = data.user.user_metadata && data.user.user_metadata.theme_pref;
