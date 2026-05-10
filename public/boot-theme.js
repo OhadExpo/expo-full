@@ -5,10 +5,10 @@
     // ?theme=soft / ?theme=accent / ?theme=cream — temporary preview
     // variants. Auto-persist so the auth redirect doesn't drop them.
     var qs = (window.location.search || '');
-    var draftMatch = qs.match(/theme=([N-U])/i);
+    var draftMatch = qs.match(/theme=([1-8])/i);
     var ssDraft = null;
     try { ssDraft = sessionStorage.getItem('expo-theme-preview'); } catch (e) {}
-    var draft = draftMatch ? draftMatch[1].toUpperCase() : (['N','O','P','Q','R','S','T','U'].indexOf(ssDraft) !== -1 ? ssDraft : null);
+    var draft = draftMatch ? draftMatch[1] : (['1','2','3','4','5','6','7','8'].indexOf(ssDraft) !== -1 ? ssDraft : null);
     if (draft) {
       try { sessionStorage.setItem('expo-theme-preview', draft); } catch (e) {}
       document.documentElement.setAttribute('data-theme', draft);
