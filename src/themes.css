@@ -185,6 +185,149 @@
   --c-shadow: rgba(0,0,0,0);
   --c-cardShadow: 0 0 0 2px #000000;
 }
+
+[data-theme="D"] {
+  /* CYAN-RING — pure white bg, white cards, every card surrounded by a
+     hard 2px CYAN ring (#39BDFF). Brand owns the structure, not the
+     surface. Reads like a tech-spec sheet. */
+  --c-bg: #FFFFFF;
+  --c-sf: #FFFFFF;
+  --c-sf2: #FFFFFF;
+  --c-sf3: #F4F4F5;
+  --c-bd: #39BDFF;
+  --c-bd2: #0A78B0;
+  --c-tx: #0E0F12;
+  --c-tm: #1F2937;
+  --c-td: #6B7280;
+  --c-ac: #0A78B0;
+  --c-acH: #0E0F12;
+  --c-acText: #0A78B0;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #0E0F12;
+  --c-cardBd: #39BDFF;
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
+  --c-scrim: rgba(0,0,0,0.55);
+  --c-shadow: rgba(0,0,0,0);
+  --c-cardShadow: 0 0 0 2px #39BDFF;
+}
+
+[data-theme="E"] {
+  /* CYAN GLOW — light gray canvas (#E4E4E7), white cards, no border.
+     Each card casts a soft CYAN halo shadow so cards appear to glow
+     in the brand color. Reads like a futuristic ops console. */
+  --c-bg: #E4E4E7;
+  --c-sf: #FFFFFF;
+  --c-sf2: #F4F4F5;
+  --c-sf3: #E4E4E7;
+  --c-bd: #D4D4D8;
+  --c-bd2: #A1A1AA;
+  --c-tx: #0E0F12;
+  --c-tm: #3F3F46;
+  --c-td: #71717A;
+  --c-ac: #39BDFF;
+  --c-acH: #0E0F12;
+  --c-acText: #0A78B0;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #0E0F12;
+  --c-cardBd: #D4D4D8;
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
+  --c-scrim: rgba(0,0,0,0.55);
+  --c-shadow: rgba(57,189,255,0.20);
+  --c-cardShadow: 0 0 0 1px rgba(57,189,255,0.20), 0 4px 16px rgba(57,189,255,0.30), 0 12px 40px rgba(57,189,255,0.18);
+}
+
+[data-theme="F"] {
+  /* VIVID BSG — full BSG #39BDFF as the canvas. White cards float
+     on loud brand color, capped with hard 2px BLACK borders so they
+     read clearly against cyan. This is the maximum brand-saturation
+     option (B used pale cyan; F uses brand-exact cyan). */
+  --c-bg: #39BDFF;
+  --c-sf: #FFFFFF;
+  --c-sf2: #F4F4F5;
+  --c-sf3: #E4E4E7;
+  --c-bd: #000000;
+  --c-bd2: #000000;
+  --c-tx: #0E0F12;
+  --c-tm: #1F2937;
+  --c-td: #4B5563;
+  --c-ac: #0E0F12;
+  --c-acH: #000000;
+  --c-acText: #0E0F12;
+  --c-acSurface: #0E0F12;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: #000000;
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
+  --c-scrim: rgba(0,0,0,0.55);
+  --c-shadow: rgba(0,0,0,0.20);
+  --c-cardShadow: 0 0 0 2px #000000;
+}
+
+[data-theme="G"] {
+  /* LEFT STRIPE — pure white bg, white cards, each card capped with
+     a thick 6px CYAN LEFT stripe (drawn via inset shadow). Brand
+     reads as a structural mark on every card. Different from H's
+     top-stripe by orientation. */
+  --c-bg: #FFFFFF;
+  --c-sf: #FFFFFF;
+  --c-sf2: #F4F4F5;
+  --c-sf3: #E4E4E7;
+  --c-bd: #E4E4E7;
+  --c-bd2: #D4D4D8;
+  --c-tx: #0E0F12;
+  --c-tm: #1F2937;
+  --c-td: #6B7280;
+  --c-ac: #39BDFF;
+  --c-acH: #0E0F12;
+  --c-acText: #0A78B0;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #0E0F12;
+  --c-cardBd: #39BDFF;
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
+  --c-scrim: rgba(0,0,0,0.55);
+  --c-shadow: rgba(0,0,0,0.06);
+  --c-cardShadow: inset 6px 0 0 0 #39BDFF, 0 1px 3px rgba(0,0,0,0.06), 0 8px 20px rgba(0,0,0,0.05);
+}
+
+[data-theme="H"] {
+  /* TOP-STRIPE — gray canvas (#F4F4F5), white cards each capped with
+     a 4px CYAN top stripe (drawn via inset shadow). Brand whispers
+     through structural accents instead of fills. Looks like Stripe /
+     Linear admin panels. */
+  --c-bg: #F4F4F5;
+  --c-sf: #FFFFFF;
+  --c-sf2: #F4F4F5;
+  --c-sf3: #E4E4E7;
+  --c-bd: #E4E4E7;
+  --c-bd2: #D4D4D8;
+  --c-tx: #0E0F12;
+  --c-tm: #1F2937;
+  --c-td: #6B7280;
+  --c-ac: #0A78B0;
+  --c-acH: #001A2C;
+  --c-acText: #0A78B0;
+  --c-acSurface: #39BDFF;
+  --c-acOnSurface: #0E0F12;
+  --c-cardBd: #39BDFF;
+  --c-rd: #DC2626;                  --c-rdD: rgba(220,38,38,0.10);
+  --c-gn: #16A34A;                  --c-gnD: rgba(22,163,74,0.10);
+  --c-or: #EA580C;                  --c-orD: rgba(234,88,12,0.10);
+  --c-pu: #7C3AED;                  --c-puD: rgba(124,58,237,0.10);
+  --c-scrim: rgba(0,0,0,0.55);
+  --c-shadow: rgba(0,0,0,0.06);
+  --c-cardShadow: inset 0 4px 0 0 #39BDFF, 0 1px 3px rgba(0,0,0,0.06), 0 8px 20px rgba(0,0,0,0.05);
+}
 /* ========== /DRAFT VARIANTS ========== */
 
 html, body {
