@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { C, FN, FB, uid, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Modal, ConfirmDialog, EmptyState, baseInput } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Modal, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
 const defaultExercise = () => ({ id: uid(), title: "", category: "", resistanceType: "", bodyPosition: "", movementType: "", laterality: "", movementPattern: "", primaryMuscles: "", secondaryMuscles: "", primaryJoints: "", jointMovements: "", videoLink: "", cues: "", notes: "" });
 export default function ExercisesView({ exercises, setExercises }) {
   const [showForm, setShowForm] = useState(false);
@@ -44,13 +44,23 @@ export default function ExercisesView({ exercises, setExercises }) {
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px' }} /></div>
         <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
-      <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-            Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}
+      <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: isRefined5b() ? 0 : 10, marginBottom: 12, overflow: 'hidden' }}>
+        {isRefined5b() ? (
+          <div style={{ background: 'var(--c-sf)', padding: '8px 14px', borderBottom: '1px solid rgba(0,0,0,0.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Filters {activeFilterCount > 0 && <span style={{ marginLeft: 6, opacity: 0.85 }}>· {activeFilterCount} active</span>}
+            </div>
+            {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF', cursor: 'pointer', fontSize: 9, fontFamily: FN, fontWeight: 700, letterSpacing: '0.10em', padding: '2px 8px', borderRadius: 0 }}>CLEAR ALL</button>}
           </div>
-          {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>}
-        </div>
+        ) : (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
+              Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}
+            </div>
+            {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>}
+          </div>
+        )}
+        <div style={{ padding: isRefined5b() ? 10 : 0 }}>
         <div className="ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {[
             ['category', 'Category', CATEGORIES],
@@ -68,17 +78,20 @@ export default function ExercisesView({ exercises, setExercises }) {
             </div>
           ))}
         </div>
+        </div>
       </div>
       <div style={{ fontSize: 11, color: C.tm, marginBottom: 12, fontFamily: FN }}>{filtered.length} exercise{filtered.length !== 1 ? "s" : ""}</div>
-      {filtered.length === 0 ? <EmptyState icon="🏋️" message="No exercises. Build your library." /> : (
-        <div style={{ overflowX: "auto", background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+      {filtered.length === 0 ? <EmptyState icon="🏋️" message="No exercises. Build your library." /> : (() => {
+        const refined = isRefined5b();
+        return (
+        <div style={{ overflowX: "auto", background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: FB, fontSize: 13 }}>
-            <thead><tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+            <thead><tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
               {["Title","Category","Resistance","Pattern","Laterality",""].map(h =>
-                <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 9, fontFamily: FN, color: C.tm, textTransform: "uppercase", letterSpacing: '0.18em' }}>{h}</th>)}
+                <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: "uppercase", letterSpacing: '0.18em', fontWeight: 700 }}>{h}</th>)}
             </tr></thead>
             <tbody>{filtered.map(ex => (
-              <tr key={ex.id} style={{ borderBottom: `1px solid ${C.cardBd}` }} onMouseEnter={e => e.currentTarget.style.background = C.sf2} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              <tr key={ex.id} style={{ borderBottom: `1px solid ${C.cardBd}` }} onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <td style={{ padding: "10px", color: C.tx, fontWeight: 600 }}>{ex.title}</td>
                 <td style={{ padding: "10px" }}>{ex.category ? <Badge>{ex.category}</Badge> : <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
                 <td style={{ padding: "10px", color: C.tm }}>{ex.resistanceType || <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
@@ -91,7 +104,9 @@ export default function ExercisesView({ exercises, setExercises }) {
                   <button onClick={() => setConfirmDelete(ex.id)} title="Delete exercise" style={{ background: "none", border: "none", color: C.rd, cursor: "pointer", padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   </button>
-                </td></tr>))}</tbody></table></div>)}
+                </td></tr>))}</tbody></table></div>
+        );
+      })()}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Exercise" : "New Exercise"} wide>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div style={{ gridColumn: "1 / -1" }}><Input label="Title" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Barbell Back Squat" /></div>
