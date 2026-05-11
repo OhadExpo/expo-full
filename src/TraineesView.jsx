@@ -44,6 +44,14 @@ const isOnline = (tid, presence) => {
   return (Date.now() - presence[tid]) < ONLINE_THRESHOLD;
 };
 
+// Heebo (the Hebrew font) has a smaller x-height than the English fonts we
+// use (Nord/JetBrains Mono). At the same nominal font-size Hebrew letterforms
+// render visibly shorter than Latin. Bumping the Hebrew label by +3px so the
+// two languages have the same visual cap-height side-by-side.
+const HE_BUMP_PX = 3;
+const hasHebrew = (s) => /[֐-׿]/.test(String(s || ''));
+const hebSize = (base) => base + (HE_BUMP_PX);
+
 // Roll the trainee's (and their sub-member rows for couples) payment ledger
 // into a single status pill: PAID / OVERDUE / NEVER PAID / NO PLAN. Mirrors
 // DashboardView's overdue logic so the card and the dashboard never disagree.
@@ -379,7 +387,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               const sharedProgramsCount = Math.max(mpc[0] || 0, mpc[1] || 0);
               return (
                 <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)}
-                  header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
+                  header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
                   headerRight={<Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge>}
                   style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
                   {/* IDENTITY (refined): name + status badge live in the
@@ -476,7 +484,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             const programs = planCounts?.[t.id] || 0;
             return (
             <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)}
-              header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
+              header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
               headerRight={<Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge>}
               style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
               {/* IDENTITY (refined): name + status live in the cyan strip

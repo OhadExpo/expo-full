@@ -41,7 +41,7 @@
 [data-theme="light"] {
   --c-bg: #E2E2E5;
   --c-sf: #39BDFF;
-  --c-sf2: #5FCDFF;
+  --c-sf2: #F3F4F6;          /* soft gray — used by baseInput + table-row hover; was #5FCDFF cyan-light, replaced 2026-05-11 to keep inputs from reading as cyan blobs */
   --c-sf3: #1FA0E2;
   --c-headerBg: #FFFFFF;
   --c-divider: rgba(0,0,0,0.18);
