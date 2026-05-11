@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { WhatsAppCheckInButton } from './whatsappButton';
 
@@ -378,16 +378,21 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               // don't double-count the shared programs.
               const sharedProgramsCount = Math.max(mpc[0] || 0, mpc[1] || 0);
               return (
-                <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
-                  {/* IDENTITY — combined name centered as banner; status
-                      badge centered below; per-member sub-columns underneath
-                      (each with name, email, phone, WA together). */}
-                  <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontWeight:700,fontSize:15,color:C.tx,textAlign:'center'}}>
-                      {t.name}{online && <OnlineDot />}
+                <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)}
+                  header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
+                  headerRight={<Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge>}
+                  style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+                  {/* IDENTITY (refined): name + status badge live in the
+                      cyan strip; the legacy banner is only rendered when
+                      not in refined mode so we don't duplicate the name. */}
+                  {!isRefined5b() && (
+                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontWeight:700,fontSize:15,color:C.tx,textAlign:'center'}}>
+                        {t.name}{online && <OnlineDot />}
+                      </div>
+                      <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
                     </div>
-                    <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
-                  </div>
+                  )}
                   <div style={{display:'flex',marginTop:8,width:'100%',alignSelf:'stretch'}}>
                     {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
@@ -470,22 +475,37 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             const bwEntries = getBwEntries(t, bwLog);
             const programs = planCounts?.[t.id] || 0;
             return (
-            <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)} style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
-              {/* IDENTITY — name centered as banner; status + WA centered
-                  beneath; email + phone centered below. */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
-                  {t.name}{online && <OnlineDot />}
+            <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)}
+              header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
+              headerRight={<Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge>}
+              style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+              {/* IDENTITY (refined): name + status live in the cyan strip
+                  above; the body starts with WhatsApp + emails + phone. */}
+              {isRefined5b() ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 0 }}>
+                    <WhatsAppCheckInButton name={t.name} phone={t.phone} />
+                  </div>
+                  <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
+                  {t.phone && (
+                    <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 6 }}>
-                  <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
-                  <WhatsAppCheckInButton name={t.name} phone={t.phone} />
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
+                    {t.name}{online && <OnlineDot />}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 6 }}>
+                    <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
+                    <WhatsAppCheckInButton name={t.name} phone={t.phone} />
+                  </div>
+                  <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
+                  {t.phone && (
+                    <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
+                  )}
                 </div>
-                <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
-                {t.phone && (
-                  <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
-                )}
-              </div>
+              )}
 
               <FinancialsBlock pay={pay} monthly={t.monthly} center />
               <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} center />

@@ -294,32 +294,59 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
 // On hover (clickable cards only), the shadow grows + the card lifts
 // 1px. This is the Linear / Vercel / Notion pattern — strokes are
 // noise, shadows are signal.
-export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave }) => (
-  <div onClick={onClick} style={{
-    background: 'var(--c-sf)',
-    border: `1px solid ${C.cardBd}`,
-    borderRadius: 0,
-    padding: 20,
-    cursor: onClick ? "pointer" : "default",
-    boxShadow: C.cardShadow,
-    transition: "box-shadow 0.2s, transform 0.2s",
-    ...style,
-  }}
-    onMouseEnter={e => {
-      if (onClick) {
-        e.currentTarget.style.boxShadow = '0 4px 12px rgba(6,20,37,0.08), 0 16px 32px rgba(6,20,37,0.16)';
-        e.currentTarget.style.transform = 'translateY(-2px)';
-      }
-      if (onMouseEnter) onMouseEnter(e);
+export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 20 }) => {
+  // Refined light variant: when `header` is passed AND the theme is refined,
+  // render the cyan-strip + white-body pattern. Otherwise fall back to the
+  // legacy single-zone card so all existing call sites keep working.
+  const refined = isRefined5b();
+  const hasStrip = refined && header;
+  const padNum = typeof padding === 'number' ? padding : 20;
+  return (
+    <div onClick={onClick} style={{
+      background: hasStrip ? '#FFFFFF' : 'var(--c-sf)',
+      border: `1px solid ${C.cardBd}`,
+      borderLeft: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,
+      borderRadius: 0,
+      padding: padNum,
+      cursor: onClick ? "pointer" : "default",
+      boxShadow: C.cardShadow,
+      transition: "box-shadow 0.2s, transform 0.2s",
+      ...style,
     }}
-    onMouseLeave={e => {
-      if (onClick) {
-        e.currentTarget.style.boxShadow = C.cardShadow;
-        e.currentTarget.style.transform = 'translateY(0)';
-      }
-      if (onMouseLeave) onMouseLeave(e);
-    }}>{children}</div>
-);
+      onMouseEnter={e => {
+        if (onClick) {
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(6,20,37,0.08), 0 16px 32px rgba(6,20,37,0.16)';
+          e.currentTarget.style.transform = 'translateY(-2px)';
+        }
+        if (onMouseEnter) onMouseEnter(e);
+      }}
+      onMouseLeave={e => {
+        if (onClick) {
+          e.currentTarget.style.boxShadow = C.cardShadow;
+          e.currentTarget.style.transform = 'translateY(0)';
+        }
+        if (onMouseLeave) onMouseLeave(e);
+      }}>
+      {hasStrip && (
+        <RefinedHeaderStrip padY={padNum} padX={padNum} marginBottom={12}>
+          {headerRight ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF' }}>{header}</div>
+              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>{headerRight}</div>
+            </div>
+          ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
+        </RefinedHeaderStrip>
+      )}
+      {!hasStrip && header && (
+        <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>{header}</div>
+          {headerRight && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>{headerRight}</div>}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+};
 export const Modal = ({ open, onClose, title, children, wide }) => {
   if (!open) return null;
   return (
