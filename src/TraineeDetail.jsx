@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { C, FN, FB, FH, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b } from './ui';
 import { savePlan } from './usePlansStore';
 // Lazy-loaded so the diff modal's pairing/render code only ships when the
 // coach actually opens it. Bigger-than-typical button can't justify being
@@ -188,11 +188,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
     return (
       <div style={{flex:1,minWidth:0}}>
-        <Card style={{marginBottom:8}}>
-          <div style={{textAlign:'center',marginBottom:10}}>
-            <div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{m.name}</div>
-            <div style={{fontSize:12,color:C.tm,marginTop:2}}>{emailsDisplay(m.email)}{m.phone?` · ${m.phone}`:''}</div>
-          </div>
+        <Card style={{marginBottom:8}}
+          header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{m.name}<span style={{fontSize:10,opacity:0.78,letterSpacing:'0.02em',textTransform:'none',fontWeight:500}}>{emailsDisplay(m.email)}{m.phone?` · ${m.phone}`:''}</span></span>}>
+          {!isRefined5b() && (
+            <div style={{textAlign:'center',marginBottom:10}}>
+              <div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{m.name}</div>
+              <div style={{fontSize:12,color:C.tm,marginTop:2}}>{emailsDisplay(m.email)}{m.phone?` · ${m.phone}`:''}</div>
+            </div>
+          )}
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,textAlign:'center'}}>
             {[['Age',m.age||'—'],['Weight',m.weight?`${m.weight}kg`:'—'],['Height',m.height?`${m.height}cm`:'—']].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
@@ -264,10 +267,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === COUPLE LAYOUT === */}
       {couple ? <>
         {/* Shared billing bar */}
-        <Card style={{marginBottom:12,textAlign:'center'}}>
-          <div style={{fontSize:12,color:C.tm,fontFamily:FN,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:8}}>
-            Shared · {td.format} · <Badge color={statusColor[td.status]}>{td.status}</Badge>
-          </div>
+        <Card style={{marginBottom:12,textAlign:'center'}}
+          header={<span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>{td.name} · Shared · {td.format}</span>}
+          headerRight={<Badge color={statusColor[td.status]} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{td.status}</Badge>}>
+          {!isRefined5b() && (
+            <div style={{fontSize:12,color:C.tm,fontFamily:FN,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:8}}>
+              Shared · {td.format} · <Badge color={statusColor[td.status]}>{td.status}</Badge>
+            </div>
+          )}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(100px, 1fr))',gap:10}}>
             {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',td.lastPayment||'—'],['Since',td.startDate],['Workouts',tAllWorkouts.length]].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
@@ -284,18 +291,25 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </div>
       </> : <>
 
-      {/* === SOLO LAYOUT (unchanged) === */}
-      <Card style={{marginBottom:8,position:"relative"}}>
-        <div style={{textAlign:"center"}}><h2 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>{td.name}</h2>
-          <div style={{color:C.tm,fontSize:13,marginTop:4}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</div></div>
-        <div style={{display:"flex",alignItems:"center",gap:8,position:"absolute",right:16,top:16}}>
-          <Badge color={statusColor[td.status]}>{td.status}</Badge></div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:16,textAlign:"center"}}>
+      {/* === SOLO LAYOUT === */}
+      <Card style={{marginBottom:8,position:"relative"}}
+        header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{td.name}<span style={{fontSize:11,opacity:0.78,letterSpacing:'0.02em',textTransform:'none',fontWeight:500}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</span></span>}
+        headerRight={<Badge color={statusColor[td.status]} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{td.status}</Badge>}>
+        {!isRefined5b() && (
+          <>
+            <div style={{textAlign:"center"}}><h2 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>{td.name}</h2>
+              <div style={{color:C.tm,fontSize:13,marginTop:4}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</div></div>
+            <div style={{display:"flex",alignItems:"center",gap:8,position:"absolute",right:16,top:16}}>
+              <Badge color={statusColor[td.status]}>{td.status}</Badge></div>
+          </>
+        )}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:isRefined5b()?0:16,textAlign:"center"}}>
           {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",td.lastPayment||"—"],["Since",td.startDate],["Workouts",tAllWorkouts.length]].map(([l,v])=>
             <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
       </Card>
-      <Card style={{marginBottom:16,textAlign:"center"}}>
+      <Card style={{marginBottom:16,textAlign:"center"}}
+        header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12}}>
           {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>
             <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}

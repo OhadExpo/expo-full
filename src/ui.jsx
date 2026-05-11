@@ -295,15 +295,15 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
 // 1px. This is the Linear / Vercel / Notion pattern — strokes are
 // noise, shadows are signal.
 export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 20 }) => {
-  // Refined light variant: when `header` is passed AND the theme is refined,
-  // render the cyan-strip + white-body pattern. Otherwise fall back to the
-  // legacy single-zone card so all existing call sites keep working.
+  // Refined light variant: in refined mode every card flips to a white body.
+  // When `header` is also passed, the cyan strip is rendered above the body.
+  // In dark / non-refined modes the card stays single-zone cyan.
   const refined = isRefined5b();
   const hasStrip = refined && header;
   const padNum = typeof padding === 'number' ? padding : 20;
   return (
     <div onClick={onClick} style={{
-      background: hasStrip ? '#FFFFFF' : 'var(--c-sf)',
+      background: refined ? '#FFFFFF' : 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`,
       borderLeft: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,
       borderRadius: 0,
