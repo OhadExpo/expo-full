@@ -1,18 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { C, FN, FB, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, RefinedHeaderStrip } from './ui';
 import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
 import { sortProgramsChrono } from './traineeUtils';
-
-// Refined dashboard (theme=5b): replace emoji action icons (🎯👁⎘) with
-// inline stroke SVGs so the icon vocabulary matches the header system.
-const isRefined5b = () => {
-  if (typeof document === 'undefined') return false;
-  const dt = document.documentElement.getAttribute('data-theme');
-  return dt === '5b' || dt === 'light';
-};
 
 function ActionIcon({ kind, fallback, color = 'currentColor', size = 14 }) {
   if (!isRefined5b()) return fallback;
@@ -55,7 +47,7 @@ function PatternCoverage({ plan, exercises }) {
   }, [plan.days, exercises]);
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
   if (exercises.length === 0) return null;
-  return (<div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
+  return (<div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
     <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={pats.has(p) ? {} : {fontWeight:500,opacity:0.65}}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
@@ -283,7 +275,7 @@ function WarmupEditor({ plan, setPlan }) {
   const add = () => { setOpen(true); setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] })); };
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   return (
-    <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
+    <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: open && warmup.length ? 10 : 0 }}>
         <button onClick={() => setOpen(o => !o)} title={open ? 'Collapse warm-up' : 'Expand warm-up'}
           style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8 }}>
@@ -427,7 +419,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                 const dayExs = d.exercises || [];
                 const tinyInputRO = {...baseInput, padding:'3px 6px', fontSize:11, minWidth:0, width:'100%', boxSizing:'border-box', color:C.tm, cursor:'default'};
                 return (
-                  <div key={d.id || di} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
+                  <div key={d.id || di} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
                     <div style={{display:'flex',alignItems:'center',marginBottom:8,gap:10}}>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
@@ -672,7 +664,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           return (
-            <div key={d.id} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
+            <div key={d.id} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
               <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
@@ -762,7 +754,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const exData = exercises.find(e=>e.id===ex.exerciseId);
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
-          return(<div key={ex.id} style={{background:'var(--c-sf)',border:`1px solid ${ex.superset?sc:C.cardBd}`,borderLeft:`3px solid ${ex.superset?sc:C.cardBd}`,borderRadius:0,padding:12,marginBottom:8}}>
+          return(<div key={ex.id} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${ex.superset?sc:C.cardBd}`,borderLeft:`3px solid ${ex.superset?sc:C.cardBd}`,borderRadius:0,padding:12,marginBottom:8}}>
             <div style={{display:"grid",gridTemplateColumns:"54px 1fr 54px",gap:12,alignItems:"start"}}>
               <div draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${activeDay}:${exIdx}`); setDragSrc({dayIdx: activeDay, exIdx}); }}
@@ -1227,7 +1219,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             // picker is right there for assignment after the editor opens).
             if (row.orphan) {
               return (
-                <div key={row.tid} style={{background:'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                <div key={row.tid} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                   <div style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>NO PROGRAM ASSIGNED</div>
@@ -1237,7 +1229,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               );
             }
             return (
-              <div key={row.tid} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
+              <div key={row.tid} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
                 {/* Current-block row — clicking opens the plan editor. */}
                 <div onClick={()=>handleOpenPlan(cur.id)}
                   onMouseEnter={e => {
@@ -1322,7 +1314,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       {!grouped && (filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
         <div style={{display:"grid",gap:6}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
-          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px'}}
+          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: isRefined5b() ? '#FFFFFF' : undefined}}
             onMouseEnter={e => {
               const x = e.clientX, y = e.clientY;
               clearTimeout(hoverTimerRef.current);
