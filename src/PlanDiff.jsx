@@ -13,7 +13,7 @@
 // "removed day" block.
 import React, { useEffect, useMemo, useState } from 'react';
 import { C, FN, FB } from './theme';
-import { Btn } from './ui';
+import { Btn, isRefined5b } from './ui';
 import { useFullPlan } from './usePlansStore';
 
 const FIELDS_TO_DIFF = ['sets', 'reps', 'load', 'rpe', 'tempo', 'rest', 'superset', 'notes', 'videoUrl'];
@@ -273,7 +273,7 @@ export default function PlanDiff({ open, onClose, traineePlans, exercises }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 30, background: C.scrim, backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: 'min(1180px, 96vw)', maxHeight: '92vh', overflow: 'auto', padding: 24, boxShadow: C.cardShadow }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: isRefined5b() ? '#FFFFFF' : C.sf, border: `1px solid ${isRefined5b() ? C.cardBd : C.bd}`, borderRadius: 0, width: 'min(1180px, 96vw)', maxHeight: '92vh', overflow: 'auto', padding: 24, boxShadow: C.cardShadow }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <h3 style={{ margin: 0, fontFamily: FN, fontSize: 14, color: C.tx, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>↔ Plan Diff</h3>
           <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: 'pointer', padding: '4px 10px', borderRadius: 0, fontSize: 14 }}>✕</button>

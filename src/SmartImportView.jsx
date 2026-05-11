@@ -17,7 +17,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
-import { Btn, Input, Select, Badge } from './ui';
+import { Btn, Input, Select, Badge, isRefined5b } from './ui';
 
 // All smart-import API calls go through this helper so they always carry
 // the coach's Supabase JWT — without it, the backend's tool calls hit RLS
@@ -418,7 +418,7 @@ export default function SmartImportView() {
       </div>
 
       {fileName && (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 10, alignItems: 'end' }}>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 10, alignItems: 'end' }}>
           <div>
             <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>FILE · {fileKind.toUpperCase()}</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</div>
@@ -432,7 +432,7 @@ export default function SmartImportView() {
       )}
 
       {sheetGrid && (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, marginBottom: 6, letterSpacing: '0.18em', fontWeight: 700 }}>SHEET PREVIEW · {sheetGrid.headers.length} cols · {sheetGrid.rows.length} rows</div>
           <div style={{ overflowX: 'auto', maxHeight: 200, overflowY: 'auto', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
             <table style={{ borderCollapse: 'collapse', fontSize: 11, fontFamily: FB, color: C.tx }}>
@@ -452,7 +452,7 @@ export default function SmartImportView() {
       {err && <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '10px 12px', marginBottom: 12, fontSize: 12 }}>{err}</div>}
 
       {mapping && (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>AI MAPPING <Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% confident</Badge></div>
             <Btn onClick={runTransform} disabled={transforming}>{transforming ? 'Transforming…' : 'Preview Transform'}</Btn>
@@ -488,7 +488,7 @@ export default function SmartImportView() {
       )}
 
       {transform && (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
               PREVIEW <Badge color={C.gn}>{transform.items.length} item{transform.items.length === 1 ? '' : 's'}</Badge>
