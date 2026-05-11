@@ -1,47 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
-import { Badge, baseInput, SectionLabel } from './ui';
+import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
-
-// Refined dashboard (theme=5b): replace emoji section icons with inline
-// stroke SVGs so the icon vocabulary matches the header's stroke icons.
-// Default (theme=5): emoji unchanged. Detection happens once at render.
-const isRefined5b = () => {
-  if (typeof document === 'undefined') return false;
-  const dt = document.documentElement.getAttribute('data-theme');
-  return dt === '5b' || dt === 'light';
-};
-
-// RefinedHeaderStrip — cyan bg + white text strip that extends to the
-// card edges via negative margins. Mirrors the active "DASHBOARD" pill
-// in the top nav (cyan-filled, white text), giving every card a
-// headline zone in light mode. Body of the card stays white below.
-// Dark mode does not use this; cards there are single-zone surfaces.
-function RefinedHeaderStrip({ children, padY = 14, padX = 18 }) {
-  return (
-    <div style={{
-      background: 'var(--c-sf)',
-      margin: `-${padY}px -${padX}px 12px`,
-      padding: `8px ${padX}px`,
-      borderBottom: '1px solid rgba(0,0,0,0.10)',
-    }}>{children}</div>
-  );
-}
-
-function SectionIcon({ kind, color, size = 14 }) {
-  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { verticalAlign: '-2px', marginRight: 6, flexShrink: 0 } };
-  switch (kind) {
-    case 'alert': return <svg {...common}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
-    case 'dollar': return <svg {...common}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
-    case 'moon': return <svg {...common}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>;
-    case 'trendingDown': return <svg {...common}><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>;
-    case 'mail': return <svg {...common}><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>;
-    case 'dot': return <svg {...common} fill={color}><circle cx="12" cy="12" r="5"/></svg>;
-    default: return null;
-  }
-}
 
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
 // For couples we pick the member whose phone is set; if both have phones,

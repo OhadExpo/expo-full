@@ -48,6 +48,9 @@
   --c-badgeBg: #FFFFFF;
   --c-kpiNumberSize: 40px;
   --c-alertLabelSize: 13px;
+  --c-rowHover: rgba(0,0,0,0.04);          /* table-row hover tint on white body */
+  --c-stripText: #FFFFFF;                  /* text inside the cyan header strip */
+  --c-stripBorder: rgba(255,255,255,0.55); /* outline for buttons inside the strip */
   --c-bd: rgba(0,0,0,0.10);
   --c-bd2: rgba(0,0,0,0.20);
   --c-tx: #0E0F12;
