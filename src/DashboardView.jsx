@@ -14,6 +14,22 @@ const isRefined5b = () => {
   return dt === '5b' || dt === 'light';
 };
 
+// RefinedHeaderStrip — cyan bg + white text strip that extends to the
+// card edges via negative margins. Mirrors the active "DASHBOARD" pill
+// in the top nav (cyan-filled, white text), giving every card a
+// headline zone in light mode. Body of the card stays white below.
+// Dark mode does not use this; cards there are single-zone surfaces.
+function RefinedHeaderStrip({ children, padY = 14, padX = 18 }) {
+  return (
+    <div style={{
+      background: 'var(--c-sf)',
+      margin: `-${padY}px -${padX}px 12px`,
+      padding: `8px ${padX}px`,
+      borderBottom: '1px solid rgba(0,0,0,0.10)',
+    }}>{children}</div>
+  );
+}
+
 function SectionIcon({ kind, color, size = 14 }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { verticalAlign: '-2px', marginRight: 6, flexShrink: 0 } };
   switch (kind) {
@@ -196,16 +212,23 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
           { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
           { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
-        ].map((s, i) => (
-          <div key={i} className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
-            <SectionLabel style={isRefined5b()
-              ? { marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.45)', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700, color: 'rgba(0,0,0,0.62)' }
-              : { marginBottom: 8 }}>{s.label}</SectionLabel>
-            <div style={{ fontSize: C.kpiNumberSize, fontWeight: isRefined5b() ? 800 : 700, fontFamily: FN, color: s.color, lineHeight: 1.05, letterSpacing: '-0.015em' }}>{s.value}
-              {s.total !== undefined && <span style={{ fontSize: 13, color: C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
-            {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
-          </div>
-        ))}
+        ].map((s, i) => {
+          const refined = isRefined5b();
+          return (
+            <div key={i} className="alert-card" style={{ background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
+              {refined ? (
+                <RefinedHeaderStrip padY={16} padX={20}>
+                  <SectionLabel style={{ color: '#FFFFFF', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+                </RefinedHeaderStrip>
+              ) : (
+                <SectionLabel style={{ marginBottom: 8 }}>{s.label}</SectionLabel>
+              )}
+              <div style={{ fontSize: C.kpiNumberSize, fontWeight: refined ? 800 : 700, fontFamily: FN, color: s.color, lineHeight: 1.05, letterSpacing: '-0.015em' }}>{s.value}
+                {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
+              {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
+            </div>
+          );
+        })}
       </div>
 
       {/* Alert sections — Overdue + New Leads stack as one cell so leads
@@ -215,8 +238,14 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20, alignItems: 'start' }}>
           {onlineNow.length > 0 && (
-            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              <SectionLabel color={C.gn} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="dot" color={C.gn}/>Online Now ({onlineNow.length})</> : `🟢 Online Now (${onlineNow.length})`}</SectionLabel>
+            <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+              {isRefined5b() ? (
+                <RefinedHeaderStrip>
+                  <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>Online Now ({onlineNow.length})</SectionLabel>
+                </RefinedHeaderStrip>
+              ) : (
+                <SectionLabel color={C.gn} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`🟢 Online Now (${onlineNow.length})`}</SectionLabel>
+              )}
               {onlineNow.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
                   <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
@@ -226,8 +255,14 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             </div>
           )}
           {expiring.length > 0 && (
-            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              <SectionLabel color={C.or} as="div" style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="alert" color={C.or}/>Expiring Packages ({expiring.length})</> : `⚠ Expiring Packages (${expiring.length})`}</SectionLabel>
+            <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+              {isRefined5b() ? (
+                <RefinedHeaderStrip>
+                  <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>Expiring Packages ({expiring.length})</SectionLabel>
+                </RefinedHeaderStrip>
+              ) : (
+                <SectionLabel color={C.or} as="div" style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`⚠ Expiring Packages (${expiring.length})`}</SectionLabel>
+              )}
               {expiring.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                   <span style={{ color: C.tx }}>{t.name}</span>
@@ -239,8 +274,14 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           {(overduePayment.length > 0 || (leads && leads.length > 0)) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {overduePayment.length > 0 && (
-                <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-                  <SectionLabel color={C.rd} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="dollar" color={C.rd}/>Overdue Payment ({overduePayment.length})</> : `💰 Overdue Payment (${overduePayment.length})`}</SectionLabel>
+                <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+                  {isRefined5b() ? (
+                    <RefinedHeaderStrip>
+                      <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>Overdue Payment ({overduePayment.length})</SectionLabel>
+                    </RefinedHeaderStrip>
+                  ) : (
+                    <SectionLabel color={C.rd} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`💰 Overdue Payment (${overduePayment.length})`}</SectionLabel>
+                  )}
                   {overduePayment.map(t => (
                     <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -257,14 +298,26 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                 const gateOpen = coachLeads >= COACH_GATE;
                 const gateColor = gateOpen ? C.gn : (coachLeads > 0 ? C.or : C.td);
                 return (
-                <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <SectionLabel as="span" color={C.ac} style={{ fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="mail" color={C.ac}/>New Leads ({leads.length})</> : `📩 New Leads (${leads.length})`}</SectionLabel>
-                    <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
-                      style={{ fontFamily: FN, fontSize: 9, color: gateColor, border: `1px solid ${gateColor}`, background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
-                      🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
-                    </span>
-                  </div>
+                <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
+                  {isRefined5b() ? (
+                    <RefinedHeaderStrip>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>New Leads ({leads.length})</SectionLabel>
+                        <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
+                          style={{ fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
+                          🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
+                        </span>
+                      </div>
+                    </RefinedHeaderStrip>
+                  ) : (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <SectionLabel as="span" color={C.ac} style={{ fontSize: C.alertLabelSize }}>{`📩 New Leads (${leads.length})`}</SectionLabel>
+                      <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
+                        style={{ fontFamily: FN, fontSize: 9, color: gateColor, border: `1px solid ${gateColor}`, background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
+                        🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
+                      </span>
+                    </div>
+                  )}
                   {leads.map(l => {
                     const ageMs = now - new Date(l.created_at);
                     const days = Math.floor(ageMs / 86400000);
@@ -290,8 +343,14 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             </div>
           )}
           {dropoutRisk.length > 0 && (
-            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              <SectionLabel color={C.or} as="div" style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="moon" color={C.or}/>Dormant ({dropoutRisk.length})</> : `💤 Dormant (${dropoutRisk.length})`}</SectionLabel>
+            <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+              {isRefined5b() ? (
+                <RefinedHeaderStrip>
+                  <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>Dormant ({dropoutRisk.length})</SectionLabel>
+                </RefinedHeaderStrip>
+              ) : (
+                <SectionLabel color={C.or} as="div" style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`💤 Dormant (${dropoutRisk.length})`}</SectionLabel>
+              )}
               {dropoutRisk.map(t => {
                 const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                 return (
@@ -395,8 +454,14 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
       {/* Dropout risk — below the client list */}
       {dropoutRisk.length > 0 && (
-        <div className="alert-card" style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-          <SectionLabel color={C.rd} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{isRefined5b() ? <><SectionIcon kind="trendingDown" color={C.rd}/>Dropout Risk — 14+ days ({dropoutRisk.length})</> : `🔻 Dropout Risk — 14+ days (${dropoutRisk.length})`}</SectionLabel>
+        <div className="alert-card" style={{ marginTop: 20, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+          {isRefined5b() ? (
+            <RefinedHeaderStrip>
+              <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="trendingDown" color="#FFFFFF"/>Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
+            </RefinedHeaderStrip>
+          ) : (
+            <SectionLabel color={C.rd} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`🔻 Dropout Risk — 14+ days (${dropoutRisk.length})`}</SectionLabel>
+          )}
           {dropoutRisk.map(t => {
             const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
             const daysLabel = days == null ? 'Never trained' : `${days}d ago`;
