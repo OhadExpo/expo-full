@@ -56,11 +56,18 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
   });
 
   const toggleSort = (key) => { if (sort === key) setDir(d => d * -1); else { setSort(key); setDir(1); } };
-  const SH = ({ k, label }) => (
-    <th onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '10px 12px', fontSize: 10, fontFamily: FN, color: sort === k ? C.ac : C.td, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
-      {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
-    </th>
-  );
+  // SH (sortable header) — in refined mode the thead row is the cyan
+  // strip, so the cell text becomes white. Otherwise falls back to the
+  // legacy cyan-active / gray-inactive scheme.
+  const SH = ({ k, label }) => {
+    const refined = isRefined5b();
+    const color = refined ? '#FFFFFF' : (sort === k ? C.ac : C.td);
+    return (
+      <th onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '10px 12px', fontSize: refined ? 9 : 10, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: refined ? '0.18em' : '0.05em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', opacity: refined && sort !== k ? 0.78 : 1 }}>
+        {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
+      </th>
+    );
+  };
 
   // Summary stats
   const active = trainees.filter(t => t.status === 'Active').length;
@@ -333,27 +340,39 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           Vercel Analytics. The numbers below are first-party counts from
           chat_logs + leads, so they keep working even if Analytics isn't
           enabled. */}
-      {funnel && (funnel.sessions || funnel.messages || funnel.total) ? (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-            <span style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>/COACHES FUNNEL · 30D</span>
-            <span style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-            {[
-              { label: 'CHAT SESSIONS', value: funnel.sessions, color: C.tm },
-              { label: 'MESSAGES SENT', value: funnel.messages, color: C.tm },
-              { label: 'EMAIL CAPTURES', value: funnel.captures, color: funnel.captures > 0 ? C.gn : C.td },
-              { label: 'WAITLIST', value: funnel.total, color: funnel.total > 0 ? C.ac : C.td },
-            ].map((s, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{s.label}</div>
-                <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}</div>
+      {funnel && (funnel.sessions || funnel.messages || funnel.total) ? (() => {
+        const refined = isRefined5b();
+        return (
+          <div style={{ background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
+            {refined ? (
+              <RefinedHeaderStrip>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: 11, fontFamily: FN, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>/COACHES FUNNEL · 30D</span>
+                  <span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
+                </div>
+              </RefinedHeaderStrip>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                <span style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>/COACHES FUNNEL · 30D</span>
+                <span style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
               </div>
-            ))}
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {[
+                { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
+                { label: 'MESSAGES SENT', value: funnel.messages, color: refined ? C.tx : C.tm },
+                { label: 'EMAIL CAPTURES', value: funnel.captures, color: funnel.captures > 0 ? C.gn : C.td },
+                { label: 'WAITLIST', value: funnel.total, color: funnel.total > 0 ? C.ac : C.td },
+              ].map((s, i) => (
+                <div key={i} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ) : null}
+        );
+      })() : null}
 
       {/* Search */}
       <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
@@ -364,27 +383,30 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {/* Client table */}
       {sorted.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: C.td }}>No clients yet. Import your trainee list.</div>
-      ) : (
-        <div style={{ overflowX: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+      ) : (() => {
+        const refined = isRefined5b();
+        const plainHeadStyle = { textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 };
+        return (
+        <div style={{ overflowX: 'auto', background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+              <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
                 <SH k="name" label="Athlete" />
                 <SH k="status" label="Status" />
-                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Format</th>
-                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Package</th>
+                <th style={plainHeadStyle}>Format</th>
+                <th style={plainHeadStyle}>Package</th>
                 <SH k="sessions" label="Sessions" />
                 <SH k="paid" label="Total Paid" />
                 <SH k="lastPay" label="Last Payment" />
                 <SH k="workouts" label="Workouts" />
-                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Programs</th>
+                <th style={plainHeadStyle}>Programs</th>
               </tr>
             </thead>
             <tbody>
               {sorted.map(t => (
                 <tr key={t.id} onClick={() => onSelectTrainee(t.id)}
                   style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = C.sf2}
+                  onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '12px', fontWeight: 600, color: C.tx }}>{t.name}</td>
                   <td style={{ padding: '12px' }}><Badge color={statusColor[t.status] || C.td}>{t.status}</Badge></td>
@@ -412,7 +434,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             </tbody>
           </table>
         </div>
-      )}
+        );
+      })()}
 
       {/* Dropout risk — below the client list */}
       {dropoutRisk.length > 0 && (
@@ -439,12 +462,28 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       )}
 
       {/* Payment summary */}
-      {totalAllPaid>0&&<div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
-        <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"14px 20px",maxWidth:300,textAlign:'center'}}>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4}}>Total Collected (All Time)</div>
-          <div style={{fontSize:18,fontWeight:700,fontFamily:FN,color:C.ac}}>₪{totalAllPaid.toLocaleString()}</div>
-        </div>
-      </div>}
+      {totalAllPaid>0&&(()=>{
+        const refined = isRefined5b();
+        return <div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
+          <div style={{background: refined ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding: refined ? 0 : '14px 20px', maxWidth:300, textAlign:'center', overflow:'hidden'}}>
+            {refined ? (
+              <>
+                <div style={{background:'var(--c-sf)', padding:'8px 20px', borderBottom:'1px solid rgba(0,0,0,0.10)'}}>
+                  <div style={{fontSize:10, fontFamily:FN, color:'#FFFFFF', textTransform:'uppercase', letterSpacing:'0.10em', fontWeight:700}}>Total Collected · All Time</div>
+                </div>
+                <div style={{padding:'14px 20px'}}>
+                  <div style={{fontSize:22, fontWeight:800, fontFamily:FN, color:C.tx, letterSpacing:'-0.01em'}}><span style={{color:C.ac}}>₪</span>{totalAllPaid.toLocaleString()}</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{fontSize:9, fontFamily:FN, color:C.tm, textTransform:"uppercase", letterSpacing:'0.18em', fontWeight:700, marginBottom:4}}>Total Collected (All Time)</div>
+                <div style={{fontSize:18, fontWeight:700, fontFamily:FN, color:C.ac}}>₪{totalAllPaid.toLocaleString()}</div>
+              </>
+            )}
+          </div>
+        </div>;
+      })()}
     </div>
   );
 }
