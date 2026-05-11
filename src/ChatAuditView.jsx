@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { C, FN, FB } from './theme';
+import { isRefined5b } from './ui';
 import { supabase } from './supabase';
 
 function fmtDate(iso) {
@@ -148,7 +149,7 @@ export default function ChatAuditView() {
       </div>
 
       {grouped.length === 0 ? (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>
             {migrationMissing ? 'MIGRATION NOT APPLIED' : 'NO CHAT TURNS YET'}
           </div>
@@ -163,7 +164,7 @@ export default function ChatAuditView() {
           {grouped.map(g => (
             <div key={g.sessionId || g.startedAt}
               style={{
-                background: 'var(--c-sf)',
+                background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
                 border: `1px solid ${g.errorCount > 0 ? C.rd : C.cardBd}`,
                 borderRadius: 0, overflow: 'hidden',
               }}>

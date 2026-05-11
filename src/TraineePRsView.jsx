@@ -13,6 +13,7 @@
 
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { C, FN, FB } from './theme';
+import { isRefined5b } from './ui';
 import { EX } from './exerciseData';
 
 function topSetOfWorkoutEx(ex) {
@@ -250,7 +251,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
         )}
 
         {rows.length === 0 ? (
-          <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
+          <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO RECORDS YET</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
               Log a few sessions with weights and your records will show up here.
@@ -316,7 +317,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
               <>
                 {/* PR hero card */}
                 <div style={{
-                  background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0,
+                  background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0,
                   padding: '20px 18px', textAlign: 'center', marginBottom: 14,
                 }}>
                   <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>

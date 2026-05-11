@@ -9,7 +9,7 @@
 // sends a link to can submit. There is no public /intake landing page.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { Btn, Modal, Card, Badge } from './ui';
+import { Btn, Modal, Card, Badge, isRefined5b } from './ui';
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 
@@ -168,7 +168,7 @@ export default function IntakeView({ trainees }) {
   return (
     <div>
       {/* Header — counts + Generate Link CTA */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: C.sf, border: `1px solid ${C.bd}`, padding: '14px 18px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: isRefined5b() ? '#FFFFFF' : C.sf, border: `1px solid ${isRefined5b() ? C.cardBd : C.bd}`, padding: '14px 18px' }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>INTAKE</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
@@ -215,7 +215,7 @@ export default function IntakeView({ trainees }) {
 
       {/* List */}
       {visible.length === 0 ? (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO INTAKE YET</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
             Generate a link from the button above and send it to a prospect or trainee.

@@ -8,6 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { C, FN, FB } from './theme';
+import { isRefined5b } from './ui';
 import { supabase } from './supabase';
 
 const COACH_GATE = 5;
@@ -202,11 +203,15 @@ export default function WaitlistView({ trainees }) {
   }, [enriched, trainees, total]);
 
   const toggleSort = (k) => { if (sort === k) setDir(d => d * -1); else { setSort(k); setDir(k === 'date' ? -1 : 1); } };
-  const SH = ({ k, label }) => (
-    <th onClick={() => toggleSort(k)} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: sort === k ? C.ac : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
-      {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
-    </th>
-  );
+  const SH = ({ k, label }) => {
+    const refined = isRefined5b();
+    const color = refined ? '#FFFFFF' : (sort === k ? C.ac : C.tm);
+    return (
+      <th onClick={() => toggleSort(k)} style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', opacity: refined && sort !== k ? 0.78 : 1 }}>
+        {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
+      </th>
+    );
+  };
 
   if (leads == null) {
     return <div style={{ textAlign: 'center', padding: 60, color: C.td, fontFamily: FB, fontSize: 13 }}>Loading waitlist…</div>;
@@ -215,7 +220,7 @@ export default function WaitlistView({ trainees }) {
   return (
     <div>
       {/* Header + gate progress */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: C.sf, border: `1px solid ${C.bd}`, padding: '14px 18px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: isRefined5b() ? '#FFFFFF' : C.sf, border: `1px solid ${isRefined5b() ? C.cardBd : C.bd}`, padding: '14px 18px' }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>COACH WAITLIST</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
@@ -257,24 +262,26 @@ export default function WaitlistView({ trainees }) {
       </div>
 
       {sorted.length === 0 ? (
-        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO COACH SIGNUPS YET</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
             When a coach submits the form on /coaches#waitlist, they'll appear here.
           </div>
         </div>
-      ) : (
-        <div style={{ overflowX: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+      ) : (() => {
+        const refined = isRefined5b();
+        return (
+        <div style={{ overflowX: 'auto', background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
-              <tr style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+              <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
                 <SH k="email" label="Email" />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Source</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Source</th>
                 <SH k="intent" label="Intent" />
                 <SH k="date" label="Signed up" />
                 <SH k="status" label="Status" />
-                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>Notes</th>
-                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Actions</th>
+                <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, minWidth: 220 }}>Notes</th>
+                <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -363,7 +370,8 @@ export default function WaitlistView({ trainees }) {
             </tbody>
           </table>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

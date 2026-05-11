@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { C, FN, FB, uid } from './theme';
-import { Btn, Input, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput } from './ui';
+import { Btn, Input, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
 import { supabase } from './supabase';
 
 function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
@@ -32,7 +32,7 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
       </div>
       {workout.exercises.map((ex,exIdx) => {
         const exData = exercises.find(e=>e.id===ex.exerciseId);
-        return(<div key={ex.id} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:10}}>
+        return(<div key={ex.id} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:10}}>
           <div style={{fontWeight:700,color:C.tx,marginBottom:8}}>{exIdx+1}. {exData?.title||"Unknown"}
             {ex.superset&&<Badge color={C.pu} style={{marginLeft:8}}>Group {ex.superset}</Badge>}
             <span style={{fontWeight:400,color:C.tm,fontSize:12,marginLeft:8}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span></div>
