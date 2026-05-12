@@ -1274,7 +1274,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               );
             }
             return (
-              <div key={row.tid} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
+              <div key={row.tid} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0}}>
                 {/* Current-block row — clicking opens the plan editor. */}
                 <div onClick={()=>handleOpenPlan(cur.id)}
                   onMouseEnter={e => {
@@ -1294,7 +1294,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {row.earlier.length > 0 && (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                        style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:'pointer',padding:'3px 8px',fontFamily:FN,fontSize:11,fontWeight:600,letterSpacing:'0.04em',whiteSpace:'nowrap',minWidth:34,textAlign:'center'}}>
+                        style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',padding:'3px 8px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',whiteSpace:'nowrap',minWidth:34,textAlign:'center'}}>
                         {expanded?`▴ ${row.earlier.length}`:`▾ +${row.earlier.length}`}
                       </button>
                     )}
@@ -1359,7 +1359,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       {!grouped && (filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
         <div style={{display:"grid",gap:6}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
-          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: isRefined5b() ? '#FFFFFF' : undefined}}
+          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: isRefined5b() ? '#FFFFFF' : undefined, borderLeft:`3px solid ${C.ac}`}}
             onMouseEnter={e => {
               const x = e.clientX, y = e.clientY;
               clearTimeout(hoverTimerRef.current);
