@@ -267,6 +267,11 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                 value={open ? query : (picked ? `${picked.title} (${picked.sessionCount} session${picked.sessionCount === 1 ? '' : 's'})` : '')}
                 onChange={e => { setQuery(e.target.value); setOpen(true); }}
                 onFocus={() => { setOpen(true); setQuery(''); }}
+                // onFocus only fires when focus is GAINED. After choose(),
+                // the input keeps focus, so clicking it again would no-op.
+                // Hook onMouseDown so repeat clicks always reopen the picker.
+                // Skip when already open to avoid clobbering an in-progress query.
+                onMouseDown={() => { if (!open) { setOpen(true); setQuery(''); } }}
                 onKeyDown={e => {
                   if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); setHighlight(h => Math.min(h + 1, filtered.length - 1)); }
                   else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlight(h => Math.max(h - 1, 0)); }
