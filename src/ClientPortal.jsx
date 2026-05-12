@@ -818,6 +818,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const vid = ytId(effectiveVid);
     const hw = ex.wk?.length > 0;
     const wr = hw ? (ex.wk[weekNum] ?? ex.r) : null;
+    // Per-week sets array (ex.wkS) mirrors per-week reps (ex.wk). When the
+    // coach defined per-week reps but kept sets flat, we still need to render
+    // the sets × reps prescription so the trainee sees how many sets to do.
+    const wrS = ex.wkS?.length > 0 ? (ex.wkS[weekNum] ?? ex.s) : null;
+    const setsForDisplay = wrS ?? ex.s;
+    const repsForDisplay = wr ?? ex.r;
     const f = fv[ei];
     const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`;
     const wf = weeklyFocus?.[fk];
@@ -903,7 +909,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           onClose={() => setSwapOpenForEid(null)}
         />
       )}
-      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{wr || `${ex.s} × ${ex.r}`}</div>
+      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
       {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
 
       {/* Last-time-at-this-exercise hint — pulls the most recent prior session
