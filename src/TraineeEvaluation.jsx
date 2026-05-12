@@ -221,17 +221,17 @@ export default function TraineeEvaluation({ trainee }) {
       {/* Cyan header strip — same vocabulary as every other dashboard /
           trainee-card section. Title + NEW EVAL button live on the strip. */}
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 11, fontFamily: FN, color: refined ? '#FFFFFF' : 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
-            ATHLETIC EVALUATION ({rows.length})
-          </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
+            Athletic Evaluation ({rows.length})
+          </span>
           <button onClick={() => setEditing('new')}
             style={{
               background: 'transparent',
               border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
               color: refined ? '#FFFFFF' : 'var(--c-ac)',
-              padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 9,
-              fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
+              padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
+              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
             }}>+ NEW EVAL</button>
         </div>
       </RefinedHeaderStrip>

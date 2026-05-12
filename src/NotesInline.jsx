@@ -82,17 +82,19 @@ export default function NotesInline({
       <style>{`
         .notes-inline-input::placeholder { color: var(--c-td); opacity: 1; }
       `}</style>
-      {/* Cyan header strip — matches Athletic Evaluation + Dashboard tasks
-          + every other section card on the trainee detail page. */}
+      {/* Cyan header strip — uses the SAME header vocabulary as the
+          existing Card component (fontSize 13, letterSpacing 0.04em,
+          uppercase, 700) so every card on the trainee-detail page reads
+          as one family. */}
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={8}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 11, fontFamily: FN, color: refined ? '#FFFFFF' : 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
             {label} ({open.length})
-          </div>
+          </span>
           {rows.some(r => r.pinned) && (
-            <div style={{ fontSize: 10, fontFamily: FN, color: refined ? '#FFFFFF' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
+            <span style={{ fontFamily: FN, fontSize: 10, color: refined ? '#FFFFFF' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
               📌 {rows.filter(r => r.pinned).length} pinned
-            </div>
+            </span>
           )}
         </div>
       </RefinedHeaderStrip>

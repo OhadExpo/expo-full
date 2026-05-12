@@ -233,6 +233,27 @@ illegible font sizes (< 14 px body). Check PWA:
 - Vercel deploy pipeline reviewed for env-var coverage
 - GitHub Actions / Vercel auto-deploy verified
 
+**PASS 10b — Card-strip consistency**
+
+Read `memory/feedback_uniform_card_strips.md` first. Then walk every
+card-style section on every coach + athlete + demo surface (dashboard
+tiles, alert cards, trainee-detail sections, plan rows, exercise rows,
+intake submission rows, athletic-evaluation list rows, workout-review
+cards). For each card, confirm:
+- It carries a cyan header strip via `<RefinedHeaderStrip>` OR is
+  built with `<Card header={...}>` from `src/ui.jsx`
+- The strip's padding matches the parent card's padding (so the strip
+  spans edge-to-edge with no inset gap)
+- The strip text uses FN font, fontSize 11, letter-spacing 0.18em,
+  fontWeight 700, uppercase
+- The strip color is `refined ? '#FFFFFF' : 'var(--c-ac)'`
+- The strip title is at left; any action button is at right
+- Body content is left-aligned by default (no rogue `textAlign:'center'`
+  unless the card body is genuinely a stat-grid)
+
+Any card breaking this rhythm is a finding under section 5 (UX GAPS)
+of the deliverable. No pastel tints, no custom strip variants.
+
 **PASS 11 — Accessibility deep dive**
 - Tab order on every interactive form: logical, no traps
 - Every button has an accessible name (visible text or `aria-label`)
@@ -396,6 +417,38 @@ Claude Code at Opus 4.7 speed).
 
 ---
 
+# SELF-CHECK before submitting
+
+Before you produce the final document, run this checklist against your
+own draft:
+
+- [ ] Every section in the OUTPUT SPEC is present (sections 0–15).
+- [ ] No section is empty — if a dimension has no findings, the section
+      still appears and says "Pass clean — checked X / Y / Z and found
+      no issues."
+- [ ] Every BLOCKER / MEDIUM finding has: file path + line range +
+      symptom + root cause + concrete fix + validation + risk.
+- [ ] Every finding labelled `REQUIRES_CONFIRMATION` is in section 14
+      (Open Questions), NOT in the BLOCKER list.
+- [ ] The acceptance-test suite (section 13) has at least 100 physically
+      testable checkboxes, organized by surface.
+- [ ] No platitudes ("ensure best practices"); every sentence is either
+      load-bearing or actionable.
+- [ ] No proposals for adding test infrastructure (Jest / Vitest /
+      Playwright) — smoke-test scripts in `scripts/` are OK.
+- [ ] No proposals to swap the stack or rewrite working modules.
+- [ ] No usage of "cure" / "diagnose" / "fix" terminology in any
+      proposed UI string.
+- [ ] The total deliverable is dense enough to fill 80–200 pages of
+      Markdown when rendered — if shorter, you missed surfaces.
+- [ ] The two known-good test fixtures (Diego Day = `tr_diego`, the
+      seeded Athletic Evaluation row added 2026-05-12) are accounted
+      for; don't generate findings that contradict their presence.
+
+If any checkbox above fails, fix the draft before you submit.
+
+---
+
 # FINAL INSTRUCTIONS
 
 Read every file in `src/` and `scripts/`. Connect to Supabase if you
@@ -404,13 +457,11 @@ can (publishable key in `src/supabase.js`; auth as
 Walk every route in the production deploy at
 `https://expo-app.co.il` and `https://expo-full.vercel.app`.
 
-Produce the document. Make it dense. Make it complete. Make it
-operational — Claude Code should be able to execute every finding
-without further clarification.
+Produce the document inline in your response. Make it dense. Make it
+complete. Make it operational — Claude Code should be able to execute
+every finding without further clarification.
 
-When the document is ready, save it to
-`docs/EXPO_PERFECTION_AUDIT_2026-05-13.md` and end your response with
-the single phrase:
+End your response with the single phrase:
 
 > AUDIT-COMPLETE — handing off to Claude Code Opus 4.7.
 

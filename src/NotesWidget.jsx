@@ -147,17 +147,17 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
         // Compact (Dashboard) — header lives in the cyan strip on top to
         // match the visual rhythm of every other dashboard card.
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <div style={{ fontSize: 11, fontFamily: FN, color: refined ? '#FFFFFF' : 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
-              📌 TASKS ({counts.all})
-            </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
+              📌 Tasks ({counts.all})
+            </span>
             <button onClick={() => setAdding(!adding)}
               style={{
                 background: 'transparent',
                 border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
                 color: refined ? '#FFFFFF' : 'var(--c-ac)',
-                padding: '3px 8px', borderRadius: 0, fontFamily: FN, fontSize: 9,
-                fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
+                padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
+                fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
               }}>{adding ? 'CLOSE' : '+ TASK'}</button>
           </div>
         </RefinedHeaderStrip>
