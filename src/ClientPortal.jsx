@@ -329,26 +329,44 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Smart video handling: Safari/iOS skips compression (iOS pre-compresses),
   // Chrome/Android uses Canvas+MediaRecorder at accelerated playback.
   // Files under 25MB skip compression on all browsers.
-  const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-
   // Tracks whether this StepLogger is still mounted. Compression kicks off an
   // rAF draw loop and a MediaRecorder that would otherwise keep running if the
   // user navigates away mid-upload (memory leak + orphan MediaRecorder).
   const aliveRef = useRef(true);
   useEffect(() => () => { aliveRef.current = false; }, []);
 
+  // Feature-detect compression capability. UA-sniffing for Safari was unreliable
+  // — iOS 14.5+ ships MediaRecorder and canvas.captureStream, but quality varies.
+  // Try in any browser that exposes the APIs; fall back to direct upload on throw.
+  const canCompressVideo = () =>
+    typeof MediaRecorder !== 'undefined' &&
+    typeof HTMLCanvasElement.prototype.captureStream === 'function' &&
+    (MediaRecorder.isTypeSupported('video/webm; codecs=vp8') ||
+     MediaRecorder.isTypeSupported('video/webm') ||
+     MediaRecorder.isTypeSupported('video/mp4'));
+
   const compressVideoChrome = (file, onProgress) => new Promise((resolve, reject) => {
-    const MAX_SEC = 59;
-    const TARGET_H = 720;
-    const BITRATE = 2_500_000;
+    // Target: ~50MB output, computed bitrate from duration so a 5-minute video
+    // gets the same budget as a 30-second one. Quality clamped to [400 Kbps, 3 Mbps].
+    const TARGET_MB = 50;
+    const MAX_WIDTH = 1280;
+    const MIN_BITRATE = 400_000;
+    const MAX_BITRATE = 3_000_000;
 
     const src = URL.createObjectURL(file);
     const vid = document.createElement('video');
     vid.muted = true; vid.playsInline = true; vid.preload = 'auto'; vid.src = src;
 
     vid.onloadedmetadata = () => {
-      const duration = Math.min(vid.duration, MAX_SEC);
-      const scale = vid.videoHeight > TARGET_H ? TARGET_H / vid.videoHeight : 1;
+      const duration = Number.isFinite(vid.duration) && vid.duration > 0 ? vid.duration : 60;
+      const targetBits = TARGET_MB * 1024 * 1024 * 8;
+      const computed = Math.floor(targetBits / duration);
+      const BITRATE = Math.max(MIN_BITRATE, Math.min(MAX_BITRATE, computed));
+
+      // Max-width cap handles both landscape (1920x1080 → 1280x720) and portrait
+      // (1080x1920 unchanged) correctly. The /2 rounding is required by VP8/H.264
+      // chroma subsampling.
+      const scale = vid.videoWidth > MAX_WIDTH ? MAX_WIDTH / vid.videoWidth : 1;
       const w = Math.round(vid.videoWidth * scale / 2) * 2;
       const h = Math.round(vid.videoHeight * scale / 2) * 2;
 
@@ -356,16 +374,41 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       canvas.width = w; canvas.height = h;
       const ctx = canvas.getContext('2d');
 
-      const mimeType = MediaRecorder.isTypeSupported('video/webm; codecs=vp8')
-        ? 'video/webm; codecs=vp8' : 'video/webm';
+      if (typeof canvas.captureStream !== 'function') {
+        URL.revokeObjectURL(src);
+        reject(new Error('canvas.captureStream unsupported'));
+        return;
+      }
+
+      // Prefer webm/vp8 (Chrome/Firefox/Android), fall back to mp4 (Safari ≥ 14.5).
+      const mimeCandidates = [
+        'video/webm; codecs=vp8',
+        'video/webm; codecs=vp9',
+        'video/webm',
+        'video/mp4; codecs="avc1.42E01E"',
+        'video/mp4',
+      ];
+      const mimeType = mimeCandidates.find(t => MediaRecorder.isTypeSupported(t));
+      if (!mimeType) {
+        URL.revokeObjectURL(src);
+        reject(new Error('No supported MediaRecorder mime type'));
+        return;
+      }
+      const ext = mimeType.startsWith('video/mp4') ? '.mp4' : '.webm';
+      const baseType = mimeType.split(';')[0];
+
       const stream = canvas.captureStream(30);
       const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: BITRATE });
       const chunks = [];
       recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = () => {
         URL.revokeObjectURL(src);
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        resolve({ blob, ext: '.webm', originalSize: file.size, compressedSize: blob.size });
+        const blob = new Blob(chunks, { type: baseType });
+        if (blob.size < 1024) {
+          reject(new Error('Compression produced empty output'));
+          return;
+        }
+        resolve({ blob, ext, originalSize: file.size, compressedSize: blob.size });
       };
 
       vid.currentTime = 0;
@@ -436,12 +479,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (!file) return;
     e.target.value = '';
 
-    // Warn if file is very large on Safari (no compression available).
-    // Use the async confirmToast instead of window.confirm — the latter
-    // halts the iOS video element while the prompt is up.
-    if (isSafari && file.size > 50 * 1024 * 1024) {
+    // Warn only when we can't compress AND the file is huge — at that point
+    // the trainee is shipping the raw blob and may run into Supabase upload
+    // limits / slow networks. confirmToast is async so the iOS video element
+    // doesn't stall on a sync window.confirm.
+    const compressionAvailable = canCompressVideo();
+    if (!compressionAvailable && file.size > 50 * 1024 * 1024) {
       const sizeMB = Math.round(file.size / 1e6);
-      const ok = await confirmToast(`This video is ${sizeMB}MB. Continue upload?\n\nFor faster uploads, record a shorter clip (under 30 seconds) or pick from your library instead of recording new.`, { okLabel: 'Upload', cancelLabel: 'Cancel' });
+      const ok = await confirmToast(`This video is ${sizeMB}MB and your browser can't compress it here. Continue upload?\n\nFor faster uploads, record a shorter clip (under 30 seconds) or pick from your library instead of recording new.`, { okLabel: 'Upload', cancelLabel: 'Cancel' });
       if (!ok) return;
     }
 
@@ -470,20 +515,25 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         contentType = 'video/mp4';
       }
 
-      // Decide: compress or upload directly
-      // Safari/iOS: NEVER compress (captureStream is broken on WebKit)
-      // Chrome/Android: compress if file > 15MB
-      const shouldCompress = !isSafari && file.size > 15 * 1024 * 1024;
+      // Compress if the browser exposes MediaRecorder + captureStream and the
+      // file is large enough to be worth re-encoding. Failure here is non-fatal
+      // — fall through and upload the original blob so the trainee isn't stuck.
+      const shouldCompress = compressionAvailable && file.size > 15 * 1024 * 1024;
 
       if (shouldCompress) {
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase:'compress'}; return n; });
-        const result = await compressVideoChrome(file, pct => {
-          setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
-        });
-        uploadBlob = result.blob;
-        ext = result.ext;
-        contentType = result.blob.type;
-        console.log(`Compressed: ${(file.size/1e6).toFixed(1)}MB → ${(result.compressedSize/1e6).toFixed(1)}MB`);
+        try {
+          const result = await compressVideoChrome(file, pct => {
+            setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
+          });
+          uploadBlob = result.blob;
+          ext = result.ext;
+          contentType = result.blob.type;
+          console.log(`Compressed: ${(file.size/1e6).toFixed(1)}MB → ${(result.compressedSize/1e6).toFixed(1)}MB`);
+        } catch (compressErr) {
+          console.warn('Compression failed, uploading original:', compressErr);
+          setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:100}; return n; });
+        }
       }
 
       // Upload with progress (XHR for real-time %, falls back to Supabase client)
