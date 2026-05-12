@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b } from './ui';
+import { isRefined5b, RefinedHeaderStrip } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL } from './autoTasks';
@@ -64,22 +64,29 @@ export default function NotesInline({
     onCreatePlanForTask?.(targetId);
   };
 
+  const refined = isRefined5b();
+  const PAD = 12;
   return (
     <div style={{
-      background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+      background: refined ? '#FFFFFF' : 'var(--c-sf)',
       border: `1px solid var(--c-cardBd)`, borderRadius: 0,
-      padding: 12, marginBottom: 12,
+      padding: PAD, marginBottom: 12,
+      boxShadow: C.cardShadow,
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-        <div style={{ fontSize: 9, fontFamily: FN, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>
-          {label} ({open.length})
-        </div>
-        {rows.some(r => r.pinned) && (
-          <div style={{ fontSize: 9, fontFamily: FN, color: 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
-            📌 {rows.filter(r => r.pinned).length} pinned
+      {/* Cyan header strip — matches Athletic Evaluation + Dashboard tasks
+          + every other section card on the trainee detail page. */}
+      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={8}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 11, fontFamily: FN, color: refined ? '#FFFFFF' : 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
+            {label} ({open.length})
           </div>
-        )}
-      </div>
+          {rows.some(r => r.pinned) && (
+            <div style={{ fontSize: 10, fontFamily: FN, color: refined ? '#FFFFFF' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
+              📌 {rows.filter(r => r.pinned).length} pinned
+            </div>
+          )}
+        </div>
+      </RefinedHeaderStrip>
 
       {visibleOpen.length === 0 && done.length === 0 && (
         <div style={{ fontSize: 12, color: 'var(--c-td)', marginBottom: 8 }}>
@@ -176,27 +183,19 @@ export default function NotesInline({
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+      <div style={{ marginTop: 10 }}>
         <textarea value={body} onChange={e => setBody(e.target.value)}
           onBlur={draft.onBlur}
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
-          placeholder="+ task (⌘/Ctrl + Enter to save · auto-saves on blur)"
+          placeholder="Add a note…"
           rows={2}
           style={{
-            flex: 1, background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,
+            width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,
             padding: '8px 10px', color: 'var(--c-tx)', fontSize: 13, outline: 'none', boxSizing: 'border-box',
             resize: 'vertical',
             direction: isHebrew(body) ? 'rtl' : 'ltr',
             fontFamily: isHebrew(body) ? FH : FB,
           }} />
-        <button onClick={onAdd} disabled={!body.trim()}
-          style={{
-            padding: '8px 14px', borderRadius: 0,
-            border: `1px solid ${body.trim() ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-            background: 'transparent', color: body.trim() ? 'var(--c-ac)' : 'var(--c-td)',
-            fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-            cursor: body.trim() ? 'pointer' : 'default',
-          }}>ADD</button>
       </div>
     </div>
   );
