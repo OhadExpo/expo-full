@@ -912,52 +912,6 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
       {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
 
-      {/* Last-time-at-this-exercise hint — pulls the most recent prior session
-          for this stableId from priorWorkouts and shows its top set inline.
-          Helps the trainee aim for progressive overload without flipping to
-          another tab. Honors substitutions: if the trainee swapped this
-          session's exercise, the hint looks up the swap-in's prior bests. */}
-      {(() => {
-        if (!priorWorkouts || priorWorkouts.length === 0) return null;
-        const stableId = sub ? (sub.id || `swap:${(sub.title||'').toLowerCase()}`) : ex.eid;
-        let bestPrior = null;
-        for (const w of priorWorkouts) {
-          for (const px of (w.exercises || [])) {
-            const pSub = px.substitution;
-            const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
-            if (pStableId !== stableId) continue;
-            for (const s of (px.sets || [])) {
-              if (!s.done) continue;
-              const load = parseFloat(s.load) || 0;
-              if (load <= 0) continue;
-              const reps = parseFloat(s.reps) || 0;
-              const rpe = s.rpe ?? null;
-              if (!bestPrior || load > bestPrior.load || (load === bestPrior.load && new Date(w.date) > new Date(bestPrior.date))) {
-                bestPrior = { load, reps, rpe, date: w.date };
-              }
-            }
-          }
-        }
-        if (!bestPrior) return null;
-        const days = Math.max(1, Math.round((Date.now() - new Date(bestPrior.date).getTime()) / 86400000));
-        return (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
-            <div style={{
-              padding: '6px 10px',
-              background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-              display: 'inline-flex', alignItems: 'baseline', gap: 8,
-              fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.4,
-            }}>
-              <span style={{ color: C.td, letterSpacing: 1, fontWeight: 700, fontSize: 9 }}>LAST</span>
-              <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.load}<span style={{ color: C.tm, fontWeight: 400 }}> kg</span></span>
-              <span style={{ color: C.tm }}>×{bestPrior.reps || '—'}</span>
-              {bestPrior.rpe != null && bestPrior.rpe !== '' && <span style={{ color: C.tm }}>· RPE {bestPrior.rpe}</span>}
-              <span style={{ color: C.td, fontSize: 10 }}>· {days}d ago</span>
-            </div>
-          </div>
-        );
-      })()}
-
       {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
           {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`1px solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
@@ -999,6 +953,52 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${wf?C.ac:C.cardBd}`,borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
         <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700,letterSpacing:'0.18em'}}>WEEKLY FOCUS</div>
         <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>
+
+      {/* Last-time-at-this-exercise pill — moved here so it sits IMMEDIATELY
+          above the inputs card. The trainee scrolls past prescription / notes
+          / video, lands on the historical context (LAST all-time best plus
+          per-set PREV WK ghost rows inside the grid), then logs this week's
+          sets. Honors substitutions. */}
+      {(() => {
+        if (!priorWorkouts || priorWorkouts.length === 0) return null;
+        const stableId = sub ? (sub.id || `swap:${(sub.title||'').toLowerCase()}`) : ex.eid;
+        let bestPrior = null;
+        for (const w of priorWorkouts) {
+          for (const px of (w.exercises || [])) {
+            const pSub = px.substitution;
+            const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
+            if (pStableId !== stableId) continue;
+            for (const s of (px.sets || [])) {
+              if (!s.done) continue;
+              const load = parseFloat(s.load) || 0;
+              if (load <= 0) continue;
+              const reps = parseFloat(s.reps) || 0;
+              const rpe = s.rpe ?? null;
+              if (!bestPrior || load > bestPrior.load || (load === bestPrior.load && new Date(w.date) > new Date(bestPrior.date))) {
+                bestPrior = { load, reps, rpe, date: w.date };
+              }
+            }
+          }
+        }
+        if (!bestPrior) return null;
+        const days = Math.max(1, Math.round((Date.now() - new Date(bestPrior.date).getTime()) / 86400000));
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
+            <div style={{
+              padding: '6px 10px',
+              background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
+              display: 'inline-flex', alignItems: 'baseline', gap: 8,
+              fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.4,
+            }}>
+              <span style={{ color: C.td, letterSpacing: 1, fontWeight: 700, fontSize: 9 }}>BEST EVER</span>
+              <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.load}<span style={{ color: C.tm, fontWeight: 400 }}> kg</span></span>
+              <span style={{ color: C.tm }}>×{bestPrior.reps || '—'}</span>
+              {bestPrior.rpe != null && bestPrior.rpe !== '' && <span style={{ color: C.tm }}>· RPE {bestPrior.rpe}</span>}
+              <span style={{ color: C.td, fontSize: 10 }}>· {days}d ago</span>
+            </div>
+          </div>
+        );
+      })()}
 
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
