@@ -14,19 +14,16 @@ import { EVAL_SCHEMA, romKey } from './evaluationSchema';
 
 const inputBase = {
   background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,
-  padding: '6px 8px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 12,
-  outline: 'none', boxSizing: 'border-box',
+  padding: '8px 10px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 12,
+  outline: 'none', boxSizing: 'border-box', minWidth: 0,
 };
 
-function TestRow({ test, value, onChange }) {
+// One test row mirrors the ATH EVAL.xlsx layout: # · NAME · GOAL · SCORE.
+// Score column adapts to test shape (simple / sided / composite / sided
+// composite) but stays inside its column — never overflows the card.
+function TestRow({ index, test, value, onChange }) {
   const isComposite = Array.isArray(test.composite);
   const hasSides = Array.isArray(test.sides);
-
-  // Cell shape:
-  //   simple test           → value is string
-  //   sided test            → value is { L, R }
-  //   composite test        → value is { [partId]: string }
-  //   sided composite test  → value is { L: {...}, R: {...} }
 
   const setSimple = (v) => onChange(v);
   const setSide = (side, v) => onChange({ ...(typeof value === 'object' ? value : {}), [side]: v });
@@ -37,40 +34,47 @@ function TestRow({ test, value, onChange }) {
     onChange({ ...cur, [side]: { ...sideCur, [partId]: v } });
   };
 
+  const labelStyle = {
+    fontFamily: FN, fontSize: 9, color: 'var(--c-tm)',
+    letterSpacing: '0.1em', fontWeight: 700, marginBottom: 3,
+  };
+
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: '180px 110px 1fr',
-      gap: 8, padding: '6px 0', alignItems: 'start',
+    <div className="eval-row" style={{
+      display: 'grid',
+      gridTemplateColumns: '28px minmax(170px, 1.5fr) minmax(95px, 0.9fr) minmax(220px, 2fr)',
+      gap: 10, padding: '8px 0', alignItems: 'center',
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
-      <div style={{ fontSize: 12, color: 'var(--c-tx)', fontWeight: 600 }}>{test.label}</div>
-      <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.06em' }}>{test.goal || '—'}</div>
-      <div>
+      <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
+      <div style={{ fontSize: 13, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
+      <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3 }}>{test.goal || '—'}</div>
+      <div style={{ minWidth: 0 }}>
         {/* simple */}
         {!hasSides && !isComposite && (
           <input value={value || ''} onChange={e => setSimple(e.target.value)}
             placeholder={test.unit || ''} style={{ ...inputBase, width: '100%' }} />
         )}
-        {/* sided, non-composite */}
+        {/* sided, non-composite — two stacked rows on narrow, side-by-side on wide */}
         {hasSides && !isComposite && (
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 6 }}>
             {test.sides.map(s => (
-              <div key={s} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', width: 12 }}>{s}</span>
+              <div key={s}>
+                <div style={labelStyle}>{s} · {test.unit || ''}</div>
                 <input value={(typeof value === 'object' && value?.[s]) || ''}
                   onChange={e => setSide(s, e.target.value)}
-                  placeholder={test.unit || ''} style={{ ...inputBase, flex: 1 }} />
+                  placeholder={test.unit || ''} style={{ ...inputBase, width: '100%' }} />
               </div>
             ))}
           </div>
         )}
-        {/* non-sided composite */}
+        {/* non-sided composite — sub-fields stacked vertically with labels */}
         {!hasSides && isComposite && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${test.composite.length}, minmax(0, 1fr))`, gap: 6 }}>
             {test.composite.map(part => (
-              <div key={part.id} style={{ flex: '1 1 80px', minWidth: 80 }}>
-                <div style={{ fontFamily: FN, fontSize: 8, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 2 }}>
-                  {part.label}{part.unit ? ` (${part.unit})` : ''}
+              <div key={part.id}>
+                <div style={labelStyle}>
+                  {part.label}{part.unit ? ` · ${part.unit}` : ''}
                 </div>
                 <input value={(typeof value === 'object' && value?.[part.id]) || ''}
                   onChange={e => setComposite(part.id, e.target.value)}
@@ -79,19 +83,22 @@ function TestRow({ test, value, onChange }) {
             ))}
           </div>
         )}
-        {/* sided composite (e.g. sl_pogo: per-side {ssc_ms, rsi}) */}
+        {/* sided composite — side header + composite sub-fields per side */}
         {hasSides && isComposite && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
             {test.sides.map(s => (
-              <div key={s} style={{ flex: 1 }}>
-                <div style={{ fontFamily: FN, fontSize: 8, color: 'var(--c-tm)', letterSpacing: '0.08em', marginBottom: 2 }}>{s}</div>
-                <div style={{ display: 'flex', gap: 4 }}>
+              <div key={s} style={{ minWidth: 0 }}>
+                <div style={{ ...labelStyle, color: 'var(--c-ac)', fontSize: 10, marginBottom: 4 }}>{s}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${test.composite.length}, minmax(0, 1fr))`, gap: 4 }}>
                   {test.composite.map(part => (
-                    <input key={part.id}
-                      value={(typeof value?.[s] === 'object' && value[s]?.[part.id]) || ''}
-                      onChange={e => setSideComposite(s, part.id, e.target.value)}
-                      placeholder={part.label}
-                      style={{ ...inputBase, flex: 1, minWidth: 0 }} />
+                    <div key={part.id} style={{ minWidth: 0 }}>
+                      <div style={{ ...labelStyle, fontSize: 8, marginBottom: 2 }}>
+                        {part.label}{part.unit ? `·${part.unit}` : ''}
+                      </div>
+                      <input value={(typeof value?.[s] === 'object' && value[s]?.[part.id]) || ''}
+                        onChange={e => setSideComposite(s, part.id, e.target.value)}
+                        style={{ ...inputBase, width: '100%', padding: '6px 8px', fontSize: 11 }} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -105,19 +112,36 @@ function TestRow({ test, value, onChange }) {
 
 function SectionBlock({ section, scores, setScore }) {
   return (
-    <div style={{ marginBottom: 18 }}>
+    <div style={{
+      marginBottom: 18,
+      background: 'var(--c-sf)',
+      padding: '14px 16px',
+      border: `1px solid var(--c-cardBd)`,
+    }}>
       <div style={{
-        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
-        color: 'var(--c-ac)', marginBottom: 8, paddingBottom: 4,
-        borderBottom: `1px solid var(--c-ac)`,
+        fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
+        color: 'var(--c-ac)', marginBottom: 8, paddingBottom: 6,
+        borderBottom: `2px solid var(--c-ac)`,
       }}>{section.title.toUpperCase()}</div>
       {section.hint && (
         <div style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', marginBottom: 8, fontStyle: 'italic' }}>
           {section.hint}
         </div>
       )}
-      {section.tests.map(t => (
-        <TestRow key={t.id} test={t} value={scores[t.id]}
+      {/* Column headers — same template as TestRow so they align */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '28px minmax(170px, 1.5fr) minmax(95px, 0.9fr) minmax(220px, 2fr)',
+        gap: 10, padding: '4px 0 6px', marginBottom: 0,
+        borderBottom: `1px solid var(--c-cardBd)`,
+      }}>
+        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>#</div>
+        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>TEST</div>
+        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>GOAL</div>
+        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>SCORE</div>
+      </div>
+      {section.tests.map((t, i) => (
+        <TestRow key={t.id} index={i + 1} test={t} value={scores[t.id]}
           onChange={v => setScore(t.id, v)} />
       ))}
     </div>
@@ -127,30 +151,36 @@ function SectionBlock({ section, scores, setScore }) {
 function RomBlock({ rom, setRom }) {
   const set = (key, v) => setRom({ ...rom, [key]: v });
   return (
-    <div style={{ marginBottom: 18 }}>
+    <div style={{ marginBottom: 18, background: 'var(--c-sf)', padding: '14px 16px', border: `1px solid var(--c-cardBd)` }}>
       <div style={{
-        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
-        color: 'var(--c-ac)', marginBottom: 8, paddingBottom: 4,
-        borderBottom: `1px solid var(--c-ac)`,
+        fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
+        color: 'var(--c-ac)', marginBottom: 6, paddingBottom: 6,
+        borderBottom: `2px solid var(--c-ac)`,
       }}>{EVAL_SCHEMA.rom.title.toUpperCase()}</div>
-      <div style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', marginBottom: 12, fontStyle: 'italic' }}>
+      <div style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', marginBottom: 14, fontStyle: 'italic' }}>
         {EVAL_SCHEMA.rom.hint}
       </div>
-      {EVAL_SCHEMA.rom.joints.map(j => (
-        <div key={j.id} style={{ marginBottom: 12 }}>
-          <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-tx)', fontWeight: 700, marginBottom: 4 }}>
+      {EVAL_SCHEMA.rom.joints.map((j, ji) => (
+        <div key={j.id} style={{
+          display: 'grid',
+          gridTemplateColumns: '120px 1fr',
+          gap: 14, padding: '10px 0', alignItems: 'start',
+          borderBottom: ji < EVAL_SCHEMA.rom.joints.length - 1 ? `1px solid var(--c-cardBd)` : 'none',
+        }}>
+          <div style={{ fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', fontWeight: 700, letterSpacing: '0.04em' }}>
             {j.label}
           </div>
           <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6,
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8,
+            minWidth: 0,
           }}>
             {j.axes.map(ax => {
               const k = romKey(j.id, ax);
               return (
-                <div key={ax} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ flex: 1, fontFamily: FB, fontSize: 11, color: 'var(--c-tm)' }}>{ax}</div>
+                <div key={ax} style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <div style={{ flex: 1, fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ax}</div>
                   <input value={rom[k] || ''} onChange={e => set(k, e.target.value)}
-                    placeholder="°" style={{ ...inputBase, width: 64 }} />
+                    placeholder="°" style={{ ...inputBase, width: 56, padding: '6px 8px', textAlign: 'center' }} />
                 </div>
               );
             })}
@@ -202,7 +232,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
       <div onClick={e => e.stopPropagation()} style={{
         background: isRefined5b() ? '#FFFFFF' : 'var(--c-bg)',
         border: `1px solid var(--c-ac)`, borderRadius: 0,
-        padding: 20, maxWidth: 900, width: '100%',
+        padding: 24, maxWidth: 1180, width: '100%',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontFamily: FN, fontSize: 18, color: 'var(--c-tx)', letterSpacing: '0.04em' }}>

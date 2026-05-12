@@ -43,22 +43,32 @@ const renderScore = (test, value) => {
   return JSON.stringify(value);
 };
 
-function ComparisonRow({ test, evals }) {
+// Comparison view = #/TEST/GOAL + N "Best Score" columns side-by-side,
+// mirroring the BHBC xlsx layout exactly. Same column template across
+// row types so headers, tests, and ROM axes all align vertically.
+function ComparisonRow({ index, test, evals }) {
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: `180px 110px repeat(${evals.length}, 1fr)`,
-      gap: 8, padding: '4px 0', alignItems: 'center',
+      display: 'grid',
+      gridTemplateColumns: `28px minmax(170px, 1.5fr) minmax(95px, 0.9fr) repeat(${evals.length}, minmax(90px, 1fr))`,
+      gap: 10, padding: '8px 0', alignItems: 'center',
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
-      <div style={{ fontSize: 12, color: 'var(--c-tx)' }}>{test.label}</div>
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.06em' }}>{test.goal || '—'}</div>
-      {evals.map(e => (
-        <div key={e.id} style={{
-          fontFamily: FN, fontSize: 11, color: 'var(--c-tx)', fontWeight: 700, textAlign: 'center',
-        }}>
-          {renderScore(test, e.scores?.[test.id])}
-        </div>
-      ))}
+      <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
+      <div style={{ fontSize: 12, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
+      <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3 }}>{test.goal || '—'}</div>
+      {evals.map(e => {
+        const v = renderScore(test, e.scores?.[test.id]);
+        const filled = v && v !== '—';
+        return (
+          <div key={e.id} style={{
+            fontFamily: FN, fontSize: 11,
+            color: filled ? 'var(--c-tx)' : 'var(--c-td)',
+            fontWeight: filled ? 700 : 400, textAlign: 'center',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{v || '—'}</div>
+        );
+      })}
     </div>
   );
 }
@@ -67,17 +77,24 @@ function RomRow({ joint, axis, evals }) {
   const k = romKey(joint.id, axis);
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: `180px 110px repeat(${evals.length}, 1fr)`,
-      gap: 8, padding: '3px 0', alignItems: 'center',
+      display: 'grid',
+      gridTemplateColumns: `28px minmax(170px, 1.5fr) minmax(95px, 0.9fr) repeat(${evals.length}, minmax(90px, 1fr))`,
+      gap: 10, padding: '5px 0', alignItems: 'center',
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
-      <div style={{ fontSize: 11, color: 'var(--c-tm)', paddingLeft: 12 }}>{axis}</div>
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.06em' }}>degrees</div>
-      {evals.map(e => (
-        <div key={e.id} style={{
-          fontFamily: FN, fontSize: 11, color: 'var(--c-tx)', fontWeight: 700, textAlign: 'center',
-        }}>{e.rom?.[k] || '—'}</div>
-      ))}
+      <div></div>
+      <div style={{ fontSize: 11, color: 'var(--c-tm)', paddingLeft: 18 }}>{axis}</div>
+      <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-td)', letterSpacing: '0.04em' }}>degrees</div>
+      {evals.map(e => {
+        const val = e.rom?.[k];
+        return (
+          <div key={e.id} style={{
+            fontFamily: FN, fontSize: 11,
+            color: val ? 'var(--c-tx)' : 'var(--c-td)',
+            fontWeight: val ? 700 : 400, textAlign: 'center',
+          }}>{val || '—'}</div>
+        );
+      })}
     </div>
   );
 }
@@ -142,13 +159,17 @@ export default function TraineeEvaluation({ trainee }) {
       </div>
 
       {expanded && rows.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
-          {/* Column-header row with edit buttons per eval column */}
+        <div style={{ overflowX: 'auto', marginTop: 4 }}>
+          {/* Column-header row with edit buttons per eval column.
+              Template matches ComparisonRow + RomRow exactly so every
+              row aligns vertically: # · TEST · GOAL · score columns. */}
           <div style={{
-            display: 'grid', gridTemplateColumns: `180px 110px repeat(${compareEvals.length}, 1fr)`,
-            gap: 8, padding: '6px 0', alignItems: 'center',
+            display: 'grid',
+            gridTemplateColumns: `28px minmax(170px, 1.5fr) minmax(95px, 0.9fr) repeat(${compareEvals.length}, minmax(90px, 1fr))`,
+            gap: 10, padding: '8px 0', alignItems: 'end',
             borderBottom: `2px solid var(--c-ac)`, marginBottom: 8,
           }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>#</div>
             <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>TEST</div>
             <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>GOAL</div>
             {compareEvals.map(e => (
@@ -168,24 +189,28 @@ export default function TraineeEvaluation({ trainee }) {
 
           {/* Sections */}
           {EVAL_SCHEMA.sections.map(s => (
-            <div key={s.id} style={{ marginBottom: 14 }}>
+            <div key={s.id} style={{ marginBottom: 18 }}>
               <div style={{
-                fontFamily: FN, fontSize: 10, color: 'var(--c-ac)', letterSpacing: '0.18em',
-                fontWeight: 700, marginBottom: 4, paddingBottom: 2,
+                fontFamily: FN, fontSize: 10, color: 'var(--c-ac)', letterSpacing: '0.2em',
+                fontWeight: 700, marginBottom: 6, paddingBottom: 4, paddingTop: 6,
+                borderBottom: `1px solid var(--c-ac)`,
               }}>{s.title.toUpperCase()}</div>
-              {s.tests.map(t => <ComparisonRow key={t.id} test={t} evals={compareEvals} />)}
+              {s.tests.map((t, ti) => (
+                <ComparisonRow key={t.id} index={ti + 1} test={t} evals={compareEvals} />
+              ))}
             </div>
           ))}
 
           {/* ROM grid */}
-          <div style={{ marginBottom: 14 }}>
+          <div style={{ marginBottom: 18 }}>
             <div style={{
-              fontFamily: FN, fontSize: 10, color: 'var(--c-ac)', letterSpacing: '0.18em',
-              fontWeight: 700, marginBottom: 4, paddingBottom: 2,
+              fontFamily: FN, fontSize: 10, color: 'var(--c-ac)', letterSpacing: '0.2em',
+              fontWeight: 700, marginBottom: 6, paddingBottom: 4, paddingTop: 6,
+              borderBottom: `1px solid var(--c-ac)`,
             }}>{EVAL_SCHEMA.rom.title.toUpperCase()}</div>
             {EVAL_SCHEMA.rom.joints.map(j => (
               <div key={j.id}>
-                <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tx)', fontWeight: 700, marginTop: 8, marginBottom: 2 }}>
+                <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-tx)', fontWeight: 700, marginTop: 10, marginBottom: 4, letterSpacing: '0.04em' }}>
                   {j.label}
                 </div>
                 {j.axes.map(ax => <RomRow key={ax} joint={j} axis={ax} evals={compareEvals} />)}
