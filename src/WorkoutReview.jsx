@@ -493,6 +493,50 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
 
   useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = speed; }, [speed]);
 
+  // MediaRecorder-encoded WebMs ship without a duration cue in the EBML
+  // header, so the <video> reports duration = Infinity until it has scanned
+  // the full file. While duration is Infinity, the seek bar is dead, the
+  // time readout shows ":00 / —", and playbackRate changes are silently
+  // dropped on some browsers. The fix is to scrub past the end on first
+  // load — the browser scans the whole stream looking for the seek target,
+  // discovers the real duration, fires durationchange, then we scrub back
+  // to start. After that, the player behaves identically to any mp4.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    let fixed = false;
+    const onLoaded = () => {
+      // Only kick in for the broken-metadata case. Avoid running on healthy
+      // mp4 / well-formed webm where duration is already finite.
+      if (fixed) return;
+      if (Number.isFinite(v.duration) && v.duration > 0) return;
+      fixed = true;
+      try {
+        // 1e101 is the canonical "scan to end" sentinel used by every browser
+        // implementation of the trick — finite enough that Chrome doesn't
+        // throw, large enough that no real video clears it.
+        v.currentTime = 1e101;
+      } catch { /* iOS sometimes throws — durationchange handler retries */ }
+    };
+    const onDuration = () => {
+      if (fixed && Number.isFinite(v.duration) && v.duration > 0) {
+        // Scan completed; jump back to start so the user sees frame 0.
+        try { v.currentTime = 0; } catch {}
+        // Re-apply the user's chosen speed in case the browser reset it
+        // while metadata was being scanned.
+        v.playbackRate = speed;
+      }
+    };
+    v.addEventListener('loadedmetadata', onLoaded);
+    v.addEventListener('durationchange', onDuration);
+    // src may have already loaded before this effect mounted (cached).
+    if (v.readyState >= 1) onLoaded();
+    return () => {
+      v.removeEventListener('loadedmetadata', onLoaded);
+      v.removeEventListener('durationchange', onDuration);
+    };
+  }, [url, speed]);
+
   // Auto-pause at comment timestamps. Listener reads the latest notes + flags
   // out of refs so the handler doesn't need to re-register on every change.
   const notesRef = useRef(notes);

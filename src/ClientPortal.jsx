@@ -380,13 +380,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         return;
       }
 
-      // Prefer webm/vp8 (Chrome/Firefox/Android), fall back to mp4 (Safari ≥ 14.5).
+      // Prefer mp4 first — it ships proper duration metadata in the moov atom,
+      // so the trainer's <video> playback (seek bar, time readout, playbackRate
+      // toggles) works correctly without the Infinity-duration scan trick.
+      // WebM from MediaRecorder lacks a duration cue in the EBML header and
+      // forces a full-file scan to compute duration, which silently breaks
+      // playbackRate on the trainer-review side. Chrome ≥ 123 and Safari
+      // ≥ 14.5 support mp4 encoding; Firefox falls back to webm.
       const mimeCandidates = [
+        'video/mp4; codecs="avc1.42E01E"',
+        'video/mp4',
         'video/webm; codecs=vp8',
         'video/webm; codecs=vp9',
         'video/webm',
-        'video/mp4; codecs="avc1.42E01E"',
-        'video/mp4',
       ];
       const mimeType = mimeCandidates.find(t => MediaRecorder.isTypeSupported(t));
       if (!mimeType) {

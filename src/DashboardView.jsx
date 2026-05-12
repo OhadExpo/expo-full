@@ -175,6 +175,18 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
   return (
     <div>
+      {/* TASKS — first card on the dashboard. Compact summary; click OPEN
+          FULL TASKS to jump to /coach/tasks for the full filter view. */}
+      <div style={{ marginBottom: 14 }}>
+        <NotesWidget compact
+          trainees={trainees}
+          onOpenFullTasks={onOpenTasksTab}
+          onCreatePlanForTask={onCreatePlanForTask}
+          onNavigate={(kind, id) => {
+            if (kind === 'trainee') onSelectTrainee?.(id);
+          }} />
+      </div>
+
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
@@ -375,17 +387,6 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         );
       })() : null}
 
-      {/* TASKS — compact conclusion view of coach_notes. Same data as the
-          full /coach/tasks tab; click OPEN FULL TASKS to jump there. */}
-      <div style={{ marginBottom: 14 }}>
-        <NotesWidget compact
-          trainees={trainees}
-          onOpenFullTasks={onOpenTasksTab}
-          onCreatePlanForTask={onCreatePlanForTask}
-          onNavigate={(kind, id) => {
-            if (kind === 'trainee') onSelectTrainee?.(id);
-          }} />
-      </div>
 
       {/* Search */}
       <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
