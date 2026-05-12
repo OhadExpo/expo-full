@@ -822,6 +822,38 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`;
     const wf = weeklyFocus?.[fk];
 
+    // Previous-week working sets for this same exercise on this same day.
+    // Week 2+ only. Scoped to (planName, dayName, week=weekNum) so cross-block
+    // history doesn't bleed in. Matches by eid first, normalized title second
+    // (plan rebuilds can rotate eids while the title stays stable). A logged
+    // load is the qualifying signal — trainees often skip the "done" check.
+    // Computed once at block level so each set row can show its own prior.
+    let prevWeekSets = null;
+    let prevWeekIdx = null;
+    if (weekNum >= 1 && priorWorkouts && priorWorkouts.length > 0) {
+      const stableId = sub ? (sub.id || `swap:${(sub.title||'').toLowerCase()}`) : ex.eid;
+      const titleKey = (sub ? sub.title : d.t || '').toLowerCase().trim();
+      const targetWeek = weekNum; // saved w.week is 1-indexed; prev = weekNum
+      let prevDate = null;
+      for (const w of priorWorkouts) {
+        if (w.planName !== plan.name) continue;
+        if (w.dayName !== day.name) continue;
+        if (w.week !== targetWeek) continue;
+        for (const px of (w.exercises || [])) {
+          const pSub = px.substitution;
+          const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
+          const pTitleKey = (pSub ? pSub.to : px.title || '').toLowerCase().trim();
+          if (pStableId !== stableId && !(titleKey && pTitleKey === titleKey)) continue;
+          const sets = (px.sets || []).filter(s => parseFloat(s.load) > 0);
+          if (sets.length && (!prevDate || new Date(w.date) > new Date(prevDate))) {
+            prevWeekSets = sets;
+            prevWeekIdx = targetWeek;
+            prevDate = w.date;
+          }
+        }
+      }
+    }
+
     return <div key={ei} style={{marginBottom: blockIdx < groupExs.length - 1 ? 24 : 0, paddingBottom: blockIdx < groupExs.length - 1 ? 20 : 0, borderBottom: blockIdx < groupExs.length - 1 ? `2px dashed ${C.bd2}` : 'none'}}>
       {isSuperset && <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em',textAlign:'center',marginBottom:8}}>EXERCISE {blockIdx+1} OF {groupExs.length}</div>}
 
@@ -930,11 +962,22 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           C.cardBd (thicker, gray) instead of 0.25px / C.ac. Cyan is reserved
           for genuine intent \u2014 the left accent stripe on the focus card,
           active-week pill, and key inline text. */}
-      {(d.q || ex.n) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginTop:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6}}>
-        <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,fontWeight:700,textAlign:'center',letterSpacing:'0.18em'}}>EXERCISE NOTES</div>
-        {d.q && <div style={{textAlign:'center',direction:/[\u0590-\u05FF]/.test(d.q)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(d.q)?FH:undefined}}>{d.q}</div>}
-        {d.q && ex.n && <div style={{borderTop:`1px solid ${C.cardBd}`,margin:'8px 0'}}/>}
-        {ex.n && <div style={{color:C.or,textAlign:'center',direction:/[\u0590-\u05FF]/.test(ex.n)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(ex.n)?FH:undefined}}>{ex.n}</div>}</div>}
+      {(() => {
+        // Notes precedence: coach's per-instance note (ex.n) wins. The library's
+        // cues (d.q) only render as a fallback when ex.n is empty. This stops
+        // the "white note from nowhere" effect where the library cues kept
+        // showing under the orange coach note. Per-instance is the only
+        // authoritative text the coach can edit; library is the seed source.
+        const note = (ex.n && ex.n.trim()) || (d.q && d.q.trim()) || '';
+        if (!note) return null;
+        const useExNote = !!(ex.n && ex.n.trim());
+        return (
+          <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginTop:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6}}>
+            <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,fontWeight:700,textAlign:'center',letterSpacing:'0.18em'}}>EXERCISE NOTES</div>
+            <div style={{color:useExNote?C.or:C.tx,textAlign:'center',direction:/[\u0590-\u05FF]/.test(note)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(note)?FH:undefined}}>{note}</div>
+          </div>
+        );
+      })()}
 
       {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
@@ -954,13 +997,38 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
           {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{h}</div>)}</div>
-        {(allSets[ei]||[]).map((set,si) => <div key={si} style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
-          <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
-          <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} placeholder="—" style={bi}/>
-          <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} placeholder="kg" style={bi}/>
-          <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} placeholder="—" style={bi}/>
-          <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
-        </div>)}</div>
+        {(allSets[ei]||[]).map((set,si) => {
+          // Ghost row above each set: REPS/KG/RPE the trainee logged for
+          // this same set index last week. Aligned to the input columns
+          // so the eye lands on the prior value while typing the new one.
+          const prior = prevWeekSets?.[si];
+          const miniBox = {
+            padding:'3px 4px', background:'rgba(255,255,255,0.5)',
+            border:`1px dashed ${C.cardBd}`, borderRadius:0,
+            fontFamily:FN, fontSize:11, color:C.tx, textAlign:'center',
+            fontWeight:700, fontVariantNumeric:'tabular-nums',
+          };
+          return <React.Fragment key={si}>
+            {prior && <div style={{
+              display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,
+              alignItems:'center',marginBottom:3,marginTop:si===0?0:8,
+              opacity:0.5,
+            }}>
+              <div style={{fontFamily:FN,fontSize:9,color:C.ac,textAlign:'center',letterSpacing:'0.08em',fontWeight:800,fontVariantNumeric:'tabular-nums'}}>W{prevWeekIdx}</div>
+              <div style={miniBox}>{prior.reps || '—'}</div>
+              <div style={miniBox}>{parseFloat(prior.load)}</div>
+              <div style={miniBox}>{prior.rpe || '—'}</div>
+              <div style={{fontFamily:FN,fontSize:9,color:C.ac,textAlign:'center',letterSpacing:'0.08em',fontWeight:800}}>NOW↓</div>
+            </div>}
+            <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
+              <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
+              <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} placeholder="—" style={bi}/>
+              <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} placeholder="kg" style={bi}/>
+              <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} placeholder="—" style={bi}/>
+              <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
+            </div>
+          </React.Fragment>;
+        })}</div>
 
       <div style={{background:'var(--c-sf)',border:`1px solid ${f.uploaded?C.gn:C.cardBd}`,borderRadius:0,padding:14}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>

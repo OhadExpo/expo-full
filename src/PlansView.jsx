@@ -542,9 +542,29 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     const ex = defaultPlanEx();
     ex.order = plan.days[activeDay]?.exercises.length || 0;
     ex.exerciseId = exerciseId;
+    // Seed the per-instance note (ex.n) with the library's cues so the coach
+    // can edit them directly as orange-text notes. Without this, the library
+    // cues only rendered on the athlete portal via a separate d.q layer that
+    // shadowed any coach-written note. ex.n is now the single source of
+    // truth for what the athlete sees.
+    const lib = exerciseId ? (exercises || []).find(e => e.id === exerciseId) : null;
+    if (lib?.cues) ex.n = lib.cues;
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
   };
-  const updateEx = (ei,u) => { const exs=[...plan.days[activeDay].exercises]; exs[ei]={...exs[ei],...u}; updateDay(activeDay,{exercises:exs}); };
+  // When the coach swaps the exerciseId on an existing row, re-seed the
+  // ex.n notes from the new library entry's cues — unless the coach has
+  // already typed a custom note (don't clobber their orange text).
+  const updateEx = (ei,u) => {
+    const exs=[...plan.days[activeDay].exercises];
+    const cur = exs[ei];
+    let next = {...cur,...u};
+    if (u.exerciseId && u.exerciseId !== cur.exerciseId && !(cur.n && cur.n.trim())) {
+      const lib = (exercises || []).find(e => e.id === u.exerciseId);
+      if (lib?.cues) next.n = lib.cues;
+    }
+    exs[ei]=next;
+    updateDay(activeDay,{exercises:exs});
+  };
   // Per-day variants — used by the overview table so a row in any day can be
   // edited without first switching `activeDay` (and without leaving overview).
   const updateExInDay = (di, ei, u) => setPlan(p => ({...p, days: p.days.map((d, idx) => {
@@ -791,10 +811,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                           </div>
                         </div>
                       ) : (
-                        <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                          <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Sets</label>
-                            <button onClick={()=>updateEx(exIdx,{wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} title="Set different sets per week" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>per week →</button>
+                        <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0}}>
+                          <div style={{display:"flex",alignItems:"baseline",gap:4,minWidth:0}}>
+                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN,whiteSpace:"nowrap"}}>Sets</label>
+                            <button onClick={()=>updateEx(exIdx,{wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} title="Set different sets per week" aria-label="Set different sets per week" style={{background:"none",border:"none",color:C.ac,fontSize:11,cursor:"pointer",padding:"0 2px",marginLeft:"auto",fontFamily:FN,lineHeight:1,whiteSpace:"nowrap"}}>↦</button>
                           </div>
                           <input type="number" value={ex.sets} onChange={e=>updateEx(exIdx,{sets:parseInt(e.target.value)||0})} style={{...baseInput}} />
                         </div>
