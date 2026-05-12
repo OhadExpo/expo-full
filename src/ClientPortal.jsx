@@ -517,10 +517,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const previewUrl = URL.createObjectURL(file);
     setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, pendingBlobId:null}; return n; });
 
+    // Hoist these so the catch handler (offline-queue path) can read them.
+    // Inside-try-only declarations made the enqueueBlob() call silently
+    // throw a ReferenceError, which was caught by the inner try/catch and
+    // dropped the trainee's recording on the floor.
+    let uploadBlob = file;
+    let ext = file.name.match(/\.[^.]+$/)?.[0] || '.mp4';
+    let contentType = file.type || 'video/mp4';
+    let path = null;
+
     try {
-      let uploadBlob = file;
-      let ext = file.name.match(/\.[^.]+$/)?.[0] || '.mp4';
-      let contentType = file.type || 'video/mp4';
       // iPhone hands us .MOV / video/quicktime. Chrome/Edge on desktop refuse
       // to play that MIME, so the trainer review screen shows a black player.
       // Most iPhone web-uploads are H.264-in-MOV, which Chrome plays fine if
@@ -555,7 +561,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // Upload with progress (XHR for real-time %, falls back to Supabase client)
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase:'upload', compressProgress:100}; return n; });
       const ts = Date.now();
-      const path = `${clientId}/${ts}-form${ext}`;
+      path = `${clientId}/${ts}-form${ext}`;
 
       let publicUrl;
       try {

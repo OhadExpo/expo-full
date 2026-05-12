@@ -224,9 +224,11 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
   );
 }
 
-export default function TraineeCRM({ trainee, clientWorkouts, payments, planIndex, onOpenTasksTab, onCreatePlanForTask }) {
-  if (!trainee) return null;
+export default function TraineeCRM({ trainee, clientWorkouts, payments, planIndex, onCreatePlanForTask }) {
+  // Rules-of-Hooks: hook calls must come before any early return so the
+  // hook count stays stable across renders.
   const cadence = useMemo(() => deriveCadence(trainee, clientWorkouts), [trainee, clientWorkouts]);
+  if (!trainee) return null;
 
   return (
     <div style={{ marginBottom: 8 }}>

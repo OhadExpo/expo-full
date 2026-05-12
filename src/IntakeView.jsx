@@ -39,13 +39,27 @@ function PayloadDetail({ form, payload }) {
     <div style={{ direction: form.locale === 'he' ? 'rtl' : 'ltr', fontFamily: form.locale === 'he' ? FH : FB }}>
       {form.questions.map(q => {
         const v = payload?.[q.id];
-        const isEmpty = v == null || v === '';
+        const isArr = Array.isArray(v);
+        const isEmpty = v == null || v === '' || (isArr && v.length === 0);
         return (
           <div key={q.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid rgba(57,189,255,0.149)` }}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>{q.label}</div>
-            <div style={{ fontFamily: form.locale === 'he' ? FH : FB, fontSize: 14, color: isEmpty ? C.td : C.tx, fontStyle: isEmpty ? 'italic' : 'normal', whiteSpace: 'pre-wrap' }}>
-              {isEmpty ? '—' : String(v)}
-            </div>
+            {isArr && !isEmpty ? (
+              // multichoice — render selected options as cyan chips
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {v.map((opt, i) => (
+                  <span key={i} style={{
+                    padding: '3px 10px', border: `1px solid ${C.ac}`, color: C.ac,
+                    fontFamily: form.locale === 'he' ? FH : FN, fontSize: 12,
+                    direction: /[֐-׿]/.test(String(opt)) ? 'rtl' : 'ltr',
+                  }}>{String(opt)}</span>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontFamily: form.locale === 'he' ? FH : FB, fontSize: 14, color: isEmpty ? C.td : C.tx, fontStyle: isEmpty ? 'italic' : 'normal', whiteSpace: 'pre-wrap' }}>
+                {isEmpty ? '—' : String(v)}
+              </div>
+            )}
           </div>
         );
       })}

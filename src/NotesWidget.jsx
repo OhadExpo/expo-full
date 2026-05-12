@@ -61,6 +61,10 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   const onAdd = async () => {
     const b = body.trim();
     if (!b) return;
+    // Suppress the imminent blur-fired flush — the explicit SAVE/Enter
+    // already creates the row. Both firing produces a duplicate.
+    draft.suppressNext();
+    setBody(''); setLinkTraineeId(''); setAdding(false);
     if (linkTraineeId) {
       const t = trainees.find(x => x.id === linkTraineeId);
       await create({
@@ -72,7 +76,6 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
     } else {
       await create({ body: b, targetKind: 'general' });
     }
-    setBody(''); setLinkTraineeId(''); setAdding(false);
   };
 
   // Draft autosave on the "+ TASK" textbox — typing then clicking away,

@@ -22,23 +22,38 @@ export default function useDraftAutosave(body, setBody, commit) {
   const bodyRef = useRef(body);
   const commitRef = useRef(commit);
   const setBodyRef = useRef(setBody);
+  // Sentinel: when the user clicks an explicit SAVE button, the textarea
+  // blurs FIRST (firing flush) and THEN the click fires (firing the
+  // caller's own save handler) — double insert. Callers can flip this
+  // ref to true before their save to suppress the blur path.
+  const skipNextRef = useRef(false);
   useEffect(() => { bodyRef.current = body; }, [body]);
   useEffect(() => { commitRef.current = commit; }, [commit]);
   useEffect(() => { setBodyRef.current = setBody; }, [setBody]);
 
   const flush = useCallback(async () => {
+    if (skipNextRef.current) { skipNextRef.current = false; return; }
     const draft = (bodyRef.current || '').trim();
     if (!draft) return;
+    // Clear the local input optimistically BEFORE awaiting commit so that
+    // a second event firing in the same tick (e.g., pagehide right after
+    // blur) can't re-read the same body and double-insert.
+    setBodyRef.current('');
     try {
       const ok = await commitRef.current(draft);
-      // commit() that returned falsy = save failed; keep the draft so
-      // the user can try again. truthy/undefined = success, clear it.
-      if (ok !== false) setBodyRef.current('');
+      if (ok === false) {
+        // Save failed — restore the draft so the user can retry.
+        setBodyRef.current(draft);
+      }
     } catch (e) {
       console.warn('draft autosave commit threw:', e);
-      // Keep draft on the screen — caller's toast will surface the error.
+      setBodyRef.current(draft);
     }
   }, []);
+
+  // Callers wire this onto their explicit-save handler to suppress the
+  // imminent blur from also committing.
+  const suppressNext = useCallback(() => { skipNextRef.current = true; }, []);
 
   // Tab visibility + pagehide listeners
   useEffect(() => {
@@ -58,6 +73,7 @@ export default function useDraftAutosave(body, setBody, commit) {
     return () => { flush(); };
   }, [flush]);
 
-  // Return a `onBlur` handler the textarea wires up directly.
-  return { onBlur: flush, flush };
+  // Return a `onBlur` handler the textarea wires up directly, plus
+  // `suppressNext` for explicit-save buttons.
+  return { onBlur: flush, flush, suppressNext };
 }

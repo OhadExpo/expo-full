@@ -175,6 +175,12 @@ const ruleAtRiskSilent = {
     const out = [];
     for (const t of trainees) {
       if (t.status !== 'Active') continue;
+      // Skip trainees who just joined — they haven't had time to be silent.
+      // Without this guard a fresh import day triggers a task per trainee
+      // labeled "never trained, never contacted" since both signals read
+      // Infinity (no rows = quiet by definition).
+      const sinceStart = daysAgo(t.startDate);
+      if (sinceStart < 14) continue;
       const tWorkouts = workouts.filter(w => w.clientId === t.id);
       const tActivity = (activityRows || []).filter(a => a.trainee_id === t.id);
       const latestWorkoutAgo = tWorkouts.length

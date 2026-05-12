@@ -23,20 +23,22 @@ export default function NotesInline({
   const [editingId, setEditingId] = useState(null);
   const [editBody, setEditBody] = useState('');
 
-  const onAdd = async () => {
-    const b = body.trim();
-    if (!b) return;
-    await create({ body: b, targetKind, targetId, targetLabel });
-    setBody('');
-  };
-
-  // Draft autosave: if the coach types something into the "+ task" textarea
-  // and then clicks away, tabs out, or unmounts, the draft becomes a task
-  // automatically instead of getting dropped on the floor.
+  // Draft autosave: typed-but-not-clicked drafts are saved on blur, tab
+  // switch, page hide, or unmount instead of being dropped.
   const draft = useDraftAutosave(body, setBody, async (draftBody) => {
     const r = await create({ body: draftBody, targetKind, targetId, targetLabel });
     return !!r;
   });
+
+  const onAdd = async () => {
+    const b = body.trim();
+    if (!b) return;
+    // Suppress the imminent blur-fired flush — the explicit ADD click
+    // already covers it. Without this, blur + click both create a row.
+    draft.suppressNext();
+    setBody('');
+    await create({ body: b, targetKind, targetId, targetLabel });
+  };
 
   const startEdit = (n) => { setEditingId(n.id); setEditBody(n.body); };
   const cancelEdit = () => { setEditingId(null); setEditBody(''); };
