@@ -9,6 +9,7 @@ const PlanDiff = lazy(() => import('./PlanDiff'));
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
 import TraineePRsView from './TraineePRsView';
+import TraineeCRM from './TraineeCRM';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
@@ -319,6 +320,16 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\u0590-\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
       </Card>
       </>}
+
+      {/* === CRM v1: cadence pill · next actions · activity feed === */}
+      {td && (
+        <TraineeCRM
+          trainee={td}
+          clientWorkouts={clientWorkouts}
+          payments={tPay}
+          planIndex={tp}
+        />
+      )}
 
       {/* === SHARED SECTIONS (billing, workouts, modals) === */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px"}}>
