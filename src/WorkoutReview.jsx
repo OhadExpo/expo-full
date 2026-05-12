@@ -1639,6 +1639,36 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           const currentFocus = getFocus(wo.planName, wo.dayName, ex.eid, wo.week || 1);
           const nextFocus = getFocus(wo.planName, wo.dayName, ex.eid, nextWeek);
 
+          // PREV WK: same exercise, same plan, same day, last week. Week 2+ only.
+          // eid match wins; normalized title is the fallback (substitutions and
+          // plan rebuilds can rotate eids while the title stays stable).
+          const currentWeek = wo.week || 1;
+          let prevWeekSets = null;
+          let prevWeekIdx = null;
+          if (currentWeek >= 2) {
+            const targetWeek = currentWeek - 1;
+            const titleKey = (ex.title || exName || '').toLowerCase().trim();
+            let bestDate = null;
+            for (const w of (clientWorkouts || [])) {
+              if (w.clientId !== wo.clientId) continue;
+              if (w.planName !== wo.planName) continue;
+              if (w.dayName !== wo.dayName) continue;
+              if (w.week !== targetWeek) continue;
+              for (const px of (w.exercises || [])) {
+                const pTitleKey = (px.title || '').toLowerCase().trim();
+                const eidMatch = ex.eid && px.eid === ex.eid;
+                const titleMatch = titleKey && pTitleKey === titleKey;
+                if (!eidMatch && !titleMatch) continue;
+                const sets = (px.sets || []).filter(s => parseFloat(s.load) > 0);
+                if (sets.length && (!bestDate || new Date(w.date) > new Date(bestDate))) {
+                  prevWeekSets = sets;
+                  prevWeekIdx = targetWeek;
+                  bestDate = w.date;
+                }
+              }
+            }
+          }
+
           return (
             <div key={i} data-ex-idx={i} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`${isExpanded?'1px':'0.25px'} solid ${isExpanded?C.ac:C.cardBd}`,borderRadius:0,marginBottom:8,overflow:"hidden"}}>
               {/* Header row — click to expand */}
@@ -1682,15 +1712,28 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       {['SET','REPS','LOAD','RPE'].map(h =>
                         <div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:'center'}}>{h}</div>)}
                     </div>
-                    {ex.sets.map((set, si) => (
-                      <div key={si} style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"3px 0",
-                        opacity:set.done?1:0.4,borderBottom:si<ex.sets.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
-                        <div style={{fontFamily:FN,fontSize:12,color:set.done?C.gn:C.td,textAlign:"center"}}>{set.done?'✓':si+1}</div>
-                        <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.reps||'—'}</div>
-                        <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.load?set.load+'kg':'—'}</div>
-                        <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.rpe||'—'}</div>
-                      </div>
-                    ))}
+                    {ex.sets.map((set, si) => {
+                      const prior = prevWeekSets?.[si];
+                      return (
+                        <React.Fragment key={si}>
+                          {prior && (
+                            <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"2px 0",opacity:0.55,marginTop:si===0?0:6}}>
+                              <div style={{fontFamily:FN,fontSize:9,color:C.ac,textAlign:"center",letterSpacing:"0.08em",fontWeight:800}}>W{prevWeekIdx}</div>
+                              <div style={{fontFamily:FN,fontSize:11,color:C.tx,textAlign:'center',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{prior.reps || '—'}</div>
+                              <div style={{fontFamily:FN,fontSize:11,color:C.tx,textAlign:'center',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load)}kg</div>
+                              <div style={{fontFamily:FN,fontSize:11,color:C.tx,textAlign:'center',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{prior.rpe || '—'}</div>
+                            </div>
+                          )}
+                          <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"3px 0",
+                            opacity:set.done?1:0.4,borderBottom:si<ex.sets.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
+                            <div style={{fontFamily:FN,fontSize:12,color:set.done?C.gn:C.td,textAlign:"center"}}>{set.done?'✓':si+1}</div>
+                            <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.reps||'—'}</div>
+                            <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.load?set.load+'kg':'—'}</div>
+                            <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.rpe||'—'}</div>
+                          </div>
+                        </React.Fragment>
+                      );
+                    })}
                   </div>
 
                   {/* Client's form video */}
