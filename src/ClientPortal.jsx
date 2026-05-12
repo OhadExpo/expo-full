@@ -479,6 +479,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (!file) return;
     e.target.value = '';
 
+    // Hard cap. Above this size the source is too long to encode reliably
+    // (compress time = source duration), browser memory pressure spikes, and
+    // any compression-fallback path would blow past the Supabase bucket limit.
+    const MAX_INPUT_BYTES = 750 * 1024 * 1024;
+    if (file.size > MAX_INPUT_BYTES) {
+      const sizeMB = Math.round(file.size / 1e6);
+      toast(`Video is ${sizeMB}MB — too large. Max 750MB.\nRecord a shorter clip and try again.`, 'error', { ttl: 8000 });
+      return;
+    }
+
     // Warn only when we can't compress AND the file is huge — at that point
     // the trainee is shipping the raw blob and may run into Supabase upload
     // limits / slow networks. confirmToast is async so the iOS video element
