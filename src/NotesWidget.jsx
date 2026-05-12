@@ -1,11 +1,14 @@
-// Dashboard widget — global Notes feed (pinned first, then recent).
+// Dashboard widget — global Tasks/Notes feed (pinned first, then recent).
 // Click a note → routes back to its context via the onNavigate callback.
 //
-// Same data source as NotesInline (useCoachNotes), but unscoped — pulls
-// across all target_kind/target_id combos so the coach sees their day-
-// to-day note stream in one place.
+// Filter pills along the top scope the feed by target_kind (ALL / TRAINEE
+// / INTAKE / REVIEW / GENERAL) so the coach can quickly drill into where
+// a note came from.
+//
+// Same data source as NotesInline (useCoachNotes); the dashboard widget
+// is unscoped, pulling across all target_kind/target_id combos.
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b } from './ui';
 import { useCoachNotes } from './coachNotes';
@@ -26,10 +29,19 @@ const TARGET_LABEL = {
   general: 'GENERAL',
 };
 
+const FILTER_OPTIONS = [
+  { id: 'all',      label: 'ALL' },
+  { id: 'trainee',  label: 'TRAINEE' },
+  { id: 'intake',   label: 'INTAKE' },
+  { id: 'review',   label: 'REVIEW' },
+  { id: 'general',  label: 'GENERAL' },
+];
+
 export default function NotesWidget({ onNavigate }) {
-  const { rows, create, togglePin, remove } = useCoachNotes({ limit: 30 });
+  const { rows, create, togglePin, remove } = useCoachNotes({ limit: 60 });
   const [adding, setAdding] = useState(false);
   const [body, setBody] = useState('');
+  const [filter, setFilter] = useState('all');
 
   const onAdd = async () => {
     const b = body.trim();
@@ -38,8 +50,23 @@ export default function NotesWidget({ onNavigate }) {
     setBody(''); setAdding(false);
   };
 
-  const pinned = rows.filter(r => r.pinned);
-  const recent = rows.filter(r => !r.pinned).slice(0, 10);
+  const filtered = useMemo(() => {
+    if (filter === 'all') return rows;
+    if (filter === 'general') return rows.filter(r => !r.target_kind || r.target_kind === 'general');
+    return rows.filter(r => r.target_kind === filter);
+  }, [rows, filter]);
+
+  const counts = useMemo(() => {
+    const c = { all: rows.length, trainee: 0, intake: 0, review: 0, general: 0 };
+    for (const r of rows) {
+      if (!r.target_kind || r.target_kind === 'general') c.general++;
+      else if (c[r.target_kind] != null) c[r.target_kind]++;
+    }
+    return c;
+  }, [rows]);
+
+  const pinned = filtered.filter(r => r.pinned);
+  const recent = filtered.filter(r => !r.pinned).slice(0, 10);
   const visible = [...pinned, ...recent];
 
   const handleClick = (n) => {
@@ -54,14 +81,33 @@ export default function NotesWidget({ onNavigate }) {
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
         <div style={{ fontSize: 10, fontFamily: FN, color: 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
-          📌 NOTES ({rows.length})
+          📌 TASKS ({counts.all})
         </div>
         <button onClick={() => setAdding(!adding)}
           style={{
             background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
             padding: '3px 8px', borderRadius: 0, fontFamily: FN, fontSize: 9,
             fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
-          }}>{adding ? 'CLOSE' : '+ NOTE'}</button>
+          }}>{adding ? 'CLOSE' : '+ TASK'}</button>
+      </div>
+
+      {/* Context filter pills */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+        {FILTER_OPTIONS.map(opt => {
+          const active = filter === opt.id;
+          const n = counts[opt.id] ?? 0;
+          return (
+            <button key={opt.id} onClick={() => setFilter(opt.id)}
+              style={{
+                padding: '3px 8px', borderRadius: 0,
+                border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+                background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
+                color: active ? 'var(--c-ac)' : 'var(--c-tm)',
+                fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                cursor: 'pointer',
+              }}>{opt.label} {n > 0 ? `· ${n}` : ''}</button>
+          );
+        })}
       </div>
 
       {adding && (
@@ -92,7 +138,9 @@ export default function NotesWidget({ onNavigate }) {
 
       {visible.length === 0 ? (
         <div style={{ fontSize: 12, color: 'var(--c-td)', padding: '14px 0', textAlign: 'center' }}>
-          No notes yet. Drop one above, or add notes from trainee cards / intake / review.
+          {filter === 'all'
+            ? 'Nothing yet. Drop a task above, or add from trainee cards / intake / review.'
+            : `No tasks in ${filter}. Try a different filter or "+ TASK" above.`}
         </div>
       ) : (
         visible.map(n => {
