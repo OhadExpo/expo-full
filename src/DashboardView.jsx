@@ -5,6 +5,7 @@ import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
+import { syncAutoTasks } from './autoTasks';
 
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
 // For couples we pick the member whose phone is set; if both have phones,
@@ -172,6 +173,45 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Auto-task sync — runs once when the dashboard mounts (with throttle
+  // inside syncAutoTasks so re-mounts within 30s don't re-hit the DB).
+  // Inserts coach_notes rows for any condition the system detects;
+  // resolves any open auto-task whose condition no longer applies.
+  useEffect(() => {
+    const tList = Array.isArray(trainees) ? trainees : [];
+    const pList = Array.isArray(planCounts) ? [] : []; // dashboard doesn't load full planIndex
+    // The full plan list comes via App.jsx; if it's not in props here we
+    // do a lightweight read for the rules that need it.
+    let cancelled = false;
+    (async () => {
+      const { data: plans } = await supabase
+        .from('plans')
+        .select('id, name, trainee_id, weeks:data, created_at')
+        .limit(500);
+      const planList = (plans || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        traineeId: p.trainee_id,
+        weeks: p.weeks?.weeks || (p.weeks?.days ? 4 : 4),
+        days: p.weeks?.days || [],
+        createdAt: p.created_at,
+      }));
+      if (cancelled) return;
+      try {
+        await syncAutoTasks({
+          trainees: tList,
+          plans: planList,
+          workouts: clientWorkouts || [],
+          payments: payments || [],
+        });
+      } catch (e) {
+        console.warn('autoTasks sync threw:', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trainees.length]);
 
   return (
     <div>

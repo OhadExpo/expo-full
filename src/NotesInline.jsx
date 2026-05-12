@@ -8,6 +8,8 @@ import React, { useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
+import useDraftAutosave from './hooks/useDraftAutosave';
+import { AUTO_KIND_LABEL } from './autoTasks';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -27,6 +29,14 @@ export default function NotesInline({
     await create({ body: b, targetKind, targetId, targetLabel });
     setBody('');
   };
+
+  // Draft autosave: if the coach types something into the "+ task" textarea
+  // and then clicks away, tabs out, or unmounts, the draft becomes a task
+  // automatically instead of getting dropped on the floor.
+  const draft = useDraftAutosave(body, setBody, async (draftBody) => {
+    const r = await create({ body: draftBody, targetKind, targetId, targetLabel });
+    return !!r;
+  });
 
   const startEdit = (n) => { setEditingId(n.id); setEditBody(n.body); };
   const cancelEdit = () => { setEditingId(null); setEditBody(''); };
@@ -111,6 +121,12 @@ export default function NotesInline({
                   }}>{n.body}</div>
               )}
               <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.06em', marginTop: 2 }}>
+                {n.auto_kind && (
+                  <span title={`Auto-generated: ${AUTO_KIND_LABEL[n.auto_kind] || n.auto_kind}`}
+                    style={{ color: 'var(--c-ac)', fontWeight: 700, marginRight: 6, border: `1px solid var(--c-ac)`, padding: '0 4px' }}>
+                    ⚙ {AUTO_KIND_LABEL[n.auto_kind] || 'AUTO'}
+                  </span>
+                )}
                 {new Date(n.created_at).toLocaleString()}
               </div>
             </div>
@@ -160,8 +176,9 @@ export default function NotesInline({
 
       <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
         <textarea value={body} onChange={e => setBody(e.target.value)}
+          onBlur={draft.onBlur}
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
-          placeholder="+ task (⌘/Ctrl + Enter to save)"
+          placeholder="+ task (⌘/Ctrl + Enter to save · auto-saves on blur)"
           rows={2}
           style={{
             flex: 1, background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,

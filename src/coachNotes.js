@@ -63,6 +63,8 @@ export function useCoachNotes(filter = {}) {
       status: 'open',
       completed_at: null,
       linked_plan_id: null,
+      auto_kind: input.autoKind || null,
+      auto_ref: input.autoRef || null,
     };
     const { error } = await supabase.from('coach_notes').insert(row);
     if (error) { reportFailure('Saving task', error); return null; }

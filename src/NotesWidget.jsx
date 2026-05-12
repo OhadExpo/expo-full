@@ -12,6 +12,8 @@ import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
+import useDraftAutosave from './hooks/useDraftAutosave';
+import { AUTO_KIND_LABEL } from './autoTasks';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -72,6 +74,20 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
     }
     setBody(''); setLinkTraineeId(''); setAdding(false);
   };
+
+  // Draft autosave on the "+ TASK" textbox — typing then clicking away,
+  // switching tabs, or unmounting commits the draft as a task instead of
+  // losing it.
+  const draft = useDraftAutosave(body, setBody, async (draftBody) => {
+    if (linkTraineeId) {
+      const t = trainees.find(x => x.id === linkTraineeId);
+      const r = await create({ body: draftBody, targetKind: 'trainee', targetId: linkTraineeId, targetLabel: t?.name || null });
+      if (r) setLinkTraineeId('');
+      return !!r;
+    }
+    const r = await create({ body: draftBody, targetKind: 'general' });
+    return !!r;
+  });
 
   const filtered = useMemo(() => {
     if (filter === 'all') return rows;
@@ -182,8 +198,9 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       {adding && (
         <div style={{ marginBottom: 12 }}>
           <textarea value={body} onChange={e => setBody(e.target.value)}
+            onBlur={draft.onBlur}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
-            placeholder="Quick thought… (⌘/Ctrl + Enter to save)"
+            placeholder="Quick thought… (⌘/Ctrl + Enter to save · auto-saves on blur)"
             rows={2}
             style={{
               width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
@@ -246,6 +263,12 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div onClick={() => handleClick(n)}
                   style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 2, cursor: clickable ? 'pointer' : 'default' }}>
+                  {n.auto_kind && (
+                    <span title={`Auto-generated: ${AUTO_KIND_LABEL[n.auto_kind] || n.auto_kind}`}
+                      style={{ color: 'var(--c-ac)', fontWeight: 700, marginRight: 6, border: `1px solid var(--c-ac)`, padding: '0 4px' }}>
+                      ⚙ {AUTO_KIND_LABEL[n.auto_kind] || 'AUTO'}
+                    </span>
+                  )}
                   {TARGET_ICON[n.target_kind] || '·'} {TARGET_LABEL[n.target_kind] || 'NOTE'}
                   {n.target_label && <span style={{ color: 'var(--c-ac)', marginLeft: 6 }}>· {n.target_label}</span>}
                   <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· {new Date(n.created_at).toLocaleString()}</span>
