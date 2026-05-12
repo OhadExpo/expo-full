@@ -10,7 +10,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b } from './ui';
+import { isRefined5b, RefinedHeaderStrip } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -115,22 +115,46 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
     if (n.target_kind && n.target_id) onNavigate(n.target_kind, n.target_id);
   };
 
+  const refined = isRefined5b();
+  const PAD = 14;
+
   return (
     <div style={{
-      background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
-      border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: 14,
+      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: PAD,
+      boxShadow: C.cardShadow,
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <div style={{ fontSize: 10, fontFamily: FN, color: 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
-          📌 TASKS ({counts.all})
+      {compact ? (
+        // Compact (Dashboard) — header lives in the cyan strip on top to
+        // match the visual rhythm of every other dashboard card.
+        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <div style={{ fontSize: 11, fontFamily: FN, color: refined ? '#FFFFFF' : 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
+              📌 TASKS ({counts.all})
+            </div>
+            <button onClick={() => setAdding(!adding)}
+              style={{
+                background: 'transparent',
+                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
+                color: refined ? '#FFFFFF' : 'var(--c-ac)',
+                padding: '3px 8px', borderRadius: 0, fontFamily: FN, fontSize: 9,
+                fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
+              }}>{adding ? 'CLOSE' : '+ TASK'}</button>
+          </div>
+        </RefinedHeaderStrip>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+          <div style={{ fontSize: 10, fontFamily: FN, color: 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
+            📌 TASKS ({counts.all})
+          </div>
+          <button onClick={() => setAdding(!adding)}
+            style={{
+              background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
+              padding: '3px 8px', borderRadius: 0, fontFamily: FN, fontSize: 9,
+              fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
+            }}>{adding ? 'CLOSE' : '+ TASK'}</button>
         </div>
-        <button onClick={() => setAdding(!adding)}
-          style={{
-            background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
-            padding: '3px 8px', borderRadius: 0, fontFamily: FN, fontSize: 9,
-            fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
-          }}>{adding ? 'CLOSE' : '+ TASK'}</button>
-      </div>
+      )}
 
       {/* Context filter pills — full view only; the compact Dashboard
           surface stays summary-only and routes to the full view via the
