@@ -17,9 +17,8 @@ import { C, FN, FB, FH } from './theme';
 import { isRefined5b } from './ui';
 import {
   useTraineeActivity, useTraineeNextActions, useCompletedTasksForTrainee,
-  deriveCadence, deriveAutoEvents, mergeFeed, promoteNextActionToTask, ACT_KINDS,
+  deriveCadence, deriveAutoEvents, mergeFeed, ACT_KINDS,
 } from './crmData';
-import TraineeTasks from './TraineeTasks';
 import NotesInline from './NotesInline';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -59,14 +58,9 @@ function CadencePill({ cadence }) {
 
 function NextActions({ trainee }) {
   const traineeId = trainee?.id;
-  const { rows, add, toggleDone, remove, refetch } = useTraineeNextActions(traineeId);
+  const { rows, add, toggleDone, remove } = useTraineeNextActions(traineeId);
   const [newTitle, setNewTitle] = useState('');
   const [newDue, setNewDue] = useState('');
-
-  const promote = async (na) => {
-    const task = await promoteNextActionToTask(na, trainee);
-    if (task) refetch();   // refresh so the promoted item disappears immediately
-  };
   const pending = rows.filter(r => r.status === 'pending');
   const done = rows.filter(r => r.status === 'done').slice(0, 3);
 
@@ -119,12 +113,6 @@ function NextActions({ trainee }) {
               {new Date(r.due_date).toLocaleDateString()}
             </div>
           )}
-          <button onClick={() => promote(r)} title="Promote to a delegatable task"
-            style={{
-              background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac,
-              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-              padding: '2px 6px', borderRadius: 0, cursor: 'pointer', flexShrink: 0,
-            }}>→ TASK</button>
           <button onClick={() => remove(r.id)} title="Remove"
             style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, padding: '0 4px' }}>×</button>
         </div>
@@ -356,7 +344,6 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
         )}
       </div>
       <NextActions trainee={trainee} />
-      <TraineeTasks trainee={trainee} onOpenTasks={onOpenTasksTab} />
       <NotesInline targetKind="trainee" targetId={trainee.id} targetLabel={trainee.name || null} />
       <ActivityFeed
         trainee={trainee}

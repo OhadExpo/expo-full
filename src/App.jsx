@@ -661,7 +661,7 @@ function AuthedApp() {
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:'var(--c-sf)',border:`1px solid ${importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn}`,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:0,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
-          {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)}/>}
+          {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}
           {tab==="chatAudit"&&<ChatAuditView/>}
@@ -674,7 +674,7 @@ function AuthedApp() {
           {tab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
           {tab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVis} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
           {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
-          {tab==="tasks"&&<CoachTasksView trainees={trainees} planIndex={planIndex}/>}
+          {tab==="tasks"&&<CoachTasksView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)}/>}
         </Suspense>
       </main>
       {/* Import trainee assignment modal */}

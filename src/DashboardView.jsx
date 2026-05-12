@@ -21,7 +21,7 @@ function DormantWhatsAppButton({ trainee, days }) {
   return <WhatsAppCheckInButton name={target.name} phone={target.phone} days={days} />;
 }
 
-export default function DashboardView({ trainees, planCounts, workouts, clientWorkouts, payments, presence, onSelectTrainee }) {
+export default function DashboardView({ trainees, planCounts, workouts, clientWorkouts, payments, presence, onSelectTrainee, onOpenTasksTab }) {
   const [sort, setSort] = useState('name');
   const [dir, setDir] = useState(1);
   const [filter, setFilter] = useState('');
@@ -375,13 +375,15 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         );
       })() : null}
 
-      {/* Global Notes widget — pinned + recent across all contexts. */}
+      {/* TASKS — compact conclusion view of coach_notes. Same data as the
+          full /coach/tasks tab; click OPEN FULL TASKS to jump there. */}
       <div style={{ marginBottom: 14 }}>
-        <NotesWidget onNavigate={(kind, id) => {
-          if (kind === 'trainee') onSelectTrainee?.(id);
-          // Other kinds (intake/review) require parent-level nav callbacks;
-          // wired later when we route those tabs via Dashboard.
-        }} />
+        <NotesWidget compact
+          trainees={trainees}
+          onOpenFullTasks={onOpenTasksTab}
+          onNavigate={(kind, id) => {
+            if (kind === 'trainee') onSelectTrainee?.(id);
+          }} />
       </div>
 
       {/* Search */}
