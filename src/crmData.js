@@ -1,15 +1,16 @@
-// CRM v1 data layer for the trainee card.
+// CRM data layer for the trainee card.
 //
 // - useTraineeActivity(traineeId)       — manual coach-logged events from trainee_activity table
-// - useTraineeNextActions(traineeId)    — todo list from trainee_next_actions table
+// - useCompletedTasksForTrainee(id)     — done coach_notes linked to this trainee
 // - deriveCadence(td, clientWorkouts)   — expected vs actual session gap (the "at risk" signal)
-// - deriveAutoEvents(td, clientWorkouts, payments, plans) — merges workouts/payments/plan-starts
+// - deriveAutoEvents(...)               — merges workouts/plans/payments/completed-tasks
 //                                          into the activity feed so coaches don't double-log.
+// - mergeFeed(manual, auto)             — chronological merge for display.
 //
 // All writes go through Supabase. Reads are scoped to the trainee_id passed in.
 // For couples (parent + __0 + __1), the caller is responsible for deciding
-// whether to query parent-or-children — typically: lifecycle/next-actions on
-// parent, activity per-member, both surfaces visible when viewing a couple.
+// whether to query parent-or-children — typically: activity per-member, with
+// both surfaces visible when viewing a couple.
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from './supabase';
@@ -73,71 +74,11 @@ export function useTraineeActivity(traineeIds) {
   return { rows, loading, refetch, add, remove };
 }
 
-// ───────────────────────────────────────────────────────────────────────
-// useTraineeNextActions — per-trainee todo queue.
-// ───────────────────────────────────────────────────────────────────────
-export function useTraineeNextActions(traineeId) {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const refetch = useCallback(async () => {
-    if (!traineeId) { setRows([]); setLoading(false); return; }
-    const { data, error } = await supabase
-      .from('trainee_next_actions')
-      .select('*')
-      .eq('trainee_id', traineeId)
-      .order('status', { ascending: true })       // pending first
-      .order('order_idx', { ascending: true })
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.warn('next_actions fetch failed:', error.message);
-      setRows([]);
-    } else {
-      setRows(data || []);
-    }
-    setLoading(false);
-  }, [traineeId]);
-
-  useEffect(() => { setLoading(true); refetch(); }, [refetch]);
-
-  const add = useCallback(async (title, dueDate) => {
-    const trimmed = (title || '').trim();
-    if (!trimmed || !traineeId) return null;
-    const row = {
-      id: newId('na_'),
-      trainee_id: traineeId,
-      title: trimmed,
-      due_date: dueDate || null,
-      status: 'pending',
-      order_idx: rows.length,
-    };
-    const { error } = await supabase.from('trainee_next_actions').insert(row);
-    if (error) { console.warn('next_actions insert failed:', error.message); return null; }
-    setRows(prev => [...prev, row]);
-    return row;
-  }, [traineeId, rows.length]);
-
-  const toggleDone = useCallback(async (id) => {
-    const cur = rows.find(r => r.id === id);
-    if (!cur) return;
-    const nextStatus = cur.status === 'done' ? 'pending' : 'done';
-    const completedAt = nextStatus === 'done' ? new Date().toISOString() : null;
-    const { error } = await supabase
-      .from('trainee_next_actions')
-      .update({ status: nextStatus, completed_at: completedAt })
-      .eq('id', id);
-    if (error) { console.warn('next_actions update failed:', error.message); return; }
-    setRows(prev => prev.map(r => r.id === id ? { ...r, status: nextStatus, completed_at: completedAt } : r));
-  }, [rows]);
-
-  const remove = useCallback(async (id) => {
-    const { error } = await supabase.from('trainee_next_actions').delete().eq('id', id);
-    if (error) { console.warn('next_actions delete failed:', error.message); return; }
-    setRows(prev => prev.filter(r => r.id !== id));
-  }, []);
-
-  return { rows, loading, refetch, add, toggleDone, remove };
-}
+// Note: useTraineeNextActions + the trainee_next_actions table were
+// retired 2026-05-13 — coach_notes (the unified Tasks system, via
+// NotesInline on the trainee card) absorbed the per-trainee todo
+// queue. The table is left in the DB dormant; cleanup migration is a
+// separate pass once we're sure nothing else references it.
 
 // ───────────────────────────────────────────────────────────────────────
 // deriveCadence — turn td.format ("2x/week", "Couple 1x/week", etc.) into
@@ -214,37 +155,10 @@ export function useCompletedTasksForTrainee(traineeId) {
   return rows;
 }
 
-// ───────────────────────────────────────────────────────────────────────
-// promoteNextActionToTask — converts a CRM next-action into a coach_tasks
-// row, transferring title + due_date and tagging it to the trainee. Then
-// deletes the original next-action so it doesn't linger in two places.
-// Returns the created task row, or null on failure.
-// ───────────────────────────────────────────────────────────────────────
-export async function promoteNextActionToTask(nextAction, trainee) {
-  if (!nextAction || !trainee?.id) return null;
-  const taskId = 'tsk_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
-  const taskRow = {
-    id: taskId,
-    title: nextAction.title,
-    description: null,
-    assignee: null,
-    status: 'todo',
-    priority: 'normal',
-    due_date: nextAction.due_date || null,
-    related_kind: 'trainee',
-    related_id: trainee.id,
-    related_label: trainee.name || null,
-    notes_log: [{
-      ts: new Date().toISOString(),
-      note: `Promoted from Next Action.`,
-    }],
-  };
-  const { error: insErr } = await supabase.from('coach_tasks').insert(taskRow);
-  if (insErr) { console.warn('promote → task insert failed:', insErr.message); return null; }
-  const { error: delErr } = await supabase.from('trainee_next_actions').delete().eq('id', nextAction.id);
-  if (delErr) console.warn('promote → next_action delete failed (task created anyway):', delErr.message);
-  return taskRow;
-}
+// Note: promoteNextActionToTask was retired 2026-05-13 with the consolidation.
+// The Dashboard widget + NotesInline on the trainee card now handle
+// both personal-todo and delegation use cases via coach_notes — no
+// promotion step needed.
 
 // ───────────────────────────────────────────────────────────────────────
 // deriveAutoEvents — pulls workout sessions, plan-assignments, payment

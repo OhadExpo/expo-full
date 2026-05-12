@@ -1,16 +1,22 @@
-// CRM v1 surface for the trainee card. Renders three sections, top to bottom:
+// CRM surface for the trainee card. Renders three sections, top to bottom:
 //
 //   1. Cadence pill  — derived from td.format vs the latest logged session.
-//   2. Next Actions  — small per-trainee todo queue (trainee_next_actions).
+//   2. NEXT ACTIONS  — NotesInline scoped to this trainee. Tasks tagged to
+//                      this trainee live in coach_notes and surface here.
+//                      "→ NEW PROGRAM" on a task opens the plan editor
+//                      pre-bound to this trainee; on save the task gets
+//                      linked_plan_id set and auto-flips to done.
 //   3. Activity Feed — manual log (trainee_activity) merged with auto-events
-//                      (workouts/plans/payments). Capped at 8 with a "See all".
+//                      from workouts/plans/payments/completed-tasks. Plan
+//                      events show "from task: <body>" when a task is the
+//                      origin so the chain is visible.
 //
 // Stays minimal: a single column inserted above the existing Billing block.
 // Hebrew detection on user-entered summary text flips direction:rtl + FH font.
 //
-// Couples (trainee.members[]): the parent ID drives cadence + next-actions;
-// the activity feed pulls from all member IDs so per-member context is
-// visible in one place. The caller passes the canonical trainee object.
+// Couples (trainee.members[]): the parent ID drives cadence + tasks; the
+// activity feed pulls from all member IDs so per-member context is visible
+// in one place. The caller passes the canonical trainee object.
 
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
