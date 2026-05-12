@@ -17,7 +17,7 @@
 import React from 'react';
 import { useTheme } from './hooks/useTheme';
 
-export function EXPOMark({ height = 22, style = {}, theme: overrideTheme }) {
+export function EXPOMark({ height = 22, style = {}, theme: overrideTheme, onClick, title }) {
   const { theme: ctxTheme } = useTheme();
   const theme = overrideTheme || ctxTheme;
   // Any non-'dark' theme renders on a light bg (light, draft 1-6, W),
@@ -29,11 +29,14 @@ export function EXPOMark({ height = 22, style = {}, theme: overrideTheme }) {
     <img
       src={src}
       alt="EXPO"
+      onClick={onClick}
+      title={title}
       style={{
         height, width: 'auto',
         display: 'inline-block',
         verticalAlign: 'middle',
         transform: 'translateY(-3px)',
+        cursor: onClick ? 'pointer' : undefined,
         ...style,
       }}
     />
