@@ -111,6 +111,7 @@ export default function IntakeView({ trainees }) {
       open: open.length,
       initial: open.filter(s => s.form_type === 'initial').length,
       progress: open.filter(s => s.form_type === 'progress').length,
+      assessment: open.filter(s => s.form_type === 'assessment').length,
     };
   }, [enriched]);
 
@@ -172,7 +173,7 @@ export default function IntakeView({ trainees }) {
         <div>
           <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>INTAKE</div>
           <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
-            {counts.open} open · {counts.initial} initial · {counts.progress} progress · {counts.total} total
+            {counts.open} open · {counts.initial} initial · {counts.assessment} assessment · {counts.progress} progress · {counts.total} total
           </div>
         </div>
         <Btn onClick={() => setShowGen(true)} style={{ height: 36, padding: '0 18px' }}>+ Generate Link</Btn>
@@ -198,7 +199,7 @@ export default function IntakeView({ trainees }) {
               const url = `${origin}/intake/${t.locale}?t=${t.token}`;
               return (
                 <div key={t.token} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: FB }}>
-                  <Badge color={t.form_type === 'initial' ? C.ac : C.gn}>{t.form_type}</Badge>
+                  <Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{t.form_type}</Badge>
                   <span style={{ color: C.tm }}>{t.locale.toUpperCase()}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
                   <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
@@ -226,7 +227,7 @@ export default function IntakeView({ trainees }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpenSubmission(s)}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Badge color={s.form_type === 'initial' ? C.ac : C.gn}>{s.form_type}</Badge>
+                <Badge color={s.form_type === 'initial' ? C.ac : (s.form_type === 'assessment' ? C.or : C.gn)}>{s.form_type}</Badge>
                 <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.18em' }}>{s.locale.toUpperCase()}</span>
                 <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, direction: RTL.test(s.name || '') ? 'rtl' : 'ltr' }}>{s.name || '(no name)'}</span>
                 {s.traineeName && (
@@ -274,6 +275,7 @@ export default function IntakeView({ trainees }) {
                   <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
                     <option value="initial">Initial intake</option>
+                    <option value="assessment">Physical assessment</option>
                     <option value="progress">Progress check-in</option>
                   </select>
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
@@ -291,7 +293,7 @@ export default function IntakeView({ trainees }) {
                 </div>
               </div>
             </div>
-            {genForm.formType === 'progress' && (
+            {(genForm.formType === 'progress' || genForm.formType === 'assessment') && (
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>TRAINEE (optional)</div>
                 <div style={{ position: 'relative', display: 'flex' }}>

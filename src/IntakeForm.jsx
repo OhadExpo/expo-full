@@ -64,6 +64,36 @@ function Field({ q, value, onChange, dir }) {
       </div>
     );
   }
+  if (q.type === 'multichoice') {
+    // value is an array of selected choices.
+    const selected = Array.isArray(value) ? value : [];
+    const toggle = (c) => {
+      onChange(selected.includes(c)
+        ? selected.filter(x => x !== c)
+        : [...selected, c]);
+    };
+    return (
+      <div style={{ marginBottom: 16 }}>
+        <label style={labelStyle}>{q.label}{required}</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, direction: dir }}>
+          {q.choices.map(c => {
+            const isSel = selected.includes(c);
+            return (
+              <button key={c} type="button" onClick={() => toggle(c)}
+                style={{
+                  padding: '6px 12px', borderRadius: 0,
+                  border: `1px solid ${isSel ? C.ac : C.cardBd}`,
+                  background: isSel ? 'rgba(57,189,255,0.094)' : 'transparent',
+                  color: isSel ? C.ac : C.tm,
+                  fontFamily: dir === 'rtl' ? FH : FN, fontSize: 12, fontWeight: 600,
+                  cursor: 'pointer',
+                }}>{c}</button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
   if (q.type === 'scale') {
     const { min, max, minLabel, maxLabel } = q.scale;
     const items = [];

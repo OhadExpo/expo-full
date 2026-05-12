@@ -141,10 +141,108 @@ export const PROGRESS_HE = {
   ],
 };
 
+// ─────────────────────────────────────────────────────────────────────
+// Physical assessment — measurable baseline so block #1 is programmed
+// from data, not chat snippets. Self-administered tests + pain map +
+// injury history. ROM specifics intentionally left out — clients can't
+// reliably self-measure ROM, that's a first-session coach task.
+// ─────────────────────────────────────────────────────────────────────
+const PAIN_REGIONS_HE = [
+  'צוואר', 'גב עליון', 'גב אמצעי', 'גב תחתון',
+  'כתף שמאל', 'כתף ימין', 'מרפק שמאל', 'מרפק ימין',
+  'שורש כף יד שמאל', 'שורש כף יד ימין',
+  'אגן/ירך שמאל', 'אגן/ירך ימין',
+  'ברך שמאל', 'ברך ימין',
+  'קרסול שמאל', 'קרסול ימין',
+  'כף רגל שמאל', 'כף רגל ימין',
+  'אין כאב כרגע',
+];
+
+const PAIN_REGIONS_EN = [
+  'Neck', 'Upper back', 'Mid back', 'Lower back',
+  'Left shoulder', 'Right shoulder', 'Left elbow', 'Right elbow',
+  'Left wrist', 'Right wrist',
+  'Left hip', 'Right hip',
+  'Left knee', 'Right knee',
+  'Left ankle', 'Right ankle',
+  'Left foot', 'Right foot',
+  'No pain right now',
+];
+
+export const ASSESSMENT_HE = {
+  id: 'assessment_he_v1',
+  formType: 'assessment',
+  locale: 'he',
+  title: 'EXPO — הערכה פיזית',
+  intro: 'מילוי חד-פעמי. הנתונים האלה מהווים את קו הבסיס שממנו נבנה הבלוק הראשון. בדיקות עצמיות פשוטות — לא צריך מד-קומה או מד-זווית.',
+  submitLabel: 'שליחה',
+  thanksTitle: 'תודה!',
+  thanksBody: 'ההערכה נקלטה. נחזור אליך עם תוכנית התחלתית.',
+  questions: [
+    { id: 'email',           type: 'email',     label: 'אימייל', required: true },
+    { id: 'name',            type: 'short',     label: 'שם מלא', required: true },
+    { id: 'assessment_date', type: 'date',      label: 'תאריך ההערכה', required: true },
+    // --- Functional tests
+    { id: 'sit_rise',        type: 'scale',     label: 'מבחן ישיבה-קימה (0–10): קום מהרצפה לעמידה בלי להיעזר בידיים. תוריד נקודה על כל יד/ברך שנגעה ברצפה.', required: true, scale: { min: 0, max: 10, minLabel: 'צריך עזרה', maxLabel: 'ללא תמיכה' } },
+    { id: 'balance_left',    type: 'number',    label: 'איזון על רגל שמאל (שניות, עיניים פקוחות — עד 60)', required: true },
+    { id: 'balance_right',   type: 'number',    label: 'איזון על רגל ימין (שניות, עיניים פקוחות — עד 60)', required: true },
+    { id: 'pushup_max',      type: 'number',    label: 'שכיבות שמיכה רצופות עד כישלון (אפס אם אין יכולת)', required: true },
+    { id: 'plank_seconds',   type: 'number',    label: 'פלאנק על האמות — זמן בשניות עד שהירכיים נופלות', required: true },
+    { id: 'pullup_ability',  type: 'choice',    label: 'יכולת מתח (Chin/Pull-Up)', required: true, choices: ['בלי יכולת בכלל', 'יכולת בעזרה (Band/Assist)', 'משיכה מלאה — חזרה אחת', 'משיכה מלאה — 2–5 חזרות', 'משיכה מלאה — 6+ חזרות'] },
+    // --- Pain map
+    { id: 'pain_regions',    type: 'multichoice', label: 'אזורים בגוף שכואבים או מגבילים תנועה כרגע (סמן/י את כל מה שרלוונטי)', required: true, choices: PAIN_REGIONS_HE },
+    { id: 'pain_worst',      type: 'scale',     label: 'דירוג הכאב הכי חזק כרגע (0=ללא כאב, 10=חזק מנשוא)', required: true, scale: { min: 0, max: 10, minLabel: 'ללא', maxLabel: 'חזק מנשוא' } },
+    { id: 'pain_detail',     type: 'paragraph', label: 'תאר/י את הכאב הכי משמעותי — מתי הוא מופיע, מה מחמיר אותו, מה מקל' },
+    // --- History
+    { id: 'prior_injuries',  type: 'paragraph', label: 'פציעות קודמות — מקום, שנה, האם טופל פיזיותרפית', required: true },
+    { id: 'surgeries',       type: 'paragraph', label: 'ניתוחים — סוג, שנה, איזורים' },
+    { id: 'medications',     type: 'paragraph', label: 'תרופות שמשפיעות על אימון (מדללי דם, סטרואידים, חוסמי-β וכו\')' },
+    { id: 'red_flags',       type: 'choice',    label: 'האם חווה לאחרונה: ירידה דרסטית במשקל ללא סיבה / כאבי לילה לא תלויי תנוחה / חוסר תחושה במפשעה / חולשה פתאומית באחת מהרגליים', required: true, choices: ['לא', 'כן'] },
+    { id: 'red_flag_detail', type: 'paragraph', label: 'אם "כן" — פרט/י' },
+    // --- Goals for block 1
+    { id: 'goals_block1',    type: 'paragraph', label: 'מטרות לבלוק הראשון (4 שבועות): מה היית רוצה לראות בסוף החודש הראשון?', required: true },
+    { id: 'comments',        type: 'paragraph', label: 'הערות נוספות' },
+  ],
+};
+
+export const ASSESSMENT_EN = {
+  id: 'assessment_en_v1',
+  formType: 'assessment',
+  locale: 'en',
+  title: 'EXPO — Physical Assessment',
+  intro: 'One-shot baseline. The data here is what block #1 gets programmed from. Self-administered tests — no tape measure or goniometer needed.',
+  submitLabel: 'Submit',
+  thanksTitle: 'Thanks!',
+  thanksBody: 'Assessment received. You\'ll get an initial program shortly.',
+  questions: [
+    { id: 'email',           type: 'email',     label: 'Email', required: true },
+    { id: 'name',            type: 'short',     label: 'Full name', required: true },
+    { id: 'assessment_date', type: 'date',      label: 'Assessment date', required: true },
+    { id: 'sit_rise',        type: 'scale',     label: 'Sit-rise test (0–10): get from floor sit to standing without using hands. Deduct one point per hand or knee that touched the floor.', required: true, scale: { min: 0, max: 10, minLabel: 'Needs support', maxLabel: 'No support' } },
+    { id: 'balance_left',    type: 'number',    label: 'Single-leg balance LEFT (seconds, eyes open — cap at 60)', required: true },
+    { id: 'balance_right',   type: 'number',    label: 'Single-leg balance RIGHT (seconds, eyes open — cap at 60)', required: true },
+    { id: 'pushup_max',      type: 'number',    label: 'Continuous push-ups to failure (zero if none)', required: true },
+    { id: 'plank_seconds',   type: 'number',    label: 'Forearm plank — seconds until hips drop', required: true },
+    { id: 'pullup_ability',  type: 'choice',    label: 'Chin/Pull-up capacity', required: true, choices: ['Cannot do any', 'Assisted (band / partner)', 'One full rep', 'Full reps · 2–5', 'Full reps · 6+'] },
+    { id: 'pain_regions',    type: 'multichoice', label: 'Regions that hurt or limit movement right now (check all)', required: true, choices: PAIN_REGIONS_EN },
+    { id: 'pain_worst',      type: 'scale',     label: 'Worst pain right now (0=none, 10=unbearable)', required: true, scale: { min: 0, max: 10, minLabel: 'None', maxLabel: 'Unbearable' } },
+    { id: 'pain_detail',     type: 'paragraph', label: 'Describe the most significant pain — when it shows up, what makes it worse, what helps' },
+    { id: 'prior_injuries',  type: 'paragraph', label: 'Prior injuries — location, year, whether you saw a physio', required: true },
+    { id: 'surgeries',       type: 'paragraph', label: 'Surgeries — type, year, location' },
+    { id: 'medications',     type: 'paragraph', label: 'Medications that affect training (blood thinners, steroids, β-blockers, etc.)' },
+    { id: 'red_flags',       type: 'choice',    label: 'Recently experienced: unexplained drastic weight loss / night pain unrelated to position / saddle anesthesia / sudden weakness in one leg', required: true, choices: ['No', 'Yes'] },
+    { id: 'red_flag_detail', type: 'paragraph', label: 'If yes — describe' },
+    { id: 'goals_block1',    type: 'paragraph', label: 'Goals for block #1 (4 weeks): what would you like to see at the end of the first month?', required: true },
+    { id: 'comments',        type: 'paragraph', label: 'Additional thoughts' },
+  ],
+};
+
 export const FORM_BY_KEY = {
   'initial:he': INTAKE_HE,
   'initial:en': INTAKE_EN,
   'progress:he': PROGRESS_HE,
+  'assessment:he': ASSESSMENT_HE,
+  'assessment:en': ASSESSMENT_EN,
 };
 
 export function getForm(formType, locale) {
