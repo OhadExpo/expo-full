@@ -187,9 +187,10 @@ export function deriveCadence(td, clientWorkouts) {
 }
 
 // ───────────────────────────────────────────────────────────────────────
-// useCompletedTasksForTrainee — fetches done coach_tasks linked to this
-// trainee so they can be folded into deriveAutoEvents. Kept as a hook so
-// React handles the loading lifecycle correctly.
+// useCompletedTasksForTrainee — fetches done coach_notes linked to this
+// trainee. The activity feed merges these in as 'task' events, and the
+// linked_plan_id field powers the "from task: <body>" suffix on the
+// plan auto-event so the chain is visible.
 // ───────────────────────────────────────────────────────────────────────
 export function useCompletedTasksForTrainee(traineeId) {
   const [rows, setRows] = useState([]);
@@ -198,10 +199,10 @@ export function useCompletedTasksForTrainee(traineeId) {
     if (!traineeId) { setRows([]); return; }
     (async () => {
       const { data, error } = await supabase
-        .from('coach_tasks')
-        .select('id, title, completed_at, status')
-        .eq('related_kind', 'trainee')
-        .eq('related_id', traineeId)
+        .from('coach_notes')
+        .select('id, body, completed_at, linked_plan_id, status')
+        .eq('target_kind', 'trainee')
+        .eq('target_id', traineeId)
         .eq('status', 'done')
         .not('completed_at', 'is', null)
         .order('completed_at', { ascending: false })
@@ -278,14 +279,23 @@ export function deriveAutoEvents(td, clientWorkouts, payments, planIndex, comple
   }
 
   // Plan assignments — when a block first appeared for this trainee.
+  // If a completed task is linked to this plan (via linked_plan_id), append
+  // "from task: <body>" so the chain task→plan is visible end-to-end.
+  const tasksByLinkedPlan = new Map();
+  for (const t of completedTasks || []) {
+    if (t.linked_plan_id) tasksByLinkedPlan.set(t.linked_plan_id, t);
+  }
   for (const p of planIndex || []) {
     if (!ids.has(p.traineeId)) continue;
     if (!p.createdAt) continue;
+    const linkedTask = tasksByLinkedPlan.get(p.id);
     events.push({
       id: `auto-plan-${p.id}`,
       ts: p.createdAt,
       kind: 'plan',
-      summary: `Started ${p.name}`,
+      summary: linkedTask
+        ? `Started ${p.name} · from task: "${linkedTask.body}"`
+        : `Started ${p.name}`,
       autoSource: 'plans',
     });
   }
@@ -303,15 +313,18 @@ export function deriveAutoEvents(td, clientWorkouts, payments, planIndex, comple
     });
   }
 
-  // Completed coach_tasks linked to this trainee (passed in from the hook)
+  // Completed coach_notes (tasks) linked to this trainee. Skip ones that
+  // also have linked_plan_id — those already showed up inline on the plan
+  // event above, so a separate "task done" row would be a duplicate.
   for (const t of completedTasks || []) {
     if (!t.completed_at) continue;
+    if (t.linked_plan_id) continue;
     events.push({
       id: `auto-task-${t.id}`,
       ts: t.completed_at,
       kind: 'task',
-      summary: `Task completed: ${t.title}`,
-      autoSource: 'coach_tasks',
+      summary: `Task completed: ${t.body}`,
+      autoSource: 'coach_notes',
     });
   }
 

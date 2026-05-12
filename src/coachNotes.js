@@ -9,8 +9,20 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from './supabase';
+import { toast } from './ui';
 
 const newId = () => 'note_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
+
+// Friendly error reporter — shows a toast so silent save-failures stop
+// happening. Also keeps the console.warn for debugging.
+function reportFailure(action, error) {
+  const msg = error?.message || String(error || 'unknown error');
+  console.warn(action, 'failed:', msg);
+  const friendlier = /relation .* does not exist/i.test(msg)
+    ? `${action} failed — migration not applied yet (check scripts/migrations/)`
+    : `${action} failed — ${msg}`;
+  toast(friendlier, 'error', { ttl: 8000 });
+}
 
 export function useCoachNotes(filter = {}) {
   const filterKey = JSON.stringify(filter);
@@ -27,7 +39,7 @@ export function useCoachNotes(filter = {}) {
          .limit(filter.limit || 100);
     const { data, error } = await q;
     if (error) {
-      console.warn('coach_notes fetch failed:', error.message);
+      reportFailure('Loading tasks', error);
       setRows([]);
     } else {
       setRows(data || []);
@@ -48,32 +60,26 @@ export function useCoachNotes(filter = {}) {
       target_id: input.targetId || null,
       target_label: input.targetLabel || null,
       pinned: !!input.pinned,
+      status: 'open',
+      completed_at: null,
+      linked_plan_id: null,
     };
     const { error } = await supabase.from('coach_notes').insert(row);
-    if (error) { console.warn('coach_notes insert failed:', error.message); return null; }
-    // Re-sort to keep pinned-then-recent invariant.
-    setRows(prev => [row, ...prev].sort((a, b) => {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-      return new Date(b.created_at) - new Date(a.created_at);
-    }));
+    if (error) { reportFailure('Saving task', error); return null; }
+    // Re-sort to keep open-pinned > open-recent > done invariant.
+    setRows(prev => [row, ...prev].sort(sortTasks));
     return row;
   }, []);
 
   const update = useCallback(async (id, patch) => {
     const { error } = await supabase.from('coach_notes').update(patch).eq('id', id);
-    if (error) { console.warn('coach_notes update failed:', error.message); return; }
-    setRows(prev => {
-      const updated = prev.map(r => r.id === id ? { ...r, ...patch } : r);
-      return updated.sort((a, b) => {
-        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-        return new Date(b.created_at) - new Date(a.created_at);
-      });
-    });
+    if (error) { reportFailure('Updating task', error); return; }
+    setRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r).sort(sortTasks));
   }, []);
 
   const remove = useCallback(async (id) => {
     const { error } = await supabase.from('coach_notes').delete().eq('id', id);
-    if (error) { console.warn('coach_notes delete failed:', error.message); return; }
+    if (error) { reportFailure('Deleting task', error); return; }
     setRows(prev => prev.filter(r => r.id !== id));
   }, []);
 
@@ -83,5 +89,61 @@ export function useCoachNotes(filter = {}) {
     return update(id, { pinned: !cur.pinned });
   }, [rows, update]);
 
-  return { rows, loading, refetch, create, update, remove, togglePin };
+  const toggleDone = useCallback((id) => {
+    const cur = rows.find(r => r.id === id);
+    if (!cur) return;
+    if (cur.status === 'done') {
+      return update(id, { status: 'open', completed_at: null });
+    }
+    return update(id, { status: 'done', completed_at: new Date().toISOString() });
+  }, [rows, update]);
+
+  return { rows, loading, refetch, create, update, remove, togglePin, toggleDone };
+}
+
+// Sort: open + pinned first, then open by recency, then done at the end.
+function sortTasks(a, b) {
+  const aDone = a.status === 'done';
+  const bDone = b.status === 'done';
+  if (aDone !== bDone) return aDone ? 1 : -1;
+  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+  return new Date(b.created_at) - new Date(a.created_at);
+}
+
+// Mark a task done and link it to the plan that completed it. Used by the
+// plan editor's onSave hook when a pending task→plan handoff is in flight.
+export async function markTaskCompletedByPlan(taskId, planId) {
+  if (!taskId || !planId) return false;
+  const { error } = await supabase
+    .from('coach_notes')
+    .update({
+      status: 'done',
+      completed_at: new Date().toISOString(),
+      linked_plan_id: planId,
+    })
+    .eq('id', taskId);
+  if (error) { reportFailure('Linking task to plan', error); return false; }
+  return true;
+}
+
+// SessionStorage handoff: the trainee task → "→ NEW PROGRAM" click writes
+// here, the plan editor reads on mount, the plan editor clears on consume.
+const PENDING_KEY = 'expo-pendingTaskPlanLink';
+
+export function setPendingTaskPlanLink(payload) {
+  try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload)); } catch {}
+}
+export function consumePendingTaskPlanLink() {
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(PENDING_KEY);
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+export function peekPendingTaskPlanLink() {
+  try {
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }

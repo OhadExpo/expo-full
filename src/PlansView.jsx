@@ -1014,6 +1014,7 @@ function visKeyForPlan(p, trainees) {
 
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
+  const [linkedTaskId, setLinkedTaskId] = useState(null);
   const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
   const [editMode, setEditMode] = useState(false);
   const [search, setSearch] = useState("");
@@ -1082,11 +1083,43 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const hasMore = visibleCount < filtered.length;
 
   const handleOpenPlan = async (planId) => { await loadFullPlan(planId); setEditMode(true); };
-  const handleNewPlan = () => {
-    setEditPlan({ id: 'pl_' + uid(), name: "", traineeId: "", phase: "", notes: "", active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: [], weeks: 4 });
+  const handleNewPlan = (presetTraineeId = '') => {
+    setEditPlan({ id: 'pl_' + uid(), name: "", traineeId: presetTraineeId || "", phase: "", notes: "", active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: [], weeks: 4 });
     setEditMode(true);
   };
-  const handleSave = async (plan) => { await savePlan(plan); setEditMode(false); clearPlan(); await reloadIndex(); if (onCloseEditor) onCloseEditor(); };
+  const handleSave = async (plan) => {
+    await savePlan(plan);
+    // If this editor was opened from a task → "→ NEW PROGRAM" handoff,
+    // auto-mark the task done + link it to the saved plan so the chain
+    // becomes visible in the trainee's activity feed.
+    if (linkedTaskId) {
+      const { markTaskCompletedByPlan } = await import('./coachNotes');
+      await markTaskCompletedByPlan(linkedTaskId, plan.id);
+      setLinkedTaskId(null);
+    }
+    setEditMode(false);
+    clearPlan();
+    await reloadIndex();
+    if (onCloseEditor) onCloseEditor();
+  };
+
+  // Consume a pending task→plan handoff (set by clicking "→ NEW PROGRAM"
+  // on a trainee-tagged task). When present on mount, auto-open a fresh
+  // plan editor pre-bound to that trainee and remember the task id so
+  // handleSave can mark it done on commit.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { consumePendingTaskPlanLink } = await import('./coachNotes');
+      const pending = consumePendingTaskPlanLink();
+      if (!pending || cancelled) return;
+      setLinkedTaskId(pending.taskId);
+      handleNewPlan(pending.traineeId);
+    })();
+    return () => { cancelled = true; };
+  // Run-once on mount; the handoff is one-shot.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Back from the editor: reload the index so autosaved edits (program name,
   // day count, exercise count, updatedAt sort, etc.) appear immediately.
   // onCloseEditor (when provided by App.jsx) routes the coach back to

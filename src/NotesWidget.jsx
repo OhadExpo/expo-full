@@ -11,7 +11,7 @@
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b } from './ui';
-import { useCoachNotes } from './coachNotes';
+import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -37,8 +37,8 @@ const FILTER_OPTIONS = [
   { id: 'general',  label: 'GENERAL' },
 ];
 
-export default function NotesWidget({ onNavigate, onOpenFullTasks, compact = false, trainees = [] }) {
-  const { rows, create, update, togglePin, remove } = useCoachNotes({ limit: 60 });
+export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, compact = false, trainees = [] }) {
+  const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
   const [adding, setAdding] = useState(false);
   const [body, setBody] = useState('');
   const [linkTraineeId, setLinkTraineeId] = useState('');
@@ -88,9 +88,27 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, compact = fal
     return c;
   }, [rows]);
 
-  const pinned = filtered.filter(r => r.pinned);
-  const recent = filtered.filter(r => !r.pinned).slice(0, compact ? 3 : 10);
-  const visible = compact ? [...pinned, ...recent].slice(0, 5) : [...pinned, ...recent];
+  // Open tasks float to the top; done tasks pool at the bottom under a
+  // collapsed "DONE" group. Pinned-open before unpinned-open.
+  const openRows = filtered.filter(r => r.status !== 'done');
+  const doneRows = filtered.filter(r => r.status === 'done');
+  const pinned = openRows.filter(r => r.pinned);
+  const recent = openRows.filter(r => !r.pinned).slice(0, compact ? 3 : 10);
+  const visible = compact
+    ? [...pinned, ...recent].slice(0, 5)
+    : [...pinned, ...recent];
+  const visibleDone = compact ? doneRows.slice(0, 2) : doneRows.slice(0, 20);
+
+  const startCreatePlan = (n) => {
+    if (!onCreatePlanForTask || n.target_kind !== 'trainee' || !n.target_id) return;
+    setPendingTaskPlanLink({
+      taskId: n.id,
+      traineeId: n.target_id,
+      traineeLabel: n.target_label || '',
+      taskBody: n.body,
+    });
+    onCreatePlanForTask(n.target_id);
+  };
 
   const handleClick = (n) => {
     if (!onNavigate) return;
@@ -186,11 +204,15 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, compact = fal
         visible.map(n => {
           const heb = isHebrew(n.body);
           const clickable = !!(n.target_kind && n.target_id && onNavigate);
+          const canCreatePlan = !!onCreatePlanForTask && n.target_kind === 'trainee' && n.target_id;
           return (
             <div key={n.id} style={{
               display: 'flex', alignItems: 'flex-start', gap: 8,
               padding: '8px 0', borderBottom: `1px solid var(--c-cardBd)`,
             }}>
+              <input type="checkbox" checked={false} onChange={() => toggleDone(n.id)}
+                title="Mark done"
+                style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
               <button onClick={() => togglePin(n.id)} title={n.pinned ? 'Unpin' : 'Pin'}
                 style={{
                   background: 'transparent', border: 'none', cursor: 'pointer',
@@ -228,6 +250,16 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, compact = fal
                     }}>{n.body}</div>
                 )}
               </div>
+              {canCreatePlan && (
+                <button onClick={() => startCreatePlan(n)}
+                  title="Build a program from this task — auto-marks done on save"
+                  style={{
+                    background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
+                    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                    padding: '2px 6px', borderRadius: 0, cursor: 'pointer', flexShrink: 0,
+                    whiteSpace: 'nowrap', alignSelf: 'center',
+                  }}>→ NEW PROGRAM</button>
+              )}
               <button onClick={() => remove(n.id)} title="Remove"
                 style={{
                   background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer',
@@ -236,6 +268,46 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, compact = fal
             </div>
           );
         })
+      )}
+
+      {/* DONE pool */}
+      {visibleDone.length > 0 && (
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed var(--c-cardBd)` }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>
+            ✓ DONE ({doneRows.length}{visibleDone.length < doneRows.length ? ` · showing ${visibleDone.length}` : ''})
+          </div>
+          {visibleDone.map(n => {
+            const heb = isHebrew(n.body);
+            return (
+              <div key={n.id} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', opacity: 0.55,
+                borderBottom: `1px solid var(--c-cardBd)`,
+              }}>
+                <input type="checkbox" checked={true} onChange={() => toggleDone(n.id)}
+                  style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 2 }}>
+                    {TARGET_ICON[n.target_kind] || '·'} {TARGET_LABEL[n.target_kind] || 'NOTE'}
+                    {n.target_label && <span style={{ color: 'var(--c-ac)', marginLeft: 6 }}>· {n.target_label}</span>}
+                    {n.completed_at && <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· done {new Date(n.completed_at).toLocaleDateString()}</span>}
+                  </div>
+                  <div style={{
+                    fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, whiteSpace: 'pre-wrap', textDecoration: 'line-through',
+                    direction: heb ? 'rtl' : 'ltr',
+                    fontFamily: heb ? FH : FB,
+                  }}>{n.body}</div>
+                  {n.linked_plan_id && (
+                    <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-ac)', letterSpacing: '0.08em', marginTop: 2, fontWeight: 700 }}>
+                      ✓ COMPLETED BY PLAN
+                    </div>
+                  )}
+                </div>
+                <button onClick={() => remove(n.id)} title="Remove"
+                  style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {compact && onOpenFullTasks && (counts.all > visible.length || counts.all > 0) && (

@@ -12,7 +12,7 @@ import React from 'react';
 import { C, FN } from './theme';
 import NotesWidget from './NotesWidget';
 
-export default function CoachTasksView({ trainees, onSelectTrainee }) {
+export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlanForTask }) {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 4px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14 }}>
@@ -23,6 +23,7 @@ export default function CoachTasksView({ trainees, onSelectTrainee }) {
       </div>
       <NotesWidget
         trainees={trainees}
+        onCreatePlanForTask={onCreatePlanForTask}
         onNavigate={(kind, id) => {
           if (kind === 'trainee' && onSelectTrainee) onSelectTrainee(id);
         }} />

@@ -21,7 +21,7 @@ function DormantWhatsAppButton({ trainee, days }) {
   return <WhatsAppCheckInButton name={target.name} phone={target.phone} days={days} />;
 }
 
-export default function DashboardView({ trainees, planCounts, workouts, clientWorkouts, payments, presence, onSelectTrainee, onOpenTasksTab }) {
+export default function DashboardView({ trainees, planCounts, workouts, clientWorkouts, payments, presence, onSelectTrainee, onOpenTasksTab, onCreatePlanForTask }) {
   const [sort, setSort] = useState('name');
   const [dir, setDir] = useState(1);
   const [filter, setFilter] = useState('');
@@ -381,6 +381,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         <NotesWidget compact
           trainees={trainees}
           onOpenFullTasks={onOpenTasksTab}
+          onCreatePlanForTask={onCreatePlanForTask}
           onNavigate={(kind, id) => {
             if (kind === 'trainee') onSelectTrainee?.(id);
           }} />

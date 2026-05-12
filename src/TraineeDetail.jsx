@@ -14,7 +14,7 @@ import TraineeEvaluation from './TraineeEvaluation';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
-export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, portalVis, setPortalVis }) {
+export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
   // For couples: plans assigned to parent ID are shared, plans to sub-IDs are per-member
   const traineeIds = traineeIdsFor(trainee);
@@ -325,7 +325,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === Athletic Evaluation — coach-administered, longitudinal === */}
       {td && <TraineeEvaluation trainee={td} />}
 
-      {/* === CRM v1: cadence pill · next actions · delegated tasks · activity feed === */}
+      {/* === CRM v1: cadence pill · next actions · activity feed === */}
       {td && (
         <TraineeCRM
           trainee={td}
@@ -333,6 +333,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           payments={tPay}
           planIndex={tp}
           onOpenTasksTab={onOpenTasksTab}
+          onCreatePlanForTask={onCreatePlanForTask}
         />
       )}
 
