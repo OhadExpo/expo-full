@@ -187,17 +187,74 @@ export function deriveCadence(td, clientWorkouts) {
 }
 
 // ───────────────────────────────────────────────────────────────────────
-// deriveAutoEvents — pulls workout sessions, plan-assignments, and
-// payment receipts into a single chronological auto-event stream. These
-// are NEVER written to trainee_activity; they're computed on render so
-// the feed always reflects the source-of-truth tables.
+// useCompletedTasksForTrainee — fetches done coach_tasks linked to this
+// trainee so they can be folded into deriveAutoEvents. Kept as a hook so
+// React handles the loading lifecycle correctly.
+// ───────────────────────────────────────────────────────────────────────
+export function useCompletedTasksForTrainee(traineeId) {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    if (!traineeId) { setRows([]); return; }
+    (async () => {
+      const { data, error } = await supabase
+        .from('coach_tasks')
+        .select('id, title, completed_at, status')
+        .eq('related_kind', 'trainee')
+        .eq('related_id', traineeId)
+        .eq('status', 'done')
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: false })
+        .limit(50);
+      if (!cancelled && !error && data) setRows(data);
+    })();
+    return () => { cancelled = true; };
+  }, [traineeId]);
+  return rows;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// promoteNextActionToTask — converts a CRM next-action into a coach_tasks
+// row, transferring title + due_date and tagging it to the trainee. Then
+// deletes the original next-action so it doesn't linger in two places.
+// Returns the created task row, or null on failure.
+// ───────────────────────────────────────────────────────────────────────
+export async function promoteNextActionToTask(nextAction, trainee) {
+  if (!nextAction || !trainee?.id) return null;
+  const taskId = 'tsk_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
+  const taskRow = {
+    id: taskId,
+    title: nextAction.title,
+    description: null,
+    assignee: null,
+    status: 'todo',
+    priority: 'normal',
+    due_date: nextAction.due_date || null,
+    related_kind: 'trainee',
+    related_id: trainee.id,
+    related_label: trainee.name || null,
+    notes_log: [{
+      ts: new Date().toISOString(),
+      note: `Promoted from Next Action.`,
+    }],
+  };
+  const { error: insErr } = await supabase.from('coach_tasks').insert(taskRow);
+  if (insErr) { console.warn('promote → task insert failed:', insErr.message); return null; }
+  const { error: delErr } = await supabase.from('trainee_next_actions').delete().eq('id', nextAction.id);
+  if (delErr) console.warn('promote → next_action delete failed (task created anyway):', delErr.message);
+  return taskRow;
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// deriveAutoEvents — pulls workout sessions, plan-assignments, payment
+// receipts, AND completed task events into a single chronological stream.
+// These are NEVER written to trainee_activity; they're computed on render
+// so the feed always reflects the source-of-truth tables.
 //
 // Returns events: [{ id, ts, kind, summary, autoSource }]
-//   kind ∈ 'session' | 'plan' | 'payment'
-//
-// Callers merge with the manual rows from useTraineeActivity for display.
+//   kind ∈ 'session' | 'plan' | 'payment' | 'task'
 // ───────────────────────────────────────────────────────────────────────
-export function deriveAutoEvents(td, clientWorkouts, payments, planIndex) {
+export function deriveAutoEvents(td, clientWorkouts, payments, planIndex, completedTasks) {
   const ids = new Set();
   if (td?.id) ids.add(td.id);
   if (Array.isArray(td?.members)) td.members.forEach(m => m?.id && ids.add(m.id));
@@ -243,6 +300,18 @@ export function deriveAutoEvents(td, clientWorkouts, payments, planIndex) {
       kind: 'payment',
       summary: `₪${p.amount} · ${p.method}${p.status && p.status !== 'Paid' ? ` · ${p.status}` : ''}`,
       autoSource: 'payments',
+    });
+  }
+
+  // Completed coach_tasks linked to this trainee (passed in from the hook)
+  for (const t of completedTasks || []) {
+    if (!t.completed_at) continue;
+    events.push({
+      id: `auto-task-${t.id}`,
+      ts: t.completed_at,
+      kind: 'task',
+      summary: `Task completed: ${t.title}`,
+      autoSource: 'coach_tasks',
     });
   }
 

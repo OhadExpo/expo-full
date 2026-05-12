@@ -16,22 +16,23 @@ import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b } from './ui';
 import {
-  useTraineeActivity, useTraineeNextActions,
-  deriveCadence, deriveAutoEvents, mergeFeed, ACT_KINDS,
+  useTraineeActivity, useTraineeNextActions, useCompletedTasksForTrainee,
+  deriveCadence, deriveAutoEvents, mergeFeed, promoteNextActionToTask, ACT_KINDS,
 } from './crmData';
+import TraineeTasks from './TraineeTasks';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
 const KIND_ICON = {
   whatsapp: '🟢', call: '☎', meeting: '🤝', note: '🗒',
   email: '✉', instagram: '📷', sms: '💬',
-  session: '🏋', plan: '📋', payment: '₪',
+  session: '🏋', plan: '📋', payment: '₪', task: '✓',
 };
 
 const KIND_LABEL = {
   whatsapp: 'WhatsApp', call: 'Call', meeting: 'Meeting', note: 'Note',
   email: 'Email', instagram: 'IG DM', sms: 'SMS',
-  session: 'Session', plan: 'Plan', payment: 'Payment',
+  session: 'Session', plan: 'Plan', payment: 'Payment', task: 'Task',
 };
 
 const cadenceColor = (level) => ({
@@ -55,10 +56,16 @@ function CadencePill({ cadence }) {
   );
 }
 
-function NextActions({ traineeId }) {
-  const { rows, add, toggleDone, remove } = useTraineeNextActions(traineeId);
+function NextActions({ trainee }) {
+  const traineeId = trainee?.id;
+  const { rows, add, toggleDone, remove, refetch } = useTraineeNextActions(traineeId);
   const [newTitle, setNewTitle] = useState('');
   const [newDue, setNewDue] = useState('');
+
+  const promote = async (na) => {
+    const task = await promoteNextActionToTask(na, trainee);
+    if (task) refetch();   // refresh so the promoted item disappears immediately
+  };
   const pending = rows.filter(r => r.status === 'pending');
   const done = rows.filter(r => r.status === 'done').slice(0, 3);
 
@@ -111,6 +118,12 @@ function NextActions({ traineeId }) {
               {new Date(r.due_date).toLocaleDateString()}
             </div>
           )}
+          <button onClick={() => promote(r)} title="Promote to a delegatable task"
+            style={{
+              background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac,
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+              padding: '2px 6px', borderRadius: 0, cursor: 'pointer', flexShrink: 0,
+            }}>→ TASK</button>
           <button onClick={() => remove(r.id)} title="Remove"
             style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, padding: '0 4px' }}>×</button>
         </div>
@@ -174,9 +187,10 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
   }, [trainee]);
 
   const { rows: manualRows, add, remove } = useTraineeActivity(allIds);
+  const completedTasks = useCompletedTasksForTrainee(trainee?.id);
   const autoEvents = useMemo(
-    () => deriveAutoEvents(trainee, clientWorkouts, payments, planIndex),
-    [trainee, clientWorkouts, payments, planIndex],
+    () => deriveAutoEvents(trainee, clientWorkouts, payments, planIndex, completedTasks),
+    [trainee, clientWorkouts, payments, planIndex, completedTasks],
   );
   const merged = useMemo(() => mergeFeed(manualRows, autoEvents), [manualRows, autoEvents]);
 
@@ -325,7 +339,7 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
   );
 }
 
-export default function TraineeCRM({ trainee, clientWorkouts, payments, planIndex }) {
+export default function TraineeCRM({ trainee, clientWorkouts, payments, planIndex, onOpenTasksTab }) {
   if (!trainee) return null;
   const cadence = useMemo(() => deriveCadence(trainee, clientWorkouts), [trainee, clientWorkouts]);
 
@@ -340,7 +354,8 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
           }}>STATUS · {trainee.status.toUpperCase()}</div>
         )}
       </div>
-      <NextActions traineeId={trainee.id} />
+      <NextActions trainee={trainee} />
+      <TraineeTasks trainee={trainee} onOpenTasks={onOpenTasksTab} />
       <ActivityFeed
         trainee={trainee}
         clientWorkouts={clientWorkouts}

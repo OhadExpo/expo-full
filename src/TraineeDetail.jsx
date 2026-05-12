@@ -13,7 +13,7 @@ import TraineeCRM from './TraineeCRM';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
-export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, onPreviewPortal, portalVis, setPortalVis }) {
+export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
   // For couples: plans assigned to parent ID are shared, plans to sub-IDs are per-member
   const traineeIds = traineeIdsFor(trainee);
@@ -321,13 +321,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       </Card>
       </>}
 
-      {/* === CRM v1: cadence pill · next actions · activity feed === */}
+      {/* === CRM v1: cadence pill · next actions · delegated tasks · activity feed === */}
       {td && (
         <TraineeCRM
           trainee={td}
           clientWorkouts={clientWorkouts}
           payments={tPay}
           planIndex={tp}
+          onOpenTasksTab={onOpenTasksTab}
         />
       )}
 
