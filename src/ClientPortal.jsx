@@ -980,7 +980,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         return (
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginTop:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6}}>
             <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,fontWeight:700,textAlign:'center',letterSpacing:'0.18em'}}>EXERCISE NOTES</div>
-            <div style={{color:useExNote?C.or:C.tx,textAlign:'center',direction:/[\u0590-\u05FF]/.test(note)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(note)?FH:undefined}}>{note}</div>
+            <div style={{color:C.tx,textAlign:'center',direction:/[\u0590-\u05FF]/.test(note)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(note)?FH:undefined}}>{note}</div>
           </div>
         );
       })()}
