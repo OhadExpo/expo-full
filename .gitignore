@@ -50,3 +50,5 @@ scripts/audit-*.json
 scripts/verify-*.json
 scripts/fix-*.dryrun.json
 tmp-drive-xlsx/
+
+.env*.local
