@@ -310,7 +310,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
       </Card>
-      <Card style={{marginBottom:16,textAlign:"center"}}
+      <Card style={{marginBottom:16}}
         header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12}}>
           {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>

@@ -65,7 +65,9 @@ export default function NotesInline({
   };
 
   const refined = isRefined5b();
-  const PAD = 12;
+  // PAD = 14 matches the canonical Card padding the rest of the
+  // trainee-card sections use, so every cyan strip is the same size.
+  const PAD = 14;
   return (
     <div style={{
       background: refined ? '#FFFFFF' : 'var(--c-sf)',
@@ -73,6 +75,13 @@ export default function NotesInline({
       padding: PAD, marginBottom: 12,
       boxShadow: C.cardShadow,
     }}>
+      {/* Placeholder uses var(--c-td) — the muted grey we use for "inactive"
+          / "no data" labels elsewhere. Browser default renders placeholder
+          as a faded version of color, which on the white-on-dark textarea
+          came out as a bluish-cyan that read like a clickable cyan accent. */}
+      <style>{`
+        .notes-inline-input::placeholder { color: var(--c-td); opacity: 1; }
+      `}</style>
       {/* Cyan header strip — matches Athletic Evaluation + Dashboard tasks
           + every other section card on the trainee detail page. */}
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={8}>
@@ -184,7 +193,7 @@ export default function NotesInline({
       )}
 
       <div style={{ marginTop: 10 }}>
-        <textarea value={body} onChange={e => setBody(e.target.value)}
+        <textarea className="notes-inline-input" value={body} onChange={e => setBody(e.target.value)}
           onBlur={draft.onBlur}
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
           placeholder="Add a note…"
