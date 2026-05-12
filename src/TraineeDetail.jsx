@@ -10,7 +10,7 @@ import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
 import TraineePRsView from './TraineePRsView';
 import TraineeCRM from './TraineeCRM';
-import TraineeAssessment from './TraineeAssessment';
+import TraineeEvaluation from './TraineeEvaluation';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
@@ -322,8 +322,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       </Card>
       </>}
 
-      {/* === Physical assessment summary (hides itself if no submission) === */}
-      {td && <TraineeAssessment traineeId={td.id} />}
+      {/* === Athletic Evaluation — coach-administered, longitudinal === */}
+      {td && <TraineeEvaluation trainee={td} />}
 
       {/* === CRM v1: cadence pill · next actions · delegated tasks · activity feed === */}
       {td && (
