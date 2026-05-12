@@ -342,6 +342,102 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   )}
                 </div>
 
+                {/* KG-per-week trend chart — mirrors the BW graph. Aggregates
+                    picked.series to one point per (planName, week) at max load,
+                    so multiple sessions in the same week collapse to that week's
+                    PR. Hidden when there are fewer than 2 weeks of data. */}
+                {(() => {
+                  const byWeek = new Map();
+                  for (const s of picked.series) {
+                    const key = `${s.planName || '?'}|${s.week ?? 0}`;
+                    const cur = byWeek.get(key);
+                    if (!cur || s.load > cur.load) {
+                      byWeek.set(key, { date: s.date, week: s.week, load: s.load, blockName: s.planName, reps: s.reps });
+                    }
+                  }
+                  const kgData = [...byWeek.values()].sort((a, b) => new Date(a.date) - new Date(b.date));
+                  if (kgData.length < 2) return null;
+                  const loads = kgData.map(d => d.load);
+                  const rawMax = Math.max(...loads);
+                  const rawMin = Math.min(...loads);
+                  const pad = Math.max((rawMax - rawMin) * 0.2, 1.5);
+                  const maxKg = rawMax + pad;
+                  const minKg = rawMin - pad;
+                  const range = maxKg - minKg || 1;
+                  const W = Math.max(kgData.length * 60, 300);
+                  return (
+                    <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
+                      <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>TREND · KG / WEEK</div>
+                      <svg viewBox={`0 -10 ${W} 185`} style={{ width: '100%', height: 185 }}>
+                        {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {
+                          const y = 10 + p * 130;
+                          const val = (maxKg - p * range).toFixed(1);
+                          return (
+                            <g key={i}>
+                              <line x1="40" y1={y} x2={W - 10} y2={y} stroke={C.bd} strokeWidth="0.5" strokeDasharray="4" />
+                              <text x="36" y={y + 4} fill={C.tm} fontSize="9" fontFamily={FN} textAnchor="end">{val}</text>
+                            </g>
+                          );
+                        })}
+                        <polyline fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                          points={kgData.map((d, i) => `${50 + i * 50},${10 + ((maxKg - d.load) / range) * 130}`).join(' ')} />
+                        {kgData.map((d, i) => {
+                          const x = 50 + i * 50;
+                          const y = 10 + ((maxKg - d.load) / range) * 130;
+                          const prevBlock = i > 0 ? kgData[i - 1].blockName : null;
+                          const blockChanged = d.blockName && d.blockName !== prevBlock;
+                          const mNum = d.blockName?.match(/#(\d+)/);
+                          const blockAbbrev = mNum ? 'B' + mNum[1] : (d.blockName ? d.blockName.slice(0, 4) : '?');
+                          const prevY = i > 0 ? 10 + ((maxKg - kgData[i - 1].load) / range) * 130 : null;
+                          const nextY = i < kgData.length - 1 ? 10 + ((maxKg - kgData[i + 1].load) / range) * 130 : null;
+                          const prevDown = prevY != null ? prevY > y : null;
+                          const nextDown = nextY != null ? nextY > y : null;
+                          const dirs = [prevDown, nextDown].filter(v => v != null);
+                          const isPeak = dirs.length > 0 && dirs.every(v => v === true);
+                          const isTrough = dirs.length > 0 && dirs.every(v => v === false);
+                          let labelX = x, labelY, anchor = 'middle';
+                          if (!isPeak && !isTrough && prevY != null && nextY != null) {
+                            const ascending = nextY < prevY;
+                            labelX = ascending ? x - 6 : x + 6;
+                            labelY = y - 4;
+                            anchor = ascending ? 'end' : 'start';
+                          } else {
+                            let above = isPeak;
+                            if (above && y < 6) above = false;
+                            else if (!above && y > 132) above = true;
+                            labelY = above ? y - 8 : y + 14;
+                          }
+                          return (
+                            <g key={i}>
+                              {blockChanged && <line x1={x - 25} y1="10" x2={x - 25} y2="140" stroke={C.bd2 || C.bd} strokeWidth="0.5" strokeDasharray="2" />}
+                              <circle cx={x} cy={y} r="3" fill={C.ac} />
+                              <text x={labelX} y={labelY} fill={C.tx} fontSize="10" fontFamily={FN} textAnchor={anchor} fontWeight="600">{d.load}</text>
+                              <text x={x} y={152} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="middle">{blockAbbrev}·W{d.week || '?'}</text>
+                              <text x={x} y={163} fill={C.tm} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}</text>
+                            </g>
+                          );
+                        })}
+                      </svg>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                        <div style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, textAlign: 'center' }}>
+                          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>LATEST</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color: C.tx }}>{kgData[kgData.length - 1].load}kg</div>
+                        </div>
+                        <div style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, textAlign: 'center' }}>
+                          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>CHANGE</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color: (kgData[kgData.length - 1].load - kgData[0].load) >= 0 ? C.gn : C.rd }}>
+                            {(kgData[kgData.length - 1].load - kgData[0].load) > 0 ? '+' : ''}{(kgData[kgData.length - 1].load - kgData[0].load).toFixed(1)}kg
+                          </div>
+                        </div>
+                        <div style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, textAlign: 'center' }}>
+                          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>WEEKS</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color: C.tx }}>{kgData.length}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Session history */}
                 <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
                   SESSION HISTORY · {picked.sessionCount} ENTR{picked.sessionCount === 1 ? 'Y' : 'IES'}
