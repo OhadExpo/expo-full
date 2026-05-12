@@ -20,6 +20,7 @@ import {
   deriveCadence, deriveAutoEvents, mergeFeed, promoteNextActionToTask, ACT_KINDS,
 } from './crmData';
 import TraineeTasks from './TraineeTasks';
+import NotesInline from './NotesInline';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -356,6 +357,7 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
       </div>
       <NextActions trainee={trainee} />
       <TraineeTasks trainee={trainee} onOpenTasks={onOpenTasksTab} />
+      <NotesInline targetKind="trainee" targetId={trainee.id} targetLabel={trainee.name || null} />
       <ActivityFeed
         trainee={trainee}
         clientWorkouts={clientWorkouts}

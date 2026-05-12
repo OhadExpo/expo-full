@@ -4,6 +4,7 @@ import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, Sectio
 import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
+import NotesWidget from './NotesWidget';
 
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
 // For couples we pick the member whose phone is set; if both have phones,
@@ -373,6 +374,15 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           </div>
         );
       })() : null}
+
+      {/* Global Notes widget — pinned + recent across all contexts. */}
+      <div style={{ marginBottom: 14 }}>
+        <NotesWidget onNavigate={(kind, id) => {
+          if (kind === 'trainee') onSelectTrainee?.(id);
+          // Other kinds (intake/review) require parent-level nav callbacks;
+          // wired later when we route those tabs via Dashboard.
+        }} />
+      </div>
 
       {/* Search */}
       <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>

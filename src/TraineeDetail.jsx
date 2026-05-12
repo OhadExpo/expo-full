@@ -258,7 +258,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back to Athletes</button>
         <div style={{display:"flex",gap:6}}>
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px"}} title="Open this trainee's portal in preview mode">👁 Preview Portal</Btn>}
+          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px"}} title="Open this trainee's portal in preview mode">👁 Portal</Btn>}
           <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px"}}>✏ Edit</Btn>
           {td.status==="Archived" ? <>
             <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
@@ -657,11 +657,40 @@ function BWChart({ entries }) {
         </defs>
         <path d={areaPath} fill="url(#bwAreaGrad)" />
         <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="3" fill={C.ac} stroke={C.bg} strokeWidth="1.5">
-            <title>{`${new Date(p.date).toLocaleDateString()} · ${fmt(p.bw)}`}</title>
-          </circle>
-        ))}
+        {points.map((p, i) => {
+          // Peak/trough/slope-aware label placement — same algorithm as the
+          // athlete-portal BW chart. Pushes labels above peaks, below troughs,
+          // along the slope direction in between, so adjacent labels don't
+          // collide on tight data.
+          const prevY = i > 0 ? points[i - 1].y : null;
+          const nextY = i < points.length - 1 ? points[i + 1].y : null;
+          const prevDown = prevY != null ? prevY > p.y : null;
+          const nextDown = nextY != null ? nextY > p.y : null;
+          const dirs = [prevDown, nextDown].filter(v => v != null);
+          const isPeak = dirs.length > 0 && dirs.every(v => v === true);
+          const isTrough = dirs.length > 0 && dirs.every(v => v === false);
+          let labelX = p.x, labelY, anchor = 'middle';
+          const innerH = H - PAD_TOP - PAD_BOTTOM;
+          if (!isPeak && !isTrough && prevY != null && nextY != null) {
+            const ascending = nextY < prevY;
+            labelX = ascending ? p.x - 6 : p.x + 6;
+            labelY = p.y - 4;
+            anchor = ascending ? 'end' : 'start';
+          } else {
+            let above = isPeak;
+            if (above && p.y < PAD_TOP + 8) above = false;
+            else if (!above && p.y > PAD_TOP + innerH - 4) above = true;
+            labelY = above ? p.y - 8 : p.y + 14;
+          }
+          return (
+            <g key={i}>
+              <circle cx={p.x} cy={p.y} r="3" fill={C.ac} stroke={C.bg} strokeWidth="1.5">
+                <title>{`${new Date(p.date).toLocaleDateString()} · ${fmt(p.bw)}`}</title>
+              </circle>
+              <text x={labelX} y={labelY} fontSize="10" fontFamily={FN} fill={C.tx} textAnchor={anchor} fontWeight="600">{p.bw}</text>
+            </g>
+          );
+        })}
         <text x={PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td}>{new Date(entries[0].date).toLocaleDateString()}</text>
         <text x={W - PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td} textAnchor="end">{new Date(entries[entries.length-1].date).toLocaleDateString()}</text>
       </svg>

@@ -593,6 +593,26 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const statusLabel = autosaveStatusLabel(autoStatus, C);
   return (
     <div>
+      {/* Narrow-screen layout for the exercise rows. Below 900px the
+          8-column grid (Exercise / Superset / Sets / Reps / Load / RPE /
+          Tempo / Trash) wraps so per-week inputs don't force horizontal
+          scroll. Drag-handle column gets smaller; tempo wraps under load. */}
+      <style>{`
+        @media (max-width: 900px) {
+          .ex-row-outer { grid-template-columns: 38px 1fr !important; gap: 8px !important; }
+          .ex-row-outer > div:last-child { display: none !important; }
+          .ex-row-scroll { overflow-x: visible !important; }
+          .ex-row-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            min-width: 0 !important;
+            gap: 10px !important;
+          }
+          .ex-row-grid > :first-child { grid-column: 1 / -1; }
+        }
+        @media (max-width: 560px) {
+          .ex-row-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12,flexWrap:'wrap'}}>
         <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flex:'1 1 240px'}}>
           <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0,whiteSpace:'nowrap'}}>← Back</button>
@@ -641,7 +661,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {onPreviewPlan && plan?.id && <button onClick={async () => { await flushAutosave(); onPreviewPlan(plan.id); }}
             title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            VIEW IN PORTAL
+            PORTAL
           </button>}
           <Btn onClick={handleSave} disabled={saving} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
@@ -779,8 +799,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const exData = exercises.find(e=>e.id===ex.exerciseId);
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
-          return(<div key={ex.id} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${ex.superset?sc:C.cardBd}`,borderLeft:`3px solid ${ex.superset?sc:C.cardBd}`,borderRadius:0,padding:12,marginBottom:8}}>
-            <div style={{display:"grid",gridTemplateColumns:"54px 1fr 54px",gap:12,alignItems:"start"}}>
+          return(<div key={ex.id} className="ex-row-card" style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${ex.superset?sc:C.cardBd}`,borderLeft:`3px solid ${ex.superset?sc:C.cardBd}`,borderRadius:0,padding:12,marginBottom:8}}>
+            <div className="ex-row-outer" style={{display:"grid",gridTemplateColumns:"54px 1fr 54px",gap:12,alignItems:"start"}}>
               <div draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${activeDay}:${exIdx}`); setDragSrc({dayIdx: activeDay, exIdx}); }}
                 onDragOver={e => { if (dragSrc && dragSrc.dayIdx===activeDay) { e.preventDefault(); e.dataTransfer.dropEffect='move'; setDragOver({dayIdx: activeDay, exIdx}); } }}
@@ -792,8 +812,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 <span style={{fontFamily:FN,fontSize:11,color:C.tm,lineHeight:1,fontWeight:400}}>⇕</span>
                 <span style={{fontFamily:FN,fontSize:12,color:C.tm,fontWeight:700,lineHeight:1}}>{exIdx+1}</span>
               </div>
-              <div style={{overflowX:"auto"}}>
-                <div style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr auto",minWidth:780,gap:12,alignItems:"end"}}>
+              <div className="ex-row-scroll" style={{overflowX:"auto"}}>
+                <div className="ex-row-grid" style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr auto",minWidth:780,gap:12,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
                   <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise." style={{minWidth:0}}>
                     <Select label="Superset" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
