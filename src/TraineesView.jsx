@@ -390,17 +390,9 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
                   headerRight={<Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge>}
                   style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
-                  {/* IDENTITY (refined): name + status badge live in the
-                      cyan strip; the legacy banner is only rendered when
-                      not in refined mode so we don't duplicate the name. */}
-                  {!isRefined5b() && (
-                    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,fontWeight:700,fontSize:15,color:C.tx,textAlign:'center'}}>
-                        {t.name}{online && <OnlineDot />}
-                      </div>
-                      <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
-                    </div>
-                  )}
+                  {/* IDENTITY: name + status badge live in the card header
+                      (Card's header + headerRight props). No duplicate body
+                      banner — Ohad called the inner repeat useless 2026-05-12. */}
                   <div style={{display:'flex',marginTop:8,width:'100%',alignSelf:'stretch'}}>
                     {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
@@ -487,33 +479,18 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
               headerRight={<Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge>}
               style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
-              {/* IDENTITY (refined): name + status live in the cyan strip
-                  above; the body starts with WhatsApp + emails + phone. */}
-              {isRefined5b() ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 0 }}>
-                    <WhatsAppCheckInButton name={t.name} phone={t.phone} />
-                  </div>
-                  <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
-                  {t.phone && (
-                    <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
-                  )}
+              {/* IDENTITY: name + status badge live in the card header — no
+                  body duplicate. Same shape in both themes; OnlineDot moves
+                  into the header span via the {online && <OnlineDot />} above. */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <WhatsAppCheckInButton name={t.name} phone={t.phone} />
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: C.tx, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center' }}>
-                    {t.name}{online && <OnlineDot />}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 6 }}>
-                    <Badge color={statusColor[t.status] || C.tm}>{t.status}</Badge>
-                    <WhatsAppCheckInButton name={t.name} phone={t.phone} />
-                  </div>
-                  <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
-                  {t.phone && (
-                    <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
-                  )}
-                </div>
-              )}
+                <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
+                {t.phone && (
+                  <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
+                )}
+              </div>
 
               <FinancialsBlock pay={pay} monthly={t.monthly} center />
               <TrainingBlock format={t.format} sessionsRemaining={t.sessionsRemaining} programs={programs} lastWk={lastWk} center />
