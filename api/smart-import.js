@@ -447,6 +447,14 @@ function checkImportRate(ip) {
 // it tighter so a malformed/abusive workbookSummary can't wedge the function.
 const MAX_BODY_BYTES = 2_000_000;
 
+// Smart Import is a coach-only feature. 60s budget covers an 8-hop Opus
+// tool loop on a large workbook. Body cap enforced by the platform via
+// bodyParser config — the content-length check below is belt-and-suspenders.
+export const config = {
+  maxDuration: 60,
+  api: { bodyParser: { sizeLimit: '2mb' } },
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' }); return;
@@ -473,10 +481,15 @@ export default async function handler(req, res) {
   }
   const kind = body?.kind;
   // Coach's Supabase JWT — required for tool calls to read RLS-protected
-  // tables (store, plans). Frontend forwards it; if missing, tool calls fall
-  // back to the publishable key (which sees nothing in store under RLS).
+  // tables (store, plans). Frontend forwards it; if missing the request is
+  // rejected (no anon use case, and anon would burn Opus dollars on tool
+  // calls that all return empty).
   const authHeader = String(req.headers['authorization'] || '');
   const authToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  if (!authToken) {
+    res.status(401).json({ error: 'Authentication required.' });
+    return;
+  }
 
   try {
     if (kind === 'vision-extract') {

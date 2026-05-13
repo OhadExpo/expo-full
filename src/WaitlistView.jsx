@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b } from './ui';
+import { isRefined5b, confirmToast } from './ui';
 import { supabase } from './supabase';
 
 const COACH_GATE = 5;
@@ -124,7 +124,8 @@ export default function WaitlistView({ trainees }) {
     try { await supabase.from('leads').update({ consumed_at: null }).eq('id', id); } catch {}
   };
   const removeLead = async (id) => {
-    if (!confirm('Delete this lead permanently?')) return;
+    // confirmToast — iOS PWA blocks the native confirm() dialog.
+    if (!(await confirmToast('Delete this lead permanently?', { okLabel: 'Delete', cancelLabel: 'Cancel' }))) return;
     setLeads(curr => (curr || []).filter(l => l.id !== id));
     try { await supabase.from('leads').delete().eq('id', id); } catch {}
   };

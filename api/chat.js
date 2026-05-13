@@ -9,6 +9,14 @@
 
 import crypto from 'crypto';
 
+// Hobby's default 10s function timeout truncates Sonnet 4.6 streams mid-reply
+// at ~500 tokens. Lift to 60s + cap body to 256KB. Pro plan honors the
+// raise; Hobby will silently clamp to its tier ceiling.
+export const config = {
+  maxDuration: 60,
+  api: { bodyParser: { sizeLimit: '256kb' } },
+};
+
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
 
@@ -281,6 +289,10 @@ export default async function handler(req, res) {
       res.setHeader('connection', 'keep-alive');
       res.setHeader('x-accel-buffering', 'no');
       res.flushHeaders?.();
+      // SSE heartbeat — keeps middleboxes / proxies from dropping the
+      // connection when Anthropic pauses between chunks. 15s interval is
+      // well below typical idle-timeout values.
+      const heartbeat = setInterval(() => { try { res.write(`: ping\n\n`); } catch {} }, 15000);
       let accumulated = '';
       let buf = '';
       const reader = r.body.getReader();
@@ -311,6 +323,7 @@ export default async function handler(req, res) {
       } catch (e) {
         console.error('stream pump error', e);
       }
+      clearInterval(heartbeat);
       res.write(`data: [DONE]\n\n`);
       res.end();
       logTurn({ site: 'expo-app', sessionId, visitorMsg: lastVisitor, assistantMsg: accumulated.trim() || null, userAgent, ip, error: accumulated ? null : 'empty stream' });

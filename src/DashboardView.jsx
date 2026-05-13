@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
-import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon } from './ui';
+import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -139,7 +139,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
     try { await supabase.from('leads').update({ consumed_at: new Date().toISOString() }).eq('id', id); } catch {}
   };
   const deleteLead = async (id) => {
-    if (!confirm('Delete this lead?')) return;
+    // confirmToast — iOS PWA blocks the native confirm() dialog.
+    if (!(await confirmToast('Delete this lead?', { okLabel: 'Delete', cancelLabel: 'Cancel' }))) return;
     setLeads(curr => (curr || []).filter(l => l.id !== id));
     try { await supabase.from('leads').delete().eq('id', id); } catch {}
   };

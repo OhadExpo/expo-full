@@ -9,7 +9,7 @@
 // sends a link to can submit. There is no public /intake landing page.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { Btn, Modal, Card, Badge, isRefined5b } from './ui';
+import { Btn, Modal, Card, Badge, isRefined5b, confirmToast } from './ui';
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 
@@ -138,7 +138,8 @@ export default function IntakeView({ trainees }) {
     try { await supabase.from('intake_submissions').update({ reviewed_at: null }).eq('id', id); } catch {}
   };
   const deleteSubmission = async (id) => {
-    if (!confirm('Delete this submission permanently?')) return;
+    // confirmToast — iOS PWA blocks the native confirm() dialog.
+    if (!(await confirmToast('Delete this submission permanently?', { okLabel: 'Delete', cancelLabel: 'Cancel' }))) return;
     setSubmissions(curr => (curr || []).filter(s => s.id !== id));
     try { await supabase.from('intake_submissions').delete().eq('id', id); } catch {}
   };

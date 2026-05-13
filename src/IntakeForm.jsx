@@ -198,9 +198,16 @@ export default function IntakeForm() {
   const validate = () => {
     if (!form) return 'Form not available.';
     for (const q of form.questions) {
-      if (!q.required) continue;
       const v = answers[q.id];
-      if (v == null || v === '') return `Missing: ${q.label}`;
+      if (q.required) {
+        if (v == null || v === '') return `Missing: ${q.label}`;
+      }
+      // Email fields with content (required or optional) must look like an
+      // email — the input has type="email" but the submit handler is
+      // onClick, so the browser's built-in form validation never fires.
+      if (q.type === 'email' && v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v).trim())) {
+        return locale === 'he' ? `כתובת מייל לא תקינה: ${q.label}` : `Invalid email: ${q.label}`;
+      }
     }
     return null;
   };

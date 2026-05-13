@@ -249,9 +249,20 @@ export function getForm(formType, locale) {
   return FORM_BY_KEY[`${formType}:${locale}`] || null;
 }
 
-// Generate a URL-safe random token. 22 chars of base36 ≈ 113 bits of entropy
-// — fine for an unguessable single-shot link.
+// Generate a URL-safe random token. 16 bytes from a CSPRNG (~128 bits of
+// entropy) base36-encoded, truncated to 24 chars. The earlier version's
+// comment claimed 113 bits via Math.random() — overstated, since V8's
+// internal state per call is ~52 bits and same-tab samples can correlate.
 export function generateIntakeToken() {
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    const buf = new Uint8Array(16);
+    crypto.getRandomValues(buf);
+    let out = '';
+    for (const b of buf) out += b.toString(36).padStart(2, '0');
+    return out.slice(0, 24);
+  }
+  // SSR / very old runtime fallback — should never hit in our supported
+  // browser matrix. Kept so build-time pre-renders don't crash.
   const a = Math.random().toString(36).slice(2, 12);
   const b = Math.random().toString(36).slice(2, 12);
   const t = Date.now().toString(36);

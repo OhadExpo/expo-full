@@ -568,7 +568,6 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           uploadBlob = result.blob;
           ext = result.ext;
           contentType = result.blob.type;
-          console.log(`Compressed: ${(file.size/1e6).toFixed(1)}MB → ${(result.compressedSize/1e6).toFixed(1)}MB`);
         } catch (compressErr) {
           console.warn('Compression failed, uploading original:', compressErr);
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:100}; return n; });
@@ -703,7 +702,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (typeof step === 'string' && step.startsWith('wu')) {
       const wi = parseInt(step.slice(2));
       if (wi > 0) setStep('wu' + (wi - 1)); else onBack();
-    } else if (step === 'pre') setStep(wuCount > 0 ? 'wu' + (wuCount - 1) : null);
+    } else if (step === 'pre') {
+      // Back from the pre-workout check: only fall back to a warmup step
+      // when warmups exist for this plan. Plans with zero warmups should
+      // exit the logger entirely instead of stepping to a null state that
+      // rendered as a blank page.
+      if (wuCount > 0) setStep('wu' + (wuCount - 1));
+      else onBack();
+    }
     else if (step === 0) setStep('pre');
     else if (typeof step === 'number') setStep(step - 1);
     else if (step === 'end') setStep(groupCount - 1);
@@ -1197,7 +1203,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 }
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false }) {
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
@@ -1267,7 +1273,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // into setClientPlans after the component remounted for a different user.
   const [plansReloadKey, setPlansReloadKey] = useState(0);
   React.useEffect(() => {
-    if (!ci) { setClientPlans([]); return; }
+    // Clearing the previous client's load error when ci flips (or goes
+    // null) keeps a stale red banner from sticking when switching between
+    // trainees on a dual-role account.
+    if (!ci) { setClientPlans([]); setPlansLoadError(null); return; }
     // Demo mode: skip Supabase entirely, render the prop-supplied plans.
     if (demoMode) {
       setClientPlans(Array.isArray(demoPlans) ? demoPlans : []);
@@ -1417,8 +1426,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               trainee row) it doubles as the "switch to coach portal"
               affordance — click the mark to go back to /coach/dashboard.
               Pure clients see a static logo. Hidden in demoMode (the
-              CoachPreviewPortal back button is the only escape there). */}
-          {onReturnToCoach && !demoMode ? (
+              CoachPreviewPortal back button is the only escape there)
+              AND in embedded mode (DemoEmbed iframe — the outer marketing
+              page already shows the EXPO mark; doubling it looks busy). */}
+          {embedded ? (
+            <span style={{width:36}} aria-hidden="true" />
+          ) : onReturnToCoach && !demoMode ? (
             <button onClick={onReturnToCoach}
               title="Switch to the coach portal"
               style={{background:'transparent',border:'none',padding:0,marginLeft:3,cursor:'pointer',display:'flex',alignItems:'center'}}>

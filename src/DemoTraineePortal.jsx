@@ -25,22 +25,30 @@ export default function DemoTraineePortal() {
   const onDecrementSession = () => {};
   const updateFormVideos = () => {};
   const signOut = async () => { window.location.href = '/demo'; };
+  // CoachLanding mounts this route in an iframe with `?embed=1` to render a
+  // clean POV preview alongside the marketing copy. In that mode we hide
+  // the sticky DEMO banner AND the ClientPortal EXPO header logo so the
+  // iframe doesn't double-brand the page.
+  const isEmbed = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('embed') === '1';
 
   return (
     // /demo/trainee — public marketing demo. Force dark while light-mode
     // rollout is gated to the coach app only.
     <div data-theme="dark" style={{ position: 'relative', minHeight: '100vh', background: C.bg }}>
       {/* Demo banner — slim, fixed at the top, non-intrusive */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 60,
-        background: 'transparent',
-        borderBottom: `1px solid ${C.ac}`,
-        padding: '6px 14px',
-        fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em',
-        color: C.ac, textAlign: 'center',
-      }}>
-        DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST
-      </div>
+      {!isEmbed && (
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 60,
+          background: 'transparent',
+          borderBottom: `1px solid ${C.ac}`,
+          padding: '6px 14px',
+          fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.18em',
+          color: C.ac, textAlign: 'center',
+        }}>
+          DEMO · ATHLETE PORTAL · CHANGES DON'T PERSIST
+        </div>
+      )}
       <ClientPortal
         clientId={DEMO_CLIENT_ID}
         signOut={signOut}
@@ -57,6 +65,7 @@ export default function DemoTraineePortal() {
         updateFormVideos={updateFormVideos}
         demoMode
         demoPlans={DEMO_PLANS}
+        embedded={isEmbed}
       />
     </div>
   );

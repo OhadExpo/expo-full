@@ -419,29 +419,12 @@ function AuthedApp() {
     updateURL(newTab, newTrainee);
   }, [updateURL]);
 
-  // One-time billing data migration
-  useEffect(()=>{
-    if(!trainees.length) return;
-    const BILLING={
-      "איילת קזצב":{monthly:800,perSession:200,lastPayment:"2026-01-21"},
-      "משה ודנה טיני":{monthly:2400,perSession:200,lastPayment:"2026-01-18"},
-      "מיה וחילק יניב":{monthly:800,perSession:250,lastPayment:"2026-02-06"},
-      "נטע ותום רונן":{monthly:1200,perSession:300,lastPayment:"2026-04-01"},
-      "לימור ודניאל ספן":{monthly:1200,perSession:300,lastPayment:"2026-01-28"},
-      "עמית יהודאי":{monthly:500,lastPayment:"2026-04-01"},
-      "רון יונקר":{monthly:0,lastPayment:"2026-03-16"},
-      "דיאגו דיי":{monthly:800,lastPayment:"2026-02-12"},
-      "טל סיאונוב":{monthly:600,lastPayment:"2026-04-06"},
-      "רועי הצבי":{monthly:0,lastPayment:"2025-09-30"},
-    };
-    const needsUpdate=trainees.some(t=>BILLING[t.name]&&!t.monthly);
-    if(needsUpdate){
-      setTrainees(prev=>prev.map(t=>{
-        const b=BILLING[t.name];
-        return b?{...t,monthly:b.monthly||t.monthly||0,perSession:b.perSession||t.perSession||0,lastPayment:b.lastPayment||t.lastPayment||""}:t;
-      }));
-    }
-  },[trainees.length]);
+  // Earlier a one-time BILLING seed lived here that gated on
+  // `!t.monthly` — it ran successfully on the first sign-in, then went
+  // permanently dormant because every trainee then had `monthly` set.
+  // Editing the source-of-truth constant in this file had no effect
+  // after that first run. Removed entirely; the canonical edit surface
+  // for monthly / perSession / lastPayment is the trainee detail page.
 
   const handleDecrementSession=useCallback(tid=>{
     // Couple workouts arrive with sub-member IDs (tr_xxx__0). Sessions counter lives on the parent row.
