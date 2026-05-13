@@ -502,7 +502,7 @@ export default function CoachLanding({ lang = 'en' }) {
             ...baseBtn, background: 'transparent', color: C.tm,
             border: `1px solid ${C.bd}`, padding: '8px 10px', fontSize: 10,
             letterSpacing: '0.18em', fontWeight: 700,
-          }}>{isHe ? 'EN' : 'עב'}</a>
+          }}>{isHe ? 'EN' : 'עבר'}</a>
           <a href="/demo/coach" className="cl-header-demo-btn" style={{
             ...baseBtn, background: 'transparent', color: C.tx,
             border: `1px solid ${C.bd2}`, padding: '8px 14px', fontSize: 11,

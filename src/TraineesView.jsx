@@ -456,7 +456,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
       {/* Sort bar — every button shares a single box vocabulary:
             BOX_H (28) minHeight, flex-centered content. Padding +
             font-size can vary per button but the OUTER box is identical
-            so the row reads as one rhythm. The Hebrew "עב" pill uses
+            so the row reads as one rhythm. The Hebrew "עבר" pill uses
             +3px Heebo to match Latin cap height (HE_BUMP_PX rule). */}
       {(() => {
         const BOX_H = 28;
@@ -489,26 +489,63 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 {o.label}
               </button>
             ))}
-            <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-              title={
-                sortBy === 'name' ? (sortDir === 'asc' ? 'A → Z' : 'Z → A')
-                : sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first')
-                : (sortDir === 'asc' ? 'Paid → Overdue' : 'Overdue → Paid')
-              }
-              style={{
-                ...boxBase, marginLeft: 6,
-                border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac,
-                fontSize: 10, letterSpacing: '0.12em',
-              }}>{
-                sortBy === 'name' ? (sortDir === 'asc' ? '↓ A→Z' : '↑ Z→A')
-                : sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST')
-                : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
-              }</button>
+            {/* Direction buttons. For sortBy='name' we render TWO
+                alphabet-specific pills (Latin + Hebrew) — the one
+                matching the active LANG is the live toggle; the other
+                shows the static alphabet label dimmed so the row still
+                reads as bilingual. For lastTrained/payment, one pill. */}
+            {sortBy === 'name' ? (
+              <>
+                <button onClick={() => langOrder === 'en-first' && setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+                  disabled={langOrder !== 'en-first'}
+                  title={langOrder === 'en-first' ? (sortDir === 'asc' ? 'A → Z' : 'Z → A') : 'Switch LANG to EN to use this sort'}
+                  style={{
+                    ...boxBase, marginLeft: 6,
+                    border: `1px solid ${langOrder === 'en-first' ? C.ac : C.cardBd}`,
+                    background: 'transparent',
+                    color: langOrder === 'en-first' ? C.ac : C.td,
+                    fontSize: 10, letterSpacing: '0.12em',
+                    cursor: langOrder === 'en-first' ? 'pointer' : 'default',
+                    opacity: langOrder === 'en-first' ? 1 : 0.5,
+                  }}>{(langOrder === 'en-first' && sortDir === 'desc') ? '↑ Z→A' : '↓ A→Z'}</button>
+                <button onClick={() => langOrder === 'he-first' && setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+                  disabled={langOrder !== 'he-first'}
+                  title={langOrder === 'he-first' ? (sortDir === 'asc' ? 'א → ת' : 'ת → א') : 'Switch LANG to עבר to use this sort'}
+                  style={{
+                    ...boxBase,
+                    border: `1px solid ${langOrder === 'he-first' ? C.ac : C.cardBd}`,
+                    background: 'transparent',
+                    color: langOrder === 'he-first' ? C.ac : C.td,
+                    // Heebo +3px so the Hebrew cap height matches Latin
+                    // inside the SAME outer box per [[new-ui-box-dimensions]].
+                    fontFamily: `Heebo, ${FN}`,
+                    fontSize: 13,
+                    letterSpacing: 0,
+                    lineHeight: 1,
+                    cursor: langOrder === 'he-first' ? 'pointer' : 'default',
+                    opacity: langOrder === 'he-first' ? 1 : 0.5,
+                  }}>{(langOrder === 'he-first' && sortDir === 'desc') ? '↑ ת→א' : '↓ א→ת'}</button>
+              </>
+            ) : (
+              <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+                title={
+                  sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first')
+                  : (sortDir === 'asc' ? 'Paid → Overdue' : 'Overdue → Paid')
+                }
+                style={{
+                  ...boxBase, marginLeft: 6,
+                  border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac,
+                  fontSize: 10, letterSpacing: '0.12em',
+                }}>{
+                  sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST')
+                  : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
+                }</button>
+            )}
             <span style={{ width: 1, height: BOX_H - 4, background: C.cardBd, margin: '0 4px' }} />
             <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>LANG</span>
             {[
-              { id: 'he-first', label: 'עב', heb: true },
-              { id: 'en-first', label: 'EN', heb: false },
+              { id: 'he-first', label: 'עבר', heb: true },
+              { id: 'en-first', label: 'EN',  heb: false },
             ].map(o => {
               const active = langOrder === o.id;
               return (
@@ -519,8 +556,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                     // Box dimensions identical to the sort pills above so
                     // the LANG pair sits on the same baseline. Hebrew text
                     // gets the +3px bump so its cap height matches Latin's
-                    // inside the SAME box (per HE_BUMP_PX rule).
-                    minWidth: 40,
+                    // inside the SAME box (per [[new-ui-box-dimensions]]).
+                    minWidth: 44,
                     border: `1px solid ${active ? C.ac : C.cardBd}`,
                     background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
                     color: active ? C.ac : C.tm,
