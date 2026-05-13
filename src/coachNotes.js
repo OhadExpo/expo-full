@@ -135,6 +135,10 @@ const PENDING_KEY = 'expo-pendingTaskPlanLink';
 export function setPendingTaskPlanLink(payload) {
   try { sessionStorage.setItem(PENDING_KEY, JSON.stringify(payload)); } catch {}
 }
+// Destructive read. Prefer peek+drop in mount-races where the consumer
+// may be cancelled before it commits to using the payload — see 1.9 fix
+// in the audit doc; consume drops the link before the consumer confirms,
+// so a race or unmount silently loses the handoff.
 export function consumePendingTaskPlanLink() {
   try {
     const raw = sessionStorage.getItem(PENDING_KEY);
@@ -148,4 +152,7 @@ export function peekPendingTaskPlanLink() {
     const raw = sessionStorage.getItem(PENDING_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch { return null; }
+}
+export function dropPendingTaskPlanLink() {
+  try { sessionStorage.removeItem(PENDING_KEY); } catch {}
 }

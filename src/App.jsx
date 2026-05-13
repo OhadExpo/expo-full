@@ -148,6 +148,19 @@ function AuthGate() {
     }
   }, [inPwa, path]);
 
+  // Signed-out /coach or /athlete entry bounces to /login. Both surfaces
+  // require auth. Match exact paths — NOT /coaches (marketing landing).
+  // This effect must run unconditionally, BEFORE any early returns below,
+  // or React will see a different number of hooks across renders and crash
+  // on browser back/forward between /try ↔ /coach.
+  useEffect(() => {
+    if (!auth || auth.loading || auth.session) return;
+    if (path === '/coach' || path.startsWith('/coach/')
+        || path === '/athlete' || path.startsWith('/athlete/')) {
+      window.history.replaceState(null, '', '/login');
+    }
+  }, [auth, path]);
+
   // Browser-mode public routes:
   //   /demo          → CoachLanding (marketing pitch + waitlist)
   //   /demo/coach    → CoachDemo (full coach-side tour)
@@ -178,16 +191,6 @@ function AuthGate() {
       return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
     }
   }
-
-  // Signed-out /coach or /athlete entry bounces to /login. Both surfaces
-  // require auth. Match exact paths — NOT /coaches (marketing landing).
-  useEffect(() => {
-    if (!auth || auth.loading || auth.session) return;
-    if (path === '/coach' || path.startsWith('/coach/')
-        || path === '/athlete' || path.startsWith('/athlete/')) {
-      window.history.replaceState(null, '', '/login');
-    }
-  }, [auth, path]);
   if (!auth || auth.loading) return <BootSplash />;
   if (!auth.session) {
     // PWA mode: every path that isn't already /login renders the LoginScreen
@@ -652,10 +655,12 @@ function AuthedApp() {
                 <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12,paddingLeft:12,borderLeft:`1px solid ${C.cardBd}`}}>
             <ThemeToggle size={32} style={{marginRight:4}}/>
-            <button className="hdr-icon-btn" onClick={()=>navTo('smartImport')} title="Smart Import" style={{...baseBtn,background:tab==='smartImport'?C.acD:"transparent",color:tab==='smartImport'?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+            <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:'none'}} aria-hidden="true" />
+            <button className="hdr-icon-btn" onClick={()=>fileRef.current?.click()} title="Import XLSX / CSV / JSON" aria-label="Import file" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 12 12 15 15"/><line x1="12" y1="18" x2="12" y2="12"/></svg></button>
+            <button className="hdr-icon-btn" onClick={()=>navTo('smartImport')} title="Smart Import" aria-label="Smart Import" style={{...baseBtn,background:tab==='smartImport'?C.acD:"transparent",color:tab==='smartImport'?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
             <button className="hdr-icon-btn" onClick={handleExport} title="Export" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
             <button className="hdr-icon-btn" onClick={()=>setShowPwModal(true)} title="Change password" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
-            <button className="hdr-icon-btn" onClick={signOut} title="Sign out" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+            <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:'var(--c-sf)',border:`1px solid ${importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn}`,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:0,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}

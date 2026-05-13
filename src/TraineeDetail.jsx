@@ -57,8 +57,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const handlePermanentDelete = () => { if(setTrainees) setTrainees(prev=>prev.filter(t=>t.id!==trainee)); setShowDeleteConfirm(false); setDeleteTyped(""); onBack(); };
   const [payForm,setPayForm]=useState({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
   const [editPayId,setEditPayId]=useState(null);
-  if (!td) return null;
-  const couple = td.members && td.members.length === 2;
+  // `td` may be briefly undefined while the parent re-fetches trainees.
+  // Couple values that the hooks below need are nullable in that window;
+  // guard expressions, then early-return after all hooks have registered.
+  const couple = !!td && Array.isArray(td.members) && td.members.length === 2;
   const totalPaid=tPay.reduce((a,p)=>a+(parseFloat(p.amount)||0),0);
   const statusColor={Active:C.gn,"On Hold":C.or,Inactive:C.td,Trial:C.ac};
   const handleAddPayment=()=>{if(!payForm.amount)return;if(editPayId){setPayments(prev=>prev.map(p=>p.id===editPayId?{...p,...payForm}:p));setEditPayId(null)}else{setPayments(prev=>[...prev,{id:uid(),traineeId:trainee,...payForm,createdAt:new Date().toISOString()}])}setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});setShowPayForm(false)};
@@ -120,6 +122,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     { debounceMs: 400 }
   );
   const editStatus = autosaveStatusLabel(editAutosave.status, C);
+  // All hooks have now registered — safe to bail out if the parent's prop
+  // is briefly null (trainees re-fetch race). Without this guard placement,
+  // a transient `!td` would shrink the hook list and crash on the next render.
+  if (!td) return null;
   const assignPlan=async(planId, targetId)=>{
     const tid = targetId || trainee; // default to parent ID (shared)
     const{data:src}=await supabase.from('plans').select('*').eq('id',planId).single();

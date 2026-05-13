@@ -210,12 +210,14 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
   const wrapRef = useRef(null);
   // Auto-select first option when rows arrive (or after data refresh swaps
   // the option list) so the visitor lands on a real PR card immediately.
-  useMemo(() => {
+  // useEffect, not useMemo — calling setState inside useMemo runs twice
+  // under StrictMode and writes state during render, which React flags.
+  useEffect(() => {
     if (options.length === 0) { if (pickedId) setPickedId(null); return; }
     if (!pickedId || !options.some(o => o.id === pickedId)) {
       setPickedId(options[0].id);
     }
-  }, [options]);
+  }, [options, pickedId]);
   const picked = options.find(o => o.id === pickedId);
   // Substring filter — case-insensitive, matches anywhere in title.
   const q = query.trim().toLowerCase();

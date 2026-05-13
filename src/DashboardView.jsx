@@ -180,21 +180,24 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
   // resolves any open auto-task whose condition no longer applies.
   useEffect(() => {
     const tList = Array.isArray(trainees) ? trainees : [];
-    const pList = Array.isArray(planCounts) ? [] : []; // dashboard doesn't load full planIndex
     // The full plan list comes via App.jsx; if it's not in props here we
     // do a lightweight read for the rules that need it.
+    // Earlier shape aliased `data:weeks` which collided with the real
+    // `weeks` JSONB key, causing the next_block_due / week_missed rules to
+    // think every plan was 4 weeks regardless of actual length. Read raw
+    // `data` instead and project the two keys the rule consumers need.
     let cancelled = false;
     (async () => {
       const { data: plans } = await supabase
         .from('plans')
-        .select('id, name, trainee_id, weeks:data, created_at')
+        .select('id, name, trainee_id, data, created_at')
         .limit(500);
       const planList = (plans || []).map(p => ({
         id: p.id,
         name: p.name,
         traineeId: p.trainee_id,
-        weeks: p.weeks?.weeks || (p.weeks?.days ? 4 : 4),
-        days: p.weeks?.days || [],
+        weeks: p.data?.weeks || 4,
+        days: p.data?.days || [],
         createdAt: p.created_at,
       }));
       if (cancelled) return;

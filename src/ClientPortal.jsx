@@ -29,23 +29,11 @@ function isTemplatePlan(plan) {
   return n.startsWith('[expo]') || n.startsWith('expo · ') || n.startsWith('expo - ');
 }
 
-// Test-fixture override: Ohad's own trainee account always sees the SWAP UI
-// regardless of plan-name prefix, so he can dog-food the substitution flow
-// before any real template purchase lands. Identified by trainee id (the
-// dual-role coach/trainee account, see memory project_auth_state.md) OR by
-// email match. Remove these IDs once a real template purchase has been
-// validated end-to-end.
-const SUBSTITUTION_TEST_TRAINEE_IDS = new Set(['tr_ylc4i7edmnxqyj3j']);
-const SUBSTITUTION_TEST_EMAILS = new Set(['ohadyproductions@gmail.com']);
-function isSubstitutionTestTrainee(trainee, clientId) {
-  if (clientId && SUBSTITUTION_TEST_TRAINEE_IDS.has(clientId)) return true;
-  if (!trainee) return false;
-  const emails = Array.isArray(trainee.email) ? trainee.email : [trainee.email];
-  for (const e of emails) {
-    if (e && SUBSTITUTION_TEST_EMAILS.has(String(e).trim().toLowerCase())) return true;
-  }
-  return false;
-}
+// Substitution availability is decided by isTemplatePlan(plan) further below
+// (typed plans.is_template_purchase column + legacy name-prefix fallback).
+// The earlier dog-food override (Ohad's trainee id / email) was a temporary
+// dev gate before any real template purchase landed — removed now that the
+// real predicate covers the case.
 
 // EX dict now imported from exerciseData.js (single source of truth)
 // Previously inline — see exerciseData.js for all client exercises
@@ -260,7 +248,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     });
   });
   const [fv, setFv] = useState(() => {
-    if (_restoredSession?.fv?.length === day.ex.length) return _restoredSession.fv;
+    if (_restoredSession?.fv?.length === day.ex.length) {
+      // Older drafts persisted blob: URLs verbatim. Strip them on hydrate
+      // so a resumed session never renders a dead <video src="blob:..."> —
+      // pendingBlobId (if present) re-mints from IDB; otherwise has:false.
+      return _restoredSession.fv.map(f => {
+        if (!f) return { note:'', has:false };
+        const out = { ...f };
+        if (typeof out.videoUrl === 'string' && out.videoUrl.startsWith('blob:')) {
+          out.videoUrl = null;
+          if (!out.cloudUrl && !out.pendingBlobId) out.has = false;
+        }
+        return out;
+      });
+    }
     return day.ex.map(() => ({note:'',has:false}));
   });
 
@@ -298,8 +299,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Bundle once so the autosave hook has a single stable value to track.
   // 200ms debounce keeps writes off the hot path while a trainee taps through
   // sets quickly. Cleared on onComplete / onBack via the wrappers below.
+  // blob: URLs are bound to the document that minted them — persisting them
+  // verbatim would make the resumed session reference dead URLs and render
+  // empty <video> tags. Strip on save; resume re-mints from the IDB blob
+  // via pendingBlobId when present.
+  const serializeFv = (arr) => (Array.isArray(arr) ? arr : []).map(f => {
+    if (!f) return f;
+    const safe = { ...f };
+    if (typeof safe.videoUrl === 'string' && safe.videoUrl.startsWith('blob:')) {
+      safe.videoUrl = null;
+    }
+    return safe;
+  });
   const sessionDraft = React.useMemo(
-    () => ({ step, ar, notes, allSets, fv, wuDone, substitutions, savedAt: Date.now() }),
+    () => ({ step, ar, notes, allSets, fv: serializeFv(fv), wuDone, substitutions, savedAt: Date.now() }),
     [step, ar, notes, allSets, fv, wuDone, substitutions]
   );
   const sessionAutosave = useAutosave(
@@ -484,6 +497,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
+    // Demo mode is a public marketing surface — never write to production
+    // storage. Other portal paths (handleComplete, plans-load, presence) gate
+    // on demoMode already; the upload handler had been the one omission.
+    if (demoMode) { toast('Demo mode — uploads disabled', 'info'); return; }
 
     // Hard cap. Above this size the source is too long to encode reliably
     // (compress time = source duration), browser memory pressure spikes, and
@@ -1127,7 +1144,18 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 Replace
                 <input type="file" accept="video/*" capture="environment" style={{display:'none'}} disabled={f.uploading} onChange={async e => { await handleVideoUpload(e, ei); }} />
               </label>
-              <button disabled={f.uploading} onClick={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null}; return n; })}
+              <button disabled={f.uploading} onClick={() => {
+                  // Revoke the in-memory blob URL and drop any IDB-queued
+                  // upload so the offline drainer can't ressurect the file
+                  // after the trainee asked to remove it.
+                  if (typeof f.videoUrl === 'string' && f.videoUrl.startsWith('blob:')) {
+                    try { URL.revokeObjectURL(f.videoUrl); } catch {}
+                  }
+                  if (f.pendingBlobId) {
+                    removeBlob(f.pendingBlobId).catch(() => {});
+                  }
+                  setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null,pendingBlobId:null}; return n; });
+                }}
                 style={{flex:1,padding:8,borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1}}>
                 Remove
               </button>
@@ -1375,7 +1403,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
     for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
     if (!targetPlan) { setLg(null); return null; }
-    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={isTemplatePlan(targetPlan) || isSubstitutionTestTrainee(trainee, ci)}/>; }
+    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={isTemplatePlan(targetPlan)}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,

@@ -1107,12 +1107,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // on a trainee-tagged task). When present on mount, auto-open a fresh
   // plan editor pre-bound to that trainee and remember the task id so
   // handleSave can mark it done on commit.
+  //
+  // Peek + drop pattern (instead of the destructive consume) so an unmount
+  // race between the read and the consumer commit can't silently lose the
+  // handoff. Drop only after we've committed to using the payload.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { consumePendingTaskPlanLink } = await import('./coachNotes');
-      const pending = consumePendingTaskPlanLink();
+      const { peekPendingTaskPlanLink, dropPendingTaskPlanLink } = await import('./coachNotes');
+      const pending = peekPendingTaskPlanLink();
       if (!pending || cancelled) return;
+      dropPendingTaskPlanLink();
       setLinkedTaskId(pending.taskId);
       handleNewPlan(pending.traineeId);
     })();

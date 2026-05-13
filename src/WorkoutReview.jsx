@@ -175,6 +175,12 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // interval — robust to uneven tick rates that the old fixed-tolerance
   // window kept missing on 2nd/3rd replays.
   const lastTimeRef = useRef(0);
+  // When a seek originates from clicking a saved comment (list tick or row
+  // play button), restore pausedAtCommentId after the seek lands so the
+  // drawer toolbar and persisted strokes become visible. Without this,
+  // onSeeked would unconditionally clear pausedAtCommentId and the trainer
+  // could never re-enter a comment's drawing context by clicking.
+  const seekTargetCommentIdRef = useRef(null);
   const DRAW_COLORS = [
     { key: 'red',   hex: '#ff4c4c' },
     { key: 'blue',  hex: '#3BA0FF' },
@@ -285,9 +291,16 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     if (top) { writeNotes(notes.filter(n => n.id !== id)); return; }
     writeNotes(notes.map(n => ({ ...n, replies: (n.replies || []).filter(r => r.id !== id) })));
   };
-  const seekTo = (ts) => {
+  const seekTo = (ts, commentId = null) => {
     const v = videoRef.current;
     if (!v || ts == null) return;
+    if (commentId) {
+      // Re-entering an existing comment's drawing context: pause so strokes
+      // render (the canvas is gated on videoPaused), and stash the id so
+      // onSeeked re-applies pausedAtCommentId once the seek lands.
+      try { v.pause(); } catch {}
+      seekTargetCommentIdRef.current = commentId;
+    }
     v.currentTime = Math.max(0, ts);
   };
 
@@ -584,7 +597,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       const t = v.currentTime;
       lastTimeRef.current = t;
       rebuildVisited(t);
-      setPausedAtCommentId(null);
+      // If the seek was initiated by clicking a saved comment, re-enter that
+      // comment's drawing context. Otherwise clear (scrub / manual jump).
+      const targetId = seekTargetCommentIdRef.current;
+      seekTargetCommentIdRef.current = null;
+      setPausedAtCommentId(targetId);
     };
     const onPlayEvt = () => {
       // Some browsers don't fire 'seeked' when re-playing after the video
@@ -1166,7 +1183,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             const pct = Math.min(100, Math.max(0, (n.ts / videoRef.current.duration) * 100));
             const isActive = pausedAtCommentId === n.id;
             return (
-              <div key={n.id} onClick={() => seekTo(n.ts)}
+              <div key={n.id} onClick={() => seekTo(n.ts, n.id)}
                 title={`${fmtTs(n.ts)} — ${n.text.slice(0, 80)}`}
                 style={{position:'absolute',left:pct+'%',top:0,bottom:0,width:isActive?5:3,background:n.author==='trainer'?C.ac:C.gn,cursor:'pointer',borderRadius:0,transform:'translateX(-1px)',boxShadow:isActive?`0 0 6px ${n.author==='trainer'?C.ac:C.gn}`:'none'}}/>
             );
@@ -1322,7 +1339,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             {visible.map(n => (
               <div key={n.id} style={{background:pausedAtCommentId===n.id?(n.author==='trainer'?C.acD:C.gnD):C.sf2,borderLeft:`3px solid ${n.author==='trainer'?C.ac:C.gn}`,borderRadius:0,padding:pausedAtCommentId===n.id?14:10,boxShadow:pausedAtCommentId===n.id?`0 0 0 2px ${n.author==='trainer'?C.ac:C.gn}40`:'none'}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-                  <button onClick={() => seekTo(n.ts)} style={{background:C.acD,border:`1px solid rgba(57,189,255,0.251)`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
+                  <button onClick={() => seekTo(n.ts, n.id)} style={{background:C.acD,border:`1px solid rgba(57,189,255,0.251)`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
                   <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
                   <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
