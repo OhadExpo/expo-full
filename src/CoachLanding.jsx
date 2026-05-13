@@ -27,8 +27,7 @@ function trackFunnel(event, payload) {
   try { track(event, payload || {}); } catch {}
 }
 
-const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
-const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+import { SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 
 // Inline i18n. The page is mounted at /demo (English default) and /demo/he
 // (Hebrew). Translations are natural Israeli "dugri" — direct, practical,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { C, FN, FB, uid } from './theme';
 import { Btn, Input, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
 import { supabase } from './supabase';
@@ -76,7 +76,20 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     if(w?.traineeId) onDecrementSession(w.traineeId);
     setActiveWorkout(null);
   };
-  if (activeWorkout) { const w=workouts.find(x=>x.id===activeWorkout); if(!w){setActiveWorkout(null);return null;} return <WorkoutLogger workout={w} exercises={exercises} onUpdate={u=>updateWorkout(activeWorkout,u)} onComplete={()=>completeWorkout(activeWorkout)} onBack={()=>setActiveWorkout(null)} />; }
+  // Effect (not render-time mutation) handles the "active id points to a
+  // workout that just disappeared" case. Calling setState during render
+  // was triggering React's no-write-during-render warning and could
+  // double-fire under StrictMode.
+  useEffect(() => {
+    if (activeWorkout && !workouts.find(x => x.id === activeWorkout)) {
+      setActiveWorkout(null);
+    }
+  }, [activeWorkout, workouts]);
+  if (activeWorkout) {
+    const w = workouts.find(x => x.id === activeWorkout);
+    if (!w) return null;
+    return <WorkoutLogger workout={w} exercises={exercises} onUpdate={u=>updateWorkout(activeWorkout,u)} onComplete={()=>completeWorkout(activeWorkout)} onBack={()=>setActiveWorkout(null)} />;
+  }
   const completed = workouts.filter(w=>w.status==="completed"&&(!filterTrainee||w.traineeId===filterTrainee));
   const inProgress = workouts.filter(w=>w.status==="in-progress");
   return (

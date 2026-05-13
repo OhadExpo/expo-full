@@ -1,8 +1,13 @@
-// src/supabase.js — Supabase client for EXPO
+// src/supabase.js — Supabase client for EXPO. Also the canonical export
+// point for SUPA_URL + SUPA_PUBLISHABLE_KEY so other modules (CoachChat,
+// CoachLanding, ClientPortal) don't have to redeclare them inline.
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+export const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
+export const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+// Back-compat aliases used by the original createClient call below.
+const SUPABASE_URL = SUPA_URL;
+const SUPABASE_ANON_KEY = SUPA_PUBLISHABLE_KEY;
 
 // Auth storage = localStorage so logins persist across browser/PWA reopens.
 // Clients (and trainers) stay signed in until they explicitly sign out or

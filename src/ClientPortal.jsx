@@ -4,7 +4,7 @@ import { C, FN, FB, FH, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from '.
 import { EXPOMark } from './expoMark';
 import BugReportButton from './BugReportButton';
 import { EX } from './exerciseData';
-import { supabase } from './supabase';
+import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId, sortProgramsChrono } from './traineeUtils';
 import { FormVideoPlayer } from './WorkoutReview';
@@ -465,11 +465,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   });
 
   // Upload with real progress tracking via XMLHttpRequest
-  // Supabase Storage REST API: POST raw body with Content-Type header
+  // Supabase Storage REST API: POST raw body with Content-Type header.
+  // URL/key sourced from src/supabase.js so there's a single
+  // change-once point if/when the project is rotated.
   const uploadWithProgress = (blob, path, contentType, onProgress) => new Promise((resolve, reject) => {
-    const supaUrl = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
-    const supaKey = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
-    const url = `${supaUrl}/storage/v1/object/form-videos/${path}`;
+    const url = `${SUPA_URL}/storage/v1/object/form-videos/${path}`;
+    const supaKey = SUPA_PUBLISHABLE_KEY;
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url);
@@ -1154,7 +1155,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               {/* Replace + Remove are both disabled while an upload is in
                   flight — otherwise picking a new file mid-upload would race
                   the previous upload's setFv against the new one's. */}
-              <label style={{flex:1,padding:8,borderRadius:0,border:`0.25px dashed ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1,pointerEvents:f.uploading?'none':'auto'}}>
+              <label style={{flex:1,minHeight:44,padding:'12px 8px',borderRadius:0,border:`0.25px dashed ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1,pointerEvents:f.uploading?'none':'auto',display:'flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box'}}>
                 Replace
                 <input type="file" accept="video/*" capture="environment" style={{display:'none'}} disabled={f.uploading} onChange={async e => { await handleVideoUpload(e, ei); }} />
               </label>
@@ -1170,7 +1171,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                   }
                   setFv(prev => { const n=[...prev]; n[ei]={...n[ei],has:false,videoUrl:null,uploaded:false,cloudUrl:null,pendingBlobId:null}; return n; });
                 }}
-                style={{flex:1,padding:8,borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1}}>
+                style={{flex:1,minHeight:44,padding:'12px 8px',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:f.uploading?'not-allowed':'pointer',opacity:f.uploading?0.4:1}}>
                 Remove
               </button>
             </div>

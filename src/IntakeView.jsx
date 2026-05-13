@@ -78,26 +78,37 @@ export default function IntakeView({ trainees }) {
   const [genResult, setGenResult] = useState(null); // { url, label }
   const [genError, setGenError] = useState('');
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (ctx) => {
+    // ctx is an opt-in cancellation handle from the mount effect. Manual
+    // callers (post-submit refresh, etc.) call reload() without one and
+    // get the original always-set behavior.
+    const live = () => !ctx || !ctx.cancelled;
     try {
       const { data: subs } = await supabase
         .from('intake_submissions')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(200);
-      setSubmissions(subs || []);
-    } catch { setSubmissions([]); }
+      if (live()) setSubmissions(subs || []);
+    } catch { if (live()) setSubmissions([]); }
     try {
       const { data: toks } = await supabase
         .from('intake_tokens')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(50);
-      setTokens(toks || []);
-    } catch { setTokens([]); }
+      if (live()) setTokens(toks || []);
+    } catch { if (live()) setTokens([]); }
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  // Cancellation flag — slow load + early unmount used to set state on an
+  // unmounted component, which React warns about. The reload helper checks
+  // the flag before each setter.
+  useEffect(() => {
+    const ctx = { cancelled: false };
+    reload(ctx);
+    return () => { ctx.cancelled = true; };
+  }, [reload]);
 
   const enriched = useMemo(() => (submissions || []).map(s => {
     const trainee = (trainees || []).find(t => {

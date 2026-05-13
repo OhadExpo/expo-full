@@ -12,8 +12,7 @@ import { C, FN, FB, EXPO_LOGO_NAV } from './theme';
 //   coach_chat_capture_submit → handed over their email mid-chat
 function trackFunnel(event, payload) { try { track(event, payload || {}); } catch {} }
 
-const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
-const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+import { SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 
 const SUGGESTIONS = [
   "What does EXPO do?",

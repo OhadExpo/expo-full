@@ -147,18 +147,24 @@ const ruleWeekMissed = {
     return out;
   },
   // Auto-completes when a workout is logged for THIS plan in or after
-  // the missed week.
-  resolve({ workouts }, existing) {
+  // the missed week. Plan-aware match: client_workouts carry planName
+  // (not plan.id), so we look up the plan id → planName via the ctx
+  // plans list, then require both the trainee AND the plan name to
+  // match before considering the week. The earlier shape resolved on
+  // (trainee, week) alone — a trainee on two concurrent plans would
+  // have plan A's "week missed" task closed by a plan B logged workout.
+  resolve({ workouts, plans }, existing) {
     const closing = new Set();
     for (const row of existing) {
       const [planId, wPart] = (row.auto_ref || '').split('|w');
       const wNum = parseInt(wPart, 10);
       if (!planId || !wNum) continue;
-      // Workouts for this plan — we don't have plan.id on workout row, so
-      // we match by trainee + week + ≥ skip-week. The resolver just needs
-      // any workout in that week or later.
+      const plan = (plans || []).find(p => p.id === planId);
+      const planName = plan?.name;
       const wkLogged = workouts.some(w =>
-        w.clientId === row.target_id && w.week >= wNum);
+        w.clientId === row.target_id
+        && (planName ? w.planName === planName : true)
+        && w.week >= wNum);
       if (wkLogged) closing.add(row.auto_ref);
     }
     return closing;

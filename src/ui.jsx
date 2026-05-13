@@ -353,13 +353,48 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
   );
 };
 export const Modal = ({ open, onClose, title, children, wide }) => {
+  const titleId = React.useId();
+  const cardRef = React.useRef(null);
+  const lastFocusRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    // Save the focus element so we can restore on close — keyboard users
+    // expect focus to return to the trigger that opened the modal.
+    lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose?.(); }
+    };
+    window.addEventListener('keydown', onKey);
+    // Initial focus — first focusable inside the card, falling back to the
+    // card itself. Defer to next tick so React has actually mounted the
+    // children before the query runs.
+    const t = setTimeout(() => {
+      const node = cardRef.current;
+      if (!node) return;
+      const focusable = node.querySelector(
+        'input, textarea, select, button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+      );
+      (focusable || node).focus?.();
+    }, 0);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      clearTimeout(t);
+      // Restore focus on close — wrapped in try because the prior element
+      // may have unmounted (e.g. modal opened from a deleted row).
+      try { lastFocusRef.current?.focus?.(); } catch {}
+    };
+  }, [open, onClose]);
   if (!open) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: C.scrim, backdropFilter: "blur(8px)" }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow }}>
+    <div
+      role="dialog" aria-modal="true" aria-labelledby={titleId}
+      style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: C.scrim, backdropFilter: "blur(8px)" }}
+      onClick={onClose}
+    >
+      <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-          <h3 style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
+          <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
+          <button onClick={onClose} aria-label="Close dialog" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>{children}</div></div>);
 };
 export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => {

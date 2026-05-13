@@ -1559,9 +1559,17 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   );
 
   // ===== WORKOUT DETAIL VIEW =====
+  // Clear selectedWo when its referent disappears (deleted from the list).
+  // useEffect avoids the state-mutation-during-render warning the previous
+  // inline `setSelectedWo(null)` was producing under StrictMode.
+  useEffect(() => {
+    if (selectedWo && !clientWorkouts.find(w => w.id === selectedWo)) {
+      setSelectedWo(null);
+    }
+  }, [selectedWo, clientWorkouts]);
   if (selectedWo) {
     const wo = clientWorkouts.find(w => w.id === selectedWo);
-    if (!wo) { setSelectedWo(null); return null; }
+    if (!wo) return null;
 
     // Save-and-next: after marking the current workout reviewed, jump to the
     // next unreviewed one in the queue (oldest-first so the trainer works

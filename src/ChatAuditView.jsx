@@ -36,14 +36,16 @@ export default function ChatAuditView() {
   const [filter, setFilter] = useState('');
   const [migrationMissing, setMigrationMissing] = useState(false);
 
-  const reload = useCallback(async () => {
-    setMigrationMissing(false);
+  const reload = useCallback(async (ctx) => {
+    const live = () => !ctx || !ctx.cancelled;
+    if (live()) setMigrationMissing(false);
     try {
       const { data, error } = await supabase
         .from('chat_logs')
         .select('id,created_at,site,session_id,visitor_msg,assistant_msg,error,ip_hash')
         .order('created_at', { ascending: false })
         .limit(500);
+      if (!live()) return;
       if (error) {
         // PostgREST returns 404/PGRST205 when the table doesn't exist —
         // signal the empty-state with a migration hint instead of a silent fail.
@@ -55,10 +57,16 @@ export default function ChatAuditView() {
       }
       setLogs(data || []);
     } catch {
-      setLogs([]);
+      if (live()) setLogs([]);
     }
   }, []);
-  useEffect(() => { reload(); }, [reload]);
+  // Cancellation handle so a slow fetch + early route-away doesn't trigger
+  // a setState-on-unmounted warning.
+  useEffect(() => {
+    const ctx = { cancelled: false };
+    reload(ctx);
+    return () => { ctx.cancelled = true; };
+  }, [reload]);
 
   // Group consecutive turns by session_id so a single visitor's conversation
   // reads as one block instead of scattered rows.

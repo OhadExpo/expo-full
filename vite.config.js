@@ -18,7 +18,7 @@ export default defineConfig({
       // Registration is handled by useRegisterSW inside SwUpdateBanner — no
       // auto-injected script tag, no double registration.
       injectRegister: false,
-      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon-48x48.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'nord-fonts.css'],
+      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon-48x48.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'nord-fonts.css', 'heebo-fonts.css'],
       manifest: {
         name: 'EXPO',
         short_name: 'EXPO',
@@ -27,11 +27,16 @@ export default defineConfig({
         background_color: '#0a0a0b',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/portal',
+        // start_url is the URL the installed PWA opens on launch. The
+        // earlier value (/portal) had no router branch — AuthGate fell
+        // through to a history.replaceState('/') anyway. Land on / and
+        // let AuthGate route to /login or the picked portal.
+        start_url: '/',
         scope: '/',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
           { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },

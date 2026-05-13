@@ -72,7 +72,8 @@ export default function WaitlistView({ trainees }) {
   const [dir, setDir] = useState(-1);
   const [filter, setFilter] = useState('');
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (ctx) => {
+    const live = () => !ctx || !ctx.cancelled;
     // Pull every coach_waitlist row (including contacted ones) — funnel
     // history, not just the action queue. CoachChat captures already write
     // context=coach_waitlist with source=expo-app-chat, so they're included.
@@ -86,22 +87,30 @@ export default function WaitlistView({ trainees }) {
       .limit(500);
     try {
       const r1 = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at,notes,interests,pain_points,programs_mentioned');
+      if (!live()) return;
       if (!r1.error) { setLeads(r1.data || []); }
       else {
         const r2 = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at,notes');
+        if (!live()) return;
         if (!r2.error) { setLeads(r2.data || []); }
         else {
           const r3 = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at');
+          if (!live()) return;
           if (!r3.error) setLeads(r3.data || []);
         }
       }
     } catch {}
     try {
       const { data } = await supabase.from('store').select('value').eq('key', NOTES_KEY).maybeSingle();
-      if (data?.value && typeof data.value === 'object') setNotes(data.value);
+      if (live() && data?.value && typeof data.value === 'object') setNotes(data.value);
     } catch {}
   }, []);
-  useEffect(() => { reload(); }, [reload]);
+  // Cancellation handle for slow loads / early unmount.
+  useEffect(() => {
+    const ctx = { cancelled: false };
+    reload(ctx);
+    return () => { ctx.cancelled = true; };
+  }, [reload]);
 
   const persistNotes = useCallback(async (next) => {
     try { await supabase.from('store').upsert({ key: NOTES_KEY, value: next }, { onConflict: 'key' }); } catch {}
