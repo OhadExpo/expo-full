@@ -461,8 +461,40 @@ Produce the document inline in your response. Make it dense. Make it
 complete. Make it operational — Claude Code should be able to execute
 every finding without further clarification.
 
+## EXPORT TO DESKTOP — required handoff format
+
+Ohad will paste your full markdown response back to a Claude Code
+session, which will then run:
+
+```
+python scripts/export-audit-to-docx.py - C:\Users\Administrator\Desktop\EXPO_PERFECTION_AUDIT_<YYYY-MM-DD>.docx
+```
+
+…feeding your markdown into stdin. The converter (already verified in
+`expo-full/scripts/export-audit-to-docx.py`) renders:
+H1/H2/H3/H4, paragraphs, `- ` and `*` bullets, `1.` numbered lists,
+fenced ` ``` ` code blocks, `> ` blockquotes, `---` horizontal rules,
+inline `**bold**` / `*italic*` / `` `code` ``, and pipe-tables (with
+header underline row).
+
+To make the export clean, your output MUST:
+
+- Use ATX headings only (`# Title`, never underline-style `=====`).
+- Wrap code samples in triple-backtick fences (no indented code blocks).
+- Use `- ` (dash + space) for bullets — not `*` or `+`, not numbered
+  when the list is unordered.
+- Use proper pipe tables (` | col | col | ` with a `| --- | --- |`
+  separator row) when tabular — not ASCII boxes.
+- Use straight ASCII punctuation (— is fine; smart quotes are fine).
+  Do NOT use HTML tags inline (`<br>`, `<details>`, etc.) — they pass
+  through as raw text in the docx.
+- Avoid trailing whitespace and tab characters — both bloat the docx.
+- Keep image references out (no `![alt](url)`) — the converter ignores
+  them and they add nothing in Word.
+
 End your response with the single phrase:
 
 > AUDIT-COMPLETE — handing off to Claude Code Opus 4.7.
 
-That signals Ohad the document is ready to paste into the next session.
+That signals Ohad the document is ready to paste into the next session
+for both execution AND `.docx` export to Desktop.
