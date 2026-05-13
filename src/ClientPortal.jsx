@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import useAutosave from './hooks/useAutosave';
 import { C, FN, FB, FH, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
+import BugReportButton from './BugReportButton';
 import { EX } from './exerciseData';
 import { supabase } from './supabase';
 import { PasswordChangeModal } from './auth';
@@ -1447,6 +1448,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <EXPOMark theme="dark" height={36} style={{marginLeft:3}} />
           )}
           <div style={{display:'flex',alignItems:'center',gap:14}}>
+            {!demoMode && <BugReportButton role="athlete" reporterEmail={trainee?.email && (Array.isArray(trainee.email)?trainee.email[0]:trainee.email) || ''} variant="athlete" />}
             <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>

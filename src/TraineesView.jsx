@@ -73,15 +73,40 @@ const getPaymentStatus = (t, payments) => {
 // Last workout label for the card: pulls from BOTH coach-logged workouts and
 // portal-logged client_workouts so a trainee who only trains via portal
 // (Amit) still surfaces activity. Returns null when the trainee has no logs.
-const getLastWorkoutLabel = (t, workouts, clientWorkouts) => {
+// Latest workout timestamp (ms since epoch) used by the sort comparator.
+// Returns 0 when the trainee has never trained so they pool at the
+// "least recent" end with stable ordering.
+const getLastWorkoutMs = (t, workouts, clientWorkouts) => {
   const ids = new Set(traineeIdsFor(t.id));
   const all = [
     ...(workouts || []).filter(w => ids.has(w.traineeId) && w.status === 'completed'),
     ...(clientWorkouts || []).filter(w => ids.has(w.clientId)),
   ];
-  if (all.length === 0) return null;
-  const latest = all.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-  const days = Math.floor((Date.now() - new Date(latest.date).getTime()) / 86400000);
+  let max = 0;
+  for (const w of all) {
+    const ts = new Date(w.date).getTime();
+    if (Number.isFinite(ts) && ts > max) max = ts;
+  }
+  return max;
+};
+
+// Payment severity scalar for sorting:
+//   3 = NEVER PAID          (red — needs to pay)
+//   2 = OVERDUE              (red)
+//   1 = PAID but billed      (green — sort below the urgent ones)
+//   0 = not billable / no monthly rate
+const paymentSeverity = (t, payments) => {
+  const s = getPaymentStatus(t, payments);
+  if (!s) return 0;
+  if (s.label === 'NEVER PAID') return 3;
+  if (s.label.startsWith('OVERDUE')) return 2;
+  return 1;
+};
+
+const getLastWorkoutLabel = (t, workouts, clientWorkouts) => {
+  const ms = getLastWorkoutMs(t, workouts, clientWorkouts);
+  if (!ms) return null;
+  const days = Math.floor((Date.now() - ms) / 86400000);
   if (days <= 0) return 'TODAY';
   if (days === 1) return 'YESTERDAY';
   return `${days}D AGO`;
@@ -274,6 +299,22 @@ const defaultTrainee = () => ({
   notes: "", packagePrice: "",
 });
 
+// Sort preferences persist across sessions so a coach who prefers
+// "payment desc + Hebrew first" doesn't reset every time.
+const SORT_KEY = 'expo-athletes-sort-v1';
+const loadSortPrefs = () => {
+  try {
+    const raw = localStorage.getItem(SORT_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw);
+    if (j && typeof j === 'object') return j;
+  } catch {}
+  return null;
+};
+const saveSortPrefs = (prefs) => {
+  try { localStorage.setItem(SORT_KEY, JSON.stringify(prefs)); } catch {}
+};
+
 export default function TraineesView({ trainees, setTrainees, planCounts, payments, workouts, clientWorkouts, bwLog, portalVis, presence, onSelect, onPreview }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(defaultTrainee());
@@ -285,6 +326,16 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const [deleteTyped, setDeleteTyped] = useState("");
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const addMenuRef = useRef(null);
+  // Sort state — initialized from localStorage so the coach's last choice
+  // sticks across sessions. Defaults: by NAME, ascending, Hebrew first
+  // (matches Ohad's mostly-Hebrew roster).
+  const _initialSort = loadSortPrefs() || {};
+  const [sortBy, setSortBy] = useState(_initialSort.sortBy || 'name');
+  const [sortDir, setSortDir] = useState(_initialSort.sortDir || 'asc');
+  const [langOrder, setLangOrder] = useState(_initialSort.langOrder || 'he-first');
+  useEffect(() => {
+    saveSortPrefs({ sortBy, sortDir, langOrder });
+  }, [sortBy, sortDir, langOrder]);
   useEffect(()=>{
     if(!addMenuOpen) return;
     const close = (e)=>{ if(addMenuRef.current && !addMenuRef.current.contains(e.target)) setAddMenuOpen(false); };
@@ -295,12 +346,54 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
   const active = trainees.filter(t => t.status !== "Archived");
   const archived = trainees.filter(t => t.status === "Archived");
-  const filtered = (showArchived ? archived : active).filter(t => {
+  const filteredUnsorted = (showArchived ? archived : active).filter(t => {
     const s = search.toLowerCase();
     const emailStr = Array.isArray(t.email) ? t.email.join(' ') : (t.email || '');
     if (t.name.toLowerCase().includes(s) || emailStr.toLowerCase().includes(s)) return true;
     if (t.members) return t.members.some(m => (m.name||'').toLowerCase().includes(s) || (m.email||'').toLowerCase().includes(s));
     return false;
+  });
+
+  // Sort comparator. Language priority is the primary key (HE block first or
+  // EN block first), then the chosen sort dimension within that block.
+  // Couples are scored by family name (last token); singles by full name.
+  const sortNameKey = (t) => {
+    const raw = (t.name || '').trim();
+    if (!raw) return '';
+    // Family name = last whitespace-delimited token. Lets couples like
+    // "נטע ותום רונן" sort under "רונן" alongside other "רונן" families.
+    const tokens = raw.split(/\s+/);
+    return (tokens[tokens.length - 1] || raw).toLowerCase();
+  };
+  const filtered = [...filteredUnsorted].sort((a, b) => {
+    const aHeb = hasHebrew(a.name);
+    const bHeb = hasHebrew(b.name);
+    if (aHeb !== bHeb) {
+      // HE-first: HE block sorts BEFORE EN block. EN-first: opposite.
+      if (langOrder === 'he-first') return aHeb ? -1 : 1;
+      return aHeb ? 1 : -1;
+    }
+    let cmp = 0;
+    if (sortBy === 'name') {
+      const ak = sortNameKey(a);
+      const bk = sortNameKey(b);
+      // localeCompare gives correct ordering for both Hebrew and Latin
+      // within each language block (Hebrew block uses Hebrew collation).
+      cmp = ak.localeCompare(bk, aHeb ? 'he' : 'en', { sensitivity: 'base' });
+    } else if (sortBy === 'lastTrained') {
+      const am = getLastWorkoutMs(a, workouts, clientWorkouts);
+      const bm = getLastWorkoutMs(b, workouts, clientWorkouts);
+      cmp = am - bm;
+    } else if (sortBy === 'payment') {
+      const as = paymentSeverity(a, payments);
+      const bs = paymentSeverity(b, payments);
+      cmp = as - bs;
+    }
+    if (cmp === 0) {
+      // Stable tie-breaker — name within the same block.
+      cmp = sortNameKey(a).localeCompare(sortNameKey(b), aHeb ? 'he' : 'en', { sensitivity: 'base' });
+    }
+    return sortDir === 'desc' ? -cmp : cmp;
   });
 
   const handleSave = () => {
@@ -353,6 +446,81 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             ))}
           </div>}
         </div>
+      </div>
+
+      {/* Sort bar — sits between the search row and the cards grid.
+          Mirrors the toggle-button rhythm used elsewhere on /coach (sort
+          buttons in TraineeDetail's Assigned Programs, header pills on
+          NotesWidget). Three controls: SORT BY (3 modes) + DIR (↑↓) +
+          LANG (HE/EN priority block). State persists across sessions. */}
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 14,
+        padding: '8px 10px',
+        background: isRefined5b() ? 'transparent' : 'var(--c-sf)',
+        border: `1px solid ${C.cardBd}`, borderRadius: 0,
+      }}>
+        <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>SORT</span>
+        {[
+          { id: 'name',        label: 'NAME' },
+          { id: 'lastTrained', label: 'LAST TRAINED' },
+          { id: 'payment',     label: 'PAYMENT' },
+        ].map(o => {
+          const active = sortBy === o.id;
+          return (
+            <button key={o.id} onClick={() => setSortBy(o.id)}
+              style={{
+                padding: '5px 12px', borderRadius: 0,
+                border: `1px solid ${active ? C.ac : C.cardBd}`,
+                background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
+                color: active ? C.ac : C.tm,
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                cursor: 'pointer',
+              }}>{o.label}</button>
+          );
+        })}
+        <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+          title={
+            sortBy === 'name' ? (sortDir === 'asc' ? 'A → Z' : 'Z → A')
+            : sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first')
+            : (sortDir === 'asc' ? 'Paid → Overdue' : 'Overdue → Paid')
+          }
+          style={{
+            padding: '5px 12px', borderRadius: 0,
+            border: `1px solid ${C.ac}`,
+            background: 'transparent', color: C.ac,
+            fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+            marginLeft: 6,
+          }}>{
+            sortBy === 'name' ? (sortDir === 'asc' ? '↓ A→Z' : '↑ Z→A')
+            : sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST')
+            : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
+          }</button>
+        <span style={{ width: 1, alignSelf: 'stretch', background: C.cardBd, margin: '0 4px' }} />
+        <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>LANG</span>
+        {[
+          { id: 'he-first', label: 'עב' },
+          { id: 'en-first', label: 'EN' },
+        ].map(o => {
+          const active = langOrder === o.id;
+          return (
+            <button key={o.id} onClick={() => setLangOrder(o.id)}
+              title={o.id === 'he-first' ? 'Hebrew names first' : 'English names first'}
+              style={{
+                padding: '5px 10px', borderRadius: 0,
+                border: `1px solid ${active ? C.ac : C.cardBd}`,
+                background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
+                color: active ? C.ac : C.tm,
+                fontFamily: o.id === 'he-first' ? 'Heebo,'+FN : FN,
+                fontSize: o.id === 'he-first' ? 13 : 10,
+                fontWeight: 700, letterSpacing: o.id === 'he-first' ? 0 : '0.12em',
+                cursor: 'pointer', lineHeight: 1.2,
+              }}>{o.label}</button>
+          );
+        })}
+        <span style={{ flex: 1 }} />
+        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
+          {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
+        </span>
       </div>
 
       {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived athletes." : "No athletes yet. Add your first one."} /> : (

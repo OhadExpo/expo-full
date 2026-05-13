@@ -8,6 +8,7 @@ import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus }
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn, ToastHost } from './ui';
+import BugReportButton from './BugReportButton';
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS } from './auth';
 // `xlsx` is dynamically imported inside the file-import handler (see
@@ -324,7 +325,9 @@ function AuthedApp() {
     const p = window.location.pathname;
     if (p === '/coach' || p.startsWith('/coach/')) {
       const sub = p.replace('/coach','').replace(/^\//,'');
-      if (sub.startsWith('trainees/')) {
+      // /coach/athletes is canonical; /coach/trainees still resolves for any
+      // legacy bookmark / chat-share. Both route to the same internal tab.
+      if (sub.startsWith('athletes/') || sub.startsWith('trainees/')) {
         const parts = sub.split('/');
         const traineeId = parts[1];
         const preview = parts[2] === 'preview';
@@ -334,7 +337,7 @@ function AuthedApp() {
         const parts = sub.split('/');
         return { mode:'coach', tab:'plans', planPreviewId: parts[1] };
       }
-      const tabMap = {dashboard:'dashboard',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks'};
+      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -376,7 +379,9 @@ function AuthedApp() {
   // Sync URL when tab or trainee changes (coach mode only)
   const updateURL = useCallback((newTab, newTrainee) => {
     if (tab === 'client' && !isCoach) return;
-    const tabUrl = {dashboard:'dashboard',trainees:'trainees',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks'};
+    // URL writes the canonical "athletes" segment now; internal tab key
+    // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
+    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks'};
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
@@ -394,12 +399,12 @@ function AuthedApp() {
 
   const openPreview = useCallback((id) => {
     setTab('trainees'); setSelectedTrainee(id); setPreviewTrainee(id);
-    const path = '/coach/trainees/' + id + '/preview';
+    const path = '/coach/athletes/' + id + '/preview';
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
   }, []);
   const closePreview = useCallback((id) => {
     setPreviewTrainee(null);
-    const path = '/coach/trainees/' + id;
+    const path = '/coach/athletes/' + id;
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
   }, []);
   const openPlanPreview = useCallback((id) => {
@@ -661,6 +666,7 @@ function AuthedApp() {
             <button className="hdr-icon-btn" onClick={()=>navTo('smartImport')} title="Smart Import" aria-label="Smart Import" style={{...baseBtn,background:tab==='smartImport'?C.acD:"transparent",color:tab==='smartImport'?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
             <button className="hdr-icon-btn" onClick={handleExport} title="Export" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
             <button className="hdr-icon-btn" onClick={()=>setShowPwModal(true)} title="Change password" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
+            <BugReportButton role="coach" reporterEmail={email} variant="coach" />
             <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
