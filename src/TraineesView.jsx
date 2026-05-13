@@ -544,8 +544,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             <span style={{ width: 1, height: BOX_H - 4, background: C.cardBd, margin: '0 4px' }} />
             <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>LANG</span>
             {[
-              { id: 'he-first', label: 'עבר', heb: true },
               { id: 'en-first', label: 'EN',  heb: false },
+              { id: 'he-first', label: 'עבר', heb: true },
             ].map(o => {
               const active = langOrder === o.id;
               return (
