@@ -1094,7 +1094,22 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // becomes visible in the trainee's activity feed.
     if (linkedTaskId) {
       const { markTaskCompletedByPlan } = await import('./coachNotes');
-      await markTaskCompletedByPlan(linkedTaskId, plan.id);
+      const ok = await markTaskCompletedByPlan(linkedTaskId, plan.id);
+      if (!ok) {
+        // markTaskCompletedByPlan already surfaced a toast via reportFailure.
+        // Belt-and-suspenders: also stash the pair so a future dashboard
+        // sweep can offer a retry affordance. sessionStorage scoped per-
+        // task-plan pair; cleared when the user clicks the retry.
+        try {
+          const key = 'expo-pendingTaskPlanRetry';
+          const raw = sessionStorage.getItem(key);
+          const arr = raw ? JSON.parse(raw) : [];
+          arr.push({ taskId: linkedTaskId, planId: plan.id, when: Date.now() });
+          sessionStorage.setItem(key, JSON.stringify(arr.slice(-20)));
+        } catch {}
+        const { toast } = await import('./ui');
+        toast('Task auto-link failed — check the trainee card for the retry pill.', 'warn', { ttl: 7000 });
+      }
       setLinkedTaskId(null);
     }
     setEditMode(false);

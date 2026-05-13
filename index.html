@@ -26,14 +26,18 @@
   <!-- Preconnect to Supabase so the first auth + plans query doesn't pay
        the full TCP+TLS handshake cost on a cold visit. -->
   <link rel="preconnect" href="https://gtcbfglttoiyfsnfbhdy.supabase.co" crossorigin/>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800&display=swap" rel="stylesheet"/>
+  <!-- Heebo is self-hosted from /public/fonts/. The earlier Google Fonts
+       link was blocked by our CSP (style-src + font-src don't include
+       fonts.googleapis.com / fonts.gstatic.com), so every Hebrew user
+       silently fell back to a system font. Self-hosting also drops one
+       third-party dependency and removes two preconnect handshakes. -->
   <!-- Preload the two Nord weights actually used at first paint so the
        UI shell isn't gated on a second roundtrip for woff2 fetch. -->
   <link rel="preload" href="/fonts/Nord-Regular.woff2" as="font" type="font/woff2" crossorigin/>
   <link rel="preload" href="/fonts/Nord-Bold.woff2"    as="font" type="font/woff2" crossorigin/>
+  <link rel="preload" href="/fonts/heebo-hebrew.woff2" as="font" type="font/woff2" crossorigin/>
   <link rel="stylesheet" href="/nord-fonts.css"/>
+  <link rel="stylesheet" href="/heebo-fonts.css"/>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     /* body bg/color are owned by themes.css (var(--c-bg)/var(--c-tx)) — see src/themes.css */

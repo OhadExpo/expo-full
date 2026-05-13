@@ -548,14 +548,32 @@ function AuthedApp() {
     return m;
   }, [planIndex]);
 
-  // Presence polling — read which clients are online
+  // Presence polling — read which clients are online.
+  // Aggregates per-client rows (key prefix `expo-presence-`) plus the legacy
+  // shared `expo-presence` blob for backwards compatibility while the older
+  // rows age out of localStorage on logged-in trainees.
   const [presence, setPresence] = useState({});
   useEffect(() => {
     if (!isCoach) return;
     const poll = async () => {
       try {
-        const { data } = await supabase.from('store').select('value').eq('key', 'expo-presence').maybeSingle();
-        if (data?.value) setPresence(data.value);
+        const next = {};
+        const { data: rows } = await supabase
+          .from('store')
+          .select('key, value')
+          .like('key', 'expo-presence-%');
+        for (const r of rows || []) {
+          const id = (r?.value?.clientId) || r.key.slice('expo-presence-'.length);
+          const ts = r?.value?.ts;
+          if (id && typeof ts === 'number') next[id] = ts;
+        }
+        const { data: legacy } = await supabase.from('store').select('value').eq('key', 'expo-presence').maybeSingle();
+        if (legacy?.value && typeof legacy.value === 'object') {
+          for (const [id, ts] of Object.entries(legacy.value)) {
+            if (next[id] == null && typeof ts === 'number') next[id] = ts;
+          }
+        }
+        setPresence(next);
       } catch {}
     };
     poll();

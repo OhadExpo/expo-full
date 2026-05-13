@@ -74,7 +74,14 @@ registerHandler('client_workouts.upsert', async ({ row }) => {
   if (error) throw error;
 });
 registerHandler('client_workouts.update', async ({ id, patch }) => {
-  const { error } = await supabase.from('client_workouts').update(patch).eq('id', id);
+  // Update + ensure the row exists. The blob queue can race ahead of the
+  // workout upsert (offline finish → online drain order is not guaranteed)
+  // and call this against a row that hasn't materialized yet. Switching to
+  // upsert with `id` lets the patch land either as a real update OR as a
+  // stub insert that the subsequent `client_workouts.upsert` will then
+  // merge over via onConflict on the primary key.
+  const { error } = await supabase.from('client_workouts')
+    .upsert({ id, ...patch }, { onConflict: 'id' });
   if (error) throw error;
 });
 registerHandler('client_workouts.delete', async ({ id }) => {

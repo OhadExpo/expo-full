@@ -1316,6 +1316,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // Gated on document.visibilityState so a backgrounded tab doesn't keep
   // writing to Supabase every 30s for hours. When the tab comes back to
   // foreground we beat immediately so the coach sees them as online.
+  //
+  // Row-per-client: each trainee owns `expo-presence-<id>` and writes only
+  // that row. Eliminates the read-modify-write race the old shared
+  // `expo-presence` object had — two trainees beating at the same time
+  // would clobber each other's stamps. The coach-side aggregator scans
+  // `key like 'expo-presence-%'`.
   React.useEffect(() => {
     if (!ci || demoMode) return;
     let consecutiveFailures = 0;
@@ -1323,18 +1329,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       if (document.visibilityState !== 'visible') return;
       try {
         const { supabase: sb } = await import('./supabase');
-        const { data: existing, error: readErr } = await sb.from('store').select('value').eq('key', 'expo-presence').maybeSingle();
-        if (readErr) throw readErr;
-        const presence = existing?.value || {};
-        presence[ci] = Date.now();
-        const { error: writeErr } = await sb.from('store').upsert({ key: 'expo-presence', value: presence });
+        const key = `expo-presence-${ci}`;
+        const { error: writeErr } = await sb.from('store').upsert({ key, value: { ts: Date.now(), clientId: ci } });
         if (writeErr) throw writeErr;
         consecutiveFailures = 0;
       } catch (e) {
-        // Don't toast on every 30s tick — heartbeat is best-effort and the
-        // coach's online panel is non-critical. But if it fails 3 ticks in a
-        // row, log to console so a regression (e.g. RLS policy reverted)
-        // doesn't go invisible the way it did before the 2026-05-02 carve-out.
         consecutiveFailures += 1;
         if (consecutiveFailures === 3) {
           console.warn('[presence] heartbeat failing:', e?.message || e);
