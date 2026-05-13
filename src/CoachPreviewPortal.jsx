@@ -11,7 +11,8 @@ import ClientPortal from './ClientPortal';
 // Either way, ClientPortal renders in demoMode so writes are sandboxed —
 // the coach can click around without polluting the trainee's record.
 //
-// Mounted by App.jsx for /coach/trainees/<id>/preview or /coach/programs/<id>/preview.
+// Mounted by App.jsx for /coach/athletes/<id>/preview or /coach/programs/<id>/preview.
+// /coach/trainees/<id>/preview still resolves to the same render for legacy links.
 export default function CoachPreviewPortal({ traineeId, planId, trainees, exercises, portalVis, clientWorkouts, bwLog, weeklyFocus, onBack }) {
   const [plans, setPlans] = useState(null);
   const [resolvedTraineeId, setResolvedTraineeId] = useState(traineeId || null);

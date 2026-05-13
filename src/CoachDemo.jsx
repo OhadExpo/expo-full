@@ -149,12 +149,6 @@ const MOCK_EXERCISES = [
   { name: 'Cable Pallof Press', category: 'Core',      resistanceType: 'Cable',      bodyPosition: 'Standing',     movementType: 'Anti-Rotation', pattern: 'Rotation/Anti-Rotation',  laterality: 'Unilateral' },
 ];
 
-const MOCK_REVIEW_COMMENTS = [
-  { time: '00:04', body: 'Bar path drifting forward — pull elbows under more.', voice: false },
-  { time: '00:11', body: 'Knees caving on rep 3. Cue "spread the floor" before next set.', voice: false },
-  { time: '00:18', body: 'Tempo OK, but you\'re holding breath at the top. Reset before each rep.', voice: true },
-];
-
 // ─── Shared bits ──────────────────────────────────────────────────────────
 const baseBtn = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,

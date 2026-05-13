@@ -119,6 +119,12 @@ export default function WaitlistView({ trainees }) {
   // concurrently doesn't have keystrokes on note B clobber note A's
   // pending persist (which the single shared timer used to do).
   const setNoteTimersRef = useRef({});
+  // Clear pending timers on unmount so a setSavingNote(null) doesn't
+  // fire on an unmounted component (React warns about it).
+  useEffect(() => () => {
+    Object.values(setNoteTimersRef.current).forEach(t => { try { clearTimeout(t); } catch {} });
+    setNoteTimersRef.current = {};
+  }, []);
   const setNote = (id, text) => {
     const next = { ...notes, [id]: text };
     setNotes(next);

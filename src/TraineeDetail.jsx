@@ -40,6 +40,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const [editForm,setEditForm]=useState(null);
   const [showAssign,setShowAssign]=useState(false);
   const [pendingAssignPlan,setPendingAssignPlan]=useState(null); // for couple member picker
+  const [pendingBlankCouple,setPendingBlankCouple]=useState(false); // START BLANK on a couple triggers a member picker before opening the editor
   const [confirmUnassign,setConfirmUnassign]=useState(null);
   const [unassignTyped,setUnassignTyped]=useState("");
   const [showArchiveConfirm,setShowArchiveConfirm]=useState(false);
@@ -437,7 +438,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
       </>}
 
-      <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null)}} title={`+ New Program for ${td.name}`}>
+      <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null);setPendingBlankCouple(false)}} title={`+ New Program for ${td.name}`}>
         {pendingAssignPlan && couple ? (
           <div style={{textAlign:'center',padding:12}}>
             <div style={{fontSize:13,color:C.tm,marginBottom:16}}>Assign to which member?</div>
@@ -448,12 +449,37 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             </div>
             <button onClick={()=>setPendingAssignPlan(null)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back to list</button>
           </div>
+        ) : pendingBlankCouple && couple ? (
+          <div style={{textAlign:'center',padding:12}}>
+            <div style={{fontSize:13,color:C.tm,marginBottom:16}}>Start blank for which member?</div>
+            <div style={{display:'flex',gap:10,justifyContent:'center',flexWrap:'wrap'}}>
+              {td.members.map((m,mi)=>(
+                <Btn key={mi} onClick={async ()=>{
+                  // Per [[couples-one-plan-per-member]]: blank plans land
+                  // on the sub-member id, never the parent. Picker stashes
+                  // the sub-id and routes to /coach/programs editor.
+                  const subId = subMemberId(trainee, mi);
+                  try {
+                    const { setPendingTaskPlanLink } = await import('./coachNotes');
+                    setPendingTaskPlanLink({ taskId: null, traineeId: subId, traineeLabel: m.name || `${td.name} (${mi+1})`, taskBody: '' });
+                  } catch {}
+                  setShowAssign(false);
+                  setPendingBlankCouple(false);
+                  if (onCreatePlanForTask) onCreatePlanForTask(subId);
+                }} style={{fontSize:13,padding:'8px 20px'}}>{m.name || `Member ${mi+1}`}</Btn>
+              ))}
+            </div>
+            <button onClick={()=>setPendingBlankCouple(false)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back to list</button>
+          </div>
         ) : (
         (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&!traineeIds.includes(p.traineeId));const assignedNames=new Set(tp.map(p=>p.name));
           // "Start blank" path — stashes a pending handoff via the same
           // mechanism the dashboard task → new-program flow uses, then
-          // routes the coach to the Programs tab editor.
+          // routes the coach to the Programs tab editor. For couples the
+          // handoff goes through a member picker first so the new plan
+          // lands on the right sub-member id, not the parent.
           const startBlankForTrainee = async () => {
+            if (couple) { setPendingBlankCouple(true); return; }
             try {
               const { setPendingTaskPlanLink } = await import('./coachNotes');
               setPendingTaskPlanLink({ taskId: null, traineeId: trainee, traineeLabel: td.name, taskBody: '' });

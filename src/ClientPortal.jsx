@@ -1449,7 +1449,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <EXPOMark theme="dark" height={36} style={{marginLeft:3}} />
           )}
           <div style={{display:'flex',alignItems:'center',gap:14}}>
-            {!demoMode && <BugReportButton role="athlete" reporterEmail={trainee?.email && (Array.isArray(trainee.email)?trainee.email[0]:trainee.email) || ''} variant="athlete" />}
+            {!demoMode && (() => {
+              // trainee.email is either a string or an array (up to 3 per
+              // memory project_auth_state). Flatten to the first non-empty
+              // address; falls back to empty string which the API treats
+              // as null reporter_email.
+              const raw = trainee?.email;
+              const arr = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+              const reporter = arr.find(e => typeof e === 'string' && e.trim()) || '';
+              return <BugReportButton role="athlete" reporterEmail={reporter} variant="athlete" />;
+            })()}
             <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>

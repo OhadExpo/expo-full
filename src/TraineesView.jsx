@@ -453,75 +453,91 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           buttons in TraineeDetail's Assigned Programs, header pills on
           NotesWidget). Three controls: SORT BY (3 modes) + DIR (↑↓) +
           LANG (HE/EN priority block). State persists across sessions. */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 14,
-        padding: '8px 10px',
-        background: isRefined5b() ? 'transparent' : 'var(--c-sf)',
-        border: `1px solid ${C.cardBd}`, borderRadius: 0,
-      }}>
-        <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>SORT</span>
-        {[
-          { id: 'name',        label: 'NAME' },
-          { id: 'lastTrained', label: 'LAST TRAINED' },
-          { id: 'payment',     label: 'PAYMENT' },
-        ].map(o => {
-          const active = sortBy === o.id;
-          return (
-            <button key={o.id} onClick={() => setSortBy(o.id)}
+      {/* Sort bar — every button shares a single box vocabulary:
+            BOX_H (28) minHeight, flex-centered content. Padding +
+            font-size can vary per button but the OUTER box is identical
+            so the row reads as one rhythm. The Hebrew "עב" pill uses
+            +3px Heebo to match Latin cap height (HE_BUMP_PX rule). */}
+      {(() => {
+        const BOX_H = 28;
+        const boxBase = {
+          minHeight: BOX_H, height: BOX_H, padding: '0 12px', borderRadius: 0,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: FN, fontWeight: 700, cursor: 'pointer', boxSizing: 'border-box',
+        };
+        const pill = (active) => ({
+          ...boxBase,
+          border: `1px solid ${active ? C.ac : C.cardBd}`,
+          background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
+          color: active ? C.ac : C.tm,
+          fontSize: 10, letterSpacing: '0.12em',
+        });
+        return (
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 14,
+            padding: '8px 10px',
+            background: isRefined5b() ? 'transparent' : 'var(--c-sf)',
+            border: `1px solid ${C.cardBd}`, borderRadius: 0,
+          }}>
+            <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>SORT</span>
+            {[
+              { id: 'name',        label: 'NAME' },
+              { id: 'lastTrained', label: 'LAST TRAINED' },
+              { id: 'payment',     label: 'PAYMENT' },
+            ].map(o => (
+              <button key={o.id} onClick={() => setSortBy(o.id)} style={pill(sortBy === o.id)}>
+                {o.label}
+              </button>
+            ))}
+            <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+              title={
+                sortBy === 'name' ? (sortDir === 'asc' ? 'A → Z' : 'Z → A')
+                : sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first')
+                : (sortDir === 'asc' ? 'Paid → Overdue' : 'Overdue → Paid')
+              }
               style={{
-                padding: '5px 12px', borderRadius: 0,
-                border: `1px solid ${active ? C.ac : C.cardBd}`,
-                background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-                color: active ? C.ac : C.tm,
-                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                cursor: 'pointer',
-              }}>{o.label}</button>
-          );
-        })}
-        <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-          title={
-            sortBy === 'name' ? (sortDir === 'asc' ? 'A → Z' : 'Z → A')
-            : sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first')
-            : (sortDir === 'asc' ? 'Paid → Overdue' : 'Overdue → Paid')
-          }
-          style={{
-            padding: '5px 12px', borderRadius: 0,
-            border: `1px solid ${C.ac}`,
-            background: 'transparent', color: C.ac,
-            fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-            marginLeft: 6,
-          }}>{
-            sortBy === 'name' ? (sortDir === 'asc' ? '↓ A→Z' : '↑ Z→A')
-            : sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST')
-            : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
-          }</button>
-        <span style={{ width: 1, alignSelf: 'stretch', background: C.cardBd, margin: '0 4px' }} />
-        <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>LANG</span>
-        {[
-          { id: 'he-first', label: 'עב' },
-          { id: 'en-first', label: 'EN' },
-        ].map(o => {
-          const active = langOrder === o.id;
-          return (
-            <button key={o.id} onClick={() => setLangOrder(o.id)}
-              title={o.id === 'he-first' ? 'Hebrew names first' : 'English names first'}
-              style={{
-                padding: '5px 10px', borderRadius: 0,
-                border: `1px solid ${active ? C.ac : C.cardBd}`,
-                background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-                color: active ? C.ac : C.tm,
-                fontFamily: o.id === 'he-first' ? 'Heebo,'+FN : FN,
-                fontSize: o.id === 'he-first' ? 13 : 10,
-                fontWeight: 700, letterSpacing: o.id === 'he-first' ? 0 : '0.12em',
-                cursor: 'pointer', lineHeight: 1.2,
-              }}>{o.label}</button>
-          );
-        })}
-        <span style={{ flex: 1 }} />
-        <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
-          {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
-        </span>
-      </div>
+                ...boxBase, marginLeft: 6,
+                border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac,
+                fontSize: 10, letterSpacing: '0.12em',
+              }}>{
+                sortBy === 'name' ? (sortDir === 'asc' ? '↓ A→Z' : '↑ Z→A')
+                : sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST')
+                : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
+              }</button>
+            <span style={{ width: 1, height: BOX_H - 4, background: C.cardBd, margin: '0 4px' }} />
+            <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>LANG</span>
+            {[
+              { id: 'he-first', label: 'עב', heb: true },
+              { id: 'en-first', label: 'EN', heb: false },
+            ].map(o => {
+              const active = langOrder === o.id;
+              return (
+                <button key={o.id} onClick={() => setLangOrder(o.id)}
+                  title={o.heb ? 'Hebrew names first' : 'English names first'}
+                  style={{
+                    ...boxBase,
+                    // Box dimensions identical to the sort pills above so
+                    // the LANG pair sits on the same baseline. Hebrew text
+                    // gets the +3px bump so its cap height matches Latin's
+                    // inside the SAME box (per HE_BUMP_PX rule).
+                    minWidth: 40,
+                    border: `1px solid ${active ? C.ac : C.cardBd}`,
+                    background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
+                    color: active ? C.ac : C.tm,
+                    fontFamily: o.heb ? `Heebo, ${FN}` : FN,
+                    fontSize: o.heb ? 13 : 10,
+                    letterSpacing: o.heb ? 0 : '0.12em',
+                    lineHeight: 1,
+                  }}>{o.label}</button>
+              );
+            })}
+            <span style={{ flex: 1 }} />
+            <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
+              {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
+            </span>
+          </div>
+        );
+      })()}
 
       {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived athletes." : "No athletes yet. Add your first one."} /> : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>

@@ -303,15 +303,16 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                       fontFamily: isHebrew(editBody) ? FH : FB,
                     }} />
                 ) : (
-                  <div
-                    onClick={allowEdit ? () => startEdit(n) : undefined}
-                    title={allowEdit ? 'Click to edit' : undefined}
-                    style={{
-                      fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.45, whiteSpace: 'pre-wrap',
-                      cursor: allowEdit ? 'text' : 'default',
-                      direction: heb ? 'rtl' : 'ltr',
-                      fontFamily: heb ? FH : FB,
-                    }}>{n.body}</div>
+                  // Body is no longer click-to-edit on either surface. The
+                  // explicit ✏️ button below is the only edit entry point —
+                  // matches the rule on NotesInline so the two task lists
+                  // behave identically.
+                  <div style={{
+                    fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.45, whiteSpace: 'pre-wrap',
+                    cursor: 'default',
+                    direction: heb ? 'rtl' : 'ltr',
+                    fontFamily: heb ? FH : FB,
+                  }}>{n.body}</div>
                 )}
               </div>
               {isVideoReview && onNavigate && reviewWorkoutId && (

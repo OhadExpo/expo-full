@@ -361,8 +361,32 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     // Save the focus element so we can restore on close — keyboard users
     // expect focus to return to the trigger that opened the modal.
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
+    const FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose?.(); }
+      if (e.key === 'Escape') { e.preventDefault(); onClose?.(); return; }
+      if (e.key !== 'Tab') return;
+      // Focus trap — keep Tab cycling inside the card. Without this,
+      // keyboard users can Tab out of the modal into the underlying
+      // page even though the modal is visually scrimmed.
+      const node = cardRef.current;
+      if (!node) return;
+      const focusables = Array.from(node.querySelectorAll(FOCUSABLE))
+        .filter(el => el.offsetParent !== null || el === node);
+      if (focusables.length === 0) {
+        e.preventDefault();
+        node.focus?.();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !node.contains(active))) {
+        e.preventDefault();
+        last.focus?.();
+      } else if (!e.shiftKey && (active === last || !node.contains(active))) {
+        e.preventDefault();
+        first.focus?.();
+      }
     };
     window.addEventListener('keydown', onKey);
     // Initial focus — first focusable inside the card, falling back to the

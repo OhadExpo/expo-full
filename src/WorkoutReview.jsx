@@ -1444,6 +1444,15 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     if ((clientWorkouts || []).some(w => w.id === consumed)) {
       setSubTab('review');
       setSelectedWo(consumed);
+    } else {
+      // Workout was deleted between the dashboard click and this mount, or
+      // the task was orphaned. Toast so the coach isn't left wondering
+      // why the page didn't open the expected session.
+      try {
+        import('./ui').then(({ toast }) => {
+          toast('That workout is no longer in the review queue.', 'warn', { ttl: 6000 });
+        });
+      } catch {}
     }
     // Run once on mount; new handoffs require a fresh navigation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
