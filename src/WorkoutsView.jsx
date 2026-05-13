@@ -93,7 +93,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:20,marginBottom:12}}>
         <h3 style={{fontFamily:FN,fontSize:12,color:C.td,textTransform:"uppercase",margin:0}}>Completed ({completed.length})</h3>
         <select value={filterTrainee} onChange={e=>setFilterTrainee(e.target.value)} style={{...baseInput,width:180,padding:"4px 8px",fontSize:12}}>
-          <option value="">All Athletes</option>{trainees.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+          <option value="">All Athletes</option>{trainees.filter(t=>t.status!=='Archived').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
       {completed.length===0?<EmptyState icon="📊" message="No completed workouts yet." />:
         completed.slice().reverse().map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId);
           return<Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>

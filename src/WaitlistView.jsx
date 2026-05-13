@@ -6,7 +6,7 @@
 // {[leadId]: 'text'} blob — no schema migration needed and they sync across
 // devices via the same path every other coach-side blob uses.
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { C, FN, FB } from './theme';
 import { isRefined5b, confirmToast } from './ui';
 import { supabase } from './supabase';
@@ -106,13 +106,20 @@ export default function WaitlistView({ trainees }) {
   const persistNotes = useCallback(async (next) => {
     try { await supabase.from('store').upsert({ key: NOTES_KEY, value: next }, { onConflict: 'key' }); } catch {}
   }, []);
+  // Per-id debounce timers — keyed by lead id so editing two notes
+  // concurrently doesn't have keystrokes on note B clobber note A's
+  // pending persist (which the single shared timer used to do).
+  const setNoteTimersRef = useRef({});
   const setNote = (id, text) => {
     const next = { ...notes, [id]: text };
     setNotes(next);
     setSavingNote(id);
-    // Debounce-ish via per-id timer (cleared on each keystroke).
-    clearTimeout(setNote._t);
-    setNote._t = setTimeout(() => { persistNotes(next); setSavingNote(null); }, 600);
+    if (setNoteTimersRef.current[id]) clearTimeout(setNoteTimersRef.current[id]);
+    setNoteTimersRef.current[id] = setTimeout(() => {
+      persistNotes(next);
+      setSavingNote(null);
+      delete setNoteTimersRef.current[id];
+    }, 600);
   };
 
   const markContacted = async (id) => {

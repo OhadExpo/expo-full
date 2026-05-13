@@ -1141,7 +1141,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </div>
         {f.has && f.videoUrl ? (
           <div style={{marginBottom:10}}>
-            <video src={f.videoUrl} controls playsInline style={{width:'100%',borderRadius:0,maxHeight:200,background:'transparent'}} />
+            <video src={f.videoUrl} controls playsInline
+              onError={() => setFv(prev => { const n=[...prev]; n[ei]={...n[ei], videoError:true}; return n; })}
+              style={{width:'100%',borderRadius:0,maxHeight:200,background:'transparent'}} />
+            {f.videoError && (
+              <div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or||'#c97a00'}`,fontSize:11,color:C.or||'#c97a00',fontFamily:FN}}>
+                Video failed to load. {f.cloudUrl ? <a href={f.cloudUrl} target="_blank" rel="noopener noreferrer" style={{color:C.ac}}>Open in new tab ↗</a> : 'Try Re-recording.'}
+              </div>
+            )}
             <div style={{display:'flex',gap:8,marginTop:6}}>
               {/* Replace + Remove are both disabled while an upload is in
                   flight — otherwise picking a new file mid-upload would race

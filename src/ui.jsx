@@ -23,7 +23,12 @@ export const baseBtn = {
   letterSpacing: "0.12em", textTransform: "uppercase", transition: "all 0.15s",
 };
 const variants = {
-  primary: { background: 'transparent', color: C.ac, border: `1px solid ${C.ac}` },
+  // acText is the AA-safe cyan (defined in theme.js) — matches ac on dark
+  // surfaces but darkens for body-text contrast on the white card surface
+  // in light mode. Btn is 11px uppercase 700 so it qualifies as "large"
+  // text, but using the AA variant keeps the small "ghost"-on-white wins
+  // free without re-evaluating per call site.
+  primary: { background: 'transparent', color: C.acText, border: `1px solid ${C.ac}` },
   ghost: { background: "transparent", color: C.tm, border: `1px solid ${C.cardBd}` },
   danger: { background: 'transparent', color: C.rd, border: `1px solid ${C.rd}` },
   success: { background: 'transparent', color: C.gn, border: `1px solid ${C.gn}` },

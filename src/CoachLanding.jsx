@@ -157,7 +157,7 @@ const STRINGS = {
   'wl.cta':              { en: 'JOIN WAITLIST',        he: 'הצטרפות' },
   'wl.err.email':        { en: 'Enter a valid email',  he: 'תכניס מייל תקין' },
   'wl.err.network':      { en: 'Something went wrong. Try again in a minute.', he: 'משהו השתבש. תנסה שוב עוד רגע.' },
-  'wl.done':             { en: "✓ YOU'RE ON THE LIST. I'LL EMAIL YOU AS COACH SLOTS OPEN.", he: '✓ אתה ברשימה. אני אשלח לך מייל ברגע שייפתח מקום מאמן.' },
+  'wl.done':             { en: "✓ YOU'RE ON THE LIST. I'LL EMAIL YOU AS COACH SLOTS OPEN.", he: '✓ את/ה ברשימה. אני אשלח לך מייל ברגע שייפתח מקום מאמן/ת.' },
 
   // Sticky mobile + footer
   'sticky.engine':       { en: 'TRY THE ENGINE',       he: 'תנסה את המנוע' },
@@ -736,7 +736,7 @@ export default function CoachLanding({ lang = 'en' }) {
         padding: '10px 12px', gap: 8, alignItems: 'stretch',
         boxShadow: '0 -8px 24px rgba(0,0,0,0.4)',
       }}>
-        <a href="/demo/coach" style={{
+        <a href="/try" style={{
           ...baseBtn, flex: 1, background: 'transparent', color: C.tx,
           border: `1px solid ${C.bd2}`, padding: '12px 14px', fontSize: 12,
         }}>{t('sticky.engine')}</a>

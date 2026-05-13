@@ -22,10 +22,28 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     // Log to console — Vercel runtime logs will pick this up.
-    // (No remote logger wired up; if Sentry/PostHog gets added later,
-    // emit here.)
     console.error('[EXPO] Top-level render error:', error, info);
     this.setState({ info });
+    // Fire-and-forget POST to a lightweight log endpoint so Vercel function
+    // logs capture the crash even when the user closes the tab. Never block
+    // the recovery UI on this — if logging fails, the user-facing fallback
+    // still renders.
+    try {
+      const payload = {
+        message: (error && error.message) || String(error || ''),
+        stack: (error && error.stack) || '',
+        componentStack: (info && info.componentStack) || '',
+        url: typeof window !== 'undefined' ? window.location.href : '',
+        ua: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+        ts: new Date().toISOString(),
+      };
+      fetch('/api/log-error', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+        keepalive: true,
+      }).catch(() => {});
+    } catch {}
   }
 
   handleReload = () => {

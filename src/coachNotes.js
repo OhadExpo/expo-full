@@ -65,6 +65,11 @@ export function useCoachNotes(filter = {}) {
       linked_plan_id: null,
       auto_kind: input.autoKind || null,
       auto_ref: input.autoRef || null,
+      // Local timestamp on the optimistic row keeps the sort stable until
+      // the next refetch resolves the canonical server timestamp. Without
+      // it, sortTasks compared NaN and the new task floated to a random
+      // position.
+      created_at: new Date().toISOString(),
     };
     const { error } = await supabase.from('coach_notes').insert(row);
     if (error) { reportFailure('Saving task', error); return null; }

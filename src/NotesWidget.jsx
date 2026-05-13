@@ -98,9 +98,13 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
     return rows.filter(r => r.target_kind === filter);
   }, [rows, filter]);
 
+  // Pill counts reflect OPEN tasks only — "TASKS (3)" matching the visible
+  // unchecked list reads correctly. The earlier counter included done
+  // rows, inflating the badge against what the eye sees.
   const counts = useMemo(() => {
-    const c = { all: rows.length, trainee: 0, intake: 0, review: 0, general: 0 };
-    for (const r of rows) {
+    const open = rows.filter(r => r.status !== 'done');
+    const c = { all: open.length, trainee: 0, intake: 0, review: 0, general: 0 };
+    for (const r of open) {
       if (!r.target_kind || r.target_kind === 'general') c.general++;
       else if (c[r.target_kind] != null) c[r.target_kind]++;
     }
@@ -200,7 +204,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
 
       {adding && (
         <div style={{ marginBottom: 12 }}>
-          <textarea value={body} onChange={e => setBody(e.target.value)}
+          <textarea value={body} onChange={e => setBody(e.target.value)} dir="auto"
             onBlur={draft.onBlur}
             onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
             placeholder="Quick thought… (⌘/Ctrl + Enter to save · auto-saves on blur)"
@@ -277,7 +281,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· {new Date(n.created_at).toLocaleString()}</span>
                 </div>
                 {editingId === n.id ? (
-                  <textarea value={editBody} onChange={e => setEditBody(e.target.value)}
+                  <textarea value={editBody} onChange={e => setEditBody(e.target.value)} dir="auto"
                     onKeyDown={e => {
                       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit();
                       if (e.key === 'Escape') cancelEdit();

@@ -122,7 +122,7 @@ export default function NotesInline({
               }}>{n.pinned ? '📌' : '○'}</button>
             <div style={{ flex: 1, minWidth: 0 }}>
               {editingId === n.id ? (
-                <textarea value={editBody} onChange={e => setEditBody(e.target.value)}
+                <textarea value={editBody} onChange={e => setEditBody(e.target.value)} dir="auto"
                   onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
                   onBlur={saveEdit} autoFocus rows={Math.max(2, editBody.split('\n').length)}
                   style={{
@@ -195,7 +195,7 @@ export default function NotesInline({
       )}
 
       <div style={{ marginTop: 10 }}>
-        <textarea className="notes-inline-input" value={body} onChange={e => setBody(e.target.value)}
+        <textarea className="notes-inline-input" value={body} onChange={e => setBody(e.target.value)} dir="auto"
           onBlur={draft.onBlur}
           onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onAdd(); }}
           placeholder="Add a note…"

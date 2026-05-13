@@ -189,8 +189,11 @@ const ruleAtRiskSilent = {
       const latestActivityAgo = tActivity.length
         ? Math.min(...tActivity.map(a => daysAgo(a.occurred_at)))
         : Infinity;
-      // Both signals must be quiet
-      if (latestWorkoutAgo < 14 || latestActivityAgo < 14) continue;
+      // Both signals must be quiet — hysteresis: fire at ≥21d so the task
+      // doesn't flicker around the 14d resolve boundary in the resolver
+      // below. A trainee who crosses 14d→21d sits silent until either
+      // touch crosses 21d (open) or any touch is fresher than 14d (close).
+      if (latestWorkoutAgo < 21 || latestActivityAgo < 21) continue;
       const wkLabel = tWorkouts.length === 0 ? 'never trained'
                                               : `${latestWorkoutAgo}d no workout`;
       const acLabel = tActivity.length === 0 ? 'never contacted'
@@ -214,7 +217,11 @@ const ruleAtRiskSilent = {
       const sinceAc = (activityRows || [])
         .filter(a => a.trainee_id === tid)
         .reduce((min, a) => Math.min(min, daysAgo(a.occurred_at)), Infinity);
-      if (sinceWk < 14 || sinceAc < 14) closing.add(tid);
+      // Resolve when either signal goes fresh again — sync matches against
+      // auto_ref (the rule's canonical key), not target_id. They happen to
+      // match for this rule, but returning auto_ref keeps the contract
+      // explicit and protects future rule authors who change the shape.
+      if (sinceWk < 14 || sinceAc < 14) closing.add(row.auto_ref);
     }
     return closing;
   },
@@ -269,8 +276,13 @@ const ruleNewIntakePending = {
       .map(s => ({
         ref: s.id,
         body: `New intake from ${s.name || s.email || 'unknown'} — review & onboard`,
-        target_id: s.trainee_id || null,
+        target_id: s.trainee_id || s.id,
         target_label: s.name || null,
+        // INTAKE filter pill expects target_kind === 'intake'. Without this
+        // override, sync falls back to the s.trainee_id ternary and lands
+        // most rows in 'general' (since intake's trainee_id is usually
+        // null pre-onboarding).
+        target_kind: 'intake',
       }));
   },
   resolve({ intakeSubmissions }, existing) {
@@ -327,7 +339,10 @@ const rulePaymentOverdue = {
     const closing = new Set();
     for (const row of existing) {
       const t = trainees.find(x => x.id === row.target_id);
-      if (!t) { closing.add(row.target_id); continue; }
+      // Resolve via auto_ref — the rule's canonical key — not target_id.
+      // They match today (auto_ref === t.id) but the sync layer compares
+      // against auto_ref; future rule changes mustn't drift the two apart.
+      if (!t) { closing.add(row.auto_ref); continue; }
       const tPay = (payments || []).filter(p => p.traineeId === t.id);
       if (tPay.length === 0) continue;
       const latest = tPay.reduce((a, b) =>
@@ -335,7 +350,7 @@ const rulePaymentOverdue = {
       const since = daysAgo(latest.date);
       const monthly = parseFloat(t.monthly) || 0;
       const threshold = monthly > 0 ? 44 : 14;
-      if (since < threshold) closing.add(row.target_id);
+      if (since < threshold) closing.add(row.auto_ref);
     }
     return closing;
   },
@@ -451,7 +466,7 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
       inserts.push({
         id: newAutoId(),
         body: d.body,
-        target_kind: d.target_id ? 'trainee' : 'general',
+        target_kind: d.target_kind || (d.target_id ? 'trainee' : 'general'),
         target_id: d.target_id || null,
         target_label: d.target_label || null,
         pinned: !!d.pinned,

@@ -185,7 +185,7 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
                   }}>{KIND_ICON[k]} {KIND_LABEL[k]}</button>
               ))}
             </div>
-            <textarea value={newSummary} onChange={e => setNewSummary(e.target.value)}
+            <textarea value={newSummary} onChange={e => setNewSummary(e.target.value)} dir="auto"
               placeholder="What happened?"
               rows={4}
               style={{

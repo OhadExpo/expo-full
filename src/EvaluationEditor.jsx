@@ -275,7 +275,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
         {/* Free notes */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>NOTES</div>
-          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} dir="auto"
             placeholder="Coach observations · red flags · session-context"
             style={{ ...inputBase, width: '100%', resize: 'vertical' }} />
         </div>
