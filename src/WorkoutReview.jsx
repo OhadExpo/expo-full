@@ -1431,6 +1431,23 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   const [subTab, setSubTab] = useState("review");
   const [selectedWo, setSelectedWo] = useState(null);
   const [expandedEx, setExpandedEx] = useState(null);
+  // Dashboard task → review handoff. The TASKS widget stashes the workout
+  // id in sessionStorage before routing here so the review tab opens
+  // directly on the requested workout instead of the queue list.
+  useEffect(() => {
+    let consumed = null;
+    try {
+      consumed = sessionStorage.getItem('expo-pendingReviewWorkout');
+      if (consumed) sessionStorage.removeItem('expo-pendingReviewWorkout');
+    } catch {}
+    if (!consumed) return;
+    if ((clientWorkouts || []).some(w => w.id === consumed)) {
+      setSubTab('review');
+      setSelectedWo(consumed);
+    }
+    // Run once on mount; new handoffs require a fresh navigation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Delete-confirm modal state. The workout id under threat + the user's typed
   // verification ("delete" or "remove" required) before the destructive call
   // is enabled.

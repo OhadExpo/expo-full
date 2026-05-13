@@ -253,14 +253,22 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           const heb = isHebrew(n.body);
           const clickable = !!(n.target_kind && n.target_id && onNavigate);
           const canCreatePlan = !!onCreatePlanForTask && n.target_kind === 'trainee' && n.target_id;
+          // Dashboard surface (compact) is display-only. The full /coach/tasks
+          // view (compact=false) is where editing lives.
+          const allowEdit = !compact;
+          // form_video_pending tasks resolve in the workout review, not the
+          // trainee profile. Same shape as canCreatePlan but routes via the
+          // onNavigate channel with a synthetic 'review' kind.
+          const isVideoReview = n.auto_kind === 'form_video_pending_review' && n.auto_ref;
+          const reviewWorkoutId = isVideoReview ? String(n.auto_ref).split('|')[0] : null;
           return (
             <div key={n.id} style={{
-              display: 'flex', alignItems: 'flex-start', gap: 8,
+              display: 'flex', alignItems: 'center', gap: 8,
               padding: '8px 0', borderBottom: `1px solid var(--c-cardBd)`,
             }}>
               <input type="checkbox" checked={false} onChange={() => toggleDone(n.id)}
                 title="Mark done"
-                style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
+                style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
               <button onClick={() => togglePin(n.id)} title={n.pinned ? 'Unpin' : 'Pin'}
                 style={{
                   background: 'transparent', border: 'none', cursor: 'pointer',
@@ -280,7 +288,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   {n.target_label && <span style={{ color: 'var(--c-ac)', marginLeft: 6 }}>· {n.target_label}</span>}
                   <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· {new Date(n.created_at).toLocaleString()}</span>
                 </div>
-                {editingId === n.id ? (
+                {editingId === n.id && allowEdit ? (
                   <textarea value={editBody} onChange={e => setEditBody(e.target.value)} dir="auto"
                     onKeyDown={e => {
                       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit();
@@ -289,30 +297,46 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     onBlur={saveEdit} autoFocus rows={Math.max(2, editBody.split('\n').length)}
                     style={{
                       width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-ac)`,
-                      borderRadius: 0, padding: '6px 8px', color: 'var(--c-tx)', fontSize: 12,
+                      borderRadius: 0, padding: '6px 8px', color: 'var(--c-tx)', fontSize: 13,
                       outline: 'none', boxSizing: 'border-box', resize: 'vertical',
                       direction: isHebrew(editBody) ? 'rtl' : 'ltr',
                       fontFamily: isHebrew(editBody) ? FH : FB,
                     }} />
                 ) : (
-                  <div onClick={() => startEdit(n)}
-                    title="Click to edit"
+                  <div
+                    onClick={allowEdit ? () => startEdit(n) : undefined}
+                    title={allowEdit ? 'Click to edit' : undefined}
                     style={{
-                      fontSize: 12, color: 'var(--c-tx)', lineHeight: 1.4, whiteSpace: 'pre-wrap', cursor: 'text',
+                      fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.45, whiteSpace: 'pre-wrap',
+                      cursor: allowEdit ? 'text' : 'default',
                       direction: heb ? 'rtl' : 'ltr',
                       fontFamily: heb ? FH : FB,
                     }}>{n.body}</div>
                 )}
               </div>
-              {canCreatePlan && (
+              {isVideoReview && onNavigate && reviewWorkoutId && (
+                <button onClick={() => onNavigate('review', reviewWorkoutId)}
+                  title="Open this workout's review session"
+                  style={{
+                    background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
+                    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                    padding: '2px 6px', borderRadius: 0, cursor: 'pointer', flexShrink: 0,
+                    whiteSpace: 'nowrap',
+                  }}>→ REVIEW</button>
+              )}
+              {canCreatePlan && !isVideoReview && (
                 <button onClick={() => startCreatePlan(n)}
                   title="Build a program from this task — auto-marks done on save"
                   style={{
                     background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
                     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
                     padding: '2px 6px', borderRadius: 0, cursor: 'pointer', flexShrink: 0,
-                    whiteSpace: 'nowrap', alignSelf: 'center',
+                    whiteSpace: 'nowrap',
                   }}>→ NEW PROGRAM</button>
+              )}
+              {allowEdit && editingId !== n.id && (
+                <button onClick={() => startEdit(n)} title="Edit"
+                  style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 12, padding: '0 4px', flexShrink: 0 }}>✏️</button>
               )}
               <button onClick={() => remove(n.id)} title="Remove"
                 style={{

@@ -1,11 +1,7 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect } from 'react';
 import { C, FN, FB, FH, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b } from './ui';
 import { savePlan } from './usePlansStore';
-// Lazy-loaded so the diff modal's pairing/render code only ships when the
-// coach actually opens it. Bigger-than-typical button can't justify being
-// in the eager TraineeDetail chunk.
-const PlanDiff = lazy(() => import('./PlanDiff'));
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
 import TraineePRsView from './TraineePRsView';
@@ -50,7 +46,6 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const [deleteTyped,setDeleteTyped]=useState("");
   const [programSort,setProgramSort]=useState('chrono'); // 'chrono' | 'alpha'
-  const [showDiff,setShowDiff]=useState(false);
   // sortProgramsChrono is the canonical newest-first program sort; lives
   // in traineeUtils.js so PlansView, ClientPortal, etc. share one definition.
   const handleArchive = () => { if(setTrainees) setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Archived",archivedAt:new Date().toISOString()}:t)); setShowArchiveConfirm(false); onBack(); };
@@ -391,11 +386,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"28px 0 12px"}}>
           <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            {tp.length >= 2 && <button onClick={()=>setShowDiff(true)}
-              title="Compare two programs side-by-side"
-              style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ Assign Program</button>
+            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
           </div>
         </div>
         <div className="td-couple-row" style={{display:'flex',gap:12}}>
@@ -438,28 +430,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
-            {tp.length >= 2 && <button onClick={()=>setShowDiff(true)}
-              title="Compare two programs side-by-side"
-              style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>↔ DIFF</button>}
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ Assign Program</button>
+            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
           </div>
         </div>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
       </>}
 
-      {showDiff && (
-        <Suspense fallback={null}>
-          <PlanDiff
-            open={showDiff}
-            onClose={()=>setShowDiff(false)}
-            traineePlans={[...tp].sort(sortProgramsChrono)}
-            exercises={exercises}
-          />
-        </Suspense>
-      )}
-
-      <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null)}} title="Assign Program">
+      <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null)}} title={`+ New Program for ${td.name}`}>
         {pendingAssignPlan && couple ? (
           <div style={{textAlign:'center',padding:12}}>
             <div style={{fontSize:13,color:C.tm,marginBottom:16}}>Assign to which member?</div>
@@ -471,17 +449,44 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <button onClick={()=>setPendingAssignPlan(null)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back to list</button>
           </div>
         ) : (
-        (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&!traineeIds.includes(p.traineeId));const assignedNames=new Set(tp.map(p=>p.name));const available=[...unassigned,...others].filter(p=>!assignedNames.has(p.name)||p.traineeId!==trainee);
-          return available.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:20}}>No programs available. Create one in the Programs tab first.</div>:
-          <div>{unassigned.length>0&&<><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>UNASSIGNED</div>
-            {unassigned.map(p=><div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
-              <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
-              <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>)}</>}
-            {others.length>0&&<><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8,marginTop:12}}>FROM OTHER ATHLETES (will duplicate)</div>
-            {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
-              <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name} <span style={{fontWeight:400,color:C.tm}}>— {owner?.name||'?'}</span></div>
-              <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>})}</>}
-          </div>})())}
+        (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&!traineeIds.includes(p.traineeId));const assignedNames=new Set(tp.map(p=>p.name));
+          // "Start blank" path — stashes a pending handoff via the same
+          // mechanism the dashboard task → new-program flow uses, then
+          // routes the coach to the Programs tab editor.
+          const startBlankForTrainee = async () => {
+            try {
+              const { setPendingTaskPlanLink } = await import('./coachNotes');
+              setPendingTaskPlanLink({ taskId: null, traineeId: trainee, traineeLabel: td.name, taskBody: '' });
+            } catch {}
+            setShowAssign(false);
+            if (onCreatePlanForTask) onCreatePlanForTask(trainee);
+          };
+          return (
+          <div>
+            <div onClick={startBlankForTrainee}
+              style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'12px 14px',marginBottom:12,cursor:'pointer',transition:'background .15s'}}
+              onMouseEnter={e=>e.currentTarget.style.background='rgba(57,189,255,0.094)'}
+              onMouseLeave={e=>e.currentTarget.style.background='var(--c-sf)'}>
+              <div style={{fontWeight:700,color:C.ac,fontSize:13,fontFamily:FN,letterSpacing:'0.04em'}}>+ START BLANK PROGRAM</div>
+              <div style={{fontSize:11,color:C.tm,marginTop:2}}>Empty editor for {td.name} — pick name, days, exercises.</div>
+            </div>
+            {(unassigned.length>0 || others.length>0) && (
+              <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>OR ASSIGN EXISTING</div>
+            )}
+            {unassigned.length>0 && <>
+              <div style={{fontSize:9,fontFamily:FN,color:C.td,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:6}}>FROM LIBRARY (UNASSIGNED)</div>
+              {unassigned.map(p=><div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
+                <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
+                <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>)}
+            </>}
+            {others.length>0 && <>
+              <div style={{fontSize:9,fontFamily:FN,color:C.td,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:6,marginTop:12}}>DUPLICATE FROM ANOTHER ATHLETE</div>
+              {others.filter(p=>!assignedNames.has(p.name)).map(p=>{const owner=trainees.find(t=>t.id===p.traineeId);return <div key={p.id} onClick={()=>handleAssignClick(p.id)} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}} onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac} onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
+                <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name} <span style={{fontWeight:400,color:C.tm}}>— {owner?.name||'?'}</span></div>
+                <div style={{fontSize:11,color:C.tm}}>{p.dayCount||0} days · {p.exerciseCount||0} exercises</div></div>})}
+            </>}
+          </div>);
+          })())}
       </Modal>
       {/* Unassign confirm */}
       {confirmUnassign && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>

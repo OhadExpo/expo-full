@@ -20,7 +20,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b } from './ui';
+import { isRefined5b, RefinedHeaderStrip } from './ui';
 import {
   useTraineeActivity, useCompletedTasksForTrainee,
   deriveCadence, deriveAutoEvents, mergeFeed, ACT_KINDS,
@@ -99,22 +99,28 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
     setNewSummary(''); setShowAddModal(false);
   };
 
+  const refined = isRefined5b();
+  const PAD = 14;
   return (
     <div style={{
-      background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
-      border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 14, marginBottom: 12,
+      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, marginBottom: 12,
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-        <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>
-          ACTIVITY ({merged.length})
+      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+            ACTIVITY ({merged.length})
+          </span>
+          <button onClick={() => setShowAddModal(true)}
+            style={{
+              background: 'transparent',
+              border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
+              color: refined ? '#FFFFFF' : C.ac,
+              padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 10,
+              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+            }}>+ LOG INTERACTION</button>
         </div>
-        <button onClick={() => setShowAddModal(true)}
-          style={{
-            background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac,
-            padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 10,
-            fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
-          }}>+ LOG INTERACTION</button>
-      </div>
+      </RefinedHeaderStrip>
 
       {merged.length === 0 && (
         <div style={{ fontSize: 12, color: C.td, padding: '14px 0', textAlign: 'center' }}>

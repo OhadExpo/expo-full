@@ -667,7 +667,7 @@ function AuthedApp() {
       {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:'var(--c-sf)',border:`1px solid ${importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn}`,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:0,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
-          {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")}/>}
+          {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}
           {tab==="chatAudit"&&<ChatAuditView/>}

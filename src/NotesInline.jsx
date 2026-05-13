@@ -107,38 +107,40 @@ export default function NotesInline({
 
       {visibleOpen.map(n => {
         const heb = isHebrew(n.body);
+        const isVideoReview = n.auto_kind === 'form_video_pending_review' && n.auto_ref;
+        const reviewWorkoutId = isVideoReview ? String(n.auto_ref).split('|')[0] : null;
+        const editingThis = editingId === n.id;
         return (
           <div key={n.id} style={{
-            padding: '6px 0', borderBottom: `1px solid var(--c-cardBd)`,
-            display: 'flex', alignItems: 'flex-start', gap: 8,
+            padding: '8px 0', borderBottom: `1px solid var(--c-cardBd)`,
+            display: 'flex', alignItems: 'center', gap: 8,
           }}>
             <input type="checkbox" checked={false} onChange={() => toggleDone(n.id)}
               title="Mark done"
-              style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
+              style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
             <button onClick={() => togglePin(n.id)} title={n.pinned ? 'Unpin' : 'Pin'}
               style={{
                 background: 'transparent', border: 'none', cursor: 'pointer',
                 color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12, padding: 0, flexShrink: 0,
               }}>{n.pinned ? '📌' : '○'}</button>
             <div style={{ flex: 1, minWidth: 0 }}>
-              {editingId === n.id ? (
+              {editingThis ? (
                 <textarea value={editBody} onChange={e => setEditBody(e.target.value)} dir="auto"
                   onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
                   onBlur={saveEdit} autoFocus rows={Math.max(2, editBody.split('\n').length)}
                   style={{
                     width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-ac)`,
-                    borderRadius: 0, padding: '6px 8px', color: 'var(--c-tx)', fontSize: 12,
+                    borderRadius: 0, padding: '6px 8px', color: 'var(--c-tx)', fontSize: 13,
                     outline: 'none', boxSizing: 'border-box', resize: 'vertical',
                     direction: isHebrew(editBody) ? 'rtl' : 'ltr',
                     fontFamily: isHebrew(editBody) ? FH : FB,
                   }} />
               ) : (
-                <div onClick={() => startEdit(n)} title="Click to edit"
-                  style={{
-                    fontSize: 12, color: 'var(--c-tx)', lineHeight: 1.5, whiteSpace: 'pre-wrap', cursor: 'text',
-                    direction: heb ? 'rtl' : 'ltr',
-                    fontFamily: heb ? FH : FB,
-                  }}>{n.body}</div>
+                <div style={{
+                  fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.45, whiteSpace: 'pre-wrap',
+                  direction: heb ? 'rtl' : 'ltr',
+                  fontFamily: heb ? FH : FB,
+                }}>{n.body}</div>
               )}
               <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.06em', marginTop: 2 }}>
                 {n.auto_kind && (
@@ -150,7 +152,21 @@ export default function NotesInline({
                 {new Date(n.created_at).toLocaleString()}
               </div>
             </div>
-            {showCreatePlanBtn && (
+            {isVideoReview && reviewWorkoutId && (
+              <button
+                onClick={() => {
+                  try { sessionStorage.setItem('expo-pendingReviewWorkout', reviewWorkoutId); } catch {}
+                  window.location.href = '/coach/review';
+                }}
+                title="Open this workout's review session"
+                style={{
+                  background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
+                  fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                  padding: '2px 6px', borderRadius: 0, cursor: 'pointer', flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                }}>→ REVIEW</button>
+            )}
+            {showCreatePlanBtn && !isVideoReview && (
               <button onClick={() => startCreatePlan(n)} title="Create a program from this task — auto-marks done on save"
                 style={{
                   background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
@@ -158,6 +174,10 @@ export default function NotesInline({
                   padding: '2px 6px', borderRadius: 0, cursor: 'pointer', flexShrink: 0,
                   whiteSpace: 'nowrap',
                 }}>→ NEW PROGRAM</button>
+            )}
+            {!editingThis && (
+              <button onClick={() => startEdit(n)} title="Edit task"
+                style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 12, padding: '0 4px', flexShrink: 0 }}>✏️</button>
             )}
             <button onClick={() => remove(n.id)} title="Remove"
               style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>

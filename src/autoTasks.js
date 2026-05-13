@@ -227,27 +227,37 @@ const ruleAtRiskSilent = {
   },
 };
 
-// 4) FORM_VIDEO_PENDING_REVIEW — video uploaded, no review notes in 24h+
+// 4) FORM_VIDEO_PENDING_REVIEW — one task per WORKOUT that has any
+//    cloud-uploaded videos with zero review notes. (Earlier shape emitted
+//    one task per video, which buried the dashboard under N near-identical
+//    rows whenever a trainee filmed every exercise.) The task's
+//    "→ REVIEW" action navigates to the workout review session where
+//    every pending video lives, so one click drains them all.
 const ruleFormVideoPending = {
   kind: 'form_video_pending_review',
   detect({ trainees, workouts }) {
     const out = [];
     for (const w of workouts) {
       if (!Array.isArray(w.formVideos)) continue;
+      if (w.reviewedAt) continue;                // already reviewed → no task
+      if (daysAgo(w.date) < 1) continue;         // give the coach 24h
       const t = trainees.find(tt => tt.id === w.clientId);
       if (!t) continue;
-      w.formVideos.forEach((fv, i) => {
-        if (!fv?.cloudUrl) return;
+      // Count unreviewed videos in this workout. Skip the workout entirely
+      // if every video already has at least one review note.
+      let unreviewed = 0;
+      for (const fv of w.formVideos) {
+        if (!fv?.cloudUrl) continue;
         const notes = Array.isArray(fv.reviewNotes) ? fv.reviewNotes : [];
-        if (notes.length > 0) return;
-        if (daysAgo(w.date) < 1) return; // give the coach 24h
-        const exTitle = (w.exercises?.[i]?.title) || `Exercise #${i + 1}`;
-        out.push({
-          ref: `${w.id}|${i}`,
-          body: `Review ${t.name}'s form video — ${exTitle}, W${w.week} ${w.dayName} from ${new Date(w.date).toLocaleDateString()}`,
-          target_id: t.id,
-          target_label: t.name,
-        });
+        if (notes.length === 0) unreviewed++;
+      }
+      if (unreviewed === 0) continue;
+      const label = `${unreviewed} form video${unreviewed === 1 ? '' : 's'}`;
+      out.push({
+        ref: w.id,
+        body: `Review ${t.name}'s ${label} — W${w.week} ${w.dayName} from ${new Date(w.date).toLocaleDateString()}`,
+        target_id: t.id,
+        target_label: t.name,
       });
     }
     return out;
@@ -255,12 +265,19 @@ const ruleFormVideoPending = {
   resolve({ workouts }, existing) {
     const closing = new Set();
     for (const row of existing) {
-      const [woId, idxPart] = (row.auto_ref || '').split('|');
-      const idx = parseInt(idxPart, 10);
+      const woId = String(row.auto_ref || '').split('|')[0];
       const wo = workouts.find(w => w.id === woId);
       if (!wo) { closing.add(row.auto_ref); continue; }
-      const fv = wo.formVideos?.[idx];
-      if (fv?.reviewNotes && fv.reviewNotes.length > 0) closing.add(row.auto_ref);
+      // Closes when the workout is marked reviewed OR every video has at
+      // least one review note attached.
+      if (wo.reviewedAt) { closing.add(row.auto_ref); continue; }
+      const fvs = Array.isArray(wo.formVideos) ? wo.formVideos : [];
+      const allCovered = fvs.every(fv => {
+        if (!fv?.cloudUrl) return true;
+        const notes = Array.isArray(fv.reviewNotes) ? fv.reviewNotes : [];
+        return notes.length > 0;
+      });
+      if (allCovered) closing.add(row.auto_ref);
     }
     return closing;
   },
