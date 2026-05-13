@@ -12,7 +12,7 @@ import React from 'react';
 import { C, FN } from './theme';
 import NotesWidget from './NotesWidget';
 
-export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlanForTask }) {
+export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlanForTask, onOpenIntakeTab, onOpenReviewWorkout }) {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 4px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14 }}>
@@ -24,8 +24,13 @@ export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlan
       <NotesWidget
         trainees={trainees}
         onCreatePlanForTask={onCreatePlanForTask}
+        onOpenIntakeTab={onOpenIntakeTab}
         onNavigate={(kind, id) => {
           if (kind === 'trainee' && onSelectTrainee) onSelectTrainee(id);
+          else if (kind === 'review' && id) {
+            try { sessionStorage.setItem('expo-pendingReviewWorkout', id); } catch {}
+            onOpenReviewWorkout?.(id);
+          }
         }} />
     </div>
   );

@@ -16,6 +16,7 @@
 
 import { supabase } from './supabase';
 import { toast } from './ui';
+import { traineeIdsFor } from './traineeUtils';
 
 // ─────────────────────────────────────────────────────────────────────
 // Helper utilities shared across rules
@@ -46,6 +47,21 @@ const nextBlockName = (currentName) => {
   return currentName.replace(/#\d+/, `#${next}`);
 };
 
+// "Ghost" trainees — imported into the roster but never engaged with
+// the system. No workouts logged via the portal, no manual activity
+// rows, no intake submission. For these, the auto-task engine is
+// noise: every rule would either no-op or fire a "re-engage" task that
+// the coach already knows is a dead lead. Skip them entirely at
+// detect-time so the dashboard stays focused on live clients.
+function isGhostTrainee(t, ctx) {
+  const ids = new Set(traineeIdsFor(t.id));
+  const { workouts = [], activityRows = [], intakeSubmissions = [] } = ctx || {};
+  if (workouts.some(w => ids.has(w.clientId))) return false;
+  if (activityRows.some(a => ids.has(a.trainee_id))) return false;
+  if (intakeSubmissions.some(s => s.trainee_id && ids.has(s.trainee_id))) return false;
+  return true;
+}
+
 // ─────────────────────────────────────────────────────────────────────
 // Rules
 // ─────────────────────────────────────────────────────────────────────
@@ -53,10 +69,12 @@ const nextBlockName = (currentName) => {
 // 1) NEXT_BLOCK_DUE — last day of W(N-1) of an N-week plan completed
 const ruleNextBlockDue = {
   kind: 'next_block_due',
-  detect({ trainees, plans, workouts }) {
+  detect(ctx) {
+    const { trainees, plans, workouts } = ctx;
     const out = [];
     for (const t of trainees) {
       if (t.status !== 'Active' && t.status !== 'Trial') continue;
+      if (isGhostTrainee(t, ctx)) continue;
       // Active plans for this trainee (current block — most recent)
       const tPlans = plans.filter(p => p.traineeId === t.id);
       if (tPlans.length === 0) continue;
@@ -117,10 +135,12 @@ const ruleNextBlockDue = {
 //    workout (one full week missed, gives some grace).
 const ruleWeekMissed = {
   kind: 'week_missed',
-  detect({ trainees, plans, workouts }) {
+  detect(ctx) {
+    const { trainees, plans, workouts } = ctx;
     const out = [];
     for (const t of trainees) {
       if (t.status !== 'Active') continue;
+      if (isGhostTrainee(t, ctx)) continue;
       const tWorkouts = workouts.filter(w => w.clientId === t.id);
       if (tWorkouts.length === 0) continue;
       const latest = tWorkouts.reduce((a, b) =>
@@ -177,7 +197,8 @@ const ruleWeekMissed = {
 //    One trainee → one task at a time.
 const ruleAtRiskSilent = {
   kind: 'at_risk_silent',
-  detect({ trainees, workouts, activityRows }) {
+  detect(ctx) {
+    const { trainees, workouts, activityRows } = ctx;
     const out = [];
     for (const t of trainees) {
       if (t.status !== 'Active') continue;
@@ -187,6 +208,10 @@ const ruleAtRiskSilent = {
       // Infinity (no rows = quiet by definition).
       const sinceStart = daysAgo(t.startDate);
       if (sinceStart < 14) continue;
+      // Never-engaged trainees (no workout, no activity, no intake) are
+      // ghosts — coach already knows they're inert; don't generate a
+      // re-engage task that adds nothing.
+      if (isGhostTrainee(t, ctx)) continue;
       const tWorkouts = workouts.filter(w => w.clientId === t.id);
       const tActivity = (activityRows || []).filter(a => a.trainee_id === t.id);
       const latestWorkoutAgo = tWorkouts.length
@@ -241,7 +266,8 @@ const ruleAtRiskSilent = {
 //    every pending video lives, so one click drains them all.
 const ruleFormVideoPending = {
   kind: 'form_video_pending_review',
-  detect({ trainees, workouts }) {
+  detect(ctx) {
+    const { trainees, workouts } = ctx;
     const out = [];
     for (const w of workouts) {
       if (!Array.isArray(w.formVideos)) continue;
@@ -249,6 +275,7 @@ const ruleFormVideoPending = {
       if (daysAgo(w.date) < 1) continue;         // give the coach 24h
       const t = trainees.find(tt => tt.id === w.clientId);
       if (!t) continue;
+      // A workout exists, so by definition the trainee isn't a ghost here.
       // Count unreviewed videos in this workout. Skip the workout entirely
       // if every video already has at least one review note.
       let unreviewed = 0;
@@ -321,10 +348,12 @@ const ruleNewIntakePending = {
 // 6) PAYMENT_OVERDUE — last payment 14d+ overdue OR Never Paid after 21d
 const rulePaymentOverdue = {
   kind: 'payment_overdue',
-  detect({ trainees, payments }) {
+  detect(ctx) {
+    const { trainees, payments } = ctx;
     const out = [];
     for (const t of trainees) {
       if (t.status !== 'Active') continue;
+      if (isGhostTrainee(t, ctx)) continue;
       const tPay = (payments || []).filter(p => p.traineeId === t.id);
       const monthly = parseFloat(t.monthly) || 0;
       if (tPay.length === 0) {
@@ -384,7 +413,8 @@ const rulePaymentOverdue = {
 //    client's self-report. This bridges them.
 const ruleEvalDueFirstSession = {
   kind: 'eval_due_first_session',
-  detect({ trainees, intakeSubmissions, evaluations }) {
+  detect(ctx) {
+    const { trainees, intakeSubmissions, evaluations } = ctx;
     if (!intakeSubmissions) return [];
     const out = [];
     for (const s of intakeSubmissions) {
@@ -393,6 +423,8 @@ const ruleEvalDueFirstSession = {
       const t = trainees.find(x => x.id === s.trainee_id);
       if (!t) continue;
       if (t.status === 'Archived' || t.status === 'Inactive') continue;
+      // Submitted+reviewed intake counts as engagement, so isGhost is
+      // false here regardless. No filter needed.
       const hasEval = (evaluations || []).some(e => e.trainee_id === t.id);
       if (hasEval) continue;
       out.push({
@@ -544,3 +576,50 @@ export const AUTO_KIND_LABEL = {
   payment_overdue: 'PAYMENT OVERDUE',
   eval_due_first_session: 'EVAL DUE',
 };
+
+// Solution-action per auto-task kind. The dashboard task cards render
+// the matching button so every task points at its actual remedy:
+//   NEW_PROGRAM   — open the plan editor pre-bound to the trainee
+//   WHATSAPP      — wa.me deeplink with a pre-filled message
+//   REVIEW        — open the workout review session for that workout id
+//   OPEN_INTAKE   — route to /coach/intake (review the submission)
+//   OPEN_ATHLETE  — route to the trainee card (run the eval there)
+export const AUTO_KIND_ACTION = {
+  next_block_due:            'NEW_PROGRAM',
+  week_missed:               'WHATSAPP',
+  at_risk_silent:            'WHATSAPP',
+  form_video_pending_review: 'REVIEW',
+  new_intake_pending:        'OPEN_INTAKE',
+  payment_overdue:           'WHATSAPP',
+  eval_due_first_session:    'OPEN_ATHLETE',
+};
+
+// Hebrew WhatsApp templates per kind. The trainee's first name is
+// extracted from `name` for a personal tone. Days-since values pulled
+// out of the task body when present so the message doesn't say "X days"
+// when the system actually knows the number.
+export function whatsappMessageForTask(note, trainee) {
+  const first = (trainee?.name || '').split(/\s+/)[0] || trainee?.name || '';
+  const body = String(note?.body || '');
+  switch (note?.auto_kind) {
+    case 'week_missed': {
+      const m = body.match(/W(\d+)/);
+      const wk = m ? `שבוע ${m[1]} ` : '';
+      return `היי ${first}. ראיתי שדילגנו על ${wk}בבלוק הנוכחי. הכל בסדר? בוא נתאם משהו לפני שזה מצטבר.`;
+    }
+    case 'at_risk_silent': {
+      const m = body.match(/(\d+)d no workout/);
+      const ago = m ? `${m[1]} ימים מאז האימון האחרון. ` : '';
+      return `היי ${first}. ${ago}הכל בסדר אצלך? בוא נתאם אימון או שיחה השבוע.`;
+    }
+    case 'payment_overdue': {
+      const never = /never paid/i.test(body);
+      if (never) return `היי ${first}. רק תזכורת — עוד לא נסגר תשלום מאז ההרשמה. תוכל לסגור את זה השבוע?`;
+      const m = body.match(/(\d+)d ago/);
+      const ago = m ? `${m[1]} ימים מאז התשלום האחרון. ` : '';
+      return `היי ${first}. ${ago}תוכל לסגור את התשלום הנוכחי השבוע?`;
+    }
+    default:
+      return `היי ${first}. מה קורה?`;
+  }
+}

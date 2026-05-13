@@ -13,7 +13,8 @@ import { C, FN, FB, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
-import { AUTO_KIND_LABEL } from './autoTasks';
+import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask } from './autoTasks';
+import { normalizePhoneIL } from './whatsappButton';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -39,7 +40,198 @@ const FILTER_OPTIONS = [
   { id: 'general',  label: 'GENERAL' },
 ];
 
-export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, compact = false, trainees = [] }) {
+// Severity color per auto-kind — drives the pill border/left-stripe
+// so the dashboard reads at a glance: red for safety/payment issues,
+// orange for missed-week/at-risk, cyan for plan/intake/eval, green
+// for everything else (manual).
+const AUTO_KIND_TONE = {
+  next_block_due:            'cyan',
+  week_missed:               'orange',
+  at_risk_silent:            'orange',
+  form_video_pending_review: 'cyan',
+  new_intake_pending:        'cyan',
+  payment_overdue:           'red',
+  eval_due_first_session:    'cyan',
+};
+
+const TONE_COLOR = {
+  cyan:   'var(--c-ac)',
+  orange: 'var(--c-or)',
+  red:    'var(--c-rd)',
+  green:  'var(--c-gn)',
+};
+
+// Single task card. Header row carries the auto-kind pill + target +
+// timestamp (right-aligned). Body is the task description. Footer row
+// carries the contextual action button (NEW PROGRAM / WHATSAPP / etc.)
+// plus the ✓ done / 📌 pin / ✏️ edit / × delete controls. Three-row
+// rhythm is identical across compact (dashboard) and full views so
+// nothing visually drifts between surfaces.
+function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBody, onSaveEdit, onCancelEdit, onStartEdit, onToggleDone, onTogglePin, onRemove, actionButton }) {
+  const n = note;
+  const tone = n.auto_kind ? (AUTO_KIND_TONE[n.auto_kind] || 'cyan') : null;
+  const stripeColor = tone ? TONE_COLOR[tone] : 'var(--c-cardBd)';
+  const kindLabel = n.auto_kind ? (AUTO_KIND_LABEL[n.auto_kind] || 'AUTO') : null;
+  const targetIcon = TARGET_ICON[n.target_kind] || '·';
+  const targetLabel = TARGET_LABEL[n.target_kind] || 'NOTE';
+  return (
+    <div style={{
+      background: 'var(--c-sf)',
+      border: `1px solid var(--c-cardBd)`,
+      borderLeft: `3px solid ${stripeColor}`,
+      borderRadius: 0,
+      padding: '10px 12px',
+      marginBottom: 8,
+    }}>
+      {/* Header row — auto-kind pill + target + timestamp, then × on
+          the far right so the destructive control sits where you'd
+          expect to dismiss a card. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+        <input type="checkbox" checked={false} onChange={onToggleDone}
+          title="Mark done"
+          style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
+        <button onClick={onTogglePin} title={n.pinned ? 'Unpin' : 'Pin'}
+          style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12,
+            padding: 0, flexShrink: 0,
+          }}>{n.pinned ? '📌' : '○'}</button>
+        {kindLabel && (
+          <span title={`Auto-generated: ${kindLabel}`}
+            style={{
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+              color: TONE_COLOR[tone], border: `1px solid ${TONE_COLOR[tone]}`,
+              padding: '2px 8px',
+            }}>⚙ {kindLabel}</span>
+        )}
+        {!kindLabel && (
+          <span style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+            color: 'var(--c-td)', border: `1px solid var(--c-cardBd)`,
+            padding: '2px 8px',
+          }}>{targetIcon} {targetLabel}</span>
+        )}
+        {n.target_label && (
+          <span style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-ac)', letterSpacing: '0.04em', fontWeight: 700 }}>
+            {n.target_label}
+          </span>
+        )}
+        <span style={{ flex: 1 }} />
+        <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
+          {new Date(n.created_at).toLocaleString()}
+        </span>
+        <button onClick={onRemove} title="Remove"
+          style={{
+            background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer',
+            fontSize: 14, padding: '0 4px', flexShrink: 0,
+          }}>×</button>
+      </div>
+
+      {/* Body — task description. Edit mode shows the textarea. */}
+      {isEditing ? (
+        <textarea value={editBody} onChange={e => onEditBody(e.target.value)} dir="auto"
+          onKeyDown={e => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSaveEdit();
+            if (e.key === 'Escape') onCancelEdit();
+          }}
+          onBlur={onSaveEdit} autoFocus rows={Math.max(2, editBody.split('\n').length)}
+          style={{
+            width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-ac)`,
+            borderRadius: 0, padding: '6px 8px', color: 'var(--c-tx)', fontSize: 13,
+            outline: 'none', boxSizing: 'border-box', resize: 'vertical', marginBottom: 8,
+            direction: isHebrew(editBody) ? 'rtl' : 'ltr',
+            fontFamily: isHebrew(editBody) ? FH : FB,
+          }} />
+      ) : (
+        <div style={{
+          fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.5, whiteSpace: 'pre-wrap',
+          marginBottom: actionButton || allowEdit ? 10 : 0,
+          direction: heb ? 'rtl' : 'ltr',
+          fontFamily: heb ? FH : FB,
+        }}>{n.body}</div>
+      )}
+
+      {/* Footer — contextual action + edit (when allowed). The ✕
+          delete already lives on the header row so a long body keeps
+          its destructive control above the fold. */}
+      {(actionButton || (allowEdit && !isEditing)) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+          {actionButton}
+          {allowEdit && !isEditing && (
+            <button onClick={onStartEdit} title="Edit task"
+              style={{
+                background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
+                cursor: 'pointer', fontSize: 11, padding: '3px 8px', borderRadius: 0,
+                fontFamily: FN, fontWeight: 700, letterSpacing: '0.12em', height: 26,
+                display: 'inline-flex', alignItems: 'center',
+              }}>✏️ EDIT</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Pre-built solution pill — cyan border, narrow chip, label like
+// "→ NEW PROGRAM" / "→ REVIEW" / "→ INTAKE" / "→ ATHLETE". Used by every
+// non-WhatsApp task action so the row reads uniformly.
+function ActionPill({ label, onClick, color, title }) {
+  const c = color || 'var(--c-ac)';
+  return (
+    <button onClick={onClick} title={title}
+      style={{
+        background: 'transparent', border: `1px solid ${c}`, color: c,
+        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+        padding: '4px 10px', borderRadius: 0, cursor: 'pointer',
+        whiteSpace: 'nowrap', height: 26, display: 'inline-flex', alignItems: 'center',
+      }}>{label}</button>
+  );
+}
+
+// Per-task action button — switches on auto_kind. WhatsApp variant uses
+// WA brand green to differentiate from the cyan-bordered NEW PROGRAM /
+// REVIEW family. Returns null when the task has no actionable handler
+// (manual general task, or trainee data missing for WhatsApp).
+function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenIntake, onOpenAthlete }) {
+  const kind = note?.auto_kind;
+  const action = kind ? AUTO_KIND_ACTION[kind] : null;
+  // Manual task with a trainee target — same NEW PROGRAM affordance.
+  if (!kind && note?.target_kind === 'trainee' && note?.target_id && onCreatePlan) {
+    return <ActionPill label="→ NEW PROGRAM" title="Build a program from this task" onClick={() => onCreatePlan(note)} />;
+  }
+  switch (action) {
+    case 'NEW_PROGRAM':
+      if (!onCreatePlan) return null;
+      return <ActionPill label="→ NEW PROGRAM" title="Open the plan editor pre-bound to this trainee" onClick={() => onCreatePlan(note)} />;
+    case 'REVIEW': {
+      if (!onOpenReview) return null;
+      const woId = String(note.auto_ref || '').split('|')[0];
+      if (!woId) return null;
+      return <ActionPill label="→ REVIEW" title="Open this workout's review session" onClick={() => onOpenReview(woId)} />;
+    }
+    case 'WHATSAPP': {
+      const phone = normalizePhoneIL(trainee?.phone);
+      if (!phone) return <ActionPill color="var(--c-td)" label="→ WHATSAPP" title="No phone on file" onClick={() => {}} />;
+      const msg = whatsappMessageForTask(note, trainee);
+      return <ActionPill color="#128C7E"
+        label="→ WHATSAPP"
+        title={`Open WhatsApp to ${trainee?.name || 'trainee'}`}
+        onClick={() => {
+          try { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener'); } catch {}
+        }} />;
+    }
+    case 'OPEN_INTAKE':
+      if (!onOpenIntake) return null;
+      return <ActionPill label="→ INTAKE" title="Open the intake review surface" onClick={onOpenIntake} />;
+    case 'OPEN_ATHLETE':
+      if (!onOpenAthlete || !note.target_id) return null;
+      return <ActionPill label="→ ATHLETE" title="Open the trainee card" onClick={() => onOpenAthlete(note.target_id)} />;
+    default:
+      return null;
+  }
+}
+
+export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, compact = false, trainees = [] }) {
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
   const [adding, setAdding] = useState(false);
   const [body, setBody] = useState('');
@@ -251,100 +443,37 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       ) : (
         visible.map(n => {
           const heb = isHebrew(n.body);
-          const clickable = !!(n.target_kind && n.target_id && onNavigate);
-          const canCreatePlan = !!onCreatePlanForTask && n.target_kind === 'trainee' && n.target_id;
-          // Dashboard surface (compact) is display-only. The full /coach/tasks
-          // view (compact=false) is where editing lives.
           const allowEdit = !compact;
-          // form_video_pending tasks resolve in the workout review, not the
-          // trainee profile. Same shape as canCreatePlan but routes via the
-          // onNavigate channel with a synthetic 'review' kind.
-          const isVideoReview = n.auto_kind === 'form_video_pending_review' && n.auto_ref;
-          const reviewWorkoutId = isVideoReview ? String(n.auto_ref).split('|')[0] : null;
+          const trainee = (n.target_kind === 'trainee' && n.target_id)
+            ? trainees.find(t => t.id === n.target_id)
+            : null;
           return (
-            <div key={n.id} style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '8px 0', borderBottom: `1px solid var(--c-cardBd)`,
-            }}>
-              <input type="checkbox" checked={false} onChange={() => toggleDone(n.id)}
-                title="Mark done"
-                style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
-              <button onClick={() => togglePin(n.id)} title={n.pinned ? 'Unpin' : 'Pin'}
-                style={{
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12,
-                  padding: 0, flexShrink: 0,
-                }}>{n.pinned ? '📌' : '○'}</button>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div onClick={() => handleClick(n)}
-                  style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 2, cursor: clickable ? 'pointer' : 'default' }}>
-                  {n.auto_kind && (
-                    <span title={`Auto-generated: ${AUTO_KIND_LABEL[n.auto_kind] || n.auto_kind}`}
-                      style={{ color: 'var(--c-ac)', fontWeight: 700, marginRight: 6, border: `1px solid var(--c-ac)`, padding: '0 4px' }}>
-                      ⚙ {AUTO_KIND_LABEL[n.auto_kind] || 'AUTO'}
-                    </span>
-                  )}
-                  {TARGET_ICON[n.target_kind] || '·'} {TARGET_LABEL[n.target_kind] || 'NOTE'}
-                  {n.target_label && <span style={{ color: 'var(--c-ac)', marginLeft: 6 }}>· {n.target_label}</span>}
-                  <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· {new Date(n.created_at).toLocaleString()}</span>
-                </div>
-                {editingId === n.id && allowEdit ? (
-                  <textarea value={editBody} onChange={e => setEditBody(e.target.value)} dir="auto"
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit();
-                      if (e.key === 'Escape') cancelEdit();
-                    }}
-                    onBlur={saveEdit} autoFocus rows={Math.max(2, editBody.split('\n').length)}
-                    style={{
-                      width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-ac)`,
-                      borderRadius: 0, padding: '6px 8px', color: 'var(--c-tx)', fontSize: 13,
-                      outline: 'none', boxSizing: 'border-box', resize: 'vertical',
-                      direction: isHebrew(editBody) ? 'rtl' : 'ltr',
-                      fontFamily: isHebrew(editBody) ? FH : FB,
-                    }} />
-                ) : (
-                  // Body is no longer click-to-edit on either surface. The
-                  // explicit ✏️ button below is the only edit entry point —
-                  // matches the rule on NotesInline so the two task lists
-                  // behave identically.
-                  <div style={{
-                    fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.45, whiteSpace: 'pre-wrap',
-                    cursor: 'default',
-                    direction: heb ? 'rtl' : 'ltr',
-                    fontFamily: heb ? FH : FB,
-                  }}>{n.body}</div>
-                )}
-              </div>
-              {isVideoReview && onNavigate && reviewWorkoutId && (
-                <button onClick={() => onNavigate('review', reviewWorkoutId)}
-                  title="Open this workout's review session"
-                  style={{
-                    background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
-                    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                    padding: '2px 6px', borderRadius: 0, cursor: 'pointer', flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                  }}>→ REVIEW</button>
-              )}
-              {canCreatePlan && !isVideoReview && (
-                <button onClick={() => startCreatePlan(n)}
-                  title="Build a program from this task — auto-marks done on save"
-                  style={{
-                    background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
-                    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                    padding: '2px 6px', borderRadius: 0, cursor: 'pointer', flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                  }}>→ NEW PROGRAM</button>
-              )}
-              {allowEdit && editingId !== n.id && (
-                <button onClick={() => startEdit(n)} title="Edit"
-                  style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 12, padding: '0 4px', flexShrink: 0 }}>✏️</button>
-              )}
-              <button onClick={() => remove(n.id)} title="Remove"
-                style={{
-                  background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer',
-                  fontSize: 14, padding: '0 4px', flexShrink: 0,
-                }}>×</button>
-            </div>
+            <TaskCard
+              key={n.id}
+              note={n}
+              heb={heb}
+              trainee={trainee}
+              allowEdit={allowEdit}
+              isEditing={editingId === n.id && allowEdit}
+              editBody={editBody}
+              onEditBody={setEditBody}
+              onSaveEdit={saveEdit}
+              onCancelEdit={cancelEdit}
+              onStartEdit={() => startEdit(n)}
+              onToggleDone={() => toggleDone(n.id)}
+              onTogglePin={() => togglePin(n.id)}
+              onRemove={() => remove(n.id)}
+              actionButton={
+                <TaskActionButton
+                  note={n}
+                  trainee={trainee}
+                  onCreatePlan={onCreatePlanForTask ? () => startCreatePlan(n) : null}
+                  onOpenReview={onNavigate ? (woId) => onNavigate('review', woId) : null}
+                  onOpenIntake={onOpenIntakeTab || null}
+                  onOpenAthlete={onNavigate ? (id) => onNavigate('trainee', id) : null}
+                />
+              }
+            />
           );
         })
       )}

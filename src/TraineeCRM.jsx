@@ -230,7 +230,7 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
   );
 }
 
-export default function TraineeCRM({ trainee, clientWorkouts, payments, planIndex, onCreatePlanForTask }) {
+export default function TraineeCRM({ trainee, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab }) {
   // Rules-of-Hooks: hook calls must come before any early return so the
   // hook count stays stable across renders.
   const cadence = useMemo(() => deriveCadence(trainee, clientWorkouts), [trainee, clientWorkouts]);
@@ -253,6 +253,8 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
         targetId={trainee.id}
         targetLabel={trainee.name || null}
         onCreatePlanForTask={onCreatePlanForTask}
+        onOpenIntakeTab={onOpenIntakeTab}
+        trainee={trainee}
       />
       <ActivityFeed
         trainee={trainee}
