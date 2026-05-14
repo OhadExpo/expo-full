@@ -74,7 +74,7 @@ export default function EntryChooser() {
             : ['Movement assessment', 'Weekly check-ins', 'Live booking calendar']}
           cta={heb ? 'הזמנת אימון' : 'BOOK A SESSION'}
           href="#/gym"
-          headlineFontSize={heb ? 'clamp(40px, 7vw, 88px)' : 'clamp(34px, 4.5vw, 60px)'}
+          headlineFontSize="clamp(34px, 4.5vw, 60px)"
           highlight2
           onClick={() => trackAndOpen('chooser_pick', { side: 'gym' })}
         />
@@ -91,7 +91,7 @@ export default function EntryChooser() {
           highlight={hover === 'right'}
           onEnter={() => setHover('right')}
           onLeave={() => setHover(null)}
-          headline={heb ? 'אונליין' : 'ONLINE'}
+          headline={heb ? 'אימון אונליין' : 'ONLINE TRAINING'}
           subhead={heb ? 'תוכניות אימון מוכנות' : 'Ready-to-Run Programs'}
           body={heb
             ? 'בלוקים של 4 שבועות. תוכניות מקיפות של 12 שבועות. פלטפורמת אימון, מעקב, וניתוח טופס מבוסס AI.'
@@ -101,7 +101,7 @@ export default function EntryChooser() {
             : ['Program catalog', 'Full athlete app', 'WhatsApp support']}
           cta={heb ? 'שיחת היכרות' : 'BOOK A CALL'}
           href="#/online"
-          headlineFontSize={heb ? 'clamp(40px, 7vw, 88px)' : 'clamp(72px, 11vw, 150px)'}
+          headlineFontSize="clamp(34px, 4.5vw, 60px)"
           highlight2
           onClick={() => trackAndOpen('chooser_pick', { side: 'online' })}
         />
