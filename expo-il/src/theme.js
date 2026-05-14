@@ -27,11 +27,13 @@ export const C = {
   orD: 'rgba(255,165,2,0.12)',
 };
 
-// All three roles point at Nord — same as the coach side. The fallback chain
-// keeps us readable while the woff2 files stream in.
-export const FN = "'Nord', 'DM Sans', sans-serif";
-export const FB = "'Nord', 'DM Sans', sans-serif";
-export const FH = "'Nord', 'DM Sans', sans-serif";
+// All three roles point at Nord (English) with Heebo (Hebrew) as a
+// fallback — Nord's geometric character lacks Hebrew glyphs, so without
+// Heebo the browser falls back to a system serif and the Hebrew
+// headlines read different from the English ones.
+export const FN = "'Nord', 'Heebo', 'DM Sans', sans-serif";
+export const FB = "'Nord', 'Heebo', 'DM Sans', sans-serif";
+export const FH = "'Heebo', 'DM Sans', sans-serif";
 
 // Single source of truth for outbound contact links — Ohad swaps in real
 // values when the site goes live.

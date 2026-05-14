@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Analytics, track } from '@vercel/analytics/react';
 import { C, FN, FB, CONTACT, buyOnWhatsApp, EXPO_LOGO_NAV } from './theme';
 import { PROGRAMS } from './programs';
 import { useT, useLang, setLang } from './i18n';
 import Chat from './Chat';
+// Dual-arm split (2026-05-14): expo-il.co.il splits into ONLINE
+// (existing programs catalog) and PHYSICAL GYM (calendar/booking).
+// EntryChooser is the new homepage; Gym holds the booking UI.
+import EntryChooser from './EntryChooser';
+const Gym = lazy(() => import('./Gym'));
 
 // Wrapped <a> that fires a Vercel Analytics custom event before the click is
 // honoured. Vercel Analytics has to be enabled in the project dashboard for
@@ -23,10 +28,17 @@ function trackAndOpen(event, payload) {
 
 function parseHash(hash) {
   const h = (hash || '').replace(/^#\/?/, '');
-  if (!h) return { view: 'home' };
+  // 2026-05-14 dual-arm split. Empty hash now shows the EntryChooser
+  // so visitors pick ONLINE vs PHYSICAL GYM first. The existing
+  // programs catalog lives at #/online; the booking calendar at #/gym.
+  if (!h) return { view: 'chooser' };
+  if (h === 'online' || h.startsWith('online/')) return { view: 'home' };
+  if (h === 'gym' || h.startsWith('gym/')) return { view: 'gym' };
   const m = h.match(/^programs\/([a-z0-9-]+)$/i);
   if (m) return { view: 'detail', programId: m[1] };
-  return { view: 'home' };
+  // Unknown path — fall through to the chooser so visitors don't land
+  // on a bare 404 from a typo'd URL.
+  return { view: 'chooser' };
 }
 
 function useHashRoute() {
@@ -2648,6 +2660,11 @@ function Home({ onOpenQuiz }) {
       <Hero onOpenQuiz={onOpenQuiz} />
       <Catalog />
       <QuizSection onOpen={onOpenQuiz} />
+      {/* 2026-05-14 — discovery call embed for the Online side.
+          Mirrors the gym calendar embed pattern so anyone landing on
+          the Online catalog can book a free 1:1 call without leaving
+          the page. */}
+      <DiscoveryCallSection />
       <WhatsInside />
       <AboutCoach />
       <WhyTemplates />
@@ -2657,6 +2674,62 @@ function Home({ onOpenQuiz }) {
       <FAQ />
       <Contact />
     </>
+  );
+}
+
+function DiscoveryCallSection() {
+  const t = useT();
+  const [lang] = useLang();
+  const heb = lang === 'he';
+  const embedUrl = 'https://calendar.app.google/wNCYaWSFzyz44C9H6?gv=true';
+  return (
+    <section id="discovery-call" style={{
+      maxWidth: 1100, margin: '0 auto', padding: '64px 16px',
+    }}>
+      <div style={{ textAlign: 'center', marginBottom: 28 }}>
+        <div style={{
+          fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.28em',
+          fontWeight: 700, marginBottom: 14,
+        }}>{heb ? 'שיחת היכרות חינם' : 'FREE DISCOVERY CALL'}</div>
+        <h2 style={{
+          margin: 0, fontFamily: FN, fontSize: 'clamp(24px, 3.6vw, 36px)',
+          fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.15, color: C.tx,
+        }}>{heb ? 'לא בטוח איזו תוכנית מתאימה?' : 'Not sure which program fits?'}</h2>
+        <p style={{
+          margin: '14px auto 0', fontSize: 14, color: C.tm, lineHeight: 1.65, maxWidth: 560,
+        }}>{heb
+          ? 'תאם שיחה קצרה איתי. נדבר על המטרות, הזמן שיש לך, וההיסטוריה — ואני אגיד לך איזה בלוק מתאים (או אם בכלל אונליין מתאים לך).'
+          : "Book a quick call with me. We'll talk goals, schedule, and history — and I'll tell you which block fits (or whether online is even right for you)."}</p>
+      </div>
+      <div style={{
+        background: C.bg, border: `1px solid ${C.ac}40`,
+        borderInlineStart: `3px solid ${C.ac}`, padding: 6,
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <iframe
+          src={embedUrl}
+          title={heb ? 'יומן שיחות היכרות' : 'Discovery call calendar'}
+          loading="lazy"
+          style={{
+            width: '100%',
+            height: 'clamp(620px, 80vh, 760px)',
+            border: 'none',
+            display: 'block',
+            background: '#FFFFFF',
+            filter: 'invert(0.92) hue-rotate(180deg) saturate(0.9)',
+            WebkitFilter: 'invert(0.92) hue-rotate(180deg) saturate(0.9)',
+          }}
+        />
+      </div>
+      <div style={{
+        marginTop: 12, textAlign: 'center', fontFamily: FN,
+        fontSize: 11, color: C.tm, letterSpacing: '0.16em', fontWeight: 700,
+      }}>
+        {heb
+          ? 'מופעל על ידי Google Calendar · אישור באימייל אוטומטי'
+          : 'Powered by Google Calendar · Automatic email confirmation'}
+      </div>
+    </section>
   );
 }
 
@@ -2852,6 +2925,10 @@ export default function App() {
   const openQuiz = () => { setQuizOpen(true); trackAndOpen('quiz_open', {}); };
   let body;
   let isHome = false;
+  // Chooser + gym are fully self-contained brand pages with their own
+  // header / footer / chrome. Skip the global Nav/Footer/Chat shell so
+  // we don't double-stack chrome on top of those routes.
+  let isStandalone = false;
   let docTitleKey = 'doc.title.home';
   let docTitleVars = null;
   if (route.view === 'detail') {
@@ -2866,6 +2943,18 @@ export default function App() {
       body = <NotFound />;
       docTitleKey = 'doc.title.notfound';
     }
+  } else if (route.view === 'gym') {
+    body = (
+      <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: C.tm }}>Loading calendar…</div>}>
+        <Gym />
+      </Suspense>
+    );
+    isStandalone = true;
+    docTitleKey = 'doc.title.gym';
+  } else if (route.view === 'chooser') {
+    body = <EntryChooser />;
+    isStandalone = true;
+    docTitleKey = 'doc.title.chooser';
   } else {
     body = <Home onOpenQuiz={openQuiz} />;
     isHome = true;
@@ -2915,12 +3004,15 @@ export default function App() {
         /* Center-align everything by default — root sets text-align:center
            and only the few places that need otherwise (phone-mock inner
            screens, which mimic a left-aligned mobile UI) override locally. */
-        /* Scroll-fade: sections start invisible, fade + slide in once visible.
-           Honors prefers-reduced-motion. */
-        section { opacity: 0; transform: translateY(12px); transition: opacity 600ms ease, transform 600ms ease; }
-        section.fv-visible { opacity: 1; transform: translateY(0); }
+        /* Scroll-fade: sections inside the catalog Home start invisible
+           and fade in on intersection. Scoped to .fv-home-root so the
+           rule doesn't bleed into other routes (chooser, gym) that
+           render their own sections and don't have IntersectionObserver
+           wired. Honors prefers-reduced-motion. */
+        .fv-home-root section { opacity: 0; transform: translateY(12px); transition: opacity 600ms ease, transform 600ms ease; }
+        .fv-home-root section.fv-visible { opacity: 1; transform: translateY(0); }
         @media (prefers-reduced-motion: reduce) {
-          section { opacity: 1 !important; transform: none !important; transition: none !important; }
+          .fv-home-root section { opacity: 1 !important; transform: none !important; transition: none !important; }
         }
         @media (max-width: 980px) {
           .fv-inside-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
@@ -2953,15 +3045,15 @@ export default function App() {
         .fv-skip:focus { top: 12px; }
       `}</style>
       <a className="fv-skip" href="#programs">Skip to content</a>
-      <Nav />
-      <main id="main">
+      {!isStandalone && <Nav />}
+      <main id="main" className={isHome ? 'fv-home-root' : undefined}>
         {body}
       </main>
-      <Footer />
+      {!isStandalone && <Footer />}
       {isHome && <StickyCTA />}
       {isHome && <ExitIntentModal />}
-      <QuizModal open={quizOpen} onClose={() => setQuizOpen(false)} />
-      <Chat />
+      {!isStandalone && <QuizModal open={quizOpen} onClose={() => setQuizOpen(false)} />}
+      {!isStandalone && <Chat />}
       <Analytics />
     </div>
   );
