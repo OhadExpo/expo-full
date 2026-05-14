@@ -74,8 +74,6 @@ export default function EntryChooser() {
             : ['Movement assessment', 'Weekly check-ins', 'Live booking calendar']}
           cta={heb ? 'הזמנת אימון' : 'BOOK A SESSION'}
           href="#/gym"
-          headlineFontVw={4.4}
-          headlineMaxPx={58}
           highlight2
           onClick={() => trackAndOpen('chooser_pick', { side: 'gym' })}
         />
@@ -102,8 +100,6 @@ export default function EntryChooser() {
             : ['Program catalog', 'Full athlete app', 'WhatsApp support']}
           cta={heb ? 'שיחת היכרות' : 'BOOK A CALL'}
           href="#/online"
-          headlineFontVw={13}
-          headlineMaxPx={150}
           highlight2
           onClick={() => trackAndOpen('chooser_pick', { side: 'online' })}
         />
@@ -180,7 +176,7 @@ function Divider() {
 // title + glows the CTA chip. Each panel is a giant anchor so the
 // whole half is clickable — better tap-target on mobile.
 // ─────────────────────────────────────────────────────────────────────
-function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headline, subhead, body, benefits, cta, href, external, onClick, headlineFontVw = 5.2, headlineMaxPx = 60 }) {
+function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headline, subhead, body, benefits, cta, href, external, onClick }) {
   const isLeft = side === 'left';
   // Identical symmetric backdrops on both panels — cyan radial parked
   // BELOW the content stack so it never overlaps the headline (overlap
@@ -218,14 +214,14 @@ function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headli
         pointerEvents: 'none',
       }} />
 
-      {/* Inner content stack — flex column. The headline h2 reserves a
-          fixed-pixel min-height (190px) on BOTH panels so the subhead /
-          body / benefits / CTA below it all line up across the divider
-          regardless of headline wrap. The headlineFontVw + headlineMax
-          props let each side scale its own font: long phrases like
-          ATHLETIC PERFORMANCE CENTER wrap to 3 lines at a smaller px,
-          single-word ONLINE renders at a much larger px so the visual
-          ink-mass roughly matches — within a row of identical height. */}
+      {/* Inner content stack — flex column. Single unified headline
+          font scale across BOTH panels and BOTH languages. Previous
+          per-panel scaling tried to balance English's wrapped
+          "ATHLETIC PERFORMANCE CENTER" against single-line "ONLINE"
+          by scaling ONLINE up — but in Hebrew both headlines are short
+          single words, so the same scaling produced jarring asymmetry
+          ("אונליין" massively larger than "בית הספורטאי"). Same size
+          on both sides is cleaner across languages. */}
       <div style={{
         maxWidth: 560, width: '100%', textAlign: 'center', position: 'relative', zIndex: 2,
         animation: `chooser-fade-in 540ms ease both`,
@@ -234,7 +230,7 @@ function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headli
       }}>
         <h2 style={{
           margin: 0, fontFamily: FN,
-          fontSize: `clamp(34px, ${headlineFontVw}vw, ${headlineMaxPx}px)`,
+          fontSize: 'clamp(36px, 5.6vw, 68px)',
           fontWeight: 800, letterSpacing: '-0.025em',
           lineHeight: 1.05,
           color: C.tx,
