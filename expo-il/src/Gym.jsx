@@ -59,9 +59,12 @@ export default function Gym() {
       <Header heb={heb} onBookClick={scrollToCalendar} />
       <Hero heb={heb} onBookClick={scrollToCalendar} />
       <StatsStrip heb={heb} />
+      <WhoItsFor heb={heb} />
       <WhyInPerson heb={heb} />
+      <Approach heb={heb} />
       <WhatsIncluded heb={heb} />
       <Location heb={heb} />
+      <TrialCallout heb={heb} onBookClick={scrollToCalendar} />
       <div ref={calendarRef} id="calendar" style={{ scrollMarginTop: 80 }}>
         <CalendarSection heb={heb} />
       </div>
@@ -231,6 +234,64 @@ function StatsStrip({ heb }) {
   );
 }
 
+// ─── Who it's for ────────────────────────────────────────────────────
+// Sourced from the founder business plan: this is an athletic
+// performance center — not an open gym, not a group fitness studio.
+// Naming the audience up front filters bad-fit leads and tells the
+// right-fit lead "yes, this is for you."
+function WhoItsFor({ heb }) {
+  const yes = heb
+    ? ['ספורטאים חצי-מקצועיים ומקצועיים', 'מתאמנים רציניים שרוצים תוכנית — לא שיעור', 'מי שחוזר מפציעה ורוצה חזרה נקייה', 'מי שמחפש כוח, יציבות, וניידות שיחזיקו לעשור']
+    : ['Semi-pro and competitive athletes', 'Serious trainees who want a program — not a class', 'Coming back from an injury and need a clean return', 'Building strength, stability, and mobility that last a decade'];
+  const no = heb
+    ? ['חיפוש Open Gym לאימון חופשי', 'אימון קבוצתי בסטייל "סטודיו"', 'תוצאות של "שבועיים, בלי תוכנית"']
+    : ['Open-gym walk-in training', 'Studio-style group fitness', '"Quick fix" promises with no programming'];
+
+  return (
+    <section data-fade className="gym-section">
+      <SectionHeader heb={heb}
+        kicker={heb ? 'למי זה' : 'WHO IT IS FOR'}
+        title={heb ? 'מי המתאמן שלנו' : 'Who trains here'}
+        subtitle={heb
+          ? 'מרכז ביצועים. לא חדר כושר חופשי, לא שיעור קבוצתי. זה משנה את ההתאמה.'
+          : 'A performance center. Not an open gym, not a group class. That changes who fits.'} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 1,
+        background: `${C.ac}26`, border: `1px solid ${C.ac}26`, marginTop: 32,
+      }}>
+        <div style={{ background: C.bg, padding: '26px 22px' }}>
+          <div style={{
+            fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.22em',
+            fontWeight: 800, marginBottom: 16,
+          }}>{heb ? 'כן — אם' : 'YES — IF'}</div>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {yes.map((t, i) => (
+              <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: C.tx, lineHeight: 1.55 }}>
+                <span style={{ color: C.ac, fontFamily: FN, fontWeight: 800, flexShrink: 0 }}>+</span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div style={{ background: C.bg, padding: '26px 22px' }}>
+          <div style={{
+            fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.22em',
+            fontWeight: 800, marginBottom: 16,
+          }}>{heb ? 'לא — אם' : 'NOT — IF'}</div>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {no.map((t, i) => (
+              <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: C.tm, lineHeight: 1.55 }}>
+                <span style={{ color: C.tm, fontFamily: FN, fontWeight: 800, flexShrink: 0 }}>−</span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Why in-person ───────────────────────────────────────────────────
 function WhyInPerson({ heb }) {
   const items = heb
@@ -275,18 +336,121 @@ function WhyInPerson({ heb }) {
   );
 }
 
+// ─── Approach / 3 pillars ────────────────────────────────────────────
+// Methodology section pulled from the founder business plan: this center
+// is built on a three-pillar approach — programmed strength, mobility,
+// and recovery — not a single modality. Making the model visible up front
+// tells serious trainees we have a real system.
+function Approach({ heb }) {
+  const pillars = heb
+    ? [
+        { n: '01', h: 'תוכנית כוח מתוכננת', b: 'בלוקים של 4–8 שבועות. מחזורים שמתעדכנים לפי הביצועים, לא לפי תחושה. כל סט נכתב מראש.' },
+        { n: '02', h: 'ניידות וטווחי תנועה', b: 'עבודה ממוקדת על הצוואר, הכתפיים, הירך, והקרסול. לא Stretching אחרי. חלק מהאימון.' },
+        { n: '03', h: 'התאוששות מובנית', b: 'סשני התאוששות חודשיים של 45–60 דקות, ואופציה ל-15–20 דקות לפני/אחרי אימון לפי הצורך.' },
+      ]
+    : [
+        { n: '01', h: 'Programmed strength', b: '4–8 week blocks. Cycles adapt to your numbers, not your mood. Every set written ahead.' },
+        { n: '02', h: 'Mobility and range', b: 'Targeted work on neck, shoulders, hips, ankles. Not a "stretch at the end" — part of the session.' },
+        { n: '03', h: 'Structured recovery', b: 'Monthly 45–60 min recovery sessions, with 15–20 min pre/post-training add-ons when you need them.' },
+      ];
+  return (
+    <section data-fade className="gym-section">
+      <SectionHeader heb={heb}
+        kicker={heb ? 'איך' : 'HOW WE TRAIN'}
+        title={heb ? 'שלושה עמודים' : 'Three pillars'}
+        subtitle={heb
+          ? 'הגישה לא מסתכמת ב"להרים יותר". כוח, ניידות, והתאוששות עובדים יחד — או שאף אחד מהם לא עובד.'
+          : 'The approach is not "lift more." Strength, mobility, and recovery work together — or none of them work.'} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginTop: 32,
+      }}>
+        {pillars.map((p, i) => (
+          <div key={i} style={{
+            background: C.bg, border: `1px solid ${C.ac}40`,
+            padding: '28px 22px', position: 'relative', overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute', insetInlineEnd: -6, top: -10,
+              fontFamily: FN, fontSize: 64, color: `${C.ac}14`, fontWeight: 800,
+              letterSpacing: '-0.04em', lineHeight: 1, pointerEvents: 'none',
+            }}>{p.n}</div>
+            <div style={{
+              fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.22em',
+              fontWeight: 800, marginBottom: 14,
+            }}>PILLAR {p.n}</div>
+            <h3 style={{
+              margin: '0 0 10px', fontFamily: FN, fontSize: 17, fontWeight: 700,
+              letterSpacing: '-0.01em', color: C.tx, lineHeight: 1.25,
+            }}>{p.h}</h3>
+            <p style={{ margin: 0, fontSize: 13, color: C.tm, lineHeight: 1.65 }}>{p.b}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Trial callout ───────────────────────────────────────────────────
+// Pre-calendar nudge: the founder business plan defines a paid trial
+// (₪200 — assessment + intro session) as the standard on-ramp. Putting
+// it directly above the calendar lowers the booking barrier: visitors
+// know what they're committing to before they click a slot.
+function TrialCallout({ heb, onBookClick }) {
+  return (
+    <section data-fade className="gym-section" style={{ paddingTop: 24, paddingBottom: 24 }}>
+      <div style={{
+        background: `linear-gradient(135deg, ${C.ac}1A 0%, transparent 60%), ${C.sf}`,
+        border: `1px solid ${C.ac}40`,
+        borderInlineStart: `3px solid ${C.ac}`,
+        padding: '28px 26px',
+        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 24, alignItems: 'center',
+      }}>
+        <div>
+          <div style={{
+            fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.24em',
+            fontWeight: 800, marginBottom: 10,
+          }}>{heb ? 'התחלה' : 'TRY IT FIRST'}</div>
+          <h3 style={{
+            margin: '0 0 8px', fontFamily: FN, fontSize: 22, fontWeight: 800,
+            letterSpacing: '-0.01em', color: C.tx, lineHeight: 1.2,
+          }}>{heb
+            ? 'אבחון תנועה + אימון היכרות'
+            : 'Movement assessment + intro session'}</h3>
+          <p style={{ margin: 0, fontSize: 14, color: C.tm, lineHeight: 1.65, maxWidth: 540 }}>
+            {heb
+              ? 'מפגש חד-פעמי בלי התחייבות: 60 דקות של אבחון תנועה ועבודה משותפת. אם הכימיה והכיוון נכונים — ממשיכים. אם לא — קיבלת מפה ברורה של איפה הגוף שלך עומד.'
+              : 'A single, no-commitment session: 60 minutes of movement assessment and hands-on work. If the chemistry and direction are right — we keep going. If not — you walk out with a clear map of where your body actually stands.'}
+          </p>
+        </div>
+        <button onClick={onBookClick}
+          style={{
+            padding: '14px 28px', background: C.ac, color: '#000000',
+            border: `1px solid ${C.ac}`, borderRadius: 0,
+            fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
+            cursor: 'pointer', textTransform: 'uppercase', whiteSpace: 'nowrap',
+            boxShadow: `0 0 28px ${C.ac}33`,
+          }}>{heb ? 'לקבוע אבחון' : 'BOOK ASSESSMENT'} {heb ? '←' : '→'}</button>
+      </div>
+    </section>
+  );
+}
+
 // ─── What's included ─────────────────────────────────────────────────
 function WhatsIncluded({ heb }) {
   const items = heb
     ? [
         { i: '◯', h: 'אבחון תנועה ראשוני', b: 'מיפוי טווחי תנועה, חוזק וחולשות.' },
         { i: '◇', h: 'תוכנית מותאמת', b: 'בלוק של 4–8 שבועות שמתעדכן לפי ההתקדמות.' },
+        { i: '◬', h: 'עבודת ניידות', b: 'מובנית בתוך האימון — כתפיים, ירך, קרסול.' },
+        { i: '◉', h: 'סשני התאוששות', b: 'חודשי של 45–60 דקות, ולפי הצורך תוספות לפני/אחרי אימון.' },
         { i: '◈', h: 'מעקב באפליקציה', b: 'גישה לאפליקציית EXPO לתיעוד אימונים והודעות.' },
         { i: '✦', h: 'תקשורת ישירה', b: 'וואטסאפ ישיר אליי לשאלות בין אימונים.' },
       ]
     : [
         { i: '◯', h: 'Initial movement assessment', b: 'Map of your range, strengths, and weak links.' },
         { i: '◇', h: 'Tailored programming', b: '4–8 week blocks that adjust to your progress.' },
+        { i: '◬', h: 'Mobility work', b: 'Built into the session — shoulders, hips, ankles.' },
+        { i: '◉', h: 'Recovery sessions', b: 'Monthly 45–60 min, plus optional pre/post-training add-ons.' },
         { i: '◈', h: 'In-app tracking', b: 'EXPO athlete app — log sessions, message me, see history.' },
         { i: '✦', h: 'Direct line', b: 'My WhatsApp for questions between sessions.' },
       ];
