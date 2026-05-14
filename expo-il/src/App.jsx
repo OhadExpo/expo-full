@@ -7,7 +7,7 @@ import Chat from './Chat';
 // Dual-arm split (2026-05-14): expo-il.co.il splits into ONLINE
 // (existing programs catalog) and PHYSICAL GYM (calendar/booking).
 // EntryChooser is the new homepage; Gym holds the booking UI.
-import EntryChooser from './EntryChooser';
+import EntryChooser, { GCAL_ONLINE } from './EntryChooser';
 const Gym = lazy(() => import('./Gym'));
 
 // Wrapped <a> that fires a Vercel Analytics custom event before the click is
@@ -2681,7 +2681,7 @@ function DiscoveryCallSection() {
   const t = useT();
   const [lang] = useLang();
   const heb = lang === 'he';
-  const embedUrl = 'https://calendar.app.google/wNCYaWSFzyz44C9H6?gv=true';
+  const embedUrl = GCAL_ONLINE + '?gv=true';
   return (
     <section id="discovery-call" style={{
       maxWidth: 1100, margin: '0 auto', padding: '64px 16px',
