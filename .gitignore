@@ -51,4 +51,16 @@ scripts/verify-*.json
 scripts/fix-*.dryrun.json
 tmp-drive-xlsx/
 
+# Throwaway CDP / diagnostic scripts — one-shot probes against the
+# running dev app or Supabase. Re-creatable from memory; committing
+# them puts a secret one careless line away.
+scripts/cdp-*.cjs
+scripts/check-*.cjs
+scripts/diag-*.cjs
+scripts/seed-*.cjs
+scripts/test-*.cjs
+
+# Per-user content folders that aren't repo state.
+/Exercise Database/
+
 .env*.local
