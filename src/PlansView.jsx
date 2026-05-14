@@ -1153,6 +1153,34 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   };
   const handleDelete = async (planId) => { await deletePlan(planId); setConfirmDelete(null); await reloadIndex(); };
 
+  // F-18 — Public program share. Creates a program_shares row with a
+  // random token, copies the public URL to the clipboard, and toasts
+  // success. Anon visitors hit /p/<token> which reads via the
+  // get_shared_program(token) SECURITY DEFINER function (PII never
+  // leaves the server).
+  const handleShare = async (planId) => {
+    try {
+      const { supabase: sb } = await import('./supabase');
+      const token = 'sh_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
+      const { error } = await sb.from('program_shares').insert({
+        token,
+        plan_id: planId,
+        created_at: new Date().toISOString(),
+      });
+      if (error) {
+        const { toast } = await import('./ui');
+        toast(`Share failed: ${error.message}`, 'error');
+        return;
+      }
+      const url = `${window.location.origin}/p/${token}`;
+      try { await navigator.clipboard.writeText(url); } catch {}
+      const { toast } = await import('./ui');
+      toast(`Public link copied — ${url}`, 'success');
+    } catch (e) {
+      console.warn('handleShare error:', e);
+    }
+  };
+
   const traineeOptions = useMemo(() => {
     const ids = [...new Set(planIndex.map(p => p.traineeId).filter(Boolean))];
     return ids.map(id => ({ value: id, label: traineeMap[id] || id })).sort((a,b) => a.label.localeCompare(b.label));
@@ -1371,6 +1399,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     })()}
                     {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,borderRadius:0,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="eye" fallback="👁" color={C.tm} /></button>}
                     <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></button>
+                    <button onClick={e=>{e.stopPropagation();handleShare(cur.id);}} title="Public share — copies a /p/<token> URL anyone can open" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>🔗</button>
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed

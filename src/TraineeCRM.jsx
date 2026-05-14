@@ -21,6 +21,7 @@
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip } from './ui';
+import CoachMessages from './CoachMessages';
 import {
   useTraineeActivity, useCompletedTasksForTrainee,
   deriveCadence, deriveAutoEvents, mergeFeed, ACT_KINDS,
@@ -62,7 +63,7 @@ function CadencePill({ cadence }) {
   );
 }
 
-function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
+function ActivityFeed({ trainee, clientWorkouts, payments, planIndex, bareMode = false }) {
   // Activity log scopes to the parent trainee ID AND any member IDs for couples.
   const allIds = useMemo(() => {
     const ids = [];
@@ -71,7 +72,7 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
     return ids;
   }, [trainee]);
 
-  const { rows: manualRows, add, remove } = useTraineeActivity(allIds);
+  const { rows: manualRows, remove } = useTraineeActivity(allIds);
   const completedTasks = useCompletedTasksForTrainee(trainee?.id);
   const autoEvents = useMemo(
     () => deriveAutoEvents(trainee, clientWorkouts, payments, planIndex, completedTasks),
@@ -80,48 +81,15 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
   const merged = useMemo(() => mergeFeed(manualRows, autoEvents), [manualRows, autoEvents]);
 
   const [showAll, setShowAll] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newKind, setNewKind] = useState('whatsapp');
-  const [newSummary, setNewSummary] = useState('');
-  const [newWhen, setNewWhen] = useState(() => new Date().toISOString().slice(0, 16));
-
   const visible = showAll ? merged.slice(0, 60) : merged.slice(0, 8);
-
-  const onSave = async () => {
-    const s = newSummary.trim();
-    if (!s) return;
-    await add({
-      traineeId: trainee.id,
-      kind: newKind,
-      summary: s,
-      occurredAt: new Date(newWhen).toISOString(),
-    });
-    setNewSummary(''); setShowAddModal(false);
-  };
 
   const refined = isRefined5b();
   const PAD = 14;
-  return (
-    <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
-      border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, marginBottom: 12,
-    }}>
-      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            ACTIVITY ({merged.length})
-          </span>
-          <button onClick={() => setShowAddModal(true)}
-            style={{
-              background: 'transparent',
-              border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
-              color: refined ? '#FFFFFF' : C.ac,
-              padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 10,
-              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-            }}>+ LOG INTERACTION</button>
-        </div>
-      </RefinedHeaderStrip>
-
+  // Inner list — empty state + visible event rows + show-all button.
+  // bareMode returns this directly so the parent can render its own
+  // header strip + composer.
+  const body = (
+    <>
       {merged.length === 0 && (
         <div style={{ fontSize: 12, color: C.td, padding: '14px 0', textAlign: 'center' }}>
           No activity yet.
@@ -144,10 +112,9 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
                 {KIND_LABEL[ev.kind] || ev.kind.toUpperCase()} · {new Date(ev.ts).toLocaleString()}
                 {!isManual && <span style={{ marginLeft: 6, color: C.tm }}>· AUTO</span>}
               </div>
-              <div style={{
+              <div dir="auto" style={{
                 fontSize: 12, color: C.tx, lineHeight: 1.4,
-                direction: heb ? 'rtl' : 'ltr',
-                fontFamily: heb ? FH : FB,
+                fontFamily: FB,
               }}>{ev.summary}</div>
             </div>
             {isManual && (
@@ -166,66 +133,245 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex }) {
             fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
           }}>SHOW ALL {merged.length}</button>
       )}
+    </>
+  );
 
-      {showAddModal && (
-        <div onClick={() => setShowAddModal(false)} style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0,
-            padding: 20, maxWidth: 420, width: '100%',
-          }}>
-            <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12 }}>
-              LOG INTERACTION
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-              {ACT_KINDS.map(k => (
-                <button key={k} onClick={() => setNewKind(k)}
-                  style={{
-                    padding: '6px 10px', borderRadius: 0,
-                    border: `1px solid ${newKind === k ? C.ac : C.cardBd}`,
-                    background: 'transparent', color: newKind === k ? C.ac : C.tm,
-                    fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-                    cursor: 'pointer',
-                  }}>{KIND_ICON[k]} {KIND_LABEL[k]}</button>
-              ))}
-            </div>
-            <textarea value={newSummary} onChange={e => setNewSummary(e.target.value)} dir="auto"
-              placeholder="What happened?"
-              rows={4}
-              style={{
-                width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
-                borderRadius: 0, padding: '10px 12px', color: C.tx, fontSize: 13,
-                outline: 'none', boxSizing: 'border-box', resize: 'vertical', marginBottom: 10,
-                direction: isHebrew(newSummary) ? 'rtl' : 'ltr',
-                fontFamily: isHebrew(newSummary) ? FH : FB,
-              }} />
-            <input type="datetime-local" value={newWhen} onChange={e => setNewWhen(e.target.value)}
-              style={{
-                width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
-                borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FN, fontSize: 12,
-                outline: 'none', boxSizing: 'border-box', marginBottom: 12,
-              }} />
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowAddModal(false)}
-                style={{
-                  padding: '8px 16px', borderRadius: 0, border: `1px solid ${C.cardBd}`,
-                  background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11,
-                  fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer',
-                }}>CANCEL</button>
-              <button onClick={onSave} disabled={!newSummary.trim()}
-                style={{
-                  padding: '8px 16px', borderRadius: 0,
-                  border: `1px solid ${newSummary.trim() ? C.ac : C.cardBd}`,
-                  background: 'transparent', color: newSummary.trim() ? C.ac : C.td,
-                  fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-                  cursor: newSummary.trim() ? 'pointer' : 'default',
-                }}>SAVE</button>
-            </div>
-          </div>
+  // bareMode renders just the inner list; the parent owns the card +
+  // header + the unified "+ LOG" composer (CoachHistoryCard).
+  if (bareMode) return body;
+
+  // Standalone — kept for backward compatibility but no longer the
+  // primary mount path. TraineeCRM uses bareMode + the unified card.
+  return (
+    <div style={{
+      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, marginBottom: 12,
+    }}>
+      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+            ACTIVITY ({merged.length})
+          </span>
         </div>
+      </RefinedHeaderStrip>
+      {body}
+    </div>
+  );
+}
+
+// Combined "+ LOG" composer — one form creates an activity row AND
+// optionally a follow-up task in coach_notes. The user's spec:
+// "logging a phone call notes + task for next week".
+function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
+  const [kind, setKind] = useState('whatsapp');
+  const [summary, setSummary] = useState('');
+  const [when, setWhen] = useState(() => new Date().toISOString().slice(0, 16));
+  const [alsoTask, setAlsoTask] = useState(false);
+  const [taskBody, setTaskBody] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = async () => {
+    const s = summary.trim();
+    if (!s) return;
+    setSaving(true);
+    try {
+      await addActivity({
+        traineeId: trainee.id,
+        kind,
+        summary: s,
+        occurredAt: new Date(when).toISOString(),
+      });
+      if (alsoTask && taskBody.trim()) {
+        const { supabase } = await import('./supabase');
+        await supabase.from('coach_notes').insert({
+          id: 'note_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4),
+          body: taskBody.trim(),
+          target_kind: 'trainee',
+          target_id: trainee.id,
+          target_label: trainee.name || null,
+          pinned: false,
+          status: 'open',
+          created_at: new Date().toISOString(),
+        });
+      }
+      onSaved?.();
+      onClose();
+    } catch (e) {
+      console.warn('Log save failed:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200,
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
+      backdropFilter: 'blur(4px)',
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0,
+        padding: 22, maxWidth: 480, width: '100%', maxHeight: '80vh', overflow: 'auto',
+      }}>
+        <div style={{ fontSize: 11, fontFamily: FN, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14 }}>
+          + LOG WHAT HAPPENED
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+          {ACT_KINDS.map(k => (
+            <button key={k} onClick={() => setKind(k)}
+              style={{
+                padding: '6px 10px', borderRadius: 0,
+                border: `1px solid ${kind === k ? C.ac : C.cardBd}`,
+                background: 'transparent', color: kind === k ? C.ac : C.tm,
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+                cursor: 'pointer',
+              }}>{KIND_ICON[k]} {KIND_LABEL[k]}</button>
+          ))}
+        </div>
+        <textarea value={summary} onChange={e => setSummary(e.target.value)} dir="auto"
+          placeholder="What happened?"
+          rows={4}
+          style={{
+            width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
+            borderRadius: 0, padding: '10px 12px', color: C.tx, fontSize: 13,
+            outline: 'none', boxSizing: 'border-box', resize: 'vertical', marginBottom: 10,
+            fontFamily: FB,
+          }} />
+        <input type="datetime-local" value={when} onChange={e => setWhen(e.target.value)}
+          style={{
+            width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
+            borderRadius: 0, padding: '8px 10px', color: C.tx, fontFamily: FN, fontSize: 12,
+            outline: 'none', boxSizing: 'border-box', marginBottom: 12,
+          }} />
+        {/* Follow-up task — same form, one extra checkbox. The spec is
+            "phone call notes + task for next week" → activity + task
+            in a single submit. */}
+        <div style={{ borderTop: `1px solid ${C.cardBd}`, paddingTop: 10, marginBottom: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 8 }}>
+            <input type="checkbox" checked={alsoTask} onChange={e => setAlsoTask(e.target.checked)}
+              style={{ width: 14, height: 14, accentColor: C.ac, cursor: 'pointer' }} />
+            <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>
+              ALSO CREATE A FOLLOW-UP TASK
+            </span>
+          </label>
+          {alsoTask && (
+            <textarea value={taskBody} onChange={e => setTaskBody(e.target.value)} dir="auto"
+              placeholder="Follow-up task — e.g. 'Check in next week about his shoulder'"
+              rows={2}
+              style={{
+                width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.ac}`,
+                borderRadius: 0, padding: '8px 10px', color: C.tx, fontSize: 13,
+                outline: 'none', boxSizing: 'border-box', resize: 'vertical',
+                fontFamily: isHebrew(taskBody) ? FH : FB,
+              }} />
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} disabled={saving}
+            style={{
+              padding: '8px 16px', borderRadius: 0, border: `1px solid ${C.cardBd}`,
+              background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11,
+              fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer',
+            }}>CANCEL</button>
+          <button onClick={submit} disabled={!summary.trim() || saving}
+            style={{
+              padding: '8px 16px', borderRadius: 0,
+              border: `1px solid ${summary.trim() ? C.ac : C.cardBd}`,
+              background: 'transparent', color: summary.trim() ? C.ac : C.td,
+              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+              cursor: summary.trim() ? 'pointer' : 'default',
+            }}>{saving ? 'SAVING…' : alsoTask ? 'LOG + TASK →' : 'LOG →'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// CoachHistoryCard — the unified card the spec asks for. One header
+// strip + "+ LOG" button at the top, then two sub-sections inside:
+//   1. NEXT ACTIONS (NotesInline in bareMode)
+//   2. ACTIVITY    (ActivityFeed in bareMode)
+// The combined "+ LOG" composer writes to BOTH systems in one submit.
+function CoachHistoryCard({ trainee, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab }) {
+  const [showLog, setShowLog] = useState(false);
+  const allIds = useMemo(() => {
+    const ids = [];
+    if (trainee?.id) ids.push(trainee.id);
+    if (Array.isArray(trainee?.members)) trainee.members.forEach(m => m?.id && ids.push(m.id));
+    return ids;
+  }, [trainee]);
+  // We use the activity hook here so the composer can write through it
+  // and the feed re-renders without a manual reload.
+  const { add: addActivity, refetch } = useTraineeActivity(allIds);
+
+  const refined = isRefined5b();
+  const PAD = 14;
+  return (
+    <div style={{
+      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, marginBottom: 12,
+    }}>
+      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+            COACH HISTORY
+          </span>
+          <button onClick={() => setShowLog(true)}
+            style={{
+              background: 'transparent',
+              border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
+              color: refined ? '#FFFFFF' : C.ac,
+              padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 10,
+              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+            }}>+ LOG</button>
+        </div>
+      </RefinedHeaderStrip>
+
+      {/* Sub-section A — NEXT ACTIONS */}
+      <SubSection title="NEXT ACTIONS">
+        <NotesInline
+          label="NEXT ACTIONS"
+          targetKind="trainee"
+          targetId={trainee.id}
+          targetLabel={trainee.name || null}
+          onCreatePlanForTask={onCreatePlanForTask}
+          onOpenIntakeTab={onOpenIntakeTab}
+          trainee={trainee}
+          bareMode
+        />
+      </SubSection>
+
+      {/* Sub-section B — ACTIVITY */}
+      <SubSection title="ACTIVITY" marginTop={18}>
+        <ActivityFeed
+          trainee={trainee}
+          clientWorkouts={clientWorkouts}
+          payments={payments}
+          planIndex={planIndex}
+          bareMode
+        />
+      </SubSection>
+
+      {showLog && (
+        <CombinedLogModal
+          trainee={trainee}
+          addActivity={addActivity}
+          onClose={() => setShowLog(false)}
+          onSaved={() => refetch()} />
       )}
+    </div>
+  );
+}
+
+function SubSection({ title, marginTop = 0, children }) {
+  return (
+    <div style={{ marginTop }}>
+      <div style={{
+        fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.18em',
+        fontWeight: 700, paddingBottom: 6, marginBottom: 8,
+        borderBottom: `1px solid var(--c-cardBd)`,
+      }}>{title}</div>
+      {children}
     </div>
   );
 }
@@ -247,21 +393,15 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
           }}>STATUS · {trainee.status.toUpperCase()}</div>
         )}
       </div>
-      <NotesInline
-        label="NEXT ACTIONS"
-        targetKind="trainee"
-        targetId={trainee.id}
-        targetLabel={trainee.name || null}
-        onCreatePlanForTask={onCreatePlanForTask}
-        onOpenIntakeTab={onOpenIntakeTab}
-        trainee={trainee}
-      />
-      <ActivityFeed
+      <CoachHistoryCard
         trainee={trainee}
         clientWorkouts={clientWorkouts}
         payments={payments}
         planIndex={planIndex}
+        onCreatePlanForTask={onCreatePlanForTask}
+        onOpenIntakeTab={onOpenIntakeTab}
       />
+      <CoachMessages traineeId={trainee.id} role="coach" />
     </div>
   );
 }

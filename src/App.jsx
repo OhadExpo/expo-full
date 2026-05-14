@@ -31,6 +31,9 @@ const SmartImportView = lazy(() => import('./SmartImportView'));
 const WorkoutReview = lazy(() => import('./WorkoutReview'));
 const CoachTasksView = lazy(() => import('./CoachTasksView'));
 const BugsView = lazy(() => import('./BugsView'));
+const ChallengesView = lazy(() => import('./ChallengesView'));
+const BookingView = lazy(() => import('./BookingView'));
+const BillingView = lazy(() => import('./BillingView'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazy(() => import('./TrySandbox'));
@@ -51,6 +54,16 @@ const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
 // when actually needed.
 const IntakeForm = lazy(() => import('./IntakeForm'));
 const IntakeView = lazy(() => import('./IntakeView'));
+// Public booking surface — no auth required. Lazy because it pulls
+// availability+occupancy logic that only matters on /book/<slug>.
+const BookingPublic = lazy(() => import('./BookingPublic'));
+// F-18 — public program share. /p/<token> is anon-readable via the
+// get_shared_program(token) SECURITY DEFINER function — no PII leaves
+// the server (trainee name is scrubbed).
+const ProgramShare = lazy(() => import('./ProgramShare'));
+// F-27 — public contract signing page. /sign/<token> renders the
+// brand-rich agreement + signature pad; anon UPDATE writes signature.
+const ContractSign = lazy(() => import('./ContractSign'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
 const MemoPlans = React.memo(PlansView);
@@ -69,6 +82,118 @@ const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"e
 // SwUpdateBanner uses the virtual:pwa-register/react hook — kept lazy so
 // the banner module + workbox shim don't pull into chunks that don't need it.
 const SwUpdateBanner = lazy(() => import('./SwUpdateBanner'));
+
+// MoreMenu — collapses 5 secondary header actions into one ⋯ icon
+// (Smart Import / Export / Chat Audit / Bugs / Change Password). The
+// 5 individual icons were creating right-side overflow on common
+// 1280-wide laptops and crowding the cyan strip visually. Active state
+// reflects when the current tab is one of the menu items.
+function MoreMenu({ tab, navTo, onExport, onChangePassword }) {
+  const [open, setOpen] = useState(false);
+  // Position the popover as a top-layer floating element (position:fixed
+  // + computed coords) so the sticky <header>'s stacking context can't
+  // clip it. Without this, the dropdown rendered below the nav bar
+  // visually but underneath any sibling card with its own stacking ctx.
+  const btnRef = React.useRef(null);
+  const [coords, setCoords] = useState({ top: 0, right: 0 });
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const recalc = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r) return;
+      setCoords({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    };
+    recalc();
+    window.addEventListener('resize', recalc);
+    window.addEventListener('scroll', recalc, true);
+    return () => { window.removeEventListener('resize', recalc); window.removeEventListener('scroll', recalc, true); };
+  }, [open]);
+  // Close on outside-click + Escape. Re-attach handlers each open so
+  // closing-then-reopening doesn't leak listeners on the document.
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (!e.target.closest?.('[data-more-menu]')) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  const isActiveTab = tab === 'smartImport' || tab === 'chatAudit' || tab === 'bugs';
+  const items = [
+    { key: 'smartImport', label: 'Smart Import', onClick: () => navTo('smartImport'), icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    ) },
+    { key: 'export', label: 'Export', onClick: onExport, icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    ) },
+    { key: 'chatAudit', label: 'Chat Audit', onClick: () => navTo('chatAudit'), icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+    ) },
+    { key: 'bugs', label: 'Bugs', onClick: () => navTo('bugs'), icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5a4 4 0 0 0-4 4v1h8v-1a4 4 0 0 0-4-4Z"/><path d="M5 12a7 7 0 0 1 14 0v3a7 7 0 0 1-14 0Z"/></svg>
+    ) },
+    { key: 'password', label: 'Change Password', onClick: onChangePassword, icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    ) },
+  ];
+
+  return (
+    <div data-more-menu style={{ display: 'inline-flex' }}>
+      <button ref={btnRef} onClick={() => setOpen(o => !o)}
+        className="hdr-icon-btn"
+        title="More"
+        aria-label="More options"
+        aria-expanded={open}
+        style={{
+          background: isActiveTab ? C.acD : 'transparent',
+          color: isActiveTab ? C.ac : C.tm,
+          border: 'none', padding: '6px 8px', fontSize: 14,
+          borderRadius: 0, cursor: 'pointer',
+          display: 'inline-flex', alignItems: 'center',
+        }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="5" r="1.5"/>
+          <circle cx="12" cy="12" r="1.5"/>
+          <circle cx="12" cy="19" r="1.5"/>
+        </svg>
+      </button>
+      {open && (
+        <div style={{
+          // position:fixed lifts the popover out of the header's
+          // stacking context so it floats above all page content. The
+          // coords mirror the button's bottom-right corner.
+          position: 'fixed', top: coords.top, right: coords.right,
+          background: 'var(--c-bg)',
+          border: `1px solid ${C.cardBd}`,
+          minWidth: 220, zIndex: 100000,
+          boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+        }}>
+          {items.map(it => {
+            const isItemActive = tab === it.key;
+            return (
+              <button key={it.key} onClick={() => { setOpen(false); it.onClick(); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  width: '100%', padding: '10px 14px',
+                  background: isItemActive ? C.acD : 'transparent',
+                  color: isItemActive ? C.ac : C.tx,
+                  border: 'none', borderBottom: `1px solid ${C.cardBd}`,
+                  fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+                  textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
+                }}
+                onMouseEnter={e => { if (!isItemActive) e.currentTarget.style.background = 'var(--c-sf2)'; }}
+                onMouseLeave={e => { if (!isItemActive) e.currentTarget.style.background = 'transparent'; }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
+                <span>{it.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -176,6 +301,23 @@ function AuthGate() {
   // the installed app or any browser. Stays before the auth gate.
   if (path.startsWith('/intake/he') || path.startsWith('/intake/en')) {
     return <Suspense fallback={<BootSplash />}><IntakeForm /></Suspense>;
+  }
+  // Public booking — /book/<slug>. Resolves coach + availability via the
+  // coach_booking_settings RLS public-read policy. Anon writes a booking
+  // via the bookings_public_insert WITH CHECK policy.
+  if (path.startsWith('/book/')) {
+    return <Suspense fallback={<BootSplash />}><BookingPublic /></Suspense>;
+  }
+  // F-18 — public program share. /p/<token> renders a read-only program
+  // preview for a coach-shared link. No auth required; the server
+  // function decides what the anon visitor sees.
+  if (path.startsWith('/p/')) {
+    return <Suspense fallback={<BootSplash />}><ProgramShare /></Suspense>;
+  }
+  // F-27 — public contract signing page. Brand-rich layout + signature
+  // pad; anon UPDATE writes athlete_signature + athlete_signed_at.
+  if (path.startsWith('/sign/')) {
+    return <Suspense fallback={<BootSplash />}><ContractSign /></Suspense>;
   }
 
   if (!inPwa) {
@@ -338,7 +480,7 @@ function AuthedApp() {
         const parts = sub.split('/');
         return { mode:'coach', tab:'plans', planPreviewId: parts[1] };
       }
-      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs'};
+      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -382,7 +524,7 @@ function AuthedApp() {
     if (tab === 'client' && !isCoach) return;
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
-    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs'};
+    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
@@ -538,7 +680,14 @@ function AuthedApp() {
     setImportSelectedTrainees(prev=>prev.includes(tid)?prev.filter(x=>x!==tid):[...prev,tid]);
   };
 
-  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Athletes",count:trainees.filter(t=>t.status!=='Archived').length},{key:"plans",label:"Programs",count:null},{key:"exercises",label:"Exercises",count:null},{key:"tasks",label:"Tasks",count:null},{key:"review",label:"Review",count:null},{key:"intake",label:"Intake",count:null},{key:"waitlist",label:"Waitlist",count:null},{key:"client",label:"Portal",count:null},{key:"chatAudit",label:"Chat Audit",count:null},{key:"bugs",label:"Bugs",count:null}];
+  // ChatAudit + Bugs were moved out of the primary nav into the ⋯ MORE
+  // overflow menu (alongside Smart Import / Export / Change Password)
+  // so the header doesn't overflow on common viewport widths. Both
+  // remain reachable as tab keys via navTo().
+  // Calendar was pulled 2026-05-14 — bookings now happen on
+  // expo-il.co.il/#/gym via Google Calendar, so the coach-side settings
+  // page is dead weight. URL still resolves for backwards-compat.
+  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Athletes",count:trainees.filter(t=>t.status!=='Archived').length},{key:"plans",label:"Programs",count:null},{key:"exercises",label:"Exercises",count:null},{key:"tasks",label:"Tasks",count:null},{key:"review",label:"Review",count:null},{key:"challenges",label:"Challenges",count:null},{key:"billing",label:"Billing",count:null},{key:"intake",label:"Intake",count:null},{key:"waitlist",label:"Waitlist",count:null},{key:"client",label:"Portal",count:null}];
 
   // Pre-compute plan counts per trainee. Counts roll up to the parent ID:
   // a plan on tr_xxx__0 or __1 (couple sub-members) also increments tr_xxx so
@@ -663,10 +812,16 @@ function AuthedApp() {
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12,paddingLeft:12,borderLeft:`1px solid ${C.cardBd}`}}>
             <ThemeToggle size={32} style={{marginRight:4}}/>
             <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:'none'}} aria-hidden="true" />
+            {/* Bare-file import stays out of the overflow — it's a
+                single-purpose action with a different surface (file
+                picker) and frequent enough to keep one-click. */}
             <button className="hdr-icon-btn" onClick={()=>fileRef.current?.click()} title="Import XLSX / CSV / JSON" aria-label="Import file" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 12 12 15 15"/><line x1="12" y1="18" x2="12" y2="12"/></svg></button>
-            <button className="hdr-icon-btn" onClick={()=>navTo('smartImport')} title="Smart Import" aria-label="Smart Import" style={{...baseBtn,background:tab==='smartImport'?C.acD:"transparent",color:tab==='smartImport'?C.ac:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
-            <button className="hdr-icon-btn" onClick={handleExport} title="Export" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
-            <button className="hdr-icon-btn" onClick={()=>setShowPwModal(true)} title="Change password" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
+            {/* ⋯ MORE overflow — collapses the 5 secondary actions:
+                Smart Import / Export / Chat Audit / Bugs / Change
+                Password. BugReportButton stays separately mounted
+                outside (it surfaces itself only after an actual JS
+                error, so it's already conditional). */}
+            <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} />
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
             <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
@@ -689,6 +844,9 @@ function AuthedApp() {
           {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
           {tab==="tasks"&&<CoachTasksView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
           {tab==="bugs"&&<BugsView/>}
+          {tab==="challenges"&&<ChallengesView trainees={trainees} clientWorkouts={clientWorkouts} bwLog={bwLog} />}
+          {tab==="calendar"&&<BookingView trainees={trainees} />}
+          {tab==="billing"&&<BillingView trainees={trainees} />}
         </Suspense>
       </main>
       {/* Import trainee assignment modal */}

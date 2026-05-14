@@ -11,7 +11,7 @@
 import React, { useEffect, useState } from 'react';
 import { C, FN, FB } from './theme';
 import { toast } from './ui';
-import { snapshotConsoleBuffer } from './consoleBuffer.js';
+import { snapshotConsoleBuffer, onError, hasSeenError } from './consoleBuffer.js';
 
 function bundleHash() {
   try {
@@ -59,6 +59,23 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [previewCtx, setPreviewCtx] = useState(null);
+  // Android-style crash-report behavior: hidden by default, only
+  // surfaces after an actual JS error fires this session (console.error,
+  // window.error, unhandledrejection). Survives SPA route changes via
+  // sessionStorage so a crash on /coach/X stays reportable from /coach/Y.
+  const [visible, setVisible] = useState(() => hasSeenError());
+  const [justErrored, setJustErrored] = useState(false);
+
+  useEffect(() => {
+    const unsub = onError(() => {
+      setVisible(true);
+      setJustErrored(true);
+      // Pulse highlight clears after 6s so an unrelated error later in
+      // the session can re-pulse the button.
+      setTimeout(() => setJustErrored(false), 6000);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (open) setPreviewCtx(gatherContext());
@@ -96,17 +113,27 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
     }
   };
 
+  // Hidden by default. Once an error fires this session, the button
+  // slides in. The modal itself stays mounted-but-closed so subscribers
+  // (toast / future surfaces) keep working.
+  if (!visible && !open) return null;
+
   // Header button — sizing matches the existing icon buttons in the
   // coach header and the athlete portal header so it slots in without
-  // visual rework.
+  // visual rework. Tinted red + light pulse for 6s after a fresh error
+  // so the coach notices something just broke.
   const isAthlete = variant === 'athlete';
+  const errColor = justErrored ? (C.rd || '#ff5b5b') : C.tx;
   const btnStyle = isAthlete
-    ? { background: 'transparent', border: 'none', color: C.tm, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', fontSize: 14 }
-    : { background: 'transparent', border: 'none', color: C.tx, padding: '6px 8px', fontSize: 14, borderRadius: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' };
+    ? { background: 'transparent', border: 'none', color: justErrored ? (C.rd || '#ff5b5b') : C.tm, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', fontSize: 14, animation: justErrored ? 'bug-pulse 1s ease-in-out 0s 3' : undefined }
+    : { background: 'transparent', border: 'none', color: errColor, padding: '6px 8px', fontSize: 14, borderRadius: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', animation: justErrored ? 'bug-pulse 1s ease-in-out 0s 3' : undefined };
 
   return (
     <>
-      <button onClick={() => setOpen(true)} title="Report a bug" aria-label="Report a bug"
+      <style>{'@keyframes bug-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }'}</style>
+      <button onClick={() => setOpen(true)}
+        title={justErrored ? 'Something just broke — tap to send a bug report' : 'Report a bug'}
+        aria-label="Report a bug"
         className={isAthlete ? undefined : 'hdr-icon-btn'} style={btnStyle}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2.5a4 4 0 0 0-4 4v1h8v-1a4 4 0 0 0-4-4Z"/>

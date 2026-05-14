@@ -14,6 +14,18 @@ import { supabase } from './supabase';
 const COACH_GATE = 5;
 const NOTES_KEY = 'expo-lead-notes';
 
+// F-28 — lead pipeline stages. The DB `stage` column defaults to 'lead'
+// for every new row. Stages flow left → right; cold sits off to the
+// right as a terminal "lost" bucket so trash doesn't pollute active
+// columns.
+const STAGES = [
+  { id: 'lead',       label: 'NEW',        color: '#3BA0FF', hint: 'Just signed up — needs first outreach' },
+  { id: 'contacted',  label: 'CONTACTED',  color: '#FFA500', hint: 'Reached out, awaiting response' },
+  { id: 'trial',      label: 'TRIAL',      color: '#FFD700', hint: 'Trial session booked or scheduled' },
+  { id: 'converted',  label: 'CONVERTED',  color: '#2ED573', hint: 'Signed up as a paying client' },
+  { id: 'cold',       label: 'COLD',       color: '#7A7A82', hint: 'No response — archived' },
+];
+
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -86,7 +98,7 @@ export default function WaitlistView({ trainees }) {
       .order('created_at', { ascending: false })
       .limit(500);
     try {
-      const r1 = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at,notes,interests,pain_points,programs_mentioned');
+      const r1 = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at,notes,interests,pain_points,programs_mentioned,stage');
       if (!live()) return;
       if (!r1.error) { setLeads(r1.data || []); }
       else {
@@ -137,9 +149,27 @@ export default function WaitlistView({ trainees }) {
     }, 600);
   };
 
+  // F-28 — view toggle (list ↔ board)
+  const [viewMode, setViewMode] = useState('list');
+
+  // F-28 — move a lead between pipeline stages. Drag-drop and the per-row
+  // arrow buttons both call this. Optimistic update + Supabase write.
+  const moveLead = async (id, nextStage) => {
+    if (!STAGES.find(s => s.id === nextStage)) return;
+    const patch = { stage: nextStage };
+    // 'contacted' / 'trial' / 'converted' all imply "I reached out"; mirror
+    // to the legacy consumed_at field so the funnel KPIs and the
+    // ↩ UNDO button keep working without a migration to drop the column.
+    const reachedOut = nextStage !== 'lead';
+    if (reachedOut) patch.consumed_at = new Date().toISOString();
+    if (nextStage === 'lead') patch.consumed_at = null;
+    setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, ...patch } : l));
+    try { await supabase.from('leads').update(patch).eq('id', id); } catch {}
+  };
+
   const markContacted = async (id) => {
-    setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, consumed_at: new Date().toISOString() } : l));
-    try { await supabase.from('leads').update({ consumed_at: new Date().toISOString() }).eq('id', id); } catch {}
+    setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, consumed_at: new Date().toISOString(), stage: 'contacted' } : l));
+    try { await supabase.from('leads').update({ consumed_at: new Date().toISOString(), stage: 'contacted' }).eq('id', id); } catch {}
   };
   const undoContacted = async (id) => {
     setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, consumed_at: null } : l));
@@ -278,10 +308,23 @@ export default function WaitlistView({ trainees }) {
         </div>
       )}
 
-      {/* Filter */}
-      <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'flex-start' }}>
+      {/* Filter + F-28 view toggle */}
+      <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <input placeholder="Filter by email, source, or notes…" value={filter} onChange={e => setFilter(e.target.value)}
           style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 12px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', minWidth: 280 }} />
+        <div style={{ display: 'flex', gap: 4 }}>
+          {['list', 'board'].map(mode => (
+            <button key={mode} onClick={() => setViewMode(mode)}
+              style={{
+                padding: '6px 12px', borderRadius: 0,
+                border: `1px solid ${viewMode === mode ? C.ac : C.cardBd}`,
+                background: viewMode === mode ? 'rgba(57,189,255,0.094)' : 'transparent',
+                color: viewMode === mode ? C.ac : C.tm,
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                cursor: 'pointer', textTransform: 'uppercase',
+              }}>{mode}</button>
+          ))}
+        </div>
       </div>
 
       {sorted.length === 0 ? (
@@ -291,6 +334,8 @@ export default function WaitlistView({ trainees }) {
             When a coach submits the form on /coaches#waitlist, they'll appear here.
           </div>
         </div>
+      ) : viewMode === 'board' ? (
+        <KanbanBoard leads={sorted} moveLead={moveLead} removeLead={removeLead} notes={notes} setNote={setNote} />
       ) : (() => {
         const refined = isRefined5b();
         const headBorder = refined ? `rgba(0,0,0,0.10)` : C.cardBd;
@@ -396,6 +441,162 @@ export default function WaitlistView({ trainees }) {
         </div>
         );
       })()}
+    </div>
+  );
+}
+
+// F-28 — Kanban-style pipeline board with HTML5 drag-drop between
+// stages. No 3rd-party DnD library; native ondrag* events are enough
+// for the desktop coach surface (mobile board mode is rare; the list
+// view is faster on small screens anyway).
+function KanbanBoard({ leads, moveLead, removeLead, notes, setNote }) {
+  const [dragId, setDragId] = useState(null);
+  const [overStage, setOverStage] = useState(null);
+
+  // Group leads by their `stage` column. Falls back to 'lead' for older
+  // rows that pre-date the migration (DEFAULT 'lead' covers new ones).
+  const groups = useMemo(() => {
+    const g = Object.fromEntries(STAGES.map(s => [s.id, []]));
+    leads.forEach(l => {
+      const s = l.stage || (l.contacted ? 'contacted' : 'lead');
+      if (g[s]) g[s].push(l);
+      else g.lead.push(l); // unknown stage value → bucket into NEW
+    });
+    return g;
+  }, [leads]);
+
+  const onDragStart = (id) => (e) => {
+    setDragId(id);
+    try { e.dataTransfer.setData('text/plain', id); } catch {}
+    e.dataTransfer.effectAllowed = 'move';
+  };
+  const onDragEnd = () => { setDragId(null); setOverStage(null); };
+  const onDragOver = (stage) => (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOverStage(stage); };
+  const onDragLeave = (stage) => () => { setOverStage(prev => prev === stage ? null : prev); };
+  const onDrop = (stage) => async (e) => {
+    e.preventDefault();
+    const id = dragId || (() => { try { return e.dataTransfer.getData('text/plain'); } catch { return null; } })();
+    setOverStage(null);
+    setDragId(null);
+    if (id) await moveLead(id, stage);
+  };
+
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: `repeat(${STAGES.length}, minmax(220px, 1fr))`,
+      gap: 10, overflowX: 'auto',
+    }}>
+      {STAGES.map(stage => {
+        const cards = groups[stage.id] || [];
+        const isOver = overStage === stage.id;
+        return (
+          <div key={stage.id}
+            onDragOver={onDragOver(stage.id)}
+            onDragLeave={onDragLeave(stage.id)}
+            onDrop={onDrop(stage.id)}
+            style={{
+              background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+              border: `1px solid ${isOver ? stage.color : C.cardBd}`,
+              borderTop: `3px solid ${stage.color}`,
+              padding: 10, minHeight: 240,
+              transition: 'border-color 120ms',
+            }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+              <span style={{
+                fontFamily: FN, fontSize: 10, color: stage.color, letterSpacing: '0.18em',
+                fontWeight: 700,
+              }}>{stage.label}</span>
+              <span style={{
+                fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700,
+              }}>{cards.length}</span>
+            </div>
+            <div style={{ fontFamily: FB, fontSize: 10, color: C.td, marginBottom: 10, lineHeight: 1.4 }}>
+              {stage.hint}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {cards.map(l => (
+                <LeadCard key={l.id} lead={l}
+                  draggable
+                  onDragStart={onDragStart(l.id)}
+                  onDragEnd={onDragEnd}
+                  isDragging={dragId === l.id}
+                  notes={notes}
+                  setNote={setNote}
+                  moveLead={moveLead}
+                  removeLead={removeLead} />
+              ))}
+              {cards.length === 0 && (
+                <div style={{ padding: 16, textAlign: 'center', color: C.td, fontFamily: FN, fontSize: 10, letterSpacing: '0.12em', fontWeight: 700, border: `1px dashed ${C.cardBd}` }}>
+                  DROP HERE
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, setNote, moveLead, removeLead }) {
+  const l = lead;
+  const stars = '★'.repeat(l.intent || 0) + '☆'.repeat(4 - (l.intent || 0));
+  const stageIdx = STAGES.findIndex(s => s.id === (l.stage || 'lead'));
+  const prevStage = stageIdx > 0 ? STAGES[stageIdx - 1].id : null;
+  const nextStage = stageIdx >= 0 && stageIdx < STAGES.length - 1 ? STAGES[stageIdx + 1].id : null;
+  return (
+    <div draggable={draggable} onDragStart={onDragStart} onDragEnd={onDragEnd}
+      style={{
+        background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
+        padding: '10px 12px', cursor: 'grab',
+        opacity: isDragging ? 0.5 : 1,
+      }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6, marginBottom: 4 }}>
+        <span title={l.email} style={{
+          fontSize: 12, color: C.tx, fontWeight: 700,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0,
+        }}>{l.email}</span>
+        <span style={{ fontFamily: FN, color: l.intent >= 3 ? C.ac : C.tm, fontSize: 11 }} title={`Intent ${l.intent}/4`}>{stars}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
+        <span style={{
+          fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.08em',
+          border: `1px solid ${C.cardBd}`, padding: '1px 6px', fontWeight: 700,
+        }}>{(l.source || '—').toUpperCase().slice(0, 16)}</span>
+        <span style={{ fontFamily: FN, fontSize: 9, color: C.td }}>
+          {ago(l.created_at)} ago
+        </span>
+      </div>
+      {l.notes && (
+        <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, fontStyle: 'italic', lineHeight: 1.35, marginBottom: 6 }}>
+          💬 {l.notes.length > 100 ? `${l.notes.slice(0, 100)}…` : l.notes}
+        </div>
+      )}
+      <textarea value={notes[l.id] || ''} onChange={e => setNote(l.id, e.target.value)} rows={2}
+        placeholder="DM notes…"
+        onPointerDown={e => e.stopPropagation()}
+        onMouseDown={e => e.stopPropagation()}
+        draggable={false}
+        style={{
+          width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
+          borderRadius: 0, padding: '4px 6px', color: C.tx, fontFamily: FB, fontSize: 11,
+          outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: 6,
+        }} />
+      <div style={{ display: 'flex', gap: 4, justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {prevStage && (
+            <button onClick={() => moveLead(l.id, prevStage)} title={`← ${STAGES.find(s => s.id === prevStage).label}`}
+              style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm, padding: '2px 6px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>←</button>
+          )}
+          {nextStage && (
+            <button onClick={() => moveLead(l.id, nextStage)} title={`→ ${STAGES.find(s => s.id === nextStage).label}`}
+              style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, padding: '2px 6px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>→</button>
+          )}
+        </div>
+        <button onClick={() => removeLead(l.id)} title="Delete"
+          style={{ background: 'transparent', border: `1px solid ${C.rd}`, color: C.rd, padding: '2px 6px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+      </div>
     </div>
   );
 }

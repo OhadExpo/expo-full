@@ -11,6 +11,7 @@ import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask } from './autoTasks';
 import { normalizePhoneIL } from './whatsappButton';
+import { ExplainInfoButton } from './components/AutoTaskExplain';
 
 // Severity tone for each auto-task kind. Drives the pill color +
 // 3px left stripe so risk reads at-a-glance. Mirrors the rule in
@@ -54,17 +55,37 @@ export default function NotesInline({
   // resolve the phone + name into a wa.me deeplink. Optional — the
   // WhatsApp action renders a "no phone" disabled state when missing.
   trainee = null,
+  // When true, skip the outer card + header strip and render only the
+  // task list + composer. Used by TraineeCRM to merge NEXT ACTIONS
+  // into the same card as ACTIVITY under a single "COACH HISTORY"
+  // header.
+  bareMode = false,
 }) {
   const { rows, create, update, togglePin, toggleDone, remove } =
     useCoachNotes({ targetKind, targetId });
   const [body, setBody] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editBody, setEditBody] = useState('');
+
+  // F-35 — parse "#tag1 #tag2" / "tag1, tag2" → normalized lowercase list.
+  const parseTags = (s) => {
+    if (!s) return [];
+    const out = [];
+    const seen = new Set();
+    String(s).split(/[\s,#]+/).forEach(raw => {
+      const t = raw.trim().toLowerCase();
+      if (!t || seen.has(t)) return;
+      seen.add(t);
+      out.push(t);
+    });
+    return out;
+  };
 
   // Draft autosave: typed-but-not-clicked drafts are saved on blur, tab
   // switch, page hide, or unmount instead of being dropped.
   const draft = useDraftAutosave(body, setBody, async (draftBody) => {
-    const r = await create({ body: draftBody, targetKind, targetId, targetLabel });
+    const r = await create({ body: draftBody, targetKind, targetId, targetLabel, tags: parseTags(tagsInput) });
     return !!r;
   });
 
@@ -74,8 +95,9 @@ export default function NotesInline({
     // Suppress the imminent blur-fired flush — the explicit ADD click
     // already covers it. Without this, blur + click both create a row.
     draft.suppressNext();
-    setBody('');
-    await create({ body: b, targetKind, targetId, targetLabel });
+    const tags = parseTags(tagsInput);
+    setBody(''); setTagsInput('');
+    await create({ body: b, targetKind, targetId, targetLabel, tags });
   };
 
   const startEdit = (n) => { setEditingId(n.id); setEditBody(n.body); };
@@ -106,13 +128,21 @@ export default function NotesInline({
   // PAD = 14 matches the canonical Card padding the rest of the
   // trainee-card sections use, so every cyan strip is the same size.
   const PAD = 14;
+  // bareMode = render only the body (no outer card / no header strip).
+  // Used by TraineeCRM to merge NEXT ACTIONS into a unified COACH
+  // HISTORY card alongside ACTIVITY.
+  const Outer = ({ children }) => bareMode
+    ? <div>{children}</div>
+    : (
+      <div style={{
+        background: refined ? '#FFFFFF' : 'var(--c-sf)',
+        border: `1px solid var(--c-cardBd)`, borderRadius: 0,
+        padding: PAD, marginBottom: 12,
+        boxShadow: C.cardShadow,
+      }}>{children}</div>
+    );
   return (
-    <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
-      border: `1px solid var(--c-cardBd)`, borderRadius: 0,
-      padding: PAD, marginBottom: 12,
-      boxShadow: C.cardShadow,
-    }}>
+    <Outer>
       {/* Placeholder uses var(--c-td) — the muted grey we use for "inactive"
           / "no data" labels elsewhere. Browser default renders placeholder
           as a faded version of color, which on the white-on-dark textarea
@@ -120,22 +150,23 @@ export default function NotesInline({
       <style>{`
         .notes-inline-input::placeholder { color: var(--c-td); opacity: 1; }
       `}</style>
-      {/* Cyan header strip — uses the SAME header vocabulary as the
-          existing Card component (fontSize 13, letterSpacing 0.04em,
-          uppercase, 700) so every card on the trainee-detail page reads
-          as one family. */}
-      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={8}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
-            {label} ({open.length})
-          </span>
-          {rows.some(r => r.pinned) && (
-            <span style={{ fontFamily: FN, fontSize: 10, color: refined ? '#FFFFFF' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
-              📌 {rows.filter(r => r.pinned).length} pinned
+      {/* Cyan header strip — only when standalone. In bareMode the
+          parent (TraineeCRM "COACH HISTORY") renders the umbrella
+          header and a smaller "NEXT ACTIONS (N)" sub-header.        */}
+      {!bareMode && (
+        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={8}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
+              {label} ({open.length})
             </span>
-          )}
-        </div>
-      </RefinedHeaderStrip>
+            {rows.some(r => r.pinned) && (
+              <span style={{ fontFamily: FN, fontSize: 10, color: refined ? '#FFFFFF' : 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700 }}>
+                📌 {rows.filter(r => r.pinned).length} pinned
+              </span>
+            )}
+          </div>
+        </RefinedHeaderStrip>
+      )}
 
       {visibleOpen.length === 0 && done.length === 0 && (
         <div style={{ fontSize: 12, color: 'var(--c-td)', marginBottom: 8 }}>
@@ -225,11 +256,14 @@ export default function NotesInline({
                   color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12, padding: 0, flexShrink: 0,
                 }}>{n.pinned ? '📌' : '○'}</button>
               {kindLabel && (
-                <span title={`Auto-generated: ${kindLabel}`}
-                  style={{
-                    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-                    color: stripeColor, border: `1px solid ${stripeColor}`, padding: '2px 8px',
-                  }}>⚙ {kindLabel}</span>
+                <>
+                  <span title={`Auto-generated: ${kindLabel}`}
+                    style={{
+                      fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+                      color: stripeColor, border: `1px solid ${stripeColor}`, padding: '2px 8px',
+                    }}>⚙ {kindLabel}</span>
+                  <ExplainInfoButton note={n} trainee={trainee} color={stripeColor} />
+                </>
               )}
               <span style={{ flex: 1 }} />
               <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
@@ -252,19 +286,34 @@ export default function NotesInline({
                   fontFamily: isHebrew(editBody) ? FH : FB,
                 }} />
             ) : (
-              <div style={{
+              // dir="auto" delegates to the browser's bidi algorithm so a
+              // mixed Hebrew/English sentence renders naturally without
+              // flipping the whole line when one language dominates.
+              <div dir="auto" style={{
                 fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.5, whiteSpace: 'pre-wrap',
                 marginBottom: actionBtn || !editingThis ? 10 : 0,
-                direction: heb ? 'rtl' : 'ltr',
-                fontFamily: heb ? FH : FB,
+                fontFamily: FB,
               }}>{n.body}</div>
             )}
 
-            {/* Footer — contextual action + edit */}
+            {/* F-35 — tag chips */}
+            {Array.isArray(n.tags) && n.tags.length > 0 && !editingThis && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: actionBtn ? 8 : 0 }}>
+                {n.tags.map(t => (
+                  <span key={t} style={{
+                    fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.08em', fontWeight: 700,
+                    border: `1px solid var(--c-cardBd)`, padding: '1px 7px',
+                  }}>#{t}</span>
+                ))}
+              </div>
+            )}
+
+            {/* Footer — EDIT on bottom-left, contextual action on
+                bottom-right, fully separated via space-between so the
+                two controls never visually collide. */}
             {(actionBtn || !editingThis) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                {actionBtn}
-                {!editingThis && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                {!editingThis ? (
                   <button onClick={() => startEdit(n)} title="Edit task"
                     style={{
                       background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
@@ -272,7 +321,8 @@ export default function NotesInline({
                       fontFamily: FN, fontWeight: 700, letterSpacing: '0.12em', height: 26,
                       display: 'inline-flex', alignItems: 'center',
                     }}>✏️ EDIT</button>
-                )}
+                ) : <span />}
+                {actionBtn || <span />}
               </div>
             )}
           </div>
@@ -292,7 +342,7 @@ export default function NotesInline({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.5, whiteSpace: 'pre-wrap', textDecoration: 'line-through',
-                    direction: heb ? 'rtl' : 'ltr', fontFamily: heb ? FH : FB,
+                    direction: heb ? 'rtl' : 'ltr', fontFamily: FB,
                   }}>{n.body}</div>
                   {n.linked_plan_id && (
                     <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-ac)', letterSpacing: '0.08em', marginTop: 2, fontWeight: 700 }}>
@@ -321,7 +371,17 @@ export default function NotesInline({
             direction: isHebrew(body) ? 'rtl' : 'ltr',
             fontFamily: isHebrew(body) ? FH : FB,
           }} />
+        {/* F-35 — tags input. Same shape as NotesWidget so the
+            knowledge base entries from either surface look identical
+            and the search/filter at /coach/tasks finds them all. */}
+        <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)}
+          placeholder="#tags  (optional — e.g. rehab, shoulder, post-surgery)"
+          style={{
+            width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
+            borderRadius: 0, padding: '6px 10px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 11,
+            outline: 'none', boxSizing: 'border-box', marginTop: 6, letterSpacing: '0.04em',
+          }} />
       </div>
-    </div>
+    </Outer>
   );
 }
