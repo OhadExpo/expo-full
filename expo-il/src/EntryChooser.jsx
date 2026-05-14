@@ -64,7 +64,7 @@ export default function EntryChooser() {
           highlight={hover === 'left'}
           onEnter={() => setHover('left')}
           onLeave={() => setHover(null)}
-          headline={heb ? 'בית הספורטאי' : 'ATHLETIC PERFORMANCE CENTER'}
+          headline={heb ? 'בית הספורטאי' : 'PERFORMANCE CENTER'}
           subhead={heb ? 'אימון אישי בנוכחות' : 'In-Person Coaching'}
           body={heb
             ? "אימון אחד-על-אחד עם אוהד. תוכנית מותאמת, ביצוע מדוייק, ליווי שבועי."
