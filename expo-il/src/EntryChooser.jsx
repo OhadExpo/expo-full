@@ -74,6 +74,7 @@ export default function EntryChooser() {
             : ['Movement assessment', 'Weekly check-ins', 'Live booking calendar']}
           cta={heb ? 'הזמנת אימון' : 'BOOK A SESSION'}
           href="#/gym"
+          headlineFontSize={heb ? 'clamp(40px, 7vw, 88px)' : 'clamp(34px, 4.5vw, 60px)'}
           highlight2
           onClick={() => trackAndOpen('chooser_pick', { side: 'gym' })}
         />
@@ -100,6 +101,7 @@ export default function EntryChooser() {
             : ['Program catalog', 'Full athlete app', 'WhatsApp support']}
           cta={heb ? 'שיחת היכרות' : 'BOOK A CALL'}
           href="#/online"
+          headlineFontSize={heb ? 'clamp(40px, 7vw, 88px)' : 'clamp(72px, 11vw, 150px)'}
           highlight2
           onClick={() => trackAndOpen('chooser_pick', { side: 'online' })}
         />
@@ -176,7 +178,7 @@ function Divider() {
 // title + glows the CTA chip. Each panel is a giant anchor so the
 // whole half is clickable — better tap-target on mobile.
 // ─────────────────────────────────────────────────────────────────────
-function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headline, subhead, body, benefits, cta, href, external, onClick }) {
+function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headline, subhead, body, benefits, cta, href, external, onClick, headlineFontSize = 'clamp(36px, 5.6vw, 68px)' }) {
   const isLeft = side === 'left';
   // Identical symmetric backdrops on both panels — cyan radial parked
   // BELOW the content stack so it never overlaps the headline (overlap
@@ -214,14 +216,14 @@ function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headli
         pointerEvents: 'none',
       }} />
 
-      {/* Inner content stack — flex column. Single unified headline
-          font scale across BOTH panels and BOTH languages. Previous
-          per-panel scaling tried to balance English's wrapped
-          "ATHLETIC PERFORMANCE CENTER" against single-line "ONLINE"
-          by scaling ONLINE up — but in Hebrew both headlines are short
-          single words, so the same scaling produced jarring asymmetry
-          ("אונליין" massively larger than "בית הספורטאי"). Same size
-          on both sides is cleaner across languages. */}
+      {/* Inner content stack — flex column. The headlineFontSize prop
+          lets each panel scale its headline based on language + word
+          count. English: ATHLETIC PERFORMANCE CENTER stays at ~60px so
+          it wraps to 3 lines, ONLINE goes to ~150px so the single word
+          fills the same vertical block. Hebrew: both phrases are
+          short single words, so both panels use the same ~88px so
+          they read as symmetric. Both languages converge through the
+          shared 190px minHeight on the h2 below. */}
       <div style={{
         maxWidth: 560, width: '100%', textAlign: 'center', position: 'relative', zIndex: 2,
         animation: `chooser-fade-in 540ms ease both`,
@@ -230,7 +232,7 @@ function Panel({ side, heb, dim, highlight, highlight2, onEnter, onLeave, headli
       }}>
         <h2 style={{
           margin: 0, fontFamily: FN,
-          fontSize: 'clamp(36px, 5.6vw, 68px)',
+          fontSize: headlineFontSize,
           fontWeight: 800, letterSpacing: '-0.025em',
           lineHeight: 1.05,
           color: C.tx,
