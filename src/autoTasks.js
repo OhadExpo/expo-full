@@ -105,7 +105,7 @@ const ruleNextBlockDue = {
       if (!milestoneHit) continue;
       out.push({
         ref: current.id,
-        body: `Build ${nextBlockName(current.name)} for ${t.name} — ${current.name} ends in 1 week`,
+        body: `Build ${nextBlockName(current.name)} for ${t.name}`,
         target_id: t.id,
         target_label: t.name,
       });
@@ -158,7 +158,7 @@ const ruleWeekMissed = {
       if (nextWeek > weeks) continue; // Block already over — handled by next_block_due
       out.push({
         ref: `${currentBlock.id}|w${nextWeek}`,
-        body: `${t.name} skipped W${nextWeek} of ${currentBlock.name} — call before next session`,
+        body: `Call ${t.name} — skipped W${nextWeek} of ${currentBlock.name}`,
         target_id: t.id,
         target_label: t.name,
         pinned: true, // safety/retention signal — float to top
@@ -231,7 +231,7 @@ const ruleAtRiskSilent = {
                                               : `${latestActivityAgo}d no contact`;
       out.push({
         ref: t.id,
-        body: `Re-engage ${t.name} — ${wkLabel}, ${acLabel}. Expected ${sessionsPerWeek(t.format)}×/week.`,
+        body: `Reach out to ${t.name} — ${wkLabel}, ${acLabel}`,
         target_id: t.id,
         target_label: t.name,
       });
@@ -288,7 +288,7 @@ const ruleFormVideoPending = {
       const label = `${unreviewed} form video${unreviewed === 1 ? '' : 's'}`;
       out.push({
         ref: w.id,
-        body: `Review ${t.name}'s ${label} — W${w.week} ${w.dayName} from ${new Date(w.date).toLocaleDateString()}`,
+        body: `Review ${unreviewed} form video${unreviewed === 1 ? '' : 's'} from ${t.name} · W${w.week} ${w.dayName}`,
         target_id: t.id,
         target_label: t.name,
       });
@@ -325,7 +325,7 @@ const ruleNewIntakePending = {
       .filter(s => !s.reviewed_at)
       .map(s => ({
         ref: s.id,
-        body: `New intake from ${s.name || s.email || 'unknown'} — review & onboard`,
+        body: `Onboard ${s.name || s.email || 'new intake'}`,
         target_id: s.trainee_id || s.id,
         target_label: s.name || null,
         // INTAKE filter pill expects target_kind === 'intake'. Without this
@@ -362,7 +362,7 @@ const rulePaymentOverdue = {
         if (since >= 21) {
           out.push({
             ref: t.id,
-            body: `Chase ${t.name}'s payment — never paid, ${since}d since signup${monthly ? ` (${monthly}/mo)` : ''}`,
+            body: `Chase payment from ${t.name} · never paid · ${since}d since signup${monthly ? ` · ₪${monthly}/mo` : ''}`,
             target_id: t.id,
             target_label: t.name,
           });
@@ -379,7 +379,7 @@ const rulePaymentOverdue = {
         const amount = monthly || latest.amount || 0;
         out.push({
           ref: t.id,
-          body: `Chase ${t.name}'s payment — last paid ${since}d ago${amount ? ` (₪${amount} due)` : ''}`,
+          body: `Chase payment from ${t.name} · last paid ${since}d ago${amount ? ` · ₪${amount} due` : ''}`,
           target_id: t.id,
           target_label: t.name,
         });
@@ -429,7 +429,7 @@ const ruleEvalDueFirstSession = {
       if (hasEval) continue;
       out.push({
         ref: t.id,
-        body: `Run athletic eval for ${t.name} — first session, baseline needed (intake reviewed)`,
+        body: `Run athletic eval on ${t.name} · first-session baseline`,
         target_id: t.id,
         target_label: t.name,
       });
@@ -511,13 +511,25 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
 
   // Phase A: compute desired open-task set
   const inserts = [];
+  const bodyPatches = [];
   for (const rule of RULES) {
     let desired = [];
     try { desired = rule.detect(ctx) || []; }
     catch (e) { console.warn(`rule ${rule.kind} detect threw:`, e); }
     for (const d of desired) {
       const key = `${rule.kind}|${d.ref}`;
-      if (byKey.has(key)) continue; // already exists (open or done)
+      if (byKey.has(key)) {
+        // Row already exists — if the detected body differs (the copy
+        // template changed since last sync, or one of the embedded
+        // values shifted), patch the body so the card reflects the
+        // current state. Skip if the row is done — closed tasks
+        // shouldn't get retroactively rewritten.
+        const existing = byKey.get(key);
+        if (existing.status === 'open' && existing.body !== d.body) {
+          bodyPatches.push({ id: existing.id, body: d.body });
+        }
+        continue;
+      }
       inserts.push({
         id: newAutoId(),
         body: d.body,
@@ -564,6 +576,15 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
       .in('id', ids);
     if (error) console.warn('autoTasks resolve failed:', error.message);
   }
+  // Body-patch pass — rewrite stale auto-task copy in place when the
+  // detector renders a different body for an existing row. Single
+  // upsert per row; PostgREST doesn't support bulk-update with
+  // per-row values, so we issue one PATCH per id (small N in practice).
+  for (const p of bodyPatches) {
+    try {
+      await supabase.from('coach_notes').update({ body: p.body }).eq('id', p.id);
+    } catch (e) { /* swallow — non-critical */ }
+  }
 }
 
 // Expose the rule kinds + their human-readable label for the ⚙ AUTO badge
@@ -575,6 +596,7 @@ export const AUTO_KIND_LABEL = {
   new_intake_pending: 'NEW INTAKE',
   payment_overdue: 'PAYMENT OVERDUE',
   eval_due_first_session: 'EVAL DUE',
+  whatsapp_combined: 'NEEDS OUTREACH',
 };
 
 // Solution-action per auto-task kind. The dashboard task cards render
@@ -592,7 +614,52 @@ export const AUTO_KIND_ACTION = {
   new_intake_pending:        'OPEN_INTAKE',
   payment_overdue:           'WHATSAPP',
   eval_due_first_session:    'OPEN_ATHLETE',
+  whatsapp_combined:         'WHATSAPP',
 };
+
+// Task throttling — multiple auto-tasks for one trainee that all resolve
+// to a WhatsApp outreach (week_missed + at_risk_silent + payment_overdue)
+// would otherwise read as 3 separate cards. The coach opens ONE
+// WhatsApp conversation and addresses all of them. Collapse the
+// underlying rows into a synthetic card with the combined reasoning so
+// the dashboard reads as "Diego needs outreach" not three rows.
+//
+// The synthetic card carries the raw rows in `__sources` so the mark-
+// done path can fan out the close to every underlying row in one shot.
+export function throttleWhatsAppTasks(rows) {
+  const out = [];
+  const seenByTrainee = new Map(); // target_id → index in out
+  for (const r of rows || []) {
+    const isWhatsApp = AUTO_KIND_ACTION[r.auto_kind] === 'WHATSAPP';
+    if (!isWhatsApp || r.status === 'done' || !r.target_id) {
+      out.push(r);
+      continue;
+    }
+    const existingIdx = seenByTrainee.get(r.target_id);
+    if (existingIdx === undefined) {
+      // First WhatsApp task for this trainee — push as the seed.
+      out.push({ ...r, __sources: [r] });
+      seenByTrainee.set(r.target_id, out.length - 1);
+    } else {
+      // Merge into the synthetic card.
+      const seed = out[existingIdx];
+      seed.__sources.push(r);
+      // Body becomes a combined summary. Preserve newest timestamp +
+      // strongest pin so the merged card floats correctly.
+      const sources = seed.__sources;
+      seed.body = `Reach out to ${seed.target_label || 'trainee'} · ${sources.length} reasons:\n` +
+        sources.map(s => `• ${AUTO_KIND_LABEL[s.auto_kind] || s.auto_kind}`).join('\n');
+      seed.pinned = seed.pinned || r.pinned;
+      seed.auto_kind = 'whatsapp_combined';
+      // Keep the most-recent created_at so the sort places the merged
+      // card at the freshest row's spot.
+      if (new Date(r.created_at) > new Date(seed.created_at)) {
+        seed.created_at = r.created_at;
+      }
+    }
+  }
+  return out;
+}
 
 // Hebrew WhatsApp templates per kind. The trainee's first name is
 // extracted from `name` for a personal tone. Days-since values pulled
@@ -619,7 +686,126 @@ export function whatsappMessageForTask(note, trainee) {
       const ago = m ? `${m[1]} ימים מאז התשלום האחרון. ` : '';
       return `היי ${first}. ${ago}תוכל לסגור את התשלום הנוכחי השבוע?`;
     }
+    case 'whatsapp_combined': {
+      // The throttled card stacks several reasons. Open ONE conversation
+      // that pulls them together — the coach can edit the prefilled
+      // text before sending if any reason needs softening.
+      const sources = Array.isArray(note?.__sources) ? note.__sources : [];
+      const parts = sources.map(s => whatsappMessageForTask(s, trainee)).filter(Boolean);
+      if (parts.length === 0) return `היי ${first}. רוצה לתאם איתך משהו השבוע.`;
+      if (parts.length === 1) return parts[0];
+      return `היי ${first}. צריך לתאם איתך כמה דברים:\n\n` + parts.map((p, i) => `${i + 1}. ${p.replace(/^היי \S+\.\s*/, '')}`).join('\n\n');
+    }
     default:
       return `היי ${first}. מה קורה?`;
+  }
+}
+
+// F-26 — Explainability: for any auto_kind, return the WHY behind the
+// task (what rule fired + what inputs the rule looked at + when it
+// will auto-close). The ⓘ modal in NotesWidget/NotesInline renders
+// this. It's intentionally human-readable, not machine-readable —
+// the coach should understand the system's reasoning at a glance.
+export function explainAutoTask(note, trainee) {
+  const body = String(note?.body || '');
+  const kind = note?.auto_kind;
+  const traineeName = trainee?.name || note?.target_label || 'this trainee';
+
+  const base = {
+    title: AUTO_KIND_LABEL[kind] || (kind || '').toUpperCase(),
+    rule: '',
+    inputs: [],
+    closes: '',
+    confidence: 'high',
+  };
+
+  switch (kind) {
+    case 'next_block_due': {
+      const m = body.match(/W(\d+)\/(\d+)/);
+      return {
+        ...base,
+        rule: 'Current block is at ≥75% completion. New block needs to ship before the runway runs out.',
+        inputs: m ? [`Active block is at W${m[1]}/${m[2]} completed`, 'Threshold: 75% block completion'] : ['Active block ≥75% complete'],
+        closes: 'Auto-closes when a newer plan is published for this trainee.',
+      };
+    }
+    case 'week_missed': {
+      const m = body.match(/W(\d+)/);
+      return {
+        ...base,
+        rule: 'A week was missed inside the current block (no session logged within 14 days of the prior week).',
+        inputs: m ? [`Missed week: W${m[1]}`, 'Gap from last logged session: ≥14 days'] : ['Week skipped'],
+        closes: 'Auto-closes when the missed week gets a logged session.',
+        confidence: 'medium',
+      };
+    }
+    case 'at_risk_silent': {
+      const m = body.match(/(\d+)d no workout/);
+      const days = m ? m[1] : '14+';
+      return {
+        ...base,
+        rule: 'No workouts logged for ≥14 days. Higher-risk silent client.',
+        inputs: [`Days since last logged workout: ${days}`, 'Days since last review activity: ≥14', 'Trainee status: Active'],
+        closes: 'Auto-closes once a workout is logged or a review session is recorded.',
+        confidence: 'high',
+      };
+    }
+    case 'form_video_pending_review': {
+      return {
+        ...base,
+        rule: 'A logged set carries a form video that you have not opened in WorkoutReview.',
+        inputs: ['form video URL present', 'workout.reviewedAt = null'],
+        closes: 'Auto-closes when you open the workout in WorkoutReview (reviewedAt timestamp is set), or when every set with a video has a coach comment.',
+      };
+    }
+    case 'new_intake_pending': {
+      return {
+        ...base,
+        rule: 'A new intake submission landed and has not been reviewed yet.',
+        inputs: ['intake_submissions row exists', 'reviewed_at = null'],
+        closes: 'Auto-closes when reviewed_at is set on the intake row.',
+      };
+    }
+    case 'payment_overdue': {
+      const never = /never paid/i.test(body);
+      const m = body.match(/(\d+)d ago/);
+      return {
+        ...base,
+        rule: never
+          ? 'Trainee was created but no payment row exists for them yet.'
+          : 'Most recent payment is older than the trainee\'s monthly cadence + 7-day grace.',
+        inputs: never ? ['No payment rows', 'Trainee.status = Active'] : [`Last payment: ${m ? m[1] : '?'} days ago`, 'Cadence threshold: monthly + 7d grace'],
+        closes: 'Auto-closes when a fresh payment row lands for this trainee.',
+        confidence: 'medium',
+      };
+    }
+    case 'eval_due_first_session': {
+      return {
+        ...base,
+        rule: 'Trainee has logged ≥1 session but has no Athletic Evaluation on file.',
+        inputs: ['client_workouts count ≥1', 'evaluation row missing'],
+        closes: 'Auto-closes when the Athletic Evaluation is filled out from the trainee card.',
+      };
+    }
+    case 'whatsapp_combined': {
+      const n = Array.isArray(note?.__sources) ? note.__sources.length : 1;
+      const reasons = (note?.__sources || []).map(s => `• ${AUTO_KIND_LABEL[s.auto_kind] || s.auto_kind}`);
+      return {
+        ...base,
+        title: 'NEEDS OUTREACH',
+        rule: `${n} separate outreach-resolved tasks for ${traineeName} were merged into one card so you only open ONE WhatsApp thread.`,
+        inputs: reasons.length ? reasons : ['multiple WhatsApp-action auto-tasks for this trainee'],
+        closes: 'Marking this card done closes all underlying tasks at once.',
+        confidence: 'high',
+      };
+    }
+    default:
+      return {
+        ...base,
+        rule: 'Manual task — no automated reasoning.',
+        inputs: [],
+        closes: 'Auto-tasks close themselves when their input condition flips. Manual tasks close when you check them off.',
+        confidence: 'n/a',
+      };
   }
 }

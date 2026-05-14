@@ -10,9 +10,32 @@
 const MAX_ENTRIES = 25;
 const ring = [];
 
+// Listeners for error events — BugReportButton subscribes so it can
+// surface itself only after an actual error has fired this session
+// (Android crash-report behavior). Survives across SPA route changes
+// since the buffer is module-singleton.
+const errorListeners = new Set();
+const SESSION_KEY = 'expo-bug-seen-error';
+
 function push(entry) {
   ring.push(entry);
   if (ring.length > MAX_ENTRIES) ring.shift();
+  if (entry?.level === 'error') {
+    try { sessionStorage.setItem(SESSION_KEY, '1'); } catch {}
+    errorListeners.forEach(cb => { try { cb(entry); } catch {} });
+  }
+}
+
+export function onError(cb) {
+  errorListeners.add(cb);
+  return () => errorListeners.delete(cb);
+}
+
+// True if any error has fired in this browser session — survives SPA
+// route changes via sessionStorage so the button stays visible after a
+// crash on a previous page.
+export function hasSeenError() {
+  try { return sessionStorage.getItem(SESSION_KEY) === '1'; } catch { return false; }
 }
 
 let installed = false;

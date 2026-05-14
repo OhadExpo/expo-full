@@ -65,6 +65,9 @@ export function useCoachNotes(filter = {}) {
       linked_plan_id: null,
       auto_kind: input.autoKind || null,
       auto_ref: input.autoRef || null,
+      // F-35 — knowledge base via tags. Normalized to lowercase strings
+      // so the index works for case-insensitive matching.
+      tags: Array.isArray(input.tags) && input.tags.length ? input.tags.map(t => String(t).trim().toLowerCase()).filter(Boolean) : null,
       // Local timestamp on the optimistic row keeps the sort stable until
       // the next refetch resolves the canonical server timestamp. Without
       // it, sortTasks compared NaN and the new task floated to a random

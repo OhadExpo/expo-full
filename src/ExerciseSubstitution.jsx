@@ -11,9 +11,24 @@
 // (lives in ClientPortal state, never persisted) so the prescribed plan
 // stays untouched.
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { C, FN, FB } from './theme';
 import { findAlternates } from './exerciseSimilarity';
+
+// F-25 — equipment chips the trainee can toggle on/off. Only alternates
+// matching at least one selected chip will surface. The TRAVELING
+// preset auto-selects bodyweight + band (anything you can do in a
+// hotel room without weights).
+const EQUIP_CHIPS = [
+  { id: 'BODYWEIGHT', label: 'BW' },
+  { id: 'BAND', label: 'BAND' },
+  { id: 'DUMBBELL', label: 'DB' },
+  { id: 'KETTLEBELL', label: 'KB' },
+  { id: 'CABLE', label: 'CABLE' },
+  { id: 'BARBELL', label: 'BB' },
+  { id: 'MACHINE', label: 'MACHINE' },
+];
+const TRAVELING_EQUIP = new Set(['BODYWEIGHT', 'BAND']);
 
 // Wrap a Supabase library exercise into the shape expected by the rest of
 // ClientPortal (EX dict shape: { t, vid, q }).
@@ -52,8 +67,35 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // F-25 — equipment filter chips + TRAVELING toggle. State is local so
+  // the sheet remembers selection while open but resets on next open
+  // (a different exercise often has a different "what's reasonable" set).
+  const [traveling, setTraveling] = useState(false);
+  const [activeEquip, setActiveEquip] = useState(() => new Set());
+  const toggleEquip = (id) => setActiveEquip(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const toggleTraveling = () => {
+    if (traveling) { setTraveling(false); setActiveEquip(new Set()); }
+    else { setTraveling(true); setActiveEquip(new Set(TRAVELING_EQUIP)); }
+  };
+
   const target = { id: '__current__', title: currentTitle };
-  const alternates = findAlternates(target, library || [], 5);
+  // Pull a wider candidate pool so equipment filtering still leaves us
+  // with at least 5 useful options once narrowed.
+  const allAlternates = useMemo(() => findAlternates(target, library || [], 24), [library, currentTitle]);
+  const alternates = useMemo(() => {
+    if (activeEquip.size === 0) return allAlternates.slice(0, 5);
+    const filtered = allAlternates.filter(({ exercise }) => {
+      const eq = equipmentHintFor(exercise.title);
+      return eq && activeEquip.has(eq);
+    });
+    // Equipment filtering can dry up — fall back to showing the top
+    // unfiltered alternates as a hint of "nothing matches your filter".
+    return filtered.length ? filtered.slice(0, 5) : [];
+  }, [allAlternates, activeEquip]);
   const targetEquip = equipmentHintFor(currentTitle);
 
   return (
@@ -106,13 +148,43 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
 
         <div style={{ height: 1, background: `${C.cardBd}`, margin: '12px -16px 14px' }} />
 
+        {/* F-25 — equipment filter row. Trainees pick what's actually
+            available right now; the alternate list updates live. The
+            TRAVELING preset is a one-tap shortcut for hotel-room workouts. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+          <button onClick={toggleTraveling} style={{
+            padding: '4px 10px', borderRadius: 0,
+            background: traveling ? C.ac : 'transparent',
+            color: traveling ? '#FFFFFF' : C.ac,
+            border: `1px solid ${C.ac}`,
+            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+            cursor: 'pointer',
+          }}>{traveling ? '✓ TRAVELING' : '✈ TRAVELING'}</button>
+          <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', fontWeight: 700, marginLeft: 4 }}>HAVE:</span>
+          {EQUIP_CHIPS.map(chip => {
+            const active = activeEquip.has(chip.id);
+            return (
+              <button key={chip.id} onClick={() => toggleEquip(chip.id)} style={{
+                padding: '3px 8px', borderRadius: 0,
+                background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
+                color: active ? C.ac : C.tm,
+                border: `1px solid ${active ? C.ac : C.cardBd}`,
+                fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                cursor: 'pointer',
+              }}>{chip.label}</button>
+            );
+          })}
+        </div>
+
         {alternates.length === 0 && (
           <div style={{ padding: '36px 20px', textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>
-              NO CLOSE MATCHES
+              {activeEquip.size > 0 ? 'NO MATCHES FOR YOUR EQUIPMENT' : 'NO CLOSE MATCHES'}
             </div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
-              The library doesn't have an obvious alternate for this exercise. Stick with the prescribed one or skip the set.
+              {activeEquip.size > 0
+                ? 'Try selecting more equipment chips above, or clear the filter to see all alternates.'
+                : "The library doesn't have an obvious alternate for this exercise. Stick with the prescribed one or skip the set."}
             </div>
           </div>
         )}

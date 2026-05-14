@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
 import TraineePRsView from './TraineePRsView';
 import TraineeCRM from './TraineeCRM';
+import CoachContractComposer from './CoachContractComposer';
 import TraineeEvaluation from './TraineeEvaluation';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
@@ -36,6 +37,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     .map(b => ({ ...b, bw: parseFloat(b.bw) }))
     .sort((a,b) => new Date(a.date) - new Date(b.date));
   const [showPayForm,setShowPayForm]=useState(false);
+  const [showContract,setShowContract]=useState(false);
   const [showEdit,setShowEdit]=useState(false);
   const [editForm,setEditForm]=useState(null);
   const [showAssign,setShowAssign]=useState(false);
@@ -314,9 +316,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       </Card>
       <Card style={{marginBottom:16}}
         header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12,textAlign:"center"}}>
           {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>
-            <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
+            <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>)}
         </div>
         {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid rgba(255,165,2,0.302)`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
         {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
@@ -341,9 +343,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       )}
 
       {/* === SHARED SECTIONS (billing, workouts, modals) === */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px",gap:8,flexWrap:'wrap'}}>
         <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Billing ({tPay.length}){totalPaid>0&&<span style={{color:C.gn,marginLeft:8}}>₪{totalPaid.toLocaleString()} total paid</span>}</h3>
-        <Btn onClick={()=>setShowPayForm(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Add Payment</Btn></div>
+        <div style={{display:'flex',gap:6}}>
+          {/* F-27 — open the brand-rich contract composer; on send,
+              copy the /sign/<token> link to clipboard. */}
+          <button onClick={()=>setShowContract(true)} style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'4px 12px',cursor:'pointer',borderRadius:0}}>📄 CONTRACT</button>
+          <Btn onClick={()=>setShowPayForm(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Add Payment</Btn>
+        </div>
+      </div>
       {tPay.length===0?<div style={{color:C.td,fontSize:13}}>No payments recorded.</div>:(
         <div style={{overflowX:"auto",marginBottom:16}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
           <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
@@ -357,6 +365,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <button onClick={()=>handleEditPay(p)} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
               <button onClick={()=>handleDeletePay(p.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginLeft:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
+      {showContract && (
+        <CoachContractComposer
+          trainee={trainee}
+          coachEmail="ohadyproductions@gmail.com"
+          onClose={() => setShowContract(false)}
+        />
+      )}
       <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}} title={editPayId?"Edit Payment":"Add Payment"}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Input label="Amount (₪)" type="number" value={payForm.amount} onChange={e=>setPayForm({...payForm,amount:e.target.value})} />

@@ -85,6 +85,57 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
   const lastMonthPaid = payments.filter(p => { const d=new Date(p.date); return d.getMonth()===lastMonth.getMonth() && d.getFullYear()===lastMonth.getFullYear() && p.status==='Paid'; }).reduce((a,p) => a + (parseFloat(p.amount)||0), 0);
   const revDelta = lastMonthPaid > 0 ? Math.round(((thisMonthPaid - lastMonthPaid) / lastMonthPaid) * 100) : null;
 
+  // F-36 — Revenue dashboard card. Trailing 30/90d collected + outstanding
+  // (pending Bit payment requests) + average client LTV + 6-month bar
+  // sparkline. Keeps every metric pulled from the same payments array
+  // the rest of the dashboard already loads, so no extra query cost.
+  const ms30 = 30 * 86400000;
+  const ms90 = 90 * 86400000;
+  const paidPayments = payments.filter(p => p.status === 'Paid');
+  const collected30 = paidPayments.filter(p => (now - new Date(p.date)) <= ms30).reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
+  const collected90 = paidPayments.filter(p => (now - new Date(p.date)) <= ms90).reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
+  const avgTicket = paidPayments.length ? Math.round(totalAllPaid / paidPayments.length) : 0;
+  const everPaidClientIds = new Set(paidPayments.map(p => p.traineeId).filter(Boolean));
+  const avgLtv = everPaidClientIds.size ? Math.round(totalAllPaid / everPaidClientIds.size) : 0;
+  // 6-month bar chart of collected revenue per month (oldest → newest).
+  const monthBars = useMemo(() => {
+    const out = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const total = paidPayments
+        .filter(p => { const pd = new Date(p.date); return pd.getMonth() === d.getMonth() && pd.getFullYear() === d.getFullYear(); })
+        .reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
+      out.push({ label: d.toLocaleString('en-US', { month: 'short' }), value: total });
+    }
+    return out;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payments.length]);
+  const maxBar = Math.max(1, ...monthBars.map(b => b.value));
+
+  // Outstanding — sum of pending Bit payment requests.
+  const [outstanding, setOutstanding] = useState({ amount: 0, count: 0 });
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('bit_payment_requests')
+          .select('amount, status')
+          .eq('status', 'pending')
+          .limit(500);
+        if (cancelled) return;
+        const arr = data || [];
+        setOutstanding({
+          amount: arr.reduce((a, r) => a + (parseFloat(r.amount) || 0), 0),
+          count: arr.length,
+        });
+      } catch {
+        if (!cancelled) setOutstanding({ amount: 0, count: 0 });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Dropout risk: active clients who haven't trained in 14+ days
   const DROPOUT_DAYS = 14;
   const dropoutRisk = enriched.filter(t => {
@@ -242,7 +293,11 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           { label: 'Active Athletes', value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
           { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
-          { label: 'Collected This Month', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+          // Label shortened from "Collected This Month" → "Collected MTD"
+          // so the cyan title strip matches the height of the other 3
+          // KPI tiles (the long form wrapped to two lines on common
+          // viewport widths). MTD = month-to-date, finance standard.
+          { label: 'Collected MTD', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
         ].map((s, i) => {
           const refined = isRefined5b();
           return (
@@ -261,6 +316,23 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           );
         })}
       </div>
+
+      {/* F-36 — Revenue detail card. Slots between KPI tiles and alert
+          cards so the eye-track money → at-risk → leads scan works.
+          Six secondary metrics (LTV, avg ticket, 30/90d collected,
+          outstanding, MRR) plus a 6-month bar chart. */}
+      <RevenueCard
+        monthlyRate={monthlyRate}
+        thisMonthPaid={thisMonthPaid}
+        revDelta={revDelta}
+        collected30={collected30}
+        collected90={collected90}
+        avgLtv={avgLtv}
+        avgTicket={avgTicket}
+        outstanding={outstanding}
+        monthBars={monthBars}
+        maxBar={maxBar}
+      />
 
       {/* Alert sections — Overdue + New Leads stack as one cell so leads
           sits directly beneath overdue (Ohad's eye-tracks money first, then
@@ -550,3 +622,114 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
     </div>
   );
 }
+
+// F-36 — RevenueCard. Six-metric grid + 6-month bar chart, slotted into
+// the dashboard between KPI tiles and alert cards. Designed to read at
+// a glance without an analytics tab.
+function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collected90, avgLtv, avgTicket, outstanding, monthBars, maxBar }) {
+  const refined = isRefined5b();
+  const PAD = 18;
+  const metricStyle = {
+    display: 'flex', flexDirection: 'column', gap: 2,
+    padding: '10px 14px',
+    border: `1px solid ${C.cardBd}`,
+    background: refined ? '#FFFFFF' : 'var(--c-sf)',
+  };
+  const labelStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 };
+  const numStyle = { fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em' };
+  const subStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', marginTop: 2 };
+
+  return (
+    <div style={{
+      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 20,
+      boxShadow: C.cardShadow,
+      // The outer card needs padding == RefinedHeaderStrip's padX/padY,
+      // because the strip uses negative margins to extend itself to the
+      // card edges. Zero padding here = strip pulled outside the visible
+      // card and "REVENUE" rendered off-canvas, invisible to the user.
+      padding: PAD,
+    }}>
+      <RefinedHeaderStrip padY={PAD} padX={PAD}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+            REVENUE
+          </span>
+          <span style={{ fontFamily: FN, fontSize: 10, color: refined ? 'rgba(255,255,255,0.75)' : 'var(--c-tm)', letterSpacing: '0.12em', fontWeight: 700 }}>
+            VAT-EXCL · 6 MO TREND
+          </span>
+        </div>
+      </RefinedHeaderStrip>
+
+      <div>
+        {/* Top row — 6 metric tiles. responsive auto-fit so it collapses
+            to 3 / 2 / 1 column at narrower viewports. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
+          <div style={metricStyle}>
+            <span style={labelStyle}>MRR (ACTIVE)</span>
+            <span style={numStyle}><span style={{ color: C.ac }}>₪</span>{Math.round(monthlyRate).toLocaleString()}</span>
+            <span style={subStyle}>recurring committed</span>
+          </div>
+          <div style={metricStyle}>
+            <span style={labelStyle}>30D COLLECTED</span>
+            <span style={numStyle}><span style={{ color: C.gn }}>₪</span>{Math.round(collected30).toLocaleString()}</span>
+            {revDelta !== null && (
+              <span style={{ ...subStyle, color: revDelta >= 0 ? C.gn : C.rd }}>
+                {revDelta >= 0 ? '+' : ''}{revDelta}% vs prev month
+              </span>
+            )}
+          </div>
+          <div style={metricStyle}>
+            <span style={labelStyle}>90D COLLECTED</span>
+            <span style={numStyle}><span style={{ color: C.gn }}>₪</span>{Math.round(collected90).toLocaleString()}</span>
+            <span style={subStyle}>trailing 3 months</span>
+          </div>
+          <div style={metricStyle}>
+            <span style={labelStyle}>OUTSTANDING</span>
+            <span style={{ ...numStyle, color: outstanding.amount > 0 ? C.or : C.tx }}>
+              <span style={{ color: outstanding.amount > 0 ? C.or : C.ac }}>₪</span>{Math.round(outstanding.amount).toLocaleString()}
+            </span>
+            <span style={subStyle}>{outstanding.count} pending Bit request{outstanding.count === 1 ? '' : 's'}</span>
+          </div>
+          <div style={metricStyle}>
+            <span style={labelStyle}>AVG LTV</span>
+            <span style={numStyle}><span style={{ color: C.ac }}>₪</span>{avgLtv.toLocaleString()}</span>
+            <span style={subStyle}>per paying client</span>
+          </div>
+          <div style={metricStyle}>
+            <span style={labelStyle}>AVG TICKET</span>
+            <span style={numStyle}><span style={{ color: C.ac }}>₪</span>{avgTicket.toLocaleString()}</span>
+            <span style={subStyle}>per payment row</span>
+          </div>
+        </div>
+
+        {/* 6-month bar chart — collected revenue per month. Pure SVG-
+            free implementation (just divs) so it stays under 2kb of
+            DOM and inherits theme colors. */}
+        <div>
+          <div style={{ ...labelStyle, marginBottom: 8 }}>LAST 6 MONTHS · COLLECTED</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'end', height: 90 }}>
+            {monthBars.map((b, i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 4, height: '100%' }}>
+                <div style={{
+                  flex: 1, display: 'flex', alignItems: 'flex-end',
+                }}>
+                  <div style={{
+                    width: '100%',
+                    height: `${Math.max(2, Math.round((b.value / maxBar) * 100))}%`,
+                    background: b.value > 0 ? C.ac : 'var(--c-cardBd)',
+                    transition: 'height 200ms',
+                  }} title={`${b.label} · ₪${Math.round(b.value).toLocaleString()}`} />
+                </div>
+                <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.08em', fontWeight: 700 }}>
+                  {b.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

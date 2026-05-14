@@ -53,6 +53,14 @@
 
   <link rel="stylesheet" href="/nord-fonts.css"/>
 
+  <!-- Heebo (Hebrew) — geometric sans matching Nord's character. Listed
+       as a fallback after Nord in the font stack so Hebrew glyphs (which
+       Nord doesn't ship) render in the same visual register as English
+       instead of falling through to a system serif. Google Fonts CDN. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap"/>
+
   <!-- Sitewide structured data — tells Google / WhatsApp this is a real
        brand with a specific operator + locale. Per-program Product schema
        is injected client-side from src/App.jsx on the /#/programs/<id>

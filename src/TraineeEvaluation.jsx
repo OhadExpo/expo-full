@@ -48,7 +48,19 @@ const renderScore = (test, value) => {
 // (no per-eval-date side-by-side, just this one's scores). Test names
 // get a wide column so labels never truncate.
 // ──────────────────────────────────────────────────────────────────────
-const SINGLE_GRID = '28px minmax(220px, 2fr) minmax(100px, 1fr) minmax(180px, 2fr)';
+// 4-column layout used by EVERY row + the column header + section
+// headers. Keeping a single template at the top means the # column,
+// test names, goal units, and scores all sit on the SAME X positions
+// row-to-row — fixes the alignment drift Ohad called out. Min widths
+// guarantee no column ever collapses to 0 when content is short.
+const SINGLE_GRID = '36px minmax(220px, 2.2fr) minmax(110px, 1fr) minmax(180px, 2fr)';
+const ROW_GAP = 12;
+const ROW_MIN_H = 30;       // unified row height so wrapped labels don't shift baselines
+const cellBase = {
+  display: 'flex', alignItems: 'center',
+  minHeight: ROW_MIN_H,
+  boxSizing: 'border-box',
+};
 
 function SingleEvalRow({ index, test, evaluation }) {
   const v = evaluation.scores?.[test.id];
@@ -57,13 +69,14 @@ function SingleEvalRow({ index, test, evaluation }) {
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: SINGLE_GRID,
-      gap: 12, padding: '8px 0', alignItems: 'center',
+      gap: ROW_GAP, padding: '4px 0',
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
-      <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
-      <div style={{ fontSize: 12, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
-      <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3 }}>{test.goal || '—'}</div>
+      <div style={{ ...cellBase, justifyContent: 'center', fontFamily: FN, fontSize: 10, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
+      <div style={{ ...cellBase, fontSize: 12, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
+      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', textAlign: 'right' }}>{test.goal || '—'}</div>
       <div style={{
+        ...cellBase,
         fontFamily: FN, fontSize: 12,
         color: filled ? 'var(--c-tx)' : 'var(--c-td)',
         fontWeight: filled ? 700 : 400,
@@ -79,17 +92,56 @@ function SingleRomRow({ joint, axis, evaluation }) {
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: SINGLE_GRID,
-      gap: 12, padding: '5px 0', alignItems: 'center',
+      gap: ROW_GAP, padding: '2px 0',
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
-      <div></div>
-      <div style={{ fontSize: 11, color: 'var(--c-tm)', paddingLeft: 18 }}>{axis}</div>
-      <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-td)', letterSpacing: '0.04em' }}>degrees</div>
+      <div style={{ ...cellBase }} />
+      <div style={{ ...cellBase, fontSize: 11, color: 'var(--c-tm)', paddingLeft: 18 }}>{axis}</div>
+      <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 10, color: 'var(--c-td)', letterSpacing: '0.04em', textAlign: 'right' }}>degrees</div>
       <div style={{
+        ...cellBase,
         fontFamily: FN, fontSize: 12,
         color: val ? 'var(--c-tx)' : 'var(--c-td)',
         fontWeight: val ? 700 : 400,
       }}>{val || '—'}</div>
+    </div>
+  );
+}
+
+// Section header — rendered as a single-column row aligned to the TEST
+// column position via the shared grid template. Without this, the
+// section title sat above the # column, not above the test names.
+function SectionHeader({ title }) {
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: SINGLE_GRID,
+      gap: ROW_GAP, marginTop: 10, marginBottom: 4,
+    }}>
+      <div />
+      <div style={{
+        gridColumn: '2 / -1',
+        fontFamily: FN, fontSize: 10, color: 'var(--c-ac)',
+        letterSpacing: '0.2em', fontWeight: 700,
+        paddingBottom: 4, borderBottom: `1px solid var(--c-ac)`,
+      }}>{title.toUpperCase()}</div>
+    </div>
+  );
+}
+
+// Joint sub-header — same alignment scheme as SectionHeader, but
+// lower visual weight (no border, no cyan).
+function JointHeader({ label }) {
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: SINGLE_GRID,
+      gap: ROW_GAP, marginTop: 8, marginBottom: 2,
+    }}>
+      <div />
+      <div style={{
+        gridColumn: '2 / -1',
+        fontFamily: FN, fontSize: 11, color: 'var(--c-tx)',
+        fontWeight: 700, letterSpacing: '0.04em',
+      }}>{label}</div>
     </div>
   );
 }
@@ -137,43 +189,35 @@ function EvalListRow({ evaluation, onOpenEditor }) {
       {/* Expanded full eval — single-column layout, every section + ROM */}
       {open && (
         <div style={{ padding: '0 14px 14px', borderTop: `1px solid var(--c-cardBd)`, overflowX: 'auto' }}>
-          {/* Column header (shared template with the rows) */}
+          {/* Column header — same template as the rows so the labels
+              sit exactly above each column's content. Right-aligned
+              GOAL header matches the right-aligned goal cells below. */}
           <div style={{
-            display: 'grid', gridTemplateColumns: SINGLE_GRID, gap: 12,
-            padding: '10px 0 6px', borderBottom: `2px solid var(--c-ac)`, marginBottom: 6,
+            display: 'grid', gridTemplateColumns: SINGLE_GRID, gap: ROW_GAP,
+            padding: '8px 0 6px', borderBottom: `2px solid var(--c-ac)`, marginBottom: 4,
           }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>#</div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>TEST</div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>GOAL</div>
-            <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>SCORE</div>
+            <div style={{ ...cellBase, justifyContent: 'center', fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>#</div>
+            <div style={{ ...cellBase, fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>TEST</div>
+            <div style={{ ...cellBase, justifyContent: 'flex-end', fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, textAlign: 'right' }}>GOAL</div>
+            <div style={{ ...cellBase, fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 }}>SCORE</div>
           </div>
 
           {EVAL_SCHEMA.sections.map(s => (
-            <div key={s.id} style={{ marginBottom: 16 }}>
-              <div style={{
-                fontFamily: FN, fontSize: 10, color: 'var(--c-ac)', letterSpacing: '0.2em',
-                fontWeight: 700, marginTop: 6, marginBottom: 4, paddingBottom: 4,
-                borderBottom: `1px solid var(--c-ac)`,
-              }}>{s.title.toUpperCase()}</div>
+            <div key={s.id} style={{ marginBottom: 12 }}>
+              <SectionHeader title={s.title} />
               {s.tests.map((t, ti) => (
                 <SingleEvalRow key={t.id} index={ti + 1} test={t} evaluation={evaluation} />
               ))}
             </div>
           ))}
 
-          {/* ROM block */}
-          <div style={{ marginBottom: 14 }}>
-            <div style={{
-              fontFamily: FN, fontSize: 10, color: 'var(--c-ac)', letterSpacing: '0.2em',
-              fontWeight: 700, marginTop: 6, marginBottom: 4, paddingBottom: 4,
-              borderBottom: `1px solid var(--c-ac)`,
-            }}>{EVAL_SCHEMA.rom.title.toUpperCase()}</div>
+          {/* ROM block — same grid template, joint sub-headers align with
+              the TEST column so the eye reads them as a sub-group. */}
+          <div style={{ marginBottom: 12 }}>
+            <SectionHeader title={EVAL_SCHEMA.rom.title} />
             {EVAL_SCHEMA.rom.joints.map(j => (
               <div key={j.id}>
-                <div style={{
-                  fontFamily: FN, fontSize: 11, color: 'var(--c-tx)', fontWeight: 700,
-                  marginTop: 10, marginBottom: 4, letterSpacing: '0.04em',
-                }}>{j.label}</div>
+                <JointHeader label={j.label} />
                 {j.axes.map(ax => <SingleRomRow key={ax} joint={j} axis={ax} evaluation={evaluation} />)}
               </div>
             ))}

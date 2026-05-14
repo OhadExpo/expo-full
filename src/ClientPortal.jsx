@@ -3,6 +3,8 @@ import useAutosave from './hooks/useAutosave';
 import { C, FN, FB, FH, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
 import BugReportButton from './BugReportButton';
+import CoachMessagesAthlete from './CoachMessages';
+import AthleteChallengesWidget from './AthleteChallengesWidget';
 import { EX } from './exerciseData';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { PasswordChangeModal } from './auth';
@@ -12,6 +14,10 @@ import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscrib
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
 import { toast, confirmToast } from './ui';
+// F-14 — meal photo → macros logger. Lazy-loaded since most athletes
+// won't open it on every page load (and it pulls in the meals query).
+const MealLogger = React.lazy(() => import('./MealLogger'));
+const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
 
 // Feature gate for the swap-exercise UI. Substitution is ONLY for trainees on
 // expo-il template-purchased plans — Ohad's manually-coached private clients
@@ -178,6 +184,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // prescribed plan is never mutated — substitution lives only in this state.
   const [substitutions, setSubstitutions] = useState(_restoredSession?.substitutions || {});
   const [swapOpenForEid, setSwapOpenForEid] = useState(null);
+  // F-31 — open the LiveRepCounter for a specific exercise. eid is the
+  // unique exercise instance in the day. The counter is lazy-imported
+  // because MediaPipe vision_bundle is ~140KB.
+  const [liveCountForEid, setLiveCountForEid] = useState(null);
 
   // Group consecutive exercises sharing the same superset letter.
   // groups[i] = { exIdxs: [0,1,...], superset: 'A' | '' }
@@ -1006,7 +1016,27 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           onClose={() => setSwapOpenForEid(null)}
         />
       )}
+      {/* F-31 — Live rep counter modal. Opens the camera + pose
+          tracker; voice-trigger "start" begins counting. Closes
+          fullscreen so the athlete sees nothing but the count + skeleton. */}
+      {liveCountForEid === ex.eid && (
+        <React.Suspense fallback={null}>
+          <LiveRepCounter
+            exerciseTitle={d.t}
+            targetReps={typeof repsForDisplay === 'number' ? repsForDisplay : null}
+            onClose={() => setLiveCountForEid(null)} />
+        </React.Suspense>
+      )}
       <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
+      {/* F-31 — Live count entry button. Lightweight pill, sits below
+          the prescription line. Always available — pose model only
+          loads on tap. */}
+      <div style={{textAlign:'center',marginTop:6}}>
+        <button onClick={() => setLiveCountForEid(ex.eid)} title="Live rep counter — camera + voice trigger"
+          style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,letterSpacing:'0.12em',fontWeight:700,padding:'4px 10px',cursor:'pointer',borderRadius:0}}>
+          🎯 LIVE COUNT
+        </button>
+      </div>
       {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
 
       {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
@@ -1420,7 +1450,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
     for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
     if (!targetPlan) { setLg(null); return null; }
-    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={isTemplatePlan(targetPlan)}/>; }
+    // F-25 — substitution is available on EVERY plan (full version).
+    // Earlier the swap UI was gated to isTemplatePlan(plan) so Ohad's
+    // hand-coached clients couldn't accidentally swap mid-session. With
+    // proper coach insight into substitutions via workout logs, the gate
+    // is no longer needed and trainees can adapt to a busy gym freely.
+    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
@@ -1704,6 +1739,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{fontSize:9,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.12em',textTransform:'uppercase'}}>View in History →</div>
           </div>
         </div>}
+        {!demoMode && ci && <AthleteChallengesWidget clientId={ci} clientWorkouts={clientWorkouts} bwLog={bwLog} traineesById={Object.fromEntries((trainees||[]).map(t=>[t.id,t]))} />}
+        {!demoMode && ci && <CoachMessagesAthlete traineeId={ci} role="athlete" />}
+        {/* F-14 — meal log; lazy-loaded so the React.Suspense fallback is
+            an invisible no-op until the chunk hits cache. */}
+        {!demoMode && ci && <React.Suspense fallback={null}><MealLogger clientId={ci} /></React.Suspense>}
         {plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:14,marginBottom:14}}>
           <div style={{fontSize:11,color:C.rd||'#ff6b6b',fontWeight:700,fontFamily:FN,letterSpacing:'0.1em',marginBottom:6,textTransform:'uppercase'}}>Couldn't load programs</div>
           <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{plansLoadError}</div>

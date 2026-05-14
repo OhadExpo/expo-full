@@ -13,7 +13,8 @@ import { C, FN, FB, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
-import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask } from './autoTasks';
+import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
+import { AutoTaskExplainModal } from './components/AutoTaskExplain';
 import { normalizePhoneIL } from './whatsappButton';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -74,6 +75,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
   const kindLabel = n.auto_kind ? (AUTO_KIND_LABEL[n.auto_kind] || 'AUTO') : null;
   const targetIcon = TARGET_ICON[n.target_kind] || '·';
   const targetLabel = TARGET_LABEL[n.target_kind] || 'NOTE';
+  const [showExplain, setShowExplain] = useState(false);
   return (
     <div style={{
       background: 'var(--c-sf)',
@@ -86,45 +88,67 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
       {/* Header row — auto-kind pill + target + timestamp, then × on
           the far right so the destructive control sits where you'd
           expect to dismiss a card. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+      {/* Row 1 — trainee NAME first + big. The screenshot test made it
+          obvious that scanning a long task list, "WHO IS THIS ABOUT"
+          is the first question, not "what kind of task". Name leads,
+          everything else is meta. Falls back to a target-kind chip when
+          no trainee is linked (general / intake / review tasks). */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
         <input type="checkbox" checked={false} onChange={onToggleDone}
           title="Mark done"
-          style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
+          style={{ width: 16, height: 16, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
         <button onClick={onTogglePin} title={n.pinned ? 'Unpin' : 'Pin'}
           style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12,
             padding: 0, flexShrink: 0,
           }}>{n.pinned ? '📌' : '○'}</button>
-        {kindLabel && (
-          <span title={`Auto-generated: ${kindLabel}`}
-            style={{
-              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-              color: TONE_COLOR[tone], border: `1px solid ${TONE_COLOR[tone]}`,
-              padding: '2px 8px',
-            }}>⚙ {kindLabel}</span>
-        )}
-        {!kindLabel && (
+        {n.target_label ? (
           <span style={{
-            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-            color: 'var(--c-td)', border: `1px solid var(--c-cardBd)`,
-            padding: '2px 8px',
-          }}>{targetIcon} {targetLabel}</span>
-        )}
-        {n.target_label && (
-          <span style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-ac)', letterSpacing: '0.04em', fontWeight: 700 }}>
+            fontFamily: FN, fontSize: 15, color: 'var(--c-ac)',
+            letterSpacing: '0.02em', fontWeight: 800, textTransform: 'uppercase',
+            flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }} title={n.target_label}>
             {n.target_label}
           </span>
+        ) : (
+          <span style={{
+            fontFamily: FN, fontSize: 13, color: 'var(--c-tx)',
+            letterSpacing: '0.04em', fontWeight: 700, flex: 1, minWidth: 0,
+          }}>
+            {targetIcon} {targetLabel}
+          </span>
         )}
-        <span style={{ flex: 1 }} />
-        <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
-          {new Date(n.created_at).toLocaleString()}
-        </span>
         <button onClick={onRemove} title="Remove"
           style={{
             background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer',
             fontSize: 14, padding: '0 4px', flexShrink: 0,
           }}>×</button>
+      </div>
+
+      {/* Row 2 — meta strip: auto-kind pill + ⓘ + timestamp. Smaller,
+          de-emphasized — the name is the headline, this is the byline. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+        {kindLabel && (
+          <>
+            <span title={`Auto-generated: ${kindLabel}`}
+              style={{
+                fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+                color: TONE_COLOR[tone], border: `1px solid ${TONE_COLOR[tone]}`,
+                padding: '2px 8px',
+              }}>⚙ {kindLabel}</span>
+            <button onClick={() => setShowExplain(true)} title="Why is this task here?"
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                color: TONE_COLOR[tone], fontSize: 13, padding: '0 2px',
+                lineHeight: 1, flexShrink: 0, fontWeight: 700,
+              }}>ⓘ</button>
+          </>
+        )}
+        <span style={{ flex: 1 }} />
+        <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
+          {new Date(n.created_at).toLocaleString()}
+        </span>
       </div>
 
       {/* Body — task description. Edit mode shows the textarea. */}
@@ -143,21 +167,41 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             fontFamily: isHebrew(editBody) ? FH : FB,
           }} />
       ) : (
-        <div style={{
+        // dir="auto" — let the browser's bidi algorithm flow mixed
+        // HE/EN sentences (auto-task bodies often embed Hebrew names
+        // in English prose). Computed `direction` flipped the entire
+        // line when one Hebrew char appeared.
+        <div dir="auto" style={{
           fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.5, whiteSpace: 'pre-wrap',
           marginBottom: actionButton || allowEdit ? 10 : 0,
-          direction: heb ? 'rtl' : 'ltr',
-          fontFamily: heb ? FH : FB,
+          // FB (Nord-first with Heebo fallback) for BOTH Hebrew and English
+          // bodies so the type renders with the same sharp Nord weight
+          // as the action pills (REVIEW / NEW PROGRAM) and label strips —
+          // no more Hebrew-Heebo / English-Nord mismatch inside a card.
+          fontFamily: FB,
         }}>{n.body}</div>
       )}
 
-      {/* Footer — contextual action + edit (when allowed). The ✕
-          delete already lives on the header row so a long body keeps
-          its destructive control above the fold. */}
+      {/* F-35 — tag chips. Read-only on the card; the composer is
+          where they get added/edited. Click-through could be added if
+          we expose a per-card "search by this tag" hook later. */}
+      {Array.isArray(n.tags) && n.tags.length > 0 && !isEditing && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: actionButton || allowEdit ? 8 : 0 }}>
+          {n.tags.map(t => (
+            <span key={t} style={{
+              fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.08em', fontWeight: 700,
+              border: `1px solid var(--c-cardBd)`, padding: '1px 7px',
+            }}>#{t}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Footer — EDIT on bottom-left, contextual action on
+          bottom-right. space-between fully separates them so the
+          two controls never visually collide. */}
       {(actionButton || (allowEdit && !isEditing)) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-          {actionButton}
-          {allowEdit && !isEditing && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          {allowEdit && !isEditing ? (
             <button onClick={onStartEdit} title="Edit task"
               style={{
                 background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
@@ -165,8 +209,13 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
                 fontFamily: FN, fontWeight: 700, letterSpacing: '0.12em', height: 26,
                 display: 'inline-flex', alignItems: 'center',
               }}>✏️ EDIT</button>
-          )}
+          ) : <span />}
+          {actionButton || <span />}
         </div>
+      )}
+
+      {showExplain && (
+        <AutoTaskExplainModal note={n} trainee={trainee} accent={TONE_COLOR[tone] || 'var(--c-ac)'} onClose={() => setShowExplain(false)} />
       )}
     </div>
   );
@@ -235,10 +284,28 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
   const [adding, setAdding] = useState(false);
   const [body, setBody] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
   const [linkTraineeId, setLinkTraineeId] = useState('');
   const [filter, setFilter] = useState('all');
   const [editingId, setEditingId] = useState(null);
   const [editBody, setEditBody] = useState('');
+  // F-35 — search box across body + tags. Empty string = no filter.
+  const [search, setSearch] = useState('');
+
+  // Parse #tag1 #tag2 OR comma-separated lists. Returns normalized
+  // lowercase strings, deduped.
+  const parseTags = (s) => {
+    if (!s) return [];
+    const out = [];
+    const seen = new Set();
+    String(s).split(/[\s,#]+/).forEach(raw => {
+      const t = raw.trim().toLowerCase();
+      if (!t || seen.has(t)) return;
+      seen.add(t);
+      out.push(t);
+    });
+    return out;
+  };
 
   const startEdit = (n) => { setEditingId(n.id); setEditBody(n.body); };
   const cancelEdit = () => { setEditingId(null); setEditBody(''); };
@@ -256,7 +323,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
     // Suppress the imminent blur-fired flush — the explicit SAVE/Enter
     // already creates the row. Both firing produces a duplicate.
     draft.suppressNext();
-    setBody(''); setLinkTraineeId(''); setAdding(false);
+    const tags = parseTags(tagsInput);
+    setBody(''); setTagsInput(''); setLinkTraineeId(''); setAdding(false);
     if (linkTraineeId) {
       const t = trainees.find(x => x.id === linkTraineeId);
       await create({
@@ -264,9 +332,10 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
         targetKind: 'trainee',
         targetId: linkTraineeId,
         targetLabel: t?.name || null,
+        tags,
       });
     } else {
-      await create({ body: b, targetKind: 'general' });
+      await create({ body: b, targetKind: 'general', tags });
     }
   };
 
@@ -285,10 +354,33 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   });
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return rows;
-    if (filter === 'general') return rows.filter(r => !r.target_kind || r.target_kind === 'general');
-    return rows.filter(r => r.target_kind === filter);
-  }, [rows, filter]);
+    let base = rows;
+    if (filter !== 'all') {
+      base = filter === 'general'
+        ? base.filter(r => !r.target_kind || r.target_kind === 'general')
+        : base.filter(r => r.target_kind === filter);
+    }
+    // F-35 — knowledge-base search. A leading '#' is a tag-only query;
+    // bare text matches body OR tag.
+    const q = search.trim().toLowerCase();
+    if (!q) return base;
+    const tagQuery = q.startsWith('#') ? q.slice(1) : null;
+    return base.filter(r => {
+      const tags = Array.isArray(r.tags) ? r.tags : [];
+      if (tagQuery) return tags.some(t => t === tagQuery || t.includes(tagQuery));
+      const inBody = (r.body || '').toLowerCase().includes(q);
+      const inTags = tags.some(t => t.includes(q));
+      const inTarget = (r.target_label || '').toLowerCase().includes(q);
+      return inBody || inTags || inTarget;
+    });
+  }, [rows, filter, search]);
+
+  // All known tags — for autocomplete + tag-cloud chips above the list.
+  const allTags = useMemo(() => {
+    const set = new Set();
+    rows.forEach(r => (r.tags || []).forEach(t => set.add(t)));
+    return Array.from(set).sort();
+  }, [rows]);
 
   // Pill counts reflect OPEN tasks only — "TASKS (3)" matching the visible
   // unchecked list reads correctly. The earlier counter included done
@@ -305,7 +397,13 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
 
   // Open tasks float to the top; done tasks pool at the bottom under a
   // collapsed "DONE" group. Pinned-open before unpinned-open.
-  const openRows = filtered.filter(r => r.status !== 'done');
+  //
+  // F-39 throttling: multiple WhatsApp-action auto-tasks for the same
+  // trainee collapse into ONE synthetic "needs outreach" card. The card
+  // carries the underlying rows in `__sources`, so mark-done fans out
+  // and closes every contributing row.
+  const openRowsRaw = filtered.filter(r => r.status !== 'done');
+  const openRows = throttleWhatsAppTasks(openRowsRaw);
   const doneRows = filtered.filter(r => r.status === 'done');
   const pinned = openRows.filter(r => r.pinned);
   const recent = openRows.filter(r => !r.pinned).slice(0, compact ? 3 : 10);
@@ -313,6 +411,19 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
     ? [...pinned, ...recent].slice(0, 5)
     : [...pinned, ...recent];
   const visibleDone = compact ? doneRows.slice(0, 2) : doneRows.slice(0, 20);
+
+  // Mark-done that respects the merged card. If the row is a
+  // synthetic "whatsapp_combined", close every underlying source.
+  const toggleDoneSmart = async (note) => {
+    const sources = note.__sources;
+    if (sources && sources.length > 1) {
+      for (const src of sources) {
+        if (src.status !== 'done') await toggleDone(src.id);
+      }
+      return;
+    }
+    await toggleDone(note.id);
+  };
 
   const startCreatePlan = (n) => {
     if (!onCreatePlanForTask || n.target_kind !== 'trainee' || !n.target_id) return;
@@ -371,6 +482,53 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
         </div>
       )}
 
+      {/* F-35 — knowledge-base search. Hidden in compact (dashboard
+          widget) mode; the full /coach/tasks view exposes the box. A
+          leading "#" scopes to tags; bare text searches body + tags +
+          target_label. */}
+      {!compact && (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
+          <input type="search" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder='Search notes / tags  (try "#rehab" or "shoulder")'
+            style={{
+              flex: 1, background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
+              borderRadius: 0, padding: '6px 10px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 11,
+              outline: 'none', boxSizing: 'border-box', letterSpacing: '0.04em',
+            }} />
+          {search && (
+            <button onClick={() => setSearch('')} title="Clear search"
+              style={{
+                padding: '6px 10px', background: 'transparent',
+                border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+                cursor: 'pointer', borderRadius: 0,
+              }}>CLEAR</button>
+          )}
+        </div>
+      )}
+
+      {/* Tag cloud — quick-click any known tag to filter. Hidden in
+          compact mode, and hidden when there are no tags yet so the
+          surface doesn't look empty/broken. */}
+      {!compact && allTags.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+          {allTags.slice(0, 16).map(t => {
+            const active = search.trim().toLowerCase().replace(/^#/, '') === t;
+            return (
+              <button key={t} onClick={() => setSearch(active ? '' : `#${t}`)}
+                style={{
+                  padding: '2px 8px', borderRadius: 0,
+                  border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+                  background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
+                  color: active ? 'var(--c-ac)' : 'var(--c-tm)',
+                  fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                  cursor: 'pointer',
+                }}>#{t}</button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Context filter pills — full view only; the compact Dashboard
           surface stays summary-only and routes to the full view via the
           OPEN FULL TASKS button at the bottom. */}
@@ -407,6 +565,16 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               outline: 'none', boxSizing: 'border-box', resize: 'vertical',
               direction: isHebrew(body) ? 'rtl' : 'ltr',
               fontFamily: isHebrew(body) ? FH : FB,
+            }} />
+          {/* F-35 — tags input. Space- or comma-separated keywords let
+              this note doubles as a knowledge-base entry (e.g. "#rehab
+              #shoulder" or "post-surgery, glute-bridge progression"). */}
+          <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)}
+            placeholder="#tags  (e.g. rehab, shoulder, post-surgery — saves with note)"
+            style={{
+              width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
+              borderRadius: 0, padding: '6px 10px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 11,
+              outline: 'none', boxSizing: 'border-box', marginTop: 6, letterSpacing: '0.04em',
             }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, gap: 8 }}>
             {trainees.length > 0 ? (
@@ -460,7 +628,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               onSaveEdit={saveEdit}
               onCancelEdit={cancelEdit}
               onStartEdit={() => startEdit(n)}
-              onToggleDone={() => toggleDone(n.id)}
+              onToggleDone={() => toggleDoneSmart(n)}
               onTogglePin={() => togglePin(n.id)}
               onRemove={() => remove(n.id)}
               actionButton={
@@ -502,7 +670,11 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   <div style={{
                     fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, whiteSpace: 'pre-wrap', textDecoration: 'line-through',
                     direction: heb ? 'rtl' : 'ltr',
-                    fontFamily: heb ? FH : FB,
+                    // FB (Nord-first with Heebo fallback) for BOTH Hebrew and English
+          // bodies so the type renders with the same sharp Nord weight
+          // as the action pills (REVIEW / NEW PROGRAM) and label strips —
+          // no more Hebrew-Heebo / English-Nord mismatch inside a card.
+          fontFamily: FB,
                   }}>{n.body}</div>
                   {n.linked_plan_id && (
                     <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-ac)', letterSpacing: '0.08em', marginTop: 2, fontWeight: 700 }}>
