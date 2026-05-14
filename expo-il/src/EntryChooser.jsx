@@ -20,8 +20,17 @@ import { useT, useLang, setLang } from './i18n';
 // surfaces. The chooser sends a visitor straight to one of these on
 // CTA click (target="_blank"). Updating either URL only requires a
 // single-edit here.
-export const GCAL_GYM = 'https://calendar.app.google/wDhdyNKLV9cVucaS7';
-export const GCAL_ONLINE = 'https://calendar.app.google/wNCYaWSFzyz44C9H6';
+//
+// IMPORTANT: these are the *canonical* calendar.google.com URLs, not
+// calendar.app.google short links. Short links refuse iframe embedding
+// (their redirect chain returns X-Frame-Options that block <iframe>),
+// which made the embedded calendar on the Gym + Online pages render
+// as Chrome's "This content is blocked" error. The canonical URLs
+// below were resolved from the short links via curl -L and DO permit
+// embedding. If you ever regenerate the schedulers, paste the
+// post-redirect URL here — not the share-sheet short link.
+export const GCAL_GYM = 'https://calendar.google.com/calendar/appointments/schedules/AcZssZ20Fi36rsE32wuwypV8krD2WvxeCaNEIRwpstQ6M1ZcJ3MND3VtOA5WH4VOCLAsRaF83pyb3MHq';
+export const GCAL_ONLINE = 'https://calendar.google.com/calendar/appointments/schedules/AcZssZ2UA5-kdYxVjIBm0SLFL8Ov2Gqfw5NtAzEUCdaXgEvsBwOT3b9ZcTV19tbWRRIoetnPX2N1W5HW';
 
 function trackAndOpen(event, payload) {
   try { track(event, payload || {}); } catch {}
