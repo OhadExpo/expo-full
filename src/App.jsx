@@ -84,6 +84,95 @@ const SwUpdateBanner = lazy(() => import('./SwUpdateBanner'));
 // 5 individual icons were creating right-side overflow on common
 // 1280-wide laptops and crowding the cyan strip visually. Active state
 // reflects when the current tab is one of the menu items.
+// SubmenuTab — generic dropdown tab. Used twice in the coach nav:
+//   • Athletes ▾  → Roster / Programs / Exercises
+//   • Incoming ▾  → Intake / Waitlist
+//
+// Two of the original 11 top-level tabs were pulled into each dropdown
+// (Programs+Exercises into Athletes; Intake+Waitlist into Incoming) so
+// the top row fits cleanly at 1366px viewport. The dropdown trigger
+// looks active whenever the current `tab` matches any of the inner
+// items' routes — so the user always knows which section they're in.
+//
+// data-submenu-id is set per instance so the document-level "click
+// outside to close" only closes the menu the click missed; clicking
+// from one open submenu directly onto another tab's trigger still
+// works as expected.
+function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen, countColor }) {
+  const [open, setOpen] = useState(false);
+  const btnRef = React.useRef(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const recalc = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r) return;
+      setCoords({ top: r.bottom + 4, left: r.left });
+    };
+    recalc();
+    window.addEventListener('resize', recalc);
+    window.addEventListener('scroll', recalc, true);
+    return () => { window.removeEventListener('resize', recalc); window.removeEventListener('scroll', recalc, true); };
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const selector = `[data-submenu-id="${id}"]`;
+    const onDoc = (e) => { if (!e.target.closest?.(selector)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
+  }, [open, id]);
+
+  // The trigger reads as "active" when the current tab is one of the
+  // submenu items' routes. Active styling mirrors the inline
+  // activeStyle prop the parent computes for every tab, so the
+  // submenu trigger and a plain tab look identical when selected.
+  const isSectionActive = items.some(it => tab === it.route);
+
+  return (
+    <div data-submenu-id={id} style={{ display: 'inline-flex', position: 'relative' }}>
+      <button ref={btnRef} onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className={isChosen && !isSectionActive ? 'nav-item-inactive' : undefined}
+        style={{ ...baseBtn, alignItems: 'baseline', borderRadius: 0, padding: '6px 10px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
+        <span>{label}</span>
+        {count != null && <span style={{ fontSize: 10, color: countColor, fontFamily: FN }}>{count}</span>}
+        <span style={{ marginLeft: 4, fontSize: 9, opacity: 0.7 }}>▾</span>
+      </button>
+      {open && (
+        <div style={{
+          position: 'fixed', top: coords.top, left: coords.left,
+          background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
+          minWidth: 180, zIndex: 100000,
+          boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+        }}>
+          {items.map(it => {
+            const isItemActive = tab === it.route;
+            return (
+              <button key={it.route} onClick={() => { setOpen(false); navTo(it.route); }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
+                  width: '100%', padding: '10px 14px',
+                  background: isItemActive ? C.acD : 'transparent',
+                  color: isItemActive ? C.ac : C.tx,
+                  border: 'none', borderBottom: `1px solid ${C.cardBd}`,
+                  fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+                  textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
+                }}
+                onMouseEnter={e => { if (!isItemActive) e.currentTarget.style.background = 'var(--c-sf2)'; }}
+                onMouseLeave={e => { if (!isItemActive) e.currentTarget.style.background = 'transparent'; }}>
+                <span>{it.label}</span>
+                {it.count != null && <span style={{ fontSize: 10, color: isItemActive ? C.ac : C.td, fontFamily: FN }}>{it.count}</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MoreMenu({ tab, navTo, onExport, onChangePassword }) {
   const [open, setOpen] = useState(false);
   // Position the popover as a top-layer floating element (position:fixed
@@ -589,7 +678,33 @@ function AuthedApp() {
   // Calendar was pulled 2026-05-14 — bookings now happen on
   // expo-il.co.il/#/gym via Google Calendar, so the coach-side settings
   // page is dead weight. URL still resolves for backwards-compat.
-  const tabs=[{key:"dashboard",label:"Dashboard",count:null},{key:"trainees",label:"Athletes",count:trainees.filter(t=>t.status!=='Archived').length},{key:"plans",label:"Programs",count:null},{key:"exercises",label:"Exercises",count:null},{key:"tasks",label:"Tasks",count:null},{key:"review",label:"Review",count:null},{key:"challenges",label:"Challenges",count:null},{key:"billing",label:"Billing",count:null},{key:"intake",label:"Intake",count:null},{key:"waitlist",label:"Waitlist",count:null},{key:"client",label:"Portal",count:null}];
+  // Top-level nav order (Ohad spec 2026-05-16):
+  // Tasks → Review → Billing first (daily triage), then Dashboard +
+  // Athletes ▾ + Challenges + Incoming ▾ + Portal. Two submenu tabs:
+  //   • Athletes ▾ groups Roster / Programs / Exercises
+  //   • Incoming ▾ groups Intake / Waitlist
+  // The row goes from 11 items down to 8 visible tabs, fitting at
+  // 1366px viewport without horizontal scroll.
+  const activeAthletesCount = trainees.filter(t=>t.status!=='Archived').length;
+  const tabs = [
+    { key:'tasks',      label:'Tasks',      count:null },
+    { key:'review',     label:'Review',     count:null },
+    { key:'billing',    label:'Billing',    count:null },
+    { key:'dashboard',  label:'Dashboard',  count:null },
+    { key:'trainees',   label:'Athletes',   count:activeAthletesCount,
+      submenu: [
+        { route:'trainees',  label:'Roster',    count:activeAthletesCount },
+        { route:'plans',     label:'Programs',  count:null },
+        { route:'exercises', label:'Exercises', count:null },
+      ] },
+    { key:'challenges', label:'Challenges', count:null },
+    { key:'intake',     label:'Incoming',   count:null,
+      submenu: [
+        { route:'intake',    label:'Intake',    count:null },
+        { route:'waitlist',  label:'Waitlist',  count:null },
+      ] },
+    { key:'client',     label:'Portal',     count:null },
+  ];
 
   // Pre-compute plan counts per trainee. Counts roll up to the parent ID:
   // a plan on tr_xxx__0 or __1 (couple sub-members) also increments tr_xxx so
@@ -696,11 +811,11 @@ function AuthedApp() {
                 (fontSize:11) instead of floating above it. See CoachDemo
                 line ~2755 for the full reasoning. */}
             {tabs.map(t=>{
-              const isActive=tab===t.key;
-              // theme=5 (chosen design): inactive nav text is plain BLACK,
-              // active item gets a cyan outlined box + cyan text + a thin
-              // black stroke on the cyan text (so the cyan reads cleanly
-              // against the white header without washing out).
+              // A tab with `submenu` becomes a dropdown trigger.
+              // Active-state for a submenu trigger fires when current
+              // tab is any of the items' routes.
+              const isSection = t.submenu && t.submenu.some(it => tab === it.route);
+              const isActive = t.submenu ? isSection : tab === t.key;
               const dataTheme=(typeof document!=='undefined'?document.documentElement.getAttribute('data-theme'):null);
               const isChosen=dataTheme==='5'||dataTheme==='5b'||dataTheme==='light';
               const CYAN='#39BDFF';
@@ -709,7 +824,16 @@ function AuthedApp() {
                 ?{background:isActive?CYAN:'transparent',border:'0.25px solid transparent',color:isActive?'#FFFFFF':BLACK,boxShadow:isActive?'0 1px 2px rgba(0,0,0,0.10), 0 4px 12px rgba(57,189,255,0.28)':'none'}
                 :{background:'transparent',border:`${isActive?'1px':'0.25px'} solid ${isActive?C.ac:'transparent'}`,color:isActive?C.ac:C.tm};
               const countColor=isChosen?(isActive?'rgba(255,255,255,0.78)':BLACK):(isActive?C.ac:C.td);
-              return(<button key={t.key} className={isChosen&&!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'baseline',borderRadius:0,padding:"6px 10px",fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
+              if (t.submenu) {
+                return (<SubmenuTab key={t.key} id={t.key}
+                  label={t.label} count={t.count} items={t.submenu}
+                  tab={tab} navTo={navTo}
+                  activeStyle={activeStyle} isChosen={isChosen} countColor={countColor} />);
+              }
+              // Plain tab. Typography tightened (fontSize 10 + letterSpacing
+              // 0.06em — was 11 / 0.18em) so the 8-item row clears 1366px
+              // viewport comfortably.
+              return(<button key={t.key} className={isChosen&&!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'baseline',borderRadius:0,padding:"6px 10px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
                 <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12,paddingLeft:12,borderLeft:`1px solid ${C.cardBd}`}}>
             <ThemeToggle size={32} style={{marginRight:4}}/>
