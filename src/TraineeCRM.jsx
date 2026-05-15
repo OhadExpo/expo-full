@@ -401,7 +401,9 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
         onCreatePlanForTask={onCreatePlanForTask}
         onOpenIntakeTab={onOpenIntakeTab}
       />
-      <CoachMessages traineeId={trainee.id} role="coach" />
+      {/* CoachMessages moved out of TraineeCRM 2026-05-16 — now lives
+          at top level in TraineeDetail as the dedicated MESSAGES section
+          (Ohad spec, between CRM and Workouts). */}
     </div>
   );
 }

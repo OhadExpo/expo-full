@@ -5,6 +5,7 @@ import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
+import MessagesCard from './MessagesCard';
 import { syncAutoTasks } from './autoTasks';
 
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
@@ -339,9 +340,12 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {/* Alert sections — Overdue + New Leads stack as one cell so leads
           sits directly beneath overdue (Ohad's eye-tracks money first, then
           the inbound funnel). Dormant + online + expiring fill remaining
-          tracks via auto-fit so the dashboard stays a single visual scan. */}
+          tracks via auto-fit so the dashboard stays a single visual scan.
+          MessagesCard sits in the same grid so unread athlete messages
+          surface alongside other "what needs attention?" tiles. */}
       {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20, alignItems: 'start' }}>
+          <MessagesCard trainees={trainees} onSelectTrainee={onSelectTrainee} />
           {onlineNow.length > 0 && (
             <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
               {isRefined5b() ? (

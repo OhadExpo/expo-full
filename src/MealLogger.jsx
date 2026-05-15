@@ -90,8 +90,18 @@ export default function MealLogger({ clientId }) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ photoUrl, hint }),
       });
-      const j = await r.json();
-      if (!r.ok || !j.ok) throw new Error(j.error || 'AI call failed.');
+      // The endpoint *should* always return JSON, but a Vercel runtime
+      // crash (timeout, OOM, cold-start failure) returns plaintext like
+      // "A server error has occurred". Read as text first so we don't
+      // explode the SyntaxError onto the user, then attempt parse.
+      const raw = await r.text();
+      let j;
+      try { j = JSON.parse(raw); }
+      catch {
+        const snippet = raw.replace(/\s+/g, ' ').slice(0, 140);
+        throw new Error(`Server error (${r.status})${snippet ? ` — ${snippet}` : ''}`);
+      }
+      if (!r.ok || !j.ok) throw new Error(j.error || `AI call failed (${r.status}).`);
       setMacros(j.macros);
     } catch (e) {
       setError(e.message || 'Could not analyze the photo.');
