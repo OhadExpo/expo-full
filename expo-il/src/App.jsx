@@ -2494,7 +2494,11 @@ function Footer() {
             {t('footer.copy.tmpl', { year: new Date().getFullYear() })}
           </span>
         </div>
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <a href="#/gym"
+            style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: 1, fontWeight: 700 }}>
+            {t('footer.gym')}
+          </a>
           <a href="https://expo-app.co.il" target="_blank" rel="noopener noreferrer"
             style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>
             {t('footer.portal')}
