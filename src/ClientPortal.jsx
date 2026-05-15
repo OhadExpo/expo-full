@@ -1134,24 +1134,34 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // Ghost row above each set: REPS/KG/RPE the trainee logged for
           // this same set index last week. Aligned to the input columns
           // so the eye lands on the prior value while typing the new one.
+          //
+          // Background uses cyan@6% so the box reads against BOTH the
+          // dark theme (rgba(255,255,255,0.5) was effectively invisible
+          // on white in the light theme shipped 2026-05-11 — the
+          // regression Ohad flagged: "had a version of it, disappeared").
+          // Cyan@6% is the brand-tinted token that survives any theme.
           const prior = prevWeekSets?.[si];
           const miniBox = {
-            padding:'3px 4px', background:'rgba(255,255,255,0.5)',
-            border:`1px dashed ${C.cardBd}`, borderRadius:0,
-            fontFamily:FN, fontSize:11, color:C.tx, textAlign:'center',
+            padding:'4px 4px', background:'rgba(57,189,255,0.08)',
+            border:`1px dashed var(--c-ac)`, borderRadius:0,
+            fontFamily:FN, fontSize:12, color:'var(--c-tx)', textAlign:'center',
             fontWeight:700, fontVariantNumeric:'tabular-nums',
+            lineHeight:1.2,
           };
           return <React.Fragment key={si}>
             {prior && <div style={{
               display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,
               alignItems:'center',marginBottom:3,marginTop:si===0?0:8,
-              opacity:0.5,
+              // Slight transparency reads "this is a reference, not the
+              // primary input row" without making numbers unreadable.
+              // 0.5 was too faint against the cyan accent boxes.
+              opacity:0.78,
             }}>
-              <div style={{fontFamily:FN,fontSize:9,color:C.ac,textAlign:'center',letterSpacing:'0.08em',fontWeight:800,fontVariantNumeric:'tabular-nums'}}>W{prevWeekIdx}</div>
+              <div style={{fontFamily:FN,fontSize:10,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.12em',fontWeight:800,fontVariantNumeric:'tabular-nums'}}>W{prevWeekIdx}</div>
               <div style={miniBox}>{prior.reps || '—'}</div>
-              <div style={miniBox}>{parseFloat(prior.load)}</div>
+              <div style={miniBox}>{parseFloat(prior.load) || '—'}</div>
               <div style={miniBox}>{prior.rpe || '—'}</div>
-              <div style={{fontFamily:FN,fontSize:9,color:C.ac,textAlign:'center',letterSpacing:'0.08em',fontWeight:800}}>NOW↓</div>
+              <div style={{fontFamily:FN,fontSize:10,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.06em',fontWeight:800}}>↓</div>
             </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
