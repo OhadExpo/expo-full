@@ -1167,7 +1167,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           return <React.Fragment key={si}>
             {showGhost && <div style={{
               display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,
-              alignItems:'center',marginBottom:4,marginTop:si===0?0:8,
+              // marginBottom 0 — ghost W1 row sits flush against its
+              // live W2 row directly below, reading as a stacked
+              // pair within one set. marginTop 8 between sets keeps
+              // the visual separation between distinct set groups.
+              alignItems:'center',marginBottom:0,marginTop:si===0?0:8,
               opacity:0.5,
             }}>
               <div style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
