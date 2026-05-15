@@ -849,11 +849,11 @@ function AuthedApp() {
               dividers now. */}
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
             <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.7,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.3,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <ThemeToggle size={32} />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.7,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.3,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
-            <span style={{width:1,height:22,background:C.ac,opacity:0.7,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
+            <span style={{width:1,height:22,background:C.ac,opacity:0.3,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
