@@ -690,10 +690,9 @@ function AuthedApp() {
   // The row goes from 11 items down to 8 visible tabs, fitting at
   // 1366px viewport without horizontal scroll.
   const activeAthletesCount = trainees.filter(t=>t.status!=='Archived').length;
+  // Ohad spec 2026-05-16:
+  //   Dashboard › Athletes › Tasks › Review › Billing › Incoming › Challenges › Portal
   const tabs = [
-    { key:'tasks',      label:'Tasks',      count:null },
-    { key:'review',     label:'Review',     count:null },
-    { key:'billing',    label:'Billing',    count:null },
     { key:'dashboard',  label:'Dashboard',  count:null },
     { key:'trainees',   label:'Athletes',   count:activeAthletesCount,
       submenu: [
@@ -701,12 +700,15 @@ function AuthedApp() {
         { route:'plans',     label:'Programs',  count:null },
         { route:'exercises', label:'Exercises', count:null },
       ] },
-    { key:'challenges', label:'Challenges', count:null },
+    { key:'tasks',      label:'Tasks',      count:null },
+    { key:'review',     label:'Review',     count:null },
+    { key:'billing',    label:'Billing',    count:null },
     { key:'intake',     label:'Incoming',   count:null,
       submenu: [
         { route:'intake',    label:'Intake',    count:null },
         { route:'waitlist',  label:'Waitlist',  count:null },
       ] },
+    { key:'challenges', label:'Challenges', count:null },
     { key:'client',     label:'Portal',     count:null },
   ];
 
