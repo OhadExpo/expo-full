@@ -23,6 +23,13 @@ import { traineeIdsFor } from './traineeUtils';
 // ─────────────────────────────────────────────────────────────────────
 const DAY_MS = 86400000;
 
+// Wrap a value in Unicode FSI (U+2068) ... PDI (U+2069) so the browser's
+// bidi algorithm treats it as an isolated unit. Hebrew names embedded in
+// English task bodies otherwise pull neighboring numbers/punctuation into
+// their RTL run, scrambling output like "CHASE PAYMENT FROM <heb> · 4850
+// SINCE SIGNUP" on the dashboard. The isolate chars are invisible.
+const bidi = (v) => `⁨${v == null ? '' : String(v)}⁩`;
+
 const daysAgo = (iso) => {
   if (!iso) return Infinity;
   return Math.floor((Date.now() - new Date(iso).getTime()) / DAY_MS);
@@ -105,7 +112,7 @@ const ruleNextBlockDue = {
       if (!milestoneHit) continue;
       out.push({
         ref: current.id,
-        body: `Build ${nextBlockName(current.name)} for ${t.name}`,
+        body: `Build ${bidi(nextBlockName(current.name))} for ${bidi(t.name)}`,
         target_id: t.id,
         target_label: t.name,
       });
@@ -158,7 +165,7 @@ const ruleWeekMissed = {
       if (nextWeek > weeks) continue; // Block already over — handled by next_block_due
       out.push({
         ref: `${currentBlock.id}|w${nextWeek}`,
-        body: `Call ${t.name} — skipped W${nextWeek} of ${currentBlock.name}`,
+        body: `Call ${bidi(t.name)} — skipped W${nextWeek} of ${bidi(currentBlock.name)}`,
         target_id: t.id,
         target_label: t.name,
         pinned: true, // safety/retention signal — float to top
@@ -231,7 +238,7 @@ const ruleAtRiskSilent = {
                                               : `${latestActivityAgo}d no contact`;
       out.push({
         ref: t.id,
-        body: `Reach out to ${t.name} — ${wkLabel}, ${acLabel}`,
+        body: `Reach out to ${bidi(t.name)} — ${wkLabel}, ${acLabel}`,
         target_id: t.id,
         target_label: t.name,
       });
@@ -288,7 +295,7 @@ const ruleFormVideoPending = {
       const label = `${unreviewed} form video${unreviewed === 1 ? '' : 's'}`;
       out.push({
         ref: w.id,
-        body: `Review ${unreviewed} form video${unreviewed === 1 ? '' : 's'} from ${t.name} · W${w.week} ${w.dayName}`,
+        body: `Review ${unreviewed} form video${unreviewed === 1 ? '' : 's'} from ${bidi(t.name)} · W${w.week} ${bidi(w.dayName)}`,
         target_id: t.id,
         target_label: t.name,
       });
@@ -325,7 +332,7 @@ const ruleNewIntakePending = {
       .filter(s => !s.reviewed_at)
       .map(s => ({
         ref: s.id,
-        body: `Onboard ${s.name || s.email || 'new intake'}`,
+        body: `Onboard ${bidi(s.name || s.email || 'new intake')}`,
         target_id: s.trainee_id || s.id,
         target_label: s.name || null,
         // INTAKE filter pill expects target_kind === 'intake'. Without this
@@ -362,7 +369,7 @@ const rulePaymentOverdue = {
         if (since >= 21) {
           out.push({
             ref: t.id,
-            body: `Chase payment from ${t.name} · never paid · ${since}d since signup${monthly ? ` · ₪${monthly}/mo` : ''}`,
+            body: `Chase payment from ${bidi(t.name)} · never paid · ${since}d since signup${monthly ? ` · ₪${monthly}/mo` : ''}`,
             target_id: t.id,
             target_label: t.name,
           });
@@ -379,7 +386,7 @@ const rulePaymentOverdue = {
         const amount = monthly || latest.amount || 0;
         out.push({
           ref: t.id,
-          body: `Chase payment from ${t.name} · last paid ${since}d ago${amount ? ` · ₪${amount} due` : ''}`,
+          body: `Chase payment from ${bidi(t.name)} · last paid ${since}d ago${amount ? ` · ₪${amount} due` : ''}`,
           target_id: t.id,
           target_label: t.name,
         });
@@ -429,7 +436,7 @@ const ruleEvalDueFirstSession = {
       if (hasEval) continue;
       out.push({
         ref: t.id,
-        body: `Run athletic eval on ${t.name} · first-session baseline`,
+        body: `Run athletic eval on ${bidi(t.name)} · first-session baseline`,
         target_id: t.id,
         target_label: t.name,
       });
@@ -647,7 +654,7 @@ export function throttleWhatsAppTasks(rows) {
       // Body becomes a combined summary. Preserve newest timestamp +
       // strongest pin so the merged card floats correctly.
       const sources = seed.__sources;
-      seed.body = `Reach out to ${seed.target_label || 'trainee'} · ${sources.length} reasons:\n` +
+      seed.body = `Reach out to ${bidi(seed.target_label || 'trainee')} · ${sources.length} reasons:\n` +
         sources.map(s => `• ${AUTO_KIND_LABEL[s.auto_kind] || s.auto_kind}`).join('\n');
       seed.pinned = seed.pinned || r.pinned;
       seed.auto_kind = 'whatsapp_combined';
