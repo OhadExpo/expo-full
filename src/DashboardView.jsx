@@ -270,23 +270,6 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
 
   return (
     <div>
-      {/* TASKS — first card on the dashboard. Compact summary; click OPEN
-          FULL TASKS to jump to /coach/tasks for the full filter view. */}
-      <div style={{ marginBottom: 14 }}>
-        <NotesWidget compact
-          trainees={trainees}
-          onOpenFullTasks={onOpenTasksTab}
-          onCreatePlanForTask={onCreatePlanForTask}
-          onOpenIntakeTab={onOpenIntakeTab}
-          onNavigate={(kind, id) => {
-            if (kind === 'trainee') onSelectTrainee?.(id);
-            else if (kind === 'review' && id) {
-              try { sessionStorage.setItem('expo-pendingReviewWorkout', id); } catch {}
-              onOpenReviewWorkout?.(id);
-            }
-          }} />
-      </div>
-
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
@@ -333,6 +316,25 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         monthBars={monthBars}
         maxBar={maxBar}
       />
+
+      {/* TASKS — moved 2026-05-16 to sit beneath Revenue. The KPI
+          tiles + Revenue card form the "where is the business at?"
+          glance; Tasks is the "what do I do next?" surface that
+          follows. */}
+      <div style={{ marginTop: 14, marginBottom: 14 }}>
+        <NotesWidget compact
+          trainees={trainees}
+          onOpenFullTasks={onOpenTasksTab}
+          onCreatePlanForTask={onCreatePlanForTask}
+          onOpenIntakeTab={onOpenIntakeTab}
+          onNavigate={(kind, id) => {
+            if (kind === 'trainee') onSelectTrainee?.(id);
+            else if (kind === 'review' && id) {
+              try { sessionStorage.setItem('expo-pendingReviewWorkout', id); } catch {}
+              onOpenReviewWorkout?.(id);
+            }
+          }} />
+      </div>
 
       {/* Alert sections — Overdue + New Leads stack as one cell so leads
           sits directly beneath overdue (Ohad's eye-tracks money first, then
