@@ -469,10 +469,16 @@ function Hero({ onOpenQuiz }) {
         ))}
       </div>
 
+      {/* Two primary CTAs only — BROWSE (primary) + TRY THE PLATFORM
+          (secondary). QUIZ + HOW IT WORKS demoted to a single anchor row
+          below so the eye doesn't have to triage five choices at once.
+          Email-capture moved to the page-bottom notify section (it
+          already exists there) so the hero stays focused on
+          buy-or-explore. */}
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
         <a href="#programs" style={{
           ...baseBtn,
-          background: C.ac, color: '#000', padding: '12px 24px',
+          background: C.ac, color: '#000', padding: '14px 28px',
           fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
         }}>
           {t('hero.cta.browse')}
@@ -483,34 +489,31 @@ function Hero({ onOpenQuiz }) {
            style={{
              ...baseBtn,
              background: 'transparent', color: C.ac,
-             border: `1px solid ${C.ac}`, padding: '12px 24px',
+             border: `1px solid ${C.ac}`, padding: '14px 28px',
              fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
              textDecoration: 'none',
            }}>
           {t('hero.cta.try')}
         </a>
-        <button onClick={onOpenQuiz} style={{
-          ...baseBtn,
-          background: 'transparent', color: C.tx,
-          border: `1px solid ${C.ac4D}`, padding: '12px 24px',
-          fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
-        }}>
-          {t('hero.cta.quiz')}
-        </button>
-        <a href="#how" style={{
-          ...baseBtn,
-          background: 'transparent', color: C.tm,
-          border: `1px solid ${C.bd}`, padding: '12px 24px',
-          fontSize: 13, fontWeight: 700, letterSpacing: 1.5,
-        }}>
-          {t('hero.cta.how')}
-        </a>
       </div>
 
-      {/* Email capture for visitors who aren't ready to buy today. Posts to
-          the Supabase `leads` table — see scripts/migrations/2026-04-27-leads-table.sql. */}
-      <div style={{ marginTop: 28 }}>
-        <LeadCapture context="hero" compact />
+      {/* Anchor row — text links, not buttons. Lower visual weight by design. */}
+      <div style={{
+        display: 'flex', gap: 18, justifyContent: 'center', flexWrap: 'wrap',
+        marginTop: 14, fontFamily: FN, fontSize: 11, letterSpacing: 1.2, fontWeight: 700,
+      }}>
+        <button onClick={onOpenQuiz} style={{
+          background: 'transparent', border: 'none', color: C.tm,
+          fontFamily: 'inherit', fontSize: 'inherit', letterSpacing: 'inherit',
+          fontWeight: 'inherit', cursor: 'pointer', padding: 0, textTransform: 'uppercase',
+        }}>
+          {t('hero.cta.quiz')} ↓
+        </button>
+        <a href="#how" style={{
+          color: C.tm, textDecoration: 'none', textTransform: 'uppercase',
+        }}>
+          {t('hero.cta.how')} ↓
+        </a>
       </div>
     </section>
   );
@@ -1500,15 +1503,13 @@ function AboutCoach() {
               objectFit: 'cover', display: hasPortrait ? 'block' : 'none',
             }} />
           {!hasPortrait && (
+            // No "photo coming" caption — reads as an intentional
+            // branded placeholder rather than an apology. When the real
+            // portrait lands at /coach-portrait.jpg it overlays this.
             <div style={{ textAlign: 'center', padding: 16 }}>
               <img src="/expo-hero-logo.png" alt="" aria-hidden="true"
                 width="320" height="92" decoding="async" loading="lazy"
-                style={{ height: 56, width: 'auto', opacity: 0.4, marginBottom: 12 }} />
-              <div style={{
-                fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: 2, fontWeight: 700,
-              }}>
-                {t('about.photo.note')}
-              </div>
+                style={{ height: 80, width: 'auto', opacity: 0.55 }} />
             </div>
           )}
         </div>
@@ -2729,6 +2730,21 @@ function DiscoveryCallSection() {
           ? 'מופעל על ידי Google Calendar · אישור באימייל אוטומטי'
           : 'Powered by Google Calendar · Automatic email confirmation'}
       </div>
+      {/* WhatsApp fallback — for visitors who don't see a slot that
+          fits the published Google Calendar window. Keeps the
+          conversation moving without forcing them to email-list-only. */}
+      <div style={{
+        marginTop: 18, textAlign: 'center', fontFamily: FB,
+        fontSize: 13, color: C.tm, lineHeight: 1.6,
+      }}>
+        {heb ? 'אף שעה לא מתאימה? ' : "No slot fits? "}
+        <a href={`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(heb ? 'היי אוהד, לא מצאתי שעה ביומן שמתאימה לי. אפשר לתאם משהו אחר?' : "Hi Ohad — no slot on the calendar works for me. Can we coordinate something else?")}`}
+           target="_blank" rel="noopener"
+           onClick={() => trackAndOpen('discovery_whatsapp_fallback', {})}
+           style={{ color: C.ac, fontWeight: 700, textDecoration: 'underline' }}>
+          {heb ? 'דבר איתי בוואטסאפ ←' : 'WhatsApp me directly →'}
+        </a>
+      </div>
     </section>
   );
 }
@@ -2792,12 +2808,17 @@ function ExitIntentModal() {
       }
     } catch {}
 
+    // Minimum dwell time before either trigger arms — 20s. A visitor who
+    // scroll-skims past 50% in the first 5 seconds is reading-scanning,
+    // not leaving. Previous code fired mid-FAQ on a normal scroll-read,
+    // covering content the visitor was actively engaging with.
+    const armedAt = Date.now() + 20000;
+
     const trigger = () => {
       if (fired.current) return;
+      if (Date.now() < armedAt) return;
       fired.current = true;
       try { sessionStorage.setItem('expo-il-exit-seen', '1'); } catch {}
-      // Small grace window so the modal doesn't fight a click the user is
-      // already mid-action on (e.g. tapping a card).
       setTimeout(() => setOpen(true), 120);
     };
 
@@ -2811,8 +2832,10 @@ function ExitIntentModal() {
 
     let lastScrollFire = 0;
     const onScroll = () => {
-      // Throttle: scroll fires constantly; we only need the first time we
-      // cross 50% of the document height.
+      // Tightened to 90% — at ~50% the visitor is mid-page and likely
+      // still reading. 90% means they've reached the footer area and
+      // are about to leave anyway, which is the legitimate moment to
+      // offer the email capture.
       if (fired.current) return;
       const now = Date.now();
       if (now - lastScrollFire < 200) return;
@@ -2822,7 +2845,7 @@ function ExitIntentModal() {
       const y = window.scrollY || 0;
       if (docH <= winH) return;
       const pct = (y + winH) / docH;
-      if (pct >= 0.5) trigger();
+      if (pct >= 0.9) trigger();
     };
 
     document.addEventListener('mouseout', onMouseOut);

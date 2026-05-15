@@ -74,13 +74,13 @@ export default function EntryChooser() {
           onEnter={() => setHover('left')}
           onLeave={() => setHover(null)}
           headline={heb ? 'בית הספורטאי' : 'PERFORMANCE CENTER'}
-          subhead={heb ? 'אימון אישי בנוכחות' : 'In-Person Coaching'}
+          subhead={heb ? 'אימון בנוכחות · קבוצות קטנות' : 'In-Person · Small Groups'}
           body={heb
-            ? "אימון אחד-על-אחד עם אוהד. תוכנית מותאמת, ביצוע מדוייק, ליווי שבועי."
-            : "One-on-one with Ohad. Tailored programming, hands-on cueing, weekly accountability."}
+            ? 'מרכז ביצועים שבנוי על כוח מתוכנת, ניידות, וריקאברי משולב. אימון בקבוצות קטנות עם תוכנית אישית, וטיפול חודשי כחלק מהמנוי.'
+            : 'A performance center built around programmed strength, mobility, and integrated recovery. Small-group coaching with your own program and a monthly massage in the membership.'}
           benefits={heb
-            ? ['אבחון תנועה', 'מעקב שבועי', 'יומן זימונים חי']
-            : ['Movement assessment', 'Weekly check-ins', 'Live booking calendar']}
+            ? ['קבוצות של 4-7', 'ריקאברי בתוך המחיר', 'תוכנית מתעדכנת שבועית']
+            : ['Groups of 4–7', 'Recovery in the price', 'Weekly program updates']}
           cta={heb ? 'הזמנת אימון' : 'BOOK A SESSION'}
           href="#/gym"
           headlineFontSize="clamp(34px, 4.5vw, 60px)"
