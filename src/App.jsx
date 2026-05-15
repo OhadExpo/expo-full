@@ -843,13 +843,14 @@ function AuthedApp() {
               return(<button key={t.key} className={isChosen&&!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'center',borderRadius:0,padding:"6px 10px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
                 <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12,paddingLeft:12,borderLeft:`1px solid ${C.cardBd}`}}>
-            <ThemeToggle size={32} style={{marginRight:4}}/>
             {/* ⋯ MORE overflow — collapses the 5 secondary actions:
                 Smart Import / Export / Chat Audit / Bugs / Change
                 Password. BugReportButton stays separately mounted
                 outside (it surfaces itself only after an actual JS
-                error, so it's already conditional). */}
+                error, so it's already conditional).
+                Ohad 2026-05-16: place ⋯ before the theme toggle. */}
             <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} />
+            <ThemeToggle size={32} style={{marginLeft:4,marginRight:4}}/>
             <BugReportButton role="coach" reporterEmail={email} variant="coach" />
             <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
