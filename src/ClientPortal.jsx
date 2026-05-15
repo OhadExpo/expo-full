@@ -1149,13 +1149,18 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           return <React.Fragment key={si}>
             {showGhost && <div style={{
               display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,
-              alignItems:'center',marginBottom:3,marginTop:si===0?0:8,
+              alignItems:'center',marginBottom:4,marginTop:si===0?0:8,
               opacity:0.5,
             }}>
-              <div style={{fontFamily:FN,fontSize:10,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
-              <div style={{fontFamily:FN,fontSize:13,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:600}}>{prior.reps || '—'}</div>
-              <div style={{fontFamily:FN,fontSize:13,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:600}}>{parseFloat(prior.load) || '—'}</div>
-              <div style={{fontFamily:FN,fontSize:13,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:600}}>{prior.rpe || '—'}</div>
+              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
+              {/* Cell dimensions mirror the live `bi` input style
+                  (padding 8px 10px, fontSize 14, FB body font, center)
+                  so the ghost row sits in the exact same row-height as
+                  the W2 input row below — visually identical scale,
+                  carried by opacity 0.5 to mark it as reference. */}
+              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.reps || '—'}</div>
+              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load) || '—'}</div>
+              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.rpe || '—'}</div>
               <div />
             </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
