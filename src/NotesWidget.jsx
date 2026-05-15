@@ -70,9 +70,18 @@ const TONE_COLOR = {
 // nothing visually drifts between surfaces.
 function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBody, onSaveEdit, onCancelEdit, onStartEdit, onToggleDone, onTogglePin, onRemove, actionButton }) {
   const n = note;
-  const tone = n.auto_kind ? (AUTO_KIND_TONE[n.auto_kind] || 'cyan') : null;
-  const stripeColor = tone ? TONE_COLOR[tone] : 'var(--c-cardBd)';
-  const kindLabel = n.auto_kind ? (AUTO_KIND_LABEL[n.auto_kind] || 'AUTO') : null;
+  // Every card now renders a colored meta-strip badge — auto-tasks
+  // get their kind-specific tone (cyan/orange/red); manual tasks
+  // (Ohad's coach-created TODOs) get green, matching the original
+  // design comment ("green for everything else (manual)"). Before
+  // this, manual cards had a gray fallback stripe AND no badge, so
+  // the second row was visually empty and the card read shorter
+  // than its auto-task neighbors — Ohad's "not OCD" callout.
+  const isAuto = !!n.auto_kind;
+  const tone = isAuto ? (AUTO_KIND_TONE[n.auto_kind] || 'cyan') : 'green';
+  const stripeColor = TONE_COLOR[tone];
+  const kindLabel = isAuto ? (AUTO_KIND_LABEL[n.auto_kind] || 'AUTO') : 'TASK';
+  const kindIcon = isAuto ? '⚙' : '✎';
   const targetIcon = TARGET_ICON[n.target_kind] || '·';
   const targetLabel = TARGET_LABEL[n.target_kind] || 'NOTE';
   const [showExplain, setShowExplain] = useState(false);
@@ -125,24 +134,24 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           }}>×</button>
       </div>
 
-      {/* Row 2 — meta strip: auto-kind pill + ⓘ + timestamp. Smaller,
-          de-emphasized — the name is the headline, this is the byline. */}
+      {/* Row 2 — meta strip: kind badge + ⓘ (auto-only) + timestamp.
+          Same vertical rhythm on every card — auto and manual alike —
+          so the dashboard reads as a uniform stack rather than a row
+          of variable-height fragments. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-        {kindLabel && (
-          <>
-            <span title={`Auto-generated: ${kindLabel}`}
-              style={{
-                fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-                color: TONE_COLOR[tone], border: `1px solid ${TONE_COLOR[tone]}`,
-                padding: '2px 8px',
-              }}>⚙ {kindLabel}</span>
-            <button onClick={() => setShowExplain(true)} title="Why is this task here?"
-              style={{
-                background: 'transparent', border: 'none', cursor: 'pointer',
-                color: TONE_COLOR[tone], fontSize: 13, padding: '0 2px',
-                lineHeight: 1, flexShrink: 0, fontWeight: 700,
-              }}>ⓘ</button>
-          </>
+        <span title={isAuto ? `Auto-generated: ${kindLabel}` : 'Manual task'}
+          style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+            color: stripeColor, border: `1px solid ${stripeColor}`,
+            padding: '2px 8px',
+          }}>{kindIcon} {kindLabel}</span>
+        {isAuto && (
+          <button onClick={() => setShowExplain(true)} title="Why is this task here?"
+            style={{
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: stripeColor, fontSize: 13, padding: '0 2px',
+              lineHeight: 1, flexShrink: 0, fontWeight: 700,
+            }}>ⓘ</button>
         )}
         <span style={{ flex: 1 }} />
         <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
@@ -608,13 +617,13 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             : `No tasks in ${filter}. Try a different filter or "+ TASK" above.`}
         </div>
       ) : (
-        // Responsive grid — auto-fits 2 columns on wide viewports, falls
-        // back to 1 column when each card would shrink below ~360px.
-        // The widget is full-width inside the dashboard column, so on a
-        // typical desktop laptop this lays out as 2-per-row.
+        // Responsive grid — locks to 2 columns at typical desktop widths
+        // and collapses to 1 column on phone-narrow surfaces. The 520px
+        // floor is sized so the widget never tips to a 3-col layout on
+        // 1366–1920 viewports while still wrapping cleanly under ~1000px.
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))',
           gap: 8,
         }}>
           {visible.map(n => {
