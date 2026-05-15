@@ -1149,13 +1149,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           return <React.Fragment key={si}>
             {showGhost && <div style={{
               display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,
-              alignItems:'center',marginBottom:2,marginTop:si===0?0:6,
-              opacity:0.42,
+              alignItems:'center',marginBottom:3,marginTop:si===0?0:8,
+              opacity:0.5,
             }}>
-              <div style={{fontFamily:FN,fontSize:9,color:'var(--c-tm)',textAlign:'center',letterSpacing:'0.08em',fontWeight:600}}>W{prevWeekIdx}</div>
-              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-tm)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:500}}>{prior.reps || '—'}</div>
-              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-tm)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:500}}>{parseFloat(prior.load) || '—'}</div>
-              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-tm)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:500}}>{prior.rpe || '—'}</div>
+              <div style={{fontFamily:FN,fontSize:10,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
+              <div style={{fontFamily:FN,fontSize:13,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:600}}>{prior.reps || '—'}</div>
+              <div style={{fontFamily:FN,fontSize:13,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:600}}>{parseFloat(prior.load) || '—'}</div>
+              <div style={{fontFamily:FN,fontSize:13,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:600}}>{prior.rpe || '—'}</div>
               <div />
             </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
