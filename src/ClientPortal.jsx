@@ -13,7 +13,7 @@ import { FormVideoPlayer } from './WorkoutReview';
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
-import { toast, confirmToast } from './ui';
+import { toast, confirmToast, isRefined5b } from './ui';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const MealLogger = React.lazy(() => import('./MealLogger'));
@@ -1135,33 +1135,28 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // this same set index last week. Aligned to the input columns
           // so the eye lands on the prior value while typing the new one.
           //
-          // Background uses cyan@6% so the box reads against BOTH the
-          // dark theme (rgba(255,255,255,0.5) was effectively invisible
-          // on white in the light theme shipped 2026-05-11 — the
-          // regression Ohad flagged: "had a version of it, disappeared").
-          // Cyan@6% is the brand-tinted token that survives any theme.
+          // Lighter pass per Ohad: dropped the cyan-tinted boxes, the
+          // dashed borders, the W{n} label, and the arrow. Just three
+          // muted numbers aligned to the input columns above. The grid
+          // alignment alone tells the eye "this column = the input
+          // column below." Reads as a hint, not a competing element.
+          //
+          // Hidden in the light/refined theme entirely (Ohad's choice
+          // 2026-05-15) — only the dark theme uses progressive-overload
+          // glance-references.
           const prior = prevWeekSets?.[si];
-          const miniBox = {
-            padding:'4px 4px', background:'rgba(57,189,255,0.08)',
-            border:`1px dashed var(--c-ac)`, borderRadius:0,
-            fontFamily:FN, fontSize:12, color:'var(--c-tx)', textAlign:'center',
-            fontWeight:700, fontVariantNumeric:'tabular-nums',
-            lineHeight:1.2,
-          };
+          const showGhost = prior && !isRefined5b();
           return <React.Fragment key={si}>
-            {prior && <div style={{
+            {showGhost && <div style={{
               display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,
-              alignItems:'center',marginBottom:3,marginTop:si===0?0:8,
-              // Slight transparency reads "this is a reference, not the
-              // primary input row" without making numbers unreadable.
-              // 0.5 was too faint against the cyan accent boxes.
-              opacity:0.78,
+              alignItems:'center',marginBottom:2,marginTop:si===0?0:6,
+              opacity:0.42,
             }}>
-              <div style={{fontFamily:FN,fontSize:10,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.12em',fontWeight:800,fontVariantNumeric:'tabular-nums'}}>W{prevWeekIdx}</div>
-              <div style={miniBox}>{prior.reps || '—'}</div>
-              <div style={miniBox}>{parseFloat(prior.load) || '—'}</div>
-              <div style={miniBox}>{prior.rpe || '—'}</div>
-              <div style={{fontFamily:FN,fontSize:10,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.06em',fontWeight:800}}>↓</div>
+              <div style={{fontFamily:FN,fontSize:9,color:'var(--c-tm)',textAlign:'center',letterSpacing:'0.08em',fontWeight:600}}>W{prevWeekIdx}</div>
+              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-tm)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:500}}>{prior.reps || '—'}</div>
+              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-tm)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:500}}>{parseFloat(prior.load) || '—'}</div>
+              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-tm)',textAlign:'center',fontVariantNumeric:'tabular-nums',fontWeight:500}}>{prior.rpe || '—'}</div>
+              <div />
             </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
