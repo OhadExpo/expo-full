@@ -1112,32 +1112,34 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         return (
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
             <div style={{
-              padding: '6px 10px',
+              padding: '8px 14px',
               background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 0.4,
+              display: 'inline-flex', alignItems: 'center', gap: 10,
+              fontFamily: FN, fontSize: 12, lineHeight: 1, color: C.tm,
               fontVariantNumeric: 'tabular-nums',
             }}>
-              {/* Value tokens (15, 6, RPE n) all share one bold-white
-                  typographic class; unit/operator tokens (kg, ×) all
-                  share one light-gray class. The two numbers in
-                  "15 kg × 6" now read as same-tier siblings — Ohad's
-                  feedback on the earlier render where "15" was bold
-                  and "×6" was a lighter gray. alignItems also flipped
-                  from baseline → center so weight-mismatched glyphs
-                  don't drift vertically. */}
-              <span style={{ color: C.td, letterSpacing: 1.4, fontWeight: 700, fontSize: 9 }}>BEST EVER</span>
+              {/* Single fontSize (12) + single lineHeight (1) across
+                  every token in the pill so the baseline is rock-locked
+                  — no glyph drift between labels, numbers, and units.
+                  Visual hierarchy is carried by weight (700 for values,
+                  400 for units, 700 + letterSpacing for labels) and
+                  color (tx for primary, tm for secondary, td for meta).
+                  Hairline dividers segment the three groups instead of
+                  the previous "·" separator which floated mid-line. */}
+              <span style={{ color: C.td, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>Best ever</span>
+              <span style={{ width: 1, height: 12, background: C.cardBd }} />
               <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.load}</span>
-              <span style={{ color: C.tm, fontWeight: 400 }}>kg</span>
+              <span style={{ color: C.tm, fontWeight: 400, letterSpacing: '0.04em' }}>KG</span>
               <span style={{ color: C.tm, fontWeight: 400 }}>×</span>
               <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.reps || '—'}</span>
               {bestPrior.rpe != null && bestPrior.rpe !== '' && (
                 <>
-                  <span style={{ color: C.td, fontSize: 9, fontWeight: 700, letterSpacing: 1.4 }}>RPE</span>
+                  <span style={{ color: C.tm, fontWeight: 400, letterSpacing: '0.18em' }}>RPE</span>
                   <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.rpe}</span>
                 </>
               )}
-              <span style={{ color: C.td, fontSize: 10 }}>· {days}d ago</span>
+              <span style={{ width: 1, height: 12, background: C.cardBd }} />
+              <span style={{ color: C.td, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{days}d ago</span>
             </div>
           </div>
         );
