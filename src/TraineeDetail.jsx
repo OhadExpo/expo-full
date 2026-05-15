@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { C, FN, FB, FH, uid, PAYMENT_METHODS, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
+import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b } from './ui';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
@@ -11,7 +11,7 @@ import TraineeEvaluation from './TraineeEvaluation';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
-export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, setPayments, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, portalVis, setPortalVis }) {
+export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
   // For couples: plans assigned to parent ID are shared, plans to sub-IDs are per-member
   const traineeIds = traineeIdsFor(trainee);
@@ -53,7 +53,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // in traineeUtils.js so PlansView, ClientPortal, etc. share one definition.
   const handleArchive = () => { if(setTrainees) setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Archived",archivedAt:new Date().toISOString()}:t)); setShowArchiveConfirm(false); onBack(); };
   const handlePermanentDelete = () => { if(setTrainees) setTrainees(prev=>prev.filter(t=>t.id!==trainee)); setShowDeleteConfirm(false); setDeleteTyped(""); onBack(); };
-  const [payForm,setPayForm]=useState({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
+  const [payForm,setPayForm]=useState({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
   const [editPayId,setEditPayId]=useState(null);
   // `td` may be briefly undefined while the parent re-fetches trainees.
   // Couple values that the hooks below need are nullable in that window;
@@ -61,9 +61,25 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const couple = !!td && Array.isArray(td.members) && td.members.length === 2;
   const totalPaid=tPay.reduce((a,p)=>a+(parseFloat(p.amount)||0),0);
   const statusColor={Active:C.gn,"On Hold":C.or,Inactive:C.td,Trial:C.ac};
-  const handleAddPayment=()=>{if(!payForm.amount)return;if(editPayId){setPayments(prev=>prev.map(p=>p.id===editPayId?{...p,...payForm}:p));setEditPayId(null)}else{setPayments(prev=>[...prev,{id:uid(),traineeId:trainee,...payForm,createdAt:new Date().toISOString()}])}setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});setShowPayForm(false)};
-  const handleEditPay=(p)=>{setPayForm({amount:p.amount,method:p.method,date:p.date,notes:p.notes||"",status:p.status});setEditPayId(p.id);setShowPayForm(true)};
-  const handleDeletePay=(pid)=>{setPayments(prev=>prev.filter(p=>p.id!==pid))};
+  // Payments now write to bit_payment_requests via the hook callbacks
+  // passed in from App.jsx. The `method` field on the form is informational —
+  // all Bit-table rows are tagged method='Bit' on read. The `status` field is
+  // mapped: 'Paid' / 'Pending' / 'Canceled' → the DB enum.
+  const handleAddPayment=async()=>{
+    if(!payForm.amount)return;
+    try{
+      if(editPayId){
+        await updatePayment(editPayId, { amount: payForm.amount, date: payForm.date, notes: payForm.notes, status: payForm.status });
+        setEditPayId(null);
+      } else {
+        await addPayment({ traineeId: trainee, amount: payForm.amount, date: payForm.date, notes: payForm.notes });
+      }
+    }catch(err){ console.warn('payment write failed:', err.message); }
+    setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
+    setShowPayForm(false);
+  };
+  const handleEditPay=(p)=>{setPayForm({amount:p.amount,date:p.date,notes:p.notes||"",status:p.status});setEditPayId(p.id);setShowPayForm(true)};
+  const handleDeletePay=async(pid)=>{ try { await removePayment(pid); } catch(err) { console.warn('payment delete failed:', err.message); } };
   // Edit-modal draft. Persisted to localStorage on every keystroke (via
   // useAutosave below) so closing the modal / refreshing / browser-backing
   // mid-edit no longer loses the typed content. Restored on the next openEdit.
@@ -372,15 +388,14 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           onClose={() => setShowContract(false)}
         />
       )}
-      <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}} title={editPayId?"Edit Payment":"Add Payment"}>
+      <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}} title={editPayId?"Edit Payment":"Add Payment"}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
           <Input label="Amount (₪)" type="number" value={payForm.amount} onChange={e=>setPayForm({...payForm,amount:e.target.value})} />
-          <Select label="Method" options={PAYMENT_METHODS} value={payForm.method} onChange={v=>setPayForm({...payForm,method:v})} />
           <Input label="Date" type="date" value={payForm.date} onChange={e=>setPayForm({...payForm,date:e.target.value})} />
           <Select label="Status" options={PAYMENT_STATUSES} value={payForm.status} onChange={v=>setPayForm({...payForm,status:v})} />
           <div style={{gridColumn:"1 / -1"}}><Input label="Notes" value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})} /></div></div>
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
-          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",method:"Bank Transfer",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
+          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tAllWorkouts.length})</h3>
       {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
         tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}

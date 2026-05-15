@@ -5,17 +5,13 @@ import { useLogoSrc } from './hooks/useTheme';
 import { EXPOMark } from './expoMark';
 import { useStore } from './useStore';
 import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus } from './useSupaStore';
+import useBitPayments from './useBitPayments';
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn, ToastHost } from './ui';
 import BugReportButton from './BugReportButton';
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS } from './auth';
-// `xlsx` is dynamically imported inside the file-import handler (see
-// handleImport below). It's ~50 KB gzipped and only needed when a user
-// actually drops a spreadsheet, so keeping it out of the main bundle
-// shrinks the initial-load chunk.
-
 // Lazy-load every heavy view so the initial bundle stays small.
 // Each tab fetches its own chunk on first navigation; subsequent visits use cache.
 const TraineesView = lazy(() => import('./TraineesView'));
@@ -75,7 +71,7 @@ const ViewFallback = () => (
   <div style={{textAlign:'center',padding:40,color:C.td,fontFamily:FB,fontSize:13}}>Loading…</div>
 );
 
-const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"expo-workouts", payments:"expo-payments", cw:"expo-cw", bw:"expo-bw" };
+const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"expo-workouts", cw:"expo-cw", bw:"expo-bw" };
 
 // Root. Wraps in Supabase auth context; AuthGate shows LoginScreen until
 // there's a live session, then hands off to AuthedApp (the old App body).
@@ -382,7 +378,10 @@ function AuthedApp() {
   const [exercises,setExercises,eL]=useSupaStore(KEYS.exercises,[]);
   const { index: planIndex, loaded: pL, reload: reloadPlanIndex } = usePlanIndex();
   const [workouts,setWorkouts,wL]=useSupaStore(KEYS.workouts,[]);
-  const [payments,setPayments,pyL]=useSupaStore(KEYS.payments,[]);
+  // Payments now live in bit_payment_requests (single source of truth).
+  // The adapter hook shapes rows to the legacy `payments` array contract
+  // so DashboardView / TraineesView / autoTasks don't change.
+  const { payments, loaded: pyL, addPayment, updatePayment: updateBitPayment, removePayment } = useBitPayments();
   const [clientWorkouts,setClientWorkouts,markWorkoutReviewed,updateFormVideos,deleteClientWorkout]=useSupaClientWorkouts([]);
   const [bwLog,setBwLog]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
@@ -498,12 +497,7 @@ function AuthedApp() {
   // null = no editor open; { kind: 'trainees', traineeId: 'tr_xxx' } = came
   // from a trainee card; { kind: 'plans' } = came from the program list.
   const [planEditorOrigin,setPlanEditorOrigin]=useState(null);
-  const [importMsg,setImportMsg]=useState(null);
-  const [pendingImport,setPendingImport]=useState(null); // {parsed, type:'multi'|'single'} — awaiting trainee selection
-  const [importSelectedTrainees,setImportSelectedTrainees]=useState([]); // selected trainee IDs for import
-  const [dragOver,setDragOver]=useState(false);
   const [showPwModal,setShowPwModal]=useState(false);
-  const fileRef=useRef(null);
 
   // Post-sign-in URL routing: trainers go to /coach/dashboard, clients go
   // to /athlete. Covers the case where the form lives at /login — after
@@ -581,103 +575,11 @@ function AuthedApp() {
     setTrainees(prev=>prev.map(t=>t.id===targetId&&t.sessionsRemaining>0?{...t,sessionsRemaining:t.sessionsRemaining-1}:t));
   },[setTrainees]);
 
-  const doImportSingle=async(data)=>{
-    const trainee={...data.trainee,id:data.trainee.id||uid(),email:"",phone:"",age:"",weight:"",height:"",injuries:"",goals:"",notes:"",startDate:new Date().toISOString().slice(0,10),packagePrice:""};
-    setTrainees(prev=>{const exists=prev.find(t=>t.name===trainee.name);if(exists){trainee.id=exists.id;return prev.map(t=>t.name===trainee.name?{...t,...trainee}:t)}return[...prev,trainee]});
-    const exMap={};
-    setExercises(prev=>{const u=[...prev];for(const ex of data.exercises){const e=u.find(x=>x.title===ex.title);if(e){exMap[ex.id]=e.id}else{const nw={...ex,id:ex.id||uid()};exMap[ex.id]=nw.id;u.push(nw)}}return u});
-    const plan={id:data.plan.id||uid(),name:data.plan.name,traineeId:trainee.id,phase:data.plan.phase||"",notes:"",createdAt:new Date().toISOString(),
-      days:(data.plan.days||[]).map(d=>({id:uid(),name:d.name,exercises:(d.ex||[]).map((ex,i)=>({id:uid(),exerciseId:exMap[ex.eid]||ex.eid,sets:ex.s||3,reps:ex.r||"8-12",load:"",rpe:"",tempo:ex.tempo||"",rest:"90",notes:"",order:i,superset:ex.superset||""}))}))};
-    await savePlan(plan);
-    await reloadPlanIndex();
-    return{name:trainee.name,days:plan.days.length,exercises:data.exercises.length,plans:1};
-  };
-
-  const doImportMulti=async(data, targetTraineeIds)=>{
-    // Add exercises to the library (dedup by title)
-    const exMap={};
-    setExercises(prev=>{const u=[...prev];for(const ex of data.exercises){const e=u.find(x=>x.title===ex.title);if(e){exMap[ex.id]=e.id}else{const nw={...ex,id:ex.id||uid()};exMap[ex.id]=nw.id;u.push(nw)}}return u});
-    let totalPlans=0;
-    for(const tid of targetTraineeIds){
-      const newPlans=data.plans.map(p=>{totalPlans++;return{id:'plan_'+uid(),name:p.name,traineeId:tid,phase:p.phase||"",notes:"",createdAt:new Date().toISOString(),
-        days:(p.days||[]).map(d=>({id:uid(),name:d.name,exercises:(d.ex||[]).map((ex,i)=>({id:uid(),exerciseId:exMap[ex.eid]||ex.eid,sets:ex.s||3,reps:ex.r||"8-12",load:"",rpe:"",tempo:ex.tempo||"",rest:"90",notes:"",order:i,superset:ex.superset||""}))}))};});
-      for(const p of newPlans){ await savePlan(p); }
-    }
-    await reloadPlanIndex();
-    const names=targetTraineeIds.map(id=>trainees.find(t=>t.id===id)?.name||'?').join(', ');
-    return{names,exercises:data.exercises.length,plans:totalPlans};
-  };
-
-  const handleImport=(e)=>{
-    const file=e.target.files?.[0]; if(!file)return;
-    const ext=file.name.split('.').pop().toLowerCase();
-    if(ext==='json'){
-      const reader=new FileReader();
-      reader.onload=async(ev)=>{
-        try{
-          const data=JSON.parse(ev.target.result);
-          if(data.trainee && data.plan && data.exercises){
-            const r=await doImportSingle(data);
-            setImportMsg(`✓ Imported: ${r.name} — ${r.days} days, ${r.exercises} exercises`);
-          } else if(data.trainees && !data.exportDate){
-            let added=0, updated=0;
-            setTrainees(prev=>{
-              const result=[...prev];
-              for(const t of data.trainees){
-                const existing=result.find(x=>x.name===t.name);
-                if(existing){const idx=result.indexOf(existing);result[idx]={...existing,...t,id:existing.id};updated++}
-                else{result.push(t);added++}
-              }
-              return result;
-            });
-            if(data.payments){setPayments(prev=>[...prev,...data.payments]);}
-            setImportMsg(`✓ Athletes: ${added} added, ${updated} updated${data.payments?`, ${data.payments.length} payments`:''}`);
-          } else if(data.exportDate){
-            if(data.trainees)setTrainees(data.trainees); if(data.exercises)setExercises(data.exercises);
-            if(data.plans && Array.isArray(data.plans)){ for(const p of data.plans){ await savePlan(p); } await reloadPlanIndex(); }
-            if(data.workouts)setWorkouts(data.workouts); if(data.payments)setPayments(data.payments);
-            setImportMsg("✓ Full backup restored");
-          } else{setImportMsg("⚠ Unrecognized JSON format")}
-        }catch(err){setImportMsg("✗ Error: "+err.message)}
-        setTimeout(()=>setImportMsg(null),6000);
-      }; reader.readAsText(file);
-    } else if(['xlsx','xls','csv'].includes(ext)){
-      const reader=new FileReader();
-      reader.onload=async(ev)=>{
-        try{
-          const { parseSpreadsheet } = await import('./spreadsheetImport');
-          const parsed=parseSpreadsheet(new Uint8Array(ev.target.result),file.name);
-          // Stage for trainee selection instead of importing immediately
-          setPendingImport({parsed,fileName:file.name,ext:ext.toUpperCase()});
-          setImportSelectedTrainees([]);
-        }catch(err){setImportMsg("✗ Error: "+err.message);setTimeout(()=>setImportMsg(null),6000)}
-      }; reader.readAsArrayBuffer(file);
-    } else{setImportMsg("⚠ Unsupported file type");setTimeout(()=>setImportMsg(null),4000)}
-    e.target.value="";
-  };
-
   const handleExport=async()=>{
     const { data: allPlans } = await supabase.from('plans').select('*');
     const data=JSON.stringify({trainees,exercises,plans:allPlans||[],workouts,payments,clientWorkouts,bwLog,exportDate:new Date().toISOString(),version:"1.0"},null,2);
     const blob=new Blob([data],{type:"application/json"});const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download=`expo-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);
-  };
-
-  const handleDrop=(e)=>{e.preventDefault();setDragOver(false);const file=e.dataTransfer?.files?.[0];if(file)handleImport({target:{files:[file],value:""}})};
-  const handleDragOver=(e)=>{e.preventDefault();setDragOver(true)};
-  const handleDragLeave=()=>{setDragOver(false)};
-
-  const handleConfirmImport=async()=>{
-    if(!pendingImport||importSelectedTrainees.length===0) return;
-    try{
-      const r=await doImportMulti(pendingImport.parsed,importSelectedTrainees);
-      setImportMsg(`✓ Imported ${pendingImport.ext}: ${r.names} — ${r.plans} blocks, ${r.exercises} unique exercises`);
-    }catch(err){setImportMsg("✗ Error: "+err.message)}
-    setPendingImport(null);setImportSelectedTrainees([]);
-    setTimeout(()=>setImportMsg(null),6000);
-  };
-  const toggleImportTrainee=(tid)=>{
-    setImportSelectedTrainees(prev=>prev.includes(tid)?prev.filter(x=>x!==tid):[...prev,tid]);
   };
 
   // ChatAudit + Bugs were moved out of the primary nav into the ⋯ MORE
@@ -811,11 +713,6 @@ function AuthedApp() {
                 <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12,paddingLeft:12,borderLeft:`1px solid ${C.cardBd}`}}>
             <ThemeToggle size={32} style={{marginRight:4}}/>
-            <input ref={fileRef} type="file" accept=".json,.xlsx,.xls,.csv" onChange={handleImport} style={{display:'none'}} aria-hidden="true" />
-            {/* Bare-file import stays out of the overflow — it's a
-                single-purpose action with a different surface (file
-                picker) and frequent enough to keep one-click. */}
-            <button className="hdr-icon-btn" onClick={()=>fileRef.current?.click()} title="Import XLSX / CSV / JSON" aria-label="Import file" style={{...baseBtn,background:"transparent",color:C.tm,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 12 12 15 15"/><line x1="12" y1="18" x2="12" y2="12"/></svg></button>
             {/* ⋯ MORE overflow — collapses the 5 secondary actions:
                 Smart Import / Export / Chat Audit / Bugs / Change
                 Password. BugReportButton stays separately mounted
@@ -826,7 +723,6 @@ function AuthedApp() {
             <button className="hdr-icon-btn" onClick={signOut} title="Sign out" aria-label="Sign out" style={{...baseBtn,background:"transparent",color:C.tx,padding:"6px 8px",fontSize:14,borderRadius:0}}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
             </div></div></header>
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
-      {importMsg&&<div style={{maxWidth:1200,margin:"0 auto",padding:"8px 20px"}}><div style={{background:'var(--c-sf)',border:`1px solid ${importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn}`,color:importMsg.startsWith("✗")?C.rd:importMsg.startsWith("⚠")?C.or:C.gn,borderRadius:0,padding:"10px 16px",fontSize:13,fontWeight:600}}>{importMsg}</div></div>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
           {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
@@ -836,7 +732,7 @@ function AuthedApp() {
           {tab==="smartImport"&&<SmartImportView/>}
           {tab==="trainees"&&!selectedTrainee&&<TraineesView trainees={trainees} setTrainees={setTrainees} planCounts={planCounts} payments={payments} workouts={workouts} clientWorkouts={clientWorkouts} bwLog={bwLog} portalVis={portalVis} presence={presence} onSelect={id=>navTo("trainees",id)} onPreview={openPreview}/>}
           {tab==="trainees"&&selectedTrainee&&previewTrainee===selectedTrainee&&<CoachPreviewPortal traineeId={selectedTrainee} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={()=>closePreview(selectedTrainee)}/>}
-          {tab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} setPayments={setPayments} bwLog={bwLog} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
+          {tab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} addPayment={addPayment} updatePayment={updateBitPayment} removePayment={removePayment} bwLog={bwLog} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
           {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
           {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout}/>}
           {tab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
@@ -849,37 +745,5 @@ function AuthedApp() {
           {tab==="billing"&&<BillingView trainees={trainees} />}
         </Suspense>
       </main>
-      {/* Import trainee assignment modal */}
-      {pendingImport&&<div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:60,background:C.scrim,backdropFilter:"blur(4px)"}} onClick={()=>setPendingImport(null)}>
-        <div onClick={e=>e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:480,maxHeight:"80vh",overflow:"auto",padding:24,boxShadow:C.cardShadow}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Assign Imported Program</h3>
-            <button onClick={()=>setPendingImport(null)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4,fontSize:16}}>✕</button></div>
-          <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:16}}>
-            <div style={{fontSize:13,color:C.tx,fontWeight:600}}>{pendingImport.parsed.plans?.length||0} block{(pendingImport.parsed.plans?.length||0)!==1?'s':''} · {pendingImport.parsed.exercises?.length||0} exercises</div>
-            <div style={{fontSize:11,color:C.tm,marginTop:4}}>{pendingImport.fileName}</div>
-            {pendingImport.parsed.plans?.map(p=><div key={p.id} style={{fontSize:12,color:C.ac,marginTop:4}}>• {p.name} — {p.days?.length||0} days</div>)}
-          </div>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>Assign to trainee(s)</div>
-          <div style={{maxHeight:300,overflow:"auto",marginBottom:16}}>
-            {trainees.filter(t=>t.status!=="Archived").map(t=>{
-              const sel=importSelectedTrainees.includes(t.id);
-              return <div key={t.id} onClick={()=>toggleImportTrainee(t.id)} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:0,cursor:"pointer",background:'var(--c-sf)',border:`${sel?'1px':'0.25px'} solid ${sel?C.ac:C.cardBd}`,marginBottom:4,transition:"all .15s"}}>
-                <div style={{width:18,height:18,borderRadius:0,border:`1px solid ${sel?C.ac:C.cardBd}`,background:sel?C.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  {sel&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
-                </div>
-                <div>
-                  <div style={{fontSize:13,color:C.tx,fontWeight:600}}>{t.name}</div>
-                  <div style={{fontSize:11,color:C.tm}}>{t.format}</div>
-                </div>
-              </div>})}
-          </div>
-          <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
-            <Btn variant="ghost" onClick={()=>setPendingImport(null)}>Cancel</Btn>
-            <Btn onClick={handleConfirmImport} style={{opacity:importSelectedTrainees.length?1:0.4,pointerEvents:importSelectedTrainees.length?"auto":"none"}}>
-              Import to {importSelectedTrainees.length||0} athlete{importSelectedTrainees.length!==1?'s':''}</Btn>
-          </div>
-        </div>
-      </div>}
     </div>);
 }
