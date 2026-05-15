@@ -105,14 +105,17 @@ function Header({ heb, onBookClick }) {
           <img src={EXPO_LOGO_NAV} alt="EXPO"
             style={{ height: 28, width: 'auto', transform: 'translateY(-2px)' }} />
         </a>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <LangSwitch />
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <LangSwitch heb={heb} />
           <button onClick={onBookClick}
             style={{
-              padding: '8px 18px', background: C.ac, color: '#000000',
+              height: 32, padding: '0 18px',
+              background: C.ac, color: '#000000',
               border: `1px solid ${C.ac}`, borderRadius: 0,
-              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
+              fontFamily: FN, fontSize: heb ? 13 : 11,
+              fontWeight: 700, letterSpacing: heb ? '0.04em' : '0.18em',
               cursor: 'pointer', textTransform: 'uppercase',
+              display: 'inline-flex', alignItems: 'center',
             }}>{heb ? 'הזמן אימון' : 'BOOK SESSION'}</button>
         </div>
       </div>
@@ -120,21 +123,32 @@ function Header({ heb, onBookClick }) {
   );
 }
 
-function LangSwitch() {
+// Lang toggle. Pills sit in one inline-flex row, share a single
+// horizontal hairline (no per-pill borders so the group reads as one
+// segmented control), and match the BOOK button's 32px box height so
+// the whole header row aligns to a single baseline in both languages.
+function LangSwitch({ heb }) {
   const [lang] = useLang();
   return (
-    <div style={{ display: 'flex', gap: 4 }}>
-      {['en', 'he'].map(code => {
+    <div style={{
+      display: 'inline-flex', height: 32,
+      border: `1px solid ${C.bd2}`, borderRadius: 0,
+    }}>
+      {['en', 'he'].map((code, i) => {
         const active = lang === code;
         return (
           <button key={code} onClick={() => setLang(code)}
             style={{
-              padding: '4px 10px', borderRadius: 0,
+              height: '100%', padding: '0 14px',
               background: active ? C.ac : 'transparent',
               color: active ? '#000000' : C.tm,
-              border: `1px solid ${active ? C.ac : C.bd2}`,
-              fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+              border: 'none',
+              borderInlineStart: i === 0 ? 'none' : `1px solid ${C.bd2}`,
+              fontFamily: FN,
+              fontSize: code === 'he' && heb ? 13 : 10,
+              fontWeight: 700, letterSpacing: '0.12em',
               cursor: 'pointer', textTransform: 'uppercase',
+              display: 'inline-flex', alignItems: 'center',
             }}>{code === 'he' ? 'עבר' : 'EN'}</button>
         );
       })}
