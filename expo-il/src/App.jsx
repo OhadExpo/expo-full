@@ -408,11 +408,14 @@ function Nav() {
               <line x1="10" y1="14" x2="21" y2="3" />
             </svg>
           </a>
+          {/* Inline display is omitted so the CSS class .fv-burger
+              fully controls visibility — default hidden, shown via the
+              media query below 720px. */}
           <button onClick={() => setMobileOpen(o => !o)} aria-label="Menu"
             aria-expanded={mobileOpen} className="fv-burger" style={{
               ...baseBtn, background: 'transparent', color: C.tx,
               padding: '6px 8px', borderRadius: 0,
-              display: 'none', alignItems: 'center', justifyContent: 'center',
+              alignItems: 'center', justifyContent: 'center',
               border: `1px solid ${C.bd}`, height: 32, width: 36,
             }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
