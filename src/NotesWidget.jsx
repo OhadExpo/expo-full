@@ -83,7 +83,6 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
       borderLeft: `3px solid ${stripeColor}`,
       borderRadius: 0,
       padding: '10px 12px',
-      marginBottom: 8,
     }}>
       {/* Header row — auto-kind pill + target + timestamp, then × on
           the far right so the destructive control sits where you'd
@@ -609,41 +608,51 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             : `No tasks in ${filter}. Try a different filter or "+ TASK" above.`}
         </div>
       ) : (
-        visible.map(n => {
-          const heb = isHebrew(n.body);
-          const allowEdit = !compact;
-          const trainee = (n.target_kind === 'trainee' && n.target_id)
-            ? trainees.find(t => t.id === n.target_id)
-            : null;
-          return (
-            <TaskCard
-              key={n.id}
-              note={n}
-              heb={heb}
-              trainee={trainee}
-              allowEdit={allowEdit}
-              isEditing={editingId === n.id && allowEdit}
-              editBody={editBody}
-              onEditBody={setEditBody}
-              onSaveEdit={saveEdit}
-              onCancelEdit={cancelEdit}
-              onStartEdit={() => startEdit(n)}
-              onToggleDone={() => toggleDoneSmart(n)}
-              onTogglePin={() => togglePin(n.id)}
-              onRemove={() => remove(n.id)}
-              actionButton={
-                <TaskActionButton
-                  note={n}
-                  trainee={trainee}
-                  onCreatePlan={onCreatePlanForTask ? () => startCreatePlan(n) : null}
-                  onOpenReview={onNavigate ? (woId) => onNavigate('review', woId) : null}
-                  onOpenIntake={onOpenIntakeTab || null}
-                  onOpenAthlete={onNavigate ? (id) => onNavigate('trainee', id) : null}
-                />
-              }
-            />
-          );
-        })
+        // Responsive grid — auto-fits 2 columns on wide viewports, falls
+        // back to 1 column when each card would shrink below ~360px.
+        // The widget is full-width inside the dashboard column, so on a
+        // typical desktop laptop this lays out as 2-per-row.
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+          gap: 8,
+        }}>
+          {visible.map(n => {
+            const heb = isHebrew(n.body);
+            const allowEdit = !compact;
+            const trainee = (n.target_kind === 'trainee' && n.target_id)
+              ? trainees.find(t => t.id === n.target_id)
+              : null;
+            return (
+              <TaskCard
+                key={n.id}
+                note={n}
+                heb={heb}
+                trainee={trainee}
+                allowEdit={allowEdit}
+                isEditing={editingId === n.id && allowEdit}
+                editBody={editBody}
+                onEditBody={setEditBody}
+                onSaveEdit={saveEdit}
+                onCancelEdit={cancelEdit}
+                onStartEdit={() => startEdit(n)}
+                onToggleDone={() => toggleDoneSmart(n)}
+                onTogglePin={() => togglePin(n.id)}
+                onRemove={() => remove(n.id)}
+                actionButton={
+                  <TaskActionButton
+                    note={n}
+                    trainee={trainee}
+                    onCreatePlan={onCreatePlanForTask ? () => startCreatePlan(n) : null}
+                    onOpenReview={onNavigate ? (woId) => onNavigate('review', woId) : null}
+                    onOpenIntake={onOpenIntakeTab || null}
+                    onOpenAthlete={onNavigate ? (id) => onNavigate('trainee', id) : null}
+                  />
+                }
+              />
+            );
+          })}
+        </div>
       )}
 
       {/* DONE pool */}
