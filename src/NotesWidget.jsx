@@ -91,13 +91,9 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
       border: `1px solid var(--c-cardBd)`,
       borderLeft: `3px solid ${stripeColor}`,
       borderRadius: 0,
-      padding: '10px 12px',
-      // Flex column lets the footer get marginTop:auto so the action
-      // button bottom-anchors. Grid stretches each card to the tallest
-      // card in its row; without this flex layout, shorter-body cards
-      // (e.g. a single-line manual task next to a 3-reason auto-task)
-      // floated the button mid-card and broke the OCD horizontal
-      // alignment of action buttons across the row.
+      // Compact-pass per Ohad — every inner spacing trimmed so
+      // multiple cards fit in a viewport without losing legibility.
+      padding: '7px 10px',
       display: 'flex',
       flexDirection: 'column',
     }}>
@@ -109,28 +105,30 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           is the first question, not "what kind of task". Name leads,
           everything else is meta. Falls back to a target-kind chip when
           no trainee is linked (general / intake / review tasks). */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5, flexWrap: 'wrap' }}>
         <input type="checkbox" checked={false} onChange={onToggleDone}
           title="Mark done"
-          style={{ width: 16, height: 16, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
+          style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0 }} />
         <button onClick={onTogglePin} title={n.pinned ? 'Unpin' : 'Pin'}
           style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
-            color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12,
-            padding: 0, flexShrink: 0,
+            color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 11,
+            padding: 0, flexShrink: 0, lineHeight: 1,
           }}>{n.pinned ? '📌' : '○'}</button>
         {n.target_label ? (
           <span style={{
-            fontFamily: FN, fontSize: 15, color: 'var(--c-ac)',
+            fontFamily: FN, fontSize: 13, color: 'var(--c-ac)',
             letterSpacing: '0.02em', fontWeight: 800, textTransform: 'uppercase',
             flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            lineHeight: 1.1,
           }} title={n.target_label}>
             {n.target_label}
           </span>
         ) : (
           <span style={{
-            fontFamily: FN, fontSize: 13, color: 'var(--c-tx)',
+            fontFamily: FN, fontSize: 12, color: 'var(--c-tx)',
             letterSpacing: '0.04em', fontWeight: 700, flex: 1, minWidth: 0,
+            lineHeight: 1.1,
           }}>
             {targetIcon} {targetLabel}
           </span>
@@ -138,7 +136,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
         <button onClick={onRemove} title="Remove"
           style={{
             background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer',
-            fontSize: 14, padding: '0 4px', flexShrink: 0,
+            fontSize: 13, padding: '0 4px', flexShrink: 0, lineHeight: 1,
           }}>×</button>
       </div>
 
@@ -146,24 +144,24 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           Same vertical rhythm on every card — auto and manual alike —
           so the dashboard reads as a uniform stack rather than a row
           of variable-height fragments. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, flexWrap: 'wrap' }}>
         <span title={isAuto ? `Auto-generated: ${kindLabel}` : 'Manual task'}
           style={{
-            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
             color: stripeColor, border: `1px solid ${stripeColor}`,
-            padding: '2px 8px',
+            padding: '1px 6px', lineHeight: 1.3,
           }}>{kindIcon} {kindLabel}</span>
         {isAuto && (
           <button onClick={() => setShowExplain(true)} title="Why is this task here?"
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: stripeColor, fontSize: 13, padding: '0 2px',
+              color: stripeColor, fontSize: 12, padding: '0 2px',
               lineHeight: 1, flexShrink: 0, fontWeight: 700,
             }}>ⓘ</button>
         )}
         <span style={{ flex: 1 }} />
         <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
-          {new Date(n.created_at).toLocaleString()}
+          {new Date(n.created_at).toLocaleDateString()}
         </span>
       </div>
 
@@ -188,12 +186,8 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
         // in English prose). Computed `direction` flipped the entire
         // line when one Hebrew char appeared.
         <div dir="auto" style={{
-          fontSize: 13, color: 'var(--c-tx)', lineHeight: 1.5, whiteSpace: 'pre-wrap',
-          marginBottom: actionButton || allowEdit ? 10 : 0,
-          // FB (Nord-first with Heebo fallback) for BOTH Hebrew and English
-          // bodies so the type renders with the same sharp Nord weight
-          // as the action pills (REVIEW / NEW PROGRAM) and label strips —
-          // no more Hebrew-Heebo / English-Nord mismatch inside a card.
+          fontSize: 12, color: 'var(--c-tx)', lineHeight: 1.4, whiteSpace: 'pre-wrap',
+          marginBottom: actionButton || allowEdit ? 6 : 0,
           fontFamily: FB,
         }}>{n.body}</div>
       )}
@@ -219,13 +213,13 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           much body text precedes it — so action buttons sit at the
           same Y across cards in the same grid row. */}
       {(actionButton || (allowEdit && !isEditing)) && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 'auto', paddingTop: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 'auto', paddingTop: 6 }}>
           {allowEdit && !isEditing ? (
             <button onClick={onStartEdit} title="Edit task"
               style={{
                 background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
-                cursor: 'pointer', fontSize: 11, padding: '3px 8px', borderRadius: 0,
-                fontFamily: FN, fontWeight: 700, letterSpacing: '0.12em', height: 26,
+                cursor: 'pointer', fontSize: 10, padding: '2px 8px', borderRadius: 0,
+                fontFamily: FN, fontWeight: 700, letterSpacing: '0.1em', height: 22,
                 display: 'inline-flex', alignItems: 'center',
               }}>✏️ EDIT</button>
           ) : <span />}
@@ -249,9 +243,9 @@ function ActionPill({ label, onClick, color, title }) {
     <button onClick={onClick} title={title}
       style={{
         background: 'transparent', border: `1px solid ${c}`, color: c,
-        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-        padding: '4px 10px', borderRadius: 0, cursor: 'pointer',
-        whiteSpace: 'nowrap', height: 26, display: 'inline-flex', alignItems: 'center',
+        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+        padding: '2px 9px', borderRadius: 0, cursor: 'pointer',
+        whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center',
       }}>{label}</button>
   );
 }
