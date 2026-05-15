@@ -92,6 +92,14 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
       borderLeft: `3px solid ${stripeColor}`,
       borderRadius: 0,
       padding: '10px 12px',
+      // Flex column lets the footer get marginTop:auto so the action
+      // button bottom-anchors. Grid stretches each card to the tallest
+      // card in its row; without this flex layout, shorter-body cards
+      // (e.g. a single-line manual task next to a 3-reason auto-task)
+      // floated the button mid-card and broke the OCD horizontal
+      // alignment of action buttons across the row.
+      display: 'flex',
+      flexDirection: 'column',
     }}>
       {/* Header row — auto-kind pill + target + timestamp, then × on
           the far right so the destructive control sits where you'd
@@ -206,9 +214,12 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
 
       {/* Footer — EDIT on bottom-left, contextual action on
           bottom-right. space-between fully separates them so the
-          two controls never visually collide. */}
+          two controls never visually collide. marginTop:'auto'
+          pushes the footer to the card's bottom regardless of how
+          much body text precedes it — so action buttons sit at the
+          same Y across cards in the same grid row. */}
       {(actionButton || (allowEdit && !isEditing)) && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 'auto', paddingTop: 10 }}>
           {allowEdit && !isEditing ? (
             <button onClick={onStartEdit} title="Edit task"
               style={{
