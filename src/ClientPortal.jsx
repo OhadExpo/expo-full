@@ -1114,13 +1114,29 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             <div style={{
               padding: '6px 10px',
               background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-              display: 'inline-flex', alignItems: 'baseline', gap: 8,
-              fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.4,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 0.4,
+              fontVariantNumeric: 'tabular-nums',
             }}>
-              <span style={{ color: C.td, letterSpacing: 1, fontWeight: 700, fontSize: 9 }}>BEST EVER</span>
-              <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.load}<span style={{ color: C.tm, fontWeight: 400 }}> kg</span></span>
-              <span style={{ color: C.tm }}>×{bestPrior.reps || '—'}</span>
-              {bestPrior.rpe != null && bestPrior.rpe !== '' && <span style={{ color: C.tm }}>· RPE {bestPrior.rpe}</span>}
+              {/* Value tokens (15, 6, RPE n) all share one bold-white
+                  typographic class; unit/operator tokens (kg, ×) all
+                  share one light-gray class. The two numbers in
+                  "15 kg × 6" now read as same-tier siblings — Ohad's
+                  feedback on the earlier render where "15" was bold
+                  and "×6" was a lighter gray. alignItems also flipped
+                  from baseline → center so weight-mismatched glyphs
+                  don't drift vertically. */}
+              <span style={{ color: C.td, letterSpacing: 1.4, fontWeight: 700, fontSize: 9 }}>BEST EVER</span>
+              <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.load}</span>
+              <span style={{ color: C.tm, fontWeight: 400 }}>kg</span>
+              <span style={{ color: C.tm, fontWeight: 400 }}>×</span>
+              <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.reps || '—'}</span>
+              {bestPrior.rpe != null && bestPrior.rpe !== '' && (
+                <>
+                  <span style={{ color: C.td, fontSize: 9, fontWeight: 700, letterSpacing: 1.4 }}>RPE</span>
+                  <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.rpe}</span>
+                </>
+              )}
               <span style={{ color: C.td, fontSize: 10 }}>· {days}d ago</span>
             </div>
           </div>
