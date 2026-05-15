@@ -342,8 +342,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       </Card>
       </>}
 
-      {/* === Athletic Evaluation — coach-administered, longitudinal === */}
-      {td && <TraineeEvaluation trainee={td} />}
+      {/* Page section order (Ohad spec 2026-05-16):
+            Header → VITALS → CRM → Programs → Workouts → Records →
+            Overload → Bodyweight → Billing → Athletic Evaluation.
+          Highest-use surfaces lead; Eval (often empty) sits last. */}
 
       {/* === CRM v1: cadence pill · next actions · activity feed === */}
       {td && (
@@ -358,62 +360,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         />
       )}
 
-      {/* === SHARED SECTIONS (billing, workouts, modals) === */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px",gap:8,flexWrap:'wrap'}}>
-        <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Billing ({tPay.length}){totalPaid>0&&<span style={{color:C.gn,marginLeft:8}}>₪{totalPaid.toLocaleString()} total paid</span>}</h3>
-        <div style={{display:'flex',gap:6}}>
-          {/* F-27 — open the brand-rich contract composer; on send,
-              copy the /sign/<token> link to clipboard. */}
-          <button onClick={()=>setShowContract(true)} style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'4px 12px',cursor:'pointer',borderRadius:0}}>📄 CONTRACT</button>
-          <Btn onClick={()=>setShowPayForm(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Add Payment</Btn>
-        </div>
-      </div>
-      {tPay.length===0?<div style={{color:C.td,fontSize:13}}>No payments recorded.</div>:(
-        <div style={{overflowX:"auto",marginBottom:16}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
-          <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
-          <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.cardBd}`}}>
-            <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{new Date(p.date).toLocaleDateString()}</td>
-            <td style={{padding:"8px 10px",color:C.gn,fontWeight:600,textAlign:"center"}}>₪{parseFloat(p.amount).toLocaleString()}</td>
-            <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{p.method}</td>
-            <td style={{padding:"8px 10px",textAlign:"center"}}><Badge color={p.status==="Paid"?C.gn:p.status==="Overdue"?C.rd:C.or}>{p.status}</Badge></td>
-            <td style={{padding:"8px 10px",color:C.td,textAlign:"center"}}>{p.notes||"—"}</td>
-            <td style={{padding:"8px 10px",whiteSpace:"nowrap",textAlign:"center"}}>
-              <button onClick={()=>handleEditPay(p)} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
-              <button onClick={()=>handleDeletePay(p.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginLeft:6,opacity:0.6}}>✕</button>
-            </td></tr>))}</tbody></table></div>)}
-      {showContract && (
-        <CoachContractComposer
-          trainee={trainee}
-          coachEmail="ohadyproductions@gmail.com"
-          onClose={() => setShowContract(false)}
-        />
-      )}
-      <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}} title={editPayId?"Edit Payment":"Add Payment"}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <Input label="Amount (₪)" type="number" value={payForm.amount} onChange={e=>setPayForm({...payForm,amount:e.target.value})} />
-          <Input label="Date" type="date" value={payForm.date} onChange={e=>setPayForm({...payForm,date:e.target.value})} />
-          <Select label="Status" options={PAYMENT_STATUSES} value={payForm.status} onChange={v=>setPayForm({...payForm,status:v})} />
-          <div style={{gridColumn:"1 / -1"}}><Input label="Notes" value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})} /></div></div>
-        <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
-          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tAllWorkouts.length})</h3>
-      {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
-        tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
-
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Bodyweight ({tBw.length})</h3>
-      <BWChart entries={tBw} />
-
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Records</h3>
-      {/* tcw is already filtered to this athlete (incl. couple sub-members),
-          so no traineeId filter is needed. Couples → parent + __0 + __1 all
-          surface in the picker as one combined record set. */}
-      <TraineePRsView clientWorkouts={tcw} embedded />
-
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Progressive Overload</h3>
-      <OverloadChart workouts={tw} exercises={exercises} />
-
-      {/* === ASSIGNED PROGRAMS — last section on the page so the coach can
-          scan billing / workouts / charts before drilling into plan structure. */}
+      {/* === ASSIGNED PROGRAMS — promoted to slot #4 (right after the
+          CRM activity feed) per Ohad spec. The active prescription is
+          the second-most-asked question on this page after "what's
+          their current state?" Workouts/Records/charts now follow it
+          chronologically (what they're doing → what they're hitting →
+          how they're trending). Billing + Eval anchor the bottom. */}
       {couple ? <>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"28px 0 12px"}}>
           <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
@@ -468,6 +420,67 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </div>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
       </>}
+
+      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tAllWorkouts.length})</h3>
+      {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
+        tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
+
+      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Records</h3>
+      {/* tcw is already filtered to this athlete (incl. couple sub-members),
+          so no traineeId filter is needed. Couples → parent + __0 + __1 all
+          surface in the picker as one combined record set. */}
+      <TraineePRsView clientWorkouts={tcw} embedded />
+
+      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Progressive Overload</h3>
+      <OverloadChart workouts={tw} exercises={exercises} />
+
+      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Bodyweight ({tBw.length})</h3>
+      <BWChart entries={tBw} />
+
+      {/* === BILLING — admin-tier section, near the bottom. The CRM
+          activity feed surfaces payment status above; the full ledger
+          + Add Payment surface lives here. */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px",gap:8,flexWrap:'wrap'}}>
+        <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Billing ({tPay.length}){totalPaid>0&&<span style={{color:C.gn,marginLeft:8}}>₪{totalPaid.toLocaleString()} total paid</span>}</h3>
+        <div style={{display:'flex',gap:6}}>
+          {/* F-27 — open the brand-rich contract composer; on send,
+              copy the /sign/<token> link to clipboard. */}
+          <button onClick={()=>setShowContract(true)} style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'4px 12px',cursor:'pointer',borderRadius:0}}>📄 CONTRACT</button>
+          <Btn onClick={()=>setShowPayForm(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Add Payment</Btn>
+        </div>
+      </div>
+      {tPay.length===0?<div style={{color:C.td,fontSize:13}}>No payments recorded.</div>:(
+        <div style={{overflowX:"auto",marginBottom:16}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
+          <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
+          <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.cardBd}`}}>
+            <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{new Date(p.date).toLocaleDateString()}</td>
+            <td style={{padding:"8px 10px",color:C.gn,fontWeight:600,textAlign:"center"}}>₪{parseFloat(p.amount).toLocaleString()}</td>
+            <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{p.method}</td>
+            <td style={{padding:"8px 10px",textAlign:"center"}}><Badge color={p.status==="Paid"?C.gn:p.status==="Overdue"?C.rd:C.or}>{p.status}</Badge></td>
+            <td style={{padding:"8px 10px",color:C.td,textAlign:"center"}}>{p.notes||"—"}</td>
+            <td style={{padding:"8px 10px",whiteSpace:"nowrap",textAlign:"center"}}>
+              <button onClick={()=>handleEditPay(p)} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
+              <button onClick={()=>handleDeletePay(p.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginLeft:6,opacity:0.6}}>✕</button>
+            </td></tr>))}</tbody></table></div>)}
+      {showContract && (
+        <CoachContractComposer
+          trainee={trainee}
+          coachEmail="ohadyproductions@gmail.com"
+          onClose={() => setShowContract(false)}
+        />
+      )}
+      <Modal open={showPayForm} onClose={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}} title={editPayId?"Edit Payment":"Add Payment"}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <Input label="Amount (₪)" type="number" value={payForm.amount} onChange={e=>setPayForm({...payForm,amount:e.target.value})} />
+          <Input label="Date" type="date" value={payForm.date} onChange={e=>setPayForm({...payForm,date:e.target.value})} />
+          <Select label="Status" options={PAYMENT_STATUSES} value={payForm.status} onChange={v=>setPayForm({...payForm,status:v})} />
+          <div style={{gridColumn:"1 / -1"}}><Input label="Notes" value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})} /></div></div>
+        <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
+          <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
+
+      {/* === ATHLETIC EVALUATION — bottom of page; usually empty, surfaced
+          last so it doesn't push the high-value sections below the fold. */}
+      {td && <TraineeEvaluation trainee={td} />}
 
       <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null);setPendingBlankCouple(false)}} title={`+ New Program for ${td.name}`}>
         {pendingAssignPlan && couple ? (
