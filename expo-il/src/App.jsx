@@ -294,6 +294,7 @@ function Nav() {
     { key: 'contact',  label: t('nav.contact'),  count: null,            anchor: 'contact' },
   ];
   const [active, setActive] = useState('programs');
+  const [mobileOpen, setMobileOpen] = useState(false);
   // Scroll-spy: as the user scrolls, mark whichever section is closest to the
   // top of the viewport as the active tab. Same behavior as the coach app's
   // observer-driven highlighting. Honors the 56px sticky header.
@@ -330,22 +331,33 @@ function Nav() {
     if (onHome) {
       doScroll();
     } else {
-      // Navigate home, then scroll after the re-render flushes the new tree.
       location.hash = '#/';
       setTimeout(doScroll, 60);
     }
+    // Close the mobile drawer on tab click — visitor expects the panel
+    // to dismiss once they've made a selection.
+    setMobileOpen(false);
   };
   return (
     <header style={{
       background: C.sf, borderBottom: `1px solid ${C.bd}`,
       position: 'sticky', top: 0, zIndex: 100,
     }}>
-      <style>{`.fv-hdr-scroll::-webkit-scrollbar{display:none}`}</style>
+      <style>{`
+        .fv-hdr-scroll::-webkit-scrollbar{display:none}
+        /* Hamburger visible only on phone widths. Above 720px the
+           horizontal nav row shows in full. */
+        .fv-burger { display: none; }
+        @media (max-width: 720px) {
+          .fv-burger { display: inline-flex; }
+          .fv-nav-inline { display: none !important; }
+          .fv-nav-drawer { display: flex; }
+        }
+        .fv-nav-drawer { display: none; }
+      `}</style>
       <div className="fv-hdr-scroll" style={{
         maxWidth: 1200, margin: '0 auto', padding: '0 16px',
         display: 'flex', alignItems: 'center', height: 56,
-        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
-        msOverflowStyle: 'none', scrollbarWidth: 'none',
       }}>
         <a href="#/" style={{
           flex: '0 0 auto', display: 'flex', alignItems: 'center',
@@ -353,9 +365,9 @@ function Nav() {
         }}>
           <BrandMark height={36} />
         </a>
-        <nav style={{
+        <nav className="fv-nav-inline" style={{
           display: 'flex', gap: 2, alignItems: 'center',
-          flex: '1 1 auto', justifyContent: 'center', minWidth: 'max-content',
+          flex: '1 1 auto', justifyContent: 'center',
         }}>
           {tabs.map(tab => {
             const on = active === tab.key;
@@ -365,10 +377,6 @@ function Nav() {
                 background: on ? C.acD : 'transparent',
                 color: on ? C.ac : C.tm,
                 borderRadius: 0, padding: '6px 10px',
-                // Always 700 — inactive=500 was too thin in Hebrew (Heebo
-                // Medium reads light against bold Nord). Match the
-                // coach-app's tabs: weight stays bold; active state shows
-                // through background tint + color shift.
                 fontSize: 12, fontWeight: 700,
                 whiteSpace: 'nowrap',
               }}>
@@ -383,7 +391,8 @@ function Nav() {
           })}
         </nav>
         <div style={{
-          flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6, marginLeft: 12,
+          flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 6,
+          marginLeft: 'auto',
         }}>
           <LangToggle />
           <a href="https://expo-app.co.il" target="_blank" rel="noopener noreferrer"
@@ -392,7 +401,6 @@ function Nav() {
               background: 'transparent', color: C.tm,
               padding: '6px 8px', fontSize: 14, borderRadius: 0,
             }}>
-            {/* External-link glyph — same stroke-icon style as the coach header */}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
@@ -400,8 +408,54 @@ function Nav() {
               <line x1="10" y1="14" x2="21" y2="3" />
             </svg>
           </a>
+          <button onClick={() => setMobileOpen(o => !o)} aria-label="Menu"
+            aria-expanded={mobileOpen} className="fv-burger" style={{
+              ...baseBtn, background: 'transparent', color: C.tx,
+              padding: '6px 8px', borderRadius: 0,
+              display: 'none', alignItems: 'center', justifyContent: 'center',
+              border: `1px solid ${C.bd}`, height: 32, width: 36,
+            }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {mobileOpen
+                ? <><line x1="18" y1="6"  x2="6"  y2="18" /><line x1="6"  y1="6"  x2="18" y2="18" /></>
+                : <><line x1="3"  y1="6"  x2="21" y2="6"  /><line x1="3"  y1="12" x2="21" y2="12" /><line x1="3"  y1="18" x2="21" y2="18" /></>}
+            </svg>
+          </button>
         </div>
       </div>
+      {/* Mobile drawer — slides in below the header when open. Tabs stack
+          full-width with the same scroll-spy active state. */}
+      {mobileOpen && (
+        <nav className="fv-nav-drawer" style={{
+          flexDirection: 'column', borderTop: `1px solid ${C.bd}`,
+          background: C.sf,
+        }}>
+          {tabs.map(tab => {
+            const on = active === tab.key;
+            return (
+              <button key={tab.key} onClick={() => { setActive(tab.key); goToAnchor(tab.anchor); }} style={{
+                ...baseBtn,
+                background: on ? C.acD : 'transparent',
+                color: on ? C.ac : C.tx,
+                borderRadius: 0,
+                padding: '14px 18px',
+                fontSize: 14, fontWeight: 700,
+                textAlign: 'start',
+                borderBottom: `1px solid ${C.bd}`,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span>{tab.label}</span>
+                {tab.count !== null && (
+                  <span style={{
+                    fontSize: 11, color: on ? C.ac : C.td, fontFamily: FN, fontWeight: 700,
+                  }}>{tab.count}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      )}
     </header>
   );
 }
