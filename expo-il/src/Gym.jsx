@@ -48,8 +48,15 @@ export default function Gym() {
   }, [heb]);
 
   return (
+    // textAlign: 'start' overrides the App-root default of 'center'
+    // (App.jsx:2991 globally centers expo-il content for the catalog
+    // home). Gym is a self-contained brand page where sections that
+    // want centering (Hero, SectionHeader, copyright) opt in explicitly,
+    // so inheriting center wrecks the footer's 3-column link grid +
+    // the FAQ + cards. Forcing start here restores natural reading flow.
     <div dir={heb ? 'rtl' : 'ltr'} style={{
       background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
+      textAlign: 'start',
     }}>
       <style>{`
         .gym-section { padding: 64px 24px; max-width: 1100px; margin: 0 auto; }
