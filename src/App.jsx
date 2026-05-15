@@ -135,10 +135,14 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
       <button ref={btnRef} onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         className={isChosen && !isSectionActive ? 'nav-item-inactive' : undefined}
-        style={{ ...baseBtn, alignItems: 'baseline', borderRadius: 0, padding: '6px 10px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
+        // alignItems:center (was baseline) so the label, count, and
+        // chevron share one optical center-line. baseline-mode let
+        // the chevron drift below the cap-height of the label.
+        // gap:6 inherits from baseBtn, no per-child margins needed.
+        style={{ ...baseBtn, alignItems: 'center', borderRadius: 0, padding: '6px 10px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
         <span>{label}</span>
         {count != null && <span style={{ fontSize: 10, color: countColor, fontFamily: FN }}>{count}</span>}
-        <span style={{ marginLeft: 4, fontSize: 9, opacity: 0.7 }}>▾</span>
+        <span style={{ fontSize: 10, lineHeight: 1 }}>▾</span>
       </button>
       {open && (
         <div style={{
@@ -832,8 +836,9 @@ function AuthedApp() {
               }
               // Plain tab. Typography tightened (fontSize 10 + letterSpacing
               // 0.06em — was 11 / 0.18em) so the 8-item row clears 1366px
-              // viewport comfortably.
-              return(<button key={t.key} className={isChosen&&!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'baseline',borderRadius:0,padding:"6px 10px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
+              // viewport comfortably. alignItems:'center' (was 'baseline')
+              // matches SubmenuTab so label + count share one center-line.
+              return(<button key={t.key} className={isChosen&&!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'center',borderRadius:0,padding:"6px 10px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
                 <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12,paddingLeft:12,borderLeft:`1px solid ${C.cardBd}`}}>
             <ThemeToggle size={32} style={{marginRight:4}}/>
