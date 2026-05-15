@@ -154,22 +154,22 @@ function Hero({ heb, onBookClick }) {
         <div style={{
           fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.32em',
           fontWeight: 700, marginBottom: 18,
-        }}>{heb ? 'מרכז ביצועים אתלטי · אוהד' : "OHAD'S ATHLETIC PERFORMANCE CENTER"}</div>
+        }}>{heb ? 'EXPO · מרכז ביצועים אתלטי' : 'EXPO · ATHLETIC PERFORMANCE CENTER'}</div>
 
         <h1 style={{
           margin: '0 0 22px', fontFamily: FN,
           fontSize: 'clamp(32px, 5.5vw, 56px)',
           fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.05,
         }}>{heb
-          ? 'אימון אישי. תוצאות אמיתיות.'
-          : <>One-on-one coaching.<br/>Real results.</>}</h1>
+          ? 'כוח. ניידות. ריקאברי.'
+          : <>Strength. Mobility.<br/>Recovery.</>}</h1>
 
         <p style={{
           margin: '0 auto 36px', maxWidth: 580, fontSize: 16, color: C.tm,
           lineHeight: 1.7,
         }}>{heb
-          ? 'אימון אחד-על-אחד במרכז הביצועים האתלטי של אוהד — לא קבוצות, לא תחרות על משקולות. תוכנית שנבנית סביב הגוף שלך, האימון, והיעדים שלך.'
-          : "One-on-one performance training at Ohad's athletic performance center — no group classes, no fighting for equipment. A program built around your body, your schedule, and your goals."}</p>
+          ? 'מרכז ביצועים שבנוי סביב כוח מתוכנת, ניידות, וריקאברי משולב. אימון בקבוצות קטנות עם תוכנית אישית, וטיפול חודשי כחלק מהמנוי — לא תוספת.'
+          : 'A performance center built around programmed strength, mobility, and integrated recovery. Small-group coaching with your own program — and a monthly massage that is part of the membership, not an add-on.'}</p>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onBookClick}
@@ -200,13 +200,13 @@ function StatsStrip({ heb }) {
         { n: '500+', l: 'אימונים' },
         { n: '20+', l: 'מתאמנים פעילים' },
         { n: '5★', l: 'דירוג ממוצע' },
-        { n: '60דק', l: 'אימון אחד-על-אחד' },
+        { n: '4–7', l: 'בקבוצה' },
       ]
     : [
         { n: '500+', l: 'Sessions delivered' },
         { n: '20+', l: 'Active clients' },
         { n: '5★', l: 'Average rating' },
-        { n: '60min', l: 'One-on-one focus' },
+        { n: '4–7', l: 'Per coached group' },
       ];
   return (
     <section data-fade className="gym-section" style={{ paddingTop: 32, paddingBottom: 32 }}>
@@ -292,24 +292,24 @@ function WhoItsFor({ heb }) {
   );
 }
 
-// ─── Why in-person ───────────────────────────────────────────────────
+// ─── Why here ────────────────────────────────────────────────────────
 function WhyInPerson({ heb }) {
   const items = heb
     ? [
-        { h: 'תיקון בזמן אמת', b: 'אני רואה את התנועה. אני מתקן באוויר, לפני שזה הופך להרגל.' },
-        { h: 'תוכנית שמתעדכנת שבוע אחרי שבוע', b: 'מה שעבד, מה שעלה את הדופק, מה שנשבר — הכל נכנס לתוכנית של השבוע הבא.' },
-        { h: 'אחריות שבועית', b: 'מתאמנים עומדים ביעדים שלהם כשמישהו רואה אותם. זה החלק שלא הולך לבד.' },
+        { h: 'עיניים על כל סט', b: 'קבוצה של 4–7 בלבד. אני רואה כל חזרה ומתקן באוויר — לא שיעור שבו אתה מספר.' },
+        { h: 'תוכנית, לא אימון', b: 'בלוקים של 4–8 שבועות שנבנים סביב המספרים שלך. השינוי בין שבוע לשבוע מתוכנן, לא אקראי.' },
+        { h: 'ריקאברי בתוך המחיר', b: 'טיפול חודשי של 45–60 דקות הוא חלק מהמנוי — לא בונוס מדי פעם. הגוף צריך את זה, והמחיר משקף את זה.' },
       ]
     : [
-        { h: 'Real-time form correction', b: 'I see the movement. I correct it mid-set, before it becomes a habit.' },
-        { h: 'A program that adapts every week', b: 'What worked, what spiked, what broke — all of it feeds into next week\'s plan.' },
-        { h: 'Weekly accountability', b: "Clients hit their goals when someone's watching. That's the part you can't do alone." },
+        { h: 'Coached eyes, every set', b: 'Groups of 4–7 only. I see every rep and correct it mid-set — not a class where you are a number.' },
+        { h: 'Programming, not workouts', b: '4–8 week blocks built around your numbers. The week-to-week change is structured, not random.' },
+        { h: 'Recovery is in the price', b: 'A monthly 45–60 minute massage is part of your membership — not a sometimes-bonus. The body needs it; the price reflects that.' },
       ];
   return (
     <section data-fade className="gym-section">
       <SectionHeader heb={heb}
-        kicker={heb ? 'למה אישי' : 'WHY IN-PERSON'}
-        title={heb ? 'מה שעבודה אישית נותנת' : 'What hands-on coaching gives you'} />
+        kicker={heb ? 'למה כאן' : 'WHY HERE'}
+        title={heb ? 'מה שהמרכז נותן' : 'What the center gives you'} />
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginTop: 32,
       }}>
@@ -722,8 +722,8 @@ function Footer({ heb }) {
           <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 28, width: 'auto', marginBottom: 12 }} />
           <p style={{ fontSize: 12, color: C.tm, lineHeight: 1.6, maxWidth: 260 }}>
             {heb
-              ? 'אימון אישי מבוסס נתונים — מרכז הביצועים האתלטי של אוהד.'
-              : "Data-driven performance training — Ohad's athletic performance center."}
+              ? 'מרכז ביצועים אתלטי — כוח, ניידות וריקאברי, באימון קבוצתי מבוסס תוכנית.'
+              : 'EXPO Athletic Performance Center — strength, mobility, and recovery, in programmed small-group coaching.'}
           </p>
         </div>
         <div>
