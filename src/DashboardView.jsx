@@ -301,8 +301,48 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         })}
       </div>
 
-      {/* F-36 — Revenue detail card. Slots between KPI tiles and alert
-          cards so the eye-track money → at-risk → leads scan works.
+      {/* INCOMING — top-of-funnel acquisition counts (chat / messages /
+          captures / waitlist) over the last 30 days. Moved 2026-05-16
+          above Revenue so the "what's coming IN" question reads before
+          the "what's coming THROUGH" revenue numbers. Only renders when
+          there's signal. */}
+      {funnel && (funnel.sessions || funnel.messages || funnel.total) ? (() => {
+        const refined = isRefined5b();
+        return (
+          <div style={{ background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
+            {refined ? (
+              <RefinedHeaderStrip>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span style={{ fontSize: 11, fontFamily: FN, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>INCOMING · 30D</span>
+                  <span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
+                </div>
+              </RefinedHeaderStrip>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                <span style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>INCOMING · 30D</span>
+                <span style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+              {[
+                { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
+                { label: 'MESSAGES SENT', value: funnel.messages, color: refined ? C.tx : C.tm },
+                { label: 'EMAIL CAPTURES', value: funnel.captures, color: funnel.captures > 0 ? C.gn : C.td },
+                { label: 'WAITLIST', value: funnel.total, color: funnel.total > 0 ? C.ac : C.td },
+              ].map((s, i) => (
+                <div key={i} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })() : null}
+
+      {/* F-36 — Revenue detail card. Slots between Incoming + alert
+          cards so the eye-track follows: what's coming IN → what's
+          coming THROUGH (money) → what NEEDS attention (alerts).
           Six secondary metrics (LTV, avg ticket, 30/90d collected,
           outstanding, MRR) plus a 6-month bar chart. */}
       <RevenueCard
@@ -477,45 +517,6 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           )}
         </div>
       )}
-
-      {/* /coaches funnel tile — only renders when there's any signal to show.
-          Visits row is intentionally absent here: the denominator lives in
-          Vercel Analytics. The numbers below are first-party counts from
-          chat_logs + leads, so they keep working even if Analytics isn't
-          enabled. */}
-      {funnel && (funnel.sessions || funnel.messages || funnel.total) ? (() => {
-        const refined = isRefined5b();
-        return (
-          <div style={{ background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
-            {refined ? (
-              <RefinedHeaderStrip>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontSize: 11, fontFamily: FN, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>/COACHES FUNNEL · 30D</span>
-                  <span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
-                </div>
-              </RefinedHeaderStrip>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                <span style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>/COACHES FUNNEL · 30D</span>
-                <span style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
-              </div>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-              {[
-                { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
-                { label: 'MESSAGES SENT', value: funnel.messages, color: refined ? C.tx : C.tm },
-                { label: 'EMAIL CAPTURES', value: funnel.captures, color: funnel.captures > 0 ? C.gn : C.td },
-                { label: 'WAITLIST', value: funnel.total, color: funnel.total > 0 ? C.ac : C.td },
-              ].map((s, i) => (
-                <div key={i} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>{s.label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, fontFamily: FN, color: s.color }}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })() : null}
 
 
       {/* Search */}
