@@ -6,6 +6,7 @@
   --c-sf: #0a0a0c;
   --c-sf2: #111114;
   --c-sf3: #18181c;
+  --c-stripBg: var(--c-sf);  /* strip header bg — same as card body in dark; cyan-saturated only in light */
   --c-bd: #1e1e24;
   --c-bd2: #2a2a32;
   --c-tx: #f0f0f4;
@@ -31,48 +32,61 @@
 }
 
 /*
- * Light theme — CHOSEN DESIGN (formerly draft theme=5b, baked in 2026-05-10).
- * White header (so the bicolor EXPO ^ caret shows), light-gray page bg,
- * BSG cyan #39BDFF cards, body BLACK, active accents BLACK, severity
- * saturated. KPI big-numbers headline at 40px. Stroke SVG icons replace
- * all dashboard/programs emoji. White Status badges + WhatsApp pills.
- * All bgs are white, gray, or BSG cyan — never tinted.
+ * Light theme — STRONG LAYERED WHITE (rebuilt 2026-05-16 to fix
+ * "everything is white on white or black on white" — the previous
+ * cyan-card design was being overridden to white by every dashboard
+ * card via `refined ? '#FFFFFF' : var(--c-sf)`, so the cyan never
+ * actually rendered).
+ *
+ * Recipe:
+ *   • body bg: cool light gray that has presence against pure-white cards
+ *   • card body: pure white (--c-sf is white now, not cyan)
+ *   • card border: cyan-tinted hairline (--c-cardBd at 42%) — visible
+ *     and unmistakably EXPO without flooding the field with cyan
+ *   • card shadow: real elevation, not 1px-of-nothing
+ *   • strip header: separate token (--c-stripBg) stays full cyan so
+ *     every card has a clear cyan top edge carrying the brand
+ *   • severity (rd/gn/or/pu) stays saturated for alert clarity
+ *
+ * Active accent is still BLACK (#0E0F12) so buttons/active-tabs read
+ * as architectural anchors against cyan brand strokes.
  */
 [data-theme="light"] {
-  --c-bg: #E2E2E5;
-  --c-sf: #39BDFF;
-  --c-sf2: #F3F4F6;          /* soft gray — used by baseInput + table-row hover; was #5FCDFF cyan-light, replaced 2026-05-11 to keep inputs from reading as cyan blobs */
-  --c-sf3: #1FA0E2;
+  --c-bg: #EBEDF1;                /* cool light gray — more presence than #E2E2E5 against white cards */
+  --c-sf: #FFFFFF;                /* card surface — pure white, not cyan */
+  --c-sf2: #F3F4F6;               /* soft gray — used by baseInput + table-row hover */
+  --c-sf3: #E5E7EB;               /* sunken / disabled surface */
+  --c-stripBg: #39BDFF;           /* RefinedHeaderStrip bg — full BSG cyan, brand-on */
   --c-headerBg: #FFFFFF;
-  --c-divider: rgba(0,0,0,0.18);
+  --c-divider: rgba(57,189,255,0.22);
   --c-badgeBg: #FFFFFF;
   --c-kpiNumberSize: 40px;
   --c-alertLabelSize: 13px;
-  --c-rowHover: rgba(0,0,0,0.04);          /* table-row hover tint on white body */
-  --c-stripText: #FFFFFF;                  /* text inside the cyan header strip */
-  --c-stripBorder: rgba(255,255,255,0.55); /* outline for buttons inside the strip */
-  --c-bd: rgba(0,0,0,0.10);
-  --c-bd2: rgba(0,0,0,0.20);
+  --c-rowHover: rgba(57,189,255,0.06); /* table-row hover — subtle cyan tint */
+  --c-stripText: #FFFFFF;
+  --c-stripBorder: rgba(255,255,255,0.55);
+  --c-bd: rgba(57,189,255,0.32);
+  --c-bd2: rgba(57,189,255,0.48);
   --c-tx: #0E0F12;
-  --c-tm: #1A2A3F;
-  --c-td: #3A5067;
+  --c-tm: #4A5263;
+  --c-td: #7B8390;
   --c-ac: #0E0F12;
   --c-acH: #000000;
-  --c-acText: #0E0F12;
+  --c-acText: #0A78B0;            /* AA-safe cyan for small text on white */
   --c-acSurface: #0E0F12;
   --c-acOnSurface: #FFFFFF;
-  --c-cardBd: rgba(0,0,0,0.22);
+  --c-cardBd: rgba(57,189,255,0.42);  /* cyan-42% hairline — the design's load-bearing element */
   --c-rd: #B91C1C;
-  --c-rdD: rgba(185,28,28,0.18);
+  --c-rdD: rgba(185,28,28,0.10);
   --c-gn: #15803D;
-  --c-gnD: rgba(21,128,61,0.18);
+  --c-gnD: rgba(21,128,61,0.10);
   --c-or: #C2410C;
-  --c-orD: rgba(194,65,12,0.18);
+  --c-orD: rgba(194,65,12,0.10);
   --c-pu: #6D28D9;
-  --c-puD: rgba(109,40,217,0.18);
+  --c-puD: rgba(109,40,217,0.10);
   --c-scrim: rgba(0,0,0,0.45);
-  --c-shadow: rgba(0,0,0,0.10);
-  --c-cardShadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 1px 2px rgba(0,0,0,0.06), 0 6px 16px rgba(0,0,0,0.08);
+  --c-shadow: rgba(15,23,42,0.10);
+  --c-cardShadow: 0 1px 2px rgba(15,23,42,0.06), 0 4px 14px rgba(15,23,42,0.08);
 }
 
 /* === SAVED — original white-cards light direction (pre-cyan-cards iteration).
