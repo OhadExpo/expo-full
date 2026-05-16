@@ -333,15 +333,32 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       </Card>
       </>}
 
-      {/* Page section order (Ohad spec 2026-05-16, v2):
-            Header → BILLING → VITALS → BODYWEIGHT → CRM → MESSAGES →
+      {/* Page section order (Ohad spec 2026-05-16, v3):
+            Header → VITALS → BILLING → MESSAGES → CRM → BODYWEIGHT →
             WORKOUTS → PROGRAMS → ATHLETIC EVAL → OVERLOAD → RECORDS.
-          Billing leads (most-checked context); high-touch CRM /
-          Messages / Workouts cluster mid-page; Records and Overload
-          anchor the bottom. Couples render vitals inside the member
-          columns above; the !couple gate skips the duplicate card. */}
+          Vitals leads (most-asked "what is going on with this client?"
+          after the header); Billing + Messages cluster the day-to-day
+          interactions; CRM + Bodyweight surface signals; Workouts /
+          Programs / Eval / Overload / Records anchor the historical
+          tail. Couples render vitals inside the member columns above;
+          the !couple gate skips the duplicate card. */}
 
-      {/* === BILLING — slot #2, right after Header. */}
+      {/* === VITALS · INJURIES · GOALS — slot #2, solo only (couples
+          render this inside the member columns above). */}
+      {!couple && (
+        <Card style={{marginBottom:16}}
+          header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12,textAlign:"center"}}>
+            {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>
+              <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>)}
+          </div>
+          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid rgba(255,165,2,0.302)`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[֐-׿]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
+          {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[֐-׿]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
+          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[֐-׿]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
+        </Card>
+      )}
+
+      {/* === BILLING — slot #3, right after Header. */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px",gap:8,flexWrap:'wrap'}}>
         <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Billing ({tPay.length}){totalPaid>0&&<span style={{color:C.gn,marginLeft:8}}>₪{totalPaid.toLocaleString()} total paid</span>}</h3>
         <div style={{display:'flex',gap:6}}>
@@ -380,24 +397,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
           <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
 
-      {/* === VITALS · INJURIES · GOALS — slot #3, solo only (couples
-          render this inside the member columns above). */}
-      {!couple && (
-        <Card style={{marginBottom:16}}
-          header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Vitals · Injuries · Goals</span>}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12,textAlign:"center"}}>
-            {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>
-              <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>)}
-          </div>
-          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid rgba(255,165,2,0.302)`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[֐-׿]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
-          {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[֐-׿]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
-          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[֐-׿]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
-        </Card>
-      )}
-
-      {/* === BODYWEIGHT — slot #4 */}
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Bodyweight ({tBw.length})</h3>
-      <BWChart entries={tBw} />
+      {/* === MESSAGES — slot #4: athlete↔coach thread, lifted from
+          inside TraineeCRM to its own top-level slot. */}
+      {td && <CoachMessages traineeId={trainee} role="coach" />}
 
       {/* === CRM — slot #5: cadence pill, next actions, activity feed */}
       {td && (
@@ -412,9 +414,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         />
       )}
 
-      {/* === MESSAGES — slot #6: athlete↔coach thread, lifted from
-          inside TraineeCRM to its own top-level slot. */}
-      {td && <CoachMessages traineeId={trainee} role="coach" />}
+      {/* === BODYWEIGHT — slot #6 */}
+      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Bodyweight ({tBw.length})</h3>
+      <BWChart entries={tBw} />
 
       {/* === WORKOUTS — slot #7 */}
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tAllWorkouts.length})</h3>
