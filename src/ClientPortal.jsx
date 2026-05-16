@@ -1546,14 +1546,29 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>
         </div>
       </div>
-      <div style={{padding:'14px 20px 0',display:'flex',gap:0}}>
-        {[['prog','PROGRAM'],['bwt','BW'],['pr','PRs'],['hist',`HISTORY (${cw.length})`]].map(([k,l],i,arr) =>
-          <button key={k} onClick={() => setVw(k)}
-            style={{flex:1,padding:'10px 4px',borderRadius:0,border:'none',borderBottom:`${vw===k?'2px':'0.25px'} solid ${C.ac}${vw===k?'':'4D'}`,background:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',position:'relative'}}>
-            {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>}
-          </button>
-        )}
-      </div>
+      {/* Two-row nav (Ohad spec 2026-05-16):
+            Row 1 → PROGRAM · BW · MEAL LOG  (active work)
+            Row 2 → MESSAGES · HISTORY · PRs (review & comms)
+          Both rows share the cyan underline pattern (2px active /
+          0.25px+30% inactive) — see [[feedback-stroke-ruling]]. */}
+      {(() => {
+        const navRow = (items) => (
+          <div style={{display:'flex',gap:0}}>
+            {items.map(([k,l]) =>
+              <button key={k} onClick={() => setVw(k)}
+                style={{flex:1,padding:'10px 4px',borderRadius:0,border:'none',borderBottom:`${vw===k?'2px':'0.25px'} solid ${C.ac}${vw===k?'':'4D'}`,background:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',position:'relative'}}>
+                {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>}
+              </button>
+            )}
+          </div>
+        );
+        return (
+          <div style={{padding:'14px 20px 0'}}>
+            {navRow([['prog','PROGRAM'],['bwt','BW'],['meal','MEAL LOG']])}
+            {navRow([['msg','MESSAGES'],['hist',`HISTORY (${cw.length})`],['pr','PRs']])}
+          </div>
+        );
+      })()}
     </>
   );
 
@@ -1749,6 +1764,37 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:4,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}>📝 {w.notes}</div>}
         </div>; })}</div></div>;
 
+  // MEAL LOG page — full-screen, lazy-loaded.
+  if (vw === 'meal' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+    {renderTopHeader()}
+    <div style={{padding:'14px 20px 28px'}}>
+      {demoMode ? (
+        <div style={{textAlign:'center',color:C.td,padding:40,fontSize:13}}>
+          Meal logging is hidden in preview mode.
+        </div>
+      ) : ci ? (
+        <React.Suspense fallback={<div style={{textAlign:'center',color:C.td,padding:40,fontFamily:FN,fontSize:11,letterSpacing:'0.18em',fontWeight:700}}>LOADING…</div>}>
+          <MealLogger clientId={ci} page />
+        </React.Suspense>
+      ) : null}
+    </div>
+  </div>;
+
+  // MESSAGES page — surfaces the same thread that lived inline on the
+  // Program view before 2026-05-16.
+  if (vw === 'msg' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+    {renderTopHeader()}
+    <div style={{padding:'14px 20px 28px'}}>
+      {demoMode ? (
+        <div style={{textAlign:'center',color:C.td,padding:40,fontSize:13}}>
+          Messages are hidden in preview mode.
+        </div>
+      ) : ci ? (
+        <CoachMessagesAthlete traineeId={ci} role="athlete" />
+      ) : null}
+    </div>
+  </div>;
+
   // Program view
   if (trainee) { const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
     return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
@@ -1772,10 +1818,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>
         </div>}
         {!demoMode && ci && <AthleteChallengesWidget clientId={ci} clientWorkouts={clientWorkouts} bwLog={bwLog} traineesById={Object.fromEntries((trainees||[]).map(t=>[t.id,t]))} />}
-        {!demoMode && ci && <CoachMessagesAthlete traineeId={ci} role="athlete" />}
-        {/* F-14 — meal log; lazy-loaded so the React.Suspense fallback is
-            an invisible no-op until the chunk hits cache. */}
-        {!demoMode && ci && <React.Suspense fallback={null}><MealLogger clientId={ci} /></React.Suspense>}
+        {/* Messages + Meal Log used to render inline here. Both are
+            now their own pages (vw='msg' / vw='meal') reached via the
+            two-row nav above. Removed 2026-05-16. */}
         {plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:14,marginBottom:14}}>
           <div style={{fontSize:11,color:C.rd||'#ff6b6b',fontWeight:700,fontFamily:FN,letterSpacing:'0.1em',marginBottom:6,textTransform:'uppercase'}}>Couldn't load programs</div>
           <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{plansLoadError}</div>

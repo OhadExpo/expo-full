@@ -26,7 +26,7 @@ function dayLabel(iso) {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-export default function MealLogger({ clientId }) {
+export default function MealLogger({ clientId, page = false }) {
   const [photoUrl, setPhotoUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -145,6 +145,162 @@ export default function MealLogger({ clientId }) {
     f: acc.f + (Number(m.fat_g) || 0),
   }), { kcal: 0, p: 0, c: 0, f: 0 });
 
+  const isToday = day === todayISO();
+  // Page mode: full-bleed layout, hero totals, bigger thumbnails.
+  // Inline (legacy widget) mode: tinted card with compact composer.
+  // The widget mode is retained for any host that still mounts this
+  // outside the dedicated /meal-log page route.
+  if (page) {
+    return (
+      <div>
+        {/* Day navigator — strip with prev/next + label */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: '40px 1fr 40px',
+          alignItems: 'center', marginBottom: 14, gap: 8,
+        }}>
+          <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() - 1); setDay(d.toISOString().slice(0, 10)); }}
+            aria-label="Previous day"
+            style={{
+              background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
+              padding: '8px 0', fontFamily: FN, fontSize: 11, fontWeight: 700,
+              cursor: 'pointer', borderRadius: 0,
+            }}>←</button>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>
+              MEAL LOG
+            </div>
+            <div style={{ fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: '0.02em', marginTop: 3 }}>
+              {dayLabel(day)}
+            </div>
+          </div>
+          {!isToday ? (
+            <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() + 1); setDay(d.toISOString().slice(0, 10)); }}
+              aria-label="Next day"
+              style={{
+                background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
+                padding: '8px 0', fontFamily: FN, fontSize: 11, fontWeight: 700,
+                cursor: 'pointer', borderRadius: 0,
+              }}>→</button>
+          ) : <span aria-hidden="true" />}
+        </div>
+
+        {/* Hero totals — calories headline, macros underneath */}
+        <div style={{
+          border: `1px solid ${C.cardBd}`, padding: '16px 14px',
+          marginBottom: 16, background: 'var(--c-sf)',
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontFamily: FN, fontSize: 9, color: C.tm,
+              letterSpacing: '0.24em', fontWeight: 700,
+            }}>{isToday ? 'TODAY · TOTAL' : 'DAY TOTAL'}</div>
+            <div style={{
+              fontFamily: FN, fontSize: 36, color: meals.length ? C.ac : C.td,
+              fontWeight: 700, letterSpacing: '-0.02em', marginTop: 4,
+              fontVariantNumeric: 'tabular-nums',
+            }}>{totals.kcal}<span style={{ fontSize: 13, color: C.tm, fontWeight: 600, marginLeft: 6, letterSpacing: '0.12em' }}>KCAL</span></div>
+          </div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6,
+            marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.cardBd}`,
+          }}>
+            {[
+              { l: 'PROTEIN', v: totals.p, c: C.gn },
+              { l: 'CARB',    v: totals.c, c: C.or },
+              { l: 'FAT',     v: totals.f, c: C.ac },
+            ].map(t => (
+              <div key={t.l} style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{t.l}</div>
+                <div style={{ fontFamily: FN, fontSize: 18, color: t.c, fontWeight: 700, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
+                  {t.v}<span style={{ fontSize: 10, color: C.tm, marginLeft: 2, fontWeight: 600 }}>g</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Composer — only on today */}
+        {isToday && (
+          <div style={{ marginBottom: 18 }}>
+            {!photoUrl && !uploading && (
+              <label style={{ display: 'block' }}>
+                <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} style={{ display: 'none' }} />
+                <span style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  cursor: 'pointer', padding: '16px 18px',
+                  border: `2px dashed ${C.ac}`, color: C.ac, background: 'transparent',
+                  fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em',
+                  textAlign: 'center', boxSizing: 'border-box',
+                }}>
+                  <span style={{ fontSize: 20 }}>📸</span>
+                  <span>SNAP A MEAL</span>
+                </span>
+              </label>
+            )}
+            {uploading && (
+              <div style={{
+                textAlign: 'center', color: C.tm, fontFamily: FN, fontSize: 10,
+                letterSpacing: '0.18em', fontWeight: 700, padding: 28,
+                border: `1px solid ${C.cardBd}`,
+              }}>UPLOADING…</div>
+            )}
+            {photoUrl && !macros && !analyzing && (
+              <div>
+                <img src={photoUrl} alt="meal" style={{ width: '100%', maxHeight: 320, objectFit: 'cover', display: 'block', marginBottom: 10 }} />
+                <input type="text" value={hint} onChange={e => setHint(e.target.value)} dir="auto"
+                  placeholder='Optional hint (e.g. "1 tbsp olive oil")'
+                  style={{
+                    width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
+                    padding: '10px 12px', color: C.tx, fontFamily: FB, fontSize: 13,
+                    outline: 'none', boxSizing: 'border-box', marginBottom: 10,
+                  }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => { setPhotoUrl(null); setHint(''); }} style={btnGhost}>CANCEL</button>
+                  <button onClick={analyze} style={btnAc}>ANALYZE →</button>
+                </div>
+              </div>
+            )}
+            {analyzing && (
+              <div style={{
+                textAlign: 'center', color: C.ac, fontFamily: FN, fontSize: 11,
+                letterSpacing: '0.18em', fontWeight: 700, padding: 32,
+                border: `1px solid ${C.ac}`,
+              }}>ANALYZING…</div>
+            )}
+            {macros && photoUrl && (
+              <MacrosReview macros={macros} setMacros={setMacros} photoUrl={photoUrl} onCancel={() => { setMacros(null); setPhotoUrl(null); setHint(''); }} onSave={save} />
+            )}
+            {error && (
+              <div style={{
+                marginTop: 10, padding: '10px 12px', border: `1px solid ${C.rd}`,
+                color: C.rd, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
+              }}>{error}</div>
+            )}
+          </div>
+        )}
+
+        {/* Past meals — bigger thumbs, full-row tap-target */}
+        <div>
+          <div style={{
+            fontFamily: FN, fontSize: 9, color: C.tm,
+            letterSpacing: '0.24em', fontWeight: 700, marginBottom: 10,
+          }}>{isToday ? 'TODAY' : 'MEALS'} · {meals.length}</div>
+          {meals.length === 0 ? (
+            <div style={{
+              textAlign: 'center', color: C.td, fontSize: 13, padding: '32px 14px',
+              border: `1px solid ${C.cardBd}`,
+            }}>
+              {isToday
+                ? 'No meals yet. Snap a photo above and the AI will estimate macros.'
+                : 'No meals on this day.'}
+            </div>
+          ) : meals.map(m => <MealRow key={m.id} meal={m} page />)}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- legacy inline widget (kept for any host that still uses it) ----
   return (
     <div style={{
       background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
@@ -154,20 +310,18 @@ export default function MealLogger({ clientId }) {
         📸 MEAL LOG
       </div>
 
-      {/* Day selector */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() - 1); setDay(d.toISOString().slice(0, 10)); }}
           style={navBtn}>← PREV</button>
         <span style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontWeight: 700, letterSpacing: '0.04em' }}>
           {dayLabel(day)}
         </span>
-        {day < todayISO() ? (
+        {!isToday ? (
           <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() + 1); setDay(d.toISOString().slice(0, 10)); }}
             style={navBtn}>NEXT →</button>
         ) : <span style={{ width: 60 }} />}
       </div>
 
-      {/* Totals strip */}
       {meals.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 12 }}>
           {[
@@ -184,8 +338,7 @@ export default function MealLogger({ clientId }) {
         </div>
       )}
 
-      {/* Composer */}
-      {day === todayISO() && (
+      {isToday && (
         <>
           {!photoUrl && !uploading && (
             <label style={{ display: 'block' }}>
@@ -236,11 +389,10 @@ export default function MealLogger({ clientId }) {
         </>
       )}
 
-      {/* Past meals */}
       <div style={{ marginTop: 14 }}>
         {meals.length === 0 ? (
           <div style={{ textAlign: 'center', color: C.td, fontSize: 12, padding: 14 }}>
-            {day === todayISO() ? 'No meals logged yet today.' : 'No meals on this day.'}
+            {isToday ? 'No meals logged yet today.' : 'No meals on this day.'}
           </div>
         ) : meals.map(m => (
           <MealRow key={m.id} meal={m} />
@@ -299,7 +451,51 @@ function MacroInput({ label, value, onChange }) {
   );
 }
 
-function MealRow({ meal }) {
+function MealRow({ meal, page = false }) {
+  if (page) {
+    return (
+      <div style={{
+        display: 'flex', gap: 12, padding: 10, marginBottom: 8,
+        border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)',
+      }}>
+        <img src={meal.photo_url} alt="" style={{
+          width: 80, height: 80, objectFit: 'cover', flexShrink: 0,
+        }} />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8,
+            }}>
+              <span style={{
+                fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700,
+              }}>{new Date(meal.logged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span style={{
+                fontFamily: FN, fontSize: 14, color: C.ac, fontWeight: 700, letterSpacing: '0.02em',
+                fontVariantNumeric: 'tabular-nums',
+              }}>{meal.kcal} <span style={{ fontSize: 9, color: C.tm, fontWeight: 600, letterSpacing: '0.12em' }}>KCAL</span></span>
+            </div>
+            {Array.isArray(meal.items) && meal.items.length > 0 && (
+              <div style={{
+                fontSize: 12, color: C.tx, marginTop: 4, lineHeight: 1.35,
+                display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden',
+              }}>
+                {meal.items.map(i => i.name).filter(Boolean).join(', ')}
+              </div>
+            )}
+          </div>
+          <div style={{
+            display: 'flex', gap: 10, marginTop: 6,
+            fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+            fontVariantNumeric: 'tabular-nums',
+          }}>
+            <span style={{ color: C.gn }}>{meal.protein_g}<span style={{ color: C.tm, marginLeft: 2 }}>P</span></span>
+            <span style={{ color: C.or }}>{meal.carb_g}<span style={{ color: C.tm, marginLeft: 2 }}>C</span></span>
+            <span style={{ color: C.ac }}>{meal.fat_g}<span style={{ color: C.tm, marginLeft: 2 }}>F</span></span>
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{
       display: 'flex', gap: 10, padding: '8px 0', borderBottom: `1px solid ${C.cardBd}`,
