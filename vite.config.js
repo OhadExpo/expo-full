@@ -18,6 +18,15 @@ export default defineConfig({
       // Registration is handled by useRegisterSW inside SwUpdateBanner — no
       // auto-injected script tag, no double registration.
       injectRegister: false,
+      // injectManifest: ship our own src/sw.js (push handlers + precache).
+      // Generated default (generateSW) had no push hooks.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf}'],
+        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+      },
       includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'favicon-48x48.png', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-192.png', 'icon-maskable-512.png', 'nord-fonts.css', 'heebo-fonts.css'],
       manifest: {
         name: 'EXPO',
@@ -40,11 +49,9 @@ export default defineConfig({
           { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2,ttf}'],
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-        navigateFallbackDenylist: [/^\/api/, /supabase/]
-      }
+      // workbox: {...} removed — irrelevant under injectManifest;
+      // navigation-fallback denylist now lives in src/sw.js if/when
+      // we re-introduce navigation routing.
     })
   ]
 })

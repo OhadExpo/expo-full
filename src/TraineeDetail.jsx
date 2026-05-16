@@ -399,7 +399,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* === MESSAGES — slot #4: athlete↔coach thread, lifted from
           inside TraineeCRM to its own top-level slot. */}
-      {td && <CoachMessages traineeId={trainee} role="coach" />}
+      {td && <CoachMessages
+        traineeId={trainee}
+        role="coach"
+        recipientEmail={Array.isArray(td.email) ? td.email.find(e => typeof e === 'string' && e.trim()) : td.email}
+        senderLabel="Ohad" />}
 
       {/* === CRM — slot #5: cadence pill, next actions, activity feed */}
       {td && (

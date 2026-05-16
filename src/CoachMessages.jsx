@@ -13,6 +13,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, toast } from './ui';
+import { sendPush } from './push';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 const fmt = (iso) => {
@@ -214,7 +215,7 @@ function MessageBubble({ msg, viewerRole }) {
   );
 }
 
-export default function CoachMessages({ traineeId, role = 'coach' }) {
+export default function CoachMessages({ traineeId, role = 'coach', recipientEmail, senderLabel }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const refined = isRefined5b();
@@ -250,6 +251,23 @@ export default function CoachMessages({ traineeId, role = 'coach' }) {
     const { data, error } = await supabase.from('coach_messages').insert(row).select().single();
     if (error) throw error;
     setRows(prev => [...prev, data]);
+    // Fire-and-forget push to the OTHER side. Coach sending → push the
+    // athlete; athlete sending → push the coach. Either side can pass
+    // recipientEmail; if missing we skip (graceful degrade).
+    if (recipientEmail) {
+      const preview = body_text
+        ? body_text.slice(0, 100)
+        : (audio_url ? '🎤 Voice note' : 'New message');
+      sendPush({
+        toEmail: recipientEmail,
+        title: role === 'coach'
+          ? `Message from ${senderLabel || 'your coach'}`
+          : `Message from ${senderLabel || 'your athlete'}`,
+        body: preview,
+        url: role === 'coach' ? '/athlete' : `/coach/trainees/${traineeId}`,
+        tag: `msg:${traineeId}`,
+      });
+    }
   };
 
   return (

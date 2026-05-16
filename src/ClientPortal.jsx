@@ -4,6 +4,7 @@ import { C, FN, FB, FH, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from '.
 import { EXPOMark } from './expoMark';
 import BugReportButton from './BugReportButton';
 import CoachMessagesAthlete from './CoachMessages';
+import PushToggle from './PushToggle';
 import AthleteChallengesWidget from './AthleteChallengesWidget';
 import { EX } from './exerciseData';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
@@ -1790,7 +1791,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           Messages are hidden in preview mode.
         </div>
       ) : ci ? (
-        <CoachMessagesAthlete traineeId={ci} role="athlete" />
+        <>
+          <PushToggle role="athlete" />
+          <CoachMessagesAthlete
+            traineeId={ci}
+            role="athlete"
+            recipientEmail="ohadyproductions@gmail.com"
+            senderLabel={(trainee?.name || '').split(' ')[0] || 'your athlete'} />
+        </>
       ) : null}
     </div>
   </div>;
