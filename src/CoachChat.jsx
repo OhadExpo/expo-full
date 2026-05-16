@@ -215,7 +215,7 @@ export default function CoachChat() {
           style={{
             position: 'fixed', bottom: 20, right: 20, zIndex: 80,
             width: 56, height: 56, borderRadius: '50%',
-            background: C.ac, color: '#000',
+            background: C.ac, color: C.acOnSurface,
             border: 'none', cursor: 'pointer',
             boxShadow: '0 8px 24px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.05) inset',
             fontSize: 24, lineHeight: 1,

@@ -170,7 +170,7 @@ export default function BookingPublic() {
           </div>
           {confirmation.zoom && (
             <a href={confirmation.zoom} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'inline-block', padding: '10px 18px', background: C.ac, color: '#000', textDecoration: 'none', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em' }}>
+              style={{ display: 'inline-block', padding: '10px 18px', background: C.ac, color: C.acOnSurface, textDecoration: 'none', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em' }}>
               JOIN ZOOM →
             </a>
           )}

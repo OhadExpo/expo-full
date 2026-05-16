@@ -445,7 +445,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
           border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
         }}>📦 ARCHIVE (0)</button>
         <button title="Demo only" style={{
-          ...baseBtn, background: C.ac, color: '#000',
+          ...baseBtn, background: C.ac, color: C.acOnSurface,
           padding: '8px 14px', fontSize: 11,
         }}>+ ADD ATHLETE ▾</button>
         <span style={{
@@ -818,7 +818,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES'
             Edit / Archive). Demo-only — clicks are no-ops, button.disabled
             tooltips them as "demo-only" so the visitor knows. */}
         <button title="Demo only" style={{
-          ...baseBtn, background: C.ac, color: '#000',
+          ...baseBtn, background: C.ac, color: C.acOnSurface,
           padding: '8px 14px', fontSize: 11,
         }}>+ ASSIGN PLAN</button>
         <button title="Demo only" style={{
@@ -1227,7 +1227,7 @@ function DemoPrograms() {
             <span style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 16, lineHeight: 1 }}>▾</span>
           </div>
           <button onClick={e => e.stopPropagation()} style={{
-            ...baseBtn, background: C.ac, color: '#0a0a0b',
+            ...baseBtn, background: C.ac, color: C.acOnSurface,
             height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', fontWeight: 700,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>+ New Program</button>
@@ -1601,7 +1601,7 @@ function DemoPrograms() {
             // real card pixel-for-pixel — same padding, font, letter
             // spacing. Demo-only additions: cursor:'default' (read-only)
             // and explicit transition removed (no hover state needed).
-            const inputStyleRO = { background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 14px', color: C.tx, fontFamily: FB, fontSize: 13, fontWeight: 400, letterSpacing: '0.01em', outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' };
+            const inputStyleRO = { background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '9px 14px', color: C.tx, fontFamily: FB, fontSize: 13, fontWeight: 400, letterSpacing: '0.01em', outline: 'none', textAlign: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' };
             const tinyStyleRO = { ...inputStyleRO, padding: '4px 6px', fontSize: 11 };
             // Mock load + rpe per row so the inputs aren't all empty (matches
             // the look of a populated real-app card). Derived deterministically
@@ -2640,7 +2640,7 @@ export default function CoachDemo() {
             ))}
           </nav>
           <a href="/demo#waitlist" className="cd-cta-waitlist" style={{
-            ...baseBtn, background: C.ac, color: '#000',
+            ...baseBtn, background: C.ac, color: C.acOnSurface,
             padding: '6px 14px', fontSize: 11, flex: '0 0 auto',
           }}>JOIN WAITLIST →</a>
         </div>
@@ -2714,7 +2714,7 @@ export default function CoachDemo() {
           }}>Run your roster on this stack. Locked-in pricing for the first wave.</h3>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
             <a href="/demo#waitlist" style={{
-              ...baseBtn, background: C.ac, color: '#000', padding: '11px 22px', fontSize: 12,
+              ...baseBtn, background: C.ac, color: C.acOnSurface, padding: '11px 22px', fontSize: 12,
             }}>JOIN THE WAITLIST</a>
             <a href="/demo/trainee" style={{
               ...baseBtn, background: 'transparent', color: C.tx,

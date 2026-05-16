@@ -832,7 +832,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           <p style={{ margin: "0 0 16px", fontSize: 13, color: C.rd, fontWeight: 600, textAlign: "center" }}>This cannot be undone.</p>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: "uppercase", fontFamily: FN, display: "block", marginBottom: 4, textAlign: "center" }}>Type "DELETE" to confirm</label>
-            <input value={deleteTyped} onChange={e => setDeleteTyped(e.target.value)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: "8px 12px", color: C.tx, fontFamily: FN, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box", letterSpacing: "0.1em", textAlign: "center" }} placeholder="DELETE" autoComplete="off" />
+            <input value={deleteTyped} onChange={e => setDeleteTyped(e.target.value)} style={{ background: 'var(--c-sf2)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: "8px 12px", color: C.tx, fontFamily: FN, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box", letterSpacing: "0.1em", textAlign: "center" }} placeholder="DELETE" autoComplete="off" />
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <Btn variant="ghost" onClick={() => {setDeleteConfirm(null);setDeleteTyped("")}}>Cancel</Btn>

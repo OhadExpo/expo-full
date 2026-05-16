@@ -576,7 +576,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>This will unassign <strong style={{color:C.tx}}>{(planIndex||[]).find(p=>p.id===confirmUnassign)?.name}</strong> from {td.name}.</p>
           <div style={{marginBottom:16}}>
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:"uppercase",fontFamily:FN,display:"block",marginBottom:4,textAlign:"center"}}>Type "remove" to confirm</label>
-            <input value={unassignTyped} onChange={e=>setUnassignTyped(e.target.value)} style={{background:'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,padding:"8px 12px",color:C.tx,fontFamily:FN,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"}} placeholder="remove" autoComplete="off" autoFocus/></div>
+            <input value={unassignTyped} onChange={e=>setUnassignTyped(e.target.value)} style={{background: 'var(--c-sf2)',border:`1px solid ${C.rd}`,borderRadius:0,padding:"8px 12px",color:C.tx,fontFamily:FN,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"}} placeholder="remove" autoComplete="off" autoFocus/></div>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
             <Btn variant="ghost" onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>Cancel</Btn>
             <Btn variant="danger" onClick={()=>{if(unassignTyped.trim().toLowerCase()==="remove"){unassignPlan(confirmUnassign);setConfirmUnassign(null);setUnassignTyped("")}}} style={{opacity:unassignTyped.trim().toLowerCase()==="remove"?1:0.3,pointerEvents:unassignTyped.trim().toLowerCase()==="remove"?"auto":"none"}}>Remove</Btn></div></div></div>}
@@ -699,7 +699,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <p style={{margin:"0 0 16px",fontSize:13,color:C.rd,fontWeight:600,textAlign:"center"}}>This cannot be undone.</p>
           <div style={{marginBottom:16}}>
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:"uppercase",fontFamily:FN,display:"block",marginBottom:4,textAlign:"center"}}>Type "DELETE" to confirm</label>
-            <input value={deleteTyped} onChange={e=>setDeleteTyped(e.target.value)} style={{background:'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,padding:"8px 12px",color:C.tx,fontFamily:FN,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",letterSpacing:"0.1em",textAlign:"center"}} placeholder="DELETE" autoComplete="off"/></div>
+            <input value={deleteTyped} onChange={e=>setDeleteTyped(e.target.value)} style={{background: 'var(--c-sf2)',border:`1px solid ${C.rd}`,borderRadius:0,padding:"8px 12px",color:C.tx,fontFamily:FN,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",letterSpacing:"0.1em",textAlign:"center"}} placeholder="DELETE" autoComplete="off"/></div>
           <div style={{display:"flex",justifyContent:"flex-end",gap:8}}>
             <Btn variant="ghost" onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("")}}>Cancel</Btn>
             <Btn variant="danger" onClick={()=>{if(deleteTyped.trim().toUpperCase()==="DELETE")handlePermanentDelete()}} style={{opacity:deleteTyped.trim().toUpperCase()==="DELETE"?1:0.3,pointerEvents:deleteTyped.trim().toUpperCase()==="DELETE"?"auto":"none"}}>Delete Permanently</Btn></div></div></div>}
