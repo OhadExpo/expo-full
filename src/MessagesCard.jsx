@@ -13,7 +13,8 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { C, FN, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip } from './ui';
+import { isRefined5b, RefinedHeaderStrip, SectionLabel } from './ui';
+import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 
 const SEEN_KEY = 'expo-msgs-seen-at';
@@ -42,7 +43,11 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
   const [seenAt, setSeenAt] = useState(() => {
     try { return localStorage.getItem(SEEN_KEY) || ''; } catch { return ''; }
   });
-  const refined = isRefined5b();
+  // useTheme subscribes to the 'expo-theme-change' event so MessagesCard
+  // re-renders whenever the user toggles dark/light — without it, the
+  // card was reading isRefined5b() once on mount and going stale.
+  const { theme } = useTheme();
+  const refined = theme === 'light' || isRefined5b();
   const PAD = 14;
 
   const reload = useCallback(async () => {
@@ -108,36 +113,56 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
       boxShadow: C.cardShadow,
       marginBottom: 20,
     }}>
-      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{
-            fontWeight: 700, fontSize: 13, letterSpacing: '0.04em',
-            textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)',
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-          }}>
-            💬 Messages
-            {threads.length > 0 && (
-              <span style={{
-                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                color: refined ? '#FFFFFF' : 'var(--c-tm)', opacity: refined ? 0.85 : 1,
-              }}>
-                ({unreadCount > 0 ? `${unreadCount} unread · ` : ''}{threads.length})
-              </span>
+      {/* Header — cyan strip in light (brand identity), plain inline
+          label in dark (matches every other dashboard alert tile and
+          stops the strip from rendering as an invisible darker rectangle
+          when var(--c-sf) collapses to the card body color). */}
+      {refined ? (
+        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <span style={{
+              fontWeight: 700, fontSize: 13, letterSpacing: '0.04em',
+              textTransform: 'uppercase', color: '#FFFFFF',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+            }}>
+              💬 Messages
+              {threads.length > 0 && (
+                <span style={{
+                  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                  color: '#FFFFFF', opacity: 0.85,
+                }}>
+                  ({unreadCount > 0 ? `${unreadCount} unread · ` : ''}{threads.length})
+                </span>
+              )}
+            </span>
+            {unreadCount > 0 && (
+              <button onClick={markRead}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.55)',
+                  color: '#FFFFFF',
+                  padding: '3px 10px', borderRadius: 0,
+                  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                  cursor: 'pointer',
+                }}>MARK ALL READ</button>
             )}
-          </span>
+          </div>
+        </RefinedHeaderStrip>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <SectionLabel color={C.ac} style={{ fontSize: C.alertLabelSize }}>
+            {`💬 Messages${threads.length > 0 ? ` (${unreadCount > 0 ? `${unreadCount} unread · ` : ''}${threads.length})` : ''}`}
+          </SectionLabel>
           {unreadCount > 0 && (
             <button onClick={markRead}
               style={{
-                background: 'transparent',
-                border: `1px solid ${refined ? 'rgba(255,255,255,0.55)' : 'var(--c-ac)'}`,
-                color: refined ? '#FFFFFF' : 'var(--c-ac)',
-                padding: '3px 10px', borderRadius: 0,
+                background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac,
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                cursor: 'pointer',
+                padding: '3px 10px', borderRadius: 0, cursor: 'pointer',
               }}>MARK ALL READ</button>
           )}
         </div>
-      </RefinedHeaderStrip>
+      )}
 
       {loading ? (
         <div style={{ padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 12, fontFamily: FN, letterSpacing: '0.12em' }}>
