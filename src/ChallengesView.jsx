@@ -17,84 +17,24 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast } from './ui';
-import { traineeIdsFor } from './traineeUtils';
-
-const GOAL_TYPES = [
-  { id: 'workouts_count', label: 'Most workouts',  unit: 'workouts' },
-  { id: 'total_volume',   label: 'Most volume (Σ reps × load)', unit: 'kg' },
-  { id: 'longest_streak', label: 'Longest streak', unit: 'days' },
-  { id: 'bw_drop',        label: 'BW drop',         unit: 'kg' },
-  { id: 'custom',         label: 'Custom (manual)', unit: '' },
-];
+import { GOAL_TYPES, computeProgress, TEMPLATES } from './challengePredicates';
 
 const fmtDate = (d) => {
   try { return new Date(d).toLocaleDateString(); } catch { return ''; }
 };
 
-function computeProgress(challenge, traineeId, workouts, bwLog) {
-  const ids = new Set(traineeIdsFor(traineeId));
-  const start = new Date(challenge.start_at).getTime();
-  const end = new Date(challenge.end_at).getTime();
-  const inWindow = (iso) => {
-    const t = new Date(iso).getTime();
-    return t >= start && t <= end;
-  };
-  const wos = (workouts || []).filter(w => ids.has(w.clientId) && inWindow(w.date));
-  switch (challenge.goal_type) {
-    case 'workouts_count':
-      return wos.length;
-    case 'total_volume': {
-      let v = 0;
-      for (const w of wos) {
-        for (const ex of (w.exercises || [])) {
-          for (const s of (ex.sets || [])) {
-            if (!s.done) continue;
-            const reps = parseFloat(s.reps) || 0;
-            const load = parseFloat(s.load) || 0;
-            v += reps * load;
-          }
-        }
-      }
-      return Math.round(v);
-    }
-    case 'longest_streak': {
-      const days = new Set(wos.map(w => new Date(w.date).toISOString().slice(0, 10)));
-      if (days.size === 0) return 0;
-      const sorted = [...days].sort();
-      let best = 1, cur = 1;
-      for (let i = 1; i < sorted.length; i++) {
-        const prev = new Date(sorted[i - 1] + 'T00:00:00Z').getTime();
-        const here = new Date(sorted[i]     + 'T00:00:00Z').getTime();
-        if (here - prev === 86400000) { cur++; best = Math.max(best, cur); }
-        else { cur = 1; }
-      }
-      return best;
-    }
-    case 'bw_drop': {
-      const bws = (bwLog || [])
-        .filter(b => ids.has(b.clientId) && inWindow(b.date))
-        .map(b => ({ d: new Date(b.date).getTime(), v: parseFloat(b.bw) }))
-        .filter(b => Number.isFinite(b.v))
-        .sort((a, b) => a.d - b.d);
-      if (bws.length < 2) return 0;
-      const drop = bws[0].v - bws[bws.length - 1].v;
-      return Math.round(drop * 10) / 10;
-    }
-    default:
-      return null; // custom — coach-set
-  }
-}
-
-function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, onPersistProgress }) {
+function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, meals, onPersistProgress }) {
+  const goalDef = GOAL_TYPES.find(g => g.id === challenge.goal_type);
+  const sortDir = goalDef?.sortDir || 'desc';
   const rows = useMemo(() => {
     return participants.map(p => {
       const computed = challenge.goal_type === 'custom'
         ? Number(p.progress) || 0
-        : computeProgress(challenge, p.trainee_id, workouts, bwLog);
+        : computeProgress(challenge, p.trainee_id, workouts, bwLog, meals);
       const name = traineesById?.[p.trainee_id]?.name || p.trainee_id;
       return { trainee_id: p.trainee_id, name, progress: computed };
-    }).sort((a, b) => b.progress - a.progress);
-  }, [participants, challenge, workouts, bwLog, traineesById]);
+    }).sort((a, b) => sortDir === 'asc' ? (a.progress - b.progress) : (b.progress - a.progress));
+  }, [participants, challenge, workouts, bwLog, meals, traineesById, sortDir]);
 
   const unit = GOAL_TYPES.find(g => g.id === challenge.goal_type)?.unit || '';
   return (
@@ -139,6 +79,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editChallenge, setEditChallenge] = useState(null);
+  const [meals, setMeals] = useState([]); // pulled lazily only when a meal_log_streak exists
   const refined = isRefined5b();
   const PAD = 14;
 
@@ -188,6 +129,27 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  // Lazy-load athlete_meals only when at least one challenge needs it.
+  useEffect(() => {
+    const needsMeals = challenges.some(c => c.goal_type === 'meal_log_streak');
+    if (!needsMeals) { setMeals([]); return; }
+    let cancelled = false;
+    (async () => {
+      // We only need meals within any challenge's window — query the
+      // earliest start, latest end across the relevant challenges.
+      const windows = challenges.filter(c => c.goal_type === 'meal_log_streak');
+      const minStart = windows.reduce((a, c) => Math.min(a, new Date(c.start_at).getTime()), Infinity);
+      const maxEnd   = windows.reduce((a, c) => Math.max(a, new Date(c.end_at).getTime()),   0);
+      const { data } = await supabase
+        .from('athlete_meals')
+        .select('client_id,meal_date,logged_at')
+        .gte('meal_date', new Date(minStart).toISOString().slice(0, 10))
+        .lte('meal_date', new Date(maxEnd  ).toISOString().slice(0, 10));
+      if (!cancelled) setMeals(data || []);
+    })();
+    return () => { cancelled = true; };
+  }, [challenges]);
 
   const persistSnapshot = async (challengeId, rows) => {
     // Write computed progress back to the participants table so athletes
@@ -274,6 +236,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
               traineesById={traineesById}
               workouts={clientWorkouts || []}
               bwLog={bwLog || []}
+              meals={meals}
               onPersistProgress={rows => persistSnapshot(c.id, rows)} />
           </div>
         );
@@ -292,6 +255,9 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
 }
 
 function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSaved }) {
+  // For new challenges, show the template picker first. Editing skips
+  // straight to the form (we already know what the challenge is).
+  const [stage, setStage] = useState(initial ? 'form' : 'pick');
   const [name, setName] = useState(initial?.name || '');
   const [description, setDescription] = useState(initial?.description || '');
   const [goalType, setGoalType] = useState(initial?.goal_type || 'workouts_count');
@@ -300,6 +266,25 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
   const [endAt, setEndAt] = useState(initial?.end_at?.slice(0, 10) || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
   const [participantIds, setParticipantIds] = useState(new Set(existingParticipants.map(p => p.trainee_id)));
   const [saving, setSaving] = useState(false);
+
+  const pickTemplate = (tpl) => {
+    setName(tpl.name);
+    setDescription(tpl.description);
+    setGoalType(tpl.goalType);
+    setGoalValue(tpl.goalValue != null ? String(tpl.goalValue) : '');
+    const start = new Date();
+    const end = new Date(Date.now() + tpl.durationDays * 86400000);
+    setStartAt(start.toISOString().slice(0, 10));
+    setEndAt(end.toISOString().slice(0, 10));
+    setStage('form');
+  };
+  const startBlank = () => {
+    setName(''); setDescription('');
+    setGoalType('workouts_count'); setGoalValue('');
+    setStartAt(new Date().toISOString().slice(0, 10));
+    setEndAt(new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+    setStage('form');
+  };
 
   const toggle = (id) => {
     setParticipantIds(prev => {
@@ -351,8 +336,56 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
     }
   };
 
+  if (stage === 'pick') {
+    return (
+      <Modal open={true} onClose={onClose} title="+ New Challenge — pick a template" wide>
+        <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 10 }}>
+          SMART TEMPLATES
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8, marginBottom: 14 }}>
+          {TEMPLATES.map(tpl => (
+            <button key={tpl.id} onClick={() => pickTemplate(tpl)}
+              style={{
+                textAlign: 'left',
+                background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
+                borderRadius: 0, padding: '12px 14px', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', gap: 4,
+                transition: 'border-color 0.12s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = C.cardBd; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 20 }}>{tpl.icon}</span>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.tx, letterSpacing: '0.04em' }}>
+                  {tpl.label}
+                </span>
+              </div>
+              <div style={{ fontSize: 11, color: C.tm, lineHeight: 1.4 }}>{tpl.blurb}</div>
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <button onClick={startBlank} style={{
+            background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
+            fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+            padding: '6px 12px', cursor: 'pointer', borderRadius: 0,
+          }}>BLANK CHALLENGE →</button>
+          <Btn variant="ghost" onClick={onClose}>Cancel</Btn>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal open={true} onClose={onClose} title={initial ? `Edit · ${initial.name}` : '+ New Challenge'} wide>
+      {!initial && (
+        <button onClick={() => setStage('pick')} style={{
+          background: 'transparent', border: 'none', color: C.tm,
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+          padding: 0, cursor: 'pointer', marginBottom: 10,
+        }}>← BACK TO TEMPLATES</button>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <Input label="Name" value={name} onChange={e => setName(e.target.value)} />
         <Select label="Goal type" value={goalType} onChange={setGoalType}

@@ -5,61 +5,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { traineeIdsFor } from './traineeUtils';
+import { GOAL_TYPES, computeProgress } from './challengePredicates';
 
-const GOAL_UNIT = {
-  workouts_count: 'workouts',
-  total_volume:   'kg',
-  longest_streak: 'days',
-  bw_drop:        'kg',
-  custom:         '',
-};
-
-function computeProgress(challenge, traineeId, workouts, bwLog) {
-  // Mirror of the coach-side computer — kept in sync intentionally.
-  // Eventually this should be a SECURITY DEFINER function but for now
-  // both sides read client_workouts directly under RLS.
-  const ids = new Set(traineeIdsFor(traineeId));
-  const start = new Date(challenge.start_at).getTime();
-  const end = new Date(challenge.end_at).getTime();
-  const inW = (iso) => { const t = new Date(iso).getTime(); return t >= start && t <= end; };
-  const wos = (workouts || []).filter(w => ids.has(w.clientId) && inW(w.date));
-  if (challenge.goal_type === 'workouts_count') return wos.length;
-  if (challenge.goal_type === 'total_volume') {
-    let v = 0;
-    for (const w of wos) for (const ex of (w.exercises || [])) for (const s of (ex.sets || [])) {
-      if (!s.done) continue;
-      v += (parseFloat(s.reps) || 0) * (parseFloat(s.load) || 0);
-    }
-    return Math.round(v);
-  }
-  if (challenge.goal_type === 'longest_streak') {
-    const days = new Set(wos.map(w => new Date(w.date).toISOString().slice(0, 10)));
-    if (days.size === 0) return 0;
-    const sorted = [...days].sort();
-    let best = 1, cur = 1;
-    for (let i = 1; i < sorted.length; i++) {
-      const a = new Date(sorted[i - 1] + 'T00:00:00Z').getTime();
-      const b = new Date(sorted[i]     + 'T00:00:00Z').getTime();
-      if (b - a === 86400000) { cur++; best = Math.max(best, cur); } else cur = 1;
-    }
-    return best;
-  }
-  if (challenge.goal_type === 'bw_drop') {
-    const bws = (bwLog || [])
-      .filter(b => ids.has(b.clientId) && inW(b.date))
-      .map(b => ({ d: new Date(b.date).getTime(), v: parseFloat(b.bw) }))
-      .filter(b => Number.isFinite(b.v))
-      .sort((a, b) => a.d - b.d);
-    if (bws.length < 2) return 0;
-    return Math.round((bws[0].v - bws[bws.length - 1].v) * 10) / 10;
-  }
-  return null;
-}
+const GOAL_UNIT = Object.fromEntries(GOAL_TYPES.map(g => [g.id, g.unit]));
 
 export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLog, traineesById }) {
   const [challenges, setChallenges] = useState([]);
   const [participantsByChallenge, setParticipantsByChallenge] = useState({});
+  const [meals, setMeals] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,26 +38,37 @@ export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLo
         grouped[p.challenge_id].push(p);
       }
       setParticipantsByChallenge(grouped);
+      // Pull meals only if a meal_log_streak challenge is live for this
+      // athlete — skip the query otherwise.
+      if (live.some(c => c.goal_type === 'meal_log_streak') && clientId) {
+        const { data: ms } = await supabase
+          .from('athlete_meals')
+          .select('client_id,meal_date,logged_at')
+          .eq('client_id', clientId);
+        if (!cancelled) setMeals(ms || []);
+      }
     })();
     return () => { cancelled = true; };
   }, [clientId]);
 
   const rows = useMemo(() => challenges.map(c => {
     const parts = participantsByChallenge[c.id] || [];
+    const goalDef = GOAL_TYPES.find(g => g.id === c.goal_type);
+    const sortDir = goalDef?.sortDir || 'desc';
     const board = parts.map(p => ({
       trainee_id: p.trainee_id,
       progress: c.goal_type === 'custom'
         ? (Number(p.progress) || 0)
-        : computeProgress(c, p.trainee_id, clientWorkouts, bwLog),
+        : computeProgress(c, p.trainee_id, clientWorkouts, bwLog, meals),
       name: traineesById?.[p.trainee_id]?.name || p.trainee_id,
-    })).sort((a, b) => b.progress - a.progress);
+    })).sort((a, b) => sortDir === 'asc' ? (a.progress - b.progress) : (b.progress - a.progress));
     const myRank = board.findIndex(r =>
       r.trainee_id === clientId
       || r.trainee_id?.startsWith(clientId + '__')
       || (clientId || '').startsWith(r.trainee_id + '__')
     );
     return { challenge: c, board, myRank };
-  }).filter(r => r.myRank >= 0), [challenges, participantsByChallenge, clientId, clientWorkouts, bwLog, traineesById]);
+  }).filter(r => r.myRank >= 0), [challenges, participantsByChallenge, clientId, clientWorkouts, bwLog, meals, traineesById]);
 
   if (rows.length === 0) return null;
 
