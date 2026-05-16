@@ -1,21 +1,23 @@
 // F-14 — AI meal photo → macros endpoint.
 //
 // Flow:
-//   1. Athlete uploads photo to Supabase storage bucket `meal-photos` (signed URL).
+//   1. Athlete uploads photo to Supabase storage bucket `meal-photos`.
 //   2. Frontend POSTs { photoUrl, hint? } to /api/meal-macros.
-//   3. We call Claude Haiku with vision → JSON parse → return.
+//   3. We call Claude Haiku with vision via raw fetch → JSON parse → return.
 //
 // Cost: Haiku vision ~$0.003 per image. Solo-coach scale (~20 clients ×
 // 3 meals/day max) = ~$0.20/day worst case; in practice well under.
 //
 // Privacy: we never store the image inside Anthropic's API — only send
 // the URL and trash it from our side after returning the macros.
-
-import Anthropic from '@anthropic-ai/sdk';
+//
+// NOTE: raw fetch, not the `@anthropic-ai/sdk` package. The SDK is not
+// declared in package.json — importing it crashes the function on
+// cold-start with FUNCTION_INVOCATION_FAILED. Mirrors api/chat.js +
+// api/capture.js which already proxy Anthropic this way.
 
 export const config = {
   maxDuration: 30,
-  api: { bodyParser: { sizeLimit: '128kb' } },
 };
 
 const SYSTEM = `You are a precise nutrition estimator. The user will show you a meal photo. Estimate the macronutrient profile of what's visible.
@@ -56,33 +58,44 @@ export default async function handler(req, res) {
     return;
   }
 
-  const client = new Anthropic({ apiKey });
   try {
     const messageContent = [
       { type: 'image', source: { type: 'url', url: photoUrl } },
+      { type: 'text', text: hint ? `Hint from athlete: ${hint}` : 'Estimate the macros for this meal.' },
     ];
-    if (hint) {
-      messageContent.push({ type: 'text', text: `Hint from athlete: ${hint}` });
-    } else {
-      messageContent.push({ type: 'text', text: 'Estimate the macros for this meal.' });
-    }
-    const out = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 600,
-      system: SYSTEM,
-      messages: [{ role: 'user', content: messageContent }],
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: messageContent }],
+      }),
     });
-    const text = (out?.content?.[0]?.text || '').trim();
+    if (!r.ok) {
+      const errBody = await r.text().catch(() => '');
+      res.status(502).json({ error: `Anthropic ${r.status}`, raw: errBody.slice(0, 400) });
+      return;
+    }
+    const data = await r.json();
+    const text = (data?.content || [])
+      .map(c => (c?.type === 'text' ? c.text : ''))
+      .join('')
+      .trim();
     let parsed = null;
     try {
       // Strip any code-fence wrapper before parsing.
       const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '');
       parsed = JSON.parse(cleaned);
-    } catch (e) {
+    } catch {
       res.status(502).json({ error: 'AI returned non-JSON.', raw: text.slice(0, 400) });
       return;
     }
-    // Light sanity defaulting — never trust the model wholesale.
     const macros = {
       items: Array.isArray(parsed.items) ? parsed.items.slice(0, 12) : [],
       kcal: Math.round(Number(parsed.kcal) || 0),
