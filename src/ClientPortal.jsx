@@ -5,6 +5,7 @@ import { EXPOMark } from './expoMark';
 import BugReportButton from './BugReportButton';
 import CoachMessagesAthlete from './CoachMessages';
 import PushToggle from './PushToggle';
+import { sendPush } from './push';
 import AthleteChallengesWidget from './AthleteChallengesWidget';
 import { EX } from './exerciseData';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
@@ -1475,6 +1476,17 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       return [...filtered, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}];
     });
     if(onDecrementSession && ci) onDecrementSession(ci);
+    // Notify the coach. Fire-and-forget — push never blocks the
+    // post-workout UI. Tag includes the workout id so two devices on
+    // the coach's account see a single dedup'd notification.
+    const exCount = Array.isArray(w.exercises) ? w.exercises.length : 0;
+    sendPush({
+      toEmail: 'ohadyproductions@gmail.com',
+      title: `${clientName || 'Athlete'} finished a workout`,
+      body: `${w.dayName || 'Session'} · W${w.week ?? wk + 1} · ${exCount} ex`,
+      url: `/coach/trainees/${ci}`,
+      tag: `workout:${w.id || ci}`,
+    });
     setLg(null);
   };
 

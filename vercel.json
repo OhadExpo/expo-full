@@ -4,6 +4,12 @@
     { "source": "/portal", "destination": "/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
+  "crons": [
+    {
+      "path": "/api/cron/missed-day-nudge",
+      "schedule": "0 7 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
