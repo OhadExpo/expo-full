@@ -779,9 +779,13 @@ function AuthedApp() {
   // they can switch back without signing out.
   // Athlete portal — force dark while light-mode rollout is gated to the
   // coach app. The wrapper `data-theme="dark"` overrides any html-level
-  // light theme set by a dual-role coach. Removing this attribute later
-  // will let the athlete portal follow the user's preference.
-  if (isClient) return (<div data-theme="dark"><Suspense fallback={<ViewFallback />}>
+  // light theme set by a dual-role coach. The inline background + minHeight
+  // are required so the body's light bg doesn't leak through the margins
+  // (every other forced-dark wrapper in the codebase carries the same
+  // background/minHeight pair — see CoachLanding, TrySandbox, etc.).
+  // Removing this attribute later will let the athlete portal follow the
+  // user's preference.
+  if (isClient) return (<div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', minHeight: '100vh' }}><Suspense fallback={<ViewFallback />}>
     <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
       onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
   </Suspense></div>);
