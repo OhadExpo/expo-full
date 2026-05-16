@@ -1565,7 +1565,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         return (
           <div style={{padding:'14px 20px 0'}}>
             {navRow([['prog','PROGRAM'],['bwt','BW'],['meal','MEAL LOG']])}
-            {navRow([['msg','MESSAGES'],['hist',`HISTORY (${cw.length})`],['pr','PRs']])}
+            {navRow([['hist',`HISTORY (${cw.length})`],['pr','PRs'],['msg','MESSAGES']])}
           </div>
         );
       })()}
