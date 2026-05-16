@@ -140,7 +140,9 @@ const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-bloc
 const _gphResolveCache = new Map();
 function GooglePhotosEmbed({ url }) {
   const [state, setState] = useState(() => _gphResolveCache.get(url) || { phase: 'loading' });
+  const [streamFailed, setStreamFailed] = useState(false);
   useEffect(() => {
+    setStreamFailed(false);
     if (_gphResolveCache.has(url)) { setState(_gphResolveCache.get(url)); return; }
     let alive = true;
     fetch('/api/resolve-video?url=' + encodeURIComponent(url))
@@ -156,10 +158,12 @@ function GooglePhotosEmbed({ url }) {
   }, [url]);
   const wrap = {marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`};
   if (state.phase === 'loading') return <div style={{...wrap,display:'flex',alignItems:'center',justifyContent:'center',color:C.tm,fontFamily:FN,fontSize:11,letterSpacing:'0.18em'}}>LOADING VIDEO…</div>;
-  if (state.phase === 'err') return <div style={{...wrap,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.tm,fontFamily:FN,fontSize:11,padding:16,textAlign:'center'}}>
+  if (state.phase === 'err' || streamFailed) return <div style={{...wrap,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.tm,fontFamily:FN,fontSize:11,padding:16,textAlign:'center'}}>
     <div>VIDEO COULD NOT BE EMBEDDED</div>
     <a href={url} target="_blank" rel="noopener noreferrer" style={{color:C.ac,textDecoration:'none',letterSpacing:'0.18em'}}>OPEN IN GOOGLE PHOTOS →</a></div>;
-  return <div style={wrap}><video src={state.src} poster={state.poster||undefined} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>;
+  const handleBadStream = () => setStreamFailed(true);
+  const handleMeta = (e) => { if (!(e.currentTarget.duration > 0)) setStreamFailed(true); };
+  return <div style={wrap}><video src={state.src} poster={state.poster||undefined} controls playsInline onError={handleBadStream} onLoadedMetadata={handleMeta} style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>;
 }
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
