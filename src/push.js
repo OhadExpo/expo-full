@@ -12,7 +12,11 @@
 
 import { supabase } from './supabase';
 
-const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
+// Public key is fine to embed — it's meant to identify our app to push
+// services and ships to every client anyway. Env var takes precedence
+// if set so future rotation doesn't need a code change.
+const VAPID_PUBLIC = import.meta.env.VITE_VAPID_PUBLIC_KEY
+  || 'BDnmswzixJ2FMW_y79Kn4e_FS1IWhqhulSAEHtXFJav-piekmEQMEOz9AZ8NU0AWwEajkwb_SYdtfH2hObyuYIk';
 
 // VAPID-encoded base64url → Uint8Array for pushManager.subscribe().
 function urlBase64ToUint8(b64) {

@@ -107,23 +107,20 @@ export default async function handler(req, res) {
     return;
   }
 
-  // To read the target user's subscriptions we need either the
-  // service role key OR our own row. We use the service role key
-  // (must be set as SUPABASE_SERVICE_ROLE_KEY in Vercel env). This is
-  // the standard "fan-out" pattern for push.
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceKey) {
-    res.status(500).json({ error: 'SUPABASE_SERVICE_ROLE_KEY missing — required for cross-user push lookup.' });
-    return;
-  }
-
+  // Resolve target's subscriptions via SECURITY DEFINER RPC. Avoids
+  // needing a service-role key in env — the function is gated to
+  // authenticated callers and has the same trust boundary as the
+  // existing coach_messages insert path.
   const subsR = await fetch(
-    `${SUPA_URL}/rest/v1/push_subscriptions?user_email=eq.${encodeURIComponent(toEmail)}&select=id,endpoint,p256dh,auth`,
+    `${SUPA_URL}/rest/v1/rpc/lookup_push_subscriptions`,
     {
+      method: 'POST',
       headers: {
-        'apikey': serviceKey,
-        'Authorization': `Bearer ${serviceKey}`,
+        'apikey': SUPA_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${callerToken}`,
+        'content-type': 'application/json',
       },
+      body: JSON.stringify({ target_email: toEmail }),
     }
   );
   if (!subsR.ok) {
@@ -151,10 +148,18 @@ export default async function handler(req, res) {
       const status = e?.statusCode || 0;
       // 404/410 = subscription is dead (user removed PWA or revoked).
       if (status === 404 || status === 410) {
-        // Best-effort cleanup; ignore failures.
+        // Best-effort cleanup via the SECURITY DEFINER RPC; ignore failures.
         await fetch(
-          `${SUPA_URL}/rest/v1/push_subscriptions?id=eq.${encodeURIComponent(s.id)}`,
-          { method: 'DELETE', headers: { 'apikey': serviceKey, 'Authorization': `Bearer ${serviceKey}` } }
+          `${SUPA_URL}/rest/v1/rpc/cleanup_push_subscription`,
+          {
+            method: 'POST',
+            headers: {
+              'apikey': SUPA_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${callerToken}`,
+              'content-type': 'application/json',
+            },
+            body: JSON.stringify({ sub_id: s.id }),
+          }
         ).catch(() => {});
         return { id: s.id, gone: true };
       }
