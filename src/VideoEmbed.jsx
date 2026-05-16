@@ -10,7 +10,9 @@ const _gphCache = new Map();
 
 function GooglePhotos({ url }) {
   const [state, setState] = useState(() => _gphCache.get(url) || { phase: 'loading' });
+  const [streamFailed, setStreamFailed] = useState(false);
   useEffect(() => {
+    setStreamFailed(false);
     if (_gphCache.has(url)) { setState(_gphCache.get(url)); return; }
     let alive = true;
     fetch('/api/resolve-video?url=' + encodeURIComponent(url))
@@ -26,11 +28,17 @@ function GooglePhotos({ url }) {
   }, [url]);
   const wrap = { borderRadius: 0, overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}` };
   if (state.phase === 'loading') return <div style={{ ...wrap, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.tm, fontFamily: FN, fontSize: 11, letterSpacing: '0.18em' }}>LOADING…</div>;
-  if (state.phase === 'err') return <div style={{ ...wrap, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: C.tm, fontFamily: FN, fontSize: 11, padding: 12, textAlign: 'center' }}>
+  if (state.phase === 'err' || streamFailed) return <div style={{ ...wrap, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: C.tm, fontFamily: FN, fontSize: 11, padding: 12, textAlign: 'center' }}>
     <div>NOT EMBEDDABLE</div>
     <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: C.ac, textDecoration: 'none', letterSpacing: '0.18em' }}>OPEN IN GOOGLE PHOTOS →</a>
   </div>;
-  return <div style={wrap}><video src={state.src} poster={state.poster || undefined} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;
+  // Google Photos serves dur=0 / 404 on the MP4 stream while a fresh upload is
+  // still transcoding (or never finished). Both onError and a zero-duration
+  // metadata load mean the trainee would otherwise stare at a black box —
+  // fall back to the share-link button instead.
+  const handleBadStream = () => setStreamFailed(true);
+  const handleMeta = (e) => { if (!(e.currentTarget.duration > 0)) setStreamFailed(true); };
+  return <div style={wrap}><video src={state.src} poster={state.poster || undefined} controls playsInline onError={handleBadStream} onLoadedMetadata={handleMeta} style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;
 }
 
 export default function VideoEmbed({ url }) {
