@@ -1,6 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import WorkoutsView from './WorkoutsView';
-import { C, FN, FB, ytId, EXPO_ICON } from './theme';
+import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
+
+// Hebrew at the same fontSize as Nord visually shrinks (smaller x-height,
+// missing ascenders/descenders). Per feedback_new_ui_box_dimensions:
+// "Hebrew bumps +3px inside the box, never resizes the box itself."
+const isHebrew = (s) => /[֐-׿]/.test(s || '');
 import { isRefined5b } from './ui';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
@@ -2088,8 +2093,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       {/* Group by client */}
       {Object.entries(byClient).map(([cid, data]) => (
         <div key={cid} style={{marginBottom:20}}>
-          <div style={{fontSize:12,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:8}}>
-            {data.name.toUpperCase()} ({data.workouts.length})
+          <div style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:C.ac,fontWeight:700,marginBottom:8}}>
+            {isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})
           </div>
           {data.workouts.slice()
             // Unreviewed first (by most-recent date), then reviewed (by most-recent date)
