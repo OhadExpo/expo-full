@@ -1704,17 +1704,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             </div>
           </div>
 
-          {/* Autoregulation data */}
-          {wo.autoregulation && (
-            <div style={{display:"flex",gap:12,marginTop:12}}>
-              {[['Pain',wo.autoregulation.pain,C.rd],['Energy',wo.autoregulation.energy,C.gn],['Sleep',wo.autoregulation.sleep,C.pu]].map(([l,v,col]) => (
-                <div key={l} style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:8,textAlign:"center"}}>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em'}}>{l.toUpperCase()}</div>
-                  <div style={{fontSize:16,fontWeight:700,fontFamily:FN,color:v?col:C.td}}>{v || '—'}</div>
-                </div>
-              ))}
-            </div>
-          )}
           {wo.notes && (
             <div style={{marginTop:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10}}>
               <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',marginBottom:4}}>ATHLETE NOTES</div>

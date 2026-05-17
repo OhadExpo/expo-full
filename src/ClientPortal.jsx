@@ -168,7 +168,7 @@ function GooglePhotosEmbed({ url }) {
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution}) {
-  // Steps: 'wu0','wu1',... → 'pre' → 0,1,2,... (group indices) → 'end'
+  // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
   const warmup = plan.warmup || [];
   const wuCount = warmup.length;
   const exCount = day.ex.length;
@@ -209,8 +209,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   })();
   const groupCount = groups.length;
 
-  const [step, setStep] = useState(_restoredSession?.step || (wuCount > 0 ? 'wu0' : 'pre'));
-  const [ar, setAr] = useState(_restoredSession?.ar || {pain:'',energy:'',sleep:''});
+  const [step, setStep] = useState(_restoredSession?.step || (wuCount > 0 ? 'wu0' : 0));
   const [notes, setNotes] = useState(_restoredSession?.notes || '');
   // Per-week sets (ex.wkS) takes precedence over the scalar ex.s for allocating log rows.
   // weekNum is 0-indexed; fall back to the flat sets count (or 3) if the week is missing.
@@ -329,8 +328,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return safe;
   });
   const sessionDraft = React.useMemo(
-    () => ({ step, ar, notes, allSets, fv: serializeFv(fv), wuDone, substitutions, savedAt: Date.now() }),
-    [step, ar, notes, allSets, fv, wuDone, substitutions]
+    () => ({ step, notes, allSets, fv: serializeFv(fv), wuDone, substitutions, savedAt: Date.now() }),
+    [step, notes, allSets, fv, wuDone, substitutions]
   );
   const sessionAutosave = useAutosave(
     sessionDraft,
@@ -673,7 +672,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const finishedAt = new Date().toISOString();
     onComplete({
       id: workoutId, clientId, planName: plan.name, dayName: day.name,
-      week: weekNum + 1, date: finishedAt, autoregulation: ar, notes,
+      week: weekNum + 1, date: finishedAt, notes,
       formVideos,
       exercises: day.ex.map((ex, i) => {
         const sub = substitutions[ex.eid];
@@ -701,17 +700,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   };
 
   // Navigation helpers
-  const totalSteps = wuCount + 1 + groupCount; // warmups + pre + groups
+  const totalSteps = wuCount + groupCount; // warmups + groups
   const stepIndex = typeof step === 'string' && step.startsWith('wu') ? parseInt(step.slice(2)) :
-    step === 'pre' ? wuCount : step === 'end' ? totalSteps : wuCount + 1 + step;
+    step === 'end' ? totalSteps : wuCount + step;
   const goNext = () => {
     window.scrollTo(0,0);
     if (typeof step === 'string' && step.startsWith('wu')) {
       const wi = parseInt(step.slice(2));
       const nd = [...wuDone]; nd[wi] = true; setWuDone(nd);
       if (wi + 1 < wuCount) setStep('wu' + (wi + 1));
-      else setStep('pre');
-    } else if (step === 'pre') setStep(0);
+      else setStep(0);
+    }
     else if (typeof step === 'number' && step < groupCount - 1) setStep(step + 1);
     else setStep('end');
   };
@@ -720,15 +719,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (typeof step === 'string' && step.startsWith('wu')) {
       const wi = parseInt(step.slice(2));
       if (wi > 0) setStep('wu' + (wi - 1)); else onBack();
-    } else if (step === 'pre') {
-      // Back from the pre-workout check: only fall back to a warmup step
-      // when warmups exist for this plan. Plans with zero warmups should
-      // exit the logger entirely instead of stepping to a null state that
-      // rendered as a blank page.
+    }
+    else if (step === 0) {
+      // Back from the first exercise: into the last warmup if any, else exit.
       if (wuCount > 0) setStep('wu' + (wuCount - 1));
       else onBack();
     }
-    else if (step === 0) setStep('pre');
     else if (typeof step === 'number') setStep(step - 1);
     else if (step === 'end') setStep(groupCount - 1);
   };
@@ -759,14 +755,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
       {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>i?C.or:stepIndex===i?'rgba(255,165,2,0.502)':C.bd}} />)}
-      {/* Pre-workout dot */}
-      <div style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount?C.pu:stepIndex===wuCount?'rgba(168,85,247,0.502)':C.bd}} />
       {/* Group dots (one per superset group or solo exercise) */}
-      {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+1+i?C.gn:stepIndex===wuCount+1+i?C.ac:C.bd}} />)}
+      {groups.map((_,i) => <div key={'g'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>wuCount+i?C.gn:stepIndex===wuCount+i?C.ac:C.bd}} />)}
     </div>
     <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:4,textAlign:'center'}}>
       {typeof step==='string'&&step.startsWith('wu') ? `Warm-Up ${parseInt(step.slice(2))+1}/${wuCount}` :
-       step==='pre' ? 'Pre-Workout Check' :
        step==='end' ? 'Complete' :
        groups[step]?.superset ? `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}` :
        `Exercise ${step+1}/${groupCount}`}
@@ -799,22 +792,6 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   }
 
   // ===== PRE-WORKOUT CHECK =====
-  if (step === 'pre') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
-    <div style={{padding:20}}>
-      <h2 style={{margin:'0 0 16px',fontFamily:FN,fontSize:20,textAlign:'center'}}>Pre-Workout Check</h2>
-      {[['pain','Pain Level','0-10',C.rd],['energy','Energy','1-5',C.gn],['sleep','Sleep Quality','1-5',C.pu]].map(([k,l,rng,col]) =>
-        <div key={k} style={{marginBottom:20}}>
-          <div style={{fontSize:15,fontWeight:600,marginBottom:6}}>{l} ({rng})</div>
-          <div style={{display:'flex',gap:4}}>{(rng==='0-10'?[0,1,2,3,4,5,6,7,8,9,10]:[1,2,3,4,5]).map(n =>
-            <div key={n} onClick={() => setAr({...ar,[k]:String(n)})} style={{flex:1,height:40,borderRadius:0,background:'var(--c-sf)',border:`${ar[k]===String(n)?'1px':'0.25px'} solid ${ar[k]===String(n)?col:C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:14,color:ar[k]===String(n)?col:C.tm,cursor:'pointer',fontWeight:ar[k]===String(n)?700:400}}>{n}</div>
-          )}</div></div>)}
-      {parseInt(ar.pain)>=4 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — Modify: ROM → Tempo → Intensity → Volume</div>}
-      {(parseInt(ar.energy)<=2||parseInt(ar.sleep)<=2) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,padding:12,marginBottom:12,fontSize:13,color:C.or,fontWeight:600}}>⚠ Low recovery — Auto-regulate down</div>}
-      <div style={{display:'flex',gap:8}}>
-        <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
-        <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button></div>
-    </div></div>;
-
   // ===== FINISH =====
   // Detect new PRs in this session — for each prescribed exercise, compute
   // this session's top completed-set load and compare to the trainee's prior

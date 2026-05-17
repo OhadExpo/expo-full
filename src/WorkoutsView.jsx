@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { C, FN, FB, uid } from './theme';
-import { Btn, Input, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
+import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
 import { supabase } from './supabase';
 
 function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
@@ -9,7 +9,6 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
   const doneSets = workout.exercises.reduce((a,ex)=>a+ex.sets.filter(s=>s.completed).length,0);
   const pct = totalSets>0?Math.round(doneSets/totalSets*100):0;
   const isCompleted = workout.status==="completed";
-  const ar = workout.autoregulation||{};
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -17,13 +16,6 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
         {!isCompleted&&<Btn variant="success" onClick={onComplete}>Complete Workout</Btn>}
         {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>Completed</Badge>}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
-        <Input label="Pain (0-10)" type="number" value={ar.painScore||""} onChange={e=>onUpdate({autoregulation:{...ar,painScore:e.target.value}})} placeholder="0-10" />
-        <Input label="Energy (1-5)" type="number" value={ar.energyLevel||""} onChange={e=>onUpdate({autoregulation:{...ar,energyLevel:e.target.value}})} placeholder="1-5" />
-        <Input label="Sleep (1-5)" type="number" value={ar.sleepQuality||""} onChange={e=>onUpdate({autoregulation:{...ar,sleepQuality:e.target.value}})} placeholder="1-5" />
-      </div>
-      {parseInt(ar.painScore)>=4&&<div style={{background:'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,padding:8,marginBottom:12,fontSize:12,color:C.rd,fontWeight:600}}>⚠ Pain ≥4 — ROM → Tempo → Intensity → Volume</div>}
-      {(parseInt(ar.energyLevel)<=2||parseInt(ar.sleepQuality)<=2)&&<div style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,padding:8,marginBottom:12,fontSize:12,color:C.or,fontWeight:600}}>⚠ Low recovery — auto-regulate down</div>}
       <div style={{marginBottom:16}}>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
           <span>{workout.dayName} {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
@@ -66,7 +58,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,
       date:new Date().toISOString(),status:"in-progress",
       exercises:day.exercises.map(ex=>({...ex,id:uid(),sets:Array.from({length:ex.sets},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))})),
-      notes:"",autoregulation:{painScore:"",energyLevel:"",sleepQuality:""}};
+      notes:""};
     setWorkouts(prev=>[...prev,w]); setActiveWorkout(w.id);
   };
   const updateWorkout = (wId,updates) => setWorkouts(prev=>prev.map(w=>w.id===wId?{...w,...updates}:w));
