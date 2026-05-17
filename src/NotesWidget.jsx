@@ -115,16 +115,24 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 11,
             padding: 0, flexShrink: 0, lineHeight: 1,
           }}>{n.pinned ? '📌' : '○'}</button>
-        {n.target_label ? (
-          <span style={{
-            fontFamily: FN, fontSize: 13, color: 'var(--c-ac)',
-            letterSpacing: '0.02em', fontWeight: 800, textTransform: 'uppercase',
-            flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            lineHeight: 1.1,
-          }} title={n.target_label}>
-            {n.target_label}
-          </span>
-        ) : (
+        {n.target_label ? (() => {
+          // Hebrew renders ~3px smaller than Nord at the same fontSize — Heebo's
+          // x-height + missing ascenders/descenders make 13px Hebrew look
+          // visibly smaller than 13px Nord. Per feedback_new_ui_box_dimensions
+          // rule: "Hebrew bumps +3px INSIDE the box, never resizes the box".
+          const heb = isHebrew(n.target_label);
+          return (
+            <span style={{
+              fontFamily: heb ? FH : FN, fontSize: heb ? 16 : 13, color: 'var(--c-ac)',
+              letterSpacing: heb ? 0 : '0.02em', fontWeight: 800,
+              textTransform: heb ? 'none' : 'uppercase',
+              flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              lineHeight: 1.1,
+            }} title={n.target_label}>
+              {n.target_label}
+            </span>
+          );
+        })() : (
           <span style={{
             fontFamily: FN, fontSize: 12, color: 'var(--c-tx)',
             letterSpacing: '0.04em', fontWeight: 700, flex: 1, minWidth: 0,
