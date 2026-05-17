@@ -144,7 +144,7 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex, bareMode =
   // primary mount path. TraineeCRM uses bareMode + the unified card.
   return (
     <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, marginBottom: 12,
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
@@ -308,7 +308,7 @@ function CoachHistoryCard({ trainee, clientWorkouts, payments, planIndex, onCrea
   const PAD = 14;
   return (
     <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, marginBottom: 12,
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>

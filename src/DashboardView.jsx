@@ -286,7 +286,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         ].map((s, i) => {
           const refined = isRefined5b();
           return (
-            <div key={i} className="alert-card" style={{ background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
+            <div key={i} className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
               {refined ? (
                 <RefinedHeaderStrip padY={16} padX={20}>
                   <SectionLabel style={{ color: '#FFFFFF', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
@@ -310,7 +310,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {funnel && (funnel.sessions || funnel.messages || funnel.total) ? (() => {
         const refined = isRefined5b();
         return (
-          <div style={{ background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
+          <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
             {refined ? (
               <RefinedHeaderStrip>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -537,7 +537,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         const refined = isRefined5b();
         const plainHeadStyle = { textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 };
         return (
-        <div style={{ overflowX: 'auto', background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+        <div style={{ overflowX: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
@@ -615,7 +615,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {totalAllPaid>0&&(()=>{
         const refined = isRefined5b();
         return <div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
-          <div style={{background: refined ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding: refined ? 0 : '14px 20px', maxWidth:300, textAlign:'center', overflow:'hidden'}}>
+          <div style={{background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding: refined ? 0 : '14px 20px', maxWidth:300, textAlign:'center', overflow:'hidden'}}>
             {refined ? (
               <>
                 <div style={{background:'var(--c-sf)', padding:'8px 20px', borderBottom:'1px solid rgba(0,0,0,0.10)'}}>
@@ -648,7 +648,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
     display: 'flex', flexDirection: 'column', gap: 2,
     padding: '10px 14px',
     border: `1px solid ${C.cardBd}`,
-    background: refined ? '#FFFFFF' : 'var(--c-sf)',
+    background: 'var(--c-sf)',
   };
   const labelStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700 };
   const numStyle = { fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em' };
@@ -656,7 +656,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
 
   return (
     <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 20,
       boxShadow: C.cardShadow,
       // The outer card needs padding == RefinedHeaderStrip's padX/padY,

@@ -459,7 +459,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
 
   return (
     <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: PAD,
       boxShadow: C.cardShadow,
     }}>

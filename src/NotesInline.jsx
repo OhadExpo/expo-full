@@ -135,7 +135,7 @@ export default function NotesInline({
     ? <div>{children}</div>
     : (
       <div style={{
-        background: refined ? '#FFFFFF' : 'var(--c-sf)',
+        background: 'var(--c-sf)',
         border: `1px solid var(--c-cardBd)`, borderRadius: 0,
         padding: PAD, marginBottom: 12,
         boxShadow: C.cardShadow,

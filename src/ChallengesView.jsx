@@ -174,7 +174,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
 
   return (
     <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD,
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>

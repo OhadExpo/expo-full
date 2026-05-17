@@ -171,7 +171,7 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
   const baseBorder = `1px solid ${C.cardBd}`;
   return (
     <div className={className} style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: baseBorder,
       borderLeft: leftStripe ? `3px solid ${leftStripe}` : baseBorder,
       borderRadius: 0,
@@ -217,7 +217,7 @@ export function RefinedTable({ columns, rows, sort, onSort, empty }) {
     return sort.dir > 0 ? ' ↑' : ' ↓';
   };
   return (
-    <div style={{ overflowX: 'auto', background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+    <div style={{ overflowX: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
         <thead>
           <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
@@ -312,7 +312,7 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
   const padNum = typeof padding === 'number' ? padding : 20;
   return (
     <div onClick={onClick} style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`,
       borderLeft: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,
       borderRadius: 0,

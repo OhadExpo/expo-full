@@ -107,7 +107,7 @@ export default function BookingView({ trainees }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* SETTINGS */}
-      <div style={{ background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
+      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>📅 BOOKING SETTINGS</span>
@@ -138,7 +138,7 @@ export default function BookingView({ trainees }) {
       </div>
 
       {/* AVAILABILITY */}
-      <div style={{ background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
+      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>WEEKLY AVAILABILITY ({rules.length})</span>
@@ -172,7 +172,7 @@ export default function BookingView({ trainees }) {
       </div>
 
       {/* UPCOMING */}
-      <div style={{ background: refined ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
+      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>UPCOMING ({bookings.filter(b => b.status === 'confirmed').length})</span>
         </RefinedHeaderStrip>

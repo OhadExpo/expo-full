@@ -77,7 +77,7 @@ export default function BugsView() {
 
   return (
     <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD,
       boxShadow: C.cardShadow,
     }}>

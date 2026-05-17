@@ -156,7 +156,7 @@ function EvalListRow({ evaluation, onOpenEditor }) {
   const refined = isRefined5b();
   return (
     <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: `1px solid ${open ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
       borderLeft: open ? `3px solid var(--c-ac)` : `1px solid var(--c-cardBd)`,
       marginBottom: 6,
@@ -257,7 +257,7 @@ export default function TraineeEvaluation({ trainee }) {
 
   return (
     <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       border: `1px solid var(--c-cardBd)`,
       borderRadius: 0, padding: PAD, marginBottom: 12,
       boxShadow: C.cardShadow,
