@@ -623,12 +623,16 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
         </div>
       ) : (
         // Responsive grid — locks to 2 columns at typical desktop widths
-        // and collapses to 1 column on phone-narrow surfaces. The 520px
-        // floor is sized so the widget never tips to a 3-col layout on
-        // 1366–1920 viewports while still wrapping cleanly under ~1000px.
+        // and collapses to 1 column on phone-narrow surfaces. The
+        // `min(520px, 100%)` floor caps at 520 on wide viewports (so the
+        // widget never tips to a 3-col layout on 1366–1920) but scales
+        // with the container under ~520px so the column doesn't blow past
+        // the viewport on phones (414px portrait used to scroll horizontally
+        // because a bare `minmax(520px, 1fr)` forced the single column to
+        // stay 520px wide).
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(520px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(520px, 100%), 1fr))',
           gap: 8,
         }}>
           {visible.map(n => {
