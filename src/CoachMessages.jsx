@@ -272,7 +272,12 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
 
   return (
     <div style={{
-      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      // var(--c-sf) resolves to #FFFFFF in light theme, dark surface inside
+      // any data-theme="dark" wrapper (like the athlete portal). Hardcoding
+      // #FFFFFF here used to break the message bubbles inside the athlete
+      // portal — body text stayed `--c-tx` (light gray in dark) on a forced
+      // white card = unreadable.
+      background: 'var(--c-sf)',
       border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: PAD, marginBottom: 12,
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
