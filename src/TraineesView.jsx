@@ -577,7 +577,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
       })()}
 
       {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived athletes." : "No athletes yet. Add your first one."} /> : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gap: 12 }}>
           {filtered.map(t => {
             const couple = isCouple(t);
             const mpc = getMemberPlanCounts(t, planCounts);

@@ -108,7 +108,7 @@ export default function OverloadChart({ workouts, exercises }) {
         <button onClick={() => setSortBy('recent')} style={{ background: 'var(--c-sf)', border: `${sortBy === 'recent' ? '1px' : '0.25px'} solid ${sortBy === 'recent' ? C.ac : C.cardBd}`, borderRadius: 0, padding: '4px 10px', color: sortBy === 'recent' ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em' }}>↕ RECENT</button>
         <button onClick={() => setSortBy('progress')} style={{ background: 'var(--c-sf)', border: `${sortBy === 'progress' ? '1px' : '0.25px'} solid ${sortBy === 'progress' ? C.ac : C.cardBd}`, borderRadius: 0, padding: '4px 10px', color: sortBy === 'progress' ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em' }}>↕ PROGRESS</button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))', gap: 10 }}>
         {sorted.map(row => {
           const deltaColor = row.deltaTotal > 0 ? C.gn : row.deltaTotal < 0 ? C.rd : C.td;
           const deltaSign = row.deltaTotal > 0 ? '+' : '';
