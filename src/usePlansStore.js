@@ -156,28 +156,44 @@ export async function savePlan(plan) {
     0
   );
   if (incomingDays.length > 0 && incomingExTotal === 0) {
+    // Three outcomes from the read-back:
+    //   1. row doesn't exist (data=null, no error) → fresh plan, OK to save
+    //   2. row exists with content → REFUSE (the bug we're guarding against)
+    //   3. read-back errored → REFUSE to be safe; coach can retry. Letting
+    //      a network failure fall through to "proceed" would defeat the
+    //      entire point of the guard for the case it most matters: a
+    //      transient Supabase outage while the editor is mid-glitch.
+    let readBackError = null;
+    let existingExTotal = 0;
     try {
-      const { data: existing } = await supabase
+      const { data: existing, error: rErr } = await supabase
         .from('plans').select('data').eq('id', plan.id).maybeSingle();
-      const existingDays = existing?.data?.days || [];
-      const existingExTotal = existingDays.reduce(
-        (a, d) => a + ((d.exercises || d.ex || []).length),
-        0
-      );
-      if (existingExTotal > 0) {
-        const msg = `Refusing to save plan ${plan.id}: would overwrite ${existingExTotal} existing exercises with an empty days[] array. This usually means the editor opened the plan with a stale or broken adapter. Reload the page and try again — if the editor still shows the plan as empty, file a bug instead of saving.`;
-        console.error('[savePlan blank-overwrite guard]', msg);
-        if (typeof window !== 'undefined') {
-          try { window.alert('Save blocked — see console for details. The plan you are saving would wipe ' + existingExTotal + ' existing exercises. Reload the page first.'); } catch {}
-        }
-        return false;
+      if (rErr) { readBackError = rErr; }
+      else if (existing) {
+        const existingDays = existing.data?.days || [];
+        existingExTotal = existingDays.reduce(
+          (a, d) => a + ((d.exercises || d.ex || []).length),
+          0
+        );
       }
     } catch (e) {
-      // Read-back failure shouldn't block a legitimate first-save of a new
-      // empty plan; log and proceed. The downside (writing an empty plan
-      // when read-back fails AND existing data was present) is rare and
-      // bounded by network conditions, not a recurring class of bug.
-      console.warn('[savePlan] blank-overwrite guard read-back failed:', e?.message || e);
+      readBackError = e;
+    }
+    if (readBackError) {
+      const msg = `Refusing to save plan ${plan.id}: incoming state is empty AND read-back failed (${readBackError.message || readBackError}). Cannot prove existing data is safe to overwrite. Retry once network recovers.`;
+      console.error('[savePlan blank-overwrite guard]', msg);
+      if (typeof window !== 'undefined') {
+        try { window.alert('Save blocked — network read-back failed and incoming state is empty. Retry in a moment. See console.'); } catch {}
+      }
+      return false;
+    }
+    if (existingExTotal > 0) {
+      const msg = `Refusing to save plan ${plan.id}: would overwrite ${existingExTotal} existing exercises with an empty days[] array. This usually means the editor opened the plan with a stale or broken adapter. Reload the page and try again — if the editor still shows the plan as empty, file a bug instead of saving.`;
+      console.error('[savePlan blank-overwrite guard]', msg);
+      if (typeof window !== 'undefined') {
+        try { window.alert('Save blocked — see console for details. The plan you are saving would wipe ' + existingExTotal + ' existing exercises. Reload the page first.'); } catch {}
+      }
+      return false;
     }
   }
 
