@@ -1,5 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { C, FN, FB, uid } from './theme';
+import React, { useState, useEffect, useMemo } from 'react';
+import { C, FN, FB, FH, uid } from './theme';
+
+// Hebrew renders ~3px smaller than Nord at the same fontSize (smaller
+// x-height, missing ascenders/descenders). Same pattern that's already
+// applied to NotesWidget, PlansView, WorkoutReview.
+const isHebrew = (s) => /[֐-׿]/.test(s || '');
 import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
 import { supabase } from './supabase';
 
@@ -97,13 +102,46 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   }
   const completed = workouts.filter(w=>w.status==="completed"&&(!filterTrainee||w.traineeId===filterTrainee));
   const inProgress = workouts.filter(w=>w.status==="in-progress");
+  // Filter the plan picker. Without this, the picker dumps all 209
+  // production plans into one scroll. Active-only by default and a
+  // trainee filter that piggybacks the same state the Completed
+  // filter below already uses, so the coach only sees relevant
+  // starting points.
+  const activeTraineeIds = useMemo(
+    () => new Set((trainees || []).filter(t => t.status !== 'Archived').map(t => t.id)),
+    [trainees]
+  );
+  const visiblePlans = useMemo(
+    () => (planIndex || []).filter(p =>
+      p.active !== false &&
+      activeTraineeIds.has(p.traineeId) &&
+      (!filterTrainee || p.traineeId === filterTrainee)
+    ),
+    [planIndex, activeTraineeIds, filterTrainee]
+  );
   return (
     <div>
-      <h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',marginBottom:12}}>Start Workout from Plan</h3>
-      {planIndex.length===0?<div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>:(
-        <div style={{display:"grid",gap:8,marginBottom:24}}>{planIndex.map(p=>{
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,gap:8,flexWrap:'wrap'}}>
+        <h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',margin:0}}>
+          Start Workout from Plan <span style={{color:C.td,fontWeight:400}}>({visiblePlans.length})</span>
+        </h3>
+        {planIndex.length > 0 && (
+          <select value={filterTrainee} onChange={e=>setFilterTrainee(e.target.value)} style={{...baseInput,width:200,padding:"4px 8px",fontSize:12}}>
+            <option value="">All active athletes</option>
+            {trainees.filter(t=>t.status!=='Archived').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
+        )}
+      </div>
+      {planIndex.length===0?<div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>:visiblePlans.length===0?
+        <div style={{color:C.td,fontSize:13,marginBottom:20,padding:'14px 0',textAlign:'center'}}>No active plans matching the filter.</div>:(
+        <div style={{display:"grid",gap:8,marginBottom:24}}>{visiblePlans.map(p=>{
           const trainee=trainees.find(t=>t.id===p.traineeId);
-          return<Card key={p.id}><div style={{fontWeight:600,color:C.tx,marginBottom:8}}>{p.name} {trainee&&<span style={{fontWeight:400,color:C.tm}}>— {trainee.name}</span>}</div>
+          const tName = trainee?.name || '';
+          const heb = isHebrew(tName);
+          return<Card key={p.id}><div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:8}}>
+            <span style={{fontWeight:600,color:C.tx,fontSize:14}}>{p.name}</span>
+            {trainee&&<span style={{fontWeight:400,color:C.tm,fontSize:heb?16:13,fontFamily:heb?FH:undefined}}>— {tName}</span>}
+          </div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"4px 12px"}}>▶ {dName}</Btn>)}</div></Card>})}</div>)}
       {inProgress.length>0&&<><h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.or,textTransform:"uppercase",letterSpacing:'0.18em',marginBottom:12}}>In Progress ({inProgress.length})</h3>
         {inProgress.map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId); return<Card key={w.id} onClick={()=>setActiveWorkout(w.id)} style={{marginBottom:8,borderColor:'rgba(255,165,2,0.251)'}}>
