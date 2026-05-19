@@ -86,7 +86,15 @@ export default function BillingView({ trainees }) {
 
   const saveSettings = async () => {
     if (!draftSettings.bit_phone?.trim()) { toast('Bit phone is required.', 'warn'); return; }
-    const row = { ...draftSettings, updated_at: new Date().toISOString() };
+    // Cleared-field defaults: typing "0" should persist as 0, but an empty
+    // field (null) should fall back to the in-app default rather than
+    // tripping a DB NOT NULL constraint.
+    const row = {
+      ...draftSettings,
+      default_monthly: draftSettings.default_monthly == null ? 800 : draftSettings.default_monthly,
+      vat_rate: draftSettings.vat_rate == null ? 0.18 : draftSettings.vat_rate,
+      updated_at: new Date().toISOString(),
+    };
     const { error } = settings
       ? await supabase.from('coach_payment_settings').update(row).eq('coach_email', coachEmail)
       : await supabase.from('coach_payment_settings').insert(row);
@@ -140,8 +148,20 @@ export default function BillingView({ trainees }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 10 }}>
           <Input label="Your Bit phone" value={draftSettings?.bit_phone || ''} onChange={e => setDraftSettings({ ...draftSettings, bit_phone: e.target.value })} placeholder="054-XXX-XXXX" />
           <Input label="Display name on Bit" value={draftSettings?.bit_display_name || ''} onChange={e => setDraftSettings({ ...draftSettings, bit_display_name: e.target.value })} placeholder="Ohad — EXPO" />
-          <Input label="Default monthly (₪)" type="number" value={draftSettings?.default_monthly || ''} onChange={e => setDraftSettings({ ...draftSettings, default_monthly: parseFloat(e.target.value) || 0 })} />
-          <Input label="VAT rate" type="number" step="0.01" value={draftSettings?.vat_rate || 0.18} onChange={e => setDraftSettings({ ...draftSettings, vat_rate: parseFloat(e.target.value) || 0.18 })} />
+          {/* `||` on the value side was masking the legit value 0 as empty;
+              `|| <default>` on the onChange side coerced 0 back to the default,
+              so typing 0 in VAT snapped to 0.18 and typing 0 in monthly
+              cleared the field. Use `??` so 0 survives both ways. */}
+          <Input label="Default monthly (₪)" type="number" value={draftSettings?.default_monthly ?? ''}
+            onChange={e => {
+              const v = e.target.value;
+              setDraftSettings({ ...draftSettings, default_monthly: v === '' ? null : (Number.isNaN(parseFloat(v)) ? null : parseFloat(v)) });
+            }} />
+          <Input label="VAT rate" type="number" step="0.01" value={draftSettings?.vat_rate ?? ''}
+            onChange={e => {
+              const v = e.target.value;
+              setDraftSettings({ ...draftSettings, vat_rate: v === '' ? null : (Number.isNaN(parseFloat(v)) ? null : parseFloat(v)) });
+            }} />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <span style={{ fontSize: 11, color: C.td, lineHeight: 1.5 }}>

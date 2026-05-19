@@ -91,7 +91,19 @@ export default function NotesInline({
 
   const onAdd = async () => {
     const b = body.trim();
-    if (!b) return;
+    if (!b) {
+      // Tags-only submit (Enter on the tags input when the body textarea
+      // is empty). Refuse with a visible nudge instead of silent-failing,
+      // and focus the body so the coach can finish the note.
+      if (tagsInput.trim()) {
+        try {
+          const { toast } = await import('./ui');
+          toast('Add the note text first — tags attach to a note, not on their own.', 'warn', { ttl: 3500 });
+        } catch {}
+        try { document.querySelector('.notes-inline-input')?.focus?.(); } catch {}
+      }
+      return;
+    }
     // Suppress the imminent blur-fired flush — the explicit ADD click
     // already covers it. Without this, blur + click both create a row.
     draft.suppressNext();
@@ -375,6 +387,7 @@ export default function NotesInline({
             knowledge base entries from either surface look identical
             and the search/filter at /coach/tasks finds them all. */}
         <input type="text" value={tagsInput} onChange={e => setTagsInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAdd(); } }}
           placeholder="#tags  (optional — e.g. rehab, shoulder, post-surgery)"
           style={{
             width: '100%', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
