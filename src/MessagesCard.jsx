@@ -11,7 +11,7 @@
 // Unread tracking lives in localStorage['expo-msgs-seen-at'] (single-
 // coach store; swap for a per-coach Supabase column when multi-tenant).
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { C, FN, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip, SectionLabel } from './ui';
 import { useTheme } from './hooks/useTheme';
@@ -79,10 +79,18 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
   rows.forEach(r => { if (!byTrainee.has(r.trainee_id)) byTrainee.set(r.trainee_id, r); });
   const threads = Array.from(byTrainee.values());
 
+  // "Unhandled" = the latest message is from the athlete AND it landed
+  // after the global seenAt timestamp. The inbox renders ONLY unhandled
+  // threads by default — replied-to threads (coach is the latest sender)
+  // drop out automatically, and MARK ALL READ clears the rest by bumping
+  // seenAt. Handled threads stay queryable behind the "+ N HANDLED" toggle.
   const unreadFor = (r) =>
     r.sender_role === 'athlete' &&
     (!seenAt || new Date(r.created_at).getTime() > new Date(seenAt).getTime());
   const unreadCount = threads.filter(unreadFor).length;
+  const [showHandled, setShowHandled] = useState(false);
+  const handledThreads = useMemo(() => threads.filter(r => !unreadFor(r)), [threads, seenAt]);
+  const visibleThreads = showHandled ? threads : threads.filter(unreadFor);
 
   const markRead = () => {
     const now = new Date().toISOString();
@@ -131,7 +139,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
                   fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                   color: '#FFFFFF', opacity: 0.85,
                 }}>
-                  ({unreadCount > 0 ? `${unreadCount} unread · ` : ''}{threads.length})
+                  ({showHandled ? threads.length : unreadCount})
                 </span>
               )}
             </span>
@@ -151,7 +159,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
       ) : (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <SectionLabel color={C.ac} style={{ fontSize: C.alertLabelSize }}>
-            {`💬 Messages${threads.length > 0 ? ` (${unreadCount > 0 ? `${unreadCount} unread · ` : ''}${threads.length})` : ''}`}
+            {`💬 Messages${threads.length > 0 ? ` (${showHandled ? threads.length : unreadCount})` : ''}`}
           </SectionLabel>
           {unreadCount > 0 && (
             <button onClick={markRead}
@@ -172,9 +180,18 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
         <div style={{ padding: '24px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
           No messages yet. Athlete replies and your sent messages will appear here.
         </div>
+      ) : visibleThreads.length === 0 ? (
+        <div style={{ padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
+          ✓ Inbox clear. {handledThreads.length > 0 && (
+            <button onClick={() => setShowHandled(true)}
+              style={{ background:'transparent', border:'none', color:'var(--c-ac)', cursor:'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', padding: 0, marginLeft: 4 }}>
+              SHOW {handledThreads.length} HANDLED →
+            </button>
+          )}
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {threads.slice(0, 8).map((r, idx) => {
+          {visibleThreads.slice(0, 8).map((r, idx) => {
             const unread = unreadFor(r);
             const heb = isHebrew(r.body_text);
             const preview = r.body_text || (r.audio_url ? '🎤 Voice note' : '');
@@ -248,11 +265,38 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
               </div>
             );
           })}
-          {threads.length > 8 && (
+          {visibleThreads.length > 8 && (
             <div style={{
               padding: '8px 4px 0', fontFamily: FN, fontSize: 10, letterSpacing: '0.12em',
               color: 'var(--c-tm)', textAlign: 'center',
-            }}>+ {threads.length - 8} OLDER THREADS</div>
+            }}>+ {visibleThreads.length - 8} OLDER THREADS</div>
+          )}
+          {/* Handled-thread expander. Shown only when there's at least one
+              unhandled thread visible AND at least one handled thread
+              hiding behind it. The "all clear" state above the loop has
+              its own SHOW HANDLED button so this row stays out of the
+              way when there's nothing actionable. */}
+          {!showHandled && handledThreads.length > 0 && (
+            <button onClick={() => setShowHandled(true)}
+              style={{
+                marginTop: 10, padding: '6px 0', background: 'transparent',
+                border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                cursor: 'pointer',
+              }}>
+              + {handledThreads.length} HANDLED
+            </button>
+          )}
+          {showHandled && (
+            <button onClick={() => setShowHandled(false)}
+              style={{
+                marginTop: 10, padding: '6px 0', background: 'transparent',
+                border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)',
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                cursor: 'pointer',
+              }}>
+              HIDE HANDLED
+            </button>
           )}
         </div>
       )}
