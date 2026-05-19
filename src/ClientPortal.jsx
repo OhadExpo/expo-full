@@ -103,6 +103,25 @@ function trainerPlanToPortal(plan, trainerExercises) {
                 q: exData?.cues || existing?.q || '',
               };
             }
+          } else if (exData) {
+            // KNOWN eid hit (the title matched a static EX baseline entry).
+            // The bug we're fixing here: 9 baseline entries in exerciseData.js
+            // are title-only — they have NO `vid`. With only the `if (!eid)`
+            // branch updating EX from the library, those entries never
+            // inherited the library's videoLink, so e.g. BB Lunge rendered
+            // with no VIDEO → link on the trainee portal even though `e10`
+            // has a videoLink in the Supabase exercise library. Backfill
+            // the baseline entry from library data when the library has
+            // info the baseline lacks. Never downgrade a populated baseline.
+            const existing = EX[eid] || {};
+            const next = {
+              t: existing.t || title,
+              vid: existing.vid || exData.videoLink || '',
+              q: existing.q || exData.cues || '',
+            };
+            if (next.vid !== existing.vid || next.q !== existing.q) {
+              EX[eid] = next;
+            }
           }
           const sets = pe.sets ?? pe.s ?? 3;
           const reps = pe.reps ?? pe.r ?? '8-12';
