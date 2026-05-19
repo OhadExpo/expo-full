@@ -19,6 +19,42 @@ import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
 import { Btn, Input, Select, Badge, isRefined5b } from './ui';
 
+// Drop target rendered below the header when no file has been picked
+// yet. The header copy ("Drop any document — XLSX, CSV, PDF, image,
+// screenshot.") used to be a lie because the only way to load a file
+// was the Pick File button. This component closes the gap: dashed-
+// border cyan box that accepts dragenter/dragover/drop, hands the
+// first file off to the parent. Doesn't try to validate type itself —
+// classifyFile in the parent already does that.
+function DropZone({ parsing, onFile }) {
+  const [hot, setHot] = useState(false);
+  const onDragOver = (e) => { e.preventDefault(); e.stopPropagation(); if (!hot) setHot(true); };
+  const onDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setHot(false); };
+  const onDrop = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    setHot(false);
+    const f = e.dataTransfer?.files?.[0];
+    if (f) onFile(f);
+  };
+  return (
+    <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
+      style={{
+        padding: '48px 24px', textAlign: 'center', marginBottom: 16,
+        border: `2px dashed ${hot ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+        background: hot ? 'rgba(57,189,255,0.06)' : 'transparent',
+        transition: 'border-color 120ms, background 120ms',
+        opacity: parsing ? 0.5 : 1, pointerEvents: parsing ? 'none' : 'auto',
+      }}>
+      <div style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: 'var(--c-tm)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+        Drop a file here
+      </div>
+      <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-td)', marginTop: 6 }}>
+        XLSX · CSV · TSV · PDF · PNG · JPG · screenshot · text. AI maps it into the EXPO schema and previews before commit.
+      </div>
+    </div>
+  );
+}
+
 // All smart-import API calls go through this helper so they always carry
 // the coach's Supabase JWT — without it, the backend's tool calls hit RLS
 // and see an empty library/athlete list.
@@ -416,6 +452,15 @@ export default function SmartImportView() {
           onChange={onPick} style={{ display: 'none' }} />
         <Btn onClick={() => inputRef.current?.click()} disabled={parsing}>{parsing ? 'Reading…' : (fileName ? 'Replace File' : 'Pick File')}</Btn>
       </div>
+
+      {/* Drop zone — only shown before a file is picked. The header copy
+          said "Drop any document" but there was no actual drop target,
+          just the Pick File button. The whole page below the header
+          now accepts a drag-and-drop; the dashed-border box is the
+          visible affordance. Drag-over highlights the border in cyan. */}
+      {!fileName && (
+        <DropZone parsing={parsing} onFile={(f) => onPick({ target: { files: [f] } })} />
+      )}
 
       {fileName && (
         <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, alignItems: 'end' }}>
