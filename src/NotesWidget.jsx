@@ -10,7 +10,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -664,7 +664,15 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 onStartEdit={() => startEdit(n)}
                 onToggleDone={() => toggleDoneSmart(n)}
                 onTogglePin={() => togglePin(n.id)}
-                onRemove={() => remove(n.id)}
+                onRemove={async () => {
+                  // Hard-delete with no second chance was the previous
+                  // behaviour. A single misclick on the × wiped the
+                  // task. Confirm first; coach can still get rid of it
+                  // in two clicks.
+                  if (await confirmToast('Delete this task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
+                    remove(n.id);
+                  }
+                }}
                 actionButton={
                   <TaskActionButton
                     note={n}
@@ -717,7 +725,11 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     </div>
                   )}
                 </div>
-                <button onClick={() => remove(n.id)} title="Remove"
+                <button onClick={async () => {
+                    if (await confirmToast('Delete this completed task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
+                      remove(n.id);
+                    }
+                  }} title="Remove"
                   style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
               </div>
             );
