@@ -181,12 +181,28 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
           No messages yet. Athlete replies and your sent messages will appear here.
         </div>
       ) : visibleThreads.length === 0 ? (
-        <div style={{ padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
-          ✓ Inbox clear. {handledThreads.length > 0 && (
-            <button onClick={() => setShowHandled(true)}
-              style={{ background:'transparent', border:'none', color:'var(--c-ac)', cursor:'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', padding: 0, marginLeft: 4 }}>
-              SHOW {handledThreads.length} HANDLED →
-            </button>
+        // Inbox-clear pill — single tight uppercase line so the empty
+        // state doesn't occupy more height than a single inbox row.
+        // Padding was 20/6 (40px vertical) + a 13px regular sentence + a
+        // 10px uppercase button — the size mismatch made the line look
+        // misaligned and the card balloon to ~140px tall over nothing.
+        <div style={{
+          padding: '6px 0', textAlign: 'center',
+          fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+          color: 'var(--c-td)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+        }}>
+          <span>✓ INBOX CLEAR</span>
+          {handledThreads.length > 0 && (
+            <>
+              <span style={{ opacity: 0.5 }}>·</span>
+              <button onClick={() => setShowHandled(true)}
+                style={{
+                  background:'transparent', border:'none', color:'var(--c-ac)', cursor:'pointer',
+                  fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', padding: 0,
+                }}>
+                SHOW {handledThreads.length} HANDLED →
+              </button>
+            </>
           )}
         </div>
       ) : (
