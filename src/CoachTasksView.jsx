@@ -9,18 +9,16 @@
 // from NotesWidget itself; no extra logic here.
 
 import React from 'react';
-import { C, FN } from './theme';
 import NotesWidget from './NotesWidget';
 
+// Page heading + "Unified feed — write a task from anywhere…" subhead
+// removed 2026-05-19: the nav pill "TASKS" already labels the surface,
+// the card header "📌 TASKS (10)" already gives the count, and the
+// one-line documentation belongs in onboarding, not above the surface
+// you triage from every day. Daily-use real estate matters.
 export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlanForTask, onOpenIntakeTab, onOpenReviewWorkout }) {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 4px' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 14 }}>
-        <h2 style={{ margin: 0, fontFamily: FN, fontSize: 18, color: C.tx, letterSpacing: '0.04em' }}>TASKS</h2>
-        <div style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>
-          Unified feed — write a task from anywhere, tag it to a trainee, see it in three places.
-        </div>
-      </div>
       <NotesWidget
         trainees={trainees}
         onCreatePlanForTask={onCreatePlanForTask}
