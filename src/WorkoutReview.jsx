@@ -1564,6 +1564,22 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     </div>
   ) : null;
 
+  // Clear selectedWo when its referent disappears (deleted from the list).
+  // useEffect avoids the state-mutation-during-render warning the previous
+  // inline `setSelectedWo(null)` was producing under StrictMode.
+  //
+  // HOOKS-ORDER FIX 2026-05-19: this used to live BELOW the
+  // `if (subTab === "log") return` early-return, which meant React saw
+  // the hook on the "review" render and not on the "log" render — order
+  // changed mid-session and tripped React error #300 (Maximum update
+  // depth exceeded) as soon as the coach clicked LOG IN-PERSON SESSION.
+  // All hooks must be called before any conditional return.
+  useEffect(() => {
+    if (selectedWo && !clientWorkouts.find(w => w.id === selectedWo)) {
+      setSelectedWo(null);
+    }
+  }, [selectedWo, clientWorkouts]);
+
   // ===== LOG IN-PERSON SESSION (wraps WorkoutsView) =====
   if (subTab === "log") return (
     <div>
@@ -1573,14 +1589,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   );
 
   // ===== WORKOUT DETAIL VIEW =====
-  // Clear selectedWo when its referent disappears (deleted from the list).
-  // useEffect avoids the state-mutation-during-render warning the previous
-  // inline `setSelectedWo(null)` was producing under StrictMode.
-  useEffect(() => {
-    if (selectedWo && !clientWorkouts.find(w => w.id === selectedWo)) {
-      setSelectedWo(null);
-    }
-  }, [selectedWo, clientWorkouts]);
   if (selectedWo) {
     const wo = clientWorkouts.find(w => w.id === selectedWo);
     if (!wo) return null;
