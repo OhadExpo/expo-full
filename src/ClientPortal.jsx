@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { fmtPrettyDate } from './dates';
 import useAutosave from './hooks/useAutosave';
 import { C, FN, FB, FH, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
@@ -1690,7 +1691,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               <span style={{fontSize:11,color:C.tm,marginLeft:8,fontFamily:FN}}>{d.blockName||'?'} · W{d.week||'?'}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontSize:10,color:C.td,fontFamily:FN}}>{new Date(d.date).toLocaleDateString()}</span>
+              <span style={{fontSize:10,color:C.td,fontFamily:FN}}>{fmtPrettyDate(d.date)}</span>
               <button onClick={onDelete} title="Delete entry" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.td,cursor:'pointer',fontSize:14,padding:'2px 6px',borderRadius:0,lineHeight:1}}>×</button>
             </div>
           </div>;
@@ -1727,7 +1728,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         // natural newest-first order.
         cw.map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'var(--c-sf)',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
           <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em'}}>{w.dayName} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
-          <div style={{fontSize:10,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.08em'}}>{new Date(w.date).toLocaleDateString()} · W{w.week}</div>
+          <div style={{fontSize:10,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.08em'}}>{fmtPrettyDate(w.date)} · W{w.week}</div>
           {w.exercises.map((x,i) => {
             const fv = (w.formVideos || [])[i];
             const hasVideo = !!(fv && fv.cloudUrl);

@@ -10,13 +10,14 @@
 // and forced an awkward two-level interaction).
 
 import React, { useMemo, useState } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { isRefined5b, RefinedHeaderStrip } from './ui';
 import { EVAL_SCHEMA, romKey, countFilled } from './evaluationSchema';
 import { useTraineeEvaluations } from './evaluationsData';
 import EvaluationEditor from './EvaluationEditor';
 
-const fmtDate = (s) => s ? new Date(s).toLocaleDateString() : '—';
+const fmtDate = (s) => s ? fmtPrettyDate(s) : '—';
 
 // Score renderer — turns whatever shape the eval has into a readable string.
 const renderScore = (test, value) => {

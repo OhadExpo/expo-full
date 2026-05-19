@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { fmtPrettyDate } from './dates';
 import WorkoutsView from './WorkoutsView';
 import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 
@@ -1346,7 +1347,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
                   <button onClick={() => seekTo(n.ts, n.id)} style={{background:C.acD,border:`1px solid rgba(57,189,255,0.251)`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,cursor:'pointer'}}>▶ {fmtTs(n.ts)}</button>
                   <span style={{fontSize:10,fontFamily:FN,color:n.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{n.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
-                  <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ''}</span>
+                  <span style={{fontSize:10,color:C.td,marginLeft:'auto'}}>{n.createdAt ? fmtPrettyDate(n.createdAt) : ''}</span>
                   {(n.author === role) && onReviewNotesChange && (
                     <button onClick={() => startEdit(n, false, null)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:11,padding:0,marginLeft:4}}>✏️</button>
                   )}
@@ -1361,7 +1362,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                       <div key={r.id}>
                         <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:2}}>
                           <span style={{fontSize:10,fontFamily:FN,color:r.author==='trainer'?C.ac:C.gn,fontWeight:700,letterSpacing:0.5}}>{r.author === 'trainer' ? 'COACH' : 'ATHLETE'}</span>
-                          <span style={{fontSize:10,color:C.td}}>{r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span>
+                          <span style={{fontSize:10,color:C.td}}>{r.createdAt ? fmtPrettyDate(r.createdAt) : ''}</span>
                           {(r.author === role) && onReviewNotesChange && (
                             <button onClick={() => startEdit(r, true, n.id)} title="Edit" style={{background:'transparent',border:'none',color:C.td,cursor:'pointer',fontSize:10,padding:0,marginLeft:'auto'}}>✏️</button>
                           )}
@@ -1708,7 +1709,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 )}
               </h2>
               <div style={{fontSize:12,color:C.tm,marginTop:4}}>
-                Week {wo.week} · {wo.dayName} · {new Date(wo.date).toLocaleDateString()}
+                Week {wo.week} · {wo.dayName} · {fmtPrettyDate(wo.date)}
               </div>
             </div>
             <div style={{textAlign:"right"}}>
@@ -1853,12 +1854,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                               return {
                                 cloudUrl: fv.cloudUrl,
                                 title: t,
-                                label: `W${w.week} · ${w.dayName} · ${new Date(w.date).toLocaleDateString()}`,
+                                label: `W${w.week} · ${w.dayName} · ${fmtPrettyDate(w.date)}`,
                               };
                             }))
                             .filter(v => v && v.cloudUrl !== formVideo.cloudUrl);
                           if (candidates.length === 0) return null;
-                          const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${new Date(wo.date).toLocaleDateString()}`;
+                          const leftLabel = `${wo.planName} · W${wo.week} · ${wo.dayName} — ${ex.title || exName} · ${fmtPrettyDate(wo.date)}`;
                           return (
                             <button onClick={() => setComparePicker({ left: { url: formVideo.cloudUrl, label: leftLabel, title: ex.title || exName }, candidates })}
                               style={{background:'var(--c-sf)',border:`1px solid rgba(46,213,115,0.376)`,color:C.gn,fontFamily:FN,fontSize:9,padding:'3px 8px',borderRadius:0,cursor:'pointer',letterSpacing:0.5}}>
@@ -2136,7 +2137,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     )}
                   </div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
-                    W{wo.week} · {new Date(wo.date).toLocaleDateString()} · {doneSets}/{totalSets} sets
+                    W{wo.week} · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets
                     {hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}
                   </div>
                 </div>

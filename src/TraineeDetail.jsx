@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 
 // Hebrew renders ~3px smaller than Nord at the same fontSize. Same
@@ -310,7 +311,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             </div>
           )}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(100px, 1fr))',gap:10}}>
-            {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',td.lastPayment||'—'],['Since',td.startDate],['Workouts',tAllWorkouts.length]].map(([l,v])=>
+            {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',fmtPrettyDate(td.lastPayment)],['Since',fmtPrettyDate(td.startDate)],['Workouts',tAllWorkouts.length]].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
         </Card>
@@ -338,7 +339,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           </>
         )}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:isRefined5b()?0:16,textAlign:"center"}}>
-          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",td.lastPayment||"—"],["Since",td.startDate],["Workouts",tAllWorkouts.length]].map(([l,v])=>
+          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(td.lastPayment)],["Since",fmtPrettyDate(td.startDate)],["Workouts",tAllWorkouts.length]].map(([l,v])=>
             <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
       </Card>
@@ -383,7 +384,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <div style={{overflowX:"auto",marginBottom:16}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
           <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
           <tbody>{tPay.slice().reverse().map(p=>(<tr key={p.id} style={{borderBottom:`1px solid ${C.cardBd}`}}>
-            <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{new Date(p.date).toLocaleDateString()}</td>
+            <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{fmtPrettyDate(p.date)}</td>
             <td style={{padding:"8px 10px",color:C.gn,fontWeight:600,textAlign:"center"}}>₪{parseFloat(p.amount).toLocaleString()}</td>
             <td style={{padding:"8px 10px",color:C.tm,textAlign:"center"}}>{p.method}</td>
             <td style={{padding:"8px 10px",textAlign:"center"}}><Badge color={p.status==="Paid"?C.gn:p.status==="Overdue"?C.rd:C.or}>{p.status}</Badge></td>
@@ -436,7 +437,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === WORKOUTS — slot #7 */}
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tAllWorkouts.length})</h3>
       {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
-        tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{new Date(w.date).toLocaleDateString()}</span></div></Card>)}
+        tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div></Card>)}
 
       {/* === ASSIGNED PROGRAMS — slot #8 */}
       {couple ? <>
@@ -793,14 +794,14 @@ function BWChart({ entries }) {
           return (
             <g key={i}>
               <circle cx={p.x} cy={p.y} r="3" fill={C.ac} stroke={C.bg} strokeWidth="1.5">
-                <title>{`${new Date(p.date).toLocaleDateString()} · ${fmt(p.bw)}`}</title>
+                <title>{`${fmtPrettyDate(p.date)} · ${fmt(p.bw)}`}</title>
               </circle>
               <text x={labelX} y={labelY} fontSize="10" fontFamily={FN} fill={C.tx} textAnchor={anchor} fontWeight="600">{p.bw}</text>
             </g>
           );
         })}
-        <text x={PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td}>{new Date(entries[0].date).toLocaleDateString()}</text>
-        <text x={W - PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td} textAnchor="end">{new Date(entries[entries.length-1].date).toLocaleDateString()}</text>
+        <text x={PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td}>{fmtPrettyDate(entries[0].date)}</text>
+        <text x={W - PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td} textAnchor="end">{fmtPrettyDate(entries[entries.length-1].date)}</text>
       </svg>
     </Card>
   );

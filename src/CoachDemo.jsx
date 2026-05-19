@@ -12,6 +12,7 @@
 // trainee-side engine sandbox. Both end-CTAs converge at /demo#waitlist.
 
 import React, { useState, useEffect } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 import { EXPOMark } from './expoMark';
 
@@ -2435,7 +2436,7 @@ function DemoWorkouts() {
             <div key={w.id} style={{ ...demoCardStyle({ marginBottom: 8, borderColor: 'rgba(255,165,2,0.251)', cursor: 'pointer' }) }}>
               <div style={{ fontFamily: FB, fontWeight: 600, fontSize: 14, color: C.tx }}>{w.dayName}</div>
               <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
-                {traineeName(w.traineeId)} · {new Date(w.date).toLocaleDateString()}
+                {traineeName(w.traineeId)} · {fmtPrettyDate(w.date)}
               </div>
             </div>
           ))}

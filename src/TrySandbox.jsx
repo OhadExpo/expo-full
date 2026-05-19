@@ -8,6 +8,7 @@
 // the app depends on. Reuses src/repCounter.js for the math so when the
 // production rep counter is tuned the sandbox tracks automatically.
 import React, { useEffect, useRef, useState } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
 import {
@@ -543,7 +544,7 @@ function ClientPortalMock({ onPick }) {
                     {w.dayName} <span style={{ color: C.tm, fontWeight: 400 }}>({w.planName})</span>
                   </div>
                   <div style={{ fontSize: 11, color: C.tm, marginBottom: 4 }}>
-                    {new Date(w.date).toLocaleDateString()} · W{w.week}
+                    {fmtPrettyDate(w.date)} · W{w.week}
                   </div>
                   {w.exercises.map((x, i) => {
                     const expandKey = `${w.id}:${i}`;
@@ -1132,7 +1133,7 @@ function TraineeHomeMock({ onPick }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, fontWeight: 600 }}>{w.dayName}</div>
                   <div style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1, marginTop: 2 }}>
-                    {new Date(w.date).toLocaleDateString()} · {w.completed}/{w.total} EXERCISES
+                    {fmtPrettyDate(w.date)} · {w.completed}/{w.total} EXERCISES
                   </div>
                 </div>
                 <span style={{

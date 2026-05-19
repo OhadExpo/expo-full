@@ -3,6 +3,7 @@
 // + own progress + top 3 peers so the athlete sees they're competing.
 
 import React, { useEffect, useState, useMemo } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { GOAL_TYPES, computeProgress } from './challengePredicates';
@@ -88,7 +89,7 @@ export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLo
               <span style={{ fontWeight: 700, fontSize: 14, color: C.tx }}>{c.name}</span>
               <span style={{ flex: 1 }} />
               <span style={{ fontFamily: FN, fontSize: 10, color: C.td }}>
-                until {new Date(c.end_at).toLocaleDateString()}
+                until {fmtPrettyDate(c.end_at)}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>

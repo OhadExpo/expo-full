@@ -15,6 +15,7 @@
 // bit_payment_requests.
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast } from './ui';
@@ -253,7 +254,7 @@ export default function BillingView({ trainees }) {
               </span>
               <span style={{ flex: 1, fontSize: 13, color: C.tx }}>{t.name}</span>
               <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>
-                {r ? `${fmtCurrency(r.amount, r.currency)} · ${new Date(r.created_at).toLocaleDateString()}` : '—'}
+                {r ? `${fmtCurrency(r.amount, r.currency)} · ${fmtPrettyDate(r.created_at)}` : '—'}
               </span>
             </div>
           );

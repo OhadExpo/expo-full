@@ -10,6 +10,7 @@
 // Bookings come in via the public /book/<slug> route (BookingPublic.jsx).
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast } from './ui';
@@ -21,7 +22,7 @@ function fmtSlot(iso, duration) {
   try {
     const d = new Date(iso);
     const end = new Date(d.getTime() + duration * 60000);
-    return `${d.toLocaleDateString()} · ${pad(d.getHours())}:${pad(d.getMinutes())} → ${pad(end.getHours())}:${pad(end.getMinutes())}`;
+    return `${fmtPrettyDate(d)} · ${pad(d.getHours())}:${pad(d.getMinutes())} → ${pad(end.getHours())}:${pad(end.getMinutes())}`;
   } catch { return iso; }
 }
 

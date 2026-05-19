@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
@@ -66,8 +67,8 @@ const getPaymentStatus = (t, payments) => {
   const latestDate = latest ? new Date(latest.date) : (fallback && !isNaN(fallback.getTime()) ? fallback : null);
   if (!latestDate) return { label: 'NEVER PAID', color: C.rd, sub: null };
   const days = Math.floor((Date.now() - latestDate.getTime()) / 86400000);
-  if (days >= OVERDUE_DAYS) return { label: `OVERDUE · ${days}D`, color: C.rd, sub: latestDate.toLocaleDateString() };
-  return { label: `PAID · ${days}D AGO`, color: C.gn, sub: latestDate.toLocaleDateString() };
+  if (days >= OVERDUE_DAYS) return { label: `OVERDUE · ${days}D`, color: C.rd, sub: fmtPrettyDate(latestDate) };
+  return { label: `PAID · ${days}D AGO`, color: C.gn, sub: fmtPrettyDate(latestDate) };
 };
 
 // Last workout label for the card: pulls from BOTH coach-logged workouts and

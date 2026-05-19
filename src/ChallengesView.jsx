@@ -14,13 +14,14 @@
 // "Recompute leaderboard."
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Modal, Btn, Input, Select, confirmToast, toast } from './ui';
 import { GOAL_TYPES, computeProgress, TEMPLATES } from './challengePredicates';
 
 const fmtDate = (d) => {
-  try { return new Date(d).toLocaleDateString(); } catch { return ''; }
+  try { return fmtPrettyDate(d); } catch { return ''; }
 };
 
 function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, meals, onPersistProgress }) {

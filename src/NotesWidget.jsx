@@ -9,6 +9,7 @@
 // is unscoped, pulling across all target_kind/target_id combos.
 
 import React, { useMemo, useState } from 'react';
+import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
@@ -169,7 +170,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
         )}
         <span style={{ flex: 1 }} />
         <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
-          {new Date(n.created_at).toLocaleDateString()}
+          {fmtPrettyDate(n.created_at)}
         </span>
       </div>
 
@@ -708,7 +709,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 2 }}>
                     {TARGET_ICON[n.target_kind] || '·'} {TARGET_LABEL[n.target_kind] || 'NOTE'}
                     {n.target_label && <span style={{ color: 'var(--c-ac)', marginLeft: 6 }}>· {n.target_label}</span>}
-                    {n.completed_at && <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· done {new Date(n.completed_at).toLocaleDateString()}</span>}
+                    {n.completed_at && <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· done {fmtPrettyDate(n.completed_at)}</span>}
                   </div>
                   <div style={{
                     fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, whiteSpace: 'pre-wrap', textDecoration: 'line-through',
