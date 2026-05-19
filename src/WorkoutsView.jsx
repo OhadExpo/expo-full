@@ -119,6 +119,29 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     ),
     [planIndex, activeTraineeIds, filterTrainee]
   );
+  // Group visiblePlans by trainee and pick the latest block per trainee
+  // (most recently updated). For an in-person session, the coach is
+  // almost always logging against the trainee's CURRENT block, not an
+  // older one. So default the picker to one card per trainee. The
+  // expander reveals the older blocks for the rare "they're running a
+  // different program today" case.
+  const plansByTrainee = useMemo(() => {
+    const m = new Map();
+    for (const p of visiblePlans) {
+      if (!m.has(p.traineeId)) m.set(p.traineeId, []);
+      m.get(p.traineeId).push(p);
+    }
+    for (const arr of m.values()) {
+      arr.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+    }
+    return m;
+  }, [visiblePlans]);
+  // Track which trainees have their full plan list expanded. When a
+  // trainee is selected in the dropdown filter, we render their full
+  // list flat anyway (no grouping needed), so this state is only
+  // consulted in the multi-trainee view.
+  const [expandedTrainees, setExpandedTrainees] = useState({});
+  const toggleExpanded = (tid) => setExpandedTrainees(prev => ({ ...prev, [tid]: !prev[tid] }));
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,gap:8,flexWrap:'wrap'}}>
@@ -133,8 +156,11 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
         )}
       </div>
       {planIndex.length===0?<div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>:visiblePlans.length===0?
-        <div style={{color:C.td,fontSize:13,marginBottom:20,padding:'14px 0',textAlign:'center'}}>No active plans matching the filter.</div>:(
-        <div style={{display:"grid",gap:8,marginBottom:24}}>{visiblePlans.map(p=>{
+        <div style={{color:C.td,fontSize:13,marginBottom:20,padding:'14px 0',textAlign:'center'}}>No active plans matching the filter.</div>:filterTrainee?(
+        // Single-trainee view: show that trainee's plans flat, latest
+        // first. The dropdown filter already narrowed the list, so
+        // there's no need to group by trainee.
+        <div style={{display:"grid",gap:8,marginBottom:24}}>{(plansByTrainee.get(filterTrainee)||[]).map(p=>{
           const trainee=trainees.find(t=>t.id===p.traineeId);
           const tName = trainee?.name || '';
           const heb = isHebrew(tName);
@@ -142,7 +168,43 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
             <span style={{fontWeight:600,color:C.tx,fontSize:14}}>{p.name}</span>
             {trainee&&<span style={{fontWeight:400,color:C.tm,fontSize:heb?16:13,fontFamily:heb?FH:undefined}}>— {tName}</span>}
           </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"4px 12px"}}>▶ {dName}</Btn>)}</div></Card>})}</div>)}
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"4px 12px"}}>▶ {dName}</Btn>)}</div></Card>})}</div>
+      ):(
+        // Multi-trainee view: one card per trainee showing their
+        // latest block. The "+ N OLDER BLOCKS" toggle per trainee
+        // reveals the rest. Coach in a session almost always needs
+        // the current block, so this keeps the list to N (trainee
+        // count) instead of N * blocks-per-trainee.
+        <div style={{display:"grid",gap:8,marginBottom:24}}>{Array.from(plansByTrainee.entries()).map(([tid, plans])=>{
+          const trainee=trainees.find(t=>t.id===tid);
+          const tName = trainee?.name || '';
+          const heb = isHebrew(tName);
+          const isOpen = !!expandedTrainees[tid];
+          const visible = isOpen ? plans : plans.slice(0, 1);
+          return <Card key={tid}>
+            {visible.map((p, idx) => (
+              <div key={p.id} style={{paddingTop: idx === 0 ? 0 : 10, marginTop: idx === 0 ? 0 : 10, borderTop: idx === 0 ? 'none' : `1px solid ${C.cardBd}`}}>
+                <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:8}}>
+                  <span style={{fontWeight:600,color:C.tx,fontSize:14}}>{p.name}</span>
+                  {idx === 0 && trainee && <span style={{fontWeight:400,color:C.tm,fontSize:heb?16:13,fontFamily:heb?FH:undefined}}>— {tName}</span>}
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"4px 12px"}}>▶ {dName}</Btn>)}</div>
+              </div>
+            ))}
+            {plans.length > 1 && (
+              <button onClick={()=>toggleExpanded(tid)}
+                style={{
+                  marginTop: 10, width: '100%', padding: '4px 0',
+                  background: 'transparent', border: `1px solid ${C.cardBd}`,
+                  color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700,
+                  letterSpacing: '0.12em', cursor: 'pointer',
+                }}>
+                {isOpen ? 'HIDE OLDER BLOCKS' : `+ ${plans.length - 1} OLDER BLOCK${plans.length - 1 === 1 ? '' : 'S'}`}
+              </button>
+            )}
+          </Card>;
+        })}</div>
+      )}
       {inProgress.length>0&&<><h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.or,textTransform:"uppercase",letterSpacing:'0.18em',marginBottom:12}}>In Progress ({inProgress.length})</h3>
         {inProgress.map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId); return<Card key={w.id} onClick={()=>setActiveWorkout(w.id)} style={{marginBottom:8,borderColor:'rgba(255,165,2,0.251)'}}>
           <div style={{fontWeight:600,color:C.tx}}>{w.dayName}</div><div style={{fontSize:12,color:C.tm}}>{trainee?.name||"—"} · {new Date(w.date).toLocaleDateString()}</div></Card>})}</>}
