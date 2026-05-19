@@ -58,11 +58,29 @@ export default function BillingView({ trainees }) {
       supabase.from('coach_payment_settings').select('*').eq('coach_email', coachEmail).maybeSingle(),
       supabase.from('bit_payment_requests').select('*').order('created_at', { ascending: false }).limit(200),
     ]);
+    const seed = s || { coach_email: coachEmail, bit_phone: '', bit_display_name: 'Ohad — EXPO', currency: 'ils', vat_rate: 0.18, default_monthly: 800 };
     setSettings(s);
-    setDraftSettings(s || { coach_email: coachEmail, bit_phone: '', bit_display_name: 'Ohad — EXPO', currency: 'ils', vat_rate: 0.18, default_monthly: 800 });
+    setDraftSettings(seed);
     setRequests(r || []);
     setLoading(false);
   }, []);
+
+  // Save-button dirty check. The four user-editable fields are bit_phone,
+  // bit_display_name, default_monthly, vat_rate. Compare draft to the
+  // persisted row (or to the in-app defaults if there's no row yet) so
+  // "Save" stays inert until the form actually has something to save.
+  const isDirty = useMemo(() => {
+    if (!draftSettings) return false;
+    const baseline = settings || { bit_phone: '', bit_display_name: 'Ohad — EXPO', default_monthly: 800, vat_rate: 0.18 };
+    const same = (a, b) => (a ?? '') === (b ?? '');
+    const sameNum = (a, b) => Number(a) === Number(b);
+    return !(
+      same(draftSettings.bit_phone, baseline.bit_phone) &&
+      same(draftSettings.bit_display_name, baseline.bit_display_name) &&
+      sameNum(draftSettings.default_monthly, baseline.default_monthly) &&
+      sameNum(draftSettings.vat_rate, baseline.vat_rate)
+    );
+  }, [draftSettings, settings]);
 
   useEffect(() => { reload(); }, [reload]);
 
@@ -130,7 +148,10 @@ export default function BillingView({ trainees }) {
             Bit doesn't expose a recurring-billing API. You request → athlete pays → you mark paid manually.
             The deep link below pre-fills phone + amount on the athlete's Bit app.
           </span>
-          <Btn onClick={saveSettings}>Save</Btn>
+          <Btn onClick={saveSettings} disabled={!isDirty}
+            style={isDirty ? undefined : { opacity: 0.4, cursor: 'not-allowed', pointerEvents: 'none' }}>
+            Save
+          </Btn>
         </div>
       </div>
 
