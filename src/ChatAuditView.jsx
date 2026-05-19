@@ -12,6 +12,24 @@ import { C, FN, FB } from './theme';
 import { isRefined5b } from './ui';
 import { supabase } from './supabase';
 
+// Inline `**bold**` renderer for bot messages. The marketing chat model
+// emits markdown-style bold (e.g. **STARTER**, **GROWTH**) which used to
+// render as literal asterisks in the audit view. Only handles bold —
+// not headings, lists, or links — since that's all that appears in
+// production. Whitespace handling stays on the parent (pre-wrap).
+function renderBold(text) {
+  if (!text || typeof text !== 'string') return text;
+  // Split on the bold pattern, keeping the delimiters so the regex
+  // produces alternating plain/bold segments.
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return <React.Fragment key={i}>{part}</React.Fragment>;
+  });
+}
+
 function fmtDate(iso) {
   if (!iso) return '';
   const d = new Date(iso);
@@ -224,7 +242,7 @@ export default function ChatAuditView() {
                         whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                       }}>
                         <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>BOT</span>
-                        {t.assistant_msg}
+                        {renderBold(t.assistant_msg)}
                       </div>
                     ) : (
                       <div style={{ alignSelf: 'flex-end', fontFamily: FN, fontSize: 10, color: C.td, fontStyle: 'italic' }}>(no reply recorded)</div>
