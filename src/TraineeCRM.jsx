@@ -80,8 +80,13 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex, bareMode =
   );
   const merged = useMemo(() => mergeFeed(manualRows, autoEvents), [manualRows, autoEvents]);
 
+  // Collapsed default: 3 rows. Was 8 — every trainee page got a
+  // 400-480px tower of activity by default which crowded out the rest
+  // of the trainee detail. 3 keeps "what happened most recently"
+  // visible without dominating; SHOW ALL still opens up to 60.
   const [showAll, setShowAll] = useState(false);
-  const visible = showAll ? merged.slice(0, 60) : merged.slice(0, 8);
+  const COLLAPSED_LIMIT = 3;
+  const visible = showAll ? merged.slice(0, 60) : merged.slice(0, COLLAPSED_LIMIT);
 
   const refined = isRefined5b();
   const PAD = 14;
@@ -125,7 +130,7 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex, bareMode =
         );
       })}
 
-      {merged.length > 8 && !showAll && (
+      {merged.length > COLLAPSED_LIMIT && !showAll && (
         <button onClick={() => setShowAll(true)}
           style={{
             width: '100%', marginTop: 10, padding: '6px 0', background: 'transparent',
