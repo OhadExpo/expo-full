@@ -55,9 +55,22 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     const days = fullPlan.data?.days || [];
     const day = days[dayIdx];
     if (!day) return;
+    // Drive-imported plans store exercises under day.ex with compressed keys
+    // (eid/s/r) instead of day.exercises (id/exerciseId/sets/reps). Without
+    // this fallback the in-person log crashes on old-shape plans — 174 of the
+    // 209 production plans use the old shape. Mirror useFullPlan's normalize.
+    const dayExercises = Array.isArray(day.exercises) ? day.exercises : (Array.isArray(day.ex) ? day.ex.map(e => ({
+      id: e.id || uid(),
+      exerciseId: e.exerciseId || e.eid || '',
+      sets: e.sets ?? e.s ?? 3,
+      reps: e.reps ?? e.r ?? '',
+      tempo: e.tempo ?? '',
+      superset: e.superset ?? '',
+      notes: e.notes ?? e.n ?? '',
+    })) : []);
     const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,
       date:new Date().toISOString(),status:"in-progress",
-      exercises:day.exercises.map(ex=>({...ex,id:uid(),sets:Array.from({length:ex.sets},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))})),
+      exercises:dayExercises.map(ex=>({...ex,id:uid(),sets:Array.from({length:ex.sets},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))})),
       notes:""};
     setWorkouts(prev=>[...prev,w]); setActiveWorkout(w.id);
   };

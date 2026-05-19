@@ -139,6 +139,48 @@ export function useFullPlan() {
 // we also try to write the typed column; if that 400s on an unmigrated DB
 // we retry without the column so coach saves never break.
 export async function savePlan(plan) {
+  // Blank-overwrite guard. Old drive-imported plans store exercises under
+  // day.ex (compressed keys: eid/s/r); the editor reads day.exercises (full
+  // trainer-shape). useFullPlan.normalizeDays maps old→new on load so the
+  // editor sees a uniform shape. BUT: if something ever goes wrong upstream
+  // (normalizeDays bug, race, partial state, manual API call) and a plan
+  // arrives here with every day.exercises empty, naive save would write
+  // data.days back as the empty trainer-shape — silently destroying the
+  // intact d.ex content in the DB. So before any save where the incoming
+  // plan has at least one day but ZERO total exercises across all days, do
+  // a read-back: if the existing row's d.ex sum is non-zero, the incoming
+  // state is a blank-overwrite candidate. Refuse the save loudly.
+  const incomingDays = plan.days || [];
+  const incomingExTotal = incomingDays.reduce(
+    (a, d) => a + ((d.exercises || d.ex || []).length),
+    0
+  );
+  if (incomingDays.length > 0 && incomingExTotal === 0) {
+    try {
+      const { data: existing } = await supabase
+        .from('plans').select('data').eq('id', plan.id).maybeSingle();
+      const existingDays = existing?.data?.days || [];
+      const existingExTotal = existingDays.reduce(
+        (a, d) => a + ((d.exercises || d.ex || []).length),
+        0
+      );
+      if (existingExTotal > 0) {
+        const msg = `Refusing to save plan ${plan.id}: would overwrite ${existingExTotal} existing exercises with an empty days[] array. This usually means the editor opened the plan with a stale or broken adapter. Reload the page and try again — if the editor still shows the plan as empty, file a bug instead of saving.`;
+        console.error('[savePlan blank-overwrite guard]', msg);
+        if (typeof window !== 'undefined') {
+          try { window.alert('Save blocked — see console for details. The plan you are saving would wipe ' + existingExTotal + ' existing exercises. Reload the page first.'); } catch {}
+        }
+        return false;
+      }
+    } catch (e) {
+      // Read-back failure shouldn't block a legitimate first-save of a new
+      // empty plan; log and proceed. The downside (writing an empty plan
+      // when read-back fails AND existing data was present) is rare and
+      // bounded by network conditions, not a recurring class of bug.
+      console.warn('[savePlan] blank-overwrite guard read-back failed:', e?.message || e);
+    }
+  }
+
   const isTemplate =
     plan.isTemplatePurchase === true
     || /^(\[expo\]|expo · |expo - )/i.test(plan.name || '');
