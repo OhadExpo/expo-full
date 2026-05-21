@@ -198,6 +198,35 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
     try { await supabase.from('leads').delete().eq('id', id); } catch {}
   };
 
+  // Storage usage probe — list the form-videos bucket and sum byte sizes.
+  // form-videos is the only bucket that matters for capacity (meal-photos +
+  // coach-voice + coaching-contracts are negligible). Runs once per dashboard
+  // mount. Public read works because form-videos has a `public_read` policy.
+  const STORAGE_CAP_MB = 1024; // Supabase free tier ceiling, used for the % gauge
+  const [storage, setStorage] = useState(null); // null = loading; { usedMB, pct, files }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        let total = 0, files = 0;
+        const walk = async (prefix) => {
+          const r = await supabase.storage.from('form-videos').list(prefix, { limit: 1000 });
+          if (r.error) return;
+          for (const it of (r.data || [])) {
+            if (it.id === null) await walk(prefix ? prefix + '/' + it.name : it.name);
+            else { total += it.metadata?.size || 0; files++; }
+          }
+        };
+        await walk('');
+        if (cancelled) return;
+        const usedMB = total / 1024 / 1024;
+        const pct = Math.round((usedMB / STORAGE_CAP_MB) * 100);
+        setStorage({ usedMB, pct, files });
+      } catch { /* silent — tile just hides */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // /coaches funnel — last 30 days. Pulls counts from chat_logs (sessions
   // + messages) and leads (waitlist signups) since those are the only
   // first-party signals we own. Visit-count denominator lives in Vercel
@@ -301,6 +330,41 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           );
         })}
       </div>
+
+      {/* STORAGE — slim ops indicator. Color flips orange at 80% / red at
+          95% of the 1 GB Supabase free-tier ceiling so the coach has a
+          chance to clean up before the wall. Hides entirely while loading
+          and on probe failure (anon read could 403 if the public_read
+          policy ever changes — silent failure is safer than a broken UI). */}
+      {storage && (() => {
+        const refined = isRefined5b();
+        const pct = Math.min(100, storage.pct);
+        const tone = pct >= 95 ? C.rd : pct >= 80 ? C.or : C.gn;
+        const usedTxt = storage.usedMB >= 1024
+          ? `${(storage.usedMB / 1024).toFixed(2)} GB`
+          : `${storage.usedMB.toFixed(0)} MB`;
+        return (
+          <div style={{
+            background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
+            borderRadius: 0, padding: '8px 14px', marginBottom: 14,
+            display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+          }}>
+            <span style={{
+              fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em',
+              fontWeight: 700, textTransform: 'uppercase', flexShrink: 0,
+            }}>Storage</span>
+            <div style={{ flex: '1 1 200px', minWidth: 140, height: 6, background: 'var(--c-sf2)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, position: 'relative' }}>
+              <div style={{ position: 'absolute', inset: 0, width: `${pct}%`, background: tone, transition: 'width 200ms' }} />
+            </div>
+            <span style={{ fontFamily: FN, fontSize: 12, color: tone, fontWeight: 700, letterSpacing: '0.04em', flexShrink: 0 }}>
+              {usedTxt} / 1 GB · {pct}%
+            </span>
+            <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em', flexShrink: 0 }}>
+              {storage.files} form videos
+            </span>
+          </div>
+        );
+      })()}
 
       {/* INCOMING — top-of-funnel acquisition counts (chat / messages /
           captures / waitlist) over the last 30 days. Moved 2026-05-16
