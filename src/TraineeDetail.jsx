@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
 
@@ -63,7 +63,6 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const [showPayForm,setShowPayForm]=useState(false);
   const [showContract,setShowContract]=useState(false);
   const [showEdit,setShowEdit]=useState(false);
-  const [editForm,setEditForm]=useState(null);
   const [showAssign,setShowAssign]=useState(false);
   const [pendingAssignPlan,setPendingAssignPlan]=useState(null); // for couple member picker
   const [pendingBlankCouple,setPendingBlankCouple]=useState(false); // START BLANK on a couple triggers a member picker before opening the editor
@@ -162,62 +161,20 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   };
   const handleEditPay=(p)=>{setPayForm({amount:p.amount,date:p.date,notes:p.notes||"",status:p.status});setEditPayId(p.id);setShowPayForm(true)};
   const handleDeletePay=async(pid)=>{ try { await removePayment(pid); } catch(err) { console.warn('payment delete failed:', err.message); } };
-  // Edit-modal draft. Persisted to localStorage on every keystroke (via
-  // useAutosave below) so closing the modal / refreshing / browser-backing
-  // mid-edit no longer loses the typed content. Restored on the next openEdit.
-  // Cleared explicitly on Save (commit) and Cancel (discard).
-  const draftKey = `expo-edit-trainee-${trainee}`;
-  const [hasDraft, setHasDraft] = useState(false);
-  const openEdit=()=>{
-    let restored = null;
-    try { const raw = localStorage.getItem(draftKey); restored = raw ? JSON.parse(raw) : null; } catch {}
-    if (restored) {
-      setEditForm(restored);
-      setHasDraft(true);
-    } else {
-      const ef = {...td, _emails: emailsToArr(td.email)};
-      if (couple) ef._members = td.members.map(m => ({...m, _emails: emailsToArr(m.email)}));
-      setEditForm(ef);
-      setHasDraft(false);
-    }
-    setShowEdit(true);
-  };
-  const saveEdit=()=>{
-    if(!editForm.name) return;
-    const toSave={...editForm, email: emailsToStore(editForm._emails || emailsToArr(editForm.email))};
-    delete toSave._emails;
-    if (toSave._members) {
-      toSave.members = toSave._members.map(m => {
-        const email = emailsToStore(m._emails || emailsToArr(m.email));
-        const { _emails, ...rest } = m;
-        return { ...rest, email };
-      });
-      delete toSave._members;
-    }
-    setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,...toSave}:t));
-    try { localStorage.removeItem(draftKey); } catch {}
-    editAutosave.markClean();
-    setHasDraft(false);
+  // Edit-modal draft key — shared between the modal child and the parent
+  // (the child autosaves the draft, the parent commits the trainee on save).
+  // The modal itself owns editForm + useAutosave so per-keystroke
+  // re-renders stay inside the modal subtree instead of redrawing the
+  // entire TraineeDetail tree (cards, tables, programs, charts, eval, CRM,
+  // messages). Profiling-friendly perf win for a heavy page.
+  const draftKey = useMemo(() => `expo-edit-trainee-${trainee}`, [trainee]);
+  const openEdit = useCallback(() => setShowEdit(true), []);
+  const handleSaveEdit = useCallback((toSave) => {
+    if (!toSave?.name) return;
+    setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, ...toSave } : t));
     setShowEdit(false);
-  };
-  const cancelEdit = () => {
-    try { localStorage.removeItem(draftKey); } catch {}
-    editAutosave.markClean();
-    setHasDraft(false);
-    setShowEdit(false);
-  };
-  // Autosave the draft to localStorage. Save fn is sync but wrapped in async
-  // shape; debounce keeps writes off the main thread under fast typing.
-  const editAutosave = useAutosave(
-    showEdit ? editForm : null,
-    async (form) => {
-      if (!form) return true;
-      try { localStorage.setItem(draftKey, JSON.stringify(form)); return true; }
-      catch { return false; }
-    },
-    { debounceMs: 400 }
-  );
-  const editStatus = autosaveStatusLabel(editAutosave.status, C);
+  }, [setTrainees, trainee]);
+  const handleCloseEdit = useCallback(() => setShowEdit(false), []);
   // All hooks have now registered — safe to bail out if the parent's prop
   // is briefly null (trainees re-fetch race). Without this guard placement,
   // a transient `!td` would shrink the hook list and crash on the next render.
@@ -710,108 +667,20 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <Btn variant="ghost" onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>Cancel</Btn>
             <Btn variant="danger" onClick={()=>{if(unassignTyped.trim().toLowerCase()==="remove"){unassignPlan(confirmUnassign);setConfirmUnassign(null);setUnassignTyped("")}}} style={{opacity:unassignTyped.trim().toLowerCase()==="remove"?1:0.3,pointerEvents:unassignTyped.trim().toLowerCase()==="remove"?"auto":"none"}}>Remove</Btn></div></div></div>}
 
-      {/* Edit trainee modal */}
-      <Modal open={showEdit} onClose={cancelEdit} title={`Edit — ${td.name}`} wide>
-        {editForm&&<>
-        {/* Status row: draft-restored banner + autosave indicator. The banner
-            tells the coach the form contents are typed-but-uncommitted leftover
-            from a prior session, so they know "Save" is still required. */}
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,marginBottom:10,minHeight:18}}>
-          {hasDraft ? (
-            <span style={{fontSize:11,fontFamily:FN,color:C.or,fontWeight:600}}>
-              ↻ Restored auto-saved draft — click Save to commit, Cancel to discard
-            </span>
-          ) : <span/>}
-          {editStatus && <span aria-live="polite" style={{fontSize:11,fontFamily:FN,color:editStatus.color,fontWeight:600,letterSpacing:'0.04em'}}>{editStatus.text}</span>}
-        </div>{couple && editForm._members ? <>
-          {/* === COUPLE EDIT: shared fields === */}
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>Shared</div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
-            <Input label="Couple Name" value={editForm.name||""} onChange={e=>setEditForm({...editForm,name:e.target.value})} />
-            <Select label="Format" options={TRAINING_FORMATS} value={editForm.format||""} onChange={v=>setEditForm({...editForm,format:v})} />
-            <Select label="Status" options={TRAINEE_STATUSES.filter(s=>s!=="Archived")} value={editForm.status||""} onChange={v=>setEditForm({...editForm,status:v})} />
-            <Select label="Package" options={PACKAGE_TYPES} value={editForm.package||""} onChange={v=>setEditForm({...editForm,package:v})} />
-            <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining||0} onChange={e=>setEditForm({...editForm,sessionsRemaining:parseInt(e.target.value)||0})} />
-            <Input label="Monthly (₪)" type="number" value={editForm.monthly||""} onChange={e=>setEditForm({...editForm,monthly:parseFloat(e.target.value)||0})} />
-            <Input label="Per Session (₪)" type="number" value={editForm.perSession||""} onChange={e=>setEditForm({...editForm,perSession:parseFloat(e.target.value)||0})} />
-            <Input label="Start Date" type="date" value={editForm.startDate||""} onChange={e=>setEditForm({...editForm,startDate:e.target.value})} />
-            <Input label="Last Payment" type="date" value={editForm.lastPayment||""} onChange={e=>setEditForm({...editForm,lastPayment:e.target.value})} />
-          </div>
-          {/* === COUPLE EDIT: per-member fields === */}
-          <div style={{display:'flex',gap:16}}>
-            {editForm._members.map((m, mi) => {
-              const upd = (field, val) => {
-                const next = [...editForm._members];
-                next[mi] = {...next[mi], [field]: val};
-                setEditForm({...editForm, _members: next});
-              };
-              return (
-                <div key={mi} style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:9,fontFamily:FN,color:C.ac,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>Member {mi+1}</div>
-                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
-                    <Input label="Name" value={m.name||""} onChange={e=>upd('name',e.target.value)} />
-                    <EmailsInput label="Email" value={m._emails || emailsToArr(m.email)} onChange={next=>upd('_emails',next)} />
-                    <Input label="Phone" value={m.phone||""} onChange={e=>upd('phone',e.target.value)} placeholder="+972..." />
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-                      <Input label="Age" type="number" value={m.age||""} onChange={e=>upd('age',e.target.value)} />
-                      <Input label="Weight" type="number" value={m.weight||""} onChange={e=>upd('weight',e.target.value)} />
-                      <Input label="Height" type="number" value={m.height||""} onChange={e=>upd('height',e.target.value)} />
-                    </div>
-                    <TextArea label="Injuries" value={m.injuries||""} onChange={e=>upd('injuries',e.target.value)} />
-                    <TextArea label="Goals" value={m.goals||""} onChange={e=>upd('goals',e.target.value)} />
-                    <TextArea label="Notes" value={m.notes||""} onChange={e=>upd('notes',e.target.value)} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </> : <>
-          {/* === SOLO EDIT (unchanged) === */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <Input label="Name" value={editForm.name||""} onChange={e=>setEditForm({...editForm,name:e.target.value})} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>Email(s)</label>
-            {(editForm._emails || emailsToArr(editForm.email)).map((em, i, arr) => (
-              <div key={i} style={{ display: 'flex', gap: 4 }}>
-                <input value={em} onChange={e => {
-                  const next = [...(editForm._emails || emailsToArr(editForm.email))];
-                  next[i] = e.target.value;
-                  setEditForm({...editForm, _emails: next});
-                }} placeholder="email@example.com" style={{ ...baseInput, flex: 1 }} />
-                {arr.length > 1 && <button onClick={() => {
-                  const next = [...arr]; next.splice(i, 1);
-                  setEditForm({...editForm, _emails: next});
-                }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '0 10px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
-              </div>
-            ))}
-            {(editForm._emails || emailsToArr(editForm.email)).length < 3 && (
-              <button onClick={() => {
-                const next = [...(editForm._emails || emailsToArr(editForm.email)), ''];
-                setEditForm({...editForm, _emails: next});
-              }} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ Add Email</button>
-            )}
-          </div>
-          <Input label="Phone" value={editForm.phone||""} onChange={e=>setEditForm({...editForm,phone:e.target.value})} placeholder="+972..." />
-          <Input label="Age" type="number" value={editForm.age||""} onChange={e=>setEditForm({...editForm,age:e.target.value})} />
-          <Input label="Weight (kg)" type="number" value={editForm.weight||""} onChange={e=>setEditForm({...editForm,weight:e.target.value})} />
-          <Input label="Height (cm)" type="number" value={editForm.height||""} onChange={e=>setEditForm({...editForm,height:e.target.value})} />
-          <Select label="Format" options={TRAINING_FORMATS} value={editForm.format||""} onChange={v=>setEditForm({...editForm,format:v})} />
-          <Select label="Status" options={TRAINEE_STATUSES.filter(s=>s!=="Archived")} value={editForm.status||""} onChange={v=>setEditForm({...editForm,status:v})} />
-          <Select label="Package" options={PACKAGE_TYPES} value={editForm.package||""} onChange={v=>setEditForm({...editForm,package:v})} />
-          <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining||0} onChange={e=>setEditForm({...editForm,sessionsRemaining:parseInt(e.target.value)||0})} />
-          <Input label="Monthly (₪)" type="number" value={editForm.monthly||""} onChange={e=>setEditForm({...editForm,monthly:parseFloat(e.target.value)||0})} />
-          <Input label="Per Session (₪)" type="number" value={editForm.perSession||""} onChange={e=>setEditForm({...editForm,perSession:parseFloat(e.target.value)||0})} />
-          <Input label="Start Date" type="date" value={editForm.startDate||""} onChange={e=>setEditForm({...editForm,startDate:e.target.value})} />
-          <Input label="Last Payment" type="date" value={editForm.lastPayment||""} onChange={e=>setEditForm({...editForm,lastPayment:e.target.value})} />
-          <div style={{gridColumn:"1 / -1"}}><TextArea label="Injuries / Conditions" value={editForm.injuries||""} onChange={e=>setEditForm({...editForm,injuries:e.target.value})} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
-          <div style={{gridColumn:"1 / -1"}}><TextArea label="Goals" value={editForm.goals||""} onChange={e=>setEditForm({...editForm,goals:e.target.value})} /></div>
-          <div style={{gridColumn:"1 / -1"}}><TextArea label="Notes" value={editForm.notes||""} onChange={e=>setEditForm({...editForm,notes:e.target.value})} /></div>
-        </div>
-        </>}
-        <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
-          <Btn variant="ghost" onClick={cancelEdit}>Cancel</Btn>
-          <Btn onClick={saveEdit}>Save</Btn></div></>}
-      </Modal>
+      {/* Edit trainee modal — extracted to a memoized child so per-keystroke
+          setEditForm only re-renders the modal subtree, not the whole
+          TraineeDetail page (cards, tables, programs, charts, eval, CRM,
+          messages). Mounted conditionally so its state resets on each
+          open/close cycle. */}
+      {showEdit && (
+        <EditTraineeModal
+          td={td}
+          couple={couple}
+          draftKey={draftKey}
+          onSave={handleSaveEdit}
+          onClose={handleCloseEdit}
+        />
+      )}
       {/* Archive confirm */}
       {showArchiveConfirm && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>setShowArchiveConfirm(false)}>
         <div onClick={e=>e.stopPropagation()} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,width:380,maxWidth:'calc(100vw - 24px)',padding:24}}>
@@ -919,3 +788,177 @@ function BWChart({ entries }) {
     </Card>
   );
 }
+
+// === EditTraineeModal — isolated subtree for the Edit Athlete form. ========
+//
+// Why this is its own component (and memo'd): TraineeDetail is a heavy page
+// (cards, payment table, programs list, overload chart, eval, CRM, messages).
+// When the form lived inline, every keystroke called setEditForm at the
+// TraineeDetail level → React re-rendered the whole tree → typing felt laggy
+// in the name/notes inputs. Moving the form state inside this child means
+// setEditForm only re-renders this subtree. Parent re-renders (trainees
+// reload, presence ticks) don't propagate here because React.memo bails on
+// shallow-equal props (parent stabilizes onSave / onClose via useCallback).
+//
+// Lifecycle: mounted only while showEdit. On open, useEffect hydrates editForm
+// from the localStorage draft if one exists, else from a fresh td snapshot.
+// On unmount, all state is GC'd; the next open re-runs init. This is by design
+// so a stale form can never linger between opens.
+const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draftKey, onSave, onClose }) {
+  const [editForm, setEditForm] = useState(null);
+  const [hasDraft, setHasDraft] = useState(false);
+
+  useEffect(() => {
+    let restored = null;
+    try { const raw = localStorage.getItem(draftKey); restored = raw ? JSON.parse(raw) : null; } catch {}
+    if (restored) {
+      setEditForm(restored);
+      setHasDraft(true);
+    } else {
+      const ef = { ...td, _emails: emailsToArr(td.email) };
+      if (couple) ef._members = td.members.map(m => ({ ...m, _emails: emailsToArr(m.email) }));
+      setEditForm(ef);
+      setHasDraft(false);
+    }
+    // Intentionally NOT depending on td/couple — those references can change
+    // from realtime trainees reloads, but resetting the form mid-edit would
+    // nuke whatever the coach has typed. The modal unmounts on close so a
+    // fresh open re-runs this from scratch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
+
+  const editAutosave = useAutosave(
+    editForm,
+    async (form) => {
+      if (!form) return true;
+      try { localStorage.setItem(draftKey, JSON.stringify(form)); return true; }
+      catch { return false; }
+    },
+    { debounceMs: 400 }
+  );
+  const editStatus = autosaveStatusLabel(editAutosave.status, C);
+
+  const handleSave = () => {
+    if (!editForm?.name) return;
+    const toSave = { ...editForm, email: emailsToStore(editForm._emails || emailsToArr(editForm.email)) };
+    delete toSave._emails;
+    if (toSave._members) {
+      toSave.members = toSave._members.map(m => {
+        const email = emailsToStore(m._emails || emailsToArr(m.email));
+        const { _emails, ...rest } = m;
+        return { ...rest, email };
+      });
+      delete toSave._members;
+    }
+    try { localStorage.removeItem(draftKey); } catch {}
+    editAutosave.markClean();
+    onSave(toSave);
+  };
+
+  const handleCancel = () => {
+    try { localStorage.removeItem(draftKey); } catch {}
+    editAutosave.markClean();
+    onClose();
+  };
+
+  return (
+    <Modal open={true} onClose={handleCancel} title={`Edit — ${td.name}`} wide>
+      {editForm && <>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10, minHeight: 18 }}>
+          {hasDraft ? (
+            <span style={{ fontSize: 11, fontFamily: FN, color: C.or, fontWeight: 600 }}>
+              ↻ Restored auto-saved draft — click Save to commit, Cancel to discard
+            </span>
+          ) : <span />}
+          {editStatus && <span aria-live="polite" style={{ fontSize: 11, fontFamily: FN, color: editStatus.color, fontWeight: 600, letterSpacing: '0.04em' }}>{editStatus.text}</span>}
+        </div>
+        {couple && editForm._members ? <>
+          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>Shared</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <Input label="Couple Name" value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+            <Select label="Format" options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
+            <Select label="Status" options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={editForm.status || ""} onChange={v => setEditForm({ ...editForm, status: v })} />
+            <Select label="Package" options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />
+            <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />
+            <Input label="Monthly (₪)" type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />
+            <Input label="Per Session (₪)" type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />
+            <Input label="Start Date" type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
+            <Input label="Last Payment" type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
+          </div>
+          <div style={{ display: 'flex', gap: 16 }}>
+            {editForm._members.map((m, mi) => {
+              const upd = (field, val) => {
+                const next = [...editForm._members];
+                next[mi] = { ...next[mi], [field]: val };
+                setEditForm({ ...editForm, _members: next });
+              };
+              return (
+                <div key={mi} style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 9, fontFamily: FN, color: C.ac, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>Member {mi + 1}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <Input label="Name" value={m.name || ""} onChange={e => upd('name', e.target.value)} />
+                    <EmailsInput label="Email" value={m._emails || emailsToArr(m.email)} onChange={next => upd('_emails', next)} />
+                    <Input label="Phone" value={m.phone || ""} onChange={e => upd('phone', e.target.value)} placeholder="+972..." />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                      <Input label="Age" type="number" value={m.age || ""} onChange={e => upd('age', e.target.value)} />
+                      <Input label="Weight" type="number" value={m.weight || ""} onChange={e => upd('weight', e.target.value)} />
+                      <Input label="Height" type="number" value={m.height || ""} onChange={e => upd('height', e.target.value)} />
+                    </div>
+                    <TextArea label="Injuries" value={m.injuries || ""} onChange={e => upd('injuries', e.target.value)} />
+                    <TextArea label="Goals" value={m.goals || ""} onChange={e => upd('goals', e.target.value)} />
+                    <TextArea label="Notes" value={m.notes || ""} onChange={e => upd('notes', e.target.value)} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </> : <>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Input label="Name" value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: FN }}>Email(s)</label>
+              {(editForm._emails || emailsToArr(editForm.email)).map((em, i, arr) => (
+                <div key={i} style={{ display: 'flex', gap: 4 }}>
+                  <input value={em} onChange={e => {
+                    const next = [...(editForm._emails || emailsToArr(editForm.email))];
+                    next[i] = e.target.value;
+                    setEditForm({ ...editForm, _emails: next });
+                  }} placeholder="email@example.com" style={{ ...baseInput, flex: 1 }} />
+                  {arr.length > 1 && <button onClick={() => {
+                    const next = [...arr]; next.splice(i, 1);
+                    setEditForm({ ...editForm, _emails: next });
+                  }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '0 10px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
+                </div>
+              ))}
+              {(editForm._emails || emailsToArr(editForm.email)).length < 3 && (
+                <button onClick={() => {
+                  const next = [...(editForm._emails || emailsToArr(editForm.email)), ''];
+                  setEditForm({ ...editForm, _emails: next });
+                }} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>+ Add Email</button>
+              )}
+            </div>
+            <Input label="Phone" value={editForm.phone || ""} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="+972..." />
+            <Input label="Age" type="number" value={editForm.age || ""} onChange={e => setEditForm({ ...editForm, age: e.target.value })} />
+            <Input label="Weight (kg)" type="number" value={editForm.weight || ""} onChange={e => setEditForm({ ...editForm, weight: e.target.value })} />
+            <Input label="Height (cm)" type="number" value={editForm.height || ""} onChange={e => setEditForm({ ...editForm, height: e.target.value })} />
+            <Select label="Format" options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
+            <Select label="Status" options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={editForm.status || ""} onChange={v => setEditForm({ ...editForm, status: v })} />
+            <Select label="Package" options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />
+            <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />
+            <Input label="Monthly (₪)" type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />
+            <Input label="Per Session (₪)" type="number" value={editForm.perSession || ""} onChange={e => setEditForm({ ...editForm, perSession: parseFloat(e.target.value) || 0 })} />
+            <Input label="Start Date" type="date" value={editForm.startDate || ""} onChange={e => setEditForm({ ...editForm, startDate: e.target.value })} />
+            <Input label="Last Payment" type="date" value={editForm.lastPayment || ""} onChange={e => setEditForm({ ...editForm, lastPayment: e.target.value })} />
+            <div style={{ gridColumn: "1 / -1" }}><TextArea label="Injuries / Conditions" value={editForm.injuries || ""} onChange={e => setEditForm({ ...editForm, injuries: e.target.value })} placeholder="L4/L5 disc bulge, R shoulder impingement..." /></div>
+            <div style={{ gridColumn: "1 / -1" }}><TextArea label="Goals" value={editForm.goals || ""} onChange={e => setEditForm({ ...editForm, goals: e.target.value })} /></div>
+            <div style={{ gridColumn: "1 / -1" }}><TextArea label="Notes" value={editForm.notes || ""} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} /></div>
+          </div>
+        </>}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+          <Btn variant="ghost" onClick={handleCancel}>Cancel</Btn>
+          <Btn onClick={handleSave}>Save</Btn>
+        </div>
+      </>}
+    </Modal>
+  );
+});
