@@ -351,7 +351,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     const s = search.toLowerCase();
     const emailStr = Array.isArray(t.email) ? t.email.join(' ') : (t.email || '');
     if (t.name.toLowerCase().includes(s) || emailStr.toLowerCase().includes(s)) return true;
-    if (t.members) return t.members.some(m => (m.name||'').toLowerCase().includes(s) || (m.email||'').toLowerCase().includes(s));
+    if (t.members) return t.members.some(m => {
+      const memEmail = Array.isArray(m.email) ? m.email.join(' ') : (m.email || '');
+      return (m.name||'').toLowerCase().includes(s) || memEmail.toLowerCase().includes(s);
+    });
     return false;
   });
 
