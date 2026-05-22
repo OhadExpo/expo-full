@@ -733,21 +733,55 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           return [{ value: t.id, label: t.name }];
         })]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
-        <Select label="Weeks" options={[3,4,5,6,8,12].map(n=>({value:String(n),label:n+' weeks'}))} value={String(plan.weeks||4)} onChange={v => {
-          const n = parseInt(v) || 4;
-          const resize = (arr) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : ""));
-          // propagate week count to every per-week array across the program
-          const nextDays = (plan.days || []).map(d => ({...d, exercises: (d.exercises||[]).map(ex => ({
-            ...ex,
-            wk: ex.wk ? resize(ex.wk) : ex.wk,
-            wkS: ex.wkS ? resize(ex.wkS) : ex.wkS,
-          }))}));
-          setPlan({...plan, weeks: n, days: nextDays});
-        }} />
+        {/* Weeks selector hidden for daily-routine plans — a daily routine
+            has no week structure. Athlete logs it unlimited times during
+            whatever timeframe is convenient. */}
+        {plan.kind !== 'daily' && (
+          <Select label="Weeks" options={[3,4,5,6,8,12].map(n=>({value:String(n),label:n+' weeks'}))} value={String(plan.weeks||4)} onChange={v => {
+            const n = parseInt(v) || 4;
+            const resize = (arr) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : ""));
+            // propagate week count to every per-week array across the program
+            const nextDays = (plan.days || []).map(d => ({...d, exercises: (d.exercises||[]).map(ex => ({
+              ...ex,
+              wk: ex.wk ? resize(ex.wk) : ex.wk,
+              wkS: ex.wkS ? resize(ex.wkS) : ex.wkS,
+            }))}));
+            setPlan({...plan, weeks: n, days: nextDays});
+          }} />
+        )}
+      </div>
+      {/* Plan kind toggle. "Daily Routine" = athlete logs it unlimited
+          times during the block (Roei HaTzvi pattern). Collapses to a
+          single exercise list, no warm-up, no week structure, no day
+          rotation. Toggling ON keeps the first day and discards the rest
+          (with a confirmation if there's content past day 1). */}
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:16,padding:'8px 12px',border:`1px solid ${plan.kind === 'daily' ? C.ac : C.cardBd}`}}>
+        <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',userSelect:'none'}}>
+          <input type="checkbox" checked={plan.kind === 'daily'} onChange={e => {
+            const on = e.target.checked;
+            if (on) {
+              const extraDays = (plan.days || []).slice(1).filter(d => (d.exercises || []).length > 0).length;
+              if (extraDays > 0 && !window.confirm(`Convert to Daily Routine? This will discard ${extraDays} other day${extraDays === 1 ? '' : 's'} of content. Cannot be undone via this checkbox.`)) return;
+              setPlan({ ...plan, kind: 'daily', days: [plan.days?.[0] || defaultDay(1)], warmup: [] });
+            } else {
+              const { kind: _, ...rest } = plan;
+              setPlan(rest);
+            }
+          }} style={{accentColor: C.ac, width: 16, height: 16}} />
+          <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',color: plan.kind === 'daily' ? C.ac : C.tm,textTransform:'uppercase'}}>📆 Daily Routine</span>
+        </label>
+        <span style={{fontSize:11,color:C.td,flex:1}}>
+          {plan.kind === 'daily'
+            ? 'Athlete logs this any number of times during the block. No day rotation, no week pill, no warm-up.'
+            : 'Standard multi-day block with weekly progression.'}
+        </span>
       </div>
       <PatternCoverage plan={plan} exercises={exercises} />
-      <WarmupEditor plan={plan} setPlan={setPlan} />
-      {!overview && <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"stretch",justifyContent:"center"}}>
+      {plan.kind !== 'daily' && <WarmupEditor plan={plan} setPlan={setPlan} />}
+      {/* Day tabs hide entirely on daily-routine plans — there's only one
+          day by definition (the routine) and no need for tab navigation
+          or an Add Day button. */}
+      {!overview && plan.kind !== 'daily' && <div style={{display:"flex",gap:4,marginBottom:16,flexWrap:"wrap",alignItems:"stretch",justifyContent:"center"}}>
         {plan.days.map((d,i) => <div key={d.id} style={{display:"flex",alignItems:"stretch"}}>
           <button onClick={()=>setActiveDay(i)} style={{padding:"8px 16px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.cardBd}`,borderRight:'none',background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{d.name} ({d.exercises.length})</button>
           {plan.days.length>1&&<button onClick={()=>removeDay(i)} style={{padding:"8px 10px",fontSize:12,borderRadius:0,border:`${i===activeDay?'2px':'0.25px'} solid ${i===activeDay?C.ac:C.cardBd}`,background:'transparent',color:i===activeDay?C.ac:C.tm,cursor:"pointer",opacity:0.7}}>×</button>}

@@ -121,6 +121,10 @@ export function useFullPlan() {
           days: normalizeDays(data.data?.days),
           warmup: data.data?.warmup || [],
           weeks: data.data?.weeks || 4,
+          // Plan kind — 'daily' = single-day repeatable routine (Roei
+          // HaTzvi pattern). Anything else (undefined / 'standard') is
+          // a normal multi-day block. Persisted in data JSONB.
+          kind: data.data?.kind || undefined,
           // Template-purchase flag — same precedence as in usePlanIndex.
           isTemplatePurchase:
             data.is_template_purchase === true
@@ -220,6 +224,9 @@ export async function savePlan(plan) {
       warmup: plan.warmup || [],
       weeks: plan.weeks || 4,
       isTemplatePurchase: isTemplate,
+      // Round-trip plan.kind so daily-routine plans stay marked. Omit
+      // when undefined to keep the JSONB blob clean for standard plans.
+      ...(plan.kind ? { kind: plan.kind } : {}),
     },
   };
   const rowWithCol = { ...baseRow, is_template_purchase: isTemplate };
