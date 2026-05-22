@@ -558,14 +558,23 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   };
   // When the coach swaps the exerciseId on an existing row, re-seed the
   // ex.n notes from the new library entry's cues — unless the coach has
-  // already typed a custom note (don't clobber their orange text).
+  // already typed a custom note (don't clobber their orange text). Mirror
+  // the same logic for ex.notes/notesEdited: an explicit empty override
+  // (notesEdited=true, notes='') gets discarded on swap so the new
+  // exercise's library cues show; a real typed override is preserved.
   const updateEx = (ei,u) => {
     const exs=[...plan.days[activeDay].exercises];
     const cur = exs[ei];
     let next = {...cur,...u};
-    if (u.exerciseId && u.exerciseId !== cur.exerciseId && !(cur.n && cur.n.trim())) {
-      const lib = (exercises || []).find(e => e.id === u.exerciseId);
-      if (lib?.cues) next.n = lib.cues;
+    if (u.exerciseId && u.exerciseId !== cur.exerciseId) {
+      if (!(cur.n && cur.n.trim())) {
+        const lib = (exercises || []).find(e => e.id === u.exerciseId);
+        if (lib?.cues) next.n = lib.cues;
+      }
+      if (!(cur.notes && cur.notes.trim())) {
+        next.notes = '';
+        next.notesEdited = false;
+      }
     }
     exs[ei]=next;
     updateDay(activeDay,{exercises:exs});
@@ -883,25 +892,42 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   {exData.primaryMuscles&&<span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
                 </div>:exTitle?<div style={{fontSize:11,color:C.or,marginTop:4}}>📝 {exTitle}</div>:null}
                 {(() => {
-                  // Notes/Modifications: defaults to the library's cues so the coach
-                  // sees the canonical technique notes inside the editable field. Typing
-                  // here only mutates ex.notes on this plan row — the library row is
-                  // never touched. Clearing falls back to the library cues again.
+                  // Notes/Modifications — three-state override pattern (same shape
+                  // as the videoUrl field below):
+                  //   ex.notesEdited === undefined/false  → use library cues
+                  //   ex.notesEdited === true             → ex.notes is the override
+                  //                                         (including '' = explicit
+                  //                                         "no note for this program",
+                  //                                         which does NOT fall back to
+                  //                                         the library)
+                  // Without the explicit-edited flag, clearing the field would re-
+                  // collapse to the library cues, so the coach could never delete a
+                  // library-prefilled note for this program only. The Reset button
+                  // re-enables the library fallback.
                   const libCues = exData?.cues || '';
-                  const value = ex.notes || libCues;
-                  // "FROM LIBRARY" tag appears only when the value is the
-                  // unmodified library fallback — once the coach starts
-                  // typing (ex.notes is non-empty), the tag disappears so
-                  // there's no stale "library" claim attached to overrides.
-                  const isFallback = !ex.notes && libCues;
+                  const hasOverride = !!ex.notesEdited || !!(ex.notes && ex.notes.length > 0);
+                  const value = hasOverride ? (ex.notes || '') : libCues;
+                  const isFallback = !hasOverride && libCues;
                   return (
                     <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${C.cardBd}`,position:'relative'}}>
-                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,minHeight:14}}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,minHeight:14,gap:8}}>
                         <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>NOTES</span>
-                        {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.18em'}}>FROM LIBRARY</span>}
+                        <div style={{display:'flex',alignItems:'center',gap:8}}>
+                          {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.18em'}}>FROM LIBRARY</span>}
+                          {hasOverride && libCues && (
+                            <button onClick={()=>updateEx(exIdx,{notes:'',notesEdited:false})}
+                              title="Discard this program's override and show the library cues again. Doesn't touch the library."
+                              style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'2px 8px',cursor:'pointer',borderRadius:0}}>↩ USE LIBRARY</button>
+                          )}
+                          {hasOverride && (ex.notes||'').length > 0 && (
+                            <button onClick={()=>updateEx(exIdx,{notes:'',notesEdited:true})}
+                              title="Clear the note for this program only (library is untouched)."
+                              style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.rd,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'2px 8px',cursor:'pointer',borderRadius:0,opacity:0.7}}>× CLEAR</button>
+                          )}
+                        </div>
                       </div>
                       <textarea value={value}
-                        onChange={e=>updateEx(exIdx,{notes:e.target.value})}
+                        onChange={e=>updateEx(exIdx,{notes:e.target.value,notesEdited:true})}
                         placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."}
                         style={{...baseInput,textAlign:'center',minHeight:64,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
                     </div>

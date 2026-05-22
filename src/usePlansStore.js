@@ -22,6 +22,12 @@ function normalizeDays(days) {
       tempo: e.tempo ?? '',
       rest: e.rest ?? '90',
       notes: e.notes ?? e.n ?? '',
+      // notesEdited is the explicit-override flag for ex.notes. When true,
+      // ex.notes is the source of truth even if empty (so "clear notes for
+      // this program" sticks). When false/undefined, the PlanEditor falls
+      // back to the exercise library's cues. Round-trip via this field so
+      // the override survives close/reopen.
+      notesEdited: e.notesEdited === true ? true : undefined,
       order: e.order ?? i,
       superset: e.superset ?? '',
       wk: e.wk ?? null,
