@@ -73,6 +73,10 @@ function trainerPlanToPortal(plan, trainerExercises) {
       const rawList = Array.isArray(d.exercises) ? d.exercises : (Array.isArray(d.ex) ? d.ex : []);
       return {
         name: d.name,
+        // Per-day daily-routine flag. Propagates from PlanEditor's per-day
+        // checkbox so the athlete portal can render that day with unlimited
+        // logs / no DONE lock.
+        kind: d.kind || undefined,
         ex: rawList.map((pe, peIdx) => {
           // Normalize: compressed shape uses eid/s/r, trainer shape uses exerciseId/sets/reps.
           const libId = pe.exerciseId || pe.eid || null;
@@ -1899,12 +1903,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em'}}>VIDEO →</a>}</div></div>)}</div>}
           {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++;
-          // Daily-routine plans: the athlete logs unlimited sessions during
-          // the block — never lock the card behind a "DONE" badge or rename
-          // the button to AGAIN. Standard plans still mark one-per-week as
-          // done. Count completed sessions in the daily case for a small
-          // tally next to the LOG button.
-          const isDailyRoutine = vp.kind === 'daily';
+          // Daily-routine: PER-DAY flag (`day.kind === 'daily'`) lets the
+          // athlete log THIS specific day any number of times during the
+          // block — never lock behind DONE, no week-rotation tie-in. Other
+          // days in the same plan keep normal week-paced behavior. Plan-
+          // level kind='daily' (96e5f72 legacy shape) is treated as
+          // "every day in this plan is daily" so old data renders the same.
+          const isDailyRoutine = day.kind === 'daily' || vp.kind === 'daily';
           const dailyCount = isDailyRoutine ? cw.filter(w => w.dayName === day.name).length : 0;
           const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === wk + 1);
           // doneBorderColor hoisted out of the inline template — the
@@ -1915,7 +1920,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           const doneBorderColor = done ? 'rgba(46,213,115,0.251)' : C.ac;
           return <div key={vp.name+'-'+di} style={{background:'var(--c-sf)',border:`${done?'0.25px':'1px'} solid ${doneBorderColor}`,borderRadius:0,marginBottom:12,padding:'14px 18px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{isDailyRoutine ? vp.name : day.name}</span>{done && <span style={{display:'inline-block',marginLeft:10,padding:'2px 7px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'2px'}}>DONE</span>}{isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-block',marginLeft:10,padding:'2px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'2px'}}>{dailyCount} LOGGED</span>}
+              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{day.name}</span>{isDailyRoutine && <span style={{display:'inline-block',marginLeft:8,padding:'2px 6px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'2px'}}>DAILY</span>}{done && <span style={{display:'inline-block',marginLeft:10,padding:'2px 7px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'2px'}}>DONE</span>}{isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-block',marginLeft:10,padding:'2px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'2px'}}>{dailyCount} LOGGED</span>}
                 <div style={{fontSize:10,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase'}}>{day.ex.length} exercises{isDailyRoutine && ' · daily routine'}</div></div>
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 14px',borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer'}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;

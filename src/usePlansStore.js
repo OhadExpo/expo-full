@@ -40,7 +40,10 @@ function normalizeDays(days) {
       videoUrl: 'videoUrl' in e ? e.videoUrl : ('vid' in e ? e.vid : undefined),
       title: e.title,
     }));
-    return { id: d.id || uid(), name: d.name || d.n || '', exercises };
+    // day.kind = 'daily' marks this specific day as a daily-routine (unlimited
+    // logs per block, no DONE lock). Round-trip the field so the flag
+    // survives close/reopen. Undefined / any other value = standard day.
+    return { id: d.id || uid(), name: d.name || d.n || '', kind: d.kind || undefined, exercises };
   });
 }
 
