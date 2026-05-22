@@ -317,6 +317,25 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back to Athletes</button>
         <div style={{display:"flex",gap:6}}>
+          {/* Notifications on/off — per-athlete mute for the COACH side.
+              When OFF, athlete→coach messages and workout-complete events
+              from this athlete skip push delivery, and the dashboard
+              MessagesCard unread count excludes this athlete. The athlete's
+              own notifications (coach messages, missed-day cron) are
+              unaffected. State persisted on the trainee object so it syncs
+              across coach devices via the trainees store. */}
+          <button
+            onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
+            title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
+            style={{
+              background: 'transparent',
+              border: `1px solid ${td.notifOff ? C.cardBd : C.ac}`,
+              color: td.notifOff ? C.td : C.ac,
+              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+              padding: '4px 10px', cursor: 'pointer', borderRadius: 0,
+            }}>
+            {td.notifOff ? '🔕 MUTED' : '🔔 ON'}
+          </button>
           {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
           <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px"}}>✏ Edit</Btn>
           {td.status==="Archived" ? <>

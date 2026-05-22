@@ -79,6 +79,20 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
   rows.forEach(r => { if (!byTrainee.has(r.trainee_id)) byTrainee.set(r.trainee_id, r); });
   const threads = Array.from(byTrainee.values());
 
+  // Per-athlete mute lookup: trainees toggled "🔕 MUTED" on their athlete
+  // page drop out of the dashboard unread count (so a noisy or paused
+  // athlete doesn't keep the red badge lit). The message still appears
+  // in the inbox list if you expand handled — mute only suppresses the
+  // count signal, not the messages themselves.
+  const mutedIds = useMemo(() => {
+    const s = new Set();
+    (trainees || []).forEach(t => { if (t.notifOff) s.add(t.id); });
+    return s;
+  }, [trainees]);
+  const isMuted = (traineeIdRaw) => {
+    const parentId = traineeIdRaw.includes('__') ? traineeIdRaw.split('__')[0] : traineeIdRaw;
+    return mutedIds.has(parentId);
+  };
   // "Unhandled" = the latest message is from the athlete AND it landed
   // after the global seenAt timestamp. The inbox renders ONLY unhandled
   // threads by default — replied-to threads (coach is the latest sender)
@@ -86,6 +100,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
   // seenAt. Handled threads stay queryable behind the "+ N HANDLED" toggle.
   const unreadFor = (r) =>
     r.sender_role === 'athlete' &&
+    !isMuted(r.trainee_id) &&
     (!seenAt || new Date(r.created_at).getTime() > new Date(seenAt).getTime());
   const unreadCount = threads.filter(unreadFor).length;
   const [showHandled, setShowHandled] = useState(false);

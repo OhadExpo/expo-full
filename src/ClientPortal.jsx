@@ -6,7 +6,7 @@ import { EXPOMark } from './expoMark';
 import BugReportButton from './BugReportButton';
 import CoachMessagesAthlete from './CoachMessages';
 import PushToggle from './PushToggle';
-import { sendPush } from './push';
+import { sendPush, isCoachMutedForAthlete } from './push';
 import AthleteChallengesWidget from './AthleteChallengesWidget';
 import { EX } from './exerciseData';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
@@ -1480,14 +1480,20 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // Notify the coach. Fire-and-forget — push never blocks the
     // post-workout UI. Tag includes the workout id so two devices on
     // the coach's account see a single dedup'd notification.
+    // Per-athlete mute: if the coach has toggled "🔕 MUTED" on this
+    // athlete's TraineeDetail, skip the push (the workout still saves
+    // and shows up in /coach/review — only the phone buzz is muted).
     const exCount = Array.isArray(w.exercises) ? w.exercises.length : 0;
-    sendPush({
-      toEmail: 'ohadyproductions@gmail.com',
-      title: `${clientName || 'Athlete'} finished a workout`,
-      body: `${w.dayName || 'Session'} · W${w.week ?? wk + 1} · ${exCount} ex`,
-      url: `/coach/trainees/${ci}`,
-      tag: `workout:${w.id || ci}`,
-    });
+    (async () => {
+      if (await isCoachMutedForAthlete(ci)) return;
+      sendPush({
+        toEmail: 'ohadyproductions@gmail.com',
+        title: `${clientName || 'Athlete'} finished a workout`,
+        body: `${w.dayName || 'Session'} · W${w.week ?? wk + 1} · ${exCount} ex`,
+        url: `/coach/trainees/${ci}`,
+        tag: `workout:${w.id || ci}`,
+      });
+    })();
     setLg(null);
   };
 

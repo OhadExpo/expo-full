@@ -113,6 +113,32 @@ export async function disablePush() {
   } catch {}
 }
 
+// Read-only gate for the per-athlete coach mute. When the coach toggles
+// "🔕 MUTED" on an athlete's page (TraineeDetail header), the trainees-
+// store row for that trainee gets `notifOff: true`. Athlete-initiated
+// push triggers (workout complete, athlete → coach message) check this
+// flag client-side before firing sendPush so the coach's phone stays
+// quiet. The coach's own sends to the athlete are not affected — this
+// only mutes the COACH side. Returns false on any failure (fail-open
+// so a transient store fetch doesn't silently swallow push delivery).
+export async function isCoachMutedForAthlete(traineeId) {
+  if (!traineeId) return false;
+  try {
+    const { data, error } = await supabase
+      .from('store')
+      .select('value')
+      .eq('key', 'expo-trainees')
+      .maybeSingle();
+    if (error || !data) return false;
+    const arr = Array.isArray(data.value) ? data.value : [];
+    // Couple sub-members log under parentId__N; the notifOff flag lives
+    // on the parent trainee object.
+    const parentId = traineeId.includes('__') ? traineeId.split('__')[0] : traineeId;
+    const t = arr.find(tt => tt.id === parentId);
+    return !!t?.notifOff;
+  } catch { return false; }
+}
+
 // Best-effort fire-and-forget send. Used by triggers (CoachMessages send,
 // workout completion). Caller passes the recipient email + payload.
 export async function sendPush({ toEmail, title, body, url, tag }) {

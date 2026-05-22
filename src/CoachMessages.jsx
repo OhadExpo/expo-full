@@ -13,7 +13,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, toast } from './ui';
-import { sendPush } from './push';
+import { sendPush, isCoachMutedForAthlete } from './push';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 const fmt = (iso) => {
@@ -254,19 +254,27 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
     // Fire-and-forget push to the OTHER side. Coach sending → push the
     // athlete; athlete sending → push the coach. Either side can pass
     // recipientEmail; if missing we skip (graceful degrade).
+    //
+    // Per-athlete mute: when the athlete is the sender, check the coach's
+    // notifOff flag for this trainee. If muted, skip the push but still
+    // persist the message (the mute is for buzzing the coach's phone, not
+    // for blocking the message itself).
     if (recipientEmail) {
-      const preview = body_text
-        ? body_text.slice(0, 100)
-        : (audio_url ? '🎤 Voice note' : 'New message');
-      sendPush({
-        toEmail: recipientEmail,
-        title: role === 'coach'
-          ? `Message from ${senderLabel || 'your coach'}`
-          : `Message from ${senderLabel || 'your athlete'}`,
-        body: preview,
-        url: role === 'coach' ? '/athlete' : `/coach/trainees/${traineeId}`,
-        tag: `msg:${traineeId}`,
-      });
+      const muted = role === 'athlete' && await isCoachMutedForAthlete(traineeId);
+      if (!muted) {
+        const preview = body_text
+          ? body_text.slice(0, 100)
+          : (audio_url ? '🎤 Voice note' : 'New message');
+        sendPush({
+          toEmail: recipientEmail,
+          title: role === 'coach'
+            ? `Message from ${senderLabel || 'your coach'}`
+            : `Message from ${senderLabel || 'your athlete'}`,
+          body: preview,
+          url: role === 'coach' ? '/athlete' : `/coach/trainees/${traineeId}`,
+          tag: `msg:${traineeId}`,
+        });
+      }
     }
   };
 
