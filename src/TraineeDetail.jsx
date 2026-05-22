@@ -760,13 +760,18 @@ function BWChart({ entries }) {
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:140,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">
         <defs>
+          {/* Brand cyan literal — C.ac resolves to BLACK in light mode (AA
+              accessibility for active surfaces), so using it here drained
+              the chart shadow to gray. The chart's color identity is
+              brand-cyan in BOTH themes; the stroke + gradient hardcode
+              the brand hex so dark and light render identically. */}
           <linearGradient id="bwAreaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor={C.ac} stopOpacity="0.35"/>
-            <stop offset="100%" stopColor={C.ac} stopOpacity="0"/>
+            <stop offset="0%" stopColor="#39BDFF" stopOpacity="0.35"/>
+            <stop offset="100%" stopColor="#39BDFF" stopOpacity="0"/>
           </linearGradient>
         </defs>
         <path d={areaPath} fill="url(#bwAreaGrad)" />
-        <polyline points={polyline} fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={polyline} fill="none" stroke="#39BDFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         {points.map((p, i) => {
           // Peak/trough/slope-aware label placement — same algorithm as the
           // athlete-portal BW chart. Pushes labels above peaks, below troughs,
