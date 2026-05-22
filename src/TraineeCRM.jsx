@@ -30,6 +30,20 @@ import NotesInline from './NotesInline';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
+// CRM redesign A/B — gated on ?crm= URL param so the coach can compare
+// three layouts side-by-side on prod. Default (no param) keeps the current
+// stacked layout. Whichever wins gets baked in unconditionally, this helper
+// goes away.
+//   ?crm=cols    — two-column: NEXT ACTIONS left, ACTIVITY right
+//   ?crm=tabs    — tabbed: one of ACTIONS / ACTIVITY visible at a time
+//   ?crm=compact — single column, cadence in the header strip, activity
+//                   collapsed to 3 rows by default with tight one-line cards
+const CRM_VARIANT = (() => {
+  if (typeof window === 'undefined') return '';
+  try { return new URLSearchParams(window.location.search).get('crm') || ''; }
+  catch { return ''; }
+})();
+
 const KIND_ICON = {
   whatsapp: '🟢', call: '☎', meeting: '🤝', note: '🗒',
   email: '✉', instagram: '📷', sms: '💬',
@@ -297,66 +311,119 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
 //   1. NEXT ACTIONS (NotesInline in bareMode)
 //   2. ACTIVITY    (ActivityFeed in bareMode)
 // The combined "+ LOG" composer writes to BOTH systems in one submit.
-function CoachHistoryCard({ trainee, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab }) {
+function CoachHistoryCard({ trainee, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab, cadence }) {
   const [showLog, setShowLog] = useState(false);
+  const [tab, setTab] = useState('actions'); // for ?crm=tabs
   const allIds = useMemo(() => {
     const ids = [];
     if (trainee?.id) ids.push(trainee.id);
     if (Array.isArray(trainee?.members)) trainee.members.forEach(m => m?.id && ids.push(m.id));
     return ids;
   }, [trainee]);
-  // We use the activity hook here so the composer can write through it
-  // and the feed re-renders without a manual reload.
   const { add: addActivity, refetch } = useTraineeActivity(allIds);
 
   const refined = isRefined5b();
   const PAD = 14;
+
+  const actionsBlock = (
+    <NotesInline
+      label="NEXT ACTIONS"
+      targetKind="trainee"
+      targetId={trainee.id}
+      targetLabel={trainee.name || null}
+      onCreatePlanForTask={onCreatePlanForTask}
+      onOpenIntakeTab={onOpenIntakeTab}
+      trainee={trainee}
+      bareMode
+    />
+  );
+  const activityBlock = (
+    <ActivityFeed
+      trainee={trainee}
+      clientWorkouts={clientWorkouts}
+      payments={payments}
+      planIndex={planIndex}
+      bareMode
+    />
+  );
+
+  // Header strip — for ?crm=compact the cadence label fuses into the strip
+  // so we save a row above the card.
+  const headerInner = (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+      <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        COACH HISTORY
+        {CRM_VARIANT === 'compact' && cadence && (
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: refined ? '#FFFFFF' : cadenceColor(cadence.level), opacity: refined ? 0.9 : 1 }}>
+            · {cadence.label.toUpperCase()}
+          </span>
+        )}
+      </span>
+      <button onClick={() => setShowLog(true)}
+        style={{
+          background: 'transparent',
+          border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
+          color: refined ? '#FFFFFF' : C.ac,
+          padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 10,
+          fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+        }}>+ LOG</button>
+    </div>
+  );
+
+  // Variant body layouts.
+  let body;
+  if (CRM_VARIANT === 'cols') {
+    body = (
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 18 }}>
+        <div>
+          <SubSection title="NEXT ACTIONS">{actionsBlock}</SubSection>
+        </div>
+        <div>
+          <SubSection title="ACTIVITY">{activityBlock}</SubSection>
+        </div>
+      </div>
+    );
+  } else if (CRM_VARIANT === 'tabs') {
+    const TabBtn = ({ id, label }) => (
+      <button onClick={() => setTab(id)}
+        style={{
+          padding: '6px 12px', border: `1px solid ${tab === id ? C.ac : C.cardBd}`,
+          borderBottom: tab === id ? `2px solid ${C.ac}` : `1px solid ${C.cardBd}`,
+          background: 'transparent', color: tab === id ? C.ac : C.tm,
+          fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+          cursor: 'pointer', borderRadius: 0,
+        }}>{label}</button>
+    );
+    body = (
+      <>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          <TabBtn id="actions" label="ACTIONS" />
+          <TabBtn id="activity" label="ACTIVITY" />
+        </div>
+        {tab === 'actions' ? actionsBlock : activityBlock}
+      </>
+    );
+  } else {
+    // 'compact' or default — stacked. Compact mode just slims down the
+    // ACTIVITY sub-section's row height (handled inside ActivityFeed via
+    // CRM_VARIANT check below).
+    body = (
+      <>
+        <SubSection title="NEXT ACTIONS">{actionsBlock}</SubSection>
+        <SubSection title="ACTIVITY" marginTop={18}>{activityBlock}</SubSection>
+      </>
+    );
+  }
+
   return (
     <div style={{
       background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, marginBottom: 12,
     }}>
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            COACH HISTORY
-          </span>
-          <button onClick={() => setShowLog(true)}
-            style={{
-              background: 'transparent',
-              border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
-              color: refined ? '#FFFFFF' : C.ac,
-              padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 10,
-              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-            }}>+ LOG</button>
-        </div>
+        {headerInner}
       </RefinedHeaderStrip>
-
-      {/* Sub-section A — NEXT ACTIONS */}
-      <SubSection title="NEXT ACTIONS">
-        <NotesInline
-          label="NEXT ACTIONS"
-          targetKind="trainee"
-          targetId={trainee.id}
-          targetLabel={trainee.name || null}
-          onCreatePlanForTask={onCreatePlanForTask}
-          onOpenIntakeTab={onOpenIntakeTab}
-          trainee={trainee}
-          bareMode
-        />
-      </SubSection>
-
-      {/* Sub-section B — ACTIVITY */}
-      <SubSection title="ACTIVITY" marginTop={18}>
-        <ActivityFeed
-          trainee={trainee}
-          clientWorkouts={clientWorkouts}
-          payments={payments}
-          planIndex={planIndex}
-          bareMode
-        />
-      </SubSection>
-
+      {body}
       {showLog && (
         <CombinedLogModal
           trainee={trainee}
@@ -389,8 +456,11 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
 
   return (
     <div style={{ marginBottom: 8 }}>
+      {/* Compact variant fuses the cadence pill into the COACH HISTORY
+          header strip, so suppress the standalone pill here. Status pill
+          stays — it's a distinct signal (Active / Trial / On Hold). */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
-        <CadencePill cadence={cadence} />
+        {CRM_VARIANT !== 'compact' && <CadencePill cadence={cadence} />}
         {trainee?.status && trainee.status !== 'Active' && (
           <div style={{
             fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em',
@@ -405,6 +475,7 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
         planIndex={planIndex}
         onCreatePlanForTask={onCreatePlanForTask}
         onOpenIntakeTab={onOpenIntakeTab}
+        cadence={cadence}
       />
       {/* CoachMessages moved out of TraineeCRM 2026-05-16 — now lives
           at top level in TraineeDetail as the dedicated MESSAGES section
