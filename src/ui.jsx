@@ -310,11 +310,18 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
   const refined = isRefined5b();
   const hasStrip = refined && header;
   const padNum = typeof padding === 'number' ? padding : 20;
+  // Cyan top-edge variant (`?cyan=cards`) — overrides the gray top border
+  // with 1px brand cyan. Only applied in light mode (dark already has
+  // plenty of cyan via active accents). Cards that already have a
+  // RefinedHeaderStrip header skip this because the strip itself is
+  // brand-cyan and would make a top-edge redundant.
+  const cyanTop = (typeof document !== 'undefined' && document.body?.getAttribute('data-cyan-cards') === '1' && !hasStrip) ? '1px solid var(--c-ac)' : null;
   return (
     <div onClick={onClick} style={{
       background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`,
-      borderLeft: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,
+      ...(cyanTop ? { borderTop: cyanTop } : {}),
+      borderLeft: leftStripe ? `3px solid ${leftStripe}` : (cyanTop ? `1px solid ${C.cardBd}` : `1px solid ${C.cardBd}`),
       borderRadius: 0,
       padding: padNum,
       cursor: onClick ? "pointer" : "default",

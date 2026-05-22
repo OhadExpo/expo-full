@@ -379,3 +379,38 @@ html, body {
   background: var(--c-bg);
   color: var(--c-tx);
 }
+
+/* === Light-mode cyan-intensity variants =====================================
+   Gated on body[data-cyan-*] attributes (set by src/cyanVariant.js when
+   ?cyan=labels / ?cyan=icons is in the URL). Used for visual A/B comparison;
+   the winning combo will be baked in unconditionally and these blocks removed.
+
+   labels variant: every small uppercase tile label currently rendered with
+   color:var(--c-tm) becomes the darkened-AA-safe cyan. We can't target every
+   call site without a class refactor, so we use a tight attribute-selector
+   pattern that picks up the canonical 9-11px uppercase letterSpacing 0.18em
+   labels by their inline-style fingerprint. The selector is intentionally
+   narrow so it doesn't capture body text.
+   ======================================================================== */
+[data-theme="light"] body[data-cyan-labels="1"] [style*="letter-spacing: 0.18em"],
+[data-theme="light"] body[data-cyan-labels="1"] [style*="letterSpacing:0.18em"],
+[data-theme="light"] body[data-cyan-labels="1"] [style*="letterSpacing: '0.18em'"] {
+  color: var(--c-acText) !important;
+}
+
+/* icons variant: every section header inside the dashboard / TraineeDetail
+   gets a 3px-wide cyan vertical bar via ::before. Same narrow selector
+   pattern — targets the h3 headings that lead each section. */
+[data-theme="light"] body[data-cyan-icons="1"] h3 {
+  position: relative;
+  padding-inline-start: 12px !important;
+}
+[data-theme="light"] body[data-cyan-icons="1"] h3::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: var(--c-ac);
+}
