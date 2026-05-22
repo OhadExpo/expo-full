@@ -14,52 +14,81 @@ import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS } from './auth';
 // Lazy-load every heavy view so the initial bundle stays small.
 // Each tab fetches its own chunk on first navigation; subsequent visits use cache.
-const TraineesView = lazy(() => import('./TraineesView'));
-const TraineeDetail = lazy(() => import('./TraineeDetail'));
-const ExercisesView = lazy(() => import('./ExercisesView'));
-const PlansView = lazy(() => import('./PlansView'));
-const WorkoutsView = lazy(() => import('./WorkoutsView'));
-const ClientPortal = lazy(() => import('./ClientPortal'));
-const DashboardView = lazy(() => import('./DashboardView'));
-const WaitlistView = lazy(() => import('./WaitlistView'));
-const ChatAuditView = lazy(() => import('./ChatAuditView'));
-const SmartImportView = lazy(() => import('./SmartImportView'));
-const WorkoutReview = lazy(() => import('./WorkoutReview'));
-const CoachTasksView = lazy(() => import('./CoachTasksView'));
-const BugsView = lazy(() => import('./BugsView'));
-const ChallengesView = lazy(() => import('./ChallengesView'));
-const BookingView = lazy(() => import('./BookingView'));
-const BillingView = lazy(() => import('./BillingView'));
+//
+// Stale-chunk recovery: after a Vercel deploy, the user's open tab still
+// holds an `index-<oldhash>.js` that references chunk hashes that no longer
+// exist server-side (the deploy GC'd them). The first dynamic import after
+// the deploy then 404s with "Failed to fetch dynamically imported module".
+// `lazyReload` wraps every lazy() call and force-reloads the page once on
+// that error — the post-reload page picks up the fresh entry HTML and the
+// new chunk manifest. sessionStorage flag prevents infinite reload loops if
+// the failure is a real network outage. The flag self-clears 8s after a
+// successful mount (see effect in AuthedApp below) so a *second* chunk
+// failure later in the session can still trigger one more reload.
+const RELOAD_FLAG = 'expo-chunk-reload-once';
+const CHUNK_ERR_RX = /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i;
+function lazyReload(importFn) {
+  return lazy(() => importFn().catch(err => {
+    if (err && err.message && CHUNK_ERR_RX.test(err.message)) {
+      try {
+        if (!sessionStorage.getItem(RELOAD_FLAG)) {
+          sessionStorage.setItem(RELOAD_FLAG, '1');
+          window.location.reload();
+          // Park the promise so React.lazy doesn't surface the error
+          // before the reload completes.
+          return new Promise(() => {});
+        }
+      } catch {}
+    }
+    throw err;
+  }));
+}
+const TraineesView = lazyReload(() => import('./TraineesView'));
+const TraineeDetail = lazyReload(() => import('./TraineeDetail'));
+const ExercisesView = lazyReload(() => import('./ExercisesView'));
+const PlansView = lazyReload(() => import('./PlansView'));
+const WorkoutsView = lazyReload(() => import('./WorkoutsView'));
+const ClientPortal = lazyReload(() => import('./ClientPortal'));
+const DashboardView = lazyReload(() => import('./DashboardView'));
+const WaitlistView = lazyReload(() => import('./WaitlistView'));
+const ChatAuditView = lazyReload(() => import('./ChatAuditView'));
+const SmartImportView = lazyReload(() => import('./SmartImportView'));
+const WorkoutReview = lazyReload(() => import('./WorkoutReview'));
+const CoachTasksView = lazyReload(() => import('./CoachTasksView'));
+const BugsView = lazyReload(() => import('./BugsView'));
+const ChallengesView = lazyReload(() => import('./ChallengesView'));
+const BookingView = lazyReload(() => import('./BookingView'));
+const BillingView = lazyReload(() => import('./BillingView'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
-const TrySandbox = lazy(() => import('./TrySandbox'));
-const DemoTraineePortal = lazy(() => import('./DemoTraineePortal'));
+const TrySandbox = lazyReload(() => import('./TrySandbox'));
+const DemoTraineePortal = lazyReload(() => import('./DemoTraineePortal'));
 // Public coach-sales marketing landing at /demo for unauthed visitors.
-const CoachLanding = lazy(() => import('./CoachLanding'));
+const CoachLanding = lazyReload(() => import('./CoachLanding'));
 // Front-door chooser at / for unauthed visitors — splits Sign In vs the
 // coach-sales landing so existing users aren't dumped into a marketing pitch.
-const EntryChooser = lazy(() => import('./EntryChooser'));
+const EntryChooser = lazyReload(() => import('./EntryChooser'));
 // /demo/coach is the full COACH-side interactive demo (Dashboard, Trainees,
 // Programs, Exercises, Review tabs with mock data). /try is the public
 // engine sandbox (TrySandbox above). /demo/trainee is the client-portal demo.
-const CoachDemo = lazy(() => import('./CoachDemo'));
-const CoachPreviewPortal = lazy(() => import('./CoachPreviewPortal'));
+const CoachDemo = lazyReload(() => import('./CoachDemo'));
+const CoachPreviewPortal = lazyReload(() => import('./CoachPreviewPortal'));
 // /intake/<locale>?t=<token> is the public-facing intake form (HE/EN initial
 // + HE progress check-in). /coach/intake (inside AuthedApp) is the coach
 // inbox + token generator. Both lazy so the form-renderer code only ships
 // when actually needed.
-const IntakeForm = lazy(() => import('./IntakeForm'));
-const IntakeView = lazy(() => import('./IntakeView'));
+const IntakeForm = lazyReload(() => import('./IntakeForm'));
+const IntakeView = lazyReload(() => import('./IntakeView'));
 // Public booking surface — no auth required. Lazy because it pulls
 // availability+occupancy logic that only matters on /book/<slug>.
-const BookingPublic = lazy(() => import('./BookingPublic'));
+const BookingPublic = lazyReload(() => import('./BookingPublic'));
 // F-18 — public program share. /p/<token> is anon-readable via the
 // get_shared_program(token) SECURITY DEFINER function — no PII leaves
 // the server (trainee name is scrubbed).
-const ProgramShare = lazy(() => import('./ProgramShare'));
+const ProgramShare = lazyReload(() => import('./ProgramShare'));
 // F-27 — public contract signing page. /sign/<token> renders the
 // brand-rich agreement + signature pad; anon UPDATE writes signature.
-const ContractSign = lazy(() => import('./ContractSign'));
+const ContractSign = lazyReload(() => import('./ContractSign'));
 
 // Memo wrappers prevent re-renders when parent state changes but these props haven't
 const MemoPlans = React.memo(PlansView);
@@ -77,7 +106,7 @@ const KEYS = { trainees:"expo-trainees", exercises:"expo-exercises", workouts:"e
 // there's a live session, then hands off to AuthedApp (the old App body).
 // SwUpdateBanner uses the virtual:pwa-register/react hook — kept lazy so
 // the banner module + workbox shim don't pull into chunks that don't need it.
-const SwUpdateBanner = lazy(() => import('./SwUpdateBanner'));
+const SwUpdateBanner = lazyReload(() => import('./SwUpdateBanner'));
 
 // MoreMenu — collapses 5 secondary header actions into one ⋯ icon
 // (Smart Import / Export / Chat Audit / Bugs / Change Password). The
@@ -460,6 +489,17 @@ function AuthedApp() {
   const { session, signOut: rawSignOut } = useAuth();
   const email = (session?.user?.email || '').toLowerCase();
   const logo = useLogoSrc();
+  // After a stale-chunk reload (see lazyReload at the top of this file),
+  // wait 8s of healthy runtime then clear the once-flag so a *later* chunk
+  // failure in the same tab can still trigger one more recovery reload.
+  // 8s is long enough to be sure the page actually mounted and didn't
+  // immediately re-throw, short enough that the user has likely interacted.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try { sessionStorage.removeItem(RELOAD_FLAG); } catch {}
+    }, 8000);
+    return () => clearTimeout(t);
+  }, []);
   // Clear the portal choice on sign-out so the next login (potentially a
   // different account) goes through the picker fresh instead of inheriting
   // the previous user's preference.
