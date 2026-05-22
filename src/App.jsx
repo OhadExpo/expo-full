@@ -545,9 +545,29 @@ function AuthedApp() {
   // Portal choice for dual-role users. sessionStorage = persists across
   // refreshes within the same browser session, dies on new window — exactly
   // what we want (refresh keeps you in, fresh Chrome = re-pick).
+  //
+  // URL bypass: a path starting with /coach pre-selects the trainer side
+  // (the user clearly meant to land on the coach portal); /athlete pre-
+  // selects the client side. This lets us open multiple new tabs/windows
+  // directly to a deep coach URL without going through the picker every
+  // time. Persisted to sessionStorage on first load so the rest of the
+  // app sees a normal choice.
   const [portalChoice, setPortalChoice] = useState(() => {
     if (typeof window === 'undefined') return null;
-    try { return sessionStorage.getItem(PORTAL_CHOICE_KEY); } catch { return null; }
+    try {
+      const stored = sessionStorage.getItem(PORTAL_CHOICE_KEY);
+      if (stored) return stored;
+      const p = window.location.pathname || '';
+      if (p === '/coach' || p.startsWith('/coach/')) {
+        sessionStorage.setItem(PORTAL_CHOICE_KEY, 'trainer');
+        return 'trainer';
+      }
+      if (p === '/athlete' || p.startsWith('/athlete/')) {
+        sessionStorage.setItem(PORTAL_CHOICE_KEY, 'client');
+        return 'client';
+      }
+      return null;
+    } catch { return null; }
   });
   // If the auth user changes mid-session (e.g. user A signs out, user B
   // signs in via OAuth on the same tab — sessionStorage survives the
