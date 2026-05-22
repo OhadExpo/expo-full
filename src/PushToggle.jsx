@@ -69,13 +69,22 @@ export default function PushToggle({ role = 'athlete', compact = false }) {
             letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4,
           }}>🔔 NOTIFICATIONS</div>
           <div style={{ fontSize: 12, color: 'var(--c-tx)', fontFamily: FB, lineHeight: 1.4 }}>
-            {enabled
-              ? 'On. You\'ll get a push when your coach messages you.'
-              : iosNotInstalled
-                ? <>Add EXPO to your home screen first, then enable from the installed app. <span style={{ color: 'var(--c-tm)' }}>(Apple requires this for push.)</span></>
-                : denied
-                  ? 'Blocked in browser settings. Re-allow notifications for this site, then refresh.'
-                  : 'Off. Tap Enable to get a push when your coach messages you.'}
+            {(() => {
+              // Copy switches on role so the same component reads naturally
+              // on the athlete portal AND on the coach dashboard. Pushed for
+              // coach: athlete messages + workout completions. Pushed for
+              // athlete: coach messages + missed-day cron nudges.
+              const onCopy = role === 'coach'
+                ? "On. You'll get a push when an athlete messages you or finishes a workout."
+                : "On. You'll get a push when your coach messages you.";
+              const offCopy = role === 'coach'
+                ? 'Off. Tap Enable to get a push when an athlete messages you or finishes a workout.'
+                : 'Off. Tap Enable to get a push when your coach messages you.';
+              if (enabled) return onCopy;
+              if (iosNotInstalled) return (<>Add EXPO to your home screen first, then enable from the installed app. <span style={{ color: 'var(--c-tm)' }}>(Apple requires this for push.)</span></>);
+              if (denied) return 'Blocked in browser settings. Re-allow notifications for this site, then refresh.';
+              return offCopy;
+            })()}
           </div>
           {error && (
             <div style={{
