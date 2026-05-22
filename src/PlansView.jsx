@@ -268,6 +268,20 @@ function ExPicker({ exercises, value, onChange, label, fallbackTitle }) {
   );
 }
 
+// Compose the warm-up rep-line. Prefer the new structured fields
+// (sets × reps, optional tempo); fall back to the legacy free-text rx
+// so plans authored before the field split still render their original
+// rep prescription unchanged.
+function wuRx(w) {
+  if (w && (w.sets || w.reps)) {
+    const sets = w.sets ?? '';
+    const reps = w.reps ?? '';
+    const core = sets && reps ? `${sets}×${reps}` : `${sets}${reps}`;
+    return w.tempo ? `${core}  ${w.tempo}` : core;
+  }
+  return (w && w.rx) || '';
+}
+
 function WarmupEditor({ plan, setPlan }) {
   const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
   // Collapsed by default whenever there's content, so the warm-up doesn't
@@ -277,7 +291,10 @@ function WarmupEditor({ plan, setPlan }) {
   // card just to discover the add control).
   const [open, setOpen] = useState(warmup.length === 0);
   const update = (idx, patch) => setPlan(p => ({ ...p, warmup: (p.warmup || []).map((w, i) => i === idx ? { ...w, ...patch } : w) }));
-  const add = () => { setOpen(true); setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', rx: '', vid: '' }] })); };
+  // New warm-ups carry sets/reps/tempo as first-class fields. Legacy plans
+  // still carry an `rx` string instead — those keep rendering verbatim until
+  // the coach edits them (we never touch existing rows on load).
+  const add = () => { setOpen(true); setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', sets: 1, reps: '', tempo: '', vid: '' }] })); };
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   return (
     <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
@@ -291,15 +308,40 @@ function WarmupEditor({ plan, setPlan }) {
       </div>
       {open && <>
         {warmup.map((w, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '54px 2fr 1fr 2fr 30px', gap: 12, marginBottom: 6, alignItems: 'end' }}>
-            <div style={{ paddingBottom: 9, fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, textAlign: 'center', letterSpacing: '0.18em' }}>{i + 1}</div>
-            <Input label={i === 0 ? 'Exercise' : ''} value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
-            <Input label={i === 0 ? 'Rx' : ''} value={w.rx || ''} onChange={e => update(i, { rx: e.target.value })} placeholder="1x10 E" />
-            <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
-              onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
-              placeholder="https://youtube.com/..." />
-            <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, marginBottom: 4, opacity: 0.6, fontSize: 16 }}>🗑</button>
-            {w.vid && <div style={{ gridColumn: '1 / -1', marginTop: 4, display: 'flex', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 480 }}><VideoEmbed url={w.vid} /></div></div>}
+          <div key={i} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: i < warmup.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            {/* Main row: structured fields (sets × reps × tempo) match the
+                main-exercise editor row shape. Existing plans authored before
+                this split kept their string `rx` — we render that as a small
+                legacy line below and let the coach clear it once they've
+                filled in the new fields. Order of operations on each row:
+                  - never wipe legacy w.rx on load (preserved unless coach
+                    clicks the × on the legacy line)
+                  - the displayed athlete value prefers sets/reps over rx
+                    once sets/reps exist (see wuRx() helper). */}
+            <div style={{ display: 'grid', gridTemplateColumns: '32px 1.6fr 56px 72px 72px 1.4fr 24px', gap: 10, alignItems: 'end' }}>
+              <div style={{ paddingBottom: 9, fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, textAlign: 'center', letterSpacing: '0.18em' }}>{i + 1}</div>
+              <Input label={i === 0 ? 'Exercise' : ''} value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
+              <Input label={i === 0 ? 'Sets' : ''} type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" />
+              <Input label={i === 0 ? 'Reps' : ''} value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" />
+              <Input label={i === 0 ? 'Tempo' : ''} value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" />
+              <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
+                onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
+                placeholder="https://youtube.com/..." />
+              <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, marginBottom: 4, opacity: 0.6, fontSize: 16 }}>🗑</button>
+            </div>
+            {/* Legacy free-text rx, only when the new fields are empty AND a
+                pre-split rx exists. Lets the coach see what the athlete is
+                currently being shown, then dismiss it once they've migrated. */}
+            {w.rx && (!w.sets || w.sets === '') && !w.reps && (
+              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.tm, fontFamily: FN }}>
+                <span style={{ fontWeight: 700, letterSpacing: '0.12em', color: C.td }}>LEGACY RX:</span>
+                <span style={{ color: C.tx, fontFamily: FB }}>{w.rx}</span>
+                <button onClick={() => update(i, { rx: '' })}
+                  title="Clear the legacy rx string — the athlete will now see the structured sets/reps above (once you fill them in)."
+                  style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× CLEAR</button>
+              </div>
+            )}
+            {w.vid && <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 480 }}><VideoEmbed url={w.vid} /></div></div>}
           </div>
         ))}
         {warmup.length === 0 && <div style={{ fontSize: 11, color: C.td, marginTop: 8 }}>No warm-ups. Click "+ Add Warm-Up" to add one.</div>}
@@ -410,7 +452,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                       <div key={i} style={{display:'grid', gridTemplateColumns:'24px 2fr 1fr', gap:8, padding:'4px 0', alignItems:'center', borderTop:i === 0 ? 'none' : `1px solid rgba(57,189,255,0.102)`}}>
                         <div style={{fontFamily:FN, fontSize:11, color:C.tm, fontWeight:700, textAlign:'center'}}>{i + 1}</div>
                         <div style={{fontSize:13, color:C.tx, fontFamily:FB, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{w.t || '—'}</div>
-                        <div style={{fontSize:12, color:C.tm, fontFamily:FN}}>{w.rx || '—'}</div>
+                        <div style={{fontSize:12, color:C.tm, fontFamily:FN}}>{wuRx(w) || '—'}</div>
                       </div>
                     ))}
                   </div>}
