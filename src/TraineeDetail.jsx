@@ -9,9 +9,23 @@ import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSE
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b, toast, confirmToast } from './ui';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
+import { normalizePhoneIL } from './whatsappButton';
+
+// Bit deep link — duplicated from BillingView so the athlete page can
+// generate share links without coupling to that file. Web link is the
+// universal fallback; native scheme opens the Bit app on iOS/Android.
+const bitDeepLink = (phone, amount, reference) => {
+  const p = normalizePhoneIL(phone) || '';
+  const a = Math.max(0, Math.round(Number(amount) || 0));
+  const ref = encodeURIComponent(reference || '');
+  return {
+    web: `https://www.bitpay.co.il/app/me/${p}?amount=${a}&reference=${ref}`,
+    native: `bit://payment-request?to=${p}&amount=${a}&reference=${ref}`,
+  };
+};
 import OverloadChart from './OverloadChart';
 import TraineePRsView from './TraineePRsView';
 import TraineeCRM from './TraineeCRM';
@@ -70,6 +84,64 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // guard expressions, then early-return after all hooks have registered.
   const couple = !!td && Array.isArray(td.members) && td.members.length === 2;
   const totalPaid=tPay.reduce((a,p)=>a+(parseFloat(p.amount)||0),0);
+  // "Last Payment" tile derives from the actual ledger (most-recent Paid row
+  // in tPay, which is backed by bit_payment_requests). Falls back to the
+  // legacy td.lastPayment field for trainees imported before the table
+  // existed — so historical data still surfaces.
+  const lastPaidDate = tPay.filter(p=>p.status==='Paid').map(p=>p.date).sort().pop() || td?.lastPayment || null;
+  // Bit settings (coach phone) — needed to build deep links for "+ Request
+  // via Bit" from this page. Fetched once; if blank, the button stays
+  // disabled and points the coach to /coach/billing to configure.
+  const [bitPhone, setBitPhone] = useState(null);
+  const [showBitReq, setShowBitReq] = useState(false);
+  const [bitReqAmount, setBitReqAmount] = useState('');
+  const [bitReqRef, setBitReqRef] = useState('');
+  useEffect(() => {
+    let alive = true;
+    supabase.from('coach_payment_settings').select('bit_phone').eq('coach_email','ohadyproductions@gmail.com').maybeSingle()
+      .then(({ data }) => { if (alive) setBitPhone(data?.bit_phone || ''); });
+    return () => { alive = false; };
+  }, []);
+  const openBitReq = () => {
+    setBitReqAmount(td?.monthly ? String(td.monthly) : '');
+    const m = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    setBitReqRef(`${m} — ${td?.name || ''}`.trim());
+    setShowBitReq(true);
+  };
+  const handleCreateBitRequest = async () => {
+    const amt = parseFloat(bitReqAmount);
+    if (!amt || amt <= 0) { toast('Amount must be positive.', 'warn'); return; }
+    if (!bitPhone) { toast('Configure your Bit phone in /coach/billing first.', 'warn'); return; }
+    try {
+      const { error } = await supabase.from('bit_payment_requests').insert({
+        trainee_id: trainee,
+        amount: amt,
+        currency: 'ils',
+        reference: bitReqRef.trim() || null,
+        status: 'pending',
+      });
+      if (error) throw error;
+      toast('Bit request created.', 'success');
+      setShowBitReq(false);
+      // Open the share link in a new tab so the coach can paste it to the
+      // athlete immediately. The pending row will surface in the ledger
+      // below via the useBitPayments realtime channel.
+      const link = bitDeepLink(bitPhone, amt, bitReqRef.trim());
+      try { window.open(link.web, '_blank', 'noopener'); } catch {}
+    } catch (e) {
+      toast(`Create failed: ${e?.message || e}`, 'error', { ttl: 6000 });
+    }
+  };
+  const handleMarkBitPaid = async (id) => {
+    if (!(await confirmToast('Mark this request as PAID? Only after the money has arrived on Bit.', { okLabel: 'Mark paid', cancelLabel: 'Cancel' }))) return;
+    const { error } = await supabase.from('bit_payment_requests').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', id);
+    if (error) toast(`Update failed: ${error.message}`, 'error');
+  };
+  const handleCancelBitReq = async (id) => {
+    if (!(await confirmToast('Cancel this Bit request?', { okLabel: 'Cancel request', cancelLabel: 'Keep' }))) return;
+    const { error } = await supabase.from('bit_payment_requests').update({ status: 'canceled' }).eq('id', id);
+    if (error) toast(`Update failed: ${error.message}`, 'error');
+  };
   const statusColor={Active:C.gn,"On Hold":C.or,Inactive:C.td,Trial:C.ac};
   // Payments now write to bit_payment_requests via the hook callbacks
   // passed in from App.jsx. The `method` field on the form is informational —
@@ -311,7 +383,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             </div>
           )}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(100px, 1fr))',gap:10}}>
-            {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',fmtPrettyDate(td.lastPayment)],['Since',fmtPrettyDate(td.startDate)],['Workouts',tAllWorkouts.length]].map(([l,v])=>
+            {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',fmtPrettyDate(lastPaidDate)],['Since',fmtPrettyDate(td.startDate)],['Workouts',tAllWorkouts.length]].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
         </Card>
@@ -339,7 +411,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           </>
         )}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:isRefined5b()?0:16,textAlign:"center"}}>
-          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(td.lastPayment)],["Since",fmtPrettyDate(td.startDate)],["Workouts",tAllWorkouts.length]].map(([l,v])=>
+          {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)],["Workouts",tAllWorkouts.length]].map(([l,v])=>
             <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
       </Card>
@@ -377,6 +449,16 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           {/* F-27 — open the brand-rich contract composer; on send,
               copy the /sign/<token> link to clipboard. */}
           <button onClick={()=>setShowContract(true)} style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'4px 12px',cursor:'pointer',borderRadius:0}}>📄 CONTRACT</button>
+          {/* "+ Request via Bit" — creates a pending row in bit_payment_requests
+              and opens the Bit share link in a new tab so the coach can ping
+              the athlete without leaving this page. Disabled until the coach
+              has configured their Bit phone in /coach/billing (tooltip nudges
+              there). The pending row surfaces in the ledger below via the
+              useBitPayments realtime channel. */}
+          <button onClick={openBitReq}
+            disabled={!bitPhone}
+            title={bitPhone ? 'Create a Bit payment request for this athlete' : 'Configure your Bit phone in /coach/billing first'}
+            style={{background:'transparent',border:`1px solid ${bitPhone?C.ac:C.cardBd}`,color:bitPhone?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'4px 12px',cursor:bitPhone?'pointer':'not-allowed',borderRadius:0}}>📲 REQUEST VIA BIT</button>
           <Btn onClick={()=>setShowPayForm(true)} style={{fontSize:12,padding:"4px 12px"}}>+ Add Payment</Btn>
         </div>
       </div>
@@ -390,6 +472,21 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <td style={{padding:"8px 10px",textAlign:"center"}}><Badge color={p.status==="Paid"?C.gn:p.status==="Overdue"?C.rd:C.or}>{p.status}</Badge></td>
             <td style={{padding:"8px 10px",color:C.td,textAlign:"center"}}>{p.notes||"—"}</td>
             <td style={{padding:"8px 10px",whiteSpace:"nowrap",textAlign:"center"}}>
+              {/* Pending Bit rows need actionable buttons inline so the
+                  coach doesn't have to bounce to /coach/billing. Share
+                  opens the Bit web link; Paid / Cancel mutate
+                  bit_payment_requests and propagate back via realtime. */}
+              {p.status==='Pending' && bitPhone && (() => {
+                const link = bitDeepLink(bitPhone, p.amount, p.notes);
+                return (<>
+                  <a href={link.web} target="_blank" rel="noopener noreferrer" title="Open Bit share link"
+                    style={{display:'inline-flex',alignItems:'center',padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,border:`1px solid ${C.ac}`,textDecoration:'none',marginRight:6}}>SHARE</a>
+                  <button onClick={()=>handleMarkBitPaid(p.id)} title="Mark this Bit request as paid"
+                    style={{background:'transparent',border:`1px solid ${C.gn}`,color:C.gn,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginRight:6}}>✓ PAID</button>
+                  <button onClick={()=>handleCancelBitReq(p.id)} title="Cancel this Bit request"
+                    style={{background:'transparent',border:`1px solid ${C.rd}`,color:C.rd,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginRight:6}}>× CANCEL</button>
+                </>);
+              })()}
               <button onClick={()=>handleEditPay(p)} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
               <button onClick={()=>handleDeletePay(p.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginLeft:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
@@ -408,6 +505,22 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <div style={{gridColumn:"1 / -1"}}><Input label="Notes" value={payForm.notes} onChange={e=>setPayForm({...payForm,notes:e.target.value})} /></div></div>
         <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
           <Btn variant="ghost" onClick={()=>{setShowPayForm(false);setEditPayId(null);setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"})}}>Cancel</Btn><Btn onClick={handleAddPayment}>{editPayId?"Update":"Save"}</Btn></div></Modal>
+
+      {/* + REQUEST VIA BIT modal — inserts a pending row into
+          bit_payment_requests and opens the share link. */}
+      <Modal open={showBitReq} onClose={()=>setShowBitReq(false)} title="New Bit Request">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 2fr",gap:12}}>
+          <Input label="Amount (₪)" type="number" value={bitReqAmount} onChange={e=>setBitReqAmount(e.target.value)} />
+          <Input label="Reference" value={bitReqRef} onChange={e=>setBitReqRef(e.target.value)} placeholder="May 2026 — 8 sessions" />
+        </div>
+        <div style={{fontSize:11,color:C.td,marginTop:10,lineHeight:1.5}}>
+          Submits a pending row to <code>bit_payment_requests</code> and opens the Bit share link in a new tab. Mark paid from this page once the money arrives.
+        </div>
+        <div style={{display:"flex",justifyContent:"flex-end",gap:8,marginTop:16}}>
+          <Btn variant="ghost" onClick={()=>setShowBitReq(false)}>Cancel</Btn>
+          <Btn onClick={handleCreateBitRequest}>Create request</Btn>
+        </div>
+      </Modal>
 
       {/* === MESSAGES — slot #4: athlete↔coach thread, lifted from
           inside TraineeCRM to its own top-level slot. */}
