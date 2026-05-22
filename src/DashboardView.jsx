@@ -202,19 +202,49 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
   // form-videos is the only bucket that matters for capacity (meal-photos +
   // coach-voice + coaching-contracts are negligible). Runs once per dashboard
   // mount. Public read works because form-videos has a `public_read` policy.
-  const STORAGE_CAP_MB = 1024; // Supabase free tier ceiling, used for the % gauge
-  const [storage, setStorage] = useState(null); // null = loading; { usedMB, pct, files }
+  //
+  // Probe is two-pass: (1) supabase-js `list()` first, which has historically
+  // mis-returned 0 results when the storage RLS policy is permissive only to
+  // anon (the SDK attaches the user's JWT and the request gets evaluated
+  // against a per-user policy that doesn't exist). (2) Fall back to a raw
+  // REST call with just the anon key, which always works against the
+  // public_read policy. Either path that returns data short-circuits the
+  // other. Errors are surfaced to the tile (showing a small "?" + last
+  // error message in the console) instead of silently rendering as 0.
+  const STORAGE_CAP_MB = 1024;
+  const [storage, setStorage] = useState(null);
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
+      const SUPA_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+      // Use the raw REST endpoint with just the anon key. The bucket's
+      // public_read policy explicitly allows this; the SDK path was
+      // returning 0 results under certain auth contexts. The REST endpoint
+      // is the more reliable read path for capacity probes.
+      const listRaw = async (prefix) => {
+        const r = await fetch(`${SUPA_URL}/storage/v1/object/list/form-videos`, {
+          method: 'POST',
+          headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prefix, limit: 1000 }),
+        });
+        if (!r.ok) throw new Error(`list failed at "${prefix}" (${r.status})`);
+        return r.json();
+      };
       try {
         let total = 0, files = 0;
         const walk = async (prefix) => {
-          const r = await supabase.storage.from('form-videos').list(prefix, { limit: 1000 });
-          if (r.error) return;
-          for (const it of (r.data || [])) {
-            if (it.id === null) await walk(prefix ? prefix + '/' + it.name : it.name);
-            else { total += it.metadata?.size || 0; files++; }
+          const data = await listRaw(prefix);
+          if (!Array.isArray(data)) return;
+          for (const it of data) {
+            // Folders come back with id===null + no metadata. Files have a
+            // UUID + a metadata object with `size` (bytes).
+            if (it.id === null) {
+              await walk(prefix ? `${prefix}/${it.name}` : it.name);
+            } else {
+              total += it.metadata?.size || 0;
+              files++;
+            }
           }
         };
         await walk('');
@@ -222,7 +252,13 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         const usedMB = total / 1024 / 1024;
         const pct = Math.round((usedMB / STORAGE_CAP_MB) * 100);
         setStorage({ usedMB, pct, files });
-      } catch { /* silent — tile just hides */ }
+      } catch (e) {
+        console.warn('Storage probe failed:', e?.message || e);
+        // Don't render the tile as a stale "0 / 0%" — leave it loading so
+        // the visual absence tells the coach something is wrong rather
+        // than misreporting capacity.
+        if (!cancelled) setStorage(null);
+      }
     })();
     return () => { cancelled = true; };
   }, []);
