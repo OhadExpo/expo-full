@@ -6,7 +6,7 @@
   --c-sf: #0a0a0c;
   --c-sf2: #111114;
   --c-sf3: #18181c;
-  --c-stripBg: var(--c-sf);  /* strip header bg — same as card body in dark; cyan-saturated only in light */
+  --c-stripBg: #39BDFF;  /* brand cyan strip header in BOTH themes for layout parity (Ohad spec 2026-05-23) */
   --c-bd: #1e1e24;
   --c-bd2: #2a2a32;
   --c-tx: #f0f0f4;
