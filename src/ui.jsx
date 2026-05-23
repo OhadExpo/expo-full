@@ -114,16 +114,18 @@ export const isRefined5b = () => {
 // Pass `padY` and `padX` matching the parent card's padding (defaults
 // match the dashboard alert-card padding of 14/18).
 export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBottom = 12 }) {
-  // --c-stripBg is full BSG cyan in light, falls back to var(--c-sf)
-  // in dark (which is the dark surface) so the strip dissolves into
-  // the card body in dark mode rather than rendering as an invisible
-  // darker rectangle.
+  // --c-stripBg is full BSG cyan in light, black in dark. Strip bleeds
+  // to the card's outer edge via negative margins, so the card's own
+  // cyan border becomes the strip's top + left + right border. The
+  // bottom edge of the strip now uses the same cyan hairline as the
+  // card border (var(--c-cardBd)) so the strip reads as a fully-
+  // boxed title area, "closed" along the bottom.
   return (
     <div style={{
       background: 'var(--c-stripBg, var(--c-sf))',
       margin: `-${padY}px -${padX}px ${marginBottom}px`,
       padding: `8px ${padX}px`,
-      borderBottom: '1px solid rgba(0,0,0,0.10)',
+      borderBottom: '1px solid var(--c-cardBd)',
     }}>{children}</div>
   );
 }

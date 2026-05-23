@@ -208,6 +208,44 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
 
 function MoreMenu({ tab, navTo, onExport, onChangePassword }) {
   const [open, setOpen] = useState(false);
+  // Push-notification state for the in-menu toggle (placed above Change
+  // Password per Ohad 2026-05-23). Lazy-imports ./push to avoid bloating
+  // the App.jsx critical bundle; only fetches the current subscription
+  // when the menu opens so a fresh load doesn't fire a ServiceWorker
+  // round-trip on every page render.
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushSupported, setPushSupported] = useState(true);
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const m = await import('./push');
+        if (cancelled) return;
+        if (!m.isPushSupported()) { setPushSupported(false); return; }
+        const sub = await m.getCurrentSubscription();
+        const perm = await m.getPushPermission();
+        if (cancelled) return;
+        setPushOn(!!sub && perm === 'granted');
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
+  const togglePush = async () => {
+    setPushBusy(true);
+    try {
+      const m = await import('./push');
+      if (pushOn) { await m.disablePush(); setPushOn(false); }
+      else { await m.enablePush('coach'); setPushOn(true); }
+    } catch (e) {
+      // Surface a minimal alert — full error UI lives in PushToggle.jsx
+      // (mounted elsewhere); the menu just confirms it didn't work.
+      try { window.alert(e?.message || 'Could not toggle notifications.'); } catch {}
+    } finally {
+      setPushBusy(false);
+    }
+  };
   // Position the popover as a top-layer floating element (position:fixed
   // + computed coords) so the sticky <header>'s stacking context can't
   // clip it. Without this, the dropdown rendered below the nav bar
@@ -251,6 +289,20 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword }) {
     { key: 'bugs', label: 'Bugs', onClick: () => navTo('bugs'), icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5a4 4 0 0 0-4 4v1h8v-1a4 4 0 0 0-4-4Z"/><path d="M5 12a7 7 0 0 1 14 0v3a7 7 0 0 1-14 0Z"/></svg>
     ) },
+    // Push notifications toggle. Sits above Change Password per Ohad's
+    // request; replaces the standalone PushToggle card on the dashboard.
+    // The bell icon flips to muted (🔕 style) when push is off.
+    ...(pushSupported ? [{
+      key: 'pushToggle',
+      label: `Push Notifications · ${pushBusy ? '…' : (pushOn ? 'ON' : 'OFF')}`,
+      onClick: togglePush,
+      icon: (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      ),
+    }] : []),
     { key: 'password', label: 'Change Password', onClick: onChangePassword, icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     ) },

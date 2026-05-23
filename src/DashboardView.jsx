@@ -6,7 +6,6 @@ import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
 import MessagesCard from './MessagesCard';
-import PushToggle from './PushToggle';
 import { syncAutoTasks } from './autoTasks';
 
 // Dormant alert action: opens WhatsApp with a prefilled Hebrew check-in.
@@ -478,9 +477,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           }} />
       </div>
 
-      {/* PUSH NOTIFICATIONS — top-of-section toggle so the coach can
-          enable push for incoming athlete messages with one click. */}
-      <PushToggle role="coach" compact />
+      {/* PushToggle moved from here to the ⋯ MoreMenu (Push Notifications
+          ON/OFF item above Change Password) per Ohad 2026-05-23. */}
 
       {/* MESSAGES — full-width inbox card, slotted between Tasks
           ("what should I do?") and the alerts grid ("what is the system
