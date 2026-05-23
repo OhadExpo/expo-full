@@ -41,7 +41,7 @@ export default function ExercisesView({ exercises, setExercises }) {
         @media (max-width: 720px) { .ex-filters { grid-template-columns: repeat(2, 1fr) !important; } }
       `}</style>
       <div style={{ display: "flex", gap: 12, marginBottom: 10, alignItems: "stretch", flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px' }} /></div>
+        <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px', border: `1px solid ${C.ac}` }} /></div>
         <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
       <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: isRefined5b() ? 0 : 10, marginBottom: 12, overflow: 'hidden' }}>

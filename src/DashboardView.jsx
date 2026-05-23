@@ -67,7 +67,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
     const refined = isRefined5b();
     const color = refined ? '#FFFFFF' : (sort === k ? C.ac : C.td);
     return (
-      <th onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '10px 12px', fontSize: refined ? 9 : 10, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: refined ? '0.18em' : '0.05em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', opacity: refined && sort !== k ? 0.78 : 1 }}>
+      <th onClick={() => toggleSort(k)} style={{ textAlign: 'center', padding: '10px 12px', fontSize: 9, fontFamily: FN, color, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
         {label} {sort === k ? (dir === 1 ? '↑' : '↓') : ''}
       </th>
     );
@@ -627,7 +627,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {/* Search */}
       <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
         <input placeholder="Filter athletes..." value={filter} onChange={e => setFilter(e.target.value)}
-          style={{ ...baseInput, maxWidth: 300, paddingLeft: 12, textAlign: 'center' }} />
+          style={{ ...baseInput, maxWidth: 300, paddingLeft: 12, textAlign: 'center', border: `1px solid ${C.tx}` }} />
       </div>
 
       {/* Client table */}

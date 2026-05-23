@@ -760,8 +760,8 @@ function AuthedApp() {
         { route:'plans',     label:'Programs',  count:null },
         { route:'exercises', label:'Exercises', count:null },
       ] },
-    { key:'tasks',      label:'Tasks',      count:null },
     { key:'review',     label:'Review',     count:null },
+    { key:'tasks',      label:'Tasks',      count:null },
     { key:'billing',    label:'Billing',    count:null },
     { key:'intake',     label:'Incoming',   count:null,
       submenu: [
