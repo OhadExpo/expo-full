@@ -357,7 +357,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
               <RefinedHeaderStrip padY={16} padX={20}>
                 <SectionLabel style={{ color: '#FFFFFF', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
               </RefinedHeaderStrip>
-              <div style={{ fontSize: C.kpiNumberSize, fontWeight: refined ? 800 : 700, fontFamily: FN, color: s.color, lineHeight: 1.05, letterSpacing: '-0.015em' }}>{s.value}
+              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: s.color, lineHeight: 1.05, letterSpacing: '-0.015em' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
               {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
             </div>

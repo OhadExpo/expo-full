@@ -12,6 +12,9 @@
      (Ohad spec 2026-05-23). Layout/size parity with light mode
      preserved; just the fill differs to fit dark theme aesthetics. */
   --c-stripBg: #000000;
+  /* Match light's headline-size KPI numbers so dark + light tiles have
+     identical body heights (10.5px discrepancy fix, 2026-05-23). */
+  --c-kpiNumberSize: 40px;
   --c-bd: #1e1e24;
   --c-bd2: #2a2a32;
   --c-tx: #f0f0f4;
