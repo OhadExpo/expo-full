@@ -1365,20 +1365,32 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         orphan: true,
       });
     }
-    // Sort athletes: most-recently-trained first; never-trained next; orphans
-    // (no plan at all) at the very bottom; unassigned (legacy) last of all.
+    // Sort athletes by the active sortField/sortDir from the SORT bar so
+    // the Name / Uploaded / Last edited buttons actually do something on
+    // the grouped view (previously they only worked in flat search mode).
+    // Pinned positions: unassigned legacy row always last; orphans (no
+    // plan at all) sorted but always above unassigned.
+    const dirMul = sortDir === 'asc' ? 1 : -1;
+    const keyFor = (row) => {
+      if (sortField === 'name') return null; // localeCompare path below
+      const p = row.current;
+      if (!p) return 0;
+      if (sortField === 'created') return new Date(p.createdAt || 0).getTime();
+      return new Date(p.updatedAt || p.createdAt || 0).getTime();
+    };
     rows.sort((a, b) => {
       if (a.tid === '__unassigned__') return 1;
       if (b.tid === '__unassigned__') return -1;
       if (a.orphan && !b.orphan) return 1;
       if (b.orphan && !a.orphan) return -1;
-      const aT = lastByTid.get(a.tid) || 0;
-      const bT = lastByTid.get(b.tid) || 0;
-      if (aT !== bT) return bT - aT;
+      if (sortField === 'name') return a.name.localeCompare(b.name, 'he') * dirMul;
+      const aT = keyFor(a);
+      const bT = keyFor(b);
+      if (aT !== bT) return (aT - bT) * dirMul;
       return a.name.localeCompare(b.name);
     });
     return rows;
-  }, [planIndex, clientWorkouts, trainees, search, filterTrainee, traineeMap]);
+  }, [planIndex, clientWorkouts, trainees, search, filterTrainee, traineeMap, sortField, sortDir]);
 
   if (editMode) {
     if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
