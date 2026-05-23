@@ -703,10 +703,15 @@ function AuthedApp() {
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
   }, []);
   const closePlanPreview = useCallback(() => {
+    // BACK TO COACH from CoachPreviewPortal returns the coach to the SAME
+    // plan in the editor — Ohad opens preview to glance at how it looks,
+    // then expects to drop back into editing where he left off. Without
+    // re-setting selectedPlanId, MemoPlans rendered as the empty list.
+    setSelectedPlanId(previewPlan);
     setPreviewPlan(null);
     const path = '/coach/programs';
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
-  }, []);
+  }, [previewPlan]);
 
   const navTo = useCallback((newTab, newTrainee) => {
     setTab(newTab);
