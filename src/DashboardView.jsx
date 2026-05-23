@@ -487,13 +487,9 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20, alignItems: 'start' }}>
           {onlineNow.length > 0 && (
             <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              {isRefined5b() ? (
-                <RefinedHeaderStrip>
-                  <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>Online Now ({onlineNow.length})</SectionLabel>
-                </RefinedHeaderStrip>
-              ) : (
-                <SectionLabel color={C.gn} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`🟢 Online Now (${onlineNow.length})`}</SectionLabel>
-              )}
+              <RefinedHeaderStrip>
+                <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>Online Now ({onlineNow.length})</SectionLabel>
+              </RefinedHeaderStrip>
               {onlineNow.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', cursor: 'pointer', color: C.tx, fontSize: 13 }}>
                   <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:C.gn,boxShadow:`0 0 4px ${C.gn}`}} />
@@ -504,13 +500,9 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           )}
           {expiring.length > 0 && (
             <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              {isRefined5b() ? (
-                <RefinedHeaderStrip>
-                  <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>Expiring Packages ({expiring.length})</SectionLabel>
-                </RefinedHeaderStrip>
-              ) : (
-                <SectionLabel color={C.or} as="div" style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`⚠ Expiring Packages (${expiring.length})`}</SectionLabel>
-              )}
+              <RefinedHeaderStrip>
+                <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>Expiring Packages ({expiring.length})</SectionLabel>
+              </RefinedHeaderStrip>
               {expiring.map(t => (
                 <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                   <span style={{ color: C.tx }}>{t.name}</span>
@@ -523,13 +515,9 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {overduePayment.length > 0 && (
                 <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-                  {isRefined5b() ? (
-                    <RefinedHeaderStrip>
-                      <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>Overdue Payment ({overduePayment.length})</SectionLabel>
-                    </RefinedHeaderStrip>
-                  ) : (
-                    <SectionLabel color={C.rd} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`💰 Overdue Payment (${overduePayment.length})`}</SectionLabel>
-                  )}
+                  <RefinedHeaderStrip>
+                    <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>Overdue Payment ({overduePayment.length})</SectionLabel>
+                  </RefinedHeaderStrip>
                   {overduePayment.map(t => (
                     <div key={t.id} onClick={() => onSelectTrainee(t.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -547,25 +535,15 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                 const gateColor = gateOpen ? C.gn : (coachLeads > 0 ? C.or : C.td);
                 return (
                 <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
-                  {isRefined5b() ? (
-                    <RefinedHeaderStrip>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>New Leads ({leads.length})</SectionLabel>
-                        <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
-                          style={{ fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
-                          🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
-                        </span>
-                      </div>
-                    </RefinedHeaderStrip>
-                  ) : (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <SectionLabel as="span" color={C.ac} style={{ fontSize: C.alertLabelSize }}>{`📩 New Leads (${leads.length})`}</SectionLabel>
+                  <RefinedHeaderStrip>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>New Leads ({leads.length})</SectionLabel>
                       <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
-                        style={{ fontFamily: FN, fontSize: 9, color: gateColor, border: `1px solid ${gateColor}`, background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
+                        style={{ fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
                         🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
                       </span>
                     </div>
-                  )}
+                  </RefinedHeaderStrip>
                   {leads.map(l => {
                     const ageMs = now - new Date(l.created_at);
                     const days = Math.floor(ageMs / 86400000);
@@ -592,13 +570,9 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           )}
           {dropoutRisk.length > 0 && (
             <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              {isRefined5b() ? (
-                <RefinedHeaderStrip>
-                  <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>Dormant ({dropoutRisk.length})</SectionLabel>
-                </RefinedHeaderStrip>
-              ) : (
-                <SectionLabel color={C.or} as="div" style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`💤 Dormant (${dropoutRisk.length})`}</SectionLabel>
-              )}
+              <RefinedHeaderStrip>
+                <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>Dormant ({dropoutRisk.length})</SectionLabel>
+              </RefinedHeaderStrip>
               {dropoutRisk.map(t => {
                 const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                 return (
@@ -681,13 +655,9 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {/* Dropout risk — below the client list */}
       {dropoutRisk.length > 0 && (
         <div className="alert-card" style={{ marginTop: 20, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-          {isRefined5b() ? (
-            <RefinedHeaderStrip>
-              <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="trendingDown" color="#FFFFFF"/>Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
-            </RefinedHeaderStrip>
-          ) : (
-            <SectionLabel color={C.rd} style={{ marginBottom: 8, fontSize: C.alertLabelSize }}>{`🔻 Dropout Risk — 14+ days (${dropoutRisk.length})`}</SectionLabel>
-          )}
+          <RefinedHeaderStrip>
+            <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="trendingDown" color="#FFFFFF"/>Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
+          </RefinedHeaderStrip>
           {dropoutRisk.map(t => {
             const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
             const daysLabel = days == null ? 'Never trained' : `${days}d ago`;
