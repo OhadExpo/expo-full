@@ -52,10 +52,13 @@
  * as architectural anchors against cyan brand strokes.
  */
 [data-theme="light"] {
-  --c-bg: #EBEDF1;                /* cool light gray — more presence than #E2E2E5 against white cards */
+  /* Page bg darkened from #EBEDF1 to #D2D6DD — Ohad called the prior tint
+     "too white". Cool blue-grey with more presence; cards still stand off
+     it cleanly thanks to the cyan-42% hairline + shadow. */
+  --c-bg: #D2D6DD;
   --c-sf: #FFFFFF;                /* card surface — pure white, not cyan */
-  --c-sf2: #F3F4F6;               /* soft gray — used by baseInput + table-row hover */
-  --c-sf3: #E5E7EB;               /* sunken / disabled surface */
+  --c-sf2: #EEF0F3;               /* soft gray — used by baseInput + table-row hover (one notch darker to match new bg) */
+  --c-sf3: #DFE2E7;               /* sunken / disabled surface */
   --c-stripBg: #39BDFF;           /* RefinedHeaderStrip bg — full BSG cyan, brand-on */
   --c-headerBg: #FFFFFF;
   --c-divider: rgba(57,189,255,0.22);
@@ -380,37 +383,17 @@ html, body {
   color: var(--c-tx);
 }
 
-/* === Light-mode cyan-intensity variants =====================================
-   Gated on body[data-cyan-*] attributes (set by src/cyanVariant.js when
-   ?cyan=labels / ?cyan=icons is in the URL). Used for visual A/B comparison;
-   the winning combo will be baked in unconditionally and these blocks removed.
-
-   labels variant: every small uppercase tile label currently rendered with
-   color:var(--c-tm) becomes the darkened-AA-safe cyan. We can't target every
-   call site without a class refactor, so we use a tight attribute-selector
-   pattern that picks up the canonical 9-11px uppercase letterSpacing 0.18em
-   labels by their inline-style fingerprint. The selector is intentionally
-   narrow so it doesn't capture body text.
+/* === Light-mode cyan-labels rule ==========================================
+   Small all-caps tile labels (letter-spacing 0.18em — KPI labels, stat tile
+   labels, column headers, etc.) render in the AA-safe darkened cyan in light
+   mode. Matches the brand-cyan column header treatment on the Exercises
+   page, picked as the winner from the A/B variant set (see commit history
+   around c2832f0 / 8be803e). The selector is intentionally narrow so it
+   doesn't capture body text — letter-spacing 0.18em is the canonical
+   uppercase-label fingerprint across the app.
    ======================================================================== */
-[data-theme="light"] body[data-cyan-labels="1"] [style*="letter-spacing: 0.18em"],
-[data-theme="light"] body[data-cyan-labels="1"] [style*="letterSpacing:0.18em"],
-[data-theme="light"] body[data-cyan-labels="1"] [style*="letterSpacing: '0.18em'"] {
+[data-theme="light"] [style*="letter-spacing: 0.18em"],
+[data-theme="light"] [style*="letterSpacing:0.18em"],
+[data-theme="light"] [style*="letterSpacing: '0.18em'"] {
   color: var(--c-acText) !important;
-}
-
-/* icons variant: every section header inside the dashboard / TraineeDetail
-   gets a 3px-wide cyan vertical bar via ::before. Same narrow selector
-   pattern — targets the h3 headings that lead each section. */
-[data-theme="light"] body[data-cyan-icons="1"] h3 {
-  position: relative;
-  padding-inline-start: 12px !important;
-}
-[data-theme="light"] body[data-cyan-icons="1"] h3::before {
-  content: '';
-  position: absolute;
-  inset-inline-start: 0;
-  top: 4px;
-  bottom: 4px;
-  width: 3px;
-  background: var(--c-ac);
 }

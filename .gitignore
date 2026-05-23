@@ -64,3 +64,6 @@ scripts/test-*.cjs
 /Exercise Database/
 
 .env*.local
+
+# Local business docs — must never be committed
+_biz_extract/

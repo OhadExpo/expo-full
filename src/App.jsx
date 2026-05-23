@@ -10,10 +10,6 @@ import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn, ToastHost } from './ui';
 import BugReportButton from './BugReportButton';
-// Side-effect import — reads ?cyan= from the URL and sets body data-cyan-*
-// attributes that themes.css uses to switch on the visual variants. Runs
-// once at module load, free to remove once a winner is picked.
-import './cyanVariant';
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS } from './auth';
 // Lazy-load every heavy view so the initial bundle stays small.
