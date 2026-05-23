@@ -114,18 +114,16 @@ export const isRefined5b = () => {
 // Pass `padY` and `padX` matching the parent card's padding (defaults
 // match the dashboard alert-card padding of 14/18).
 export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBottom = 12 }) {
-  // Strip is a bordered title box that sits INSIDE the card padding
-  // (Ohad spec 2026-05-23: "stroke all around the title box, cyan stroke").
-  // Drop the negative-margin edge-bleed so the strip's own border doesn't
-  // double up with the card's outer border. Hardcoded brand cyan literal
-  // because var(--c-ac) resolves to black in light mode (AA accessibility)
-  // — we want the stroke to be cyan in BOTH themes.
+  // --c-stripBg is full BSG cyan in light, falls back to var(--c-sf)
+  // in dark (which is the dark surface) so the strip dissolves into
+  // the card body in dark mode rather than rendering as an invisible
+  // darker rectangle.
   return (
     <div style={{
       background: 'var(--c-stripBg, var(--c-sf))',
-      margin: `0 0 ${marginBottom}px`,
+      margin: `-${padY}px -${padX}px ${marginBottom}px`,
       padding: `8px ${padX}px`,
-      border: '1px solid #39BDFF',
+      borderBottom: '1px solid rgba(0,0,0,0.10)',
     }}>{children}</div>
   );
 }
