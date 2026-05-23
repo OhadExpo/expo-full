@@ -658,25 +658,25 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                   style={{ borderBottom: `1px solid ${C.cardBd}`, cursor: 'pointer', transition: 'background 0.1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '12px', fontWeight: 600, color: C.tx }}>{t.name}</td>
-                  <td style={{ padding: '12px' }}><Badge color={statusColor[t.status] || C.td}>{t.status}</Badge></td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{t.format}</td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>{t.package}{t.packagePrice ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
-                  <td style={{ padding: '12px' }}>
+                  <td style={{ padding: '12px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{t.status}</Badge></td>
+                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.format}</td>
+                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.package}{t.packagePrice ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td style={{ padding: '12px', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
                     ) : <span style={{ color: C.td, fontSize: 12 }}>—</span>}
                   </td>
-                  <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: parseFloat(t.monthly) > 0 ? C.gn : C.td }}>
+                  <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: parseFloat(t.monthly) > 0 ? C.gn : C.td, textAlign: 'center' }}>
                     {parseFloat(t.monthly) > 0 ? `₪${parseInt(t.monthly).toLocaleString()}/MO` : '—'}
                   </td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12 }}>
+                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>
                     {t.lastPayment ? new Date(t.lastPayment).toLocaleDateString('he-IL') : '—'}
                   </td>
-                  <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.ac : C.td }}>
+                  <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.ac : C.td, textAlign: 'center' }}>
                     {t.workoutCount || '—'}
                   </td>
-                  <td style={{ padding: '12px', fontFamily: FN, color: t.planCount > 0 ? C.ac : C.td }}>
+                  <td style={{ padding: '12px', fontFamily: FN, color: t.planCount > 0 ? C.ac : C.td, textAlign: 'center' }}>
                     {t.planCount || '—'}
                   </td>
                 </tr>

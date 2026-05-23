@@ -308,7 +308,11 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
   // When `header` is also passed, the cyan strip is rendered above the body.
   // In dark / non-refined modes the card stays single-zone cyan.
   const refined = isRefined5b();
-  const hasStrip = refined && header;
+  // Strip headers render in BOTH light and dark mode so card sizing/layout
+  // is identical across themes (Ohad spec 2026-05-23). Light mode strip is
+  // full brand cyan; dark mode strip uses the same brand cyan via the
+  // --c-stripBg token override below.
+  const hasStrip = !!header;
   const padNum = typeof padding === 'number' ? padding : 20;
   return (
     <div onClick={onClick} style={{
