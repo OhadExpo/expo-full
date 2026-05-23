@@ -289,20 +289,6 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword }) {
     { key: 'bugs', label: 'Bugs', onClick: () => navTo('bugs'), icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.5a4 4 0 0 0-4 4v1h8v-1a4 4 0 0 0-4-4Z"/><path d="M5 12a7 7 0 0 1 14 0v3a7 7 0 0 1-14 0Z"/></svg>
     ) },
-    // Push notifications toggle. Sits above Change Password per Ohad's
-    // request; replaces the standalone PushToggle card on the dashboard.
-    // The bell icon flips to muted (🔕 style) when push is off.
-    ...(pushSupported ? [{
-      key: 'pushToggle',
-      label: `Push Notifications · ${pushBusy ? '…' : (pushOn ? 'ON' : 'OFF')}`,
-      onClick: togglePush,
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
-          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-        </svg>
-      ),
-    }] : []),
     { key: 'password', label: 'Change Password', onClick: onChangePassword, icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     ) },
@@ -339,7 +325,68 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword }) {
           minWidth: 220, zIndex: 100000,
           boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
         }}>
-          {items.map(it => {
+          {items.slice(0, -1).map(it => {
+            const isItemActive = tab === it.key;
+            return (
+              <button key={it.key} onClick={() => { setOpen(false); it.onClick(); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  width: '100%', padding: '10px 14px',
+                  background: isItemActive ? C.acD : 'transparent',
+                  color: isItemActive ? C.ac : C.tx,
+                  border: 'none', borderBottom: `1px solid ${C.cardBd}`,
+                  fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+                  textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
+                }}
+                onMouseEnter={e => { if (!isItemActive) e.currentTarget.style.background = 'var(--c-sf2)'; }}
+                onMouseLeave={e => { if (!isItemActive) e.currentTarget.style.background = 'transparent'; }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
+                <span>{it.label}</span>
+              </button>
+            );
+          })}
+          {/* Push Notifications row — only the toggle switch on the right
+              is clickable; the label area is inert. Ohad spec 2026-05-23. */}
+          {pushSupported && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 14px', borderBottom: `1px solid ${C.cardBd}`,
+              color: C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+            }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', color: C.tm, flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+              </span>
+              <span style={{ flex: 1 }}>Push Notifications</span>
+              {/* Toggle switch — the ONLY clickable region. */}
+              <button onClick={e => { e.stopPropagation(); togglePush(); }}
+                disabled={pushBusy}
+                aria-label={pushOn ? 'Turn off push notifications' : 'Turn on push notifications'}
+                title={pushOn ? 'Click to disable push notifications' : 'Click to enable push notifications'}
+                style={{
+                  flexShrink: 0, width: 36, height: 20, borderRadius: 10,
+                  background: pushOn ? '#39BDFF' : 'var(--c-sf3)',
+                  border: `1px solid ${pushOn ? '#39BDFF' : C.cardBd}`,
+                  position: 'relative', padding: 0,
+                  cursor: pushBusy ? 'wait' : 'pointer',
+                  opacity: pushBusy ? 0.6 : 1,
+                  transition: 'background 0.15s, border-color 0.15s',
+                }}>
+                <span style={{
+                  position: 'absolute',
+                  top: 1, left: pushOn ? 17 : 1,
+                  width: 16, height: 16, borderRadius: '50%',
+                  background: '#FFFFFF',
+                  transition: 'left 0.15s',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                }} />
+              </button>
+            </div>
+          )}
+          {/* Change Password — always rendered last */}
+          {items.slice(-1).map(it => {
             const isItemActive = tab === it.key;
             return (
               <button key={it.key} onClick={() => { setOpen(false); it.onClick(); }}

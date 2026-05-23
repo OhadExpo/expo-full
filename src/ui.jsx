@@ -346,8 +346,10 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
         <RefinedHeaderStrip padY={padNum} padX={padNum} marginBottom={12}>
           {headerRight ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              {/* Pure white in BOTH themes so the dark strip's title reads
+                  with the same crispness as the cyan-strip light variant. */}
               <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF' }}>{header}</div>
-              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>{headerRight}</div>
+              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
             </div>
           ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
         </RefinedHeaderStrip>
