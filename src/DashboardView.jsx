@@ -351,13 +351,12 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           const refined = isRefined5b();
           return (
             <div key={i} className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '16px 20px', boxShadow: C.cardShadow }}>
-              {refined ? (
-                <RefinedHeaderStrip padY={16} padX={20}>
-                  <SectionLabel style={{ color: '#FFFFFF', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
-                </RefinedHeaderStrip>
-              ) : (
-                <SectionLabel style={{ marginBottom: 8 }}>{s.label}</SectionLabel>
-              )}
+              {/* Always render the strip in BOTH themes for layout parity
+                  (Ohad 2026-05-23). Dark mode strip uses --c-stripBg=#000
+                  with cyan-30% bottom hairline; light mode is brand cyan. */}
+              <RefinedHeaderStrip padY={16} padX={20}>
+                <SectionLabel style={{ color: '#FFFFFF', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+              </RefinedHeaderStrip>
               <div style={{ fontSize: C.kpiNumberSize, fontWeight: refined ? 800 : 700, fontFamily: FN, color: s.color, lineHeight: 1.05, letterSpacing: '-0.015em' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
               {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
@@ -410,19 +409,13 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         const refined = isRefined5b();
         return (
           <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
-            {refined ? (
-              <RefinedHeaderStrip>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontSize: 11, fontFamily: FN, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>INCOMING · 30D</span>
-                  <span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
-                </div>
-              </RefinedHeaderStrip>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
-                <span style={{ fontSize: 9, fontFamily: FN, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 700 }}>INCOMING · 30D</span>
-                <span style={{ fontSize: 10, fontFamily: FN, color: C.td, letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
+            {/* Strip rendered in BOTH themes for layout parity. */}
+            <RefinedHeaderStrip>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontSize: 11, fontFamily: FN, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>INCOMING · 30D</span>
+                <span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
               </div>
-            )}
+            </RefinedHeaderStrip>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
               {[
                 { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
