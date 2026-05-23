@@ -760,7 +760,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
                     <Input label="Name" value={m.name||""} onChange={e=>upd('name',e.target.value)} />
                     <EmailsInput label="Email" value={m._emails || emailsToArr(m.email)} onChange={next=>upd('_emails',next)} />
-                    <Input label="Phone" value={m.phone||""} onChange={e=>upd('phone',e.target.value)} placeholder="+972..." />
+                    <Input label="Phone" value={m.phone||""} onChange={e=>upd('phone',e.target.value)} placeholder="+972..." autoComplete="off" />
                     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
                       <Input label="Age" type="number" value={m.age||""} onChange={e=>upd('age',e.target.value)} />
                       <Input label="Weight" type="number" value={m.weight||""} onChange={e=>upd('weight',e.target.value)} />
@@ -800,7 +800,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               }} style={{ background: 'var(--c-sf)', border: `0.25px dashed ${C.cardBd}`, borderRadius: 0, padding: '6px 10px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase' }}>+ Add Email</button>
             )}
           </div>
-          <Input label="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+972..." />
+          <Input label="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="+972..." autoComplete="off" />
           <Input label="Age" type="number" value={form.age} onChange={e => setForm({...form, age: e.target.value})} />
           <Input label="Weight (kg)" type="number" value={form.weight} onChange={e => setForm({...form, weight: e.target.value})} />
           <Input label="Height (cm)" type="number" value={form.height} onChange={e => setForm({...form, height: e.target.value})} />

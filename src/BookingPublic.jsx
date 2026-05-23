@@ -235,7 +235,7 @@ export default function BookingPublic() {
               <input placeholder="Email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                 style={inputStyle} />
               <input placeholder="Phone (WhatsApp)" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })}
-                style={inputStyle} />
+                style={inputStyle} autoComplete="off" />
               <input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
                 style={inputStyle} />
             </div>
