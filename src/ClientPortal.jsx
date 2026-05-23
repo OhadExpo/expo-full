@@ -197,7 +197,13 @@ function GooglePhotosEmbed({ url }) {
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution}) {
   // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
-  const warmup = plan.warmup || [];
+  // Daily-routine days skip warm-up steps entirely — Roei's "morning
+  // routine" pattern doesn't tie to a warm-up block. Per-day flag set
+  // via PlanEditor's 📆 Daily Routine checkbox. Legacy plan-level
+  // kind='daily' (96e5f72 shape) also skips. The plan-level warm-up
+  // editor still works for other (week-paced) days in the same plan.
+  const isDailyRoutine = day?.kind === 'daily' || plan?.kind === 'daily';
+  const warmup = isDailyRoutine ? [] : (plan.warmup || []);
   const wuCount = warmup.length;
   const exCount = day.ex.length;
 
@@ -1887,7 +1893,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}
             <div style={{flex:1,height:1,background:C.bd2}}/>
           </div>}
-          {vp.warmup?.length > 0 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
+          {/* Skip the warm-up preview when every day in this plan is a daily
+              routine — the plan-level warm-up doesn't apply to those, so
+              showing it just creates UI noise. If even one day is week-paced,
+              the warm-up is still relevant and stays visible. */}
+          {vp.warmup?.length > 0 && !(vp.kind === 'daily' || (Array.isArray(vp.days) && vp.days.length > 0 && vp.days.every(d => d.kind === 'daily'))) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
             <div style={{fontSize:10,fontFamily:FN,color:C.or,marginBottom:10,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase'}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
             {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
               <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
