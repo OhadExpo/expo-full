@@ -388,12 +388,12 @@ html, body {
    labels, column headers, etc.) render in the AA-safe darkened cyan in light
    mode. Matches the brand-cyan column header treatment on the Exercises
    page, picked as the winner from the A/B variant set (see commit history
-   around c2832f0 / 8be803e). The selector is intentionally narrow so it
-   doesn't capture body text — letter-spacing 0.18em is the canonical
-   uppercase-label fingerprint across the app.
+   around c2832f0 / 8be803e).
+
+   Scope: excludes interactive elements (button, a, select, input, [role])
+   so their own active/inactive color logic keeps working (sort indicators,
+   tab highlights, etc.). Labels are span/div/label/th/td-shaped.
    ======================================================================== */
-[data-theme="light"] [style*="letter-spacing: 0.18em"],
-[data-theme="light"] [style*="letterSpacing:0.18em"],
-[data-theme="light"] [style*="letterSpacing: '0.18em'"] {
+[data-theme="light"] :not(button):not(a):not(select):not(input):not(textarea):not([role="button"])[style*="letter-spacing: 0.18em"] {
   color: var(--c-acText) !important;
 }
