@@ -6,7 +6,14 @@
   --c-sf: #0a0a0c;
   --c-sf2: #111114;
   --c-sf3: #18181c;
-  --c-stripBg: #39BDFF;  /* brand cyan strip header in BOTH themes for layout parity (Ohad spec 2026-05-23) */
+  /* Strip header bg in dark — muted dark cyan-blue (#163346) instead of
+     the full brand #39BDFF. Keeps the layout/size parity with light
+     mode (Ohad spec 2026-05-23) without blasting the eyes against a
+     near-black card body. Same hue family as the brand cyan, dropped
+     in luminance from L≈61% to L≈18%. White strip text still reads
+     clearly. Card body cards stay distinct since cardBd is cyan-30%
+     and the strip sits above the body without a hard border. */
+  --c-stripBg: #163346;
   --c-bd: #1e1e24;
   --c-bd2: #2a2a32;
   --c-tx: #f0f0f4;
