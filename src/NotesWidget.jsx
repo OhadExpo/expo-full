@@ -714,6 +714,10 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   <div style={{
                     fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, whiteSpace: 'pre-wrap', textDecoration: 'line-through',
                     direction: heb ? 'rtl' : 'ltr',
+                    // Center-align DONE rows so mixed Hebrew/English content
+                    // doesn't split the eye between right-anchored and
+                    // left-anchored rows (Ohad spec 2026-05-24).
+                    textAlign: 'center',
                     // FB (Nord-first with Heebo fallback) for BOTH Hebrew and English
           // bodies so the type renders with the same sharp Nord weight
           // as the action pills (REVIEW / NEW PROGRAM) and label strips —

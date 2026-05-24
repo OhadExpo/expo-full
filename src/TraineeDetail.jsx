@@ -734,7 +734,11 @@ function BWChart({ entries }) {
   if (!entries || entries.length === 0) {
     return <Card style={{textAlign:'center',padding:'18px 16px',color:C.td,fontSize:13}}>No bodyweight logged yet — appears once the trainee logs weight from their portal.</Card>;
   }
-  const W = 800, H = 140, PAD_X = 14, PAD_TOP = 18, PAD_BOTTOM = 24;
+  // Bottom padding shrunk from 24 → 12 because date labels moved OUT
+  // of the SVG and into HTML below (preserveAspectRatio="none" was
+  // stretching the text horizontally as the SVG scaled wider than its
+  // viewBox).
+  const W = 800, H = 128, PAD_X = 14, PAD_TOP = 18, PAD_BOTTOM = 12;
   const values = entries.map(e => e.bw);
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -758,11 +762,11 @@ function BWChart({ entries }) {
         <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
           <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Current</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(last)}</div></div>
           <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Δ from first</div><div style={{fontSize:18,fontWeight:700,color:deltaColor,fontFamily:FN}}>{delta > 0 ? '+' : ''}{delta.toFixed(1)}kg</div></div>
-          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Range</div><div style={{fontSize:13,color:C.tm,fontFamily:FN,marginTop:3}}>{fmt(min)} – {fmt(max)}</div></div>
+          <div><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>Range</div><div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{fmt(min)} – {fmt(max)}</div></div>
         </div>
         <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{entries.length} ENTR{entries.length === 1 ? 'Y' : 'IES'}</div>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:140,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:H,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">
         <defs>
           {/* Brand cyan literal — C.ac resolves to BLACK in light mode (AA
               accessibility for active surfaces), so using it here drained
@@ -810,9 +814,15 @@ function BWChart({ entries }) {
             </g>
           );
         })}
-        <text x={PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td}>{fmtPrettyDate(entries[0].date)}</text>
-        <text x={W - PAD_X} y={H - 6} fontSize="9" fontFamily={FN} fill={C.td} textAnchor="end">{fmtPrettyDate(entries[entries.length-1].date)}</text>
       </svg>
+      {/* Date labels rendered as HTML so they don't get horizontally
+          stretched by the SVG's preserveAspectRatio="none". Same content
+          (first + last entry date), positioned at the chart's left/right
+          edges via flex space-between. */}
+      <div style={{display:'flex',justifyContent:'space-between',marginTop:4,fontFamily:FN,fontSize:9,color:C.td,letterSpacing:'0.04em'}}>
+        <span>{fmtPrettyDate(entries[0].date)}</span>
+        <span>{fmtPrettyDate(entries[entries.length-1].date)}</span>
+      </div>
     </Card>
   );
 }
