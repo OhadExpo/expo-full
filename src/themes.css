@@ -15,6 +15,10 @@
   /* Match light's headline-size KPI numbers so dark + light tiles have
      identical body heights (10.5px discrepancy fix, 2026-05-23). */
   --c-kpiNumberSize: 40px;
+  /* Match light's alert-label size (Overdue / Dormant / Online Now /
+     Dropout Risk) so the strip header heights line up across themes.
+     Was 11px in dark; 13px in light → 1.6px tile-height delta. */
+  --c-alertLabelSize: 13px;
   --c-bd: #1e1e24;
   --c-bd2: #2a2a32;
   --c-tx: #f0f0f4;
