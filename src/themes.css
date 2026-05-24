@@ -6,12 +6,15 @@
   --c-sf: #0a0a0c;
   --c-sf2: #111114;
   --c-sf3: #18181c;
-  /* Strip header bg in dark — pure black with white title text. Sits
-     slightly darker than the card body (#0a0a0c) so the strip
-     structure is visible without introducing a non-brand color
-     (Ohad spec 2026-05-23). Layout/size parity with light mode
-     preserved; just the fill differs to fit dark theme aesthetics. */
-  --c-stripBg: #000000;
+  /* Strip header bg in dark — a step BRIGHTER than the card body so
+     the strip reads as an elevated header band (symmetric with the
+     light theme where the cyan strip pops against the white card).
+     The earlier pure-black strip blended invisibly into the card
+     body (#0a0a0c, only 10 luminance units away). Now strip=#1a1a22
+     stands ~25 luminance units above the card body, matching the
+     light theme's "strip stands clearly above the body" visual
+     hierarchy (Ohad spec 2026-05-24). */
+  --c-stripBg: #1a1a22;
   /* Match light's headline-size KPI numbers so dark + light tiles have
      identical body heights (10.5px discrepancy fix, 2026-05-23). */
   --c-kpiNumberSize: 40px;
