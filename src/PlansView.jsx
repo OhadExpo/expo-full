@@ -671,7 +671,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       `}</style>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12,flexWrap:'wrap'}}>
         <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flex:'1 1 240px'}}>
-          <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0,whiteSpace:'nowrap'}}>← Back</button>
+          <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap'}}>← BACK</button>
           {/* Switch-program dropdown — lets the coach scroll between this
               athlete's programs (current + earlier blocks) without leaving
               the editor. Saves any pending edits first. Mounted only when

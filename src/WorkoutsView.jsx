@@ -18,7 +18,7 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
   return (
     <div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back</button>
+        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK</button>
         {!isCompleted&&<Btn variant="success" onClick={onComplete}>Complete Workout</Btn>}
         {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>Completed</Badge>}
       </div>

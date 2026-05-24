@@ -1691,8 +1691,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           />
         )}
         <button onClick={() => { setSelectedWo(null); setExpandedEx(null); }}
-          style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0,marginBottom:12}}>
-          ← Back to workouts
+          style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,marginBottom:12}}>
+          ← BACK TO WORKOUTS
         </button>
 
         {/* Workout header */}

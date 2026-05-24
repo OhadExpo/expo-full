@@ -273,7 +273,7 @@ function ClientPortalMock({ onPick }) {
       <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
         <div style={{ background: `linear-gradient(135deg,${C.sf},${C.sf2})`, padding: '16px 20px', borderBottom: `1px solid ${C.bd}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <button onClick={exit} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0 }}>← Back</button>
+            <button onClick={exit} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0 }}>← BACK</button>
             <button onClick={completeAndExit} style={{ background: C.gn, color: '#0a0a0b', border: 'none', borderRadius: 0, padding: '6px 14px', fontFamily: FB, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
               Complete Workout
             </button>

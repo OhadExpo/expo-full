@@ -315,7 +315,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       `}</style>
       {/* Back + actions bar */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FB,fontSize:13,padding:0}}>← Back to Athletes</button>
+        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK TO ATHLETES</button>
         <div style={{display:"flex",gap:6}}>
           {/* Notifications on/off — per-athlete mute for the COACH side.
               When OFF, athlete→coach messages and workout-complete events
