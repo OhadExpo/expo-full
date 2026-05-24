@@ -421,25 +421,24 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === BILLING — slot #3, right after Header. */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"20px 0 12px",gap:8,flexWrap:'wrap'}}>
         <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Billing ({tPay.length}){totalPaid>0&&<span style={{color:C.gn,marginLeft:8}}>₪{totalPaid.toLocaleString()} total paid</span>}</h3>
-        {/* Billing actions — wrapped in a single cyan-stroked segmented
-            container per Ohad 2026-05-24. Three buttons (Contract /
-            Request via Bit / Add Payment) sit edge-to-edge with 1px
-            cyan dividers between, no individual borders. */}
-        <div style={{display:'flex',border:`1px solid ${C.ac}`,borderRadius:0}}>
+        {/* Billing actions — single cyan-stroked container, NO internal
+            dividers (Ohad iteration 2026-05-24: the earlier divider
+            version still read as 3 separate buttons). Outer border is
+            a hardcoded brand-cyan literal so it pops in both themes
+            equally; inner buttons are borderless and pad-spaced. */}
+        <div style={{display:'flex',border:'1px solid #39BDFF',borderRadius:0}}>
           {/* F-27 — open the brand-rich contract composer. */}
           <button onClick={()=>setShowContract(true)}
-            style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'4px 12px',cursor:'pointer',borderRadius:0}}>📄 CONTRACT</button>
-          <div style={{width:1,background:C.ac,flexShrink:0}} />
+            style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'6px 14px',cursor:'pointer',borderRadius:0}}>📄 CONTRACT</button>
           {/* "+ Request via Bit" — creates a pending row in bit_payment_requests.
               Disabled until the coach has configured their Bit phone in
               /coach/billing (tooltip nudges there). */}
           <button onClick={openBitReq}
             disabled={!bitPhone}
             title={bitPhone ? 'Create a Bit payment request for this athlete' : 'Configure your Bit phone in /coach/billing first'}
-            style={{background:'transparent',border:'none',color:bitPhone?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'4px 12px',cursor:bitPhone?'pointer':'not-allowed',borderRadius:0}}>📲 REQUEST VIA BIT</button>
-          <div style={{width:1,background:C.ac,flexShrink:0}} />
+            style={{background:'transparent',border:'none',color:bitPhone?C.ac:C.td,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'6px 14px',cursor:bitPhone?'pointer':'not-allowed',borderRadius:0}}>📲 REQUEST VIA BIT</button>
           <button onClick={()=>setShowPayForm(true)}
-            style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'4px 12px',cursor:'pointer',borderRadius:0}}>+ ADD PAYMENT</button>
+            style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'6px 14px',cursor:'pointer',borderRadius:0}}>+ ADD PAYMENT</button>
         </div>
       </div>
       {tPay.length===0?<div style={{color:C.td,fontSize:13}}>No payments recorded.</div>:(
