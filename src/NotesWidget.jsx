@@ -705,7 +705,11 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             const heb = isHebrew(n.body);
             return (
               <div key={n.id} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0', opacity: 0.55,
+                // No wrapper opacity — line-through + muted color (--c-tm)
+                // are already enough "this is closed" signal in both themes.
+                // The prior opacity:0.55 was double-dimming and made the
+                // strikethrough body unreadable on white in light mode.
+                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0',
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
                 <input type="checkbox" checked={true} onChange={() => toggleDone(n.id)}

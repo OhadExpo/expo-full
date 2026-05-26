@@ -351,7 +351,11 @@ export default function NotesInline({
             const heb = isHebrew(n.body);
             return (
               <div key={n.id} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0', opacity: 0.55,
+                // No wrapper opacity — line-through + muted color (--c-tm)
+                // are enough "this is closed" signal in both themes. Prior
+                // opacity:0.55 double-dimmed the row and made the
+                // strikethrough body unreadable on white in light mode.
+                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0',
               }}>
                 <input type="checkbox" checked={true} onChange={() => toggleDone(n.id)}
                   style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
