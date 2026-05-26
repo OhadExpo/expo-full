@@ -10,13 +10,16 @@
 
 import React from 'react';
 import NotesWidget from './NotesWidget';
+import TasksV2View from './TasksV2View';
 
-// Page heading + "Unified feed — write a task from anywhere…" subhead
-// removed 2026-05-19: the nav pill "TASKS" already labels the surface,
-// the card header "📌 TASKS (10)" already gives the count, and the
-// one-line documentation belongs in onboarding, not above the surface
-// you triage from every day. Daily-use real estate matters.
+// `?ui=v2` activates the Option 5 layout prototype (continuous list with
+// NOW line, Monday status pills, assignee dots, inline expand). Read-only
+// prototype rendered from existing coach_notes data. Throw away if
+// rejected; otherwise Phase 1 lands real schema (assigned_to / due_at /
+// 4-state status) and the prototype becomes the canonical view.
 export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlanForTask, onOpenIntakeTab, onOpenReviewWorkout }) {
+  const useV2 = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ui') === 'v2';
+  if (useV2) return <TasksV2View />;
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 4px' }}>
       <NotesWidget
