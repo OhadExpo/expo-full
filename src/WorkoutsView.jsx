@@ -54,6 +54,16 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [filterTrainee, setFilterTrainee] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [expandedTrainees, setExpandedTrainees] = useState({});
+  // Seed the trainee filter from sessionStorage — set by the "LOG SESSION"
+  // button on TraineeDetail so the coach lands here pre-filtered to the
+  // athlete they were just looking at. Stash is consumed on first mount.
+  useEffect(() => {
+    try {
+      const tid = sessionStorage.getItem('expo-pendingInPersonTrainee');
+      if (tid) { setFilterTrainee(tid); sessionStorage.removeItem('expo-pendingInPersonTrainee'); }
+    } catch {}
+  }, []);
   const startWorkout = async (planSummary, dayIdx) => {
     // Load full plan data from Supabase
     const { data: fullPlan } = await supabase.from('plans').select('*').eq('id', planSummary.id).single();
@@ -96,18 +106,15 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       setActiveWorkout(null);
     }
   }, [activeWorkout, workouts]);
-  if (activeWorkout) {
-    const w = workouts.find(x => x.id === activeWorkout);
-    if (!w) return null;
-    return <WorkoutLogger workout={w} exercises={exercises} onUpdate={u=>updateWorkout(activeWorkout,u)} onComplete={()=>completeWorkout(activeWorkout)} onBack={()=>setActiveWorkout(null)} />;
-  }
-  const completed = workouts.filter(w=>w.status==="completed"&&(!filterTrainee||w.traineeId===filterTrainee));
-  const inProgress = workouts.filter(w=>w.status==="in-progress");
   // Filter the plan picker. Without this, the picker dumps all 209
   // production plans into one scroll. Active-only by default and a
   // trainee filter that piggybacks the same state the Completed
   // filter below already uses, so the coach only sees relevant
   // starting points.
+  // NOTE: every useMemo lives ABOVE the early `return` below — React
+  // requires identical hook order each render. Crash repro before this
+  // ordering fix was React #300 ("rendered more hooks than during the
+  // previous render") when activeWorkout toggled between renders.
   const activeTraineeIds = useMemo(
     () => new Set((trainees || []).filter(t => t.status !== 'Archived').map(t => t.id)),
     [trainees]
@@ -137,11 +144,13 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     }
     return m;
   }, [visiblePlans]);
-  // Track which trainees have their full plan list expanded. When a
-  // trainee is selected in the dropdown filter, we render their full
-  // list flat anyway (no grouping needed), so this state is only
-  // consulted in the multi-trainee view.
-  const [expandedTrainees, setExpandedTrainees] = useState({});
+  if (activeWorkout) {
+    const w = workouts.find(x => x.id === activeWorkout);
+    if (!w) return null;
+    return <WorkoutLogger workout={w} exercises={exercises} onUpdate={u=>updateWorkout(activeWorkout,u)} onComplete={()=>completeWorkout(activeWorkout)} onBack={()=>setActiveWorkout(null)} />;
+  }
+  const completed = workouts.filter(w=>w.status==="completed"&&(!filterTrainee||w.traineeId===filterTrainee));
+  const inProgress = workouts.filter(w=>w.status==="in-progress");
   const toggleExpanded = (tid) => setExpandedTrainees(prev => ({ ...prev, [tid]: !prev[tid] }));
   return (
     <div>
