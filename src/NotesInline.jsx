@@ -38,13 +38,17 @@ const isHebrew = (s) => /[֐-׿]/.test(s || '');
 // keeps every "→ NEW PROGRAM / WHATSAPP / REVIEW / INTAKE / RUN EVAL"
 // affordance the same height + padding so the footer row reads as one
 // rhythm per [[new-ui-box-dimensions]].
+// Uniform width across → WHATSAPP / NEW PROGRAM / REVIEW / INTAKE so every
+// task row's action button reads as the same shape. 132 px comfortably fits
+// "→ NEW PROGRAM" (the longest label) at fontSize 10 + 0.12em tracking + the
+// 4px 10px padding used here.
 function pillBtn(color) {
   return {
     background: 'transparent', border: `1px solid ${color}`, color,
     fontFamily: 'inherit', fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
     padding: '4px 10px', borderRadius: 0, cursor: 'pointer',
-    whiteSpace: 'nowrap', height: 26,
-    display: 'inline-flex', alignItems: 'center',
+    whiteSpace: 'nowrap', height: 26, width: 132,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   };
 }
 

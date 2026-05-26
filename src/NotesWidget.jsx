@@ -246,6 +246,10 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
 // Pre-built solution pill — cyan border, narrow chip, label like
 // "→ NEW PROGRAM" / "→ REVIEW" / "→ INTAKE" / "→ ATHLETE". Used by every
 // non-WhatsApp task action so the row reads uniformly.
+// Fixed width across every variant so → WHATSAPP, → NEW PROGRAM, → REVIEW,
+// → INTAKE, → ATHLETE all render as one button shape and align column-wise
+// in the Tasks pool. 124px comfortably fits "→ NEW PROGRAM" (the longest
+// label) at fontSize 10 + 0.1em tracking, with a hair of side gutter.
 function ActionPill({ label, onClick, color, title }) {
   const c = color || 'var(--c-ac)';
   return (
@@ -254,7 +258,8 @@ function ActionPill({ label, onClick, color, title }) {
         background: 'transparent', border: `1px solid ${c}`, color: c,
         fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
         padding: '2px 9px', borderRadius: 0, cursor: 'pointer',
-        whiteSpace: 'nowrap', height: 22, display: 'inline-flex', alignItems: 'center',
+        whiteSpace: 'nowrap', height: 22, width: 124,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       }}>{label}</button>
   );
 }
