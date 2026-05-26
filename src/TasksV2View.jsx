@@ -138,6 +138,8 @@ function googleCalendarUrl(row, displayBody) {
 function TaskRow({ row, owner, displayBody, now, theme, expanded, onToggle }) {
   const heb = isHebrew(displayBody || '');
   const date = compactDate(row.created_at, now);
+  const chip = rowInlineChip(row);
+  const chipHeb = isHebrew(chip || '');
 
   return (
     <div
@@ -163,6 +165,17 @@ function TaskRow({ row, owner, displayBody, now, theme, expanded, onToggle }) {
         textOverflow: 'ellipsis',
         whiteSpace: expanded ? 'normal' : 'nowrap',
       }}>{displayBody}</div>
+      {chip && (
+        <span style={{
+          fontFamily: chipHeb ? FH : FN,
+          fontSize: chipHeb ? 12 : 10, fontWeight: 700,
+          letterSpacing: chipHeb ? 0 : '0.12em',
+          color: 'var(--c-ac)',
+          border: '1px solid var(--c-cardBd)',
+          padding: '2px 7px', textTransform: chipHeb ? 'none' : 'uppercase',
+          flexShrink: 0,
+        }}>{chip}</span>
+      )}
       <StatusPill status={row.status} theme={theme} />
       <span style={{
         fontFamily: FN, fontSize: 11, fontWeight: 600,
@@ -228,6 +241,84 @@ function ExpandedDetail({ row, displayBody }) {
   );
 }
 
+function FilterChip({ label, count, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        background: active ? 'var(--c-ac)' : 'transparent',
+        color: active ? '#FFFFFF' : 'var(--c-tm)',
+        border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+        fontFamily: FN, fontSize: 10, fontWeight: 700,
+        letterSpacing: '0.12em', padding: '5px 11px',
+        cursor: 'pointer', borderRadius: 0,
+        textTransform: 'uppercase',
+      }}>
+      <span>{label}</span>
+      <span style={{ opacity: active ? 0.85 : 0.7, fontSize: 10 }}>{count}</span>
+    </button>
+  );
+}
+
+function SortDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const current = SORT_OPTIONS.find(o => o.key === value) || SORT_OPTIONS[0];
+  return (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        onBlur={() => setTimeout(() => setOpen(false), 160)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          background: 'transparent', border: '1px solid var(--c-cardBd)',
+          color: 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700,
+          letterSpacing: '0.12em', padding: '5px 10px',
+          cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
+        }}>⇅ {current.label} ▾</button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', right: 0, marginTop: 2,
+          background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)',
+          zIndex: 100, minWidth: 130,
+        }}>
+          {SORT_OPTIONS.map(o => (
+            <button key={o.key}
+              onMouseDown={(e) => { e.preventDefault(); onChange(o.key); setOpen(false); }}
+              style={{
+                display: 'block', width: '100%',
+                background: o.key === value ? 'var(--c-sf2)' : 'transparent',
+                border: 'none', textAlign: 'left', padding: '7px 12px',
+                fontFamily: FN, fontSize: 10, fontWeight: 700,
+                letterSpacing: '0.12em',
+                color: o.key === value ? 'var(--c-ac)' : 'var(--c-tm)',
+                cursor: 'pointer', textTransform: 'uppercase',
+              }}>{o.label}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SearchInput({ value, onChange }) {
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="Search…"
+      style={{
+        background: 'transparent', border: '1px solid var(--c-cardBd)',
+        color: 'var(--c-tx)', fontFamily: FN, fontSize: 11, fontWeight: 500,
+        letterSpacing: '0.04em', padding: '5px 10px', borderRadius: 0,
+        outline: 'none', width: 180, height: 28, boxSizing: 'border-box',
+      }}
+      autoComplete="off"
+    />
+  );
+}
+
 function OwnerTab({ label, count, active, onClick, color }) {
   return (
     <button
@@ -248,14 +339,60 @@ function OwnerTab({ label, count, active, onClick, color }) {
   );
 }
 
-function sortByDate(rows) {
-  return [...rows].sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
+function sortByDate(rows)   { return [...rows].sort((x, y) => new Date(x.created_at) - new Date(y.created_at)); }
+function sortByNewest(rows) { return [...rows].sort((x, y) => new Date(y.created_at) - new Date(x.created_at)); }
+function sortByName(rows)   { return [...rows].sort((x, y) => (x.body || '').localeCompare(y.body || '')); }
+const STATUS_RANK = { stuck: 0, working: 1, open: 2, done: 3 };
+function sortByStatus(rows) { return [...rows].sort((x, y) => (STATUS_RANK[x.status] ?? 9) - (STATUS_RANK[y.status] ?? 9)); }
+
+function applySort(rows, key) {
+  if (key === 'newest') return sortByNewest(rows);
+  if (key === 'name')   return sortByName(rows);
+  if (key === 'status') return sortByStatus(rows);
+  return sortByDate(rows);
+}
+
+const SORT_OPTIONS = [
+  { key: 'date',   label: 'Due date' },
+  { key: 'newest', label: 'Newest' },
+  { key: 'status', label: 'Status' },
+  { key: 'name',   label: 'A→Z' },
+];
+
+// Bucket helpers — the implicit categorization. Used to derive filter
+// chips from data + render the inline sub-tag chip on each row.
+function rowBucket(row) {
+  const tags = Array.isArray(row.tags) ? row.tags : [];
+  if (tags.some(t => t === 'gym' || t === 'center' || t.startsWith('gym:') || t.startsWith('center:'))) return 'gym';
+  if (row.target_kind === 'trainee') return 'athletes';
+  return 'ops';
+}
+function rowGymSubtag(row) {
+  const tags = Array.isArray(row.tags) ? row.tags : [];
+  for (const t of tags) {
+    if (t.startsWith('gym:') || t.startsWith('center:')) return (t.split(':')[1] || '').toUpperCase();
+  }
+  return null;
+}
+function rowInlineChip(row) {
+  const b = rowBucket(row);
+  if (b === 'gym') {
+    const sub = rowGymSubtag(row);
+    return sub ? `GYM · ${sub}` : 'GYM';
+  }
+  if (b === 'athletes' && row.target_label) return row.target_label;
+  if (b === 'athletes') return 'ATHLETE';
+  return null;
 }
 
 export default function TasksV2View() {
   const { rows, loading } = useCoachNotes({ limit: 200 });
   const [owner, setOwner] = useState('ohad'); // 'ohad' | 'yuval' | 'shared'
   const [expanded, setExpanded] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState('date');
+  const [activeBuckets, setActiveBuckets] = useState(new Set()); // empty = show all
+  const [activeGymSubs, setActiveGymSubs] = useState(new Set());  // empty = show all gym
   const now = useMemo(() => new Date(), []);
   const theme = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark';
 
@@ -271,17 +408,78 @@ export default function TasksV2View() {
     shared: decorated.filter(r => r._owner === 'shared').length,
   }), [decorated]);
 
-  // Flat list of the selected owner's open tasks, sorted earliest-due first.
-  // No subcategorization — domain context lives in the task body itself.
-  const openRows = useMemo(
-    () => sortByDate(decorated.filter(r => r._owner === owner && r.status !== 'done')),
+  // Owner's open tasks. Filter chips + search apply, sort applies last.
+  const ownerOpen = useMemo(
+    () => decorated.filter(r => r._owner === owner && r.status !== 'done'),
     [decorated, owner]
   );
+
+  // Bucket counts for the chip row (always computed before filtering so the
+  // counts reflect the full set, not the filtered subset).
+  const bucketCounts = useMemo(() => {
+    const c = { athletes: 0, gym: 0, ops: 0 };
+    for (const r of ownerOpen) c[rowBucket(r)] += 1;
+    return c;
+  }, [ownerOpen]);
+
+  const gymSubCounts = useMemo(() => {
+    const c = {};
+    for (const r of ownerOpen) {
+      if (rowBucket(r) === 'gym') {
+        const sub = rowGymSubtag(r);
+        if (sub) c[sub] = (c[sub] || 0) + 1;
+      }
+    }
+    return c;
+  }, [ownerOpen]);
+
+  const filteredOpen = useMemo(() => {
+    let rows = ownerOpen;
+    if (activeBuckets.size > 0) {
+      rows = rows.filter(r => activeBuckets.has(rowBucket(r)));
+    }
+    if (activeGymSubs.size > 0) {
+      rows = rows.filter(r => {
+        if (rowBucket(r) !== 'gym') return false;
+        const sub = rowGymSubtag(r);
+        return sub && activeGymSubs.has(sub);
+      });
+    }
+    const q = search.trim().toLowerCase();
+    if (q) {
+      rows = rows.filter(r => (r._display || r.body || '').toLowerCase().includes(q));
+    }
+    return applySort(rows, sortKey);
+  }, [ownerOpen, activeBuckets, activeGymSubs, search, sortKey]);
 
   const done = useMemo(
     () => decorated.filter(r => r._owner === owner && r.status === 'done'),
     [decorated, owner]
   );
+
+  const toggleBucket = (k) => {
+    setActiveBuckets(prev => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      // Clear gym-sub filter if user leaves the gym bucket selection.
+      if (k === 'gym' && next.has('gym') === false) setActiveGymSubs(new Set());
+      return next;
+    });
+  };
+  const toggleGymSub = (k) => {
+    setActiveGymSubs(prev => {
+      const next = new Set(prev);
+      if (next.has(k)) next.delete(k); else next.add(k);
+      return next;
+    });
+    // Selecting a gym sub-tag implies the GYM bucket is active.
+    setActiveBuckets(prev => {
+      if (prev.has('gym')) return prev;
+      const next = new Set(prev);
+      next.add('gym');
+      return next;
+    });
+  };
 
   if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>Loading…</div>;
 
@@ -307,7 +505,7 @@ export default function TasksV2View() {
       </div>
 
       <div style={{
-        display: 'flex', gap: 8, marginBottom: 18, padding: '0 14px',
+        display: 'flex', gap: 8, marginBottom: 12, padding: '0 14px',
         flexWrap: 'wrap',
       }}>
         <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')}   color={C.ac} />
@@ -316,11 +514,47 @@ export default function TasksV2View() {
       </div>
 
       <div style={{
+        display: 'flex', gap: 8, marginBottom: 18, padding: '0 14px',
+        flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          {bucketCounts.athletes > 0 && (
+            <FilterChip label="Athletes" count={bucketCounts.athletes}
+              active={activeBuckets.has('athletes')} onClick={() => toggleBucket('athletes')} />
+          )}
+          {bucketCounts.gym > 0 && (
+            <FilterChip label="Gym" count={bucketCounts.gym}
+              active={activeBuckets.has('gym')} onClick={() => toggleBucket('gym')} />
+          )}
+          {bucketCounts.ops > 0 && (
+            <FilterChip label="Ops" count={bucketCounts.ops}
+              active={activeBuckets.has('ops')} onClick={() => toggleBucket('ops')} />
+          )}
+          {activeBuckets.has('gym') && Object.keys(gymSubCounts).length > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              marginLeft: 6, paddingLeft: 8,
+              borderLeft: '1px solid var(--c-cardBd)',
+            }}>
+              {Object.entries(gymSubCounts).map(([sub, count]) => (
+                <FilterChip key={sub} label={sub} count={count}
+                  active={activeGymSubs.has(sub)} onClick={() => toggleGymSub(sub)} />
+              ))}
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <SearchInput value={search} onChange={setSearch} />
+          <SortDropdown value={sortKey} onChange={setSortKey} />
+        </div>
+      </div>
+
+      <div style={{
         border: `1px solid var(--c-cardBd)`,
         background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
         borderRadius: 0,
       }}>
-        {openRows.map(row => (
+        {filteredOpen.map(row => (
           <React.Fragment key={row.id}>
             <TaskRow
               row={row} owner={row._owner} displayBody={row._display}
@@ -346,13 +580,13 @@ export default function TasksV2View() {
           </div>
         )}
 
-        {openRows.length === 0 && done.length === 0 && (
+        {filteredOpen.length === 0 && done.length === 0 && (
           <div style={{
             padding: '32px 14px', textAlign: 'center',
             fontFamily: FN, fontSize: 11, fontWeight: 600,
             letterSpacing: '0.12em', color: 'var(--c-td)',
             textTransform: 'uppercase',
-          }}>No tasks for {owner}.</div>
+          }}>{search || activeBuckets.size || activeGymSubs.size ? 'No matches' : `No tasks for ${owner}.`}</div>
         )}
       </div>
 
