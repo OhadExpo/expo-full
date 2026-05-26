@@ -79,26 +79,6 @@ function stripOwnerPrefix(body) {
   return (body || '').replace(/^(ohad\s*\+\s*yuval|yuval\s*\+\s*ohad|ohad|yuval)\s*:\s*/i, '');
 }
 
-// Bucket every task into one of three sub-categories.
-function bucket(row) {
-  const tags = Array.isArray(row.tags) ? row.tags : [];
-  if (tags.some(t => t === 'gym' || t === 'center' || t.startsWith('gym:') || t.startsWith('center:'))) return 'gym';
-  if (row.target_kind === 'trainee') return 'athletes';
-  return 'ops';
-}
-
-// Sub-tag inside the GYM bucket: returns 'PROPERTY' | 'BUSINESS' | 'LEGAL' | null.
-function gymSubtag(row) {
-  const tags = Array.isArray(row.tags) ? row.tags : [];
-  for (const t of tags) {
-    if (t.startsWith('gym:') || t.startsWith('center:')) {
-      const sub = t.split(':')[1] || '';
-      return sub.toUpperCase();
-    }
-  }
-  return null;
-}
-
 function AssigneeDot({ owner }) {
   if (owner === 'shared') {
     return (
@@ -137,20 +117,6 @@ function StatusPill({ status, theme }) {
   );
 }
 
-function SubtagChip({ label }) {
-  if (!label) return null;
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center',
-      fontFamily: FN, fontSize: 10, fontWeight: 700,
-      letterSpacing: '0.12em', color: 'var(--c-ac)',
-      border: '1px solid var(--c-cardBd)',
-      padding: '2px 7px', textTransform: 'uppercase',
-      flexShrink: 0,
-    }}>{label}</span>
-  );
-}
-
 function googleCalendarUrl(row, displayBody) {
   const due = new Date(row.created_at);
   const y = due.getFullYear();
@@ -169,10 +135,9 @@ function googleCalendarUrl(row, displayBody) {
   return `https://calendar.google.com/calendar/r/eventedit?${params.toString()}`;
 }
 
-function TaskRow({ row, owner, displayBody, now, theme, sectionBucket, expanded, onToggle }) {
+function TaskRow({ row, owner, displayBody, now, theme, expanded, onToggle }) {
   const heb = isHebrew(displayBody || '');
   const date = compactDate(row.created_at, now);
-  const subtag = sectionBucket === 'gym' ? gymSubtag(row) : null;
 
   return (
     <div
@@ -198,13 +163,6 @@ function TaskRow({ row, owner, displayBody, now, theme, sectionBucket, expanded,
         textOverflow: 'ellipsis',
         whiteSpace: expanded ? 'normal' : 'nowrap',
       }}>{displayBody}</div>
-      {subtag && <SubtagChip label={subtag} />}
-      {sectionBucket === 'athletes' && row.target_label && (
-        <span style={{
-          fontFamily: heb ? FH : FN, fontSize: 11, fontWeight: 600,
-          color: 'var(--c-tm)', flexShrink: 0,
-        }}>{row.target_label}</span>
-      )}
       <StatusPill status={row.status} theme={theme} />
       <span style={{
         fontFamily: FN, fontSize: 11, fontWeight: 600,
@@ -290,36 +248,6 @@ function OwnerTab({ label, count, active, onClick, color }) {
   );
 }
 
-function SectionHeader({ label, count, collapsed, onToggleCollapse }) {
-  return (
-    <div
-      onClick={onToggleCollapse}
-      style={{
-        display: 'flex', alignItems: 'center',
-        padding: '12px 14px',
-        background: 'var(--c-sf2, transparent)',
-        borderBottom: `1px solid var(--c-cardBd)`,
-        cursor: 'pointer', gap: 10,
-      }}>
-      <span style={{
-        fontFamily: FN, fontSize: 11, fontWeight: 700,
-        letterSpacing: '0.18em', color: 'var(--c-tx)',
-        textTransform: 'uppercase',
-      }}>{collapsed ? '▸' : '▾'} {label}</span>
-      <span style={{
-        fontFamily: FN, fontSize: 10, fontWeight: 600,
-        color: 'var(--c-td)', letterSpacing: '0.04em',
-      }}>· {count}</span>
-    </div>
-  );
-}
-
-const SECTION_DEFS = [
-  { key: 'athletes', label: 'Athletes' },
-  { key: 'gym',      label: 'Gym' },
-  { key: 'ops',      label: 'Ops' },
-];
-
 function sortByDate(rows) {
   return [...rows].sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
 }
@@ -328,7 +256,6 @@ export default function TasksV2View() {
   const { rows, loading } = useCoachNotes({ limit: 200 });
   const [owner, setOwner] = useState('ohad'); // 'ohad' | 'yuval' | 'shared'
   const [expanded, setExpanded] = useState(null);
-  const [collapsed, setCollapsed] = useState({}); // { athletes: bool, gym: bool, ops: bool }
   const now = useMemo(() => new Date(), []);
   const theme = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark';
 
@@ -344,18 +271,17 @@ export default function TasksV2View() {
     shared: decorated.filter(r => r._owner === 'shared').length,
   }), [decorated]);
 
-  // Filter to selected owner, then bucket into the 3 sections (excluding done).
-  const sections = useMemo(() => {
-    const ownerRows = decorated.filter(r => r._owner === owner && r.status !== 'done');
-    const grouped = { athletes: [], gym: [], ops: [] };
-    for (const r of ownerRows) {
-      const b = bucket(r);
-      grouped[b].push(r);
-    }
-    return grouped;
-  }, [decorated, owner]);
+  // Flat list of the selected owner's open tasks, sorted earliest-due first.
+  // No subcategorization — domain context lives in the task body itself.
+  const openRows = useMemo(
+    () => sortByDate(decorated.filter(r => r._owner === owner && r.status !== 'done')),
+    [decorated, owner]
+  );
 
-  const done = useMemo(() => decorated.filter(r => r._owner === owner && r.status === 'done'), [decorated, owner]);
+  const done = useMemo(
+    () => decorated.filter(r => r._owner === owner && r.status === 'done'),
+    [decorated, owner]
+  );
 
   if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>Loading…</div>;
 
@@ -394,32 +320,17 @@ export default function TasksV2View() {
         background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
         borderRadius: 0,
       }}>
-        {SECTION_DEFS.map(section => {
-          const rowsForSection = sortByDate(sections[section.key]);
-          const isCollapsed = !!collapsed[section.key];
-          if (rowsForSection.length === 0) return null;
-          return (
-            <React.Fragment key={section.key}>
-              <SectionHeader
-                label={section.label}
-                count={rowsForSection.length}
-                collapsed={isCollapsed}
-                onToggleCollapse={() => setCollapsed(prev => ({ ...prev, [section.key]: !prev[section.key] }))}
-              />
-              {!isCollapsed && rowsForSection.map(row => (
-                <React.Fragment key={row.id}>
-                  <TaskRow
-                    row={row} owner={row._owner} displayBody={row._display}
-                    now={now} theme={theme} sectionBucket={section.key}
-                    expanded={expanded === row.id}
-                    onToggle={() => setExpanded(expanded === row.id ? null : row.id)}
-                  />
-                  {expanded === row.id && <ExpandedDetail row={row} displayBody={row._display} />}
-                </React.Fragment>
-              ))}
-            </React.Fragment>
-          );
-        })}
+        {openRows.map(row => (
+          <React.Fragment key={row.id}>
+            <TaskRow
+              row={row} owner={row._owner} displayBody={row._display}
+              now={now} theme={theme}
+              expanded={expanded === row.id}
+              onToggle={() => setExpanded(expanded === row.id ? null : row.id)}
+            />
+            {expanded === row.id && <ExpandedDetail row={row} displayBody={row._display} />}
+          </React.Fragment>
+        ))}
 
         {done.length > 0 && (
           <div style={{
@@ -435,7 +346,7 @@ export default function TasksV2View() {
           </div>
         )}
 
-        {SECTION_DEFS.every(s => sections[s.key].length === 0) && done.length === 0 && (
+        {openRows.length === 0 && done.length === 0 && (
           <div style={{
             padding: '32px 14px', textAlign: 'center',
             fontFamily: FN, fontSize: 11, fontWeight: 600,
