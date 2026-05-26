@@ -1,17 +1,23 @@
-// TASKS — Option 5 visual prototype.
+// TASKS — Option 5 visual prototype (v2 iteration).
 //
 // Gated behind `?ui=v2` on /coach/tasks. Read-only prototype that renders
-// existing coach_notes rows in the Option 5 layout (single continuous list
-// with a NOW line, full-bleed Monday-style status pills, assignee dot,
-// inline expand on row tap, 3-segment ALL/ATHLETES/CENTER filter).
+// existing coach_notes rows in the new layout:
+//   - Top tabs by owner: OHAD / YUVAL / SHARED (3 segmented buttons)
+//   - Within each tab: sections by sub-category (ATHLETES / GYM / OPS)
+//   - Each section header: count + sort dropdown
+//   - Within each section: rows with Monday status pill, date, sub-tag chip
+//   - Inline expand on row tap
+//   - Done pool collapsed at bottom
 //
 // Backend schema (assigned_to / due_at / 4-state status / activity log)
 // lands in a separate Phase 1 commit. Until then:
 //   - status comes from existing `status` field (open|done)
-//   - assignee is hardcoded to Ohad (no field yet)
+//   - assignee parsed from body prefix ("Ohad:" / "Yuval:") for demo data
+//     (real `assigned_to` column ships in Phase 1)
 //   - due date uses `created_at` as a proxy
-//   - context label uses target_kind + target_label
-//   - tag `#center` puts a task in CENTER bucket
+//   - GYM bucket: tasks tagged #center, #center:*, #gym, or #gym:*
+//   - ATHLETES bucket: target_kind === 'trainee' (existing data)
+//   - OPS bucket: everything else
 //
 // Throw this file away if Ohad rejects the look.
 
@@ -22,74 +28,98 @@ import { isRefined5b } from './ui';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
-// Monday status colors, slightly desaturated for dark mode (per design doc).
-// Returns { bg, fg } for the pill background and text.
+// Yuval's color. Cyan is Ohad's. Picking warm amber for Yuval so the two
+// partners scan distinct on a row.
+const YUVAL_COLOR = '#FFA02E';
+
+// Monday status colors, slightly desaturated for dark mode.
 function statusColors(status, theme) {
   const dark = theme === 'dark' || theme === '1' || theme === '2' || theme === '3' || theme === '4';
-  if (status === 'done') {
-    return dark ? { bg: '#00A85D', fg: '#FFFFFF' } : { bg: '#00CA72', fg: '#FFFFFF' };
-  }
-  if (status === 'working') {
-    return dark ? { bg: '#D9A800', fg: '#000000' } : { bg: '#FFCC00', fg: '#000000' };
-  }
-  if (status === 'stuck') {
-    return dark ? { bg: '#C81F4D', fg: '#FFFFFF' } : { bg: '#FB275D', fg: '#FFFFFF' };
-  }
-  // open / not started
+  if (status === 'done')    return dark ? { bg: '#00A85D', fg: '#FFFFFF' } : { bg: '#00CA72', fg: '#FFFFFF' };
+  if (status === 'working') return dark ? { bg: '#D9A800', fg: '#000000' } : { bg: '#FFCC00', fg: '#000000' };
+  if (status === 'stuck')   return dark ? { bg: '#C81F4D', fg: '#FFFFFF' } : { bg: '#FB275D', fg: '#FFFFFF' };
   return dark ? { bg: '#3A3A42', fg: '#E0E0E5' } : { bg: '#D5D6DC', fg: '#1A1A22' };
 }
 
-// Map existing 'open'|'done' to Monday's 4-state. Until Phase 1 ships the
-// `status_label` column, everything is either OPEN or DONE.
 function statusLabel(row) {
   if (row.status === 'done') return { key: 'done', text: 'DONE' };
   return { key: 'open', text: 'OPEN' };
 }
 
-// Compact relative date — TODAY / FRI / 4 JUN / —.
 function compactDate(iso, now) {
   if (!iso) return '—';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '—';
   const startOfToday = new Date(now); startOfToday.setHours(0, 0, 0, 0);
-  const startOfTomorrow = new Date(startOfToday); startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
   const startOfDay = new Date(d); startOfDay.setHours(0, 0, 0, 0);
   const diffDays = Math.round((startOfDay - startOfToday) / 86400000);
   if (diffDays === 0) return 'TODAY';
   if (diffDays === 1) return 'TOMORROW';
   if (diffDays === -1) return 'YESTERDAY';
-  if (diffDays > 1 && diffDays <= 6) {
-    const wd = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()];
-    return wd;
-  }
+  if (diffDays > 1 && diffDays <= 6) return ['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()];
   const day = d.getDate();
-  const mon = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][d.getMonth()];
+  const mon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()];
   return `${day} ${mon}`;
 }
 
-function isCenterTask(row) {
-  const tags = Array.isArray(row.tags) ? row.tags : [];
-  return tags.some(t => t === 'center' || t.startsWith('center:'));
+// Parse owner from a seeded demo body prefix ("Ohad:" / "Yuval:" /
+// "Ohad + Yuval:"). Returns 'ohad' | 'yuval' | 'shared' | null.
+// Phase 1 replaces this with the real `assigned_to` column.
+function ownerFromBody(body) {
+  const b = (body || '').trim();
+  if (/^(ohad\s*\+\s*yuval|yuval\s*\+\s*ohad)\s*:/i.test(b)) return 'shared';
+  if (/^ohad\s*:/i.test(b)) return 'ohad';
+  if (/^yuval\s*:/i.test(b)) return 'yuval';
+  return null;
 }
 
-function centerCategory(row) {
+// Strip the "Ohad: " / "Yuval: " prefix from display body once we've
+// extracted it into the assignee chip. Cleaner row read.
+function stripOwnerPrefix(body) {
+  return (body || '').replace(/^(ohad\s*\+\s*yuval|yuval\s*\+\s*ohad|ohad|yuval)\s*:\s*/i, '');
+}
+
+// Bucket every task into one of three sub-categories.
+function bucket(row) {
+  const tags = Array.isArray(row.tags) ? row.tags : [];
+  if (tags.some(t => t === 'gym' || t === 'center' || t.startsWith('gym:') || t.startsWith('center:'))) return 'gym';
+  if (row.target_kind === 'trainee') return 'athletes';
+  return 'ops';
+}
+
+// Sub-tag inside the GYM bucket: returns 'PROPERTY' | 'BUSINESS' | 'LEGAL' | null.
+function gymSubtag(row) {
   const tags = Array.isArray(row.tags) ? row.tags : [];
   for (const t of tags) {
-    if (t.startsWith('center:')) return t.slice('center:'.length).toUpperCase();
+    if (t.startsWith('gym:') || t.startsWith('center:')) {
+      const sub = t.split(':')[1] || '';
+      return sub.toUpperCase();
+    }
   }
   return null;
 }
 
-// Assignee dot — 16px colored circle with first letter. Until Phase 1 adds
-// the `assigned_to` column, everything is owned by Ohad.
-function AssigneeDot({ initial, color }) {
+function AssigneeDot({ owner }) {
+  if (owner === 'shared') {
+    return (
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 18, height: 18, borderRadius: '50%',
+        background: `linear-gradient(135deg, ${C.ac} 0% 50%, ${YUVAL_COLOR} 50% 100%)`,
+        color: '#FFFFFF', fontFamily: FN, fontSize: 9, fontWeight: 700,
+        flexShrink: 0,
+      }} title="Ohad + Yuval">·</span>
+    );
+  }
+  const isYuval = owner === 'yuval';
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: 18, height: 18, borderRadius: '50%', background: color,
+      width: 18, height: 18, borderRadius: '50%',
+      background: isYuval ? YUVAL_COLOR : C.ac,
       color: '#FFFFFF', fontFamily: FN, fontSize: 9, fontWeight: 700,
       letterSpacing: 0, flexShrink: 0,
-    }}>{initial}</span>
+    }}>{isYuval ? 'Y' : 'O'}</span>
   );
 }
 
@@ -101,21 +131,48 @@ function StatusPill({ status, theme }) {
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       background: c.bg, color: c.fg,
       fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-      padding: '0 8px', height: 22, width: 96, borderRadius: 0, flexShrink: 0,
+      padding: '0 8px', height: 22, width: 84, borderRadius: 0, flexShrink: 0,
       textTransform: 'uppercase',
     }}>{text}</span>
   );
 }
 
-function TaskRow({ row, now, theme, expanded, onToggle }) {
-  const heb = isHebrew(row.body || '');
+function SubtagChip({ label }) {
+  if (!label) return null;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      fontFamily: FN, fontSize: 10, fontWeight: 700,
+      letterSpacing: '0.12em', color: 'var(--c-ac)',
+      border: '1px solid var(--c-cardBd)',
+      padding: '2px 7px', textTransform: 'uppercase',
+      flexShrink: 0,
+    }}>{label}</span>
+  );
+}
+
+function googleCalendarUrl(row, displayBody) {
+  const due = new Date(row.created_at);
+  const y = due.getFullYear();
+  const m = String(due.getMonth() + 1).padStart(2, '0');
+  const d = String(due.getDate()).padStart(2, '0');
+  const start = `${y}${m}${d}T090000`;
+  const end = `${y}${m}${d}T100000`;
+  const tags = Array.isArray(row.tags) ? row.tags : [];
+  const tagLine = tags.length ? `\n\nTags: ${tags.map(t => '#' + t).join(' ')}` : '';
+  const description = `From EXPO Tasks — ${row.id}${tagLine}\n\nhttps://expo-app.co.il/coach/tasks?ui=v2`;
+  const params = new URLSearchParams({
+    text: displayBody || row.body || 'EXPO Task',
+    dates: `${start}/${end}`,
+    details: description,
+  });
+  return `https://calendar.google.com/calendar/r/eventedit?${params.toString()}`;
+}
+
+function TaskRow({ row, owner, displayBody, now, theme, sectionBucket, expanded, onToggle }) {
+  const heb = isHebrew(displayBody || '');
   const date = compactDate(row.created_at, now);
-  const center = isCenterTask(row);
-  const cat = centerCategory(row);
-  // Context label — CENTER tasks show category, ATHLETES tasks show trainee.
-  let context = null;
-  if (center) context = cat ? `CENTER · ${cat}` : 'CENTER';
-  else if (row.target_kind === 'trainee' && row.target_label) context = row.target_label;
+  const subtag = sectionBucket === 'gym' ? gymSubtag(row) : null;
 
   return (
     <div
@@ -128,7 +185,7 @@ function TaskRow({ row, now, theme, expanded, onToggle }) {
         transition: 'background 120ms ease',
       }}
     >
-      <AssigneeDot initial="O" color={C.ac} />
+      <AssigneeDot owner={owner} />
       <div style={{
         flex: 1, minWidth: 0,
         fontFamily: heb ? FH : FB,
@@ -139,53 +196,29 @@ function TaskRow({ row, now, theme, expanded, onToggle }) {
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: expanded ? 'normal' : 'nowrap',
-      }}>{row.body}</div>
-      {context && (
+      }}>{displayBody}</div>
+      {subtag && <SubtagChip label={subtag} />}
+      {sectionBucket === 'athletes' && row.target_label && (
         <span style={{
-          fontFamily: FN, fontSize: 9, fontWeight: 700,
-          letterSpacing: '0.08em',
-          color: 'var(--c-td)', flexShrink: 0,
-          textTransform: 'uppercase',
-        }}>{context}</span>
+          fontFamily: heb ? FH : FN, fontSize: 11, fontWeight: 600,
+          color: 'var(--c-tm)', flexShrink: 0,
+        }}>{row.target_label}</span>
       )}
       <StatusPill status={row.status} theme={theme} />
       <span style={{
         fontFamily: FN, fontSize: 11, fontWeight: 600,
         color: date === 'TODAY' ? 'var(--c-ac)' : 'var(--c-tm)',
-        letterSpacing: '0.04em', width: 64, textAlign: 'right',
+        letterSpacing: '0.04em', width: 72, textAlign: 'right',
         flexShrink: 0,
       }}>{date}</span>
     </div>
   );
 }
 
-// Build a Google Calendar event-creation URL pre-filled with the task's
-// title, date, and description. Opens a new tab into Google Calendar's
-// event editor — Ohad clicks Save and the event lands. One-click handoff
-// until Phase 5 ships the real OAuth + events.insert pipeline.
-function googleCalendarUrl(row) {
-  const due = new Date(row.created_at);
-  // Default to 9am-10am on the due date (1h block).
-  const y = due.getFullYear();
-  const m = String(due.getMonth() + 1).padStart(2, '0');
-  const d = String(due.getDate()).padStart(2, '0');
-  const start = `${y}${m}${d}T090000`;
-  const end = `${y}${m}${d}T100000`;
+function ExpandedDetail({ row, displayBody }) {
+  const heb = isHebrew(displayBody || '');
   const tags = Array.isArray(row.tags) ? row.tags : [];
-  const tagLine = tags.length ? `\n\nTags: ${tags.map(t => '#' + t).join(' ')}` : '';
-  const description = `From EXPO Tasks — ${row.id}${tagLine}\n\nhttps://expo-app.co.il/coach/tasks?ui=v2`;
-  const params = new URLSearchParams({
-    text: row.body || 'EXPO Task',
-    dates: `${start}/${end}`,
-    details: description,
-  });
-  return `https://calendar.google.com/calendar/r/eventedit?${params.toString()}`;
-}
-
-function ExpandedDetail({ row }) {
-  const heb = isHebrew(row.body || '');
-  const tags = Array.isArray(row.tags) ? row.tags : [];
-  const calUrl = googleCalendarUrl(row);
+  const calUrl = googleCalendarUrl(row, displayBody);
   return (
     <div style={{
       padding: '12px 14px 16px 44px',
@@ -195,7 +228,7 @@ function ExpandedDetail({ row }) {
       fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.6,
       direction: heb ? 'rtl' : 'ltr',
     }}>
-      <div style={{ marginBottom: 8, color: 'var(--c-tx)' }}>{row.body}</div>
+      <div style={{ marginBottom: 8, color: 'var(--c-tx)' }}>{displayBody}</div>
       {tags.length > 0 && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, direction: 'ltr' }}>
           {tags.map(t => (
@@ -230,67 +263,163 @@ function ExpandedDetail({ row }) {
         </span>
       </div>
       <div style={{ marginTop: 10, fontSize: 11, color: 'var(--c-td)' }}>
-        Phase 1 will add: 4-state status (Not Started / Working / Stuck / Done), assignee picker, due-date picker, comments thread, activity log.
+        Phase 1 will add: 4-state status, assignee picker, due-date picker, comments thread, activity log.
       </div>
     </div>
   );
 }
 
-function FilterButton({ label, count, active, onClick }) {
+function OwnerTab({ label, count, active, onClick, color }) {
   return (
     <button
       onClick={onClick}
       style={{
-        background: active ? 'var(--c-ac)' : 'transparent',
+        background: active ? (color || 'var(--c-ac)') : 'transparent',
         color: active ? '#FFFFFF' : 'var(--c-tm)',
-        border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-        fontFamily: FN, fontSize: 10, fontWeight: 700,
-        letterSpacing: '0.12em', padding: '6px 14px',
+        border: `1px solid ${active ? (color || 'var(--c-ac)') : 'var(--c-cardBd)'}`,
+        fontFamily: FN, fontSize: 11, fontWeight: 700,
+        letterSpacing: '0.14em', padding: '7px 16px',
         cursor: 'pointer', borderRadius: 0,
         textTransform: 'uppercase', display: 'inline-flex',
-        alignItems: 'center', gap: 6,
+        alignItems: 'center', gap: 8,
       }}>
       <span>{label}</span>
-      <span style={{ opacity: 0.7, fontSize: 10 }}>{count}</span>
+      <span style={{ opacity: 0.78, fontSize: 10 }}>{count}</span>
     </button>
   );
 }
 
+const SORT_OPTIONS = [
+  { key: 'date',   label: 'DATE' },
+  { key: 'status', label: 'STATUS' },
+  { key: 'name',   label: 'A→Z' },
+  { key: 'new',    label: 'NEWEST' },
+];
+
+function SortDropdown({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const current = SORT_OPTIONS.find(o => o.key === value) || SORT_OPTIONS[0];
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        style={{
+          background: 'transparent', border: '1px solid var(--c-cardBd)',
+          color: 'var(--c-tm)', fontFamily: FN, fontSize: 9, fontWeight: 700,
+          letterSpacing: '0.12em', padding: '3px 8px',
+          cursor: 'pointer', borderRadius: 0,
+          textTransform: 'uppercase',
+        }}>⇅ {current.label} ▾</button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', right: 0, marginTop: 2,
+          background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)',
+          zIndex: 100, minWidth: 100,
+        }}>
+          {SORT_OPTIONS.map(o => (
+            <button key={o.key}
+              onMouseDown={(e) => { e.preventDefault(); onChange(o.key); setOpen(false); }}
+              style={{
+                display: 'block', width: '100%', background: o.key === value ? 'var(--c-sf2)' : 'transparent',
+                border: 'none', textAlign: 'left',
+                padding: '6px 12px',
+                fontFamily: FN, fontSize: 10, fontWeight: 700,
+                letterSpacing: '0.12em', color: o.key === value ? 'var(--c-ac)' : 'var(--c-tm)',
+                cursor: 'pointer', textTransform: 'uppercase',
+              }}>{o.label}</button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
+function SectionHeader({ label, count, sort, onSortChange, collapsed, onToggleCollapse }) {
+  return (
+    <div
+      onClick={onToggleCollapse}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 14px',
+        background: 'var(--c-sf2, transparent)',
+        borderBottom: `1px solid var(--c-cardBd)`,
+        cursor: 'pointer',
+      }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{
+          fontFamily: FN, fontSize: 11, fontWeight: 700,
+          letterSpacing: '0.18em', color: 'var(--c-tx)',
+          textTransform: 'uppercase',
+        }}>{collapsed ? '▸' : '▾'} {label}</span>
+        <span style={{
+          fontFamily: FN, fontSize: 10, fontWeight: 600,
+          color: 'var(--c-td)', letterSpacing: '0.04em',
+        }}>· {count}</span>
+      </div>
+      <SortDropdown value={sort} onChange={onSortChange} />
+    </div>
+  );
+}
+
+const SECTION_DEFS = [
+  { key: 'athletes', label: 'Athletes' },
+  { key: 'gym',      label: 'Gym' },
+  { key: 'ops',      label: 'Ops' },
+];
+
+const STATUS_RANK = { stuck: 0, working: 1, open: 2, done: 3 };
+
+function sortRows(rows, key) {
+  const a = [...rows];
+  if (key === 'date') {
+    a.sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
+  } else if (key === 'new') {
+    a.sort((x, y) => new Date(y.created_at) - new Date(x.created_at));
+  } else if (key === 'status') {
+    a.sort((x, y) => (STATUS_RANK[x.status] ?? 9) - (STATUS_RANK[y.status] ?? 9));
+  } else if (key === 'name') {
+    a.sort((x, y) => (x.body || '').localeCompare(y.body || ''));
+  }
+  return a;
+}
+
 export default function TasksV2View() {
-  const { rows, loading } = useCoachNotes({ limit: 100 });
-  const [filter, setFilter] = useState('all'); // 'all' | 'athletes' | 'center'
+  const { rows, loading } = useCoachNotes({ limit: 200 });
+  const [owner, setOwner] = useState('ohad'); // 'ohad' | 'yuval' | 'shared'
   const [expanded, setExpanded] = useState(null);
+  const [collapsed, setCollapsed] = useState({}); // { athletes: bool, gym: bool, ops: bool }
+  // Per-section sort. Defaults to 'date'.
+  const [sortBy, setSortBy] = useState({ athletes: 'date', gym: 'date', ops: 'date' });
   const now = useMemo(() => new Date(), []);
   const theme = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark';
 
-  const counts = useMemo(() => {
-    const athletes = rows.filter(r => r.target_kind === 'trainee').length;
-    const center = rows.filter(r => isCenterTask(r)).length;
-    return { all: rows.length, athletes, center };
-  }, [rows]);
+  // Decorate every row with derived owner + displayBody (prefix-stripped).
+  const decorated = useMemo(() => rows.map(r => {
+    const o = ownerFromBody(r.body) || 'ohad'; // default unowned → Ohad (Phase 1 reads real column)
+    return { ...r, _owner: o, _display: stripOwnerPrefix(r.body) };
+  }), [rows]);
 
-  // Apply 3-segment filter, then split into above/below NOW relative to
-  // `created_at` (placeholder until `due_at` column lands).
-  const { above, below } = useMemo(() => {
-    let base = rows;
-    if (filter === 'athletes') base = base.filter(r => r.target_kind === 'trainee');
-    else if (filter === 'center') base = base.filter(r => isCenterTask(r));
-    // Done at the bottom collapsed pool; open tasks split by NOW.
-    const open = base.filter(r => r.status !== 'done');
-    const cutoff = now.getTime();
-    const ab = open.filter(r => new Date(r.created_at).getTime() < cutoff - 86400000 * 2);
-    const bl = open.filter(r => new Date(r.created_at).getTime() >= cutoff - 86400000 * 2);
-    // Sort: above NOW = oldest first (overdue feel); below NOW = newest first.
-    ab.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    bl.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    return { above: ab, below: bl };
-  }, [rows, filter, now]);
+  const counts = useMemo(() => ({
+    ohad:   decorated.filter(r => r._owner === 'ohad').length,
+    yuval:  decorated.filter(r => r._owner === 'yuval').length,
+    shared: decorated.filter(r => r._owner === 'shared').length,
+  }), [decorated]);
 
-  const done = useMemo(() => rows.filter(r => r.status === 'done'), [rows]);
+  // Filter to selected owner, then bucket into the 3 sections (excluding done).
+  const sections = useMemo(() => {
+    const ownerRows = decorated.filter(r => r._owner === owner && r.status !== 'done');
+    const grouped = { athletes: [], gym: [], ops: [] };
+    for (const r of ownerRows) {
+      const b = bucket(r);
+      grouped[b].push(r);
+    }
+    return grouped;
+  }, [decorated, owner]);
 
-  if (loading) {
-    return <div style={{ padding: 24, color: 'var(--c-tm)' }}>Loading…</div>;
-  }
+  const done = useMemo(() => decorated.filter(r => r._owner === owner && r.status === 'done'), [decorated, owner]);
+
+  if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>Loading…</div>;
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 4px' }}>
@@ -304,7 +433,7 @@ export default function TasksV2View() {
           color: 'var(--c-tx)',
         }}>Tasks</h2>
         <button
-          onClick={() => window.alert('Phase 1 adds inline composer — for now use the legacy /coach/tasks view (no ?ui=v2) to create tasks')}
+          onClick={() => window.alert('Inline composer ships in Phase 1. For now use the legacy /coach/tasks view (no ?ui=v2) to create tasks.')}
           style={{
             background: 'var(--c-ac)', color: '#FFFFFF',
             border: 'none', fontFamily: FN, fontSize: 10, fontWeight: 700,
@@ -314,12 +443,12 @@ export default function TasksV2View() {
       </div>
 
       <div style={{
-        display: 'flex', gap: 6, marginBottom: 18, padding: '0 14px',
+        display: 'flex', gap: 8, marginBottom: 18, padding: '0 14px',
         flexWrap: 'wrap',
       }}>
-        <FilterButton label="ALL" count={counts.all} active={filter === 'all'} onClick={() => setFilter('all')} />
-        <FilterButton label="ATHLETES" count={counts.athletes} active={filter === 'athletes'} onClick={() => setFilter('athletes')} />
-        <FilterButton label="CENTER" count={counts.center} active={filter === 'center'} onClick={() => setFilter('center')} />
+        <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')}   color={C.ac} />
+        <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')}  color={YUVAL_COLOR} />
+        <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
       </div>
 
       <div style={{
@@ -327,42 +456,35 @@ export default function TasksV2View() {
         background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
         borderRadius: 0,
       }}>
-        {above.map(row => (
-          <React.Fragment key={row.id}>
-            <TaskRow row={row} now={now} theme={theme}
-              expanded={expanded === row.id}
-              onToggle={() => setExpanded(expanded === row.id ? null : row.id)} />
-            {expanded === row.id && <ExpandedDetail row={row} />}
-          </React.Fragment>
-        ))}
+        {SECTION_DEFS.map(section => {
+          const rowsForSection = sortRows(sections[section.key], sortBy[section.key]);
+          const isCollapsed = !!collapsed[section.key];
+          if (rowsForSection.length === 0) return null;
+          return (
+            <React.Fragment key={section.key}>
+              <SectionHeader
+                label={section.label}
+                count={rowsForSection.length}
+                sort={sortBy[section.key]}
+                onSortChange={(k) => setSortBy(prev => ({ ...prev, [section.key]: k }))}
+                collapsed={isCollapsed}
+                onToggleCollapse={() => setCollapsed(prev => ({ ...prev, [section.key]: !prev[section.key] }))}
+              />
+              {!isCollapsed && rowsForSection.map(row => (
+                <React.Fragment key={row.id}>
+                  <TaskRow
+                    row={row} owner={row._owner} displayBody={row._display}
+                    now={now} theme={theme} sectionBucket={section.key}
+                    expanded={expanded === row.id}
+                    onToggle={() => setExpanded(expanded === row.id ? null : row.id)}
+                  />
+                  {expanded === row.id && <ExpandedDetail row={row} displayBody={row._display} />}
+                </React.Fragment>
+              ))}
+            </React.Fragment>
+          );
+        })}
 
-        {/* NOW line — the only structural divider on the page */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '14px 14px',
-          background: 'var(--c-sf2, transparent)',
-          borderTop: `1px solid var(--c-ac)`,
-          borderBottom: `1px solid var(--c-ac)`,
-        }}>
-          <div style={{ flex: 1, height: 1, background: 'var(--c-ac)', opacity: 0.4 }} />
-          <span style={{
-            fontFamily: FN, fontSize: 10, fontWeight: 700,
-            letterSpacing: '0.24em', color: 'var(--c-ac)',
-            textTransform: 'uppercase',
-          }}>Now</span>
-          <div style={{ flex: 1, height: 1, background: 'var(--c-ac)', opacity: 0.4 }} />
-        </div>
-
-        {below.map(row => (
-          <React.Fragment key={row.id}>
-            <TaskRow row={row} now={now} theme={theme}
-              expanded={expanded === row.id}
-              onToggle={() => setExpanded(expanded === row.id ? null : row.id)} />
-            {expanded === row.id && <ExpandedDetail row={row} />}
-          </React.Fragment>
-        ))}
-
-        {/* Done pool — collapsed footer */}
         {done.length > 0 && (
           <div style={{
             padding: '10px 14px',
@@ -375,6 +497,15 @@ export default function TasksV2View() {
             <span>Done · {done.length}</span>
             <span style={{ opacity: 0.6 }}>collapsed ▾</span>
           </div>
+        )}
+
+        {SECTION_DEFS.every(s => sections[s.key].length === 0) && done.length === 0 && (
+          <div style={{
+            padding: '32px 14px', textAlign: 'center',
+            fontFamily: FN, fontSize: 11, fontWeight: 600,
+            letterSpacing: '0.12em', color: 'var(--c-td)',
+            textTransform: 'uppercase',
+          }}>No tasks for {owner}.</div>
         )}
       </div>
 
