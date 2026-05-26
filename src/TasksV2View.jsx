@@ -159,9 +159,33 @@ function TaskRow({ row, now, theme, expanded, onToggle }) {
   );
 }
 
+// Build a Google Calendar event-creation URL pre-filled with the task's
+// title, date, and description. Opens a new tab into Google Calendar's
+// event editor — Ohad clicks Save and the event lands. One-click handoff
+// until Phase 5 ships the real OAuth + events.insert pipeline.
+function googleCalendarUrl(row) {
+  const due = new Date(row.created_at);
+  // Default to 9am-10am on the due date (1h block).
+  const y = due.getFullYear();
+  const m = String(due.getMonth() + 1).padStart(2, '0');
+  const d = String(due.getDate()).padStart(2, '0');
+  const start = `${y}${m}${d}T090000`;
+  const end = `${y}${m}${d}T100000`;
+  const tags = Array.isArray(row.tags) ? row.tags : [];
+  const tagLine = tags.length ? `\n\nTags: ${tags.map(t => '#' + t).join(' ')}` : '';
+  const description = `From EXPO Tasks — ${row.id}${tagLine}\n\nhttps://expo-app.co.il/coach/tasks?ui=v2`;
+  const params = new URLSearchParams({
+    text: row.body || 'EXPO Task',
+    dates: `${start}/${end}`,
+    details: description,
+  });
+  return `https://calendar.google.com/calendar/r/eventedit?${params.toString()}`;
+}
+
 function ExpandedDetail({ row }) {
   const heb = isHebrew(row.body || '');
   const tags = Array.isArray(row.tags) ? row.tags : [];
+  const calUrl = googleCalendarUrl(row);
   return (
     <div style={{
       padding: '12px 14px 16px 44px',
@@ -173,7 +197,7 @@ function ExpandedDetail({ row }) {
     }}>
       <div style={{ marginBottom: 8, color: 'var(--c-tx)' }}>{row.body}</div>
       {tags.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, direction: 'ltr' }}>
           {tags.map(t => (
             <span key={t} style={{
               fontFamily: FN, fontSize: 9, fontWeight: 700,
@@ -184,6 +208,27 @@ function ExpandedDetail({ row }) {
           ))}
         </div>
       )}
+      <div style={{ marginTop: 12, display: 'flex', gap: 8, alignItems: 'center', direction: 'ltr' }}>
+        <a
+          href={calUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: 'transparent', color: 'var(--c-ac)',
+            border: '1px solid var(--c-ac)',
+            fontFamily: FN, fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.12em', padding: '5px 12px',
+            textDecoration: 'none', borderRadius: 0,
+            textTransform: 'uppercase',
+          }}>
+          📅 Open in Google Calendar
+        </a>
+        <span style={{ fontSize: 10, color: 'var(--c-td)', fontFamily: FN, letterSpacing: '0.04em' }}>
+          one-click handoff · full OAuth sync in Phase 5
+        </span>
+      </div>
       <div style={{ marginTop: 10, fontSize: 11, color: 'var(--c-td)' }}>
         Phase 1 will add: 4-state status (Not Started / Working / Stuck / Done), assignee picker, due-date picker, comments thread, activity log.
       </div>
