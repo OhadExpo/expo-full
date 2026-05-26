@@ -863,6 +863,7 @@ function AuthedApp() {
         { route:'trainees',  label:'Roster',    count:activeAthletesCount },
         { route:'plans',     label:'Programs',  count:null },
         { route:'exercises', label:'Exercises', count:null },
+        { route:'workouts',  label:'In-Person', count:null },
       ] },
     { key:'review',     label:'Review',     count:null },
     { key:'tasks',      label:'Tasks',      count:null },

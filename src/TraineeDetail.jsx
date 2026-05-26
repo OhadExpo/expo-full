@@ -761,20 +761,36 @@ function BWChart({ entries }) {
         </div>
         <div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{entries.length} ENTR{entries.length === 1 ? 'Y' : 'IES'}</div>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:H,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">
-        <defs>
-          {/* Brand cyan literal — C.ac resolves to BLACK in light mode (AA
-              accessibility for active surfaces), so using it here drained
-              the chart shadow to gray. The chart's color identity is
-              brand-cyan in BOTH themes; the stroke + gradient hardcode
-              the brand hex so dark and light render identically. */}
-          <linearGradient id="bwAreaGrad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#39BDFF" stopOpacity="0.35"/>
-            <stop offset="100%" stopColor="#39BDFF" stopOpacity="0"/>
-          </linearGradient>
-        </defs>
-        <path d={areaPath} fill="url(#bwAreaGrad)" />
-        <polyline points={polyline} fill="none" stroke="#39BDFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {/* SVG carries paths + circles (geometry is robust to non-uniform
+          scale; circles render as slight ellipses but visually fine).
+          Text labels are pulled OUT and overlaid as HTML — see comment
+          on the `bw-chart-labels` div below for the why. */}
+      <div style={{position:'relative',width:'100%',height:H}}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:H,display:'block'}} aria-label="Bodyweight chart" preserveAspectRatio="none">
+          <defs>
+            {/* Brand cyan literal — C.ac resolves to BLACK in light mode (AA
+                accessibility for active surfaces), so using it here drained
+                the chart shadow to gray. The chart's color identity is
+                brand-cyan in BOTH themes; the stroke + gradient hardcode
+                the brand hex so dark and light render identically. */}
+            <linearGradient id="bwAreaGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor="#39BDFF" stopOpacity="0.35"/>
+              <stop offset="100%" stopColor="#39BDFF" stopOpacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d={areaPath} fill="url(#bwAreaGrad)" />
+          <polyline points={polyline} fill="none" stroke="#39BDFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          {points.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="3" fill={C.ac} stroke={C.bg} strokeWidth="1.5">
+              <title>{`${fmtPrettyDate(p.date)} · ${fmt(p.bw)}`}</title>
+            </circle>
+          ))}
+        </svg>
+        {/* HTML overlay for per-point weight labels (83.8 etc). SVG above
+            uses preserveAspectRatio="none" so its width fills the card
+            regardless of container — that's fine for paths/circles but
+            stretches/squishes any <text> horizontally. Moving labels out
+            keeps them at natural aspect at all viewport widths. */}
         {points.map((p, i) => {
           // Peak/trough/slope-aware label placement — same algorithm as the
           // athlete-portal BW chart. Pushes labels above peaks, below troughs,
@@ -800,16 +816,24 @@ function BWChart({ entries }) {
             else if (!above && p.y > PAD_TOP + innerH - 4) above = true;
             labelY = above ? p.y - 8 : p.y + 14;
           }
+          const tx = anchor === 'end' ? '-100%' : anchor === 'middle' ? '-50%' : '0';
           return (
-            <g key={i}>
-              <circle cx={p.x} cy={p.y} r="3" fill={C.ac} stroke={C.bg} strokeWidth="1.5">
-                <title>{`${fmtPrettyDate(p.date)} · ${fmt(p.bw)}`}</title>
-              </circle>
-              <text x={labelX} y={labelY} fontSize="10" fontFamily={FN} fill={C.tx} textAnchor={anchor} fontWeight="600">{p.bw}</text>
-            </g>
+            <span key={i} style={{
+              position:'absolute',
+              left:`${(labelX / W) * 100}%`,
+              top:labelY,
+              transform:`translate(${tx}, -100%)`,
+              fontSize:10,
+              fontFamily:FN,
+              color:C.tx,
+              fontWeight:600,
+              whiteSpace:'nowrap',
+              pointerEvents:'none',
+              lineHeight:1,
+            }}>{p.bw}</span>
           );
         })}
-      </svg>
+      </div>
       {/* Date labels rendered as HTML so they don't get horizontally
           stretched by the SVG's preserveAspectRatio="none". Same content
           (first + last entry date), positioned at the chart's left/right
