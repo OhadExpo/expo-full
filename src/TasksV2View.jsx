@@ -193,6 +193,7 @@ function TaskRow({ row, owner, displayBody, now, theme, sectionBucket, expanded,
         fontWeight: 500,
         color: 'var(--c-tx)',
         direction: heb ? 'rtl' : 'ltr',
+        textAlign: 'center',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: expanded ? 'normal' : 'nowrap',
@@ -289,75 +290,26 @@ function OwnerTab({ label, count, active, onClick, color }) {
   );
 }
 
-const SORT_OPTIONS = [
-  { key: 'date',   label: 'DATE' },
-  { key: 'status', label: 'STATUS' },
-  { key: 'name',   label: 'A→Z' },
-  { key: 'new',    label: 'NEWEST' },
-];
-
-function SortDropdown({ value, onChange }) {
-  const [open, setOpen] = useState(false);
-  const current = SORT_OPTIONS.find(o => o.key === value) || SORT_OPTIONS[0];
-  return (
-    <span style={{ position: 'relative', display: 'inline-block' }}>
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        style={{
-          background: 'transparent', border: '1px solid var(--c-cardBd)',
-          color: 'var(--c-tm)', fontFamily: FN, fontSize: 9, fontWeight: 700,
-          letterSpacing: '0.12em', padding: '3px 8px',
-          cursor: 'pointer', borderRadius: 0,
-          textTransform: 'uppercase',
-        }}>⇅ {current.label} ▾</button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: '100%', right: 0, marginTop: 2,
-          background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)',
-          zIndex: 100, minWidth: 100,
-        }}>
-          {SORT_OPTIONS.map(o => (
-            <button key={o.key}
-              onMouseDown={(e) => { e.preventDefault(); onChange(o.key); setOpen(false); }}
-              style={{
-                display: 'block', width: '100%', background: o.key === value ? 'var(--c-sf2)' : 'transparent',
-                border: 'none', textAlign: 'left',
-                padding: '6px 12px',
-                fontFamily: FN, fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.12em', color: o.key === value ? 'var(--c-ac)' : 'var(--c-tm)',
-                cursor: 'pointer', textTransform: 'uppercase',
-              }}>{o.label}</button>
-          ))}
-        </div>
-      )}
-    </span>
-  );
-}
-
-function SectionHeader({ label, count, sort, onSortChange, collapsed, onToggleCollapse }) {
+function SectionHeader({ label, count, collapsed, onToggleCollapse }) {
   return (
     <div
       onClick={onToggleCollapse}
       style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        display: 'flex', alignItems: 'center',
         padding: '12px 14px',
         background: 'var(--c-sf2, transparent)',
         borderBottom: `1px solid var(--c-cardBd)`,
-        cursor: 'pointer',
+        cursor: 'pointer', gap: 10,
       }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{
-          fontFamily: FN, fontSize: 11, fontWeight: 700,
-          letterSpacing: '0.18em', color: 'var(--c-tx)',
-          textTransform: 'uppercase',
-        }}>{collapsed ? '▸' : '▾'} {label}</span>
-        <span style={{
-          fontFamily: FN, fontSize: 10, fontWeight: 600,
-          color: 'var(--c-td)', letterSpacing: '0.04em',
-        }}>· {count}</span>
-      </div>
-      <SortDropdown value={sort} onChange={onSortChange} />
+      <span style={{
+        fontFamily: FN, fontSize: 11, fontWeight: 700,
+        letterSpacing: '0.18em', color: 'var(--c-tx)',
+        textTransform: 'uppercase',
+      }}>{collapsed ? '▸' : '▾'} {label}</span>
+      <span style={{
+        fontFamily: FN, fontSize: 10, fontWeight: 600,
+        color: 'var(--c-td)', letterSpacing: '0.04em',
+      }}>· {count}</span>
     </div>
   );
 }
@@ -368,20 +320,8 @@ const SECTION_DEFS = [
   { key: 'ops',      label: 'Ops' },
 ];
 
-const STATUS_RANK = { stuck: 0, working: 1, open: 2, done: 3 };
-
-function sortRows(rows, key) {
-  const a = [...rows];
-  if (key === 'date') {
-    a.sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
-  } else if (key === 'new') {
-    a.sort((x, y) => new Date(y.created_at) - new Date(x.created_at));
-  } else if (key === 'status') {
-    a.sort((x, y) => (STATUS_RANK[x.status] ?? 9) - (STATUS_RANK[y.status] ?? 9));
-  } else if (key === 'name') {
-    a.sort((x, y) => (x.body || '').localeCompare(y.body || ''));
-  }
-  return a;
+function sortByDate(rows) {
+  return [...rows].sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
 }
 
 export default function TasksV2View() {
@@ -389,8 +329,6 @@ export default function TasksV2View() {
   const [owner, setOwner] = useState('ohad'); // 'ohad' | 'yuval' | 'shared'
   const [expanded, setExpanded] = useState(null);
   const [collapsed, setCollapsed] = useState({}); // { athletes: bool, gym: bool, ops: bool }
-  // Per-section sort. Defaults to 'date'.
-  const [sortBy, setSortBy] = useState({ athletes: 'date', gym: 'date', ops: 'date' });
   const now = useMemo(() => new Date(), []);
   const theme = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark';
 
@@ -457,7 +395,7 @@ export default function TasksV2View() {
         borderRadius: 0,
       }}>
         {SECTION_DEFS.map(section => {
-          const rowsForSection = sortRows(sections[section.key], sortBy[section.key]);
+          const rowsForSection = sortByDate(sections[section.key]);
           const isCollapsed = !!collapsed[section.key];
           if (rowsForSection.length === 0) return null;
           return (
@@ -465,8 +403,6 @@ export default function TasksV2View() {
               <SectionHeader
                 label={section.label}
                 count={rowsForSection.length}
-                sort={sortBy[section.key]}
-                onSortChange={(k) => setSortBy(prev => ({ ...prev, [section.key]: k }))}
                 collapsed={isCollapsed}
                 onToggleCollapse={() => setCollapsed(prev => ({ ...prev, [section.key]: !prev[section.key] }))}
               />
