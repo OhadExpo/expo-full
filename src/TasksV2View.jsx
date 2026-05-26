@@ -135,24 +135,25 @@ function googleCalendarUrl(row, displayBody) {
   return `https://calendar.google.com/calendar/r/eventedit?${params.toString()}`;
 }
 
-function TaskRow({ row, owner, displayBody, now, theme, expanded, onToggle }) {
+function TaskRow({ row, owner, displayBody, now, theme, showAvatar, expanded, onToggle }) {
   const heb = isHebrew(displayBody || '');
   const date = compactDate(row.created_at, now);
-  const chip = rowInlineChip(row);
-  const chipHeb = isHebrew(chip || '');
+  // Status pill renders ONLY when colored (working/stuck/done). Plain 'open'
+  // status doesn't need a pill — being in the open list IS the signal.
+  const showPill = row.status === 'working' || row.status === 'stuck' || row.status === 'done';
 
   return (
     <div
       onClick={onToggle}
       style={{
         display: 'flex', alignItems: 'center', gap: 12,
-        padding: '10px 14px', cursor: 'pointer',
+        padding: '11px 14px', cursor: 'pointer',
         borderBottom: `1px solid var(--c-cardBd)`,
         background: expanded ? 'var(--c-sf2, transparent)' : 'transparent',
         transition: 'background 120ms ease',
       }}
     >
-      <AssigneeDot owner={owner} />
+      {showAvatar && <AssigneeDot owner={owner} />}
       <div style={{
         flex: 1, minWidth: 0,
         fontFamily: heb ? FH : FB,
@@ -160,27 +161,16 @@ function TaskRow({ row, owner, displayBody, now, theme, expanded, onToggle }) {
         fontWeight: 500,
         color: 'var(--c-tx)',
         direction: heb ? 'rtl' : 'ltr',
-        textAlign: 'center',
+        textAlign: heb ? 'right' : 'left',
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         whiteSpace: expanded ? 'normal' : 'nowrap',
       }}>{displayBody}</div>
-      {chip && (
-        <span style={{
-          fontFamily: chipHeb ? FH : FN,
-          fontSize: chipHeb ? 12 : 10, fontWeight: 700,
-          letterSpacing: chipHeb ? 0 : '0.12em',
-          color: 'var(--c-ac)',
-          border: '1px solid var(--c-cardBd)',
-          padding: '2px 7px', textTransform: chipHeb ? 'none' : 'uppercase',
-          flexShrink: 0,
-        }}>{chip}</span>
-      )}
-      <StatusPill status={row.status} theme={theme} />
+      {showPill && <StatusPill status={row.status} theme={theme} />}
       <span style={{
         fontFamily: FN, fontSize: 11, fontWeight: 600,
         color: date === 'TODAY' ? 'var(--c-ac)' : 'var(--c-tm)',
-        letterSpacing: '0.04em', width: 72, textAlign: 'right',
+        letterSpacing: '0.04em', width: 76, textAlign: 'right',
         flexShrink: 0,
       }}>{date}</span>
     </div>
@@ -559,6 +549,7 @@ export default function TasksV2View() {
             <TaskRow
               row={row} owner={row._owner} displayBody={row._display}
               now={now} theme={theme}
+              showAvatar={owner === 'shared'}
               expanded={expanded === row.id}
               onToggle={() => setExpanded(expanded === row.id ? null : row.id)}
             />

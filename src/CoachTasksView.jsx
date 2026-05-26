@@ -11,15 +11,16 @@
 import React from 'react';
 import NotesWidget from './NotesWidget';
 import TasksV2View from './TasksV2View';
+import TasksV3View from './TasksV3View';
 
-// `?ui=v2` activates the Option 5 layout prototype (continuous list with
-// NOW line, Monday status pills, assignee dots, inline expand). Read-only
-// prototype rendered from existing coach_notes data. Throw away if
-// rejected; otherwise Phase 1 lands real schema (assigned_to / due_at /
-// 4-state status) and the prototype becomes the canonical view.
+// URL param routes to prototype layouts so the legacy view stays the
+// production default until one of them is promoted:
+//   ?ui=v2  → flat-list layout with filter chips
+//   ?ui=v3  → bordered sort bar + source-line per row + plate/alerts split
 export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlanForTask, onOpenIntakeTab, onOpenReviewWorkout }) {
-  const useV2 = typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('ui') === 'v2';
-  if (useV2) return <TasksV2View />;
+  const ui = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ui') : null;
+  if (ui === 'v2') return <TasksV2View />;
+  if (ui === 'v3') return <TasksV3View />;
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 4px' }}>
       <NotesWidget
