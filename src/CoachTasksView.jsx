@@ -13,18 +13,19 @@ import NotesWidget from './NotesWidget';
 import TasksV3View from './TasksV3View';
 import TasksV4View from './TasksV4View';
 import TasksV5View from './TasksV5View';
+import TasksV6View from './TasksV6View';
 
-// URL param routes to prototype layouts so the legacy view stays the
-// production default until one of them is promoted:
-//   ?ui=v3  → bordered sort bar + source-line per row + plate/alerts split
-//   ?ui=v4  → conversation feed (message bubbles, time-ordered, date dividers)
-//   ?ui=v5  → source cards grid (one card per origin: Center / per-trainee / Manual / Auto)
-// v2 was deleted 2026-05-27 per Ohad's "kill others, keep v3 alive".
+// URL param routes:
+//   ?ui=v3  → sort bar + source-line per row + plate/alerts split
+//   ?ui=v4  → conversation feed (message bubbles)
+//   ?ui=v5  → source cards grid
+//   ?ui=v6  → v3 + v5 hybrid: owner tabs + sort bar + source cards (latest)
 export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlanForTask, onOpenIntakeTab, onOpenReviewWorkout }) {
   const ui = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ui') : null;
   if (ui === 'v3') return <TasksV3View />;
   if (ui === 'v4') return <TasksV4View />;
   if (ui === 'v5') return <TasksV5View />;
+  if (ui === 'v6') return <TasksV6View />;
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 4px' }}>
       <NotesWidget
