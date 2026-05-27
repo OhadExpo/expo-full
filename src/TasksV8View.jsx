@@ -319,7 +319,6 @@ function ViewToggle({ value, onChange }) {
 }
 
 const SORT_MODES = [
-  { id: 'smart',  label: 'Smart' },
   { id: 'date',   label: 'Due' },
   { id: 'newest', label: 'Newest' },
   { id: 'status', label: 'Status' },
