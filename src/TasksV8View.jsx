@@ -24,10 +24,20 @@
 //     cycle status. Overdue dates render red.
 //   - Done pool collapsed at the bottom.
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b } from './ui';
+import { isRefined5b, toast } from './ui';
+import {
+  isCalendarConnected,
+  connectGoogleCalendar,
+  consumeCalendarCallback,
+  disconnectCalendar,
+  reconcileRow,
+  unlinkAndDeleteEvent,
+  getStoredEventId,
+  GoogleCalendarAuthError,
+} from './googleCalendarSync';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 const YUVAL_COLOR = '#FFA02E';
@@ -576,28 +586,12 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
   );
 }
 
-function googleCalendarUrl(row, displayBody) {
-  const due = new Date(row.created_at);
-  const y = due.getFullYear();
-  const m = String(due.getMonth() + 1).padStart(2, '0');
-  const d = String(due.getDate()).padStart(2, '0');
-  const start = `${y}${m}${d}T090000`;
-  const end = `${y}${m}${d}T100000`;
-  const tags = Array.isArray(row.tags) ? row.tags : [];
-  const tagLine = tags.length ? `\n\nTags: ${tags.map(t => '#' + t).join(' ')}` : '';
-  const description = `From EXPO Tasks — ${row.id}${tagLine}\n\nhttps://expo-app.co.il/coach/tasks?ui=v8`;
-  const params = new URLSearchParams({
-    text: displayBody || row.body || 'EXPO Task',
-    dates: `${start}/${end}`,
-    details: description,
-  });
-  return `https://calendar.google.com/calendar/r/eventedit?${params.toString()}`;
-}
-
-function ExpandedDetail({ row, displayBody }) {
+function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onDeleteFromCalendar }) {
   const heb = isHebrew(displayBody || '');
-  const tags = Array.isArray(row.tags) ? row.tags : [];
-  const calUrl = googleCalendarUrl(row, displayBody);
+  // Filter internal-use tags (gevent/getag) out of the visible list.
+  const tags = (Array.isArray(row.tags) ? row.tags : []).filter(t => !t.startsWith('gevent:') && !t.startsWith('getag:'));
+  const syncedEventId = getStoredEventId(row);
+
   return (
     <div style={{
       padding: '10px 14px 14px 38px',
@@ -620,24 +614,71 @@ function ExpandedDetail({ row, displayBody }) {
           ))}
         </div>
       )}
-      <div style={{ marginTop: 10, direction: 'ltr' }}>
-        <a href={calUrl} target="_blank" rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: 'transparent', color: 'var(--c-ac)',
-            border: '1px solid var(--c-ac)',
-            fontFamily: FN, fontSize: 9, fontWeight: 700,
-            letterSpacing: '0.12em', padding: '4px 10px',
-            textDecoration: 'none', borderRadius: 0,
+      <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {gcalConnected ? (
+          syncedEventId ? (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); onSyncToCalendar(row); }}
+                title="Update this event in Google Calendar"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'transparent', color: 'var(--c-gn)',
+                  border: '1px solid var(--c-gn)',
+                  fontFamily: FN, fontSize: 9, fontWeight: 700,
+                  letterSpacing: '0.12em', padding: '4px 10px',
+                  cursor: 'pointer', borderRadius: 0,
+                  textTransform: 'uppercase',
+                }}>↻ Update in Calendar</button>
+              <button onClick={(e) => { e.stopPropagation(); onDeleteFromCalendar(row); }}
+                title="Remove this event from Google Calendar"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'transparent', color: 'var(--c-rd)',
+                  border: '1px solid var(--c-rd)',
+                  fontFamily: FN, fontSize: 9, fontWeight: 700,
+                  letterSpacing: '0.12em', padding: '4px 10px',
+                  cursor: 'pointer', borderRadius: 0,
+                  textTransform: 'uppercase',
+                }}>✕ Remove from Calendar</button>
+              <a href={`https://calendar.google.com/calendar/u/0/r/eventedit/${syncedEventId}`}
+                target="_blank" rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  background: 'transparent', color: 'var(--c-ac)',
+                  border: '1px solid var(--c-ac)',
+                  fontFamily: FN, fontSize: 9, fontWeight: 700,
+                  letterSpacing: '0.12em', padding: '4px 10px',
+                  textDecoration: 'none', borderRadius: 0,
+                  textTransform: 'uppercase',
+                }}>↗ Open in Calendar</a>
+            </>
+          ) : (
+            <button onClick={(e) => { e.stopPropagation(); onSyncToCalendar(row); }}
+              title="Add this task to Google Calendar"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'var(--c-ac)', color: '#FFFFFF',
+                border: 'none',
+                fontFamily: FN, fontSize: 9, fontWeight: 700,
+                letterSpacing: '0.12em', padding: '4px 10px',
+                cursor: 'pointer', borderRadius: 0,
+                textTransform: 'uppercase',
+              }}>📅 Add to Calendar</button>
+          )
+        ) : (
+          <span style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 600,
+            color: 'var(--c-td)', letterSpacing: '0.04em',
             textTransform: 'uppercase',
-          }}>📅 Open in Google Calendar</a>
+          }}>Connect Google Calendar at the top to sync this task</span>
+        )}
       </div>
     </div>
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, gcalConnected, onSyncToCalendar, onDeleteFromCalendar }) {
   const heb = isHebrew(row._display || '');
   const dm = dateMeta(row.created_at, now);
   const isToday = dm.label === 'TODAY';
@@ -701,7 +742,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         <div style={{
           animation: 'tasks-v8-slide-in 200ms ease-out',
         }}>
-          <ExpandedDetail row={row} displayBody={row._display} />
+          <ExpandedDetail row={row} displayBody={row._display}
+            gcalConnected={gcalConnected}
+            onSyncToCalendar={onSyncToCalendar}
+            onDeleteFromCalendar={onDeleteFromCalendar}
+          />
         </div>
       )}
     </React.Fragment>
@@ -724,9 +769,89 @@ export default function TasksV8View() {
   const [autoOpen, setAutoOpen] = useState(false);
   const [quickFilter, setQuickFilter] = useState('all'); // all | today | overdue | stuck | nodate
   const [collapsedSections, setCollapsedSections] = useState({});
+  const [gcalConnected, setGcalConnected] = useState(false);
+  const [gcalBusy, setGcalBusy] = useState(false);
   const now = useMemo(() => new Date(), []);
 
   const toggleSectionCollapse = (key) => setCollapsedSections(p => ({ ...p, [key]: !p[key] }));
+
+  // Calendar connection: on mount, consume the ?gcal=connected callback
+  // (sets localStorage opt-in) and surface the current state in UI.
+  useEffect(() => {
+    const justConnected = consumeCalendarCallback();
+    isCalendarConnected().then(setGcalConnected);
+    if (justConnected) {
+      toast('Google Calendar connected · tasks will sync automatically', 'success', { ttl: 5000 });
+    }
+  }, []);
+
+  const handleConnectGcal = async () => {
+    setGcalBusy(true);
+    await connectGoogleCalendar();
+    // Redirect happens; the page will reload via OAuth flow.
+  };
+  const handleDisconnectGcal = () => {
+    disconnectCalendar();
+    setGcalConnected(false);
+    toast('Disconnected from Google Calendar', 'info', { ttl: 3000 });
+  };
+
+  const handleSyncToCalendar = async (row) => {
+    if (!gcalConnected) {
+      toast('Connect Google Calendar first', 'info', { ttl: 3000 });
+      return;
+    }
+    try {
+      const result = await reconcileRow(row, { displayBody: stripOwnerPrefix(row.body) });
+      if (result && result.tags) await update(row.id, { tags: result.tags });
+      toast(result?.htmlLink ? 'Task added to Google Calendar' : 'Task synced to Google Calendar', 'success', { ttl: 3000 });
+    } catch (err) {
+      if (err instanceof GoogleCalendarAuthError) {
+        setGcalConnected(false);
+        toast('Calendar session expired — click Connect at the top', 'error', { ttl: 6000 });
+      } else {
+        toast(`Sync failed: ${err.message || err}`, 'error', { ttl: 6000 });
+      }
+    }
+  };
+
+  const handleDeleteFromCalendar = async (row) => {
+    if (!gcalConnected) return;
+    try {
+      const result = await unlinkAndDeleteEvent(row);
+      if (result && result.tags) await update(row.id, { tags: result.tags });
+      toast('Event removed from Google Calendar', 'success', { ttl: 3000 });
+    } catch (err) {
+      if (err instanceof GoogleCalendarAuthError) {
+        setGcalConnected(false);
+        toast('Calendar session expired — click Connect at the top', 'error', { ttl: 6000 });
+      } else {
+        toast(`Remove failed: ${err.message || err}`, 'error', { ttl: 6000 });
+      }
+    }
+  };
+
+  // Sync a row to Calendar — called from setStatus / onComposerSubmit /
+  // future delete. Swallows GoogleCalendarAuthError into a reconnect
+  // prompt; other errors propagate to a toast.
+  const syncRowToCalendar = async (row, opts = {}) => {
+    if (!gcalConnected) return;
+    try {
+      const result = await reconcileRow(row, opts);
+      if (result && result.tags) {
+        // Persist new tag set (with gevent: / getag:) onto the row.
+        await update(row.id, { tags: result.tags });
+      }
+    } catch (err) {
+      if (err instanceof GoogleCalendarAuthError) {
+        toast('Calendar session expired — click Reconnect at the top', 'error', { ttl: 6000 });
+        setGcalConnected(false);
+      } else {
+        console.error('Calendar sync failed:', err);
+        toast(`Calendar sync failed: ${err.message || err}`, 'error', { ttl: 6000 });
+      }
+    }
+  };
   const theme = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark';
 
   const decorated = useMemo(() => rows.map(r => {
@@ -819,9 +944,17 @@ export default function TasksV8View() {
     // column. For now we map: done → done, anything else → open. The
     // visual change is immediate via optimistic update in useCoachNotes,
     // but reload may revert non-{open,done} states until schema lands.
-    if (target === 'done')      await update(row.id, { status: 'done', completed_at: new Date().toISOString() });
-    else if (target === 'open') await update(row.id, { status: 'open', completed_at: null });
-    else                        await update(row.id, { status: 'open' });
+    const persistableStatus = target === 'done' ? 'done' : 'open';
+    if (persistableStatus === 'done') {
+      await update(row.id, { status: 'done', completed_at: new Date().toISOString() });
+    } else {
+      await update(row.id, { status: 'open', completed_at: null });
+    }
+    // Mirror to Google Calendar: done → [DONE] prefix, others → patch.
+    // Pass the in-memory target status so the Calendar title reflects
+    // the intent even though Supabase only stored open|done.
+    const rowWithIntent = { ...row, status: target };
+    await syncRowToCalendar(rowWithIntent, { displayBody: stripOwnerPrefix(row.body) });
   };
   // SmartComposer hands us structured input (assignee, due, source). Until
   // Phase 1 schema, we encode assignee as body prefix and source as a tag.
@@ -834,7 +967,15 @@ export default function TasksV8View() {
     else prefixed = `Ohad: ${body}`;
     if (due) prefixed += ` · due ${due}`;
     const tags = source === 'center' ? ['center'] : [];
-    await create({ body: prefixed, targetKind: 'general', tags });
+    const createdRow = await create({ body: prefixed, targetKind: 'general', tags });
+    // Sync to Calendar if connected. Use the due date if provided, else
+    // the row's created_at (today, 9am).
+    if (createdRow && gcalConnected) {
+      const syncRow = { ...createdRow, status: 'open' };
+      const opts = { displayBody: body };
+      if (due) opts.dueAt = new Date(due + 'T09:00:00').toISOString();
+      await syncRowToCalendar(syncRow, opts);
+    }
   };
 
   // Keyboard shortcuts — the Linear seven. Hidden affordance, dramatic
@@ -871,24 +1012,43 @@ export default function TasksV8View() {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 14px' }}>
-      {/* Title + + TASK */}
+      {/* Title + Google Calendar connect state */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 14,
+        marginBottom: 14, gap: 12, flexWrap: 'wrap',
       }}>
         <h2 style={{
           margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700,
           letterSpacing: '0.18em', textTransform: 'uppercase',
           color: 'var(--c-tx)',
         }}>Tasks</h2>
-        <button
-          onClick={() => window.alert('Inline composer ships in Phase 1.')}
-          style={{
-            background: 'var(--c-ac)', color: '#FFFFFF',
-            border: 'none', fontFamily: FN, fontSize: 10, fontWeight: 700,
-            letterSpacing: '0.12em', padding: '6px 14px',
-            cursor: 'pointer', borderRadius: 0,
-          }}>+ TASK</button>
+        {gcalConnected ? (
+          <button
+            onClick={handleDisconnectGcal}
+            title="Disconnect Google Calendar"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'transparent', color: 'var(--c-gn)',
+              border: '1px solid var(--c-gn)',
+              fontFamily: FN, fontSize: 10, fontWeight: 700,
+              letterSpacing: '0.12em', padding: '5px 11px',
+              cursor: 'pointer', borderRadius: 0,
+              textTransform: 'uppercase',
+            }}>📅 Calendar Synced ✓</button>
+        ) : (
+          <button
+            onClick={handleConnectGcal}
+            disabled={gcalBusy}
+            title="Connect Google Calendar — tasks will sync automatically"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'var(--c-ac)', color: '#FFFFFF',
+              border: 'none', fontFamily: FN, fontSize: 10, fontWeight: 700,
+              letterSpacing: '0.12em', padding: '6px 12px',
+              cursor: gcalBusy ? 'wait' : 'pointer', borderRadius: 0,
+              textTransform: 'uppercase', opacity: gcalBusy ? 0.6 : 1,
+            }}>📅 Connect Google Calendar</button>
+        )}
       </div>
 
       {/* Owner tabs + view toggle */}
@@ -968,7 +1128,10 @@ export default function TasksV8View() {
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
                     onSetStatus={setStatus}
-                    now={now} search={search} />
+                    now={now} search={search}
+                  gcalConnected={gcalConnected}
+                  onSyncToCalendar={handleSyncToCalendar}
+                  onDeleteFromCalendar={handleDeleteFromCalendar} />
                 ))}
               </React.Fragment>
             );
@@ -1000,7 +1163,10 @@ export default function TasksV8View() {
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
                   onSetStatus={setStatus}
-                  now={now} search={search} />
+                  now={now} search={search}
+                  gcalConnected={gcalConnected}
+                  onSyncToCalendar={handleSyncToCalendar}
+                  onDeleteFromCalendar={handleDeleteFromCalendar} />
               ))}
             </React.Fragment>
           )}
@@ -1095,7 +1261,10 @@ export default function TasksV8View() {
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
                   onSetStatus={setStatus}
-                  now={now} search={search} />
+                  now={now} search={search}
+                  gcalConnected={gcalConnected}
+                  onSyncToCalendar={handleSyncToCalendar}
+                  onDeleteFromCalendar={handleDeleteFromCalendar} />
               );
             })}
           {doneOpen && done.length > 5 && (

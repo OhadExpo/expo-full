@@ -1,0 +1,250 @@
+// Google Calendar sync for EXPO tasks — frontend-only, browser-direct.
+//
+// Strategy (no infra changes, no Vercel env vars, no schema migration):
+//   - Uses Supabase Auth's existing Google OAuth provider. The user
+//     clicks "Connect Google Calendar" which re-authenticates them
+//     with `calendar.events` scope appended.
+//   - Returned session has `provider_token` (Google access token,
+//     ~1 hour TTL). Frontend calls google's Calendar API directly
+//     with this token. No server-side refresh needed for the
+//     prototype.
+//   - Event IDs are persisted as tags on each coach_notes row, e.g.
+//     `gevent:abc123`. No new columns required. Look up via
+//     `getStoredEventId(row)`.
+//   - When the token expires, the next sync call returns 401; we
+//     surface "Reconnect Google Calendar" in the UI. User clicks
+//     once and is back in business.
+//
+// Phase 5b (true bi-directional Google → EXPO sync via events.watch +
+// Vercel Cron + webhook) requires a schema migration + Vercel env
+// vars + server-side refresh tokens. That's separate work — this
+// module ships add/edit/delete from EXPO → Calendar today.
+
+import { supabase } from './supabase';
+
+const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const EVENT_TAG_PREFIX = 'gevent:';
+const ETAG_TAG_PREFIX = 'getag:';
+
+// ── Identity / connection ────────────────────────────────────────────
+
+// Has the user granted Calendar access AND do we currently hold a
+// valid (non-expired) provider_token? Cheap synchronous heuristic —
+// the only definitive answer is "did the next API call return 401".
+export async function isCalendarConnected() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return false;
+  if (!session.provider_token) return false;
+  // Supabase doesn't return scope strings — we mark localStorage on
+  // successful sync to remember the user opted in.
+  return localStorage.getItem('expo-gcal-connected') === '1';
+}
+
+// Kick off OAuth re-auth with calendar.events scope appended. This
+// redirects the user away from the page — they come back with the
+// session updated. Pass `redirectTo` so we land back on the same
+// surface with a `?gcal=connected` query param.
+export async function connectGoogleCalendar() {
+  const back = window.location.origin + window.location.pathname + (window.location.search || '') + (window.location.search.includes('?') ? '&' : '?') + 'gcal=connected';
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      scopes: CALENDAR_SCOPE,
+      queryParams: { access_type: 'offline', prompt: 'consent' },
+      redirectTo: back,
+    },
+  });
+  if (error) {
+    console.error('Calendar OAuth init failed:', error);
+    return false;
+  }
+  return true;
+}
+
+// Called on page mount when ?gcal=connected is in the URL. Persists the
+// "user opted in" flag + clears the query param.
+export function consumeCalendarCallback() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('gcal') === 'connected') {
+    localStorage.setItem('expo-gcal-connected', '1');
+    params.delete('gcal');
+    const qs = params.toString();
+    const newUrl = window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash;
+    window.history.replaceState({}, '', newUrl);
+    return true;
+  }
+  return false;
+}
+
+// Clear the opted-in flag — for "Disconnect" UI.
+export function disconnectCalendar() {
+  localStorage.removeItem('expo-gcal-connected');
+}
+
+// ── Token plumbing ───────────────────────────────────────────────────
+
+async function getAccessToken() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.provider_token || null;
+}
+
+// Wrapper around fetch that injects the Calendar API auth header and
+// throws a friendly error on 401 (so UI can prompt for reconnect).
+async function gcalFetch(path, init = {}) {
+  const token = await getAccessToken();
+  if (!token) throw new GoogleCalendarAuthError('No Google access token in session');
+  const res = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
+    ...init,
+    headers: {
+      ...(init.headers || {}),
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  if (res.status === 401 || res.status === 403) {
+    throw new GoogleCalendarAuthError(`Google rejected the request (${res.status})`);
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Google Calendar API ${res.status}: ${body.slice(0, 200)}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+export class GoogleCalendarAuthError extends Error {
+  constructor(message) { super(message); this.name = 'GoogleCalendarAuthError'; }
+}
+
+// ── Tag-based event-id store ─────────────────────────────────────────
+
+export function getStoredEventId(row) {
+  const tags = Array.isArray(row.tags) ? row.tags : [];
+  const found = tags.find(t => t.startsWith(EVENT_TAG_PREFIX));
+  return found ? found.slice(EVENT_TAG_PREFIX.length) : null;
+}
+
+export function getStoredEtag(row) {
+  const tags = Array.isArray(row.tags) ? row.tags : [];
+  const found = tags.find(t => t.startsWith(ETAG_TAG_PREFIX));
+  return found ? found.slice(ETAG_TAG_PREFIX.length) : null;
+}
+
+function withEventTags(tags, eventId, etag) {
+  const keep = (tags || []).filter(t => !t.startsWith(EVENT_TAG_PREFIX) && !t.startsWith(ETAG_TAG_PREFIX));
+  if (eventId) keep.push(EVENT_TAG_PREFIX + eventId);
+  if (etag)    keep.push(ETAG_TAG_PREFIX + etag);
+  return keep;
+}
+
+// ── Payload building ─────────────────────────────────────────────────
+
+function buildEventPayload(row, opts = {}) {
+  // Title prefixed with bracketed status so it shows in Calendar even
+  // before EXPO is opened. Default to 9:00–10:00 on the due date; if
+  // no real due_at exists yet (Phase 1 work) use the row's created_at
+  // as a proxy.
+  const status = row.status || 'open';
+  const statusPrefix = status === 'done' ? '[DONE] '
+                     : status === 'working' ? '[WORKING] '
+                     : status === 'stuck' ? '[STUCK] '
+                     : '';
+  const baseBody = (opts.displayBody || row.body || '').trim();
+  const summary = statusPrefix + baseBody;
+
+  const dueIso = opts.dueAt || row.due_at || row.created_at || new Date().toISOString();
+  const due = new Date(dueIso);
+  // Anchor to 9 AM local time on the due date so it's not midnight noise.
+  due.setHours(9, 0, 0, 0);
+  const endHour = new Date(due.getTime() + 60 * 60 * 1000); // +1h
+
+  const description = `From EXPO Tasks\nTask ID: ${row.id}\n\nhttps://expo-app.co.il/coach/tasks?ui=v8`;
+
+  const payload = {
+    summary,
+    description,
+    start: { dateTime: due.toISOString() },
+    end:   { dateTime: endHour.toISOString() },
+    reminders: {
+      useDefault: false,
+      overrides: [
+        { method: 'popup', minutes: 60 },
+        { method: 'email', minutes: 60 * 24 },
+      ],
+    },
+  };
+  // If a partner email is supplied, add as attendee so they get a
+  // Calendar invite. Partner = the OTHER trainer for Ohad+Yuval tasks.
+  if (opts.attendeeEmail) {
+    payload.attendees = [{ email: opts.attendeeEmail }];
+  }
+  return payload;
+}
+
+// ── CRUD on Google ───────────────────────────────────────────────────
+
+export async function pushNewTask(row, opts = {}) {
+  const payload = buildEventPayload(row, opts);
+  const created = await gcalFetch('/calendars/primary/events?sendUpdates=all', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return { id: created.id, etag: created.etag, htmlLink: created.htmlLink };
+}
+
+export async function patchTask(row, eventId, opts = {}) {
+  if (!eventId) return null;
+  const payload = buildEventPayload(row, opts);
+  const patched = await gcalFetch(`/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  return { id: patched.id, etag: patched.etag };
+}
+
+export async function deleteTask(eventId) {
+  if (!eventId) return null;
+  await gcalFetch(`/calendars/primary/events/${encodeURIComponent(eventId)}?sendUpdates=all`, {
+    method: 'DELETE',
+  });
+  return true;
+}
+
+// ── High-level orchestration ─────────────────────────────────────────
+
+// One-shot "make Calendar match this row". Decides between insert /
+// patch / delete based on row.status + existing stored eventId.
+//
+// Returns { tags: updatedTagsArray, htmlLink? } so the caller can
+// persist the new tag set on coach_notes. Or null on no-op.
+export async function reconcileRow(row, opts = {}) {
+  if (!await isCalendarConnected()) return null;
+  const existingId = getStoredEventId(row);
+  // If task is done AND was synced: patch the title to mark [DONE] so the
+  // event stays in the calendar history but signals completion.
+  if (row.status === 'done' && existingId) {
+    const result = await patchTask(row, existingId, opts);
+    return { tags: withEventTags(row.tags, result.id, result.etag) };
+  }
+  // Active task with no event yet: create one.
+  if (!existingId && row.status !== 'done') {
+    const result = await pushNewTask(row, opts);
+    return { tags: withEventTags(row.tags, result.id, result.etag), htmlLink: result.htmlLink };
+  }
+  // Active task already synced: patch with latest title / time.
+  if (existingId && row.status !== 'done') {
+    const result = await patchTask(row, existingId, opts);
+    return { tags: withEventTags(row.tags, result.id, result.etag) };
+  }
+  // Done task that never synced: nothing to do.
+  return null;
+}
+
+// Hard-delete the Calendar event AND clear the tag from the row.
+export async function unlinkAndDeleteEvent(row) {
+  if (!await isCalendarConnected()) return null;
+  const eventId = getStoredEventId(row);
+  if (!eventId) return null;
+  await deleteTask(eventId);
+  return { tags: withEventTags(row.tags, null, null) };
+}
