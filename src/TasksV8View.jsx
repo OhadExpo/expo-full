@@ -122,10 +122,26 @@ function nextStatus(s) {
   const i = STATUS_CYCLE.indexOf(s);
   return STATUS_CYCLE[(i + 1) % STATUS_CYCLE.length];
 }
-function applySort(rows, mode, dir) {
+
+// "Smart" sort: urgency-first. Stuck > Overdue > Today > Working > Open by
+// due date > No date. Matches how a coach naturally prioritizes a morning
+// triage — "what's burning, what's due, what can wait".
+function smartSortScore(row, now) {
+  const dm = dateMeta(row.created_at, now);
+  if (row.status === 'stuck') return 0;
+  if (dm.isOverdue)           return 1;
+  if (dm.label === 'TODAY')   return 2;
+  if (row.status === 'working') return 3;
+  // remaining: open + future, ordered by date proximity
+  const d = new Date(row.created_at).getTime();
+  return 10 + d / 1e10; // monotonic, smaller = earlier
+}
+
+function applySort(rows, mode, dir, now) {
   const a = [...rows];
   let cmp;
-  if (mode === 'newest')      cmp = (x, y) => new Date(y.created_at) - new Date(x.created_at);
+  if (mode === 'smart')       cmp = (x, y) => smartSortScore(x, now) - smartSortScore(y, now);
+  else if (mode === 'newest') cmp = (x, y) => new Date(y.created_at) - new Date(x.created_at);
   else if (mode === 'status') cmp = (x, y) => (STATUS_RANK[x.status] ?? 9) - (STATUS_RANK[y.status] ?? 9);
   else if (mode === 'name')   cmp = (x, y) => (x.body || '').localeCompare(y.body || '');
   else                        cmp = (x, y) => new Date(x.created_at) - new Date(y.created_at);
@@ -160,34 +176,42 @@ function AssigneeDot({ owner, size = 14 }) {
   );
 }
 
-// Status pill with popover — click opens a small picker with all 4 states
-// so the user can skip non-adjacent transitions (e.g. OPEN → DONE directly).
+// Linear-style status ICON: ○ open · ◐ working · ⚠ stuck · ● done.
+// Replaces the text pill (OPEN/WORK/STUCK/DONE) with a single glyph in
+// the status colour. Click opens the 4-option popover (same as before).
 const STATUS_OPTIONS = [
-  { id: 'open',    label: 'OPEN'  },
-  { id: 'working', label: 'WORK'  },
-  { id: 'stuck',   label: 'STUCK' },
-  { id: 'done',    label: 'DONE'  },
+  { id: 'open',    label: 'Open',    glyph: '○' },
+  { id: 'working', label: 'Working', glyph: '◐' },
+  { id: 'stuck',   label: 'Stuck',   glyph: '⚠' },
+  { id: 'done',    label: 'Done',    glyph: '●' },
 ];
+function StatusIconGlyph({ status, theme, size = 16 }) {
+  const opt = STATUS_OPTIONS.find(o => o.id === status) || STATUS_OPTIONS[0];
+  const c = statusColors(status, theme);
+  const color = c ? c.bg : 'var(--c-tm)';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: size, height: size, color, fontSize: size, lineHeight: 1,
+      fontFamily: FN, fontWeight: 700, flexShrink: 0,
+    }}>{opt.glyph}</span>
+  );
+}
 function StatusPill({ status, theme, onSetStatus }) {
   const [open, setOpen] = useState(false);
-  const c = statusColors(status, theme);
-  const isOpenState = !c;
-  const text = isOpenState ? 'OPEN' : status === 'done' ? 'DONE' : status === 'working' ? 'WORK' : 'STUCK';
   return (
-    <span style={{ position: 'relative', display: 'inline-block' }}>
+    <span style={{ position: 'relative', display: 'inline-flex' }}>
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
         onBlur={() => setTimeout(() => setOpen(false), 160)}
         title="Click to change status"
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          background: isOpenState ? 'transparent' : c.bg,
-          color: isOpenState ? 'var(--c-tm)' : c.fg,
-          border: isOpenState ? '1px dashed var(--c-cardBd)' : 'none',
-          fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-          padding: '0 6px', height: 18, width: 56, borderRadius: 0, flexShrink: 0,
-          textTransform: 'uppercase', cursor: 'pointer',
-        }}>{text}</button>
+          background: 'transparent', border: 'none', padding: 0,
+          width: 22, height: 22, cursor: 'pointer', flexShrink: 0,
+        }}>
+        <StatusIconGlyph status={status} theme={theme} size={16} />
+      </button>
       {open && (
         <div
           onMouseDown={(e) => e.preventDefault()}
@@ -195,30 +219,28 @@ function StatusPill({ status, theme, onSetStatus }) {
           style={{
             position: 'absolute', top: '100%', right: 0, marginTop: 2,
             background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)',
-            zIndex: 100, minWidth: 120, boxShadow: 'var(--c-cardShadow)',
+            zIndex: 100, minWidth: 140, boxShadow: 'var(--c-cardShadow)',
           }}>
           {STATUS_OPTIONS.map(o => {
             const sc = statusColors(o.id, theme);
+            const glyphColor = sc ? sc.bg : 'var(--c-tm)';
             const isCurrent = o.id === status;
             return (
               <button key={o.id}
                 onMouseDown={(e) => { e.preventDefault(); onSetStatus(o.id); setOpen(false); }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
                   background: isCurrent ? 'var(--c-sf2, transparent)' : 'transparent',
-                  border: 'none', textAlign: 'left', padding: '7px 10px',
-                  fontFamily: FN, fontSize: 10, fontWeight: 700,
-                  letterSpacing: '0.12em',
+                  border: 'none', textAlign: 'left', padding: '7px 12px',
+                  fontFamily: FN, fontSize: 11, fontWeight: 600,
                   color: isCurrent ? 'var(--c-ac)' : 'var(--c-tx)',
-                  cursor: 'pointer', textTransform: 'uppercase',
+                  cursor: 'pointer',
                 }}>
                 <span style={{
-                  display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
-                  background: sc ? sc.bg : 'transparent',
-                  border: sc ? 'none' : '1px dashed var(--c-cardBd)',
-                  flexShrink: 0,
-                }} />
-                <span>{o.label}</span>
+                  display: 'inline-flex', width: 16, justifyContent: 'center',
+                  color: glyphColor, fontSize: 14, fontWeight: 700,
+                }}>{o.glyph}</span>
+                <span style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10 }}>{o.label}</span>
                 {isCurrent && <span style={{ marginLeft: 'auto', color: 'var(--c-ac)' }}>✓</span>}
               </button>
             );
@@ -227,6 +249,28 @@ function StatusPill({ status, theme, onSetStatus }) {
       )}
     </span>
   );
+}
+
+// Wrap each occurrence of `query` (case-insensitive) inside `text` with a
+// highlighted span so search matches pop visually.
+function HighlightedText({ text, query, style }) {
+  if (!query) return <span style={style}>{text}</span>;
+  const lower = (text || '').toLowerCase();
+  const q = query.toLowerCase();
+  if (!lower.includes(q)) return <span style={style}>{text}</span>;
+  const parts = [];
+  let i = 0;
+  let idx;
+  while ((idx = lower.indexOf(q, i)) !== -1) {
+    if (idx > i) parts.push(<span key={`p${i}`}>{text.slice(i, idx)}</span>);
+    parts.push(<mark key={`m${idx}`} style={{
+      background: 'rgba(57,189,255,0.18)', color: 'inherit',
+      padding: '0 2px', borderRadius: 2,
+    }}>{text.slice(idx, idx + q.length)}</mark>);
+    i = idx + q.length;
+  }
+  if (i < text.length) parts.push(<span key={`p${i}`}>{text.slice(i)}</span>);
+  return <span style={style}>{parts}</span>;
 }
 
 function OwnerTab({ label, count, active, onClick, color }) {
@@ -275,6 +319,7 @@ function ViewToggle({ value, onChange }) {
 }
 
 const SORT_MODES = [
+  { id: 'smart',  label: 'Smart' },
   { id: 'date',   label: 'Due' },
   { id: 'newest', label: 'Newest' },
   { id: 'status', label: 'Status' },
@@ -498,19 +543,27 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
   );
 }
 
-// Section header — minimal chrome. Small colored dot + name + count.
-// No heavy top border. Visual restraint = calmer list.
-function SectionHeader({ label, count, color }) {
+// Section header — clickable to collapse. Small colored dot + chevron +
+// name + count. No heavy top border. Visual restraint = calmer list.
+function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '8px 12px',
-      borderBottom: `1px solid var(--c-cardBd)`,
-      background: 'var(--c-sf2, transparent)',
-    }}>
+    <div
+      onClick={onToggleCollapse}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '8px 12px', cursor: 'pointer',
+        borderBottom: `1px solid var(--c-cardBd)`,
+        background: 'var(--c-sf2, transparent)',
+      }}>
       <span style={{
         display: 'inline-block', width: 8, height: 8, background: color, borderRadius: '50%',
       }} />
+      <span style={{
+        fontFamily: FN, fontSize: 10, fontWeight: 700,
+        color: 'var(--c-tm)', flexShrink: 0,
+        transition: 'transform 120ms ease',
+        transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+      }}>▾</span>
       <span style={{
         fontFamily: FN, fontSize: 10, fontWeight: 700,
         letterSpacing: '0.18em', color: 'var(--c-tx)',
@@ -585,7 +638,7 @@ function ExpandedDetail({ row, displayBody }) {
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search }) {
   const heb = isHebrew(row._display || '');
   const dm = dateMeta(row.created_at, now);
   const isToday = dm.label === 'TODAY';
@@ -626,7 +679,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           direction: heb ? 'rtl' : 'ltr',
           textAlign: heb ? 'right' : 'left',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{row._display}</div>
+        }}>
+          <HighlightedText text={row._display} query={search} />
+        </div>
         {/* Hover-revealed quick action — Linear pattern. Doesn't do anything
             yet (Phase 1 hooks up a quick-menu), just signals interactivity. */}
         <span style={{
@@ -669,7 +724,10 @@ export default function TasksV8View() {
   const [doneOpen, setDoneOpen] = useState(false);
   const [autoOpen, setAutoOpen] = useState(false);
   const [quickFilter, setQuickFilter] = useState('all'); // all | today | overdue | stuck | nodate
+  const [collapsedSections, setCollapsedSections] = useState({});
   const now = useMemo(() => new Date(), []);
+
+  const toggleSectionCollapse = (key) => setCollapsedSections(p => ({ ...p, [key]: !p[key] }));
   const theme = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark';
 
   const decorated = useMemo(() => rows.map(r => {
@@ -734,7 +792,7 @@ export default function TasksV8View() {
       byKey.get(k).push(r);
     }
     for (const [k, list] of byKey.entries()) {
-      byKey.set(k, applySort(list, sortBy, sortDir));
+      byKey.set(k, applySort(list, sortBy, sortDir, now));
     }
     const result = [];
     if (byKey.has('center'))  result.push({ key: 'center',  rows: byKey.get('center')  });
@@ -744,7 +802,7 @@ export default function TasksV8View() {
     if (byKey.has('manual'))  result.push({ key: 'manual',  rows: byKey.get('manual')  });
     if (byKey.has('auto'))    result.push({ key: 'auto',    rows: byKey.get('auto')    });
     return result;
-  }, [quickFiltered, sortBy, sortDir]);
+  }, [quickFiltered, sortBy, sortDir, now]);
 
   const done = useMemo(
     () => decorated.filter(r => r._owner === owner && r.status === 'done'),
@@ -894,23 +952,28 @@ export default function TasksV8View() {
               )}
             </div>
           )}
-          {visibleSections.map(section => (
-            <React.Fragment key={section.key}>
-              <SectionHeader
-                label={sourceLabel(section.key, section.rows[0])}
-                count={section.rows.length}
-                color={sourceColor(section.key)}
-              />
-              {section.rows.map(row => (
-                <TaskRow key={row.id} row={row}
-                  theme={theme} showAvatar={owner === 'shared'}
-                  expanded={expandedRows.has(row.id)}
-                  onToggleExpand={() => toggleRow(row.id)}
-                  onSetStatus={setStatus}
-                  now={now} />
-              ))}
-            </React.Fragment>
-          ))}
+          {visibleSections.map(section => {
+            const isCollapsed = !!collapsedSections[section.key];
+            return (
+              <React.Fragment key={section.key}>
+                <SectionHeader
+                  label={sourceLabel(section.key, section.rows[0])}
+                  count={section.rows.length}
+                  color={sourceColor(section.key)}
+                  collapsed={isCollapsed}
+                  onToggleCollapse={() => toggleSectionCollapse(section.key)}
+                />
+                {!isCollapsed && section.rows.map(row => (
+                  <TaskRow key={row.id} row={row}
+                    theme={theme} showAvatar={owner === 'shared'}
+                    expanded={expandedRows.has(row.id)}
+                    onToggleExpand={() => toggleRow(row.id)}
+                    onSetStatus={setStatus}
+                    now={now} search={search} />
+                ))}
+              </React.Fragment>
+            );
+          })}
 
           {/* Auto-tasks demoted — no section header. A single thin row at the
               bottom of the open list, click to expand. Engine noise stays
@@ -938,7 +1001,7 @@ export default function TasksV8View() {
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
                   onSetStatus={setStatus}
-                  now={now} />
+                  now={now} search={search} />
               ))}
             </React.Fragment>
           )}
@@ -998,19 +1061,52 @@ export default function TasksV8View() {
       )}
 
       {done.length > 0 && (
-        <div
-          onClick={() => setDoneOpen(o => !o)}
-          style={{
-            marginTop: 14, padding: '10px 14px',
-            border: `1px solid var(--c-cardBd)`,
-            background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
-            fontFamily: FN, fontSize: 10, fontWeight: 700,
-            letterSpacing: '0.18em', color: 'var(--c-td)',
-            textTransform: 'uppercase', cursor: 'pointer',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-          <span>{doneOpen ? '▾' : '▸'} Done · {done.length}</span>
-          <span style={{ opacity: 0.6 }}>{doneOpen ? 'click to collapse' : 'click to expand'}</span>
+        <div style={{
+          marginTop: 14,
+          border: `1px solid var(--c-cardBd)`,
+          background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+        }}>
+          <div
+            onClick={() => setDoneOpen(o => !o)}
+            style={{
+              padding: '10px 14px',
+              fontFamily: FN, fontSize: 10, fontWeight: 700,
+              letterSpacing: '0.18em', color: 'var(--c-td)',
+              textTransform: 'uppercase', cursor: 'pointer',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              borderBottom: doneOpen ? `1px solid var(--c-cardBd)` : 'none',
+            }}>
+            <span>{doneOpen ? '▾' : '▸'} Done · {done.length}</span>
+            <span style={{ opacity: 0.6, fontSize: 9 }}>
+              {doneOpen ? `Showing latest ${Math.min(done.length, 5)}` : 'Click to expand'}
+            </span>
+          </div>
+          {doneOpen && [...done]
+            .sort((a, b) => new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at))
+            .slice(0, 5)
+            .map(row => {
+              const decoratedDone = {
+                ...row,
+                _owner: ownerFromBody(row.body),
+                _display: stripOwnerPrefix(row.body),
+              };
+              return (
+                <TaskRow key={row.id} row={decoratedDone}
+                  theme={theme} showAvatar={owner === 'shared'}
+                  expanded={expandedRows.has(row.id)}
+                  onToggleExpand={() => toggleRow(row.id)}
+                  onSetStatus={setStatus}
+                  now={now} search={search} />
+              );
+            })}
+          {doneOpen && done.length > 5 && (
+            <div style={{
+              padding: '10px 14px',
+              fontFamily: FN, fontSize: 9, fontWeight: 700,
+              letterSpacing: '0.12em', color: 'var(--c-tm)',
+              textTransform: 'uppercase', textAlign: 'center',
+            }}>{done.length - 5} more done · view all in Phase 1</div>
+          )}
         </div>
       )}
 
