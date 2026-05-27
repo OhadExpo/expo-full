@@ -10,22 +10,17 @@
 
 import React from 'react';
 import NotesWidget from './NotesWidget';
-import TasksV3View from './TasksV3View';
-import TasksV4View from './TasksV4View';
-import TasksV5View from './TasksV5View';
 import TasksV6View from './TasksV6View';
+import TasksV7View from './TasksV7View';
 
 // URL param routes:
-//   ?ui=v3  → sort bar + source-line per row + plate/alerts split
-//   ?ui=v4  → conversation feed (message bubbles)
-//   ?ui=v5  → source cards grid
-//   ?ui=v6  → v3 + v5 hybrid: owner tabs + sort bar + source cards (latest)
+//   ?ui=v6  → owner tabs + sort bar + source cards (v3 + v5 hybrid)
+//   ?ui=v7  → v6 + inline row expand + overdue red + clickable status
+// v3/v4/v5 deleted 2026-05-27 per Ohad's "delete the rest, keep v6, build v7".
 export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlanForTask, onOpenIntakeTab, onOpenReviewWorkout }) {
   const ui = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ui') : null;
-  if (ui === 'v3') return <TasksV3View />;
-  if (ui === 'v4') return <TasksV4View />;
-  if (ui === 'v5') return <TasksV5View />;
   if (ui === 'v6') return <TasksV6View />;
+  if (ui === 'v7') return <TasksV7View />;
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 4px' }}>
       <NotesWidget
