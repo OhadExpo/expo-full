@@ -36,6 +36,11 @@ import {
   reconcileRow,
   unlinkAndDeleteEvent,
   getStoredEventId,
+  pullChangesSinceLastSync,
+  getLastSyncedAt,
+  clearSyncToken,
+  stripStatusPrefix,
+  statusFromSummary,
   GoogleCalendarAuthError,
 } from './googleCalendarSync';
 
@@ -792,7 +797,9 @@ export default function TasksV8View() {
   };
   const handleDisconnectGcal = () => {
     disconnectCalendar();
+    clearSyncToken();
     setGcalConnected(false);
+    setLastSyncedAt(null);
     toast('Disconnected from Google Calendar', 'info', { ttl: 3000 });
   };
 
@@ -830,6 +837,88 @@ export default function TasksV8View() {
       }
     }
   };
+
+  // ── Pull side: Google → EXPO via polling ──────────────────────────
+  // Bidirectional sync without server-side state. Polls Google's
+  // events.list every 60s while v8 is open and Calendar is connected.
+  // For each remote event with a matching local row (by gevent:ID tag):
+  //   - cancelled → mark local row done + clear sync tags
+  //   - updated   → mirror summary change (title) and status prefix
+  // Suppresses errors during polling (logs to console) so a transient
+  // network failure doesn't toast-spam the user.
+  const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  useEffect(() => {
+    if (!gcalConnected) return;
+    let cancelled = false;
+
+    const reconcileIncoming = async (events) => {
+      for (const event of events) {
+        const localRow = rows.find(r => getStoredEventId(r) === event.id);
+        if (!localRow) continue;
+        // Cancelled remotely → close locally.
+        if (event.status === 'cancelled') {
+          await update(localRow.id, {
+            status: 'done',
+            completed_at: new Date().toISOString(),
+            tags: (localRow.tags || []).filter(t => !t.startsWith('gevent:') && !t.startsWith('getag:')),
+          });
+          continue;
+        }
+        // Updated remotely → mirror the title back. Preserve the EXPO
+        // body prefix ("Yuval: ", "Ohad + Yuval: ", "Ohad: ") so the
+        // assignee chip stays correct.
+        const newSummary = stripStatusPrefix(event.summary || '');
+        const currentDisplay = stripOwnerPrefix(localRow.body);
+        if (newSummary && newSummary !== currentDisplay) {
+          const owner = ownerFromBody(localRow.body);
+          const prefix = owner === 'shared' ? 'Ohad + Yuval: '
+                       : owner === 'yuval'  ? 'Yuval: '
+                       : 'Ohad: ';
+          await update(localRow.id, { body: prefix + newSummary });
+        }
+        // Mirror status from the bracketed prefix if present (e.g.
+        // user typed [DONE] manually in Calendar).
+        const remoteStatus = statusFromSummary(event.summary);
+        if (remoteStatus === 'done' && localRow.status !== 'done') {
+          await update(localRow.id, { status: 'done', completed_at: new Date().toISOString() });
+        }
+      }
+    };
+
+    const poll = async () => {
+      try {
+        const events = await pullChangesSinceLastSync();
+        if (cancelled) return;
+        if (events.length) await reconcileIncoming(events);
+        setLastSyncedAt(getLastSyncedAt());
+      } catch (err) {
+        if (err instanceof GoogleCalendarAuthError) {
+          if (!cancelled) {
+            setGcalConnected(false);
+            toast('Calendar session expired — click Connect at the top', 'error', { ttl: 6000 });
+          }
+          return;
+        }
+        console.warn('Calendar pull failed (silent):', err);
+      }
+    };
+
+    // First pull immediately on mount/connection; then every 60s.
+    poll();
+    const interval = setInterval(poll, 60000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [gcalConnected, rows]);
+
+  // Format a relative "Synced 30s ago" indicator.
+  const lastSyncedLabel = useMemo(() => {
+    if (!lastSyncedAt) return null;
+    const seconds = Math.round((Date.now() - lastSyncedAt.getTime()) / 1000);
+    if (seconds < 5) return 'just now';
+    if (seconds < 60) return `${seconds}s ago`;
+    const mins = Math.round(seconds / 60);
+    if (mins < 60) return `${mins} min ago`;
+    return `${Math.round(mins / 60)}h ago`;
+  }, [lastSyncedAt, now]);
 
   // Sync a row to Calendar — called from setStatus / onComposerSubmit /
   // future delete. Swallows GoogleCalendarAuthError into a reconnect
@@ -1023,18 +1112,27 @@ export default function TasksV8View() {
           color: 'var(--c-tx)',
         }}>Tasks</h2>
         {gcalConnected ? (
-          <button
-            onClick={handleDisconnectGcal}
-            title="Disconnect Google Calendar"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: 'transparent', color: 'var(--c-gn)',
-              border: '1px solid var(--c-gn)',
-              fontFamily: FN, fontSize: 10, fontWeight: 700,
-              letterSpacing: '0.12em', padding: '5px 11px',
-              cursor: 'pointer', borderRadius: 0,
-              textTransform: 'uppercase',
-            }}>📅 Calendar Synced ✓</button>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={handleDisconnectGcal}
+              title="Disconnect Google Calendar"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'transparent', color: 'var(--c-gn)',
+                border: '1px solid var(--c-gn)',
+                fontFamily: FN, fontSize: 10, fontWeight: 700,
+                letterSpacing: '0.12em', padding: '5px 11px',
+                cursor: 'pointer', borderRadius: 0,
+                textTransform: 'uppercase',
+              }}>📅 Calendar Synced ✓</button>
+            {lastSyncedLabel && (
+              <span style={{
+                fontFamily: FN, fontSize: 9, fontWeight: 600,
+                color: 'var(--c-td)', letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}>↻ {lastSyncedLabel}</span>
+            )}
+          </div>
         ) : (
           <button
             onClick={handleConnectGcal}

@@ -248,3 +248,90 @@ export async function unlinkAndDeleteEvent(row) {
   await deleteTask(eventId);
   return { tags: withEventTags(row.tags, null, null) };
 }
+
+// ── Pull side — Google → EXPO via syncToken polling ─────────────────
+//
+// Phase 5b's "true bidirectional" sync, frontend-only, no server-side
+// state or refresh tokens. Trade-offs:
+//   - Only syncs WHILE the user has /coach/tasks?ui=v8 open and is
+//     authenticated. Offline = no sync. Acceptable for 2-person team.
+//   - Uses events.list with `syncToken` — incremental, only new/changed
+//     items each call. Quota: ~120 calls/hour at 30s polling = ~5K/day
+//     per user, well under Google's 1M/day project quota.
+//   - First call uses `updatedMin = now - 30d` (scopes the cold start).
+//   - 410 GONE on the syncToken means it expired (>30 days unused)
+//     and we re-bootstrap.
+
+const SYNC_TOKEN_KEY = 'expo-gcal-sync-token';
+const LAST_SYNC_KEY  = 'expo-gcal-last-synced-at';
+
+export function getLastSyncedAt() {
+  const ts = localStorage.getItem(LAST_SYNC_KEY);
+  return ts ? new Date(parseInt(ts, 10)) : null;
+}
+
+function setLastSyncedAt() {
+  localStorage.setItem(LAST_SYNC_KEY, String(Date.now()));
+}
+
+export function clearSyncToken() {
+  localStorage.removeItem(SYNC_TOKEN_KEY);
+  localStorage.removeItem(LAST_SYNC_KEY);
+}
+
+export async function pullChangesSinceLastSync() {
+  if (!await isCalendarConnected()) return [];
+  const syncToken = localStorage.getItem(SYNC_TOKEN_KEY);
+  let path = '/calendars/primary/events?singleEvents=true&maxResults=250';
+  if (syncToken) {
+    path += '&syncToken=' + encodeURIComponent(syncToken);
+  } else {
+    const since = new Date(Date.now() - 30 * 86400000).toISOString();
+    path += '&updatedMin=' + encodeURIComponent(since) + '&showDeleted=true';
+  }
+
+  let collected = [];
+  let pageToken = null;
+  let lastNextSyncToken = null;
+
+  // Walk pages until we exhaust the change set (Google chunks via
+  // nextPageToken on syncToken responses too).
+  for (let i = 0; i < 10; i++) {
+    const url = path + (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
+    let data;
+    try {
+      data = await gcalFetch(url);
+    } catch (err) {
+      // 410 → syncToken expired or invalidated. Drop it; next call
+      // re-bootstraps from updatedMin.
+      if (err.message?.includes('410') || err.message?.includes('Gone')) {
+        clearSyncToken();
+        return [];
+      }
+      throw err;
+    }
+    if (Array.isArray(data.items)) collected = collected.concat(data.items);
+    if (data.nextSyncToken) lastNextSyncToken = data.nextSyncToken;
+    if (data.nextPageToken) {
+      pageToken = data.nextPageToken;
+      continue;
+    }
+    break;
+  }
+  if (lastNextSyncToken) localStorage.setItem(SYNC_TOKEN_KEY, lastNextSyncToken);
+  setLastSyncedAt();
+  return collected;
+}
+
+// Strip the [WORKING] / [STUCK] / [DONE] prefix from a Calendar event's
+// summary to recover the original task body. Used when applying a Google
+// edit back to EXPO.
+const STATUS_PREFIX_RE = /^\[(DONE|WORKING|STUCK)\]\s+/i;
+export function stripStatusPrefix(summary) {
+  return (summary || '').replace(STATUS_PREFIX_RE, '');
+}
+export function statusFromSummary(summary) {
+  const m = (summary || '').match(STATUS_PREFIX_RE);
+  if (!m) return null;
+  return m[1].toLowerCase();
+}
