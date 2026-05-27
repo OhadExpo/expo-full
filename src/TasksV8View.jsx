@@ -294,11 +294,11 @@ function OwnerTab({ label, count, active, onClick, color }) {
       background: active ? (color || 'var(--c-ac)') : 'transparent',
       color: active ? '#FFFFFF' : 'var(--c-tm)',
       border: `1px solid ${active ? (color || 'var(--c-ac)') : 'var(--c-cardBd)'}`,
-      fontFamily: FN, fontSize: 11, fontWeight: 700,
-      letterSpacing: '0.14em', padding: '7px 16px',
+      fontFamily: FN, fontSize: 10, fontWeight: 700,
+      letterSpacing: '0.12em', padding: '0 14px', height: 28,
       cursor: 'pointer', borderRadius: 0,
       textTransform: 'uppercase', display: 'inline-flex',
-      alignItems: 'center', gap: 8,
+      alignItems: 'center', justifyContent: 'center', gap: 8, boxSizing: 'border-box',
     }}>
       <span>{label}</span>
       <span style={{ opacity: 0.78, fontSize: 10 }}>{count}</span>
@@ -316,7 +316,7 @@ function ViewToggle({ value, onChange }) {
     <div style={{
       display: 'inline-flex',
       border: `1px solid var(--c-cardBd)`,
-      borderRadius: 0,
+      borderRadius: 0, height: 28, boxSizing: 'border-box',
     }}>
       {items.map((it, i) => (
         <button key={it.id} onClick={() => onChange(it.id)} style={{
@@ -325,7 +325,7 @@ function ViewToggle({ value, onChange }) {
           border: 'none',
           borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
           fontFamily: FN, fontSize: 10, fontWeight: 700,
-          letterSpacing: '0.12em', padding: '0 14px', height: 28,
+          letterSpacing: '0.12em', padding: '0 14px', height: 26,
           cursor: 'pointer', textTransform: 'uppercase',
         }}>{it.label}</button>
       ))}
@@ -420,13 +420,14 @@ function QuickFilters({ value, onChange, counts }) {
         if (f.id !== 'all' && c === 0) return null;
         return (
           <button key={f.id} onClick={() => onChange(f.id)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
             color: active ? 'var(--c-ac)' : 'var(--c-tm)',
             border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
             fontFamily: FN, fontSize: 10, fontWeight: 700,
-            letterSpacing: '0.12em', padding: '5px 10px', height: 24,
+            letterSpacing: '0.12em', padding: '0 12px', height: 28,
             cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
+            boxSizing: 'border-box',
           }}>
             <span>{f.label}</span>
             <span style={{ opacity: 0.65, fontSize: 9 }}>{c}</span>

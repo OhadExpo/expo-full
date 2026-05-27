@@ -28,16 +28,43 @@ const ETAG_TAG_PREFIX = 'getag:';
 
 // ── Identity / connection ────────────────────────────────────────────
 
-// Has the user granted Calendar access AND do we currently hold a
-// valid (non-expired) provider_token? Cheap synchronous heuristic —
-// the only definitive answer is "did the next API call return 401".
+// Has the user genuinely granted Calendar access? Two-gate check:
+//   1. localStorage flag set after the OAuth callback (cheap)
+//   2. An actual test call to Google Calendar API (definitive)
+// The localStorage flag alone lies if the user abandoned the consent
+// flow before granting calendar.events scope. We cache the verified
+// state for 5 min so we don't ping Google on every isCalendarConnected
+// invocation.
+const VERIFIED_CACHE_KEY = 'expo-gcal-verified-at';
+const VERIFIED_TTL_MS = 5 * 60 * 1000;
+
 export async function isCalendarConnected() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return false;
   if (!session.provider_token) return false;
-  // Supabase doesn't return scope strings — we mark localStorage on
-  // successful sync to remember the user opted in.
-  return localStorage.getItem('expo-gcal-connected') === '1';
+  if (localStorage.getItem('expo-gcal-connected') !== '1') return false;
+  // Verified-recently cache to avoid hammering Google.
+  const verifiedAt = parseInt(localStorage.getItem(VERIFIED_CACHE_KEY) || '0', 10);
+  if (verifiedAt && Date.now() - verifiedAt < VERIFIED_TTL_MS) return true;
+  // Definitive test: a 1-result events.list call. Fails fast on
+  // missing scope (401/403) or expired token.
+  try {
+    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1', {
+      headers: { Authorization: `Bearer ${session.provider_token}` },
+    });
+    if (res.ok) {
+      localStorage.setItem(VERIFIED_CACHE_KEY, String(Date.now()));
+      return true;
+    }
+    // Token is missing scope or expired — clear the flag so the UI
+    // surfaces the disconnected state and prompts reconnect.
+    localStorage.removeItem('expo-gcal-connected');
+    localStorage.removeItem(VERIFIED_CACHE_KEY);
+    return false;
+  } catch {
+    // Network error — keep the flag for now, just return false.
+    return false;
+  }
 }
 
 // Kick off OAuth re-auth with calendar.events scope appended. This
@@ -76,9 +103,10 @@ export function consumeCalendarCallback() {
   return false;
 }
 
-// Clear the opted-in flag — for "Disconnect" UI.
+// Clear the opted-in flag + verification cache — for "Disconnect" UI.
 export function disconnectCalendar() {
   localStorage.removeItem('expo-gcal-connected');
+  localStorage.removeItem(VERIFIED_CACHE_KEY);
 }
 
 // ── Token plumbing ───────────────────────────────────────────────────
