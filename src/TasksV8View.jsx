@@ -41,6 +41,7 @@ import {
   clearSyncToken,
   stripStatusPrefix,
   statusFromSummary,
+  getTokenScopes,
   GoogleCalendarAuthError,
 } from './googleCalendarSync';
 
@@ -782,13 +783,33 @@ export default function TasksV8View() {
   const toggleSectionCollapse = (key) => setCollapsedSections(p => ({ ...p, [key]: !p[key] }));
 
   // Calendar connection: on mount, consume the ?gcal=connected callback
-  // (sets localStorage opt-in) and surface the current state in UI.
+  // (sets localStorage opt-in) and verify the token actually has Calendar
+  // scope before flipping the UI to "connected". If the OAuth round-trip
+  // returned but verification fails, show a diagnostic toast with the
+  // actual scopes Google granted so we can see why.
   useEffect(() => {
     const justConnected = consumeCalendarCallback();
-    isCalendarConnected().then(setGcalConnected);
-    if (justConnected) {
-      toast('Google Calendar connected · tasks will sync automatically', 'success', { ttl: 5000 });
-    }
+    isCalendarConnected().then(async (verified) => {
+      setGcalConnected(verified);
+      if (justConnected) {
+        if (verified) {
+          toast('Google Calendar connected · tasks will sync automatically', 'success', { ttl: 5000 });
+        } else {
+          // Diagnose what Google actually returned.
+          const scopes = await getTokenScopes();
+          const hasCal = scopes?.some(s => s.includes('calendar'));
+          if (hasCal) {
+            toast('Calendar scope granted but API call failed — check console for details', 'error', { ttl: 10000 });
+            console.error('Calendar verification failed despite scope present. Scopes:', scopes);
+          } else if (scopes) {
+            toast(`Calendar scope NOT granted. Token has: ${scopes.map(s => s.split('/').pop()).join(', ')}. Click Advanced → Go to (unsafe) on Google's warning.`, 'error', { ttl: 15000 });
+            console.error('Token scopes after OAuth:', scopes);
+          } else {
+            toast('No provider token in session — re-auth from scratch', 'error', { ttl: 10000 });
+          }
+        }
+      }
+    });
   }, []);
 
   const handleConnectGcal = async () => {

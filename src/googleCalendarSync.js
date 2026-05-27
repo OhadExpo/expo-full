@@ -88,8 +88,10 @@ export async function connectGoogleCalendar() {
   return true;
 }
 
-// Called on page mount when ?gcal=connected is in the URL. Persists the
-// "user opted in" flag + clears the query param.
+// Called on page mount when ?gcal=connected is in the URL. Sets the
+// pending opt-in flag (NOT the verified flag) + cleans the URL. The
+// caller should then run isCalendarConnected() which validates the
+// scope before flipping to truly-connected state.
 export function consumeCalendarCallback() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('gcal') === 'connected') {
@@ -101,6 +103,25 @@ export function consumeCalendarCallback() {
     return true;
   }
   return false;
+}
+
+// Diagnostic — what scopes does the current provider_token actually
+// carry? Calls Google's tokeninfo endpoint. Returns array of scope
+// strings or null on failure. Used after the OAuth round-trip to
+// figure out why verification might be failing.
+export async function getTokenScopes() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.provider_token) return null;
+  try {
+    const res = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(session.provider_token)}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return (data.scope || '').split(/\s+/).filter(Boolean);
+  } catch {
+    return null;
+  }
 }
 
 // Clear the opted-in flag + verification cache — for "Disconnect" UI.
