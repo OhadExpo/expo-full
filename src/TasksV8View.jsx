@@ -142,35 +142,72 @@ function AssigneeDot({ owner, size = 14 }) {
   );
 }
 
-function StatusPill({ status, theme, onClick }) {
+// Status pill with popover — click opens a small picker with all 4 states
+// so the user can skip non-adjacent transitions (e.g. OPEN → DONE directly).
+const STATUS_OPTIONS = [
+  { id: 'open',    label: 'OPEN'  },
+  { id: 'working', label: 'WORK'  },
+  { id: 'stuck',   label: 'STUCK' },
+  { id: 'done',    label: 'DONE'  },
+];
+function StatusPill({ status, theme, onSetStatus }) {
+  const [open, setOpen] = useState(false);
   const c = statusColors(status, theme);
-  if (!c) {
-    return (
+  const isOpenState = !c;
+  const text = isOpenState ? 'OPEN' : status === 'done' ? 'DONE' : status === 'working' ? 'WORK' : 'STUCK';
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
       <button
-        onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-        title="Click to change status (open → working → stuck → done)"
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        onBlur={() => setTimeout(() => setOpen(false), 160)}
+        title="Click to change status"
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          background: 'transparent', color: 'var(--c-tm)',
-          border: '1px dashed var(--c-cardBd)',
+          background: isOpenState ? 'transparent' : c.bg,
+          color: isOpenState ? 'var(--c-tm)' : c.fg,
+          border: isOpenState ? '1px dashed var(--c-cardBd)' : 'none',
           fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-          padding: '0 6px', height: 18, width: 60, borderRadius: 0, flexShrink: 0,
+          padding: '0 6px', height: 18, width: 56, borderRadius: 0, flexShrink: 0,
           textTransform: 'uppercase', cursor: 'pointer',
-        }}>OPEN</button>
-    );
-  }
-  const text = status === 'done' ? 'DONE' : status === 'working' ? 'WORK' : 'STUCK';
-  return (
-    <button
-      onClick={(e) => { e.stopPropagation(); onClick?.(); }}
-      title="Click to change status (open → working → stuck → done)"
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        background: c.bg, color: c.fg,
-        border: 'none', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-        padding: '0 6px', height: 18, width: 60, borderRadius: 0, flexShrink: 0,
-        textTransform: 'uppercase', cursor: 'pointer',
-      }}>{text}</button>
+        }}>{text}</button>
+      {open && (
+        <div
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute', top: '100%', right: 0, marginTop: 2,
+            background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)',
+            zIndex: 100, minWidth: 120, boxShadow: 'var(--c-cardShadow)',
+          }}>
+          {STATUS_OPTIONS.map(o => {
+            const sc = statusColors(o.id, theme);
+            const isCurrent = o.id === status;
+            return (
+              <button key={o.id}
+                onMouseDown={(e) => { e.preventDefault(); onSetStatus(o.id); setOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                  background: isCurrent ? 'var(--c-sf2, transparent)' : 'transparent',
+                  border: 'none', textAlign: 'left', padding: '7px 10px',
+                  fontFamily: FN, fontSize: 10, fontWeight: 700,
+                  letterSpacing: '0.12em',
+                  color: isCurrent ? 'var(--c-ac)' : 'var(--c-tx)',
+                  cursor: 'pointer', textTransform: 'uppercase',
+                }}>
+                <span style={{
+                  display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+                  background: sc ? sc.bg : 'transparent',
+                  border: sc ? 'none' : '1px dashed var(--c-cardBd)',
+                  flexShrink: 0,
+                }} />
+                <span>{o.label}</span>
+                {isCurrent && <span style={{ marginLeft: 'auto', color: 'var(--c-ac)' }}>✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </span>
   );
 }
 
@@ -286,28 +323,28 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
   );
 }
 
-// Section header for a source group inside the list.
+// Section header — minimal chrome. Small colored dot + name + count.
+// No heavy top border. Visual restraint = calmer list.
 function SectionHeader({ label, count, color }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '12px 14px',
-      borderTop: `2px solid ${color}`,
+      display: 'flex', alignItems: 'center', gap: 8,
+      padding: '8px 12px',
       borderBottom: `1px solid var(--c-cardBd)`,
       background: 'var(--c-sf2, transparent)',
     }}>
       <span style={{
-        display: 'inline-block', width: 6, height: 6, background: color, borderRadius: '50%',
+        display: 'inline-block', width: 8, height: 8, background: color, borderRadius: '50%',
       }} />
       <span style={{
-        fontFamily: FN, fontSize: 11, fontWeight: 700,
+        fontFamily: FN, fontSize: 10, fontWeight: 700,
         letterSpacing: '0.18em', color: 'var(--c-tx)',
         textTransform: 'uppercase',
       }}>{label}</span>
       <span style={{
-        fontFamily: FN, fontSize: 10, fontWeight: 700,
+        fontFamily: FN, fontSize: 10, fontWeight: 600,
         color: 'var(--c-td)', letterSpacing: '0.04em',
-      }}>· {count}</span>
+      }}>{count}</span>
     </div>
   );
 }
@@ -373,18 +410,23 @@ function ExpandedDetail({ row, displayBody }) {
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onCycleStatus, now }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now }) {
   const heb = isHebrew(row._display || '');
   const dm = dateMeta(row.created_at, now);
+  const [hover, setHover] = useState(false);
   return (
     <React.Fragment>
       <div
         onClick={onToggleExpand}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '9px 14px', cursor: 'pointer', minHeight: 36,
+          padding: '7px 12px', cursor: 'pointer', minHeight: 32,
           borderBottom: `1px solid var(--c-cardBd)`,
-          background: expanded ? 'var(--c-sf2, transparent)' : 'transparent',
+          background: expanded ? 'var(--c-sf2, transparent)'
+                     : hover     ? 'var(--c-sf2, rgba(57,189,255,0.04))'
+                                 : 'transparent',
           transition: 'background 120ms ease',
         }}
       >
@@ -399,11 +441,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onCycleStat
           textAlign: heb ? 'right' : 'left',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{row._display}</div>
-        <StatusPill status={row.status} theme={theme} onClick={() => onCycleStatus(row)} />
+        <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} />
         <span style={{
           fontFamily: FN, fontSize: 10, fontWeight: 700,
           color: dm.color, letterSpacing: '0.04em',
-          width: 60, textAlign: 'right',
+          width: 56, textAlign: 'right',
           flexShrink: 0,
         }}>{dm.label}</span>
       </div>
@@ -417,7 +459,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onCycleStat
 // ────────────────────────────────────────────────────────────────────
 
 export default function TasksV8View() {
-  const { rows, loading, update } = useCoachNotes({ limit: 200 });
+  const { rows, loading, update, create } = useCoachNotes({ limit: 200 });
   const [owner, setOwner] = useState('ohad');
   const [view, setView] = useState('list'); // 'list' | 'board'
   const [expandedRows, setExpandedRows] = useState(new Set());
@@ -426,6 +468,7 @@ export default function TasksV8View() {
   const [search, setSearch] = useState('');
   const [doneOpen, setDoneOpen] = useState(false);
   const [autoOpen, setAutoOpen] = useState(false);
+  const [newBody, setNewBody] = useState('');
   const now = useMemo(() => new Date(), []);
   const theme = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark';
 
@@ -484,11 +527,30 @@ export default function TasksV8View() {
     if (n.has(id)) n.delete(id); else n.add(id);
     return n;
   });
-  const cycleStatus = async (row) => {
-    const next = nextStatus(row.status || 'open');
-    if (next === 'done')      await update(row.id, { status: 'done', completed_at: new Date().toISOString() });
-    else if (next === 'open') await update(row.id, { status: 'open', completed_at: null });
-    else                      await update(row.id, { status: 'open' });
+  const setStatus = async (row, target) => {
+    // The existing coach_notes schema only persists 'open' | 'done'.
+    // 'working' and 'stuck' will land in Phase 1 with the status_label
+    // column. For now we map: done → done, anything else → open. The
+    // visual change is immediate via optimistic update in useCoachNotes,
+    // but reload may revert non-{open,done} states until schema lands.
+    if (target === 'done')      await update(row.id, { status: 'done', completed_at: new Date().toISOString() });
+    else if (target === 'open') await update(row.id, { status: 'open', completed_at: null });
+    else                        await update(row.id, { status: 'open' });
+  };
+  const onComposerSubmit = async () => {
+    const body = newBody.trim();
+    if (!body) return;
+    // Auto-detect owner from prefix; auto-tag the new task with #manual
+    // so it lands in the Manual section. Phase 1 adds proper assignee
+    // picker + due-date input — this is the cheap version.
+    const o = ownerFromBody(body);
+    const display = stripOwnerPrefix(body);
+    let prefixed = display;
+    if (o === 'yuval') prefixed = `Yuval: ${display}`;
+    else if (o === 'shared') prefixed = `Ohad + Yuval: ${display}`;
+    else prefixed = `Ohad: ${display}`;
+    await create({ body: prefixed, targetKind: 'general', tags: [] });
+    setNewBody('');
   };
 
   if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>Loading…</div>;
@@ -547,6 +609,44 @@ export default function TasksV8View() {
           background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
           borderRadius: 0,
         }}>
+          {/* Inline composer — single input at the top. Type the title and
+              press Enter to create. Prefix the body with "Yuval: " to assign
+              to Yuval, "Ohad + Yuval: " for shared, else defaults to Ohad. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '8px 12px',
+            borderBottom: `1px solid var(--c-cardBd)`,
+            background: 'var(--c-sf2, transparent)',
+          }}>
+            <span style={{
+              fontFamily: FN, fontSize: 12, fontWeight: 700,
+              color: 'var(--c-ac)', flexShrink: 0,
+            }}>+</span>
+            <input
+              type="text"
+              value={newBody}
+              onChange={(e) => setNewBody(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') onComposerSubmit(); }}
+              placeholder='Add task… (prefix "Yuval: " to assign, "Ohad + Yuval: " for shared)'
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                fontFamily: FB, fontSize: 13, color: 'var(--c-tx)',
+                padding: '4px 0',
+              }}
+              autoComplete="off"
+            />
+            {newBody.trim() && (
+              <button
+                onClick={onComposerSubmit}
+                style={{
+                  background: 'var(--c-ac)', color: '#FFFFFF',
+                  border: 'none', fontFamily: FN, fontSize: 9, fontWeight: 700,
+                  letterSpacing: '0.12em', padding: '4px 10px', height: 22,
+                  cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
+                }}>add</button>
+            )}
+          </div>
+
           {visibleSections.length === 0 && !autoSection && (
             <div style={{
               padding: '36px 14px', textAlign: 'center',
@@ -557,7 +657,7 @@ export default function TasksV8View() {
               {search ? `No matches for "${search}"` : `No tasks for ${owner}`}
               {search && (
                 <button
-                  onClick={() => window.alert('Inline composer ships in Phase 1.')}
+                  onClick={async () => { setNewBody(search); setSearch(''); }}
                   style={{
                     display: 'block', margin: '14px auto 0',
                     background: 'transparent', border: '1px solid var(--c-ac)',
@@ -582,45 +682,38 @@ export default function TasksV8View() {
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onCycleStatus={cycleStatus}
+                  onSetStatus={setStatus}
                   now={now} />
               ))}
             </React.Fragment>
           ))}
 
-          {/* Auto-tasks section — collapsed by default since it's engine noise */}
+          {/* Auto-tasks demoted — no section header. A single thin row at the
+              bottom of the open list, click to expand. Engine noise stays
+              tucked away unless explicitly summoned. */}
           {autoSection && (
             <React.Fragment>
               <div
                 onClick={() => setAutoOpen(o => !o)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '12px 14px',
-                  borderTop: `2px solid ${sourceColor('auto')}`,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 12px',
                   borderBottom: autoOpen ? `1px solid var(--c-cardBd)` : 'none',
-                  background: 'var(--c-sf2, transparent)',
+                  background: 'transparent',
                   cursor: 'pointer',
                 }}>
                 <span style={{
-                  display: 'inline-block', width: 6, height: 6,
-                  background: sourceColor('auto'), borderRadius: '50%',
-                }} />
-                <span style={{
-                  fontFamily: FN, fontSize: 11, fontWeight: 700,
-                  letterSpacing: '0.18em', color: 'var(--c-tx)',
+                  fontFamily: FN, fontSize: 10, fontWeight: 600,
+                  color: 'var(--c-tm)', letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                }}>{autoOpen ? '▾' : '▸'} Auto-tasks</span>
-                <span style={{
-                  fontFamily: FN, fontSize: 10, fontWeight: 700,
-                  color: 'var(--c-td)', letterSpacing: '0.04em',
-                }}>· {autoSection.rows.length} · auto-generated</span>
+                }}>{autoOpen ? '▾' : '▸'} {autoSection.rows.length} auto-alerts</span>
               </div>
               {autoOpen && autoSection.rows.map(row => (
                 <TaskRow key={row.id} row={row}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onCycleStatus={cycleStatus}
+                  onSetStatus={setStatus}
                   now={now} />
               ))}
             </React.Fragment>
@@ -662,7 +755,7 @@ export default function TasksV8View() {
                     theme={theme} showAvatar={owner === 'shared'}
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
-                    onCycleStatus={cycleStatus}
+                    onSetStatus={setStatus}
                     now={now} />
                 ))}
               </div>

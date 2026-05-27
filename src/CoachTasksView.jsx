@@ -10,15 +10,13 @@
 
 import React from 'react';
 import NotesWidget from './NotesWidget';
-import TasksV7View from './TasksV7View';
 import TasksV8View from './TasksV8View';
 
 // URL param routes:
-//   ?ui=v7  → card grid + inline expand + overdue red + clickable status
 //   ?ui=v8  → list-first with view toggle to board (Linear/Things 3 pattern)
+//             — the current iteration. v6/v7 deleted.
 export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlanForTask, onOpenIntakeTab, onOpenReviewWorkout }) {
   const ui = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ui') : null;
-  if (ui === 'v7') return <TasksV7View />;
   if (ui === 'v8') return <TasksV8View />;
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 4px' }}>
