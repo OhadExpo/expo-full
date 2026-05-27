@@ -42,6 +42,7 @@ import {
   stripStatusPrefix,
   statusFromSummary,
   getTokenScopes,
+  subscribeAndCacheProviderToken,
   GoogleCalendarAuthError,
 } from './googleCalendarSync';
 
@@ -782,20 +783,23 @@ export default function TasksV8View() {
 
   const toggleSectionCollapse = (key) => setCollapsedSections(p => ({ ...p, [key]: !p[key] }));
 
-  // Calendar connection: on mount, consume the ?gcal=connected callback
-  // (sets localStorage opt-in) and verify the token actually has Calendar
-  // scope before flipping the UI to "connected". If the OAuth round-trip
-  // returned but verification fails, show a diagnostic toast with the
-  // actual scopes Google granted so we can see why.
+  // Calendar connection: subscribe to Supabase auth state so we catch
+  // the provider_token at the exact moment OAuth completes (it's only
+  // available in the SIGNED_IN event, NOT in subsequent getSession()).
+  // The subscribe call caches it; then we run the verification flow.
   useEffect(() => {
     const justConnected = consumeCalendarCallback();
-    isCalendarConnected().then(async (verified) => {
+    const unsubscribe = subscribeAndCacheProviderToken();
+
+    // Run verification a moment after mount so the auth event listener
+    // has a chance to fire and cache the token before we check.
+    const verify = async () => {
+      const verified = await isCalendarConnected();
       setGcalConnected(verified);
       if (justConnected) {
         if (verified) {
           toast('Google Calendar connected · tasks will sync automatically', 'success', { ttl: 5000 });
         } else {
-          // Diagnose what Google actually returned.
           const scopes = await getTokenScopes();
           const hasCal = scopes?.some(s => s.includes('calendar'));
           if (hasCal) {
@@ -805,11 +809,15 @@ export default function TasksV8View() {
             toast(`Calendar scope NOT granted. Token has: ${scopes.map(s => s.split('/').pop()).join(', ')}. Click Advanced → Go to (unsafe) on Google's warning.`, 'error', { ttl: 15000 });
             console.error('Token scopes after OAuth:', scopes);
           } else {
-            toast('No provider token in session — re-auth from scratch', 'error', { ttl: 10000 });
+            toast('Token did not arrive — Supabase may have stripped it. Try once more from a fresh tab.', 'error', { ttl: 10000 });
           }
         }
       }
-    });
+    };
+    // Give the auth listener a tick to fire on initial page load. The
+    // OAuth callback fragment processing is async.
+    const t = setTimeout(verify, 800);
+    return () => { clearTimeout(t); unsubscribe(); };
   }, []);
 
   const handleConnectGcal = async () => {

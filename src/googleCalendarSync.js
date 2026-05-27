@@ -26,6 +26,58 @@ const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const EVENT_TAG_PREFIX = 'gevent:';
 const ETAG_TAG_PREFIX = 'getag:';
 
+// Provider-token cache. Supabase exposes session.provider_token only at
+// the moment of OAuth completion (via onAuthStateChange SIGNED_IN event)
+// and doesn't persist it across page reloads. We have to grab and stash
+// it ourselves. expires_at is a UNIX timestamp seconds.
+const TOKEN_CACHE_KEY = 'expo-gcal-provider-token';
+const TOKEN_EXPIRES_KEY = 'expo-gcal-provider-token-expires-at';
+const REFRESH_TOKEN_CACHE_KEY = 'expo-gcal-provider-refresh-token';
+
+export function cacheProviderToken(accessToken, refreshToken, expiresAt) {
+  if (accessToken) localStorage.setItem(TOKEN_CACHE_KEY, accessToken);
+  if (refreshToken) localStorage.setItem(REFRESH_TOKEN_CACHE_KEY, refreshToken);
+  if (expiresAt) localStorage.setItem(TOKEN_EXPIRES_KEY, String(expiresAt));
+}
+
+function getCachedAccessToken() {
+  const token = localStorage.getItem(TOKEN_CACHE_KEY);
+  const expires = parseInt(localStorage.getItem(TOKEN_EXPIRES_KEY) || '0', 10);
+  if (!token) return null;
+  // Treat as valid if expires_at unknown OR more than 60s remaining.
+  if (expires && expires <= Math.floor(Date.now() / 1000) + 60) return null;
+  return token;
+}
+
+function clearCachedTokens() {
+  localStorage.removeItem(TOKEN_CACHE_KEY);
+  localStorage.removeItem(TOKEN_EXPIRES_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_CACHE_KEY);
+}
+
+// Subscribe to Supabase auth state and capture provider_token whenever
+// a new sign-in completes. Returns the unsubscribe function. Call this
+// once at app/view mount.
+export function subscribeAndCacheProviderToken() {
+  const sub = supabase.auth.onAuthStateChange((event, session) => {
+    if (!session) return;
+    // Provider tokens are only present right after sign-in. Grab them
+    // whenever they appear so we have them for later API calls.
+    if (session.provider_token) {
+      cacheProviderToken(
+        session.provider_token,
+        session.provider_refresh_token,
+        session.expires_at
+      );
+    }
+  });
+  // Supabase v2 returns { data: { subscription } }
+  return () => {
+    const s = sub?.data?.subscription;
+    if (s && typeof s.unsubscribe === 'function') s.unsubscribe();
+  };
+}
+
 // ── Identity / connection ────────────────────────────────────────────
 
 // Has the user genuinely granted Calendar access? Two-gate check:
@@ -39,9 +91,23 @@ const VERIFIED_CACHE_KEY = 'expo-gcal-verified-at';
 const VERIFIED_TTL_MS = 5 * 60 * 1000;
 
 export async function isCalendarConnected() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return false;
-  if (!session.provider_token) return false;
+  // Prefer the cached provider_token (set by subscribeAndCacheProviderToken
+  // on OAuth callback). Fall back to whatever is in the current session.
+  const cached = getCachedAccessToken();
+  let token = cached;
+  if (!token) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.provider_token) {
+      // Late-arriving session token — cache it for next time.
+      cacheProviderToken(
+        session.provider_token,
+        session.provider_refresh_token,
+        session.expires_at
+      );
+      token = session.provider_token;
+    }
+  }
+  if (!token) return false;
   if (localStorage.getItem('expo-gcal-connected') !== '1') return false;
   // Verified-recently cache to avoid hammering Google.
   const verifiedAt = parseInt(localStorage.getItem(VERIFIED_CACHE_KEY) || '0', 10);
@@ -50,7 +116,7 @@ export async function isCalendarConnected() {
   // missing scope (401/403) or expired token.
   try {
     const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1', {
-      headers: { Authorization: `Bearer ${session.provider_token}` },
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) {
       localStorage.setItem(VERIFIED_CACHE_KEY, String(Date.now()));
@@ -60,6 +126,7 @@ export async function isCalendarConnected() {
     // surfaces the disconnected state and prompts reconnect.
     localStorage.removeItem('expo-gcal-connected');
     localStorage.removeItem(VERIFIED_CACHE_KEY);
+    clearCachedTokens();
     return false;
   } catch {
     // Network error — keep the flag for now, just return false.
@@ -110,11 +177,16 @@ export function consumeCalendarCallback() {
 // strings or null on failure. Used after the OAuth round-trip to
 // figure out why verification might be failing.
 export async function getTokenScopes() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.provider_token) return null;
+  let token = getCachedAccessToken();
+  if (!token) {
+    const { data: { session } } = await supabase.auth.getSession();
+    token = session?.provider_token || null;
+    if (token) cacheProviderToken(token, session.provider_refresh_token, session.expires_at);
+  }
+  if (!token) return null;
   try {
     const res = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(session.provider_token)}`
+      `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(token)}`
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -124,17 +196,27 @@ export async function getTokenScopes() {
   }
 }
 
-// Clear the opted-in flag + verification cache — for "Disconnect" UI.
+// Clear the opted-in flag + verification cache + cached tokens.
 export function disconnectCalendar() {
   localStorage.removeItem('expo-gcal-connected');
   localStorage.removeItem(VERIFIED_CACHE_KEY);
+  clearCachedTokens();
 }
 
 // ── Token plumbing ───────────────────────────────────────────────────
 
 async function getAccessToken() {
+  // Cached token first (set on OAuth callback).
+  const cached = getCachedAccessToken();
+  if (cached) return cached;
+  // Fall back to session — happens immediately after sign-in before
+  // the cache subscriber has fired.
   const { data: { session } } = await supabase.auth.getSession();
-  return session?.provider_token || null;
+  if (session?.provider_token) {
+    cacheProviderToken(session.provider_token, session.provider_refresh_token, session.expires_at);
+    return session.provider_token;
+  }
+  return null;
 }
 
 // Wrapper around fetch that injects the Calendar API auth header and
