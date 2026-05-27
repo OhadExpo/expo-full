@@ -32,6 +32,24 @@ import { isRefined5b } from './ui';
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 const YUVAL_COLOR = '#FFA02E';
 
+// Inject the slide-in keyframes for expanded row detail panels once.
+// Lives outside React render; only the first <TasksV8View /> mount runs it.
+if (typeof document !== 'undefined' && !document.getElementById('tasks-v8-anim')) {
+  const style = document.createElement('style');
+  style.id = 'tasks-v8-anim';
+  style.textContent = `
+    @keyframes tasks-v8-slide-in {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes tasks-v8-fade-in {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
 // ────────────────────────────────────────────────────────────────────
 // helpers (statusColors, dateMeta, owner detection, source detection)
 // ────────────────────────────────────────────────────────────────────
@@ -323,6 +341,163 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
   );
 }
 
+// Quick filter chips — one-click narrowing. Single-select (radio-style).
+const QUICK_FILTERS = [
+  { id: 'all',      label: 'All' },
+  { id: 'today',    label: 'Today' },
+  { id: 'overdue',  label: 'Overdue' },
+  { id: 'stuck',    label: 'Stuck' },
+  { id: 'nodate',   label: 'No date' },
+];
+function QuickFilters({ value, onChange, counts }) {
+  return (
+    <div style={{
+      display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap',
+    }}>
+      {QUICK_FILTERS.map(f => {
+        const active = value === f.id;
+        const c = counts[f.id] ?? 0;
+        // Hide chips that have zero count, except 'all' which always shows.
+        if (f.id !== 'all' && c === 0) return null;
+        return (
+          <button key={f.id} onClick={() => onChange(f.id)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
+            color: active ? 'var(--c-ac)' : 'var(--c-tm)',
+            border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+            fontFamily: FN, fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.12em', padding: '5px 10px', height: 24,
+            cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
+          }}>
+            <span>{f.label}</span>
+            <span style={{ opacity: 0.65, fontSize: 9 }}>{c}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Smart composer — expands on focus to show assignee picker + due-date
+// input + section selector inline. Collapses back when empty + blurred.
+function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
+  const [body, setBody] = useState('');
+  const [assignee, setAssignee] = useState(defaultAssignee);
+  const [due, setDue] = useState('');
+  const [source, setSource] = useState('manual'); // 'manual' | 'center'
+  const [focused, setFocused] = useState(false);
+  const inputRef = React.useRef(null);
+  const expanded = focused || body.trim() !== '';
+
+  const submit = async () => {
+    const trimmed = body.trim();
+    if (!trimmed) return;
+    await onSubmit({ body: trimmed, assignee, due, source });
+    setBody(''); setDue(''); setSource('manual');
+    setAssignee(defaultAssignee);
+    setFocused(false);
+  };
+
+  return (
+    <div style={{
+      borderBottom: `1px solid var(--c-cardBd)`,
+      background: 'var(--c-sf2, transparent)',
+      transition: 'padding 180ms ease',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        padding: '8px 12px',
+      }}>
+        <span style={{
+          fontFamily: FN, fontSize: 12, fontWeight: 700,
+          color: 'var(--c-ac)', flexShrink: 0,
+        }}>+</span>
+        <input
+          ref={inputRef}
+          type="text"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setTimeout(() => setFocused(false), 180)}
+          onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+          placeholder="Add task…"
+          style={{
+            flex: 1, background: 'transparent', border: 'none', outline: 'none',
+            fontFamily: FB, fontSize: 13, color: 'var(--c-tx)',
+            padding: '4px 0',
+          }}
+          autoComplete="off"
+        />
+        {body.trim() && (
+          <button
+            onMouseDown={(e) => { e.preventDefault(); submit(); }}
+            style={{
+              background: 'var(--c-ac)', color: '#FFFFFF',
+              border: 'none', fontFamily: FN, fontSize: 9, fontWeight: 700,
+              letterSpacing: '0.12em', padding: '4px 10px', height: 22,
+              cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
+            }}>add</button>
+        )}
+      </div>
+      {expanded && (
+        <div style={{
+          display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
+          padding: '0 12px 8px 24px',
+          animation: 'tasks-v8-fade-in 180ms ease-out',
+        }}>
+          {/* Assignee picker — 3 buttons */}
+          {[['ohad','O',C.ac],['yuval','Y',YUVAL_COLOR],['shared','·','linear-gradient(135deg,'+C.ac+' 0% 50%,'+YUVAL_COLOR+' 50% 100%)']].map(([id,initial,color]) => (
+            <button key={id}
+              onMouseDown={(e) => { e.preventDefault(); setAssignee(id); }}
+              title={id === 'shared' ? 'Both Ohad + Yuval' : id === 'yuval' ? 'Yuval' : 'Ohad'}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 22, height: 22, borderRadius: '50%',
+                background: assignee === id ? color : 'transparent',
+                color: assignee === id ? '#FFFFFF' : 'var(--c-tm)',
+                border: assignee === id ? 'none' : `1px solid var(--c-cardBd)`,
+                fontFamily: FN, fontSize: 10, fontWeight: 700,
+                cursor: 'pointer',
+              }}>{initial}</button>
+          ))}
+          {/* Due date input */}
+          <input
+            type="date"
+            value={due}
+            onChange={(e) => setDue(e.target.value)}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              background: 'transparent', color: 'var(--c-tm)',
+              border: `1px solid var(--c-cardBd)`,
+              fontFamily: FN, fontSize: 10, fontWeight: 600,
+              padding: '3px 6px', height: 22, borderRadius: 0,
+              outline: 'none',
+            }} />
+          {/* Source selector — Manual / Performance Center */}
+          {[['manual', 'Manual'], ['center', 'Performance Center']].map(([id, label]) => (
+            <button key={id}
+              onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
+              style={{
+                background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent',
+                color: source === id ? 'var(--c-ac)' : 'var(--c-tm)',
+                border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+                fontFamily: FN, fontSize: 9, fontWeight: 700,
+                letterSpacing: '0.12em', padding: '3px 8px', height: 22,
+                cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
+              }}>{label}</button>
+          ))}
+          <span style={{ flex: 1 }} />
+          <span style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 600,
+            color: 'var(--c-td)', letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+          }}>Enter to add</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Section header — minimal chrome. Small colored dot + name + count.
 // No heavy top border. Visual restraint = calmer list.
 function SectionHeader({ label, count, color }) {
@@ -413,7 +588,17 @@ function ExpandedDetail({ row, displayBody }) {
 function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now }) {
   const heb = isHebrew(row._display || '');
   const dm = dateMeta(row.created_at, now);
+  const isToday = dm.label === 'TODAY';
+  const isOverdue = dm.isOverdue;
+  const isStuck = row.status === 'stuck';
   const [hover, setHover] = useState(false);
+  // Urgency edge — 3px coloured left bar pulled from the date metadata.
+  // Drives "scan from across the room" recognition without restructuring
+  // the list (vs. lifting items into a separate "Today" section).
+  const edgeColor = isOverdue ? 'var(--c-rd)'
+                  : isToday   ? 'var(--c-ac)'
+                  : isStuck   ? 'var(--c-rd)'
+                              : 'transparent';
   return (
     <React.Fragment>
       <div
@@ -422,8 +607,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         onMouseLeave={() => setHover(false)}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          padding: '7px 12px', cursor: 'pointer', minHeight: 32,
+          padding: '7px 12px 7px 9px', cursor: 'pointer', minHeight: 32,
           borderBottom: `1px solid var(--c-cardBd)`,
+          borderLeft: `3px solid ${edgeColor}`,
           background: expanded ? 'var(--c-sf2, transparent)'
                      : hover     ? 'var(--c-sf2, rgba(57,189,255,0.04))'
                                  : 'transparent',
@@ -441,6 +627,14 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           textAlign: heb ? 'right' : 'left',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{row._display}</div>
+        {/* Hover-revealed quick action — Linear pattern. Doesn't do anything
+            yet (Phase 1 hooks up a quick-menu), just signals interactivity. */}
+        <span style={{
+          fontFamily: FN, fontSize: 14, fontWeight: 700, color: 'var(--c-td)',
+          opacity: hover ? 1 : 0, transition: 'opacity 120ms ease',
+          width: 14, textAlign: 'center', cursor: 'pointer',
+          flexShrink: 0,
+        }} title="More actions (Phase 1)">⋯</span>
         <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} />
         <span style={{
           fontFamily: FN, fontSize: 10, fontWeight: 700,
@@ -449,7 +643,13 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           flexShrink: 0,
         }}>{dm.label}</span>
       </div>
-      {expanded && <ExpandedDetail row={row} displayBody={row._display} />}
+      {expanded && (
+        <div style={{
+          animation: 'tasks-v8-slide-in 200ms ease-out',
+        }}>
+          <ExpandedDetail row={row} displayBody={row._display} />
+        </div>
+      )}
     </React.Fragment>
   );
 }
@@ -468,7 +668,7 @@ export default function TasksV8View() {
   const [search, setSearch] = useState('');
   const [doneOpen, setDoneOpen] = useState(false);
   const [autoOpen, setAutoOpen] = useState(false);
-  const [newBody, setNewBody] = useState('');
+  const [quickFilter, setQuickFilter] = useState('all'); // all | today | overdue | stuck | nodate
   const now = useMemo(() => new Date(), []);
   const theme = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark';
 
@@ -495,11 +695,40 @@ export default function TasksV8View() {
     return ownerBase.filter(r => (r._display || r.body || '').toLowerCase().includes(q));
   }, [ownerBase, search]);
 
+  // Quick-filter counts (computed off ownerBase so chips show real numbers
+  // even before user picks the filter).
+  const quickCounts = useMemo(() => {
+    const c = { all: ownerBase.length, today: 0, overdue: 0, stuck: 0, nodate: 0 };
+    for (const r of ownerBase) {
+      const dm = dateMeta(r.created_at, now);
+      if (dm.label === 'TODAY') c.today++;
+      if (dm.isOverdue) c.overdue++;
+      if (r.status === 'stuck') c.stuck++;
+      // 'no date' = tasks without a meaningful due_at. Until Phase 1 we
+      // don't have due_at; treat as 0.
+    }
+    return c;
+  }, [ownerBase, now]);
+
+  // Apply quick filter on top of search.
+  const quickFiltered = useMemo(() => {
+    if (quickFilter === 'all') return searched;
+    return searched.filter(r => {
+      const dm = dateMeta(r.created_at, now);
+      if (quickFilter === 'today')   return dm.label === 'TODAY';
+      if (quickFilter === 'overdue') return dm.isOverdue;
+      if (quickFilter === 'stuck')   return r.status === 'stuck';
+      if (quickFilter === 'nodate')  return false; // Phase 1 lights this up
+      return true;
+    });
+  }, [searched, quickFilter, now]);
+
   // Group by source then sort within each group. Order: Center → trainees
-  // (by row count desc) → Manual → Auto-tasks.
+  // (by row count desc) → Manual → Auto-tasks. Sourced from quickFiltered
+  // so the chip selection narrows the list before grouping.
   const sections = useMemo(() => {
     const byKey = new Map();
-    for (const r of searched) {
+    for (const r of quickFiltered) {
       const k = sourceKey(r);
       if (!byKey.has(k)) byKey.set(k, []);
       byKey.get(k).push(r);
@@ -515,7 +744,7 @@ export default function TasksV8View() {
     if (byKey.has('manual'))  result.push({ key: 'manual',  rows: byKey.get('manual')  });
     if (byKey.has('auto'))    result.push({ key: 'auto',    rows: byKey.get('auto')    });
     return result;
-  }, [searched, sortBy, sortDir]);
+  }, [quickFiltered, sortBy, sortDir]);
 
   const done = useMemo(
     () => decorated.filter(r => r._owner === owner && r.status === 'done'),
@@ -537,21 +766,44 @@ export default function TasksV8View() {
     else if (target === 'open') await update(row.id, { status: 'open', completed_at: null });
     else                        await update(row.id, { status: 'open' });
   };
-  const onComposerSubmit = async () => {
-    const body = newBody.trim();
-    if (!body) return;
-    // Auto-detect owner from prefix; auto-tag the new task with #manual
-    // so it lands in the Manual section. Phase 1 adds proper assignee
-    // picker + due-date input — this is the cheap version.
-    const o = ownerFromBody(body);
-    const display = stripOwnerPrefix(body);
-    let prefixed = display;
-    if (o === 'yuval') prefixed = `Yuval: ${display}`;
-    else if (o === 'shared') prefixed = `Ohad + Yuval: ${display}`;
-    else prefixed = `Ohad: ${display}`;
-    await create({ body: prefixed, targetKind: 'general', tags: [] });
-    setNewBody('');
+  // SmartComposer hands us structured input (assignee, due, source). Until
+  // Phase 1 schema, we encode assignee as body prefix and source as a tag.
+  // due is parked in body for now since coach_notes has no due_at column.
+  const onComposerSubmit = async ({ body, assignee, due, source }) => {
+    if (!body || !body.trim()) return;
+    let prefixed;
+    if (assignee === 'yuval') prefixed = `Yuval: ${body}`;
+    else if (assignee === 'shared') prefixed = `Ohad + Yuval: ${body}`;
+    else prefixed = `Ohad: ${body}`;
+    if (due) prefixed += ` · due ${due}`;
+    const tags = source === 'center' ? ['center'] : [];
+    await create({ body: prefixed, targetKind: 'general', tags });
   };
+
+  // Keyboard shortcuts — the Linear seven. Hidden affordance, dramatic
+  // perceived-quality lift per the micro-interactions research.
+  //   / focus search · Esc clear · X toggle done on focused row
+  // (J/K and Enter row navigation are stubbed; need row refs to be useful)
+  React.useEffect(() => {
+    const onKey = (e) => {
+      // Don't hijack when typing in inputs/textareas.
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea') {
+        if (e.key === 'Escape') e.target.blur();
+        return;
+      }
+      if (e.key === '/') {
+        e.preventDefault();
+        const inp = document.querySelector('input[placeholder="Search…"]');
+        inp?.focus();
+      } else if (e.key === 'Escape') {
+        if (search) setSearch('');
+        if (expandedRows.size) setExpandedRows(new Set());
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [search, expandedRows]);
 
   if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>Loading…</div>;
 
@@ -600,8 +852,10 @@ export default function TasksV8View() {
         onSortBy={setSortBy}
         onToggleDir={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
         search={search} onSearch={setSearch}
-        resultCount={searched.length} totalCount={ownerBase.length}
+        resultCount={quickFiltered.length} totalCount={ownerBase.length}
       />
+
+      <QuickFilters value={quickFilter} onChange={setQuickFilter} counts={quickCounts} />
 
       {view === 'list' ? (
         <div style={{
@@ -609,43 +863,7 @@ export default function TasksV8View() {
           background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
           borderRadius: 0,
         }}>
-          {/* Inline composer — single input at the top. Type the title and
-              press Enter to create. Prefix the body with "Yuval: " to assign
-              to Yuval, "Ohad + Yuval: " for shared, else defaults to Ohad. */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            padding: '8px 12px',
-            borderBottom: `1px solid var(--c-cardBd)`,
-            background: 'var(--c-sf2, transparent)',
-          }}>
-            <span style={{
-              fontFamily: FN, fontSize: 12, fontWeight: 700,
-              color: 'var(--c-ac)', flexShrink: 0,
-            }}>+</span>
-            <input
-              type="text"
-              value={newBody}
-              onChange={(e) => setNewBody(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') onComposerSubmit(); }}
-              placeholder='Add task… (prefix "Yuval: " to assign, "Ohad + Yuval: " for shared)'
-              style={{
-                flex: 1, background: 'transparent', border: 'none', outline: 'none',
-                fontFamily: FB, fontSize: 13, color: 'var(--c-tx)',
-                padding: '4px 0',
-              }}
-              autoComplete="off"
-            />
-            {newBody.trim() && (
-              <button
-                onClick={onComposerSubmit}
-                style={{
-                  background: 'var(--c-ac)', color: '#FFFFFF',
-                  border: 'none', fontFamily: FN, fontSize: 9, fontWeight: 700,
-                  letterSpacing: '0.12em', padding: '4px 10px', height: 22,
-                  cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
-                }}>add</button>
-            )}
-          </div>
+          <SmartComposer onSubmit={onComposerSubmit} defaultAssignee={owner === 'shared' ? 'ohad' : owner} />
 
           {visibleSections.length === 0 && !autoSection && (
             <div style={{
@@ -654,10 +872,16 @@ export default function TasksV8View() {
               letterSpacing: '0.12em', color: 'var(--c-td)',
               textTransform: 'uppercase',
             }}>
-              {search ? `No matches for "${search}"` : `No tasks for ${owner}`}
+              {search ? `No matches for "${search}"` :
+               quickFilter !== 'all' ? `No ${quickFilter.toUpperCase()} tasks for ${owner}` :
+               `No tasks for ${owner}`}
               {search && (
                 <button
-                  onClick={async () => { setNewBody(search); setSearch(''); }}
+                  onClick={async () => {
+                    const q = search;
+                    setSearch('');
+                    await onComposerSubmit({ body: q, assignee: owner === 'shared' ? 'ohad' : owner, due: '', source: 'manual' });
+                  }}
                   style={{
                     display: 'block', margin: '14px auto 0',
                     background: 'transparent', border: '1px solid var(--c-ac)',
