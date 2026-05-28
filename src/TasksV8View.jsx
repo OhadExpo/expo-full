@@ -36,6 +36,7 @@ import {
   reconcileRow,
   unlinkAndDeleteEvent,
   getStoredEventId,
+  getStoredHtmlLink,
   pullChangesSinceLastSync,
   getLastSyncedAt,
   clearSyncToken,
@@ -446,6 +447,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
   const [body, setBody] = useState('');
   const [assignee, setAssignee] = useState(defaultAssignee);
   const [due, setDue] = useState('');
+  const [time, setTime] = useState(''); // 'HH:MM' — blank = 9:00 default
   const [source, setSource] = useState('manual'); // 'manual' | 'center'
   const [focused, setFocused] = useState(false);
   const inputRef = React.useRef(null);
@@ -454,8 +456,8 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
   const submit = async () => {
     const trimmed = body.trim();
     if (!trimmed) return;
-    await onSubmit({ body: trimmed, assignee, due, source });
-    setBody(''); setDue(''); setSource('manual');
+    await onSubmit({ body: trimmed, assignee, due, time, source });
+    setBody(''); setDue(''); setTime(''); setSource('manual');
     setAssignee(defaultAssignee);
     setFocused(false);
   };
@@ -535,6 +537,23 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
               padding: '3px 6px', height: 22, borderRadius: 0,
               outline: 'none',
             }} />
+          {/* Time input — blank = 9:00 default. Only meaningful with a date. */}
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            onMouseDown={(e) => e.stopPropagation()}
+            disabled={!due}
+            title={due ? 'Calendar time (default 09:00)' : 'Pick a date first'}
+            style={{
+              background: 'transparent',
+              color: due ? 'var(--c-tm)' : 'var(--c-td)',
+              border: `1px solid var(--c-cardBd)`,
+              fontFamily: FN, fontSize: 10, fontWeight: 600,
+              padding: '3px 6px', height: 22, borderRadius: 0,
+              outline: 'none',
+              opacity: due ? 1 : 0.5,
+            }} />
           {/* Source selector — Manual / Performance Center */}
           {[['manual', 'Manual'], ['center', 'Performance Center']].map(([id, label]) => (
             <button key={id}
@@ -597,8 +616,11 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
 function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onDeleteFromCalendar }) {
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag) out of the visible list.
-  const tags = (Array.isArray(row.tags) ? row.tags : []).filter(t => !t.startsWith('gevent:') && !t.startsWith('getag:'));
+  const tags = (Array.isArray(row.tags) ? row.tags : []).filter(t =>
+    !t.startsWith('gevent:') && !t.startsWith('getag:') && !t.startsWith('glink:')
+  );
   const syncedEventId = getStoredEventId(row);
+  const syncedHtmlLink = getStoredHtmlLink(row);
 
   return (
     <div style={{
@@ -648,7 +670,7 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
                   cursor: 'pointer', borderRadius: 0,
                   textTransform: 'uppercase',
                 }}>✕ Remove from Calendar</button>
-              <a href={`https://calendar.google.com/calendar/u/0/r/eventedit/${syncedEventId}`}
+              <a href={syncedHtmlLink || `https://calendar.google.com/calendar/u/0/r/search?q=${encodeURIComponent('Task ID: ' + row.id)}`}
                 target="_blank" rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
                 style={{
@@ -1059,21 +1081,22 @@ export default function TasksV8View() {
   // SmartComposer hands us structured input (assignee, due, source). Until
   // Phase 1 schema, we encode assignee as body prefix and source as a tag.
   // due is parked in body for now since coach_notes has no due_at column.
-  const onComposerSubmit = async ({ body, assignee, due, source }) => {
+  const onComposerSubmit = async ({ body, assignee, due, time, source }) => {
     if (!body || !body.trim()) return;
     let prefixed;
     if (assignee === 'yuval') prefixed = `Yuval: ${body}`;
     else if (assignee === 'shared') prefixed = `Ohad + Yuval: ${body}`;
     else prefixed = `Ohad: ${body}`;
-    if (due) prefixed += ` · due ${due}`;
+    if (due) prefixed += ` · due ${due}${time ? ' ' + time : ''}`;
     const tags = source === 'center' ? ['center'] : [];
     const createdRow = await create({ body: prefixed, targetKind: 'general', tags });
     // Sync to Calendar if connected. Use the due date if provided, else
-    // the row's created_at (today, 9am).
+    // the row's created_at. Time defaults to 9:00 in Asia/Jerusalem.
     if (createdRow && gcalConnected) {
       const syncRow = { ...createdRow, status: 'open' };
       const opts = { displayBody: body };
       if (due) opts.dueAt = new Date(due + 'T09:00:00').toISOString();
+      if (time && /^\d{1,2}:\d{2}$/.test(time)) opts.dueTime = time;
       await syncRowToCalendar(syncRow, opts);
     }
   };
@@ -1206,7 +1229,7 @@ export default function TasksV8View() {
                   onClick={async () => {
                     const q = search;
                     setSearch('');
-                    await onComposerSubmit({ body: q, assignee: owner === 'shared' ? 'ohad' : owner, due: '', source: 'manual' });
+                    await onComposerSubmit({ body: q, assignee: owner === 'shared' ? 'ohad' : owner, due: '', time: '', source: 'manual' });
                   }}
                   style={{
                     display: 'block', margin: '14px auto 0',

@@ -27,6 +27,8 @@ const GOOGLE_CLIENT_ID = '1022046683456-5etasiot4615n6rme64f3tsrp1qcil5j.apps.go
 const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
 const EVENT_TAG_PREFIX = 'gevent:';
 const ETAG_TAG_PREFIX = 'getag:';
+const LINK_TAG_PREFIX = 'glink:';
+const EVENT_TIMEZONE = 'Asia/Jerusalem';
 
 // Token cache.
 const TOKEN_CACHE_KEY = 'expo-gcal-access-token';
@@ -234,10 +236,21 @@ export function getStoredEtag(row) {
   return found ? found.slice(ETAG_TAG_PREFIX.length) : null;
 }
 
-function withEventTags(tags, eventId, etag) {
-  const keep = (tags || []).filter(t => !t.startsWith(EVENT_TAG_PREFIX) && !t.startsWith(ETAG_TAG_PREFIX));
-  if (eventId) keep.push(EVENT_TAG_PREFIX + eventId);
-  if (etag)    keep.push(ETAG_TAG_PREFIX + etag);
+export function getStoredHtmlLink(row) {
+  const tags = Array.isArray(row.tags) ? row.tags : [];
+  const found = tags.find(t => t.startsWith(LINK_TAG_PREFIX));
+  return found ? found.slice(LINK_TAG_PREFIX.length) : null;
+}
+
+function withEventTags(tags, eventId, etag, htmlLink) {
+  const keep = (tags || []).filter(t =>
+    !t.startsWith(EVENT_TAG_PREFIX) &&
+    !t.startsWith(ETAG_TAG_PREFIX) &&
+    !t.startsWith(LINK_TAG_PREFIX)
+  );
+  if (eventId)  keep.push(EVENT_TAG_PREFIX + eventId);
+  if (etag)     keep.push(ETAG_TAG_PREFIX + etag);
+  if (htmlLink) keep.push(LINK_TAG_PREFIX + htmlLink);
   return keep;
 }
 
@@ -252,18 +265,39 @@ function buildEventPayload(row, opts = {}) {
   const baseBody = (opts.displayBody || row.body || '').trim();
   const summary = statusPrefix + baseBody;
 
+  // Resolve due date — explicit opt > row.due_at > row.created_at > now.
+  // Then apply the hour: opts.dueTime ("HH:MM") > 9am default.
   const dueIso = opts.dueAt || row.due_at || row.created_at || new Date().toISOString();
   const due = new Date(dueIso);
-  due.setHours(9, 0, 0, 0);
+  let h = 9, m = 0;
+  if (typeof opts.dueTime === 'string' && /^\d{1,2}:\d{2}$/.test(opts.dueTime)) {
+    const [hh, mm] = opts.dueTime.split(':').map(n => parseInt(n, 10));
+    if (hh >= 0 && hh < 24 && mm >= 0 && mm < 60) { h = hh; m = mm; }
+  }
+  due.setHours(h, m, 0, 0);
   const endHour = new Date(due.getTime() + 60 * 60 * 1000);
+
+  // Format as a local-time string with NO trailing Z. When combined with
+  // an explicit `timeZone: 'Asia/Jerusalem'`, Google renders the event at
+  // exactly that wall-clock time regardless of the browser's locale —
+  // which fixes the "random hour" bug where toISOString() shipped a UTC
+  // moment that Google re-interpreted against its calendar's timezone.
+  const fmt = (d) => {
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const da = String(d.getDate()).padStart(2, '0');
+    const ho = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${y}-${mo}-${da}T${ho}:${mi}:00`;
+  };
 
   const description = `From EXPO Tasks\nTask ID: ${row.id}\n\nhttps://expo-app.co.il/coach/tasks`;
 
   const payload = {
     summary,
     description,
-    start: { dateTime: due.toISOString() },
-    end:   { dateTime: endHour.toISOString() },
+    start: { dateTime: fmt(due),     timeZone: EVENT_TIMEZONE },
+    end:   { dateTime: fmt(endHour), timeZone: EVENT_TIMEZONE },
     reminders: {
       useDefault: false,
       overrides: [
@@ -296,7 +330,7 @@ export async function patchTask(row, eventId, opts = {}) {
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
-  return { id: patched.id, etag: patched.etag };
+  return { id: patched.id, etag: patched.etag, htmlLink: patched.htmlLink };
 }
 
 export async function deleteTask(eventId) {
@@ -312,17 +346,18 @@ export async function deleteTask(eventId) {
 export async function reconcileRow(row, opts = {}) {
   if (!await isCalendarConnected()) return null;
   const existingId = getStoredEventId(row);
+  const existingLink = getStoredHtmlLink(row);
   if (row.status === 'done' && existingId) {
     const result = await patchTask(row, existingId, opts);
-    return { tags: withEventTags(row.tags, result.id, result.etag) };
+    return { tags: withEventTags(row.tags, result.id, result.etag, result.htmlLink || existingLink) };
   }
   if (!existingId && row.status !== 'done') {
     const result = await pushNewTask(row, opts);
-    return { tags: withEventTags(row.tags, result.id, result.etag), htmlLink: result.htmlLink };
+    return { tags: withEventTags(row.tags, result.id, result.etag, result.htmlLink), htmlLink: result.htmlLink };
   }
   if (existingId && row.status !== 'done') {
     const result = await patchTask(row, existingId, opts);
-    return { tags: withEventTags(row.tags, result.id, result.etag) };
+    return { tags: withEventTags(row.tags, result.id, result.etag, result.htmlLink || existingLink) };
   }
   return null;
 }
@@ -332,7 +367,7 @@ export async function unlinkAndDeleteEvent(row) {
   const eventId = getStoredEventId(row);
   if (!eventId) return null;
   await deleteTask(eventId);
-  return { tags: withEventTags(row.tags, null, null) };
+  return { tags: withEventTags(row.tags, null, null, null) };
 }
 
 // ── Pull side — Google → EXPO via syncToken polling ─────────────────
