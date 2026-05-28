@@ -247,6 +247,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     const memberPlans = tpMember(mi);
     const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
     const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
+    // Single-click "make this the only visible plan" for couple members.
+    // Sets every sibling explicitly to false so default-undefined rows
+    // don't bleed through as visible. Confined to this member's plans.
+    const onlyThisMember = (chosenKey) => {
+      const nv = { ...(portalVis || {}) };
+      sorted.forEach(plan => { nv[memberVisKey(plan)] = false; });
+      nv[chosenKey] = true;
+      setPortalVis(nv);
+    };
     return (
       <div style={{flex:1,minWidth:0}}>
         <Card style={{marginBottom:8}}
@@ -280,6 +289,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:6}}>
                   <button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button>
+                  <button onClick={e=>{e.stopPropagation();onlyThisMember(visKey)}} title="Show only this program on the athlete portal — hide all others" style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.08em',padding:'2px 6px',borderRadius:0,cursor:'pointer',textTransform:'uppercase'}}>Only</button>
                   <button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
                     <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                   </button>
@@ -553,6 +563,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             const memberPlans = tpMember(mi);
             const sorted = [...memberPlans].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsChrono(a,b));
             const memberVisKey = (p) => `${td.name}:${p.name}:m${mi}`;
+            // Single-click "only this" within THIS couple member's plan list.
+            const onlyThisCouple = (chosenKey) => {
+              const nv = { ...(portalVis || {}) };
+              sorted.forEach(plan => { nv[memberVisKey(plan)] = false; });
+              nv[chosenKey] = true;
+              setPortalVis(nv);
+            };
             return (
               <React.Fragment key={mi}>
                 {mi === 1 && <div className="td-couple-divider" style={{width:1,background:`${C.cardBd}`,alignSelf:'stretch',flexShrink:0}} />}
@@ -571,6 +588,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                           </div>
                           <div style={{display:'flex',alignItems:'center',gap:6}}>
                             <button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button>
+                            <button onClick={e=>{e.stopPropagation();onlyThisCouple(visKey)}} title="Show only this program on the athlete portal — hide all others" style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.08em',padding:'2px 6px',borderRadius:0,cursor:'pointer',textTransform:'uppercase'}}>Only</button>
                             <button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
                               <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
                             </button>
