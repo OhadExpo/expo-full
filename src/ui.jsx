@@ -434,12 +434,49 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
         </div>{children}</div></div>);
 };
 export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => {
+  const titleId = React.useId();
+  const msgId = React.useId();
+  const cardRef = React.useRef(null);
+  const lastFocusRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!open) return;
+    // Mirror Modal's a11y — this is a destructive-confirm dialog, so
+    // keyboard escape-to-cancel and focus containment matter most here.
+    lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
+    const FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onCancel?.(); return; }
+      if (e.key !== 'Tab') return;
+      const node = cardRef.current;
+      if (!node) return;
+      const focusables = Array.from(node.querySelectorAll(FOCUSABLE)).filter(el => el.offsetParent !== null || el === node);
+      if (focusables.length === 0) { e.preventDefault(); node.focus?.(); return; }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !node.contains(active))) { e.preventDefault(); last.focus?.(); }
+      else if (!e.shiftKey && (active === last || !node.contains(active))) { e.preventDefault(); first.focus?.(); }
+    };
+    window.addEventListener('keydown', onKey);
+    // Default focus on Cancel — safe default for a destructive prompt so
+    // an accidental Enter doesn't confirm the irreversible action. Cancel is
+    // the first button rendered in the card.
+    const t = setTimeout(() => {
+      const node = cardRef.current;
+      (node?.querySelector('button') || node)?.focus?.();
+    }, 0);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      clearTimeout(t);
+      try { lastFocusRef.current?.focus?.(); } catch {}
+    };
+  }, [open, onCancel]);
   if (!open) return null;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={onCancel}>
-      <div onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: 400, padding: 28, boxShadow: C.cardShadow }}>
-        <h3 style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
-        <p style={{ margin: "0 0 22px", fontSize: 13, color: C.tm, fontFamily: FB, lineHeight: 1.5 }}>{message}</p>
+    <div role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={onCancel}>
+      <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: 400, padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
+        <h3 id={titleId} style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
+        <p id={msgId} style={{ margin: "0 0 22px", fontSize: 13, color: C.tm, fontFamily: FB, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
           <Btn variant="danger" onClick={onConfirm}>Confirm</Btn>
