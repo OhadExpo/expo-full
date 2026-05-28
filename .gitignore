@@ -67,3 +67,6 @@ scripts/test-*.cjs
 
 # Local business docs — must never be committed
 _biz_extract/
+
+# Dev server log captured during local audit sessions
+.dev-server.log
