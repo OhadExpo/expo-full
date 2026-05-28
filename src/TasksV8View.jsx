@@ -871,24 +871,146 @@ function relativeTime(iso, now) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+// Inline SQL for the three pending migrations — same as the files in
+// scripts/migrations/. Pasted into the bundle so the "copy" button is
+// instant (no fetch, no CSP fuss). Update if the source SQL changes.
+const PENDING_MIGRATION_SQL = `-- EXPO Phase 1 + 2 migrations (2026-05-28)
+-- Paste in Supabase Studio → SQL Editor → Run. Idempotent.
+
+-- 1. coach_notes task-fields (assigned_to / due_at / priority)
+BEGIN;
+ALTER TABLE public.coach_notes
+  ADD COLUMN IF NOT EXISTS assigned_to TEXT,
+  ADD COLUMN IF NOT EXISTS due_at      TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS priority    TEXT NOT NULL DEFAULT 'normal';
+ALTER TABLE public.coach_notes
+  DROP CONSTRAINT IF EXISTS coach_notes_assigned_to_chk;
+ALTER TABLE public.coach_notes
+  ADD CONSTRAINT coach_notes_assigned_to_chk
+  CHECK (assigned_to IS NULL OR assigned_to IN ('ohad','yuval','shared'));
+ALTER TABLE public.coach_notes
+  DROP CONSTRAINT IF EXISTS coach_notes_priority_chk;
+ALTER TABLE public.coach_notes
+  ADD CONSTRAINT coach_notes_priority_chk
+  CHECK (priority IN ('low','normal','high','urgent'));
+CREATE INDEX IF NOT EXISTS coach_notes_assigned_to_idx
+  ON public.coach_notes (assigned_to, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS coach_notes_due_at_idx
+  ON public.coach_notes (due_at) WHERE due_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS coach_notes_priority_open_idx
+  ON public.coach_notes (priority, due_at) WHERE status = 'open';
+COMMIT;
+
+-- 2. coach_note_comments
+CREATE TABLE IF NOT EXISTS public.coach_note_comments (
+  id          TEXT PRIMARY KEY,
+  note_id     TEXT NOT NULL REFERENCES public.coach_notes(id) ON DELETE CASCADE,
+  author      TEXT NOT NULL,
+  body        TEXT NOT NULL,
+  mentions    TEXT[],
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.coach_note_comments
+  DROP CONSTRAINT IF EXISTS coach_note_comments_author_chk;
+ALTER TABLE public.coach_note_comments
+  ADD CONSTRAINT coach_note_comments_author_chk
+  CHECK (author IN ('ohad','yuval'));
+CREATE INDEX IF NOT EXISTS coach_note_comments_note_idx
+  ON public.coach_note_comments (note_id, created_at);
+ALTER TABLE public.coach_note_comments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "coach_note_comments_trainer_all" ON public.coach_note_comments;
+CREATE POLICY "coach_note_comments_trainer_all" ON public.coach_note_comments
+  FOR ALL TO authenticated
+  USING ((auth.jwt() ->> 'email') = 'ohadyproductions@gmail.com')
+  WITH CHECK ((auth.jwt() ->> 'email') = 'ohadyproductions@gmail.com');
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.coach_note_comments TO authenticated;
+
+-- 3. coach_note_events
+CREATE TABLE IF NOT EXISTS public.coach_note_events (
+  id          BIGSERIAL PRIMARY KEY,
+  note_id     TEXT NOT NULL REFERENCES public.coach_notes(id) ON DELETE CASCADE,
+  actor       TEXT NOT NULL,
+  kind        TEXT NOT NULL,
+  from_value  TEXT,
+  to_value    TEXT,
+  detail      TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS coach_note_events_note_idx
+  ON public.coach_note_events (note_id, created_at);
+ALTER TABLE public.coach_note_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "coach_note_events_trainer_all" ON public.coach_note_events;
+CREATE POLICY "coach_note_events_trainer_all" ON public.coach_note_events
+  FOR ALL TO authenticated
+  USING ((auth.jwt() ->> 'email') = 'ohadyproductions@gmail.com')
+  WITH CHECK ((auth.jwt() ->> 'email') = 'ohadyproductions@gmail.com');
+GRANT SELECT, INSERT ON public.coach_note_events TO authenticated;
+GRANT USAGE ON SEQUENCE public.coach_note_events_id_seq TO authenticated;
+`;
+
+// Surfaced when comments are unavailable (migration not applied). One
+// click copies the SQL → Ohad opens Studio (link below) → pastes →
+// runs. Two clicks total to unlock comments + audit log + Phase 1 cols.
+function MigrationPendingHint() {
+  const [copied, setCopied] = useState(false);
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(PENDING_MIGRATION_SQL);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch (err) {
+      toast(`Copy failed: ${err.message || err}`, 'error', { ttl: 4000 });
+    }
+  };
+  const studioHref = 'https://supabase.com/dashboard/project/gtcbfglttoiyfsnfbhdy/sql/new';
+  return (
+    <div style={{
+      marginTop: 12, padding: '10px 12px',
+      background: 'var(--c-sf2, transparent)',
+      border: `1px dashed var(--c-cardBd)`,
+      direction: 'ltr',
+    }}>
+      <div style={{
+        fontFamily: FN, fontSize: 10, fontWeight: 700,
+        color: 'var(--c-tm)', letterSpacing: '0.12em',
+        textTransform: 'uppercase', marginBottom: 6,
+      }}>Comments + audit log pending</div>
+      <div style={{
+        fontFamily: FB, fontSize: 12, color: 'var(--c-tx)',
+        marginBottom: 8, lineHeight: 1.5,
+      }}>Two clicks to unlock the full Phase 1+2 schema (priority / due_at / assigned_to columns + comments thread + audit timeline).</div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <button onClick={onCopy} style={{
+          background: copied ? 'var(--c-gn)' : 'var(--c-ac)', color: '#FFFFFF',
+          border: 'none', fontFamily: FN, fontSize: 10, fontWeight: 700,
+          letterSpacing: '0.12em', padding: '6px 12px', cursor: 'pointer',
+          borderRadius: 0, textTransform: 'uppercase',
+        }}>{copied ? '✓ Copied' : '1. Copy SQL'}</button>
+        <a href={studioHref} target="_blank" rel="noopener noreferrer"
+          style={{
+            display: 'inline-flex', alignItems: 'center',
+            background: 'transparent', color: 'var(--c-ac)',
+            border: '1px solid var(--c-ac)',
+            fontFamily: FN, fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.12em', padding: '6px 12px',
+            textDecoration: 'none', borderRadius: 0,
+            textTransform: 'uppercase',
+          }}>2. Open Studio →</a>
+      </div>
+    </div>
+  );
+}
+
 function CommentsThread({ noteId, defaultAuthor }) {
   const { rows, loading, available, add } = useCoachNoteComments(noteId);
   const [draft, setDraft] = useState('');
   const [author, setAuthor] = useState(defaultAuthor || 'ohad');
   const [busy, setBusy] = useState(false);
   if (!available) {
-    // Migration not applied — surface a quiet hint instead of an empty
-    // section so Ohad knows where the SQL needs to land.
-    return (
-      <div style={{
-        marginTop: 12, padding: '8px 10px',
-        background: 'var(--c-sf2, transparent)',
-        border: `1px dashed var(--c-cardBd)`,
-        fontFamily: FN, fontSize: 9, fontWeight: 600,
-        color: 'var(--c-td)', letterSpacing: '0.04em',
-        textTransform: 'uppercase',
-      }}>Comments unavailable — apply scripts/migrations/2026-05-28-coach-note-comments.sql</div>
-    );
+    // Migration not applied — render an actionable hint with a one-click
+    // copy + a direct link to Supabase Studio SQL Editor. Avoids the
+    // 'open repo → find file → paste into Studio' chain.
+    return <MigrationPendingHint />;
   }
   const submit = async (e) => {
     e?.preventDefault?.();
