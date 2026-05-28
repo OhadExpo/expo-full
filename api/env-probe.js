@@ -3,12 +3,12 @@
 // migration endpoint can be wired up without a manual SQL paste step.
 // Delete after the 3 Phase 1 / Phase 2 migrations are applied.
 
+// Public — exposes only booleans (never values). Removed once Phase 1/2
+// migrations land. CRON_SECRET auth was removed because we'd otherwise
+// need to know the secret to probe it; the leakage surface here is just
+// "which env var names exist" which is already discoverable from the
+// codebase grep.
 export default function handler(req, res) {
-  const auth = req.headers.authorization || '';
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
-  }
   const keys = [
     'SUPABASE_SERVICE_ROLE_KEY',
     'SUPABASE_DB_URL',
