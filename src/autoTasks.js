@@ -453,6 +453,84 @@ const ruleEvalDueFirstSession = {
   },
 };
 
+// 8) LEAD_CALLBACK_PENDING — a leads row landed and Ohad/Yuval haven't
+//    converted it yet. Yuval's spec (2026-05-28) calls this the #1
+//    automation: every new prospect generates a callback task so no
+//    inbound goes silently into the queue. Window: ≥1 day old (give a
+//    short grace so we don't ping for a contact that just landed) and
+//    ≤30 days old (older leads stop generating new tasks — Ohad can
+//    chase them from /coach/waitlist if he wants to).
+const ruleLeadCallbackPending = {
+  kind: 'lead_callback_pending',
+  detect(ctx) {
+    const { leads } = ctx;
+    if (!Array.isArray(leads)) return [];
+    const out = [];
+    for (const l of leads) {
+      if (l.consumed_at) continue;
+      const age = daysAgo(l.created_at);
+      if (age < 1 || age > 30) continue;
+      const handle = (l.email || '').trim() || 'unknown lead';
+      const ctxLabel = l.context && l.context !== 'unknown' ? ` via ${l.context}` : '';
+      const summary = l.notes ? ` — ${String(l.notes).slice(0, 80)}` : '';
+      out.push({
+        ref: l.id,
+        body: `Call back ${bidi(handle)} · ${age}d since signup${ctxLabel}${summary}`,
+        target_id: null,
+        target_label: handle,
+        target_kind: 'general',
+      });
+    }
+    return out;
+  },
+  resolve({ leads }, existing) {
+    const closing = new Set();
+    for (const row of existing) {
+      const l = (leads || []).find(x => x.id === row.auto_ref);
+      // Resolve when Ohad sets consumed_at on the lead (reply / convert),
+      // OR the lead row vanished (manual delete from /coach/waitlist).
+      if (!l || l.consumed_at) closing.add(row.auto_ref);
+    }
+    return closing;
+  },
+};
+
+// 9) PLAN_DUE_AFTER_EVAL — trainee has a completed athletic evaluation
+//    but no training plan yet. Yuval's spec calls this the #2 automation:
+//    the eval is the gate that produces the first program; the moment
+//    the eval is done, "build the first plan" should appear in Ohad's
+//    queue without him having to remember.
+const rulePlanDueAfterEval = {
+  kind: 'plan_due_after_eval',
+  detect(ctx) {
+    const { trainees, plans, evaluations } = ctx;
+    if (!Array.isArray(evaluations) || evaluations.length === 0) return [];
+    const out = [];
+    for (const t of trainees) {
+      if (t.status === 'Archived' || t.status === 'Inactive') continue;
+      const hasEval = evaluations.some(e => e.trainee_id === t.id);
+      if (!hasEval) continue;
+      const hasPlan = plans.some(p => p.traineeId === t.id);
+      if (hasPlan) continue;
+      out.push({
+        ref: t.id,
+        body: `Build first training program for ${bidi(t.name)} · eval is done`,
+        target_id: t.id,
+        target_label: t.name,
+      });
+    }
+    return out;
+  },
+  resolve({ plans }, existing) {
+    const closing = new Set();
+    for (const row of existing) {
+      const hasPlan = (plans || []).some(p => p.traineeId === row.target_id);
+      if (hasPlan) closing.add(row.auto_ref);
+    }
+    return closing;
+  },
+};
+
 const RULES = [
   ruleNextBlockDue,
   ruleWeekMissed,
@@ -461,6 +539,8 @@ const RULES = [
   ruleNewIntakePending,
   rulePaymentOverdue,
   ruleEvalDueFirstSession,
+  ruleLeadCallbackPending,
+  rulePlanDueAfterEval,
 ];
 
 // ─────────────────────────────────────────────────────────────────────
@@ -480,19 +560,22 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
 
   // Lazy-load the supporting data the rules need but the dashboard
   // doesn't already have (intake submissions + athletic evals +
-  // trainee activity log).
+  // trainee activity log + unconverted leads).
   let intakeSubmissions = [];
   let evaluations = [];
   let activityRows = [];
+  let leads = [];
   try {
-    const [i, e, a] = await Promise.all([
+    const [i, e, a, l] = await Promise.all([
       supabase.from('intake_submissions').select('id, name, email, trainee_id, form_type, reviewed_at, created_at').limit(500),
       supabase.from('trainee_evaluations').select('id, trainee_id, eval_date').limit(500),
       supabase.from('trainee_activity').select('id, trainee_id, occurred_at, kind').limit(500),
+      supabase.from('leads').select('id, email, source, context, notes, consumed_at, created_at').is('consumed_at', null).limit(200),
     ]);
     intakeSubmissions = i.data || [];
     evaluations = e.data || [];
     activityRows = a.data || [];
+    leads = l.data || [];
   } catch {
     /* gracefully degrade — relevant rules just return [] */
   }
@@ -514,7 +597,7 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
     byKey.set(`${r.auto_kind}|${r.auto_ref}`, r);
   }
 
-  const ctx = { trainees, plans, workouts, payments, intakeSubmissions, evaluations, activityRows };
+  const ctx = { trainees, plans, workouts, payments, intakeSubmissions, evaluations, activityRows, leads };
 
   // Phase A: compute desired open-task set
   const inserts = [];
@@ -603,6 +686,8 @@ export const AUTO_KIND_LABEL = {
   new_intake_pending: 'NEW INTAKE',
   payment_overdue: 'PAYMENT OVERDUE',
   eval_due_first_session: 'EVAL DUE',
+  lead_callback_pending: 'NEW LEAD',
+  plan_due_after_eval: 'PLAN DUE',
   whatsapp_combined: 'NEEDS OUTREACH',
 };
 
@@ -621,6 +706,8 @@ export const AUTO_KIND_ACTION = {
   new_intake_pending:        'OPEN_INTAKE',
   payment_overdue:           'WHATSAPP',
   eval_due_first_session:    'OPEN_ATHLETE',
+  lead_callback_pending:     'OPEN_WAITLIST',
+  plan_due_after_eval:       'NEW_PROGRAM',
   whatsapp_combined:         'WHATSAPP',
 };
 
@@ -792,6 +879,26 @@ export function explainAutoTask(note, trainee) {
         rule: 'Trainee has logged ≥1 session but has no Athletic Evaluation on file.',
         inputs: ['client_workouts count ≥1', 'evaluation row missing'],
         closes: 'Auto-closes when the Athletic Evaluation is filled out from the trainee card.',
+      };
+    }
+    case 'lead_callback_pending': {
+      const m = body.match(/(\d+)d since signup/);
+      return {
+        ...base,
+        rule: 'A lead landed via the landing page or chat and was not consumed (no reply / conversion) within the callback window.',
+        inputs: [
+          m ? `Lead age: ${m[1]} days` : 'Lead age: 1–30 days',
+          'consumed_at IS NULL',
+        ],
+        closes: 'Auto-closes when consumed_at gets set on the lead (Ohad marks it from /coach/waitlist).',
+      };
+    }
+    case 'plan_due_after_eval': {
+      return {
+        ...base,
+        rule: 'Athletic Evaluation is on file but no training plan exists yet — the eval-to-plan handoff is the moment the first block ships.',
+        inputs: ['trainee_evaluations count ≥1', 'plans for this trainee = 0'],
+        closes: 'Auto-closes once a plan is created for this trainee.',
       };
     }
     case 'whatsapp_combined': {
