@@ -49,6 +49,38 @@ function getCachedAccessToken() {
   return token;
 }
 
+// Supabase v2 persists the entire auth session (access_token, refresh_token,
+// provider_token, provider_refresh_token, expires_at) in localStorage under
+// `sb-<projectref>-auth-token`. This is the SOURCE OF TRUTH — getSession()
+// sometimes returns an object missing the provider_token, but the raw
+// storage row reliably has it. Read straight from there.
+function getProviderTokenFromSupabaseStorage() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith('sb-') || !k.endsWith('-auth-token')) continue;
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      const obj = JSON.parse(raw);
+      // Some Supabase versions wrap the session in a different shape:
+      // either obj.provider_token directly OR obj.currentSession.provider_token
+      const candidates = [obj, obj?.currentSession, obj?.session];
+      for (const c of candidates) {
+        if (c && typeof c === 'object' && c.provider_token) {
+          return {
+            token: c.provider_token,
+            refresh: c.provider_refresh_token || null,
+            expires: c.expires_at || null,
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to read Supabase auth storage:', err);
+  }
+  return null;
+}
+
 function clearCachedTokens() {
   localStorage.removeItem(TOKEN_CACHE_KEY);
   localStorage.removeItem(TOKEN_EXPIRES_KEY);
@@ -91,22 +123,8 @@ const VERIFIED_CACHE_KEY = 'expo-gcal-verified-at';
 const VERIFIED_TTL_MS = 5 * 60 * 1000;
 
 export async function isCalendarConnected() {
-  // Prefer the cached provider_token (set by subscribeAndCacheProviderToken
-  // on OAuth callback). Fall back to whatever is in the current session.
-  const cached = getCachedAccessToken();
-  let token = cached;
-  if (!token) {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.provider_token) {
-      // Late-arriving session token — cache it for next time.
-      cacheProviderToken(
-        session.provider_token,
-        session.provider_refresh_token,
-        session.expires_at
-      );
-      token = session.provider_token;
-    }
-  }
+  // Three-tier token lookup: our cache → Supabase's storage row → live session.
+  const token = await getAccessToken();
   if (!token) return false;
   if (localStorage.getItem('expo-gcal-connected') !== '1') return false;
   // Verified-recently cache to avoid hammering Google.
@@ -177,12 +195,7 @@ export function consumeCalendarCallback() {
 // strings or null on failure. Used after the OAuth round-trip to
 // figure out why verification might be failing.
 export async function getTokenScopes() {
-  let token = getCachedAccessToken();
-  if (!token) {
-    const { data: { session } } = await supabase.auth.getSession();
-    token = session?.provider_token || null;
-    if (token) cacheProviderToken(token, session.provider_refresh_token, session.expires_at);
-  }
+  const token = await getAccessToken();
   if (!token) return null;
   try {
     const res = await fetch(
@@ -206,11 +219,18 @@ export function disconnectCalendar() {
 // ── Token plumbing ───────────────────────────────────────────────────
 
 async function getAccessToken() {
-  // Cached token first (set on OAuth callback).
+  // 1. Our own cache (set on prior reads).
   const cached = getCachedAccessToken();
   if (cached) return cached;
-  // Fall back to session — happens immediately after sign-in before
-  // the cache subscriber has fired.
+  // 2. Supabase's own storage row — most reliable source for
+  //    provider_token across page reloads (getSession() sometimes
+  //    omits it but the storage row keeps it).
+  const fromStore = getProviderTokenFromSupabaseStorage();
+  if (fromStore?.token) {
+    cacheProviderToken(fromStore.token, fromStore.refresh, fromStore.expires);
+    return fromStore.token;
+  }
+  // 3. Live session as final fallback.
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.provider_token) {
     cacheProviderToken(session.provider_token, session.provider_refresh_token, session.expires_at);
