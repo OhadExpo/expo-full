@@ -74,9 +74,11 @@ if (typeof document !== 'undefined' && !document.getElementById('tasks-v8-anim')
 
 function statusColors(status, theme) {
   const dark = theme === 'dark' || theme === '1' || theme === '2' || theme === '3' || theme === '4';
-  if (status === 'done')    return dark ? { bg: '#00A85D', fg: '#FFFFFF' } : { bg: '#00CA72', fg: '#FFFFFF' };
-  if (status === 'working') return dark ? { bg: '#D9A800', fg: '#000000' } : { bg: '#FFCC00', fg: '#000000' };
-  if (status === 'stuck')   return dark ? { bg: '#C81F4D', fg: '#FFFFFF' } : { bg: '#FB275D', fg: '#FFFFFF' };
+  if (status === 'done')      return dark ? { bg: '#00A85D', fg: '#FFFFFF' } : { bg: '#00CA72', fg: '#FFFFFF' };
+  if (status === 'working')   return dark ? { bg: '#D9A800', fg: '#000000' } : { bg: '#FFCC00', fg: '#000000' };
+  if (status === 'stuck')     return dark ? { bg: '#C81F4D', fg: '#FFFFFF' } : { bg: '#FB275D', fg: '#FFFFFF' };
+  if (status === 'waiting')   return dark ? { bg: '#5A6376', fg: '#FFFFFF' } : { bg: '#8892A6', fg: '#FFFFFF' };
+  if (status === 'cancelled') return dark ? { bg: '#3D3D3D', fg: '#9A9A9A' } : { bg: '#E0E0E0', fg: '#666666' };
   return null;
 }
 
@@ -175,8 +177,8 @@ function sourceColor(key) {
   return 'var(--c-tm)';
 }
 
-const STATUS_RANK = { stuck: 0, working: 1, open: 2, done: 3 };
-const STATUS_CYCLE = ['open', 'working', 'stuck', 'done'];
+const STATUS_RANK = { stuck: 0, working: 1, waiting: 2, open: 3, done: 4, cancelled: 5 };
+const STATUS_CYCLE = ['open', 'working', 'waiting', 'stuck', 'done', 'cancelled'];
 function nextStatus(s) {
   const i = STATUS_CYCLE.indexOf(s);
   return STATUS_CYCLE[(i + 1) % STATUS_CYCLE.length];
@@ -240,14 +242,16 @@ function AssigneeDot({ owner, size = 14 }) {
   );
 }
 
-// Linear-style status ICON: ○ open · ◐ working · ⚠ stuck · ● done.
-// Replaces the text pill (OPEN/WORK/STUCK/DONE) with a single glyph in
-// the status colour. Click opens the 4-option popover (same as before).
+// Linear-style status ICON, six states per Yuval's spec:
+//   ○ open  ◐ working  ◯ waiting  ⚠ stuck  ● done  ⊘ cancelled
+// Replaces the old 4-state text pill. Click opens a 6-option popover.
 const STATUS_OPTIONS = [
-  { id: 'open',    label: 'Open',    glyph: '○' },
-  { id: 'working', label: 'Working', glyph: '◐' },
-  { id: 'stuck',   label: 'Stuck',   glyph: '⚠' },
-  { id: 'done',    label: 'Done',    glyph: '●' },
+  { id: 'open',      label: 'Open',      glyph: '○' },
+  { id: 'working',   label: 'Working',   glyph: '◐' },
+  { id: 'waiting',   label: 'Waiting',   glyph: '◯' },
+  { id: 'stuck',     label: 'Stuck',     glyph: '⚠' },
+  { id: 'done',      label: 'Done',      glyph: '●' },
+  { id: 'cancelled', label: 'Cancelled', glyph: '⊘' },
 ];
 function StatusIconGlyph({ status, theme, size = 16 }) {
   const opt = STATUS_OPTIONS.find(o => o.id === status) || STATUS_OPTIONS[0];
@@ -489,12 +493,13 @@ function QuickFilters({ value, onChange, counts }) {
 
 // Smart composer — expands on focus to show assignee picker + due-date
 // input + section selector inline. Collapses back when empty + blurred.
-function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
+function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
   const [body, setBody] = useState('');
   const [assignee, setAssignee] = useState(defaultAssignee);
   const [due, setDue] = useState('');
   const [time, setTime] = useState(''); // 'HH:MM' — blank = 9:00 default
   const [priority, setPriority] = useState('normal'); // low | normal | high | urgent
+  const [traineeId, setTraineeId] = useState(''); // '' = no link
   const [source, setSource] = useState('manual'); // 'manual' | 'center'
   const [focused, setFocused] = useState(false);
   const inputRef = React.useRef(null);
@@ -503,8 +508,14 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
   const submit = async () => {
     const trimmed = body.trim();
     if (!trimmed) return;
-    await onSubmit({ body: trimmed, assignee, due, time, priority, source });
-    setBody(''); setDue(''); setTime(''); setPriority('normal'); setSource('manual');
+    const linkedTrainee = traineeId
+      ? (trainees || []).find(t => t.id === traineeId) || null
+      : null;
+    await onSubmit({ body: trimmed, assignee, due, time, priority, source,
+      traineeId: linkedTrainee?.id || '',
+      traineeLabel: linkedTrainee?.name || '' });
+    setBody(''); setDue(''); setTime(''); setPriority('normal');
+    setTraineeId(''); setSource('manual');
     setAssignee(defaultAssignee);
     setFocused(false);
   };
@@ -620,6 +631,31 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
                 cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
               }}>{label}</button>
           ))}
+          {/* Trainee link — picker that sets target_kind:'trainee' so the
+              task appears under the athlete's source section AND on their
+              TraineeDetail page. Blank = unlinked. */}
+          {(trainees || []).length > 0 && (
+            <select
+              value={traineeId}
+              onChange={(e) => setTraineeId(e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              title="Link this task to an athlete"
+              style={{
+                background: 'transparent',
+                color: traineeId ? C.ac : 'var(--c-tm)',
+                border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`,
+                fontFamily: FN, fontSize: 10, fontWeight: 600,
+                padding: '3px 6px', height: 22, borderRadius: 0,
+                outline: 'none', maxWidth: 160,
+                textOverflow: 'ellipsis',
+              }}
+            >
+              <option value="">— no athlete —</option>
+              {[...trainees].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(t => (
+                <option key={t.id} value={t.id}>{t.name || t.id}</option>
+              ))}
+            </select>
+          )}
           {/* Source selector — Manual / Performance Center */}
           {[['manual', 'Manual'], ['center', 'Performance Center']].map(([id, label]) => (
             <button key={id}
@@ -873,7 +909,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 // main view
 // ────────────────────────────────────────────────────────────────────
 
-export default function TasksV8View() {
+export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const { rows, loading, update, create } = useCoachNotes({ limit: 200 });
   const [owner, setOwner] = useState('ohad');
   const [view, setView] = useState('list'); // 'list' | 'board'
@@ -1084,8 +1120,9 @@ export default function TasksV8View() {
   }), [decorated]);
 
   // Owner + open filter is the base. Search narrows further.
+  // Terminal states (done, cancelled) drop to the bottom pool.
   const ownerBase = useMemo(
-    () => decorated.filter(r => r._owner === owner && r.status !== 'done'),
+    () => decorated.filter(r => r._owner === owner && r.status !== 'done' && r.status !== 'cancelled'),
     [decorated, owner]
   );
 
@@ -1149,8 +1186,9 @@ export default function TasksV8View() {
     return result;
   }, [quickFiltered, sortBy, sortDir, now]);
 
+  // Terminal pool — done AND cancelled live together at the bottom.
   const done = useMemo(
-    () => decorated.filter(r => r._owner === owner && r.status === 'done'),
+    () => decorated.filter(r => r._owner === owner && (r.status === 'done' || r.status === 'cancelled')),
     [decorated, owner]
   );
 
@@ -1160,27 +1198,25 @@ export default function TasksV8View() {
     return n;
   });
   const setStatus = async (row, target) => {
-    // The existing coach_notes schema only persists 'open' | 'done'.
-    // 'working' and 'stuck' will land in Phase 1 with the status_label
-    // column. For now we map: done → done, anything else → open. The
-    // visual change is immediate via optimistic update in useCoachNotes,
-    // but reload may revert non-{open,done} states until schema lands.
-    const persistableStatus = target === 'done' ? 'done' : 'open';
-    if (persistableStatus === 'done') {
-      await update(row.id, { status: 'done', completed_at: new Date().toISOString() });
-    } else {
-      await update(row.id, { status: 'open', completed_at: null });
-    }
-    // Mirror to Google Calendar: done → [DONE] prefix, others → patch.
-    // Pass the in-memory target status so the Calendar title reflects
-    // the intent even though Supabase only stored open|done.
+    // coach_notes.status is TEXT with no enum constraint, so all 6 states
+    // (open / working / waiting / stuck / done / cancelled) persist as
+    // their literal value. completed_at is stamped for the two terminal
+    // states (done / cancelled) and cleared when reopening.
+    const terminal = (target === 'done' || target === 'cancelled');
+    await update(row.id, {
+      status: target,
+      completed_at: terminal ? new Date().toISOString() : null,
+    });
+    // Mirror to Google Calendar: terminal → [DONE]/[CANCELLED] prefix
+    // patch; transient (waiting / stuck / working) → status-prefixed
+    // title patch so the calendar event reflects the latest state.
     const rowWithIntent = { ...row, status: target };
     await syncRowToCalendar(rowWithIntent, { displayBody: displayBodyOf(row.body) });
   };
   // SmartComposer hands us structured input (assignee, due, source). Until
   // Phase 1 schema, we encode assignee as body prefix and source as a tag.
   // due is parked in body for now since coach_notes has no due_at column.
-  const onComposerSubmit = async ({ body, assignee, due, time, priority, source }) => {
+  const onComposerSubmit = async ({ body, assignee, due, time, priority, source, traineeId, traineeLabel }) => {
     if (!body || !body.trim()) return;
     // Body wire format: `Owner: [PRIORITY] body · due YYYY-MM-DD HH:MM`
     // Owner prefix → ownerFromBody. Priority bracket → priorityFromBody
@@ -1193,7 +1229,12 @@ export default function TasksV8View() {
     let prefixed = ownerPrefix + priorityTag + body;
     if (due) prefixed += ` · due ${due}${time ? ' ' + time : ''}`;
     const tags = source === 'center' ? ['center'] : [];
-    const createdRow = await create({ body: prefixed, targetKind: 'general', tags });
+    // Trainee link uses the existing target_kind infra so the same row
+    // shows up in the athlete's CRM-tasks feed and on TraineeDetail.
+    const targetKind  = traineeId ? 'trainee' : 'general';
+    const targetId    = traineeId || null;
+    const targetLabel = traineeId ? (traineeLabel || null) : null;
+    const createdRow = await create({ body: prefixed, targetKind, targetId, targetLabel, tags });
     // Sync to Calendar if connected. Pass the title-only displayBody so
     // the calendar event doesn't show `Ohad: [URGENT] …` to the attendee.
     if (createdRow && gcalConnected) {
@@ -1316,7 +1357,7 @@ export default function TasksV8View() {
           background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
           borderRadius: 0,
         }}>
-          <SmartComposer onSubmit={onComposerSubmit} defaultAssignee={owner === 'shared' ? 'ohad' : owner} />
+          <SmartComposer onSubmit={onComposerSubmit} defaultAssignee={owner === 'shared' ? 'ohad' : owner} trainees={trainees} />
 
           {visibleSections.length === 0 && !autoSection && (
             <div style={{
@@ -1333,7 +1374,7 @@ export default function TasksV8View() {
                   onClick={async () => {
                     const q = search;
                     setSearch('');
-                    await onComposerSubmit({ body: q, assignee: owner === 'shared' ? 'ohad' : owner, due: '', time: '', priority: 'normal', source: 'manual' });
+                    await onComposerSubmit({ body: q, assignee: owner === 'shared' ? 'ohad' : owner, due: '', time: '', priority: 'normal', source: 'manual', traineeId: '', traineeLabel: '' });
                   }}
                   style={{
                     display: 'block', margin: '14px auto 0',

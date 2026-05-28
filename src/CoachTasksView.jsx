@@ -27,5 +27,5 @@ export default function CoachTasksView({ trainees, onSelectTrainee, onCreatePlan
       </div>
     );
   }
-  return <TasksV8View />;
+  return <TasksV8View trainees={trainees} onSelectTrainee={onSelectTrainee} />;
 }
