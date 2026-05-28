@@ -727,6 +727,10 @@ function CalendarEmbedCard() {
     return () => { cancelled = true; };
   }, []);
   const src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(email || 'ohadyproductions@gmail.com')}&ctz=Asia%2FJerusalem&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0`;
+  // Google Calendar's embed URL strips the Tasks layer (Google decision —
+  // not a parameter we can flip). Surface a direct link to the full view
+  // where Tasks ARE visible, opened in a new tab.
+  const fullCalendarHref = 'https://calendar.google.com/calendar/u/0/r';
   return (
     <div style={{
       border: `1px solid var(--c-cardBd)`,
@@ -753,11 +757,20 @@ function CalendarEmbedCard() {
           textTransform: 'uppercase',
         }}>📅 Google Calendar</span>
         <span style={{ flex: 1 }} />
+        <a href={fullCalendarHref} target="_blank" rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          title="Open full Google Calendar (with Tasks layer + multi-calendar) in a new tab"
+          style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 700,
+            color: 'var(--c-ac)', letterSpacing: '0.12em',
+            textTransform: 'uppercase', textDecoration: 'none',
+            border: '1px solid var(--c-ac)', padding: '3px 8px',
+          }}>↗ Full View</a>
         <span style={{
           fontFamily: FN, fontSize: 9, fontWeight: 600,
           color: 'var(--c-td)', letterSpacing: '0.04em',
           textTransform: 'uppercase',
-        }}>{open ? 'Click to collapse' : 'Click to expand'}</span>
+        }}>{open ? 'Collapse' : 'Expand'}</span>
       </button>
       {open && (
         <div style={{
@@ -1347,7 +1360,39 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       const verified = await isCalendarConnected();
       setGcalConnected(verified);
       if (verified) {
-        toast('Google Calendar connected · tasks will sync automatically', 'success', { ttl: 5000 });
+        toast('Google Calendar connected · syncing existing tasks…', 'success', { ttl: 4000 });
+        // Batch-sync every open task that doesn't already have a Google
+        // event ID. Without this the per-task "Add to Calendar" button
+        // had to be clicked once per row; with it, the existing backlog
+        // lands in Calendar in the background as soon as the coach
+        // clicks Connect. Throttled to 4 concurrent so we don't hit
+        // Google's rate limit on a large backlog.
+        try {
+          const unsynced = (rows || []).filter(r =>
+            r.status !== 'done' && r.status !== 'cancelled' && !getStoredEventId(r)
+          );
+          if (unsynced.length > 0) {
+            let done = 0, fail = 0;
+            const CONCURRENCY = 4;
+            for (let i = 0; i < unsynced.length; i += CONCURRENCY) {
+              const slice = unsynced.slice(i, i + CONCURRENCY);
+              await Promise.all(slice.map(async (r) => {
+                try {
+                  await syncRowToCalendar({ ...r, _owner: ownerFromBody(r.body) },
+                    { displayBody: displayBodyOf(r.body) });
+                  done++;
+                } catch { fail++; }
+              }));
+            }
+            if (fail === 0) {
+              toast(`Synced ${done} existing task${done === 1 ? '' : 's'} to Calendar ✓`, 'success', { ttl: 4000 });
+            } else {
+              toast(`Synced ${done}, ${fail} failed — reopen the row to retry`, 'warning', { ttl: 5000 });
+            }
+          }
+        } catch (err) {
+          console.warn('Backlog sync failed:', err);
+        }
       } else {
         toast('Connection succeeded but verification call failed', 'error', { ttl: 6000 });
       }
