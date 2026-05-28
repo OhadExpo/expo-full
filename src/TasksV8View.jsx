@@ -112,6 +112,47 @@ function stripOwnerPrefix(body) {
   return (body || '').replace(/^(ohad\s*\+\s*yuval|yuval\s*\+\s*ohad|ohad|yuval)\s*:\s*/i, '');
 }
 
+// ── Body-encoded fields — Phase 1 step 1 (schema-free) ─────────────────
+// Until coach_notes gains real due_at + priority columns, we encode them
+// inline in the body string. ALL row processing must read them through
+// these parsers so OVERDUE/priority/sort behave consistently with what
+// the composer wrote.
+//
+// Wire format: `Owner: [URGENT] actual title · due 2026-06-01 14:30`
+//   - owner prefix (above)
+//   - optional priority bracket: URGENT / HIGH / LOW (NORMAL = absent)
+//   - body
+//   - optional `· due YYYY-MM-DD` or `· due YYYY-MM-DD HH:MM`
+
+const PRIORITY_RE = /\[(URGENT|HIGH|LOW)\]\s+/i;
+const DUE_RE      = /\s*·\s*due\s+(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}:\d{2}))?\s*$/i;
+const PRIORITY_RANK = { urgent: 0, high: 1, normal: 2, low: 3 };
+
+function priorityFromBody(body) {
+  const stripped = stripOwnerPrefix(body || '');
+  const m = stripped.match(PRIORITY_RE);
+  return m ? m[1].toLowerCase() : 'normal';
+}
+function dueAtFromBody(body) {
+  const m = (body || '').match(DUE_RE);
+  if (!m) return null;
+  const [, date, time] = m;
+  // Local-time interpretation — the same convention the Calendar sync uses.
+  const iso = time ? `${date}T${time}:00` : `${date}T09:00:00`;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+function stripDueSuffix(body) {
+  return (body || '').replace(DUE_RE, '');
+}
+function stripPriorityPrefix(body) {
+  return (body || '').replace(PRIORITY_RE, '');
+}
+// Composite: strip owner + priority + due → just the actual title
+function displayBodyOf(body) {
+  return stripDueSuffix(stripPriorityPrefix(stripOwnerPrefix(body || ''))).trim();
+}
+
 function sourceKey(row) {
   if (row.auto_kind) return 'auto';
   const tags = Array.isArray(row.tags) ? row.tags : [];
@@ -141,18 +182,23 @@ function nextStatus(s) {
   return STATUS_CYCLE[(i + 1) % STATUS_CYCLE.length];
 }
 
-// "Smart" sort: urgency-first. Stuck > Overdue > Today > Working > Open by
-// due date > No date. Matches how a coach naturally prioritizes a morning
-// triage — "what's burning, what's due, what can wait".
+// "Smart" sort: urgency-first. Stuck > Overdue > Today > Urgent priority
+// > Working > Open by due date > No date. Matches how a coach naturally
+// prioritizes a morning triage — "what's burning, what's due, what can
+// wait". Reads parsed _dueAt / _priority decorations.
 function smartSortScore(row, now) {
-  const dm = dateMeta(row.created_at, now);
-  if (row.status === 'stuck') return 0;
-  if (dm.isOverdue)           return 1;
-  if (dm.label === 'TODAY')   return 2;
-  if (row.status === 'working') return 3;
-  // remaining: open + future, ordered by date proximity
-  const d = new Date(row.created_at).getTime();
-  return 10 + d / 1e10; // monotonic, smaller = earlier
+  const dueIso = row._dueAt || null;
+  const dm = dateMeta(dueIso, now);
+  const pr = row._priority || 'normal';
+  if (row.status === 'stuck')   return 0;
+  if (dueIso && dm.isOverdue)   return 1;
+  if (dueIso && dm.label === 'TODAY') return 2;
+  if (pr === 'urgent')          return 3;
+  if (row.status === 'working') return 4;
+  if (pr === 'high')            return 5;
+  // remaining: open + future, ordered by due date if known, else created_at.
+  const t = new Date(dueIso || row.created_at).getTime();
+  return 10 + t / 1e10; // monotonic, smaller = earlier
 }
 
 function applySort(rows, mode, dir, now) {
@@ -448,6 +494,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
   const [assignee, setAssignee] = useState(defaultAssignee);
   const [due, setDue] = useState('');
   const [time, setTime] = useState(''); // 'HH:MM' — blank = 9:00 default
+  const [priority, setPriority] = useState('normal'); // low | normal | high | urgent
   const [source, setSource] = useState('manual'); // 'manual' | 'center'
   const [focused, setFocused] = useState(false);
   const inputRef = React.useRef(null);
@@ -456,8 +503,8 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
   const submit = async () => {
     const trimmed = body.trim();
     if (!trimmed) return;
-    await onSubmit({ body: trimmed, assignee, due, time, source });
-    setBody(''); setDue(''); setTime(''); setSource('manual');
+    await onSubmit({ body: trimmed, assignee, due, time, priority, source });
+    setBody(''); setDue(''); setTime(''); setPriority('normal'); setSource('manual');
     setAssignee(defaultAssignee);
     setFocused(false);
   };
@@ -554,6 +601,25 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad' }) {
               outline: 'none',
               opacity: due ? 1 : 0.5,
             }} />
+          {/* Priority — 4 button row, NORMAL is default (transparent) */}
+          {[
+            ['low',    'LOW',    'var(--c-td)'],
+            ['normal', 'NORMAL', 'var(--c-tm)'],
+            ['high',   'HIGH',   YUVAL_COLOR],
+            ['urgent', 'URGENT', C.rd],
+          ].map(([id, label, color]) => (
+            <button key={id}
+              onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
+              title={`Priority: ${label}`}
+              style={{
+                background: priority === id ? color : 'transparent',
+                color: priority === id ? '#FFFFFF' : color,
+                border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`,
+                fontFamily: FN, fontSize: 9, fontWeight: 700,
+                letterSpacing: '0.12em', padding: '3px 8px', height: 22,
+                cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
+              }}>{label}</button>
+          ))}
           {/* Source selector — Manual / Performance Center */}
           {[['manual', 'Manual'], ['center', 'Performance Center']].map(([id, label]) => (
             <button key={id}
@@ -710,10 +776,15 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
 
 function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, gcalConnected, onSyncToCalendar, onDeleteFromCalendar }) {
   const heb = isHebrew(row._display || '');
-  const dm = dateMeta(row.created_at, now);
-  const isToday = dm.label === 'TODAY';
-  const isOverdue = dm.isOverdue;
+  // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
+  // back to created_at only as a last resort — without a real due date,
+  // the pill shouldn't claim "OVERDUE" or "TODAY".
+  const dm = dateMeta(row._dueAt || null, now);
+  const hasDue = !!row._dueAt;
+  const isToday = hasDue && dm.label === 'TODAY';
+  const isOverdue = hasDue && dm.isOverdue;
   const isStuck = row.status === 'stuck';
+  const priority = row._priority || 'normal';
   const [hover, setHover] = useState(false);
   // Urgency edge — 3px coloured left bar pulled from the date metadata.
   // Drives "scan from across the room" recognition without restructuring
@@ -740,6 +811,20 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         }}
       >
         {showAvatar && <AssigneeDot owner={row._owner} />}
+        {/* Priority indicator — single-character glyph in the colour of the
+            priority. Absent for NORMAL so the row doesn't pay rent for the
+            common case. URGENT = filled red dot, HIGH = orange dot, LOW =
+            hollow grey dot. */}
+        {priority !== 'normal' && (
+          <span title={`Priority: ${priority.toUpperCase()}`} style={{
+            width: 10, height: 10, borderRadius: '50%',
+            background: priority === 'urgent' ? 'var(--c-rd)'
+                      : priority === 'high'   ? YUVAL_COLOR
+                                              : 'transparent',
+            border: priority === 'low' ? `1.5px solid var(--c-td)` : 'none',
+            flexShrink: 0,
+          }} />
+        )}
         <div style={{
           flex: 1, minWidth: 0,
           fontFamily: heb ? FH : FB,
@@ -763,10 +848,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} />
         <span style={{
           fontFamily: FN, fontSize: 10, fontWeight: 700,
-          color: dm.color, letterSpacing: '0.04em',
+          color: hasDue ? dm.color : 'var(--c-td)',
+          letterSpacing: '0.04em',
           width: 56, textAlign: 'right',
           flexShrink: 0,
-        }}>{dm.label}</span>
+        }}>{hasDue ? dm.label : '—'}</span>
       </div>
       {expanded && (
         <div style={{
@@ -842,7 +928,7 @@ export default function TasksV8View() {
       return;
     }
     try {
-      const result = await reconcileRow(row, { displayBody: stripOwnerPrefix(row.body) });
+      const result = await reconcileRow(row, { displayBody: displayBodyOf(row.body) });
       if (result && result.tags) await update(row.id, { tags: result.tags });
       toast(result?.htmlLink ? 'Task added to Google Calendar' : 'Task synced to Google Calendar', 'success', { ttl: 3000 });
     } catch (err) {
@@ -978,7 +1064,17 @@ export default function TasksV8View() {
 
   const decorated = useMemo(() => rows.map(r => {
     const o = ownerFromBody(r.body);
-    return { ...r, _owner: o, _display: stripOwnerPrefix(r.body) };
+    const p = priorityFromBody(r.body);
+    const dueAt = dueAtFromBody(r.body);
+    return {
+      ...r,
+      _owner: o,
+      _priority: p,
+      _dueAt: dueAt,
+      // _display = title only (owner + priority + due all stripped). This is
+      // what the row, search, and Calendar sync should show / match against.
+      _display: displayBodyOf(r.body),
+    };
   }), [rows]);
 
   const counts = useMemo(() => ({
@@ -1000,29 +1096,32 @@ export default function TasksV8View() {
   }, [ownerBase, search]);
 
   // Quick-filter counts (computed off ownerBase so chips show real numbers
-  // even before user picks the filter).
+  // even before user picks the filter). Uses parsed _dueAt → so OVERDUE
+  // and TODAY are truthful once tasks have inline due metadata.
   const quickCounts = useMemo(() => {
     const c = { all: ownerBase.length, today: 0, overdue: 0, stuck: 0, nodate: 0 };
     for (const r of ownerBase) {
-      const dm = dateMeta(r.created_at, now);
-      if (dm.label === 'TODAY') c.today++;
-      if (dm.isOverdue) c.overdue++;
+      const dm = dateMeta(r._dueAt || null, now);
+      if (r._dueAt) {
+        if (dm.label === 'TODAY') c.today++;
+        if (dm.isOverdue) c.overdue++;
+      } else {
+        c.nodate++;
+      }
       if (r.status === 'stuck') c.stuck++;
-      // 'no date' = tasks without a meaningful due_at. Until Phase 1 we
-      // don't have due_at; treat as 0.
     }
     return c;
   }, [ownerBase, now]);
 
-  // Apply quick filter on top of search.
+  // Apply quick filter on top of search. Same parsed _dueAt as the chips.
   const quickFiltered = useMemo(() => {
     if (quickFilter === 'all') return searched;
     return searched.filter(r => {
-      const dm = dateMeta(r.created_at, now);
-      if (quickFilter === 'today')   return dm.label === 'TODAY';
-      if (quickFilter === 'overdue') return dm.isOverdue;
+      const dm = dateMeta(r._dueAt || null, now);
+      if (quickFilter === 'today')   return !!r._dueAt && dm.label === 'TODAY';
+      if (quickFilter === 'overdue') return !!r._dueAt && dm.isOverdue;
       if (quickFilter === 'stuck')   return r.status === 'stuck';
-      if (quickFilter === 'nodate')  return false; // Phase 1 lights this up
+      if (quickFilter === 'nodate')  return !r._dueAt;
       return true;
     });
   }, [searched, quickFilter, now]);
@@ -1076,22 +1175,27 @@ export default function TasksV8View() {
     // Pass the in-memory target status so the Calendar title reflects
     // the intent even though Supabase only stored open|done.
     const rowWithIntent = { ...row, status: target };
-    await syncRowToCalendar(rowWithIntent, { displayBody: stripOwnerPrefix(row.body) });
+    await syncRowToCalendar(rowWithIntent, { displayBody: displayBodyOf(row.body) });
   };
   // SmartComposer hands us structured input (assignee, due, source). Until
   // Phase 1 schema, we encode assignee as body prefix and source as a tag.
   // due is parked in body for now since coach_notes has no due_at column.
-  const onComposerSubmit = async ({ body, assignee, due, time, source }) => {
+  const onComposerSubmit = async ({ body, assignee, due, time, priority, source }) => {
     if (!body || !body.trim()) return;
-    let prefixed;
-    if (assignee === 'yuval') prefixed = `Yuval: ${body}`;
-    else if (assignee === 'shared') prefixed = `Ohad + Yuval: ${body}`;
-    else prefixed = `Ohad: ${body}`;
+    // Body wire format: `Owner: [PRIORITY] body · due YYYY-MM-DD HH:MM`
+    // Owner prefix → ownerFromBody. Priority bracket → priorityFromBody
+    // (NORMAL is implicit, never written). Due suffix → dueAtFromBody.
+    const ownerPrefix = assignee === 'yuval' ? 'Yuval: '
+                      : assignee === 'shared' ? 'Ohad + Yuval: '
+                      : 'Ohad: ';
+    const priorityTag = (priority && priority !== 'normal')
+      ? `[${priority.toUpperCase()}] ` : '';
+    let prefixed = ownerPrefix + priorityTag + body;
     if (due) prefixed += ` · due ${due}${time ? ' ' + time : ''}`;
     const tags = source === 'center' ? ['center'] : [];
     const createdRow = await create({ body: prefixed, targetKind: 'general', tags });
-    // Sync to Calendar if connected. Use the due date if provided, else
-    // the row's created_at. Time defaults to 9:00 in Asia/Jerusalem.
+    // Sync to Calendar if connected. Pass the title-only displayBody so
+    // the calendar event doesn't show `Ohad: [URGENT] …` to the attendee.
     if (createdRow && gcalConnected) {
       const syncRow = { ...createdRow, status: 'open' };
       const opts = { displayBody: body };
@@ -1229,7 +1333,7 @@ export default function TasksV8View() {
                   onClick={async () => {
                     const q = search;
                     setSearch('');
-                    await onComposerSubmit({ body: q, assignee: owner === 'shared' ? 'ohad' : owner, due: '', time: '', source: 'manual' });
+                    await onComposerSubmit({ body: q, assignee: owner === 'shared' ? 'ohad' : owner, due: '', time: '', priority: 'normal', source: 'manual' });
                   }}
                   style={{
                     display: 'block', margin: '14px auto 0',
@@ -1385,7 +1489,9 @@ export default function TasksV8View() {
               const decoratedDone = {
                 ...row,
                 _owner: ownerFromBody(row.body),
-                _display: stripOwnerPrefix(row.body),
+                _priority: priorityFromBody(row.body),
+                _dueAt: dueAtFromBody(row.body),
+                _display: displayBodyOf(row.body),
               };
               return (
                 <TaskRow key={row.id} row={decoratedDone}
