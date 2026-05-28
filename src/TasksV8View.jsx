@@ -157,6 +157,31 @@ function displayBodyOf(body) {
   return stripDueSuffix(stripPriorityPrefix(stripOwnerPrefix(body || ''))).trim();
 }
 
+// ── Dual-checkmark for shared tasks ────────────────────────────────────
+// A shared task (owner === 'shared') needs BOTH Ohad's and Yuval's sign-off
+// before it moves to "done". Each approval is recorded as a tag on the
+// row: `approved:ohad` / `approved:yuval`. When both are present, the
+// row auto-promotes to status='done'. Reopening clears both tags.
+const APPROVAL_TAG_PREFIX = 'approved:';
+const APPROVAL_TAG = { ohad: 'approved:ohad', yuval: 'approved:yuval' };
+function approvalsFromTags(tags) {
+  const t = Array.isArray(tags) ? tags : [];
+  return { ohad: t.includes(APPROVAL_TAG.ohad), yuval: t.includes(APPROVAL_TAG.yuval) };
+}
+function stripApprovals(tags) {
+  return (Array.isArray(tags) ? tags : []).filter(t => !t.startsWith(APPROVAL_TAG_PREFIX));
+}
+function withApproval(tags, who, value) {
+  const cleaned = stripApprovals(tags);
+  const other = who === 'ohad' ? 'yuval' : 'ohad';
+  const existing = approvalsFromTags(tags);
+  const out = [...cleaned];
+  if (value || existing[who])  out.push(APPROVAL_TAG[who]);   // preserve / set this approval
+  if (existing[other])          out.push(APPROVAL_TAG[other]); // preserve other's approval
+  // De-dupe
+  return [...new Set(out)];
+}
+
 function sourceKey(row) {
   if (row.auto_kind) return 'auto';
   const tags = Array.isArray(row.tags) ? row.tags : [];
@@ -1010,11 +1035,55 @@ function EventTimeline({ noteId }) {
   );
 }
 
-function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onDeleteFromCalendar }) {
+// Pill bar shown in the expanded view of a shared task. Lets the coach
+// flip each side's approval explicitly (matters while Yuval doesn't yet
+// have his own auth — once he does, his side becomes self-service and
+// this UI degrades to a status indicator instead of a control).
+function SharedApprovalBar({ row, onSetApproval }) {
+  if (row._owner !== 'shared') return null;
+  const approvals = row._approvals || { ohad: false, yuval: false };
+  const Pill = ({ who, label, color, approved }) => (
+    <button onClick={(e) => { e.stopPropagation(); onSetApproval(row, who, !approved); }}
+      title={approved ? `Revoke ${label}'s approval` : `Approve as ${label}`}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 6,
+        background: approved ? color : 'transparent',
+        color: approved ? '#FFFFFF' : color,
+        border: `1px solid ${color}`,
+        fontFamily: FN, fontSize: 9, fontWeight: 700,
+        letterSpacing: '0.12em', padding: '4px 10px',
+        cursor: 'pointer', borderRadius: 0,
+        textTransform: 'uppercase',
+      }}>{approved ? '✓' : '○'} {label}</button>
+  );
+  const bothApproved = approvals.ohad && approvals.yuval;
+  return (
+    <div style={{ marginTop: 10, direction: 'ltr',
+      display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <span style={{
+        fontFamily: FN, fontSize: 9, fontWeight: 700,
+        letterSpacing: '0.12em', color: 'var(--c-tm)',
+        textTransform: 'uppercase',
+      }}>Dual approval</span>
+      <Pill who="ohad"  label="Ohad"  color="var(--c-ac)"   approved={approvals.ohad} />
+      <Pill who="yuval" label="Yuval" color={YUVAL_COLOR}    approved={approvals.yuval} />
+      <span style={{
+        fontFamily: FN, fontSize: 9, fontWeight: 600,
+        color: bothApproved ? 'var(--c-gn)' : 'var(--c-td)',
+        letterSpacing: '0.04em', textTransform: 'uppercase',
+      }}>{bothApproved ? 'Both approved · task is done'
+         : approvals.ohad || approvals.yuval ? `Waiting for ${approvals.ohad ? 'Yuval' : 'Ohad'}`
+         : 'Needs both signoffs'}</span>
+    </div>
+  );
+}
+
+function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, onSetSharedApproval }) {
   const heb = isHebrew(displayBody || '');
-  // Filter internal-use tags (gevent/getag) out of the visible list.
+  // Filter internal-use tags (gevent/getag/glink/approved) out of the
+  // visible #tag list. Approvals are shown via SharedApprovalBar.
   const tags = (Array.isArray(row.tags) ? row.tags : []).filter(t =>
-    !t.startsWith('gevent:') && !t.startsWith('getag:') && !t.startsWith('glink:')
+    !t.startsWith('gevent:') && !t.startsWith('getag:') && !t.startsWith('glink:') && !t.startsWith('approved:')
   );
   const syncedEventId = getStoredEventId(row);
   const syncedHtmlLink = getStoredHtmlLink(row);
@@ -1041,6 +1110,7 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
           ))}
         </div>
       )}
+      <SharedApprovalBar row={row} onSetApproval={onSetSharedApproval} />
       <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {gcalConnected ? (
           syncedEventId ? (
@@ -1110,7 +1180,7 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, gcalConnected, onSyncToCalendar, onDeleteFromCalendar }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, onSetSharedApproval }) {
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1181,6 +1251,20 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           width: 14, textAlign: 'center', cursor: 'pointer',
           flexShrink: 0,
         }} title="More actions (Phase 1)">⋯</span>
+        {/* Half-approved badge — shared tasks where exactly one of the
+            two has signed off. Lives just LEFT of the status pill so
+            it's visible in the same scan as the status glyph. */}
+        {row._owner === 'shared' && row._approvals && (row._approvals.ohad !== row._approvals.yuval) && row.status !== 'done' && row.status !== 'cancelled' && (
+          <span title={`Approved by ${row._approvals.ohad ? 'Ohad' : 'Yuval'} · waiting for ${row._approvals.ohad ? 'Yuval' : 'Ohad'}`}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 18, height: 18, borderRadius: '50%',
+              border: `1px solid ${row._approvals.ohad ? 'var(--c-ac)' : YUVAL_COLOR}`,
+              fontFamily: FN, fontSize: 9, fontWeight: 700,
+              color: row._approvals.ohad ? 'var(--c-ac)' : YUVAL_COLOR,
+              flexShrink: 0,
+            }}>½</span>
+        )}
         <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} />
         <span style={{
           fontFamily: FN, fontSize: 10, fontWeight: 700,
@@ -1198,6 +1282,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             gcalConnected={gcalConnected}
             onSyncToCalendar={onSyncToCalendar}
             onDeleteFromCalendar={onDeleteFromCalendar}
+            onSetSharedApproval={onSetSharedApproval}
           />
         </div>
       )}
@@ -1402,11 +1487,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     const o = ownerFromBody(r.body);
     const p = priorityFromBody(r.body);
     const dueAt = dueAtFromBody(r.body);
+    const approvals = o === 'shared' ? approvalsFromTags(r.tags) : null;
     return {
       ...r,
       _owner: o,
       _priority: p,
       _dueAt: dueAt,
+      _approvals: approvals, // null for non-shared, {ohad, yuval} for shared
       // _display = title only (owner + priority + due all stripped). This is
       // what the row, search, and Calendar sync should show / match against.
       _display: displayBodyOf(r.body),
@@ -1497,7 +1584,53 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     if (n.has(id)) n.delete(id); else n.add(id);
     return n;
   });
+  // Toggle one half of the dual-approval on a shared task. Lets the
+  // expanded-row UI add Yuval's signoff explicitly while Yuval doesn't
+  // yet have his own auth identity (Ohad clicks the "Approve as Yuval"
+  // pill on Yuval's behalf during pairing); once Yuval has his own
+  // login the actor will derive from auth.user().email.
+  const setSharedApproval = async (row, who, value) => {
+    if (row._owner !== 'shared') return;
+    const nextTags = withApproval(row.tags, who, value);
+    const approvals = approvalsFromTags(nextTags);
+    const bothApproved = approvals.ohad && approvals.yuval;
+    const patch = { tags: nextTags.length ? nextTags : null };
+    if (bothApproved) {
+      patch.status = 'done';
+      patch.completed_at = new Date().toISOString();
+    } else if (row.status === 'done') {
+      // No longer both approved — bounce back to open.
+      patch.status = 'open';
+      patch.completed_at = null;
+    }
+    await update(row.id, patch);
+    const actor = who;
+    if (bothApproved) {
+      recordNoteEvent({ noteId: row.id, actor, kind: 'status_changed', fromValue: row.status || 'open', toValue: 'done', detail: 'both approved' });
+      toast('Both approved — task done ✓', 'success', { ttl: 3000 });
+    } else if (value) {
+      recordNoteEvent({ noteId: row.id, actor, kind: 'status_changed', fromValue: row.status || 'open', toValue: 'half_approved', detail: `${who} approved · waiting for ${who === 'ohad' ? 'Yuval' : 'Ohad'}` });
+      toast(`${who === 'ohad' ? 'Ohad' : 'Yuval'} approved · waiting for ${who === 'ohad' ? 'Yuval' : 'Ohad'}`, 'info', { ttl: 3500 });
+    } else {
+      recordNoteEvent({ noteId: row.id, actor, kind: 'reopened', toValue: 'open', detail: `${who} revoked approval` });
+    }
+  };
+
   const setStatus = async (row, target) => {
+    // Shared tasks need dual-approval to reach 'done'. Single 'done' click
+    // from the status popover adds the clicker's approval (defaults to
+    // 'ohad' until Yuval's own auth lands); the other half lives on the
+    // "Approve as Yuval" pill in the expanded row.
+    if (row._owner === 'shared' && target === 'done') {
+      const approvals = approvalsFromTags(row.tags);
+      const me = 'ohad'; // TODO: derive from auth.user() once Yuval signs in separately
+      if (!approvals[me]) {
+        await setSharedApproval(row, me, true);
+        return;
+      }
+      // Already approved by me — fall through to set the other side
+      // OR if both are set, normal terminal logic handles it below.
+    }
     // coach_notes.status is TEXT with no enum constraint, so all 6 states
     // (open / working / waiting / stuck / done / cancelled) persist as
     // their literal value. completed_at is stamped for the two terminal
@@ -1505,10 +1638,18 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     const terminal = (target === 'done' || target === 'cancelled');
     const prev = row.status || 'open';
     if (prev === target) return;
-    await update(row.id, {
+    const patch = {
       status: target,
       completed_at: terminal ? new Date().toISOString() : null,
-    });
+    };
+    // Reopening a shared task wipes pending approvals so a fresh review
+    // round starts clean. Going to done keeps the approval tags as the
+    // audit record of who signed off.
+    if (row._owner === 'shared' && !terminal) {
+      patch.tags = stripApprovals(row.tags);
+      if (patch.tags.length === 0) patch.tags = null;
+    }
+    await update(row.id, patch);
     // Audit log — actor is the row's owner today; will key off auth
     // identity once Yuval has his own login.
     const actor = row._owner === 'yuval' ? 'yuval' : 'ohad';
@@ -1728,7 +1869,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     now={now} search={search}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
-                  onDeleteFromCalendar={handleDeleteFromCalendar} />
+                  onDeleteFromCalendar={handleDeleteFromCalendar}
+                  onSetSharedApproval={setSharedApproval} />
                 ))}
               </React.Fragment>
             );
@@ -1763,7 +1905,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   now={now} search={search}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
-                  onDeleteFromCalendar={handleDeleteFromCalendar} />
+                  onDeleteFromCalendar={handleDeleteFromCalendar}
+                  onSetSharedApproval={setSharedApproval} />
               ))}
             </React.Fragment>
           )}
@@ -1805,6 +1948,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
                     onSetStatus={setStatus}
+                    search={search}
+                    gcalConnected={gcalConnected}
+                    onSyncToCalendar={handleSyncToCalendar}
+                    onDeleteFromCalendar={handleDeleteFromCalendar}
+                    onSetSharedApproval={setSharedApproval}
                     now={now} />
                 ))}
               </div>
@@ -1847,11 +1995,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             .sort((a, b) => new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at))
             .slice(0, 5)
             .map(row => {
+              const _owner = ownerFromBody(row.body);
               const decoratedDone = {
                 ...row,
-                _owner: ownerFromBody(row.body),
+                _owner,
                 _priority: priorityFromBody(row.body),
                 _dueAt: dueAtFromBody(row.body),
+                _approvals: _owner === 'shared' ? approvalsFromTags(row.tags) : null,
                 _display: displayBodyOf(row.body),
               };
               return (
@@ -1863,7 +2013,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   now={now} search={search}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
-                  onDeleteFromCalendar={handleDeleteFromCalendar} />
+                  onDeleteFromCalendar={handleDeleteFromCalendar}
+                  onSetSharedApproval={setSharedApproval} />
               );
             })}
           {doneOpen && done.length > 5 && (
