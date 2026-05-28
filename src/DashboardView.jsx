@@ -654,50 +654,33 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         );
       })()}
 
-      {/* Dropout risk — collapsed by default to keep the dashboard quiet.
-          Header row is a button: click to expand and see the full list. */}
-      {dropoutRisk.length > 0 && (() => {
-        const DROPOUT_PREVIEW = 3;
-        const hasMore = dropoutRisk.length > DROPOUT_PREVIEW;
-        const visible = dropoutExpanded ? dropoutRisk : dropoutRisk.slice(0, DROPOUT_PREVIEW);
-        return (
-          <div className="alert-card" style={{ marginTop: 20, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-            <RefinedHeaderStrip>
-              <div onClick={() => setDropoutExpanded(o => !o)}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }}
-                title={dropoutExpanded ? 'Click to collapse' : 'Click to expand'}>
-                <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="trendingDown" color="#FFFFFF"/>Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.08em',
-                  transition: 'transform 120ms ease',
-                  transform: dropoutExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
+      {/* Dropout risk — fully collapsed by default. Header is the only
+          visible row when closed (shows count + chevron); click to expand. */}
+      {dropoutRisk.length > 0 && (
+        <div className="alert-card" style={{ marginTop: 20, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: dropoutExpanded ? '14px 18px' : '0', boxShadow: C.cardShadow }}>
+          <RefinedHeaderStrip>
+            <div onClick={() => setDropoutExpanded(o => !o)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }}
+              title={dropoutExpanded ? 'Click to collapse' : 'Click to expand'}>
+              <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="trendingDown" color="#FFFFFF"/>Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
+              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.08em',
+                transition: 'transform 120ms ease',
+                transform: dropoutExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
+            </div>
+          </RefinedHeaderStrip>
+          {dropoutExpanded && dropoutRisk.map(t => {
+            const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
+            const daysLabel = days == null ? 'Never trained' : `${days}d ago`;
+            return (
+              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
+                <span onClick={() => onSelectTrainee(t.id)} style={{ color: C.tx, cursor: 'pointer', flex: 1 }}>{t.name}</span>
+                <span style={{ fontFamily: FN, color: C.rd, fontSize: 11, marginRight: 8 }}>{daysLabel}</span>
+                <DormantWhatsAppButton trainee={t} days={days} />
               </div>
-            </RefinedHeaderStrip>
-            {visible.map(t => {
-              const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
-              const daysLabel = days == null ? 'Never trained' : `${days}d ago`;
-              return (
-                <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
-                  <span onClick={() => onSelectTrainee(t.id)} style={{ color: C.tx, cursor: 'pointer', flex: 1 }}>{t.name}</span>
-                  <span style={{ fontFamily: FN, color: C.rd, fontSize: 11, marginRight: 8 }}>{daysLabel}</span>
-                  <DormantWhatsAppButton trainee={t} days={days} />
-                </div>
-              );
-            })}
-            {hasMore && (
-              <button onClick={() => setDropoutExpanded(o => !o)}
-                style={{
-                  display: 'block', width: '100%', marginTop: 8,
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  fontFamily: FN, fontSize: 10, fontWeight: 700,
-                  color: C.tm, letterSpacing: '0.12em',
-                  textTransform: 'uppercase', padding: '6px 0',
-                }}>
-                {dropoutExpanded ? '↑ Show less' : `↓ Show ${dropoutRisk.length - DROPOUT_PREVIEW} more`}
-              </button>
-            )}
-          </div>
-        );
-      })()}
+            );
+          })}
+        </div>
+      )}
 
       {/* Payment summary */}
       {totalAllPaid>0&&(()=>{

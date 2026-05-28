@@ -1296,7 +1296,27 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 
 export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const { rows, loading, update, create } = useCoachNotes({ limit: 200 });
+  // viewerOwner is the partner currently looking at the surface. Used to
+  // hide the OTHER partner's private queue tab + clamp the initial owner
+  // selection to a tab they can actually see. Default 'ohad' until Yuval
+  // has his own auth — the comparison checks email containing 'yuval'.
+  const [viewerOwner, setViewerOwner] = useState('ohad');
+  useEffect(() => {
+    let alive = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!alive) return;
+      const email = (data?.user?.email || '').toLowerCase();
+      setViewerOwner(email.includes('yuval') ? 'yuval' : 'ohad');
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  // Default landing tab = the viewer's own queue.
   const [owner, setOwner] = useState('ohad');
+  useEffect(() => {
+    // Coerce owner away from the hidden tab on mount + when viewer changes.
+    if (viewerOwner === 'yuval' && owner === 'ohad')  setOwner('yuval');
+    if (viewerOwner === 'ohad'  && owner === 'yuval') setOwner('ohad');
+  }, [viewerOwner]); // eslint-disable-line react-hooks/exhaustive-deps
   const [view, setView] = useState('list'); // 'list' | 'board'
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [sortBy, setSortBy] = useState('date');
@@ -1795,8 +1815,17 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')}   color={C.ac} />
-          <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')}  color={YUVAL_COLOR} />
+          {/* Viewer-perspective owner tabs. Ohad sees Ohad + Shared (his
+              queue); Yuval will see Yuval + Shared once he has his own
+              auth identity. The OTHER's tab is hidden — there's no
+              productive reason to look at someone else's private queue.
+              Until Yuval logs in separately, viewer is always 'ohad'. */}
+          {viewerOwner !== 'yuval' && (
+            <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')}   color={C.ac} />
+          )}
+          {viewerOwner === 'yuval' && (
+            <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')}  color={YUVAL_COLOR} />
+          )}
           <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
         </div>
         <ViewToggle value={view} onChange={setView} />
