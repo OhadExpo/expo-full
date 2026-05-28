@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { fmtPrettyDate } from './dates';
-import WorkoutsView from './WorkoutsView';
 import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 
 // Hebrew at the same fontSize as Nord visually shrinks (smaller x-height,
@@ -1433,8 +1432,11 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   );
 }
 
-export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession, markReviewed, updateFormVideos, deleteWorkout }) {
-  const [subTab, setSubTab] = useState("review");
+export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, planIndex, trainees, exercises, markReviewed, updateFormVideos, deleteWorkout }) {
+  // "Log In-Person Session" used to live as a subtab here. It moved out
+  // 2026-05-28 — the in-person logging surface is now reachable directly
+  // via `▶ LOG SESSION` on each TraineeDetail and at /coach/workouts.
+  // Review is purely about reviewing what athletes uploaded.
   const [selectedWo, setSelectedWo] = useState(null);
   const [expandedEx, setExpandedEx] = useState(null);
   // Dashboard task → review handoff. The TASKS widget stashes the workout
@@ -1448,7 +1450,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     } catch {}
     if (!consumed) return;
     if ((clientWorkouts || []).some(w => w.id === consumed)) {
-      setSubTab('review');
       setSelectedWo(consumed);
     } else {
       // Workout was deleted between the dashboard click and this mount, or
@@ -1476,8 +1477,20 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   const nameOf = (cid) => (trainees || []).find(t => t.id === cid)?.name || cid || 'unknown';
 
   // Group workouts by client — use real trainee names, no hardcoded ID map.
+  //
+  // Review-list policy: a workout day with zero uploaded form videos has
+  // nothing to review (no clip to watch, no form to comment on). Hide
+  // those days from the list so the queue contains only items that
+  // actually need the coach's eyes. Workouts that have form videos
+  // pending upload (no cloudUrl yet) also stay hidden until the upload
+  // completes. Set-completion + reviewer notes still live on the
+  // workout — they're not lost, just not surfaced here.
+  const hasReviewableVideo = (w) =>
+    Array.isArray(w.formVideos) && w.formVideos.some(f => f && f.cloudUrl);
+
   const byClient = {};
   clientWorkouts.forEach(w => {
+    if (!hasReviewableVideo(w)) return;
     const key = w.clientId || 'unknown';
     if (!byClient[key]) byClient[key] = { name: nameOf(key), workouts: [] };
     byClient[key].workouts.push(w);
@@ -1502,17 +1515,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     return weeklyFocus?.[fk] || '';
   };
 
-  // ===== SUB-NAV =====
-  const subNav = (
-    <div style={{display:"flex",gap:4,marginBottom:16}}>
-      {[["review","Review Athlete Workouts"],["log","Log In-Person Session"]].map(([k,l]) => (
-        <button key={k} onClick={() => {setSubTab(k);setSelectedWo(null);setExpandedEx(null)}}
-          style={{flex:1,padding:"10px 0",borderRadius:0,border:`${subTab===k?'1px':'0.25px'} solid ${subTab===k?C.ac:C.cardBd}`,
-            background:subTab===k?C.acD:"transparent",color:subTab===k?C.ac:C.tm,
-            fontFamily:FB,fontSize:13,fontWeight:600,cursor:"pointer"}}>{l}</button>
-      ))}
-    </div>
-  );
+  // (The "Log In-Person Session" subtab was removed 2026-05-28; its
+  // entry point is now `▶ LOG SESSION` on each TraineeDetail. Review
+  // has no internal sub-navigation — it's a single surface.)
 
   // Shared delete-confirm modal. Driven by deleteConfirmFor (the workout id)
   // and the typed verification text. Same component used from both the list
@@ -1568,26 +1573,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // Clear selectedWo when its referent disappears (deleted from the list).
   // useEffect avoids the state-mutation-during-render warning the previous
   // inline `setSelectedWo(null)` was producing under StrictMode.
-  //
-  // HOOKS-ORDER FIX 2026-05-19: this used to live BELOW the
-  // `if (subTab === "log") return` early-return, which meant React saw
-  // the hook on the "review" render and not on the "log" render — order
-  // changed mid-session and tripped React error #300 (Maximum update
-  // depth exceeded) as soon as the coach clicked LOG IN-PERSON SESSION.
-  // All hooks must be called before any conditional return.
   useEffect(() => {
     if (selectedWo && !clientWorkouts.find(w => w.id === selectedWo)) {
       setSelectedWo(null);
     }
   }, [selectedWo, clientWorkouts]);
-
-  // ===== LOG IN-PERSON SESSION (wraps WorkoutsView) =====
-  if (subTab === "log") return (
-    <div>
-      {subNav}
-      <WorkoutsView workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={onDecrementSession} />
-    </div>
-  );
 
   // ===== WORKOUT DETAIL VIEW =====
   if (selectedWo) {
@@ -2050,7 +2040,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
   if (allWorkouts.length === 0) return (
     <div>
-      {subNav}
       <div style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:8}}>WORKOUT REVIEW</div>
       <div style={{color:C.tm,fontSize:13,marginBottom:20}}>
         Review completed workouts, watch client form videos, and set weekly focus for next week.
@@ -2065,17 +2054,19 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
   return (
     <div>
-      {subNav}
       <div style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',marginBottom:4}}>WORKOUT REVIEW</div>
       <div style={{color:C.tm,fontSize:11,marginBottom:16,fontFamily:FB}}>
         Review completed workouts, watch client form videos, and write focus notes for next week.
       </div>
 
-      {/* Review queue — pending unreviewed workouts (with priority for those that have form videos) */}
+      {/* Review queue — pending unreviewed workouts that actually have
+          something to review (i.e. an uploaded form video). Days without
+          videos are hidden from the list above, so the queue count must
+          match the same predicate or the header would lie. */}
       {(() => {
-        const queue = (clientWorkouts || []).filter(w => !w.reviewedAt);
+        const queue = (clientWorkouts || []).filter(w => !w.reviewedAt && hasReviewableVideo(w));
         if (queue.length === 0) return null;
-        const withVideo = queue.filter(w => w.formVideos?.some(f => f?.cloudUrl)).length;
+        const withVideo = queue.length;
         return (
           <div style={{
             display:'flex',justifyContent:'space-between',alignItems:'center',
@@ -2091,7 +2082,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <div>
                 <div style={{fontFamily:FN,fontSize:11,color:C.ac,letterSpacing:1.2,fontWeight:700}}>REVIEW QUEUE</div>
                 <div style={{fontFamily:FB,fontSize:11,color:C.tm,marginTop:2}}>
-                  {queue.length} pending · {withVideo} with form video{withVideo === 1 ? '' : 's'}
+                  {queue.length} pending with form video{queue.length === 1 ? '' : 's'}
                 </div>
               </div>
             </div>
