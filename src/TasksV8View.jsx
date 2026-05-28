@@ -29,6 +29,7 @@ import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast } from './ui';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
+import { supabase } from './supabase';
 import {
   isCalendarConnected,
   connectGoogleCalendar,
@@ -676,6 +677,78 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
             color: 'var(--c-td)', letterSpacing: '0.04em',
             textTransform: 'uppercase',
           }}>Enter to add</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Expandable Google Calendar iframe card. Collapsed by default — shows
+// a thin strip with the label + a chevron. Click to reveal the iframe
+// from Google's embed surface. The user must be signed into Google in
+// the same browser for the calendar to render (which they will be, since
+// the GIS connect flow above primed that session).
+function CalendarEmbedCard() {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      setEmail(data?.user?.email || 'ohadyproductions@gmail.com');
+    }).catch(() => {
+      if (!cancelled) setEmail('ohadyproductions@gmail.com');
+    });
+    return () => { cancelled = true; };
+  }, []);
+  const src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(email || 'ohadyproductions@gmail.com')}&ctz=Asia%2FJerusalem&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0`;
+  return (
+    <div style={{
+      border: `1px solid var(--c-cardBd)`,
+      background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+      marginBottom: 12,
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        title={open ? 'Collapse calendar' : 'Expand calendar'}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          padding: '10px 14px', textAlign: 'left',
+        }}>
+        <span style={{
+          fontFamily: FN, fontSize: 12, fontWeight: 700,
+          color: 'var(--c-tm)',
+          transition: 'transform 120ms ease',
+          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+        }}>▾</span>
+        <span style={{
+          fontFamily: FN, fontSize: 11, fontWeight: 700,
+          color: 'var(--c-tx)', letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+        }}>📅 Google Calendar</span>
+        <span style={{ flex: 1 }} />
+        <span style={{
+          fontFamily: FN, fontSize: 9, fontWeight: 600,
+          color: 'var(--c-td)', letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+        }}>{open ? 'Click to collapse' : 'Click to expand'}</span>
+      </button>
+      {open && (
+        <div style={{
+          borderTop: `1px solid var(--c-cardBd)`,
+          background: 'var(--c-bg)',
+          animation: 'tasks-v8-slide-in 200ms ease-out',
+        }}>
+          <iframe
+            title="Google Calendar"
+            src={src}
+            style={{
+              border: 0, width: '100%', height: 600,
+              display: 'block',
+            }}
+            loading="lazy"
+          />
         </div>
       )}
     </div>
@@ -1572,6 +1645,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             }}>📅 Connect Google Calendar</button>
         )}
       </div>
+
+      <CalendarEmbedCard />
 
       {/* Owner tabs + view toggle */}
       <div style={{
