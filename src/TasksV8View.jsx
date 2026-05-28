@@ -28,6 +28,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast } from './ui';
+import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import {
   isCalendarConnected,
   connectGoogleCalendar,
@@ -715,6 +716,227 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
   );
 }
 
+// Author chip for comments + audit rows. Mirrors the assignee-dot vibe
+// but with a label since the timeline reads as prose, not a tag scan.
+function AuthorChip({ author }) {
+  const isYuval = author === 'yuval';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      fontFamily: FN, fontSize: 10, fontWeight: 700,
+      letterSpacing: '0.08em', textTransform: 'uppercase',
+      color: isYuval ? YUVAL_COLOR : 'var(--c-ac)',
+    }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 14, height: 14, borderRadius: '50%',
+        background: isYuval ? YUVAL_COLOR : 'var(--c-ac)',
+        color: '#FFFFFF', fontSize: 8,
+      }}>{isYuval ? 'Y' : 'O'}</span>
+      {isYuval ? 'Yuval' : 'Ohad'}
+    </span>
+  );
+}
+
+const EVENT_VERB = {
+  created:           'created the task',
+  status_changed:    'changed status',
+  assigned:          'reassigned',
+  due_changed:       'changed due',
+  body_edited:       'edited body',
+  priority_changed:  'changed priority',
+  linked:            'linked',
+  reopened:          'reopened',
+};
+
+function relativeTime(iso, now) {
+  if (!iso) return '';
+  const then = new Date(iso).getTime();
+  if (isNaN(then)) return '';
+  const diff = (now - then) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function CommentsThread({ noteId, defaultAuthor }) {
+  const { rows, loading, available, add } = useCoachNoteComments(noteId);
+  const [draft, setDraft] = useState('');
+  const [author, setAuthor] = useState(defaultAuthor || 'ohad');
+  const [busy, setBusy] = useState(false);
+  if (!available) {
+    // Migration not applied — surface a quiet hint instead of an empty
+    // section so Ohad knows where the SQL needs to land.
+    return (
+      <div style={{
+        marginTop: 12, padding: '8px 10px',
+        background: 'var(--c-sf2, transparent)',
+        border: `1px dashed var(--c-cardBd)`,
+        fontFamily: FN, fontSize: 9, fontWeight: 600,
+        color: 'var(--c-td)', letterSpacing: '0.04em',
+        textTransform: 'uppercase',
+      }}>Comments unavailable — apply scripts/migrations/2026-05-28-coach-note-comments.sql</div>
+    );
+  }
+  const submit = async (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    const t = draft.trim();
+    if (!t || busy) return;
+    setBusy(true);
+    const ok = await add({ author, body: t });
+    setBusy(false);
+    if (ok) setDraft('');
+  };
+  const now = Date.now();
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{
+        fontFamily: FN, fontSize: 9, fontWeight: 700,
+        letterSpacing: '0.12em', color: 'var(--c-tm)',
+        textTransform: 'uppercase', marginBottom: 8,
+      }}>Comments {rows.length > 0 ? `· ${rows.length}` : ''}</div>
+      {rows.map(c => {
+        const heb = isHebrew(c.body || '');
+        return (
+          <div key={c.id} style={{
+            padding: '8px 10px', marginBottom: 6,
+            border: `1px solid var(--c-cardBd)`,
+            background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: 4, direction: 'ltr',
+            }}>
+              <AuthorChip author={c.author} />
+              <span style={{
+                fontFamily: FN, fontSize: 9, fontWeight: 600,
+                color: 'var(--c-td)', letterSpacing: '0.04em',
+              }}>{relativeTime(c.created_at, now)}</span>
+            </div>
+            <div style={{
+              fontFamily: heb ? FH : FB, fontSize: 13,
+              color: 'var(--c-tx)', lineHeight: 1.5,
+              direction: heb ? 'rtl' : 'ltr',
+              textAlign: heb ? 'right' : 'left',
+              whiteSpace: 'pre-wrap',
+            }}>{c.body}</div>
+            {Array.isArray(c.mentions) && c.mentions.length > 0 && (
+              <div style={{ marginTop: 4, direction: 'ltr' }}>
+                {c.mentions.map(m => (
+                  <span key={m} style={{
+                    display: 'inline-block', marginRight: 6,
+                    fontFamily: FN, fontSize: 9, fontWeight: 700,
+                    color: m === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)',
+                    letterSpacing: '0.04em',
+                  }}>@{m}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      <form onSubmit={submit} style={{
+        display: 'flex', gap: 6, alignItems: 'stretch',
+        marginTop: rows.length > 0 ? 8 : 0,
+      }}>
+        {/* Author toggle — 2-letter pill so Ohad can comment as Yuval (or vice versa
+            once Yuval has his own auth identity) without re-logging in. */}
+        <div style={{ display: 'flex', flexShrink: 0 }}>
+          {['ohad','yuval'].map(a => (
+            <button key={a} type="button"
+              onMouseDown={(e) => { e.preventDefault(); setAuthor(a); }}
+              title={a === 'ohad' ? 'Comment as Ohad' : 'Comment as Yuval'}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                width: 26, height: 30, borderRadius: 0,
+                background: author === a ? (a === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)') : 'transparent',
+                color: author === a ? '#FFFFFF' : 'var(--c-tm)',
+                border: author === a ? 'none' : `1px solid var(--c-cardBd)`,
+                fontFamily: FN, fontSize: 10, fontWeight: 700,
+                cursor: 'pointer',
+              }}>{a === 'yuval' ? 'Y' : 'O'}</button>
+          ))}
+        </div>
+        <input type="text" value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          placeholder="Add comment…  (use @ohad or @yuval to mention)"
+          style={{
+            flex: 1, background: 'transparent',
+            border: `1px solid var(--c-cardBd)`,
+            fontFamily: FB, fontSize: 12, color: 'var(--c-tx)',
+            padding: '6px 10px', borderRadius: 0, outline: 'none',
+          }} />
+        <button type="submit" disabled={busy || !draft.trim()}
+          style={{
+            background: draft.trim() ? 'var(--c-ac)' : 'var(--c-sf2)',
+            color: draft.trim() ? '#FFFFFF' : 'var(--c-td)',
+            border: 'none', padding: '0 14px', height: 30,
+            fontFamily: FN, fontSize: 10, fontWeight: 700,
+            letterSpacing: '0.12em', textTransform: 'uppercase',
+            cursor: draft.trim() && !busy ? 'pointer' : 'default',
+          }}>Send</button>
+      </form>
+      {loading && rows.length === 0 && (
+        <div style={{
+          fontFamily: FN, fontSize: 9, fontWeight: 600,
+          color: 'var(--c-td)', letterSpacing: '0.04em',
+          textTransform: 'uppercase', marginTop: 6,
+        }}>Loading…</div>
+      )}
+    </div>
+  );
+}
+
+function EventTimeline({ noteId }) {
+  const { rows, available } = useCoachNoteEvents(noteId);
+  // Quiet when migration is pending — no point in showing an empty
+  // "Activity" header. Comments component already surfaces the hint.
+  if (!available || rows.length === 0) return null;
+  const now = Date.now();
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div style={{
+        fontFamily: FN, fontSize: 9, fontWeight: 700,
+        letterSpacing: '0.12em', color: 'var(--c-tm)',
+        textTransform: 'uppercase', marginBottom: 6,
+      }}>Activity</div>
+      <div style={{ direction: 'ltr' }}>
+        {rows.map(ev => {
+          const verb = EVENT_VERB[ev.kind] || ev.kind;
+          const change = (ev.from_value && ev.to_value)
+            ? `${ev.from_value} → ${ev.to_value}`
+            : (ev.to_value || ev.detail || '');
+          return (
+            <div key={ev.id} style={{
+              display: 'flex', alignItems: 'baseline',
+              gap: 8, fontSize: 11, lineHeight: 1.6,
+              color: 'var(--c-tm)', fontFamily: FB,
+              padding: '2px 0',
+            }}>
+              <AuthorChip author={ev.actor} />
+              <span>{verb}</span>
+              {change && (
+                <span style={{
+                  fontFamily: FN, fontSize: 10, fontWeight: 700,
+                  letterSpacing: '0.04em', color: 'var(--c-tx)',
+                }}>{change}</span>
+              )}
+              <span style={{
+                marginLeft: 'auto',
+                fontFamily: FN, fontSize: 9, fontWeight: 600,
+                color: 'var(--c-td)', letterSpacing: '0.04em',
+              }}>{relativeTime(ev.created_at, now)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onDeleteFromCalendar }) {
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag) out of the visible list.
@@ -806,6 +1028,11 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
           }}>Connect Google Calendar at the top to sync this task</span>
         )}
       </div>
+      {/* Comments + audit timeline (Phase 2). Both gracefully no-op
+          when their migrations haven't been applied — Comments shows
+          a hint, EventTimeline silently absents itself. */}
+      <CommentsThread noteId={row.id} defaultAuthor={row._owner === 'yuval' ? 'yuval' : 'ohad'} />
+      <EventTimeline noteId={row.id} />
     </div>
   );
 }
@@ -1203,10 +1430,19 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     // their literal value. completed_at is stamped for the two terminal
     // states (done / cancelled) and cleared when reopening.
     const terminal = (target === 'done' || target === 'cancelled');
+    const prev = row.status || 'open';
+    if (prev === target) return;
     await update(row.id, {
       status: target,
       completed_at: terminal ? new Date().toISOString() : null,
     });
+    // Audit log — actor is the row's owner today; will key off auth
+    // identity once Yuval has his own login.
+    const actor = row._owner === 'yuval' ? 'yuval' : 'ohad';
+    const kind = (terminal === false && (prev === 'done' || prev === 'cancelled'))
+      ? 'reopened'
+      : 'status_changed';
+    recordNoteEvent({ noteId: row.id, actor, kind, fromValue: prev, toValue: target });
     // Mirror to Google Calendar: terminal → [DONE]/[CANCELLED] prefix
     // patch; transient (waiting / stuck / working) → status-prefixed
     // title patch so the calendar event reflects the latest state.
@@ -1235,6 +1471,15 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     const targetId    = traineeId || null;
     const targetLabel = traineeId ? (traineeLabel || null) : null;
     const createdRow = await create({ body: prefixed, targetKind, targetId, targetLabel, tags });
+    if (createdRow) {
+      const actor = assignee === 'yuval' ? 'yuval' : 'ohad';
+      const detail = [
+        priority !== 'normal' ? `priority=${priority}` : null,
+        due ? `due=${due}${time ? ' ' + time : ''}` : null,
+        traineeId ? `trainee=${traineeLabel || traineeId}` : null,
+      ].filter(Boolean).join(' · ') || null;
+      recordNoteEvent({ noteId: createdRow.id, actor, kind: 'created', toValue: assignee, detail });
+    }
     // Sync to Calendar if connected. Pass the title-only displayBody so
     // the calendar event doesn't show `Ohad: [URGENT] …` to the attendee.
     if (createdRow && gcalConnected) {
