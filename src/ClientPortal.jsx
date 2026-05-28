@@ -1468,6 +1468,19 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     return portalVis[visKeyFor(p)] !== false;
   }).slice().sort(sortProgramsChrono);
 
+  // Demo-mode diagnostic — surfaces portalVis ↔ plan key alignment so the
+  // coach can spot a key-mismatch bug at a glance (e.g. couples sub-member
+  // suffix not lining up, or Hebrew-encoded plan name with trailing space).
+  // No-op in real client portal. Reads once per render.
+  if (demoMode && typeof window !== 'undefined') {
+    try {
+      const planKeys = mergedPlans.map(p => ({ name: p.name, key: visKeyFor(p), vis: portalVis?.[visKeyFor(p)] }));
+      const hidden = planKeys.filter(k => k.vis === false).length;
+      const shown = planKeys.filter(k => k.vis !== false).length;
+      console.info('[EXPO portal preview]', { clientName, mergedPlansCount: mergedPlans.length, visPlansCount: visPlans.length, shown, hidden, planKeys, portalVisKeyCount: Object.keys(portalVis || {}).length });
+    } catch {}
+  }
+
   // Active block for bodyweight logging — scopes uniqueness to (client, block, week)
   // Falls back to the first visible plan when no manual selection (or selection no longer visible).
   const activePlan = visPlans.find(p => p.name === selectedBlockName) || visPlans[0];
