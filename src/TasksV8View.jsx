@@ -783,47 +783,28 @@ export default function TasksV8View() {
 
   const toggleSectionCollapse = (key) => setCollapsedSections(p => ({ ...p, [key]: !p[key] }));
 
-  // Calendar connection: subscribe to Supabase auth state so we catch
-  // the provider_token at the exact moment OAuth completes (it's only
-  // available in the SIGNED_IN event, NOT in subsequent getSession()).
-  // The subscribe call caches it; then we run the verification flow.
+  // Calendar connection: check connection state on mount. The GIS-based
+  // flow uses a popup so there's no redirect callback to consume — just
+  // read the token cache.
   useEffect(() => {
-    const justConnected = consumeCalendarCallback();
-    const unsubscribe = subscribeAndCacheProviderToken();
-
-    // Run verification a moment after mount so the auth event listener
-    // has a chance to fire and cache the token before we check.
-    const verify = async () => {
-      const verified = await isCalendarConnected();
-      setGcalConnected(verified);
-      if (justConnected) {
-        if (verified) {
-          toast('Google Calendar connected · tasks will sync automatically', 'success', { ttl: 5000 });
-        } else {
-          const scopes = await getTokenScopes();
-          const hasCal = scopes?.some(s => s.includes('calendar'));
-          if (hasCal) {
-            toast('Calendar scope granted but API call failed — check console for details', 'error', { ttl: 10000 });
-            console.error('Calendar verification failed despite scope present. Scopes:', scopes);
-          } else if (scopes) {
-            toast(`Calendar scope NOT granted. Token has: ${scopes.map(s => s.split('/').pop()).join(', ')}. Click Advanced → Go to (unsafe) on Google's warning.`, 'error', { ttl: 15000 });
-            console.error('Token scopes after OAuth:', scopes);
-          } else {
-            toast('Token did not arrive — Supabase may have stripped it. Try once more from a fresh tab.', 'error', { ttl: 10000 });
-          }
-        }
-      }
-    };
-    // Give the auth listener a tick to fire on initial page load. The
-    // OAuth callback fragment processing is async.
-    const t = setTimeout(verify, 800);
-    return () => { clearTimeout(t); unsubscribe(); };
+    isCalendarConnected().then(setGcalConnected);
   }, []);
 
   const handleConnectGcal = async () => {
     setGcalBusy(true);
-    await connectGoogleCalendar();
-    // Redirect happens; the page will reload via OAuth flow.
+    const token = await connectGoogleCalendar();
+    setGcalBusy(false);
+    if (token) {
+      const verified = await isCalendarConnected();
+      setGcalConnected(verified);
+      if (verified) {
+        toast('Google Calendar connected · tasks will sync automatically', 'success', { ttl: 5000 });
+      } else {
+        toast('Connection succeeded but verification call failed', 'error', { ttl: 6000 });
+      }
+    } else {
+      toast('Calendar connection cancelled or failed', 'info', { ttl: 4000 });
+    }
   };
   const handleDisconnectGcal = () => {
     disconnectCalendar();
