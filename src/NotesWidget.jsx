@@ -383,8 +383,19 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
     return !!r;
   });
 
+  // Dashboard policy: this widget is Ohad's surface only. Tasks Yuval
+  // owns alone (body prefix "Yuval: …") don't belong on Ohad's
+  // dashboard — they're Yuval's queue. "Ohad: …" and "Ohad + Yuval: …"
+  // both stay visible. Same parser as TasksV8View.ownerFromBody so the
+  // two surfaces never disagree on who owns a row.
+  const isYuvalOwned = (body) => {
+    const b = (body || '').trim();
+    if (/^(ohad\s*\+\s*yuval|yuval\s*\+\s*ohad)\s*:/i.test(b)) return false;
+    return /^yuval\s*:/i.test(b);
+  };
+
   const filtered = useMemo(() => {
-    let base = rows;
+    let base = rows.filter(r => !isYuvalOwned(r.body));
     if (filter !== 'all') {
       base = filter === 'general'
         ? base.filter(r => !r.target_kind || r.target_kind === 'general')
@@ -416,7 +427,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   // unchecked list reads correctly. The earlier counter included done
   // rows, inflating the badge against what the eye sees.
   const counts = useMemo(() => {
-    const open = rows.filter(r => r.status !== 'done');
+    const open = rows.filter(r => r.status !== 'done' && !isYuvalOwned(r.body));
     const c = { all: open.length, trainee: 0, intake: 0, review: 0, general: 0 };
     for (const r of open) {
       if (!r.target_kind || r.target_kind === 'general') c.general++;
