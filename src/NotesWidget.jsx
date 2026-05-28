@@ -268,7 +268,7 @@ function ActionPill({ label, onClick, color, title }) {
 // WA brand green to differentiate from the cyan-bordered NEW PROGRAM /
 // REVIEW family. Returns null when the task has no actionable handler
 // (manual general task, or trainee data missing for WhatsApp).
-function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenIntake, onOpenAthlete }) {
+function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenIntake, onOpenAthlete, onOpenWaitlist }) {
   const kind = note?.auto_kind;
   const action = kind ? AUTO_KIND_ACTION[kind] : null;
   // Manual task with a trainee target — same NEW PROGRAM affordance.
@@ -302,12 +302,15 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
     case 'OPEN_ATHLETE':
       if (!onOpenAthlete || !note.target_id) return null;
       return <ActionPill label="→ ATHLETE" title="Open the trainee card" onClick={() => onOpenAthlete(note.target_id)} />;
+    case 'OPEN_WAITLIST':
+      if (!onOpenWaitlist) return null;
+      return <ActionPill label="→ WAITLIST" title="Open the /coach/waitlist surface to consume this lead" onClick={onOpenWaitlist} />;
     default:
       return null;
   }
 }
 
-export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, compact = false, trainees = [] }) {
+export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [] }) {
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
   const [adding, setAdding] = useState(false);
   const [body, setBody] = useState('');
@@ -687,6 +690,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                     onOpenReview={onNavigate ? (woId) => onNavigate('review', woId) : null}
                     onOpenIntake={onOpenIntakeTab || null}
                     onOpenAthlete={onNavigate ? (id) => onNavigate('trainee', id) : null}
+                    onOpenWaitlist={onOpenWaitlist || null}
                   />
                 }
               />

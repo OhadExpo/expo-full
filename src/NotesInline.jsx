@@ -249,6 +249,16 @@ export default function NotesInline({
               }} style={pillBtn('var(--c-ac)')}>→ RUN EVAL</button>
             );
           }
+          if (kindAction === 'OPEN_WAITLIST' && typeof window !== 'undefined') {
+            // NotesInline is athlete-scoped, so the WAITLIST action just
+            // routes Ohad over to the waitlist surface where he can mark
+            // the lead consumed.
+            return (
+              <button onClick={() => { try { window.location.hash = '#/coach/waitlist'; } catch {} }}
+                title="Open the /coach/waitlist surface to consume this lead"
+                style={pillBtn('var(--c-ac)')}>→ WAITLIST</button>
+            );
+          }
           return null;
         };
         const actionBtn = renderActionBtn();
