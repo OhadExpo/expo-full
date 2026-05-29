@@ -129,7 +129,7 @@ function Panel({ side, dim, highlight, onEnter, onLeave, headline, subhead, body
         opacity: dim ? 0.4 : 1,
         transition: 'opacity 320ms cubic-bezier(0.4, 0, 0.2, 1), transform 320ms ease',
         transform: highlight ? 'scale(1.005)' : 'scale(1)',
-        cursor: 'pointer', minHeight: 460,
+        cursor: 'pointer', minHeight: 480,
       }}>
       {/* Cyan hairline glow on hover — active side only */}
       <div style={{
@@ -146,7 +146,7 @@ function Panel({ side, dim, highlight, onEnter, onLeave, headline, subhead, body
         <h2 style={{
           margin: 0, fontFamily: FN, fontSize: 'clamp(34px, 4.5vw, 60px)',
           fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.05, color: C.tx,
-          textWrap: 'balance', minHeight: 170,
+          textWrap: 'balance', minHeight: 190,
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           textTransform: 'uppercase',
         }}>{headline}</h2>
