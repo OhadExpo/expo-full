@@ -6,6 +6,7 @@ import { onSaveError } from './useSupaStore';
 import { subscribe as subscribeQueue, drain as drainQueue, getCount as getQueueCount } from './offlineQueue';
 import { subscribe as subscribeBlobs, drainBlobs } from './blobQueue';
 import { C, FN, FB, EXPO_LOGO } from './theme';
+import { useEscClose } from './ui';
 
 // Trainer email(s) — only these get trainer-level access
 export const TRAINER_EMAILS = ['ohadyproductions@gmail.com'];
@@ -263,6 +264,7 @@ export function PasswordChangeModal({ onClose }) {
   const [confirmPw, setConfirmPw] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  useEscClose(true, () => { if (!saving) onClose(); }); // Escape closes (not mid-save)
   const [ok, setOk] = useState(false);
 
   const handleSave = async () => {
@@ -290,7 +292,7 @@ export function PasswordChangeModal({ onClose }) {
   };
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Change password" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
         {ok ? (

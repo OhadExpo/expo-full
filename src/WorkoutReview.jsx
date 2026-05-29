@@ -6,7 +6,7 @@ import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 // missing ascenders/descenders). Per feedback_new_ui_box_dimensions:
 // "Hebrew bumps +3px inside the box, never resizes the box itself."
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { isRefined5b } from './ui';
+import { isRefined5b, useEscClose } from './ui';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import useAutosave from './hooks/useAutosave';
@@ -1393,6 +1393,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
 function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rightTitle, onClose }) {
   const [leftVid, setLeftVid] = useState(null);
   const [rightVid, setRightVid] = useState(null);
+  useEscClose(true, onClose); // Escape closes the compare modal
   const sync = (target) => {
     if (!leftVid || !rightVid) return;
     if (target === 'right') rightVid.currentTime = leftVid.currentTime;
@@ -1401,7 +1402,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   const playBoth = () => { leftVid?.play(); rightVid?.play(); };
   const pauseBoth = () => { leftVid?.pause(); rightVid?.pause(); };
   return (
-    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
       <div onClick={e => e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Compare</h3>
@@ -1473,6 +1474,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // After pick, switches to CompareModal with both URLs.
   const [comparePicker, setComparePicker] = useState(null); // { left: {url,label}, candidates: [...] }
   const [compareActive, setCompareActive] = useState(null); // { left, right }
+  // Escape closes the delete-confirm + compare-picker overlays.
+  useEscClose(!!deleteConfirmFor, () => { setDeleteConfirmFor(null); setDeleteConfirmText(''); });
+  useEscClose(!!comparePicker, () => setComparePicker(null));
 
   const nameOf = (cid) => (trainees || []).find(t => t.id === cid)?.name || cid || 'unknown';
 
@@ -1538,6 +1542,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   const confirmOk = deleteConfirmText.trim().toLowerCase() === 'delete';
   const deleteModal = woForConfirm ? (
     <div onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
+      role="dialog" aria-modal="true" aria-label="Delete workout"
       style={{position:'fixed',inset:0,background:C.scrim,display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
       <div onClick={e => e.stopPropagation()}
         style={{background:C.bg,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:20,maxWidth:380,width:'100%'}}>
@@ -1654,7 +1659,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       <div>
         {/* Compare picker: pick second video from the same client */}
         {comparePicker && (
-          <div onClick={() => setComparePicker(null)} style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
+          <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label="Pick a video to compare" style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
             <div onClick={e => e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxHeight:'80vh',overflow:'auto',padding:20}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                 <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>Compare with…</h3>
