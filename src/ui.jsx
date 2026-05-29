@@ -493,16 +493,42 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
           <Btn variant="danger" onClick={onConfirm}>Confirm</Btn>
         </div></div></div>);
 };
-// Escape-to-close for hand-rolled dialog overlays that don't use <Modal> /
-// <ConfirmDialog> (mostly the type-to-confirm destructive prompts). Purely
-// additive: these already close on scrim click; this adds keyboard dismiss.
+// Keyboard a11y for hand-rolled dialog overlays that don't use <Modal> /
+// <ConfirmDialog>. Adds three things on top of the scrim-click dismiss those
+// overlays already have:
+//   1. Escape closes (calls onClose)
+//   2. Tab is trapped inside the dialog — keyboard users can't fall through
+//      to the page behind. Works generically by locating the topmost
+//      [role="dialog"] in the DOM, so callers need no ref wiring (every
+//      overlay using this hook also sets role="dialog").
+//   3. Focus is restored to the trigger element on close.
 // Call unconditionally at the top of a component; pass `active` to gate it.
+const DIALOG_FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 export const useEscClose = (active, onClose) => {
   React.useEffect(() => {
     if (!active) return;
-    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); onClose?.(); } };
+    // Element focused before the dialog opened — restored on close so
+    // keyboard users return to where they were.
+    const prevFocus = (typeof document !== 'undefined') ? document.activeElement : null;
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); onClose?.(); return; }
+      if (e.key !== 'Tab') return;
+      // Trap within the topmost dialog (last one mounted wins for stacks).
+      const dialogs = document.querySelectorAll('[role="dialog"]');
+      const node = dialogs[dialogs.length - 1];
+      if (!node) return;
+      const f = Array.from(node.querySelectorAll(DIALOG_FOCUSABLE)).filter(el => el.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1], act = document.activeElement;
+      if (e.shiftKey && (act === first || !node.contains(act))) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && (act === last || !node.contains(act))) { e.preventDefault(); first.focus(); }
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      // Wrapped — the trigger may have unmounted (e.g. a deleted row).
+      try { prevFocus?.focus?.(); } catch {}
+    };
   }, [active, onClose]);
 };
 export const EmptyState = ({ icon, message }) => (
