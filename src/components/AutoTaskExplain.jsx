@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { FN } from '../theme';
 import { explainAutoTask } from '../autoTasks';
+import { useEscClose } from '../ui';
 
 export function ExplainInfoButton({ note, trainee, color = 'var(--c-ac)' }) {
   const [open, setOpen] = useState(false);
@@ -23,8 +24,9 @@ export function ExplainInfoButton({ note, trainee, color = 'var(--c-ac)' }) {
 
 export function AutoTaskExplainModal({ note, trainee, accent = 'var(--c-ac)', onClose }) {
   const exp = explainAutoTask(note, trainee);
+  useEscClose(true, onClose); // Escape closes the explainer
   return (
-    <div onClick={onClose} style={{
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Why this task" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 220,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 80,
       backdropFilter: 'blur(4px)',

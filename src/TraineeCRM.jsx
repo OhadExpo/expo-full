@@ -20,7 +20,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip } from './ui';
+import { isRefined5b, RefinedHeaderStrip, useEscClose } from './ui';
 import CoachMessages from './CoachMessages';
 import {
   useTraineeActivity, useCompletedTasksForTrainee,
@@ -174,6 +174,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
   const [alsoTask, setAlsoTask] = useState(false);
   const [taskBody, setTaskBody] = useState('');
   const [saving, setSaving] = useState(false);
+  useEscClose(true, () => { if (!saving) onClose(); }); // Escape closes (not mid-save)
 
   const submit = async () => {
     const s = summary.trim();
@@ -209,7 +210,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
   };
 
   return (
-    <div onClick={onClose} style={{
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Log activity" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
       backdropFilter: 'blur(4px)',
