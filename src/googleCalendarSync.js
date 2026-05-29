@@ -24,7 +24,12 @@ import { supabase } from './supabase';
 // authorized origins: https://expo-app.co.il + http://localhost:5173.
 // Project: expo-music-495221 (EXPO Music). Test users: ohad + yuval.
 const GOOGLE_CLIENT_ID = '1022046683456-5etasiot4615n6rme64f3tsrp1qcil5j.apps.googleusercontent.com';
-const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+// calendar.events → create/read EXPO task events. tasks.readonly → read the
+// coach's Google Tasks so we can render them natively (the Calendar embed
+// iframe strips the Tasks layer, so an embed can never show them). Users
+// who connected before tasks.readonly was added must reconnect once to
+// grant it; until then the Tasks fetch 403s and the panel says so.
+const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks.readonly';
 const EVENT_TAG_PREFIX = 'gevent:';
 const ETAG_TAG_PREFIX = 'getag:';
 const LINK_TAG_PREFIX = 'glink:';
@@ -220,6 +225,57 @@ async function gcalFetch(path, init = {}, allowRetry = true) {
 
 export class GoogleCalendarAuthError extends Error {
   constructor(message) { super(message); this.name = 'GoogleCalendarAuthError'; }
+}
+
+// Thrown when the cached token lacks the tasks.readonly scope (i.e. the
+// user connected before Tasks support was added). The panel uses this to
+// show a "reconnect to grant Tasks access" hint rather than a raw error.
+export class GoogleTasksScopeError extends Error {
+  constructor(message) { super(message); this.name = 'GoogleTasksScopeError'; }
+}
+
+// ── Google Tasks (read-only) ─────────────────────────────────────────
+// The Calendar embed iframe cannot show Google Tasks (Google strips the
+// Tasks layer from /calendar/embed — not a flag we can flip), so we read
+// them via the Tasks API and render them in EXPO's own UI.
+
+async function gtasksFetch(path, allowRetry = true) {
+  const token = getCachedAccessToken();
+  if (!token) throw new GoogleCalendarAuthError('No Google access token cached');
+  const res = await fetch(`https://www.googleapis.com/tasks/v1${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if ((res.status === 401 || res.status === 403) && allowRetry) {
+    // Try a silent re-grant (works only if consent already covers tasks),
+    // then retry once. If silent fails, surface a scope error.
+    const fresh = await requestSilentToken();
+    if (fresh) return gtasksFetch(path, false);
+    throw new GoogleTasksScopeError(`Google rejected the Tasks request (${res.status}) — reconnect to grant Tasks access`);
+  }
+  if (res.status === 401 || res.status === 403) {
+    throw new GoogleTasksScopeError(`Google Tasks ${res.status} — reconnect to grant Tasks access`);
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Google Tasks API ${res.status}: ${body.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+// Incomplete tasks from the user's default Google Tasks list, soonest-due
+// first (undated tasks last). Read-only — we never write back.
+export async function fetchGoogleTasks({ maxResults = 50 } = {}) {
+  const data = await gtasksFetch(`/lists/@default/tasks?showCompleted=false&showHidden=false&maxResults=${maxResults}`);
+  const items = Array.isArray(data?.items) ? data.items : [];
+  return items
+    .filter(t => t.status !== 'completed')
+    .map(t => ({ id: t.id, title: (t.title || '').trim() || '(untitled)', due: t.due || null, notes: (t.notes || '').trim() }))
+    .sort((a, b) => {
+      if (a.due && b.due) return a.due < b.due ? -1 : (a.due > b.due ? 1 : 0);
+      if (a.due) return -1;
+      if (b.due) return 1;
+      return 0;
+    });
 }
 
 // ── Tag-based event-id store ─────────────────────────────────────────

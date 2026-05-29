@@ -47,6 +47,8 @@ import {
   getTokenScopes,
   subscribeAndCacheProviderToken,
   GoogleCalendarAuthError,
+  fetchGoogleTasks,
+  GoogleTasksScopeError,
 } from './googleCalendarSync';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -713,6 +715,75 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
 // from Google's embed surface. The user must be signed into Google in
 // the same browser for the calendar to render (which they will be, since
 // the GIS connect flow above primed that session).
+// Native Google Tasks list. The Calendar embed iframe can't show Tasks
+// (Google strips that layer), so we pull them via the Tasks API and render
+// them here. Self-diagnosing: a scope/auth failure shows an actionable hint
+// instead of failing silently. Read-only.
+function GoogleTasksPanel({ connected }) {
+  const [tasks, setTasks] = useState(null);
+  const [err, setErr] = useState(null); // { kind: 'scope'|'other', msg }
+  const [loading, setLoading] = useState(false);
+  const refined = isRefined5b();
+
+  const load = React.useCallback(() => {
+    setLoading(true); setErr(null);
+    fetchGoogleTasks({ maxResults: 50 })
+      .then((list) => { setTasks(list); setErr(null); })
+      .catch((e) => {
+        if (e instanceof GoogleTasksScopeError) {
+          setErr({ kind: 'scope', msg: 'Reconnect Google Calendar above (one tap) to grant Tasks access — Google needs to re-confirm the new permission.' });
+        } else {
+          setErr({ kind: 'other', msg: e?.message || 'Could not load Google Tasks.' });
+        }
+        setTasks(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (connected) load();
+    else { setTasks(null); setErr(null); }
+  }, [connected, load]);
+
+  if (!connected) return null; // Connect lives in the header bar
+
+  return (
+    <div style={{
+      border: `1px solid var(--c-cardBd)`,
+      background: refined ? '#FFFFFF' : 'var(--c-sf)',
+      marginBottom: 12, padding: '10px 14px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: (err || (tasks && tasks.length)) ? 10 : 0 }}>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--c-tx)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>✓ Google Tasks</span>
+        <span style={{ flex: 1 }} />
+        <button onClick={load} disabled={loading} title="Refresh Google Tasks"
+          style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-tm)',
+            letterSpacing: '0.12em', textTransform: 'uppercase', background: 'transparent',
+            border: `1px solid var(--c-cardBd)`, padding: '3px 8px', cursor: loading ? 'wait' : 'pointer',
+          }}>{loading ? '…' : '↻ Refresh'}</button>
+      </div>
+      {err && (
+        <div style={{ fontFamily: FB, fontSize: 12, lineHeight: 1.5, color: err.kind === 'scope' ? 'var(--c-ac)' : 'var(--c-rd)' }}>{err.msg}</div>
+      )}
+      {!err && tasks && tasks.length === 0 && (
+        <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-td)' }}>No open Google Tasks.</div>
+      )}
+      {!err && tasks && tasks.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {tasks.map((t) => (
+            <div key={t.id} style={{ display: 'flex', alignItems: 'baseline', gap: 8, fontFamily: FB, fontSize: 13, color: 'var(--c-tx)' }}>
+              <span style={{ color: 'var(--c-ac)', fontSize: 11, lineHeight: 1.4 }}>○</span>
+              <span style={{ flex: 1 }}>{t.title}</span>
+              {t.due && <span style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', whiteSpace: 'nowrap' }}>{new Date(t.due).toLocaleDateString()}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CalendarEmbedCard() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState(null);
@@ -1975,6 +2046,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       </div>
 
       <CalendarEmbedCard />
+      <GoogleTasksPanel connected={gcalConnected} />
 
       {/* Owner tabs + view toggle */}
       <div style={{
