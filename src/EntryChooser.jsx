@@ -11,8 +11,14 @@
 // Authed visitors never see this. AuthGate short-circuits to AuthedApp's
 // RolePicker / portal flow before EntryChooser can render.
 import React, { useState } from 'react';
+import { track } from '@vercel/analytics';
 import { C, FN, FB } from './theme';
 import { EXPOMark } from './expoMark';
+
+// Funnel: which front-door does a visitor pick? Mirrors expo-il's
+// chooser_pick event. track() is a no-op until Analytics is enabled in the
+// Vercel dashboard, so this is safe to ship now.
+function pick(side) { try { track('chooser_pick', { side }); } catch {} }
 
 export default function EntryChooser() {
   // Public surface — force dark while the light-mode rollout is gated to the
@@ -58,6 +64,7 @@ export default function EntryChooser() {
           benefits={['Coach + athlete login', 'Plans · video · payments', 'Synced across every device']}
           cta="CONTINUE"
           href="/login"
+          onClick={() => pick('signin')}
         />
 
         <Divider />
@@ -75,6 +82,7 @@ export default function EntryChooser() {
           benefits={['Pose + auto rep counter', 'Branded athlete portals', 'Plan authoring + xlsx import']}
           cta="CONTINUE"
           href="/demo"
+          onClick={() => pick('coaches')}
         />
       </div>
 
@@ -112,13 +120,13 @@ function Divider() {
 
 // One half of the split. The whole panel is a giant anchor (better tap-target
 // on mobile). Hover lifts the CTA + glows a hairline cyan frame.
-function Panel({ side, dim, highlight, onEnter, onLeave, headline, subhead, body, benefits, cta, href }) {
+function Panel({ side, dim, highlight, onEnter, onLeave, onClick, headline, subhead, body, benefits, cta, href }) {
   const isLeft = side === 'left';
   const baseGradient = isLeft
     ? `radial-gradient(ellipse 70% 50% at 30% 90%, ${C.ac}22 0%, transparent 60%), linear-gradient(180deg, ${C.bg} 0%, ${C.sf2} 100%)`
     : `radial-gradient(ellipse 70% 50% at 70% 90%, ${C.ac}22 0%, transparent 60%), linear-gradient(180deg, ${C.bg} 0%, ${C.sf2} 100%)`;
   return (
-    <a href={href}
+    <a href={href} onClick={onClick}
       className="chooser-panel"
       onMouseEnter={onEnter} onMouseLeave={onLeave}
       style={{
