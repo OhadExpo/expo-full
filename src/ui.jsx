@@ -36,12 +36,16 @@ const variants = {
 export const Btn = ({ children, variant = "primary", onClick, style, ...rest }) =>
   <button onClick={onClick} style={{ ...baseBtn, ...variants[variant], ...style }} {...rest}>{children}</button>;
 
-export const Input = ({ label, style: s, ...props }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-    {label && <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
-    <input style={{ ...baseInput, ...s }} {...props} />
-  </div>
-);
+export const Input = ({ label, style: s, id, ...props }) => {
+  const autoId = React.useId();
+  const inputId = id || autoId;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {label && <label htmlFor={inputId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
+      <input id={inputId} style={{ ...baseInput, ...s }} {...props} />
+    </div>
+  );
+};
 
 // Multi-email editor: value is string[] (UI form shape), onChange(next: string[]).
 // Shows one row per email with a × to remove, plus a "+ Add Email" button up to max.
@@ -52,7 +56,7 @@ export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, plac
       <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', fontFamily: FN, textAlign: 'center' }}>{label}</label>
       {arr.map((em, i) => (
         <div key={i} style={{ display: 'flex', gap: 4 }}>
-          <input value={em} onChange={e => { const next = [...arr]; next[i] = e.target.value; onChange(next); }} placeholder={placeholder} style={{ ...baseInput, flex: 1 }} />
+          <input aria-label={arr.length > 1 ? `${label} ${i + 1}` : label} value={em} onChange={e => { const next = [...arr]; next[i] = e.target.value; onChange(next); }} placeholder={placeholder} style={{ ...baseInput, flex: 1 }} />
           {arr.length > 1 && <button onClick={() => { const next = [...arr]; next.splice(i, 1); onChange(next); }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '0 10px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
         </div>
       ))}
@@ -63,21 +67,28 @@ export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, plac
   );
 };
 
-export const Select = ({ label, options, value, onChange, placeholder }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-    {label && <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
-    <select value={value || ""} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance: "none", paddingRight: 30 }}>
-      {placeholder && <option value="">{placeholder}</option>}
-      {options.map(o => <option key={typeof o==="object"?o.value:o} value={typeof o==="object"?o.value:o}>{typeof o==="object"?o.label:o}</option>)}
-    </select>
-  </div>
-);
-export const TextArea = ({ label, ...props }) => (
-  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-    {label && <label style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
-    <textarea style={{ ...baseInput, minHeight: 60, resize: "vertical" }} {...props} />
-  </div>
-);
+export const Select = ({ label, options, value, onChange, placeholder }) => {
+  const selectId = React.useId();
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {label && <label htmlFor={selectId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
+      <select id={selectId} value={value || ""} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance: "none", paddingRight: 30 }}>
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map(o => <option key={typeof o==="object"?o.value:o} value={typeof o==="object"?o.value:o}>{typeof o==="object"?o.label:o}</option>)}
+      </select>
+    </div>
+  );
+};
+export const TextArea = ({ label, id, ...props }) => {
+  const autoId = React.useId();
+  const taId = id || autoId;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      {label && <label htmlFor={taId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
+      <textarea id={taId} style={{ ...baseInput, minHeight: 60, resize: "vertical" }} {...props} />
+    </div>
+  );
+};
 export const Badge = ({ children, color = C.ac, style: s }) =>
   <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
 
