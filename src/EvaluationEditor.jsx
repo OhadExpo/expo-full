@@ -9,7 +9,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b } from './ui';
+import { isRefined5b, useEscClose } from './ui';
 import { EVAL_SCHEMA, romKey } from './evaluationSchema';
 
 const inputBase = {
@@ -199,6 +199,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   const [weightKg, setWeightKg] = useState(existing?.weight_kg ?? trainee?.weight ?? '');
   const [scores, setScores] = useState(existing?.scores || {});
   const [rom, setRom] = useState(existing?.rom || {});
+  useEscClose(true, onClose); // Escape closes the editor (matches scrim-click)
   const [notes, setNotes] = useState(existing?.notes || '');
 
   const setScore = (testId, value) => {
@@ -224,7 +225,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   };
 
   return (
-    <div onClick={onClose} style={{
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Athletic evaluation" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px',
       overflowY: 'auto',

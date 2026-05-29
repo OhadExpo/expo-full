@@ -10,7 +10,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { C, FN, FB } from './theme';
-import { toast } from './ui';
+import { toast, useEscClose } from './ui';
 import { snapshotConsoleBuffer, onError, hasSeenError } from './consoleBuffer.js';
 
 function bundleHash() {
@@ -59,6 +59,8 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [previewCtx, setPreviewCtx] = useState(null);
+  // Escape closes the report modal (unless mid-submit, matching scrim-click).
+  useEscClose(open, () => { if (!submitting) setOpen(false); });
   // Android-style crash-report behavior: hidden by default, only
   // surfaces after an actual JS error fires this session (console.error,
   // window.error, unhandledrejection). Survives SPA route changes via
@@ -143,7 +145,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
       </button>
 
       {open && (
-        <div onClick={() => !submitting && setOpen(false)} style={{
+        <div onClick={() => !submitting && setOpen(false)} role="dialog" aria-modal="true" aria-label="Report a bug" style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200,
           display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
           backdropFilter: 'blur(4px)',

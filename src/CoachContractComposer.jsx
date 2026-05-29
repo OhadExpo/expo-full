@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
+import { useEscClose } from './ui';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -17,6 +18,7 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
   const [creating, setCreating] = useState(false);
   const [createdUrl, setCreatedUrl] = useState(null);
   const [error, setError] = useState(null);
+  useEscClose(true, () => { if (!creating) onClose(); }); // Escape closes (not mid-send)
 
   const submit = async () => {
     setCreating(true);
@@ -50,7 +52,7 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
   };
 
   return (
-    <div onClick={onClose} style={{
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Send contract" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 250,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
       backdropFilter: 'blur(4px)',

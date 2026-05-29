@@ -18,7 +18,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast } from './ui';
+import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose } from './ui';
 import { normalizePhoneIL } from './whatsappButton';
 
 const fmtCurrency = (amount, currency = 'ils') => {
@@ -278,6 +278,7 @@ function RequestModal({ trainees, defaultAmount, onClose, onCreated }) {
   const [reference, setReference] = useState('');
   const [saving, setSaving] = useState(false);
   const active = trainees.filter(t => t.status !== 'Archived');
+  useEscClose(true, () => { if (!saving) onClose(); }); // Escape closes (not mid-save)
 
   const create = async () => {
     if (!traineeId) { toast('Pick a trainee.', 'warn'); return; }
@@ -302,7 +303,7 @@ function RequestModal({ trainees, defaultAmount, onClose, onCreated }) {
   };
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60, backdropFilter: 'blur(4px)' }}>
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="New Bit request" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60, backdropFilter: 'blur(4px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, maxWidth: 480, width: '100%', padding: 22, maxHeight: '80vh', overflow: 'auto' }}>
         <h3 style={{ margin: '0 0 16px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>+ NEW BIT REQUEST</h3>
         <div style={{ marginBottom: 10 }}>
