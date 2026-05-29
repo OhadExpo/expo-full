@@ -16,7 +16,7 @@ import { FormVideoPlayer } from './WorkoutReview';
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
-import { toast, confirmToast, isRefined5b } from './ui';
+import { toast, confirmToast, isRefined5b, useEscClose } from './ui';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const MealLogger = React.lazy(() => import('./MealLogger'));
@@ -1347,6 +1347,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [clientPlans, setClientPlans] = useState([]); // Plans loaded from plans table for this client
   const [selectedBlockName, setSelectedBlockName] = useState(null); // which block bodyweight logs target when client has multiple visible plans
   const [bwDeleteConfirm, setBwDeleteConfirm] = useState(null); // BW log entry pending delete confirmation (null | entry)
+  useEscClose(!!bwDeleteConfirm, () => setBwDeleteConfirm(null)); // Escape dismisses the BW-delete confirm
   const [showPwModal, setShowPwModal] = useState(false);
   const [plansLoadError, setPlansLoadError] = useState(null);
 
@@ -1761,7 +1762,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         })}
         {bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
       </div>
-      {bwDeleteConfirm && <div onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
+      {bwDeleteConfirm && <div role="dialog" aria-modal="true" aria-label="Delete bodyweight entry" onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
           <div style={{fontFamily:FN,fontSize:10,color:C.td,marginBottom:8,letterSpacing:'0.12em',fontWeight:700}}>DELETE ENTRY</div>
           <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>Remove {bwDeleteConfirm.bw}kg from {bwDeleteConfirm.blockName || '?'} · W{bwDeleteConfirm.week || '?'}?</div>

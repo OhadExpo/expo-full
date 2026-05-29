@@ -482,6 +482,18 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
           <Btn variant="danger" onClick={onConfirm}>Confirm</Btn>
         </div></div></div>);
 };
+// Escape-to-close for hand-rolled dialog overlays that don't use <Modal> /
+// <ConfirmDialog> (mostly the type-to-confirm destructive prompts). Purely
+// additive: these already close on scrim click; this adds keyboard dismiss.
+// Call unconditionally at the top of a component; pass `active` to gate it.
+export const useEscClose = (active, onClose) => {
+  React.useEffect(() => {
+    if (!active) return;
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); onClose?.(); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active, onClose]);
+};
 export const EmptyState = ({ icon, message }) => (
   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, color: C.td }}>
     <div style={{ opacity: 0.3, marginBottom: 12, fontSize: 36 }}>{icon}</div>

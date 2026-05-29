@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { WhatsAppCheckInButton } from './whatsappButton';
 
@@ -325,6 +325,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const [archiveConfirm, setArchiveConfirm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleteTyped, setDeleteTyped] = useState("");
+  // Escape-to-close for the hand-rolled permanent-delete confirm overlay.
+  useEscClose(!!deleteConfirm, () => {setDeleteConfirm(null);setDeleteTyped("")});
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const addMenuRef = useRef(null);
   // Sort state — initialized from localStorage so the coach's last choice
@@ -829,7 +831,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         onCancel={() => setArchiveConfirm(null)} />
 
       {/* Permanent delete — type DELETE to confirm */}
-      {deleteConfirm && <div style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("")}}>
+      {deleteConfirm && <div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("")}}>
         <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.rd}`, borderRadius: 0, width: 420, padding: 24 }}>
           <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd, textAlign: "center" }}>⚠ Permanent Deletion</h3>
           <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>This will permanently delete <strong style={{color:C.tx}}>{deleteConfirm.name}</strong> and ALL their data (plans, workouts, payments).</p>

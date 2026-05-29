@@ -9,7 +9,7 @@ import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSE
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b, toast, confirmToast } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b, toast, confirmToast, useEscClose } from './ui';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { normalizePhoneIL } from './whatsappButton';
@@ -71,6 +71,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const [showArchiveConfirm,setShowArchiveConfirm]=useState(false);
   const [showDeleteConfirm,setShowDeleteConfirm]=useState(false);
   const [deleteTyped,setDeleteTyped]=useState("");
+  // Escape-to-close for the three hand-rolled destructive confirm overlays.
+  useEscClose(!!confirmUnassign, ()=>{setConfirmUnassign(null);setUnassignTyped("")});
+  useEscClose(showArchiveConfirm, ()=>setShowArchiveConfirm(false));
+  useEscClose(showDeleteConfirm, ()=>{setShowDeleteConfirm(false);setDeleteTyped("")});
   const [programSort,setProgramSort]=useState('chrono'); // 'chrono' | 'alpha'
   // sortProgramsChrono is the canonical newest-first program sort; lives
   // in traineeUtils.js so PlansView, ClientPortal, etc. share one definition.
@@ -703,7 +707,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           })())}
       </Modal>
       {/* Unassign confirm */}
-      {confirmUnassign && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>
+      {confirmUnassign && <div role="dialog" aria-modal="true" aria-label="Remove program" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setConfirmUnassign(null);setUnassignTyped("")}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.rd}`,borderRadius:0,width:380,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.rd,textAlign:"center"}}>Remove Program?</h3>
           <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>This will unassign <strong style={{color:C.tx}}>{(planIndex||[]).find(p=>p.id===confirmUnassign)?.name}</strong> from {td.name}.</p>
@@ -729,7 +733,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         />
       )}
       {/* Archive confirm */}
-      {showArchiveConfirm && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>setShowArchiveConfirm(false)}>
+      {showArchiveConfirm && <div role="dialog" aria-modal="true" aria-label="Archive athlete" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>setShowArchiveConfirm(false)}>
         <div onClick={e=>e.stopPropagation()} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,width:380,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.tx}}>Archive {td.name}?</h3>
           <p style={{margin:"0 0 20px",fontSize:13,color:C.tm}}>Client will be moved to archive. Plans, workouts, and payments are preserved. You can restore anytime.</p>
@@ -737,7 +741,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <Btn variant="ghost" onClick={()=>setShowArchiveConfirm(false)}>Cancel</Btn>
             <Btn variant="danger" onClick={handleArchive}>Archive</Btn></div></div></div>}
       {/* Permanent delete confirm */}
-      {showDeleteConfirm && <div style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("")}}>
+      {showDeleteConfirm && <div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("")}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.rd}`,borderRadius:0,width:420,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.rd,textAlign:"center"}}>⚠ Permanent Deletion</h3>
           <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>This will permanently delete <strong style={{color:C.tx}}>{td.name}</strong> and ALL their data.</p>
