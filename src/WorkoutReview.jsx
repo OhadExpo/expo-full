@@ -1594,8 +1594,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     // through the backlog) instead of returning to the list. Falls back to
     // the list when the queue is empty. Same flow is bound to Cmd/Ctrl+Enter.
     const findNextUnreviewed = () => {
+      // Mirror the visible queue's filter (hasReviewableVideo) — only days
+      // with an uploaded clip are reviewable, so "next" must skip video-less
+      // days too, not just unreviewed ones. Without this, Save-&-Next jumped
+      // to days the queue intentionally hides.
       const queue = (clientWorkouts || [])
-        .filter(w => w.id !== wo.id && !w.reviewedAt)
+        .filter(w => w.id !== wo.id && !w.reviewedAt && hasReviewableVideo(w))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
       return queue[0]?.id || null;
     };
@@ -1622,14 +1626,17 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         window.scrollTo(0, 0);
       }
     };
-    const remainingAfter = (clientWorkouts || []).filter(w => w.id !== wo.id && !w.reviewedAt).length;
+    // Count only reviewable (video-having) unreviewed days so "(N LEFT)"
+    // matches the visible queue badge instead of counting every unreviewed
+    // day (which read 26 while the queue showed 2).
+    const remainingAfter = (clientWorkouts || []).filter(w => w.id !== wo.id && !w.reviewedAt && hasReviewableVideo(w)).length;
     // Pre-fetch the next two pending workouts' form videos so the next
     // ⌘+Enter / M lands on a clip that's already in the browser cache. We
     // pull cloudUrls from each workout's exercises array (skip pending /
     // failed uploads). Hidden <video preload> tags below trigger the warm.
     const prefetchUrls = (() => {
       const sorted = (clientWorkouts || [])
-        .filter(w => w.id !== wo.id && !w.reviewedAt)
+        .filter(w => w.id !== wo.id && !w.reviewedAt && hasReviewableVideo(w))
         .sort((a, b) => new Date(a.date) - new Date(b.date));
       const urls = [];
       for (const w of sorted) {
