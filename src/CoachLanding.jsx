@@ -50,6 +50,15 @@ const STRINGS = {
   'hero.cta.athlete':    { en: 'SEE ATHLETE VIEW →',   he: 'הצד של המתאמן ←' },
   'hero.cta.waitlist':   { en: 'OR JOIN WAITLIST',     he: 'או הצטרף לרשימה' },
   'hero.smallprint':     { en: 'NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP', he: 'בלי כרטיס · בלי הרשמה · ההדגמה רצה על הקליפ שלך' },
+  // Hero stat band — mirrors the expo-il online/performance-center heroes.
+  // Numbers are the real, already-public EXPO figures (same ones on
+  // expo-il.co.il), framed as proof the platform runs live, not theory.
+  'hero.stat1.num':      { en: '20+',  he: '+20' },
+  'hero.stat1.label':    { en: 'ATHLETES RUNNING LIVE', he: 'מתאמנים חיים' },
+  'hero.stat2.num':      { en: '90+',  he: '+90' },
+  'hero.stat2.label':    { en: 'PROGRAMS BUILT', he: 'תוכניות שנבנו' },
+  'hero.stat3.num':      { en: '500+', he: '+500' },
+  'hero.stat3.label':    { en: 'EXERCISES IN LIBRARY', he: 'תרגילים בספרייה' },
 
   // Live demo
   'demo.badge':          { en: 'LIVE · NOT A SCREENSHOT', he: 'חי · לא צילום מסך' },
@@ -557,6 +566,31 @@ export default function CoachLanding({ lang = 'en' }) {
           <div style={{
             fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.18em', fontWeight: 700,
           }}>{t('hero.smallprint')}</div>
+
+          {/* Stat band — mirrors the expo-il online + performance-center
+              heroes: bordered cells, big cyan tabular numbers, muted
+              uppercase labels, vertical dividers. Real EXPO figures. */}
+          <div style={{
+            display: 'flex', marginTop: 40, border: `1px solid ${C.bd2}`,
+            borderRadius: 0, overflow: 'hidden',
+          }}>
+            {[1, 2, 3].map((n, i) => (
+              <div key={n} style={{
+                flex: 1, padding: '22px 12px',
+                borderLeft: i === 0 ? 'none' : `1px solid ${C.bd2}`,
+              }}>
+                <div style={{
+                  fontFamily: FN, color: C.ac, fontSize: 'clamp(26px, 4vw, 34px)',
+                  fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1,
+                  fontVariantNumeric: 'tabular-nums',
+                }}>{t(`hero.stat${n}.num`)}</div>
+                <div style={{
+                  fontFamily: FN, color: C.tm, fontSize: 10, fontWeight: 700,
+                  letterSpacing: '0.14em', marginTop: 8, textTransform: 'uppercase',
+                }}>{t(`hero.stat${n}.label`)}</div>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* Live demo — two-tab embed of /try (coach POV) and /demo (trainee POV) */}
