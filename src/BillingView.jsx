@@ -59,7 +59,7 @@ export default function BillingView({ trainees }) {
       supabase.from('coach_payment_settings').select('*').eq('coach_email', coachEmail).maybeSingle(),
       supabase.from('bit_payment_requests').select('*').order('created_at', { ascending: false }).limit(200),
     ]);
-    const seed = s || { coach_email: coachEmail, bit_phone: '', bit_display_name: 'Ohad — EXPO', currency: 'ils', vat_rate: 0.18, default_monthly: 800 };
+    const seed = s || { coach_email: coachEmail, bit_phone: '', bit_display_name: 'אוהד', currency: 'ils', vat_rate: 0.18, default_monthly: 800 };
     setSettings(s);
     setDraftSettings(seed);
     setRequests(r || []);
@@ -72,7 +72,7 @@ export default function BillingView({ trainees }) {
   // "Save" stays inert until the form actually has something to save.
   const isDirty = useMemo(() => {
     if (!draftSettings) return false;
-    const baseline = settings || { bit_phone: '', bit_display_name: 'Ohad — EXPO', default_monthly: 800, vat_rate: 0.18 };
+    const baseline = settings || { bit_phone: '', bit_display_name: 'אוהד', default_monthly: 800, vat_rate: 0.18 };
     const same = (a, b) => (a ?? '') === (b ?? '');
     const sameNum = (a, b) => Number(a) === Number(b);
     return !(
@@ -146,23 +146,12 @@ export default function BillingView({ trainees }) {
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>💰 BIT SETTINGS</span>
         </RefinedHeaderStrip>
+        {/* Settings = identity only (phone + name). Default amount + VAT
+            live in the New Request modal now — they're per-request choices,
+            not global config. */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 10 }}>
           <Input label="Your Bit phone" value={draftSettings?.bit_phone || ''} onChange={e => setDraftSettings({ ...draftSettings, bit_phone: e.target.value })} placeholder="054-XXX-XXXX" />
-          <Input label="Display name on Bit" value={draftSettings?.bit_display_name || ''} onChange={e => setDraftSettings({ ...draftSettings, bit_display_name: e.target.value })} placeholder="Ohad — EXPO" />
-          {/* `||` on the value side was masking the legit value 0 as empty;
-              `|| <default>` on the onChange side coerced 0 back to the default,
-              so typing 0 in VAT snapped to 0.18 and typing 0 in monthly
-              cleared the field. Use `??` so 0 survives both ways. */}
-          <Input label="Default monthly (₪)" type="number" value={draftSettings?.default_monthly ?? ''}
-            onChange={e => {
-              const v = e.target.value;
-              setDraftSettings({ ...draftSettings, default_monthly: v === '' ? null : (Number.isNaN(parseFloat(v)) ? null : parseFloat(v)) });
-            }} />
-          <Input label="VAT rate" type="number" step="0.01" value={draftSettings?.vat_rate ?? ''}
-            onChange={e => {
-              const v = e.target.value;
-              setDraftSettings({ ...draftSettings, vat_rate: v === '' ? null : (Number.isNaN(parseFloat(v)) ? null : parseFloat(v)) });
-            }} />
+          <Input label="Display name on Bit" value={draftSettings?.bit_display_name || ''} onChange={e => setDraftSettings({ ...draftSettings, bit_display_name: e.target.value })} placeholder="אוהד" />
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <span style={{ fontSize: 11, color: C.td, lineHeight: 1.5 }}>
@@ -265,6 +254,7 @@ export default function BillingView({ trainees }) {
         <RequestModal
           trainees={trainees || []}
           defaultAmount={settings?.default_monthly}
+          defaultVat={settings?.vat_rate}
           onClose={() => setShowRequest(false)}
           onCreated={() => { setShowRequest(false); reload(); }} />
       )}
@@ -272,9 +262,12 @@ export default function BillingView({ trainees }) {
   );
 }
 
-function RequestModal({ trainees, defaultAmount, onClose, onCreated }) {
+function RequestModal({ trainees, defaultAmount, defaultVat, onClose, onCreated }) {
   const [traineeId, setTraineeId] = useState('');
   const [amount, setAmount] = useState(defaultAmount || 800);
+  // VAT is a per-request choice now (moved out of global settings). Stored as
+  // a whole-number percent in the field; defaultVat comes in as a fraction.
+  const [vatPct, setVatPct] = useState(Math.round((defaultVat ?? 0.18) * 100));
   const [reference, setReference] = useState('');
   const [saving, setSaving] = useState(false);
   const active = trainees.filter(t => t.status !== 'Archived');
@@ -314,8 +307,16 @@ function RequestModal({ trainees, defaultAmount, onClose, onCreated }) {
             {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10, marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 4 }}>
           <Input label="Amount (₪)" type="number" value={amount} onChange={e => setAmount(e.target.value)} />
+          <Input label="VAT %" type="number" value={vatPct} onChange={e => setVatPct(e.target.value)} />
+        </div>
+        {Number(vatPct) > 0 && Number(amount) > 0 && (
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, marginBottom: 12, letterSpacing: '0.04em' }}>
+            incl. {vatPct}% VAT · ≈ ₪{(Number(amount) / (1 + Number(vatPct) / 100)).toFixed(0)} pre-VAT
+          </div>
+        )}
+        <div style={{ marginBottom: 12 }}>
           <Input label="Reference" value={reference} onChange={e => setReference(e.target.value)} placeholder="May 2026 — 8 sessions" />
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
