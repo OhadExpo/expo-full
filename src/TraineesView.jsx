@@ -335,7 +335,9 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const _initialSort = loadSortPrefs() || {};
   const [sortBy, setSortBy] = useState(_initialSort.sortBy || 'name');
   const [sortDir, setSortDir] = useState(_initialSort.sortDir || 'asc');
-  const [langOrder, setLangOrder] = useState(_initialSort.langOrder || 'he-first');
+  // Roster is mostly Hebrew → always Hebrew-first. The LANG toggle was
+  // removed from the toolbar (Ohad: cleaner/aligned), so this is fixed.
+  const [langOrder] = useState('he-first');
   useEffect(() => {
     saveSortPrefs({ sortBy, sortDir, langOrder });
   }, [sortBy, sortDir, langOrder]);
@@ -478,14 +480,13 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           color: active ? C.ac : C.tm,
           fontSize: 10, letterSpacing: '0.12em',
         });
+        // Bare left-aligned row — sort pills + one direction toggle, no
+        // "SORT"/"LANG" labels or bordered container. Lines up with the
+        // search/archive row above (matches the Tasks-page toolbar).
         return (
           <div style={{
-            display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 14,
-            padding: '8px 10px',
-            background: isRefined5b() ? 'transparent' : 'var(--c-sf)',
-            border: `1px solid ${C.cardBd}`, borderRadius: 0,
+            display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 12,
           }}>
-            <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginRight: 6 }}>SORT</span>
             {[
               { id: 'name',        label: 'NAME' },
               { id: 'lastTrained', label: 'LAST TRAINED' },
@@ -495,43 +496,16 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 {o.label}
               </button>
             ))}
-            {/* Direction buttons. For sortBy='name' we render TWO
-                alphabet-specific pills (Latin + Hebrew) — the one
-                matching the active LANG is the live toggle; the other
-                shows the static alphabet label dimmed so the row still
-                reads as bilingual. For lastTrained/payment, one pill. */}
+            {/* Single direction toggle. NAME reads in the Hebrew alphabet
+                (roster is Hebrew-first); the others in their natural order. */}
             {sortBy === 'name' ? (
-              <>
-                <button onClick={() => langOrder === 'en-first' && setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-                  disabled={langOrder !== 'en-first'}
-                  title={langOrder === 'en-first' ? (sortDir === 'asc' ? 'A → Z' : 'Z → A') : 'Switch LANG to EN to use this sort'}
-                  style={{
-                    ...boxBase, marginLeft: 6,
-                    border: `1px solid ${langOrder === 'en-first' ? C.ac : C.cardBd}`,
-                    background: 'transparent',
-                    color: langOrder === 'en-first' ? C.ac : C.td,
-                    fontSize: 10, letterSpacing: '0.12em',
-                    cursor: langOrder === 'en-first' ? 'pointer' : 'default',
-                    opacity: langOrder === 'en-first' ? 1 : 0.5,
-                  }}>{(langOrder === 'en-first' && sortDir === 'desc') ? '↑ Z→A' : '↓ A→Z'}</button>
-                <button onClick={() => langOrder === 'he-first' && setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-                  disabled={langOrder !== 'he-first'}
-                  title={langOrder === 'he-first' ? (sortDir === 'asc' ? 'א → ת' : 'ת → א') : 'Switch LANG to עבר to use this sort'}
-                  style={{
-                    ...boxBase,
-                    border: `1px solid ${langOrder === 'he-first' ? C.ac : C.cardBd}`,
-                    background: 'transparent',
-                    color: langOrder === 'he-first' ? C.ac : C.td,
-                    // Heebo +3px so the Hebrew cap height matches Latin
-                    // inside the SAME outer box per [[new-ui-box-dimensions]].
-                    fontFamily: `Heebo, ${FN}`,
-                    fontSize: 13,
-                    letterSpacing: 0,
-                    lineHeight: 1,
-                    cursor: langOrder === 'he-first' ? 'pointer' : 'default',
-                    opacity: langOrder === 'he-first' ? 1 : 0.5,
-                  }}>{(langOrder === 'he-first' && sortDir === 'desc') ? '↑ ת→א' : '↓ א→ת'}</button>
-              </>
+              <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+                title={sortDir === 'asc' ? 'א → ת' : 'ת → א'}
+                style={{
+                  ...boxBase, marginLeft: 6,
+                  border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac,
+                  fontFamily: `Heebo, ${FN}`, fontSize: 13, letterSpacing: 0, lineHeight: 1,
+                }}>{sortDir === 'desc' ? '↑ ת→א' : '↓ א→ת'}</button>
             ) : (
               <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
                 title={
@@ -547,33 +521,6 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
                 }</button>
             )}
-            <span style={{ width: 1, height: BOX_H - 4, background: C.cardBd, margin: '0 4px' }} />
-            <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>LANG</span>
-            {[
-              { id: 'en-first', label: 'EN',  heb: false },
-              { id: 'he-first', label: 'עבר', heb: true },
-            ].map(o => {
-              const active = langOrder === o.id;
-              return (
-                <button key={o.id} onClick={() => setLangOrder(o.id)}
-                  title={o.heb ? 'Hebrew names first' : 'English names first'}
-                  style={{
-                    ...boxBase,
-                    // Box dimensions identical to the sort pills above so
-                    // the LANG pair sits on the same baseline. Hebrew text
-                    // gets the +3px bump so its cap height matches Latin's
-                    // inside the SAME box (per [[new-ui-box-dimensions]]).
-                    minWidth: 44,
-                    border: `1px solid ${active ? C.ac : C.cardBd}`,
-                    background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-                    color: active ? C.ac : C.tm,
-                    fontFamily: o.heb ? `Heebo, ${FN}` : FN,
-                    fontSize: o.heb ? 13 : 10,
-                    letterSpacing: o.heb ? 0 : '0.12em',
-                    lineHeight: 1,
-                  }}>{o.label}</button>
-              );
-            })}
             <span style={{ flex: 1 }} />
             <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
               {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
