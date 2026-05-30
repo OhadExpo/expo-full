@@ -215,7 +215,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
                   background:'transparent', border:'none', color:'var(--c-ac)', cursor:'pointer',
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', padding: 0,
                 }}>
-                SHOW {handledThreads.length} HANDLED →
+                SHOW {handledThreads.length} ANSWERED →
               </button>
             </>
           )}
@@ -315,7 +315,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: 'pointer',
               }}>
-              + {handledThreads.length} HANDLED
+              + {handledThreads.length} ANSWERED
             </button>
           )}
           {showHandled && (
@@ -326,7 +326,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
                 cursor: 'pointer',
               }}>
-              HIDE HANDLED
+              HIDE ANSWERED
             </button>
           )}
         </div>
