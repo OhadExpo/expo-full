@@ -9,7 +9,7 @@ const isHebrew = (s) => /[֐-׿]/.test(s || '');
 import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
 import { supabase } from './supabase';
 
-function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
+function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack }) {
   const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); };
   const updateEx = (ei,u) => { const exs=[...workout.exercises]; exs[ei]={...exs[ei],...u}; onUpdate({exercises:exs}); };
   // Group consecutive exercises that share a superset letter into one block —
@@ -22,15 +22,31 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
     if (ss && last && last.ss === ss) last.items.push({ex,i});
     else groups.push({ ss, items:[{ex,i}] });
   });
+  // Most-recent prior top set for this exercise — the "last time" reference,
+  // the in-person equivalent of the athlete portal's previous-week ghost row.
+  const lastTimeFor = (ex) => {
+    const sorted = (priorWorkouts||[]).slice().sort((a,b)=>new Date(b.completedAt||b.date)-new Date(a.completedAt||a.date));
+    for (const pw of sorted) {
+      const pex = (pw.exercises||[]).find(e=>e.exerciseId===ex.exerciseId);
+      if (!pex) continue;
+      const done = (pex.sets||[]).filter(s=>s.completed && parseFloat(s.load)>0);
+      if (!done.length) continue;
+      const top = done.reduce((a,b)=>parseFloat(b.load)>parseFloat(a.load)?b:a);
+      return { load: top.load, reps: top.reps, date: pw.completedAt||pw.date };
+    }
+    return null;
+  };
   const renderExercise = (ex, exIdx, inGroup, withDivider) => {
     const exData = exercises.find(e=>e.id===ex.exerciseId);
     const videoUrl = ex.videoUrl ?? ex.vid ?? exData?.videoLink ?? '';
+    const last = lastTimeFor(ex);
     return (
       <div key={ex.id} style={{background: inGroup ? 'transparent' : (isRefined5b() ? '#FFFFFF' : 'var(--c-sf)'), border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
         <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:8}}>
           <span style={{fontWeight:700,color:C.tx}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
           <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span>
           {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
+          {last && <span title={`Top set on ${fmtPrettyDate(last.date)}`} style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',color:C.gn,background:'rgba(0,202,114,0.12)',padding:'3px 8px'}}>LAST · {last.load}KG × {last.reps||'—'}</span>}
         </div>
         <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
           {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
@@ -171,7 +187,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   if (activeWorkout) {
     const w = workouts.find(x => x.id === activeWorkout);
     if (!w) return null;
-    return <WorkoutLogger workout={w} exercises={exercises} onUpdate={u=>updateWorkout(activeWorkout,u)} onComplete={()=>completeWorkout(activeWorkout)} onBack={()=>setActiveWorkout(null)} />;
+    const priorWorkouts = (workouts||[]).filter(x => x.traineeId===w.traineeId && x.id!==w.id && x.status==="completed");
+    return <WorkoutLogger workout={w} exercises={exercises} priorWorkouts={priorWorkouts} onUpdate={u=>updateWorkout(activeWorkout,u)} onComplete={()=>completeWorkout(activeWorkout)} onBack={()=>setActiveWorkout(null)} />;
   }
   const completed = workouts.filter(w=>w.status==="completed"&&(!filterTrainee||w.traineeId===filterTrainee));
   const inProgress = workouts.filter(w=>w.status==="in-progress");
