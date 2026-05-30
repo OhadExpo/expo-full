@@ -1417,7 +1417,6 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       {/* Sort controls. Click an inactive field to activate it (keeps current dir);
           click the active field to flip direction. Arrow points 'up' for asc. */}
       <div style={{display:"flex",gap:6,marginBottom:16,alignItems:"center",flexWrap:"wrap",fontFamily:FN,fontSize:11}}>
-        <span style={{color:C.td,letterSpacing:"0.05em"}}>SORT</span>
         {[
           ['name','Name'],
           ['created','Uploaded'],
