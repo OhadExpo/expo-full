@@ -1236,7 +1236,6 @@ function DemoPrograms() {
 
         {/* Sort controls — mirrors the real PlansView sort row exactly */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap', fontFamily: FN, fontSize: 11 }}>
-          <span style={{ color: C.td, letterSpacing: '0.05em' }}>SORT</span>
           {[['name', 'Name'], ['created', 'Uploaded'], ['updated', 'Last edited']].map(([f, l]) => {
             const active = sortField === f;
             return (
