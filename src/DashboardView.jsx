@@ -657,8 +657,12 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       {/* Dropout risk — fully collapsed by default. Header is the only
           visible row when closed (shows count + chevron); click to expand. */}
       {dropoutRisk.length > 0 && (
-        <div className="alert-card" style={{ marginTop: 20, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: dropoutExpanded ? '14px 18px' : '0', boxShadow: C.cardShadow }}>
-          <RefinedHeaderStrip>
+        <div className="alert-card" style={{ marginTop: 20, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: dropoutExpanded ? '14px 18px' : '0 18px', boxShadow: C.cardShadow }}>
+          {/* Keep 18px horizontal padding even when collapsed so the strip's
+              -18px bleed margin lands exactly on the card edge. Without it the
+              strip overflowed 18px past each side → page-wide horizontal scroll
+              on mobile. Vertical bleed/marginBottom drop to 0 when collapsed. */}
+          <RefinedHeaderStrip padY={dropoutExpanded ? 14 : 0} marginBottom={dropoutExpanded ? 12 : 0}>
             <div onClick={() => setDropoutExpanded(o => !o)}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }}
               title={dropoutExpanded ? 'Click to collapse' : 'Click to expand'}>
