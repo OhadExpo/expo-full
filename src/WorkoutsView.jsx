@@ -48,7 +48,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
           {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
           {last && <span title={`Top set on ${fmtPrettyDate(last.date)}`} style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',color:C.gn,background:'rgba(0,202,114,0.12)',padding:'3px 8px'}}>LAST · {last.load}KG × {last.reps||'—'}</span>}
         </div>
-        {(ex.q || exData?.cues) && <div style={{fontSize:11,color:C.tm,fontStyle:'italic',marginBottom:8,lineHeight:1.45}}>💡 {ex.q || exData.cues}</div>}
+        {(ex.q || exData?.cues || ex.notes) && <div style={{fontSize:11,color:C.tm,fontStyle:'italic',marginBottom:8,lineHeight:1.45}}>💡 {ex.q || exData?.cues || ex.notes}</div>}
         <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
           {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
         {ex.sets.map((set,sIdx)=>(
@@ -59,7 +59,9 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             <input value={set.rpe} onChange={e=>updateSet(exIdx,sIdx,{rpe:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
             <div style={{textAlign:"center"}}><input type="checkbox" checked={set.completed} onChange={e=>updateSet(exIdx,sIdx,{completed:e.target.checked})} style={{width:18,height:18,accentColor:C.gn,cursor:"pointer"}}/></div>
           </div>))}
-        <input value={ex.notes||""} onChange={e=>updateEx(exIdx,{notes:e.target.value})} placeholder="Notes for this exercise…" style={{...baseInput,marginTop:6,padding:"6px 8px",fontSize:12,width:"100%",boxSizing:"border-box"}} />
+        {/* Coach's session note — separate from the prescribed cue above, so
+            this field starts blank instead of echoing the plan's note. */}
+        <input value={ex.coachNote||""} onChange={e=>updateEx(exIdx,{coachNote:e.target.value})} placeholder="Notes for this exercise…" style={{...baseInput,marginTop:6,padding:"6px 8px",fontSize:12,width:"100%",boxSizing:"border-box"}} />
       </div>);
   };
   const totalSets = workout.exercises.reduce((a,ex)=>a+ex.sets.length,0);
