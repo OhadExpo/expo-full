@@ -11,6 +11,40 @@ import { supabase } from './supabase';
 
 function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
   const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); };
+  const updateEx = (ei,u) => { const exs=[...workout.exercises]; exs[ei]={...exs[ei],...u}; onUpdate({exercises:exs}); };
+  // Group consecutive exercises that share a superset letter into one block —
+  // like the athlete portal renders them — instead of a big "Group A" badge on
+  // every row.
+  const groups = [];
+  workout.exercises.forEach((ex,i) => {
+    const ss = ex.superset || '';
+    const last = groups[groups.length-1];
+    if (ss && last && last.ss === ss) last.items.push({ex,i});
+    else groups.push({ ss, items:[{ex,i}] });
+  });
+  const renderExercise = (ex, exIdx, inGroup, withDivider) => {
+    const exData = exercises.find(e=>e.id===ex.exerciseId);
+    const videoUrl = ex.videoUrl ?? ex.vid ?? exData?.videoLink ?? '';
+    return (
+      <div key={ex.id} style={{background: inGroup ? 'transparent' : (isRefined5b() ? '#FFFFFF' : 'var(--c-sf)'), border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:8}}>
+          <span style={{fontWeight:700,color:C.tx}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
+          <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span>
+          {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
+          {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
+        {ex.sets.map((set,sIdx)=>(
+          <div key={sIdx} style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",padding:"4px 0",opacity:set.completed?.5:1}}>
+            <span style={{fontFamily:FN,fontSize:13,color:C.tm,textAlign:"center"}}>{set.setNum}</span>
+            <input type="number" value={set.reps} onChange={e=>updateSet(exIdx,sIdx,{reps:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
+            <input type="number" value={set.load} onChange={e=>updateSet(exIdx,sIdx,{load:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
+            <input value={set.rpe} onChange={e=>updateSet(exIdx,sIdx,{rpe:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
+            <div style={{textAlign:"center"}}><input type="checkbox" checked={set.completed} onChange={e=>updateSet(exIdx,sIdx,{completed:e.target.checked})} style={{width:18,height:18,accentColor:C.gn,cursor:"pointer"}}/></div>
+          </div>))}
+        <input value={ex.notes||""} onChange={e=>updateEx(exIdx,{notes:e.target.value})} placeholder="Notes for this exercise…" style={{...baseInput,marginTop:6,padding:"6px 8px",fontSize:12,width:"100%",boxSizing:"border-box"}} />
+      </div>);
+  };
   const totalSets = workout.exercises.reduce((a,ex)=>a+ex.sets.length,0);
   const doneSets = workout.exercises.reduce((a,ex)=>a+ex.sets.filter(s=>s.completed).length,0);
   const pct = totalSets>0?Math.round(doneSets/totalSets*100):0;
@@ -28,24 +62,14 @@ function WorkoutLogger({ workout, exercises, onUpdate, onComplete, onBack }) {
           <span>{doneSets}/{totalSets} · {pct}%</span></div>
         <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
       </div>
-      {workout.exercises.map((ex,exIdx) => {
-        const exData = exercises.find(e=>e.id===ex.exerciseId);
-        return(<div key={ex.id} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:10}}>
-          <div style={{fontWeight:700,color:C.tx,marginBottom:8}}>{exIdx+1}. {exData?.title||"Unknown"}
-            {ex.superset&&<Badge color={C.pu} style={{marginLeft:8}}>Group {ex.superset}</Badge>}
-            <span style={{fontWeight:400,color:C.tm,fontSize:12,marginLeft:8}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span></div>
-          <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
-            {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
-          {ex.sets.map((set,sIdx)=>(
-            <div key={sIdx} style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",padding:"4px 0",opacity:set.completed?.5:1}}>
-              <span style={{fontFamily:FN,fontSize:13,color:C.tm,textAlign:"center"}}>{set.setNum}</span>
-              <input type="number" value={set.reps} onChange={e=>updateSet(exIdx,sIdx,{reps:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
-              <input type="number" value={set.load} onChange={e=>updateSet(exIdx,sIdx,{load:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
-              <input value={set.rpe} onChange={e=>updateSet(exIdx,sIdx,{rpe:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
-              <div style={{textAlign:"center"}}><input type="checkbox" checked={set.completed} onChange={e=>updateSet(exIdx,sIdx,{completed:e.target.checked})} style={{width:18,height:18,accentColor:C.gn,cursor:"pointer"}}/></div>
-            </div>))}
-        </div>);
-      })}
+      {groups.map((g,gi) => g.ss ? (
+        <div key={gi} style={{border:`1px solid ${C.pu}`, borderLeft:`3px solid ${C.pu}`, borderRadius:0, padding:'8px 12px 4px', marginBottom:10, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)'}}>
+          <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:C.pu,textTransform:'uppercase',marginBottom:2}}>Superset {g.ss}</div>
+          {g.items.map(({ex,i},k) => renderExercise(ex, i, true, k>0))}
+        </div>
+      ) : (
+        g.items.map(({ex,i}) => renderExercise(ex, i, false))
+      ))}
       <TextArea label="Workout Notes" value={workout.notes||""} onChange={e=>onUpdate({notes:e.target.value})} placeholder="Session observations..." />
     </div>);
 }
