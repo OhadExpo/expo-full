@@ -1287,10 +1287,16 @@ function SharedApprovalBar({ row, onSetApproval }) {
 function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, onSetSharedApproval }) {
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag/glink/approved) out of the
-  // visible #tag list. Approvals are shown via SharedApprovalBar.
-  const tags = (Array.isArray(row.tags) ? row.tags : []).filter(t =>
+  // visible tag list. Approvals are shown via SharedApprovalBar.
+  const rawTags = (Array.isArray(row.tags) ? row.tags : []).filter(t =>
     !t.startsWith('gevent:') && !t.startsWith('getag:') && !t.startsWith('glink:') && !t.startsWith('approved:')
   );
+  // Hide a bare namespace when a more specific child exists (drop 'center'
+  // if 'center:property' is present) so the chips don't read redundant.
+  const namespaces = new Set(rawTags.filter(t => t.includes(':')).map(t => t.split(':')[0]));
+  const tags = rawTags.filter(t => !(namespaces.has(t) && !t.includes(':')));
+  // 'center:property' → 'Center · Property' — no hashtag noise, no raw colon.
+  const labelTag = (t) => t.split(':').map(p => p.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())).join(' · ');
   const syncedEventId = getStoredEventId(row);
   const syncedHtmlLink = getStoredHtmlLink(row);
 
@@ -1309,10 +1315,9 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
           {tags.map(t => (
             <span key={t} style={{
               fontFamily: FN, fontSize: 9, fontWeight: 700,
-              letterSpacing: '0.08em', color: 'var(--c-ac)',
-              border: `1px solid var(--c-cardBd)`, padding: '2px 6px',
-              textTransform: 'uppercase',
-            }}>#{t}</span>
+              letterSpacing: '0.1em', color: 'var(--c-ac)',
+              background: 'rgba(57,189,255,0.12)', padding: '3px 8px',
+            }}>{labelTag(t)}</span>
           ))}
         </div>
       )}
