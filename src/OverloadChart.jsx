@@ -3,16 +3,24 @@ import { C, FN, FB } from './theme';
 
 // Compute top-set load per session for one exercise
 // Returns array of { date, topLoad, topReps, avgRpe } sorted chronologically
+// Workouts come from two sources with different field shapes:
+//   • trainer in-person workouts table — ex.exerciseId, set.completed, w.status
+//   • athlete portal logs (clientWorkouts) — ex.eid, set.done, no w.status
+// Read both shapes so online clients (who log in their portal) aren't shown
+// an empty overload section while their loads sit right there in Records.
+const exKey = (e) => e.exerciseId || e.eid;
+const setDone = (s) => s.completed || s.done;
 function computeSessionSeries(workouts, exerciseId) {
   const series = [];
   workouts.forEach(w => {
-    if (w.status !== 'completed') return;
-    const exInstances = (w.exercises || []).filter(e => e.exerciseId === exerciseId);
+    // No w.status gate — portal logs have no status; the in-person source is
+    // already pre-filtered to completed by the caller.
+    const exInstances = (w.exercises || []).filter(e => exKey(e) === exerciseId);
     if (exInstances.length === 0) return;
     // Flatten all completed sets across instances of this exercise in this session
     const sets = [];
     exInstances.forEach(ex => (ex.sets || []).forEach(s => {
-      if (!s.completed) return;
+      if (!setDone(s)) return;
       const load = parseFloat(s.load);
       if (!isFinite(load) || load <= 0) return;
       sets.push({ load, reps: parseFloat(s.reps) || 0, rpe: parseFloat(s.rpe) || null });
@@ -63,12 +71,15 @@ export default function OverloadChart({ workouts, exercises }) {
 
   // Build per-exercise aggregate
   const exerciseStats = useMemo(() => {
+    // Map exId → a title fallback pulled from the workout entry, so portal
+    // logs (whose eid may not be in the library list) still render a name.
     const byExId = new Map();
     workouts.forEach(w => {
-      if (w.status !== 'completed') return;
       (w.exercises || []).forEach(ex => {
-        if (!ex.exerciseId) return;
-        if (!byExId.has(ex.exerciseId)) byExId.set(ex.exerciseId, true);
+        const exId = exKey(ex);
+        if (!exId) return;
+        if (!byExId.has(exId)) byExId.set(exId, ex.title || null);
+        else if (!byExId.get(exId) && ex.title) byExId.set(exId, ex.title);
       });
     });
     const rows = [];
@@ -76,7 +87,7 @@ export default function OverloadChart({ workouts, exercises }) {
       const series = computeSessionSeries(workouts, exId);
       if (series.length === 0) continue;
       const exMeta = exercises.find(e => e.id === exId);
-      const title = exMeta?.title || '(unknown exercise)';
+      const title = exMeta?.title || byExId.get(exId) || '(unknown exercise)';
       const firstLoad = series[0].topLoad;
       const lastLoad = series[series.length - 1].topLoad;
       const deltaTotal = lastLoad - firstLoad;

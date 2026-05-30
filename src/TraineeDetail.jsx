@@ -621,7 +621,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* === OVERLOAD — slot #10 */}
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Progressive Overload</h3>
-      <OverloadChart workouts={tw} exercises={exercises} />
+      <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
 
       {/* === RECORDS — slot #11. tcw is already filtered to this
           athlete (incl. couple sub-members) so no extra traineeId filter
