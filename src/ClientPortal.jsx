@@ -11,7 +11,7 @@ import AthleteChallengesWidget from './AthleteChallengesWidget';
 import { EX } from './exerciseData';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { PasswordChangeModal } from './auth';
-import { traineeIdsFor, memberIndexFromId, sortProgramsChrono } from './traineeUtils';
+import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from './traineeUtils';
 import { FormVideoPlayer } from './WorkoutReview';
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
@@ -1464,10 +1464,25 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const mi = memberIndexFromId(p.traineeId, ci);
     return mi != null ? `${clientName}:${p.name}:m${mi}` : `${clientName}:${p.name}`;
   };
-  const visPlans = mergedPlans.filter(p => {
-    if (!portalVis || !clientName) return true;
-    return portalVis[visKeyFor(p)] !== false;
-  }).slice().sort(sortProgramsChrono);
+  // Default portal visibility: show only the LATEST numbered training block
+  // plus any NON-block plans (ongoing routines like "Morning Routine",
+  // mobility, etc. — blockNum returns -Infinity for these). Older blocks
+  // (#1..#N-1) are hidden by default so the athlete only ever sees their
+  // current program — Ohad's "only show the latest block for each client".
+  // The coach can still override per-plan via the TraineeDetail visibility
+  // toggles / ONLY pill, which write an explicit true/false into portalVis;
+  // those explicit picks always win over the default.
+  const sorted = mergedPlans.slice().sort(sortProgramsChrono);
+  const latestBlock = sorted.find(p => blockNum(p.name) !== -Infinity);
+  const visPlans = sorted.filter(p => {
+    if (clientName && portalVis) {
+      const v = portalVis[visKeyFor(p)];
+      if (v === true) return true;   // coach explicitly opted this plan IN
+      if (v === false) return false; // coach explicitly opted this plan OUT
+    }
+    // No explicit toggle → latest block + non-block plans only.
+    return blockNum(p.name) === -Infinity || p === latestBlock;
+  });
 
   // Demo-mode diagnostic — surfaces portalVis ↔ plan key alignment so the
   // coach can spot a key-mismatch bug at a glance (e.g. couples sub-member
