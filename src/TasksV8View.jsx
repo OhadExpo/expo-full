@@ -436,17 +436,13 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
     fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
   });
   const isFiltered = search.trim() !== '';
+  // Bare left-aligned row (no bordered container, no "SORT" prefix label) so
+  // the first pill lines up exactly under the OWNER tabs above and the QUICK
+  // filters below — all three toolbar rows share one left edge.
   return (
     <div style={{
-      display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 14,
-      padding: '8px 10px',
-      background: isRefined5b() ? 'transparent' : 'var(--c-sf)',
-      border: `1px solid ${C.cardBd}`, borderRadius: 0,
+      display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 12,
     }}>
-      <span style={{
-        fontFamily: FN, fontSize: 9, color: C.tm,
-        letterSpacing: '0.18em', fontWeight: 700, marginRight: 6,
-      }}>SORT</span>
       {SORT_MODES.map(m => (
         <button key={m.id} onClick={() => onSortBy(m.id)} style={pill(sortBy === m.id)}>
           {m.label}
