@@ -5,7 +5,7 @@ import { supabase } from './supabase';
 import { onSaveError } from './useSupaStore';
 import { subscribe as subscribeQueue, drain as drainQueue, getCount as getQueueCount } from './offlineQueue';
 import { subscribe as subscribeBlobs, drainBlobs } from './blobQueue';
-import { C, FN, FB, EXPO_LOGO } from './theme';
+import { C, FN, FB, FH, EXPO_LOGO } from './theme';
 import { useEscClose } from './ui';
 
 // Coach access tiers.
@@ -418,14 +418,14 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
     <button onClick={() => onPick(side)} className="rp-card"
       style={{
         flex: '1 1 0', minWidth: 220, position: 'relative', overflow: 'hidden',
-        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-end',
-        gap: 12, minHeight: 250, padding: '28px 26px', borderRadius: 0,
-        background: `radial-gradient(ellipse 110% 80% at 50% 130%, ${C.ac}24 0%, transparent 62%), var(--c-sf)`,
-        border: `1px solid ${C.cardBd}`, cursor: 'pointer', textAlign: 'left',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 12, minHeight: 250, padding: '32px 24px', borderRadius: 0,
+        background: `radial-gradient(ellipse 120% 90% at 50% 130%, ${C.ac}24 0%, transparent 62%), var(--c-sf)`,
+        border: `1px solid ${C.cardBd}`, cursor: 'pointer', textAlign: 'center',
         color: C.tx, fontFamily: FB,
       }}>
       <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.26em', fontWeight: 700, textTransform: 'uppercase' }}>{kicker}</span>
-      <span style={{ fontFamily: FN, fontSize: 25, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.05, textTransform: 'uppercase' }}>{title}</span>
+      <span style={{ fontFamily: FN, fontSize: 20, fontWeight: 800, letterSpacing: '0.01em', lineHeight: 1.1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{title}</span>
       <span style={{ fontSize: 13, color: C.tm, lineHeight: 1.5 }}>{sub}</span>
       <span style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: C.ac, color: '#0E0F12', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
         Enter <span className="rp-arrow" aria-hidden="true">{'→'}</span>
@@ -449,8 +449,11 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', height: 44, width: 'auto', margin: '0 auto 22px', objectFit: 'contain' }} />
           <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 10 }}>Choose your portal</div>
-          {/* "Hey" and the (Hebrew) name share one font-size so they sit at the same height. */}
-          <div style={{ color: C.tx, fontSize: 17, fontWeight: 600, lineHeight: 1.3 }}>Hey {name || 'there'}</div>
+          {/* Render in Heebo (FH) so the Latin "Hey" and the Hebrew name use ONE
+              typeface — Nord (the default Latin face) lacks Hebrew, so a mixed
+              greeting fell back to a taller Hebrew font and the two looked
+              different sizes. */}
+          <div style={{ color: C.tx, fontFamily: FH, fontSize: 17, fontWeight: 600, lineHeight: 1.3 }}>Hey {name || 'there'}</div>
         </div>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           <Card kicker="Manage" title="Coach Portal" sub="Tasks, athletes & plans" side="trainer" />
