@@ -23,7 +23,11 @@ function DormantWhatsAppButton({ trainee, days }) {
   return <WhatsAppCheckInButton name={target.name} phone={target.phone} days={days} />;
 }
 
-export default function DashboardView({ trainees, planCounts, workouts, clientWorkouts, payments, presence, onSelectTrainee, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
+export default function DashboardView({ isOwner = true, trainees, planCounts, workouts, clientWorkouts, payments, presence, onSelectTrainee, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, onOpenReviewWorkout }) {
+  // Staff (non-owner, e.g. Yuval a masseur) share Ohad's clients but not his
+  // money: every revenue / pricing / leads surface below is gated on isOwner.
+  // What stays: client-engagement signals (active count, low sessions, online,
+  // dormant/dropout, expiring packages), Tasks, and Messages.
   const [sort, setSort] = useState('name');
   const [dir, setDir] = useState(1);
   const [filter, setFilter] = useState('');
@@ -342,12 +346,15 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         {[
           { label: 'Active Athletes', value: active, total: trainees.filter(t=>t.status!=='Archived').length, color: C.gn },
           { label: 'Low Sessions', value: lowSessions, color: lowSessions > 0 ? C.or : C.gn },
-          { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
-          // Label shortened from "Collected This Month" → "Collected MTD"
-          // so the cyan title strip matches the height of the other 3
-          // KPI tiles (the long form wrapped to two lines on common
-          // viewport widths). MTD = month-to-date, finance standard.
-          { label: 'Collected MTD', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+          // Money KPIs — owner-only.
+          ...(isOwner ? [
+            { label: 'Estimated Monthly', value: `₪${monthlyRate.toLocaleString()}`, color: C.ac },
+            // Label shortened from "Collected This Month" → "Collected MTD"
+            // so the cyan title strip matches the height of the other 3
+            // KPI tiles (the long form wrapped to two lines on common
+            // viewport widths). MTD = month-to-date, finance standard.
+            { label: 'Collected MTD', value: `₪${thisMonthPaid.toLocaleString()}`, sub: revDelta !== null ? `${revDelta >= 0 ? '+' : ''}${revDelta}% vs last month` : null, subColor: revDelta >= 0 ? C.gn : C.rd, color: thisMonthPaid>0?C.gn:C.td },
+          ] : []),
         ].map((s, i) => {
           const refined = isRefined5b();
           return (
@@ -371,7 +378,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           chance to clean up before the wall. Hides entirely while loading
           and on probe failure (anon read could 403 if the public_read
           policy ever changes — silent failure is safer than a broken UI). */}
-      {storage && (() => {
+      {isOwner && storage && (() => {
         const refined = isRefined5b();
         const pct = Math.min(100, storage.pct);
         const tone = pct >= 95 ? C.rd : pct >= 80 ? C.or : C.gn;
@@ -406,7 +413,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           above Revenue so the "what's coming IN" question reads before
           the "what's coming THROUGH" revenue numbers. Only renders when
           there's signal. */}
-      {funnel && (funnel.sessions || funnel.messages || funnel.total) ? (() => {
+      {isOwner && funnel && (funnel.sessions || funnel.messages || funnel.total) ? (() => {
         const refined = isRefined5b();
         return (
           <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
@@ -439,7 +446,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           coming THROUGH (money) → what NEEDS attention (alerts).
           Six secondary metrics (LTV, avg ticket, 30/90d collected,
           outstanding, MRR) plus a 6-month bar chart. */}
-      <RevenueCard
+      {isOwner && <RevenueCard
         monthlyRate={monthlyRate}
         thisMonthPaid={thisMonthPaid}
         revDelta={revDelta}
@@ -450,7 +457,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
         outstanding={outstanding}
         monthBars={monthBars}
         maxBar={maxBar}
-      />
+      />}
 
       {/* TASKS — moved 2026-05-16 to sit beneath Revenue. The KPI
           tiles + Revenue card form the "where is the business at?"
@@ -458,6 +465,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
           follows. */}
       <div style={{ marginTop: 14, marginBottom: 14 }}>
         <NotesWidget compact
+          viewerOwner={isOwner ? 'ohad' : 'yuval'}
           trainees={trainees}
           onOpenFullTasks={onOpenTasksTab}
           onCreatePlanForTask={onCreatePlanForTask}
@@ -513,7 +521,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
               ))}
             </div>
           )}
-          {(overduePayment.length > 0 || (leads && leads.length > 0)) && (
+          {isOwner && (overduePayment.length > 0 || (leads && leads.length > 0)) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {overduePayment.length > 0 && (
                 <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
@@ -613,8 +621,8 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                 <th style={plainHeadStyle}>Format</th>
                 <th style={plainHeadStyle}>Package</th>
                 <SH k="sessions" label="Sessions" />
-                <SH k="paid" label="Total Paid" />
-                <SH k="lastPay" label="Last Payment" />
+                {isOwner && <SH k="paid" label="Total Paid" />}
+                {isOwner && <SH k="lastPay" label="Last Payment" />}
                 <SH k="workouts" label="Workouts" />
                 <th style={plainHeadStyle}>Programs</th>
               </tr>
@@ -628,18 +636,18 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
                   <td style={{ padding: '12px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{t.status}</Badge></td>
                   <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.format}</td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.package}{t.packagePrice ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.package}{isOwner && t.packagePrice ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
                     ) : <span style={{ color: C.td, fontSize: 12 }}>—</span>}
                   </td>
-                  <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: parseFloat(t.monthly) > 0 ? C.gn : C.td, textAlign: 'center' }}>
+                  {isOwner && <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: parseFloat(t.monthly) > 0 ? C.gn : C.td, textAlign: 'center' }}>
                     {parseFloat(t.monthly) > 0 ? `₪${parseInt(t.monthly).toLocaleString()}/MO` : '—'}
-                  </td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>
+                  </td>}
+                  {isOwner && <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>
                     {t.lastPayment ? new Date(t.lastPayment).toLocaleDateString('he-IL') : '—'}
-                  </td>
+                  </td>}
                   <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.ac : C.td, textAlign: 'center' }}>
                     {t.workoutCount || '—'}
                   </td>
@@ -687,7 +695,7 @@ export default function DashboardView({ trainees, planCounts, workouts, clientWo
       )}
 
       {/* Payment summary */}
-      {totalAllPaid>0&&(()=>{
+      {isOwner && totalAllPaid>0&&(()=>{
         const refined = isRefined5b();
         return <div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
           <div style={{background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding: refined ? 0 : '14px 20px', maxWidth:300, textAlign:'center', overflow:'hidden'}}>

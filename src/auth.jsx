@@ -8,8 +8,20 @@ import { subscribe as subscribeBlobs, drainBlobs } from './blobQueue';
 import { C, FN, FB, EXPO_LOGO } from './theme';
 import { useEscClose } from './ui';
 
-// Trainer email(s) — only these get trainer-level access
-export const TRAINER_EMAILS = ['ohadyproductions@gmail.com'];
+// Coach access tiers.
+//  • OWNER  = Ohad — full coach portal (money, leads/marketing, owner tools).
+//  • STAFF  = limited-access assistants (e.g. Yuval) — reach the coach portal
+//             but see a reduced top-nav (Tasks + Athletes + Review) and are
+//             walled off from Billing / Incoming / Dashboard revenue / owner
+//             tools. They share Ohad's data (NOT a separate tenant), so the
+//             gating is UI-only on the frontend + email-allowlist on RLS.
+// TRAINER_EMAILS = everyone who gets coach-portal access at all. Existing
+// `TRAINER_EMAILS.includes(...)` checks stay correct because staff ARE trainers.
+export const OWNER_EMAILS = ['ohadyproductions@gmail.com'];
+export const STAFF_EMAILS = ['yuvalberkovitch@gmail.com'];
+export const TRAINER_EMAILS = [...OWNER_EMAILS, ...STAFF_EMAILS];
+export const isOwnerEmail = (email) => !!email && OWNER_EMAILS.includes(email.toLowerCase());
+export const isStaffEmail = (email) => !!email && STAFF_EMAILS.includes(email.toLowerCase());
 
 const AuthContext = createContext(null);
 

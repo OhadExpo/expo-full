@@ -310,7 +310,7 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
   }
 }
 
-export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [] }) {
+export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [], viewerOwner = 'ohad' }) {
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
   const [adding, setAdding] = useState(false);
   const [body, setBody] = useState('');
@@ -383,19 +383,24 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
     return !!r;
   });
 
-  // Dashboard policy: this widget is Ohad's surface only. Tasks Yuval
-  // owns alone (body prefix "Yuval: …") don't belong on Ohad's
-  // dashboard — they're Yuval's queue. "Ohad: …" and "Ohad + Yuval: …"
-  // both stay visible. Same parser as TasksV8View.ownerFromBody so the
-  // two surfaces never disagree on who owns a row.
-  const isYuvalOwned = (body) => {
+  // Dashboard policy: each viewer's widget shows only THEIR queue. A task
+  // owned solely by the other party (body prefix "Yuval: …" on Ohad's
+  // dashboard, or "Ohad: …" on Yuval's) is hidden; shared tasks
+  // ("Ohad + Yuval: …") show on both. Unprefixed legacy rows are Ohad's.
+  // Same parser as TasksV8View.ownerFromBody so the surfaces never disagree.
+  const ownerOf = (body) => {
     const b = (body || '').trim();
-    if (/^(ohad\s*\+\s*yuval|yuval\s*\+\s*ohad)\s*:/i.test(b)) return false;
-    return /^yuval\s*:/i.test(b);
+    if (/^(ohad\s*\+\s*yuval|yuval\s*\+\s*ohad)\s*:/i.test(b)) return 'shared';
+    if (/^yuval\s*:/i.test(b)) return 'yuval';
+    return 'ohad';
+  };
+  const belongsToViewer = (body) => {
+    const o = ownerOf(body);
+    return o === 'shared' || o === viewerOwner;
   };
 
   const filtered = useMemo(() => {
-    let base = rows.filter(r => !isYuvalOwned(r.body));
+    let base = rows.filter(r => belongsToViewer(r.body));
     if (filter !== 'all') {
       base = filter === 'general'
         ? base.filter(r => !r.target_kind || r.target_kind === 'general')
@@ -414,7 +419,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       const inTarget = (r.target_label || '').toLowerCase().includes(q);
       return inBody || inTags || inTarget;
     });
-  }, [rows, filter, search]);
+  }, [rows, filter, search, viewerOwner]);
 
   // All known tags — for autocomplete + tag-cloud chips above the list.
   const allTags = useMemo(() => {
@@ -427,7 +432,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   // unchecked list reads correctly. The earlier counter included done
   // rows, inflating the badge against what the eye sees.
   const counts = useMemo(() => {
-    const open = rows.filter(r => r.status !== 'done' && !isYuvalOwned(r.body));
+    const open = rows.filter(r => r.status !== 'done' && belongsToViewer(r.body));
     const c = { all: open.length, trainee: 0, intake: 0, review: 0, general: 0 };
     for (const r of open) {
       if (!r.target_kind || r.target_kind === 'general') c.general++;

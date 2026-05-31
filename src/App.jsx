@@ -11,7 +11,7 @@ import { supabase } from './supabase';
 import { Btn, baseBtn, ToastHost } from './ui';
 import BugReportButton from './BugReportButton';
 import { parseTraineeId } from './traineeUtils';
-import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS } from './auth';
+import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS } from './auth';
 // Lazy-load every heavy view so the initial bundle stays small.
 // Each tab fetches its own chunk on first navigation; subsequent visits use cache.
 //
@@ -206,7 +206,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
   );
 }
 
-function MoreMenu({ tab, navTo, onExport, onChangePassword }) {
+function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
   const [open, setOpen] = useState(false);
   // Push-notification state for the in-menu toggle (placed above Change
   // Password per Ohad 2026-05-23). Lazy-imports ./push to avoid bloating
@@ -276,7 +276,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword }) {
   }, [open]);
 
   const isActiveTab = tab === 'smartImport' || tab === 'chatAudit' || tab === 'bugs';
-  const items = [
+  const allItems = [
     { key: 'smartImport', label: 'Smart Import', onClick: () => navTo('smartImport'), icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     ) },
@@ -293,6 +293,10 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword }) {
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     ) },
   ];
+  // Owner tools (Smart Import / Export / Chat Audit / Bugs) are hidden from
+  // staff — they keep only Change Password (+ the Push toggle below). The
+  // render relies on Change Password being the last entry, which holds.
+  const items = isOwner ? allItems : allItems.filter(it => it.key === 'password');
 
   return (
     <div data-more-menu style={{ display: 'inline-flex' }}>
@@ -626,6 +630,18 @@ function AuthedApp() {
   // the trainer list AND a trainee row still resolves a clientTrainee — that
   // dual-role state is what triggers the portal picker.
   const isTrainerEmail = TRAINER_EMAILS.includes(email);
+  // Owner = Ohad (full access). Anyone else in TRAINER_EMAILS is limited
+  // "staff" (e.g. Yuval) — coach portal, but a reduced surface. STAFF_TABS
+  // is the whitelist of tab keys a staff coach may reach (UI + URL guard).
+  const isOwner = OWNER_EMAILS.includes(email);
+  // Staff (e.g. Yuval, a masseur) gets his own Dashboard + Tasks + Athletes
+  // (Roster/Programs/Exercises). Same clients as Ohad, but money cards
+  // (Billing, revenue KPIs), leads/marketing (Incoming/Waitlist), Review,
+  // Challenges, and owner tools (Chat Audit, Bugs, Smart Import, Export) are
+  // all owner-only. A staff-tailored dashboard that shares some of Ohad's
+  // cards is future work; for now the dashboard renders with revenue
+  // suppressed (see DashboardView `isOwner` prop).
+  const STAFF_TABS = ['dashboard','tasks','trainees','plans','exercises'];
   const clientTrainee = useMemo(() => {
     if (!email) return null;
     return (trainees || []).find(t => {
@@ -739,7 +755,12 @@ function AuthedApp() {
   const initRoute = getRoute();
   const isCoach = isTrainer;
 
-  const [tab,setTab]=useState(isCoach ? (initRoute.tab || 'dashboard') : "client");
+  // A staff coach who deep-links to a tab outside STAFF_TABS falls back to
+  // their dashboard.
+  const coachInitialTab = isOwner
+    ? (initRoute.tab || 'dashboard')
+    : (STAFF_TABS.includes(initRoute.tab) ? initRoute.tab : 'dashboard');
+  const [tab,setTab]=useState(isCoach ? coachInitialTab : "client");
   const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
   const [previewTrainee,setPreviewTrainee]=useState(initRoute.preview ? initRoute.traineeId : null);
   const [previewPlan,setPreviewPlan]=useState(initRoute.planPreviewId || null);
@@ -818,6 +839,16 @@ function AuthedApp() {
     updateURL(newTab, newTrainee);
   }, [updateURL]);
 
+  // Staff URL guard: a limited coach (e.g. Yuval) who types/bookmarks an
+  // owner-only tab (billing, intake, waitlist, chat-audit, smart-import,
+  // challenges, bugs, …) gets bounced back to their dashboard. UI hides
+  // these tabs; this backstops direct navigation.
+  useEffect(() => {
+    if (isCoach && !isOwner && tab && !STAFF_TABS.includes(tab)) {
+      navTo('dashboard');
+    }
+  }, [isCoach, isOwner, tab, navTo]);
+
   // Earlier a one-time BILLING seed lived here that gated on
   // `!t.monthly` — it ran successfully on the first sign-in, then went
   // permanently dormant because every trainee then had `monthly` set.
@@ -875,6 +906,10 @@ function AuthedApp() {
     { key:'challenges', label:'Challenges', count:null },
     { key:'client',     label:'Portal',     count:null },
   ];
+  // Staff see only their whitelisted top-level tabs (the Athletes submenu's
+  // Roster/Programs/Exercises are all in STAFF_TABS, so the dropdown stays
+  // intact). Owner sees the full row.
+  const visibleTabs = isOwner ? tabs : tabs.filter(t => STAFF_TABS.includes(t.key));
 
   // Pre-compute plan counts per trainee. Counts roll up to the parent ID:
   // a plan on tr_xxx__0 or __1 (couple sub-members) also increments tr_xxx so
@@ -984,7 +1019,7 @@ function AuthedApp() {
                 count digit (fontSize:10) baseline-aligns with the label
                 (fontSize:11) instead of floating above it. See CoachDemo
                 line ~2755 for the full reasoning. */}
-            {tabs.map(t=>{
+            {visibleTabs.map(t=>{
               // A tab with `submenu` becomes a dropdown trigger.
               // Active-state for a submenu trigger fires when current
               // tab is any of the items' routes.
@@ -1016,7 +1051,7 @@ function AuthedApp() {
               nav; the cyan separators between items are the only
               dividers now. */}
           <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
-            <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} />
+            <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <ThemeToggle size={32} />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
@@ -1027,7 +1062,7 @@ function AuthedApp() {
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
-          {tab==="dashboard"&&<DashboardView trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
+          {tab==="dashboard"&&<DashboardView isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}
           {tab==="chatAudit"&&<ChatAuditView/>}
