@@ -47,6 +47,7 @@ import {
   getTokenScopes,
   subscribeAndCacheProviderToken,
   GoogleCalendarAuthError,
+  fetchUpcomingEvents,
 } from './googleCalendarSync';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -741,9 +742,37 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
 // from Google's embed surface. The user must be signed into Google in
 // the same browser for the calendar to render (which they will be, since
 // the GIS connect flow above primed that session).
-function CalendarEmbedCard() {
+function CalendarEmbedCard({ connected }) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState(null);
+  // API-fetched events — shown as an agenda above the iframe so the events are
+  // visible on ANY browser/account (the iframe only renders when the viewer's
+  // browser is signed into Google as the calendar owner; the API doesn't care).
+  const [events, setEvents] = useState(null);
+  const [evtErr, setEvtErr] = useState(false);
+  const [evtLoading, setEvtLoading] = useState(false);
+  const loadEvents = React.useCallback(() => {
+    setEvtLoading(true); setEvtErr(false);
+    fetchUpcomingEvents({ maxResults: 20 })
+      .then((list) => { setEvents(list); setEvtErr(false); })
+      .catch(() => { setEvents(null); setEvtErr(true); })
+      .finally(() => setEvtLoading(false));
+  }, []);
+  useEffect(() => {
+    if (connected) loadEvents();
+    else { setEvents(null); setEvtErr(false); }
+  }, [connected, loadEvents]);
+  const dayLabel = (iso) => {
+    const d = new Date(iso);
+    const t0 = new Date(); t0.setHours(0,0,0,0);
+    const dd = new Date(d); dd.setHours(0,0,0,0);
+    const diff = Math.round((dd - t0) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Tomorrow';
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+  const timeLabel = (ev) => ev.allDay ? 'All day'
+    : new Date(ev.start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getUser().then(({ data }) => {
@@ -800,6 +829,30 @@ function CalendarEmbedCard() {
           textTransform: 'uppercase',
         }}>{open ? 'Collapse' : 'Expand'}</span>
       </button>
+      {/* API-fetched agenda — visible on any browser/account (works even when
+          the iframe below can't auth because the browser isn't signed into
+          Google as this calendar's owner). */}
+      {connected && (events || evtErr || evtLoading) && (
+        <div style={{ borderTop: `1px solid var(--c-cardBd)`, padding: '8px 14px' }}>
+          {evtLoading && !events && <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-td)' }}>Loading events…</div>}
+          {evtErr && <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-ac)' }}>Couldn't load events — reconnect Google Calendar, then refresh.</div>}
+          {!evtErr && events && events.length === 0 && (
+            <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-td)' }}>No upcoming events.</div>
+          )}
+          {!evtErr && events && events.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 220, overflowY: 'auto' }}>
+              {events.map((ev) => (
+                <a key={ev.id} href={ev.htmlLink || fullCalendarHref} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'baseline', gap: 10, textDecoration: 'none', padding: '3px 0' }}>
+                  <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: 'var(--c-ac)', letterSpacing: '0.04em', minWidth: 84, flexShrink: 0, textTransform: 'uppercase' }}>{dayLabel(ev.start)}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', minWidth: 48, flexShrink: 0 }}>{timeLabel(ev)}</span>
+                  <span style={{ flex: 1, fontFamily: FB, fontSize: 13, color: 'var(--c-tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ev.title}</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {open && (
         <div style={{
           borderTop: `1px solid var(--c-cardBd)`,
@@ -2026,7 +2079,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         )}
       </div>
 
-      <CalendarEmbedCard />
+      <CalendarEmbedCard connected={gcalConnected} />
 
       {/* Owner tabs + view toggle */}
       <div style={{
