@@ -2019,7 +2019,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <button onClick={() => { const nextId = findNextUnreviewed(); if (nextId) { setSelectedWo(nextId); setExpandedEx(null); window.scrollTo(0,0); } }}
                 title="Jump to next pending workout"
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
-                  background:C.ac,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
+                  background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
                 → NEXT PENDING ({remainingAfter})
               </button>
@@ -2035,7 +2035,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             <button onClick={saveAndNext}
               title="Mark reviewed and jump to the next pending workout (⌘/Ctrl + Enter)"
               style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
-                background:C.ac,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
+                background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                 letterSpacing:0.5,cursor:"pointer"}}>
               ✓ MARK REVIEWED {remainingAfter > 0 ? `& NEXT (${remainingAfter} LEFT)` : '— BACK TO LIST'}
             </button>
