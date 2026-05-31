@@ -634,14 +634,13 @@ function AuthedApp() {
   // "staff" (e.g. Yuval) — coach portal, but a reduced surface. STAFF_TABS
   // is the whitelist of tab keys a staff coach may reach (UI + URL guard).
   const isOwner = OWNER_EMAILS.includes(email);
-  // Staff (e.g. Yuval, a masseur) gets his own Dashboard + Tasks + Athletes
-  // (Roster/Programs/Exercises). Same clients as Ohad, but money cards
-  // (Billing, revenue KPIs), leads/marketing (Incoming/Waitlist), Review,
-  // Challenges, and owner tools (Chat Audit, Bugs, Smart Import, Export) are
-  // all owner-only. A staff-tailored dashboard that shares some of Ohad's
-  // cards is future work; for now the dashboard renders with revenue
-  // suppressed (see DashboardView `isOwner` prop).
-  const STAFF_TABS = ['dashboard','tasks','trainees','plans','exercises'];
+  // Staff (e.g. Yuval, a masseur) gets Dashboard + Tasks only for now. Athletes
+  // (Roster/Programs/Exercises) and every athlete-derived surface are removed
+  // per Ohad — alongside money (Billing, revenue KPIs), leads/marketing
+  // (Incoming/Waitlist), Review, Challenges, and owner tools (Chat Audit, Bugs,
+  // Smart Import, Export). A staff-tailored dashboard is future work; for now
+  // his dashboard is just his task queue (see DashboardView `isOwner` branch).
+  const STAFF_TABS = ['dashboard','tasks'];
   const clientTrainee = useMemo(() => {
     if (!email) return null;
     return (trainees || []).find(t => {

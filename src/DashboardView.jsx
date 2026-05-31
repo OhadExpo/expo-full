@@ -339,6 +339,22 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trainees.length]);
 
+  // Staff (e.g. Yuval) — Athletes and every athlete-derived surface (KPIs,
+  // roster table, alert cards, messages, revenue) are removed for now per Ohad.
+  // Their dashboard is just the task queue: their own tasks + shared. Athlete
+  // navigation from tasks is suppressed (no Athletes tab to land on).
+  if (!isOwner) {
+    return (
+      <div>
+        <NotesWidget compact
+          viewerOwner="yuval"
+          trainees={trainees}
+          onOpenFullTasks={onOpenTasksTab}
+          onNavigate={() => {}} />
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Summary cards */}
