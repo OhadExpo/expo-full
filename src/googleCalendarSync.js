@@ -235,27 +235,6 @@ export class GoogleCalendarAuthError extends Error {
   constructor(message) { super(message); this.name = 'GoogleCalendarAuthError'; }
 }
 
-// Upcoming events from the user's primary calendar via the API (our OAuth
-// token). Unlike the embed iframe, this works on ANY browser/account — the
-// iframe needs the viewer's browser signed into Google, the API doesn't.
-export async function fetchUpcomingEvents({ maxResults = 30, days = 45 } = {}) {
-  const now = new Date();
-  const timeMin = now.toISOString();
-  const timeMax = new Date(now.getTime() + days * 86400000).toISOString();
-  const data = await gcalFetch(
-    `/calendars/primary/events?singleEvents=true&orderBy=startTime&maxResults=${maxResults}`
-    + `&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
-  );
-  const items = Array.isArray(data?.items) ? data.items : [];
-  return items.map(e => ({
-    id: e.id,
-    title: (e.summary || '(no title)').trim(),
-    start: e.start?.dateTime || e.start?.date || null,
-    allDay: !e.start?.dateTime,
-    htmlLink: e.htmlLink || null,
-  })).filter(e => e.start);
-}
-
 
 
 // ── Tag-based event-id store ─────────────────────────────────────────
