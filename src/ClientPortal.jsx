@@ -1607,7 +1607,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>
         </div>
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:18}}>
-          <h1 style={{margin:0,fontFamily:FN,fontSize:18,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}>Hey {clientName.split(' ')[0]} 💪</h1>
+          <h1 style={{margin:0,fontFamily:FN,fontSize:18,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}>Hey {clientName.split(' ')[0]}</h1>
           <div style={{width:24,height:1,background:C.ac,marginTop:8,opacity:0.5}}/>
         </div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:14}}>

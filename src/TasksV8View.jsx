@@ -47,6 +47,7 @@ import {
   getTokenScopes,
   subscribeAndCacheProviderToken,
   GoogleCalendarAuthError,
+  fetchUpcomingEvents,
 } from './googleCalendarSync';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -145,6 +146,15 @@ function dueAtFromBody(body) {
   const iso = time ? `${date}T${time}:00` : `${date}T09:00:00`;
   const d = new Date(iso);
   return isNaN(d.getTime()) ? null : d.toISOString();
+}
+// The explicit clock time on a due ("· due 2026-05-31 11:15" → "11:15"), or
+// null when the task is date-only (so the row can show the time when set
+// instead of just "TODAY"). Hour is zero-padded for display.
+function dueTimeFromBody(body) {
+  const m = (body || '').match(DUE_RE);
+  if (!m || !m[2]) return null;
+  const [h, mm] = m[2].split(':');
+  return `${String(h).padStart(2, '0')}:${mm}`;
 }
 function stripDueSuffix(body) {
   return (body || '').replace(DUE_RE, '');
@@ -720,80 +730,70 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
 // from Google's embed surface. The user must be signed into Google in
 // the same browser for the calendar to render (which they will be, since
 // the GIS connect flow above primed that session).
-function CalendarEmbedCard() {
-  const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState(null);
-  useEffect(() => {
-    let cancelled = false;
-    supabase.auth.getUser().then(({ data }) => {
-      if (cancelled) return;
-      setEmail(data?.user?.email || 'ohadyproductions@gmail.com');
-    }).catch(() => {
-      if (!cancelled) setEmail('ohadyproductions@gmail.com');
-    });
-    return () => { cancelled = true; };
-  }, []);
-  const src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(email || 'ohadyproductions@gmail.com')}&ctz=Asia%2FJerusalem&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0`;
-  // Google Calendar's embed URL strips the Tasks layer (Google decision —
-  // not a parameter we can flip). Surface a direct link to the full view
-  // where Tasks ARE visible, opened in a new tab.
+// Upcoming-events panel, rendered from the Calendar API (not the embed
+// iframe — the embed needs the viewer's browser to be signed into Google, so
+// it failed for anyone who only did the OAuth popup). Uses our token, so it
+// works for every connected user. Full View link opens the real Google
+// Calendar (where the browser's own login + Tasks layer apply).
+function CalendarEmbedCard({ connected }) {
+  const [events, setEvents] = useState(null);
+  const [err, setErr] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const refined = isRefined5b();
   const fullCalendarHref = 'https://calendar.google.com/calendar/u/0/r';
+
+  const load = React.useCallback(() => {
+    setLoading(true); setErr(false);
+    fetchUpcomingEvents({ maxResults: 30 })
+      .then((list) => { setEvents(list); setErr(false); })
+      .catch(() => { setEvents(null); setErr(true); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (connected) load();
+    else { setEvents(null); setErr(false); }
+  }, [connected, load]);
+
+  if (!connected) return null; // Connect button lives in the header bar above.
+
+  const dayLabel = (iso) => {
+    const d = new Date(iso);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dd = new Date(d); dd.setHours(0,0,0,0);
+    const diff = Math.round((dd - today) / 86400000);
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Tomorrow';
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+  const timeLabel = (ev) => ev.allDay ? 'All day'
+    : new Date(ev.start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
   return (
-    <div style={{
-      border: `1px solid var(--c-cardBd)`,
-      background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
-      marginBottom: 12,
-    }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        title={open ? 'Collapse calendar' : 'Expand calendar'}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-          background: 'transparent', border: 'none', cursor: 'pointer',
-          padding: '10px 14px', textAlign: 'left',
-        }}>
-        <span style={{
-          fontFamily: FN, fontSize: 12, fontWeight: 700,
-          color: 'var(--c-tm)',
-          transition: 'transform 120ms ease',
-          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-        }}>▾</span>
-        <span style={{
-          fontFamily: FN, fontSize: 11, fontWeight: 700,
-          color: 'var(--c-tx)', letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-        }}>📅 Google Calendar</span>
+    <div style={{ border: `1px solid var(--c-cardBd)`, background: refined ? '#FFFFFF' : 'var(--c-sf)', marginBottom: 12, padding: '10px 14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: (events && events.length) || err ? 10 : 0 }}>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--c-tx)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Calendar</span>
         <span style={{ flex: 1 }} />
         <a href={fullCalendarHref} target="_blank" rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          title="Open full Google Calendar (with Tasks layer + multi-calendar) in a new tab"
-          style={{
-            fontFamily: FN, fontSize: 9, fontWeight: 700,
-            color: 'var(--c-ac)', letterSpacing: '0.12em',
-            textTransform: 'uppercase', textDecoration: 'none',
-            border: '1px solid var(--c-ac)', padding: '3px 8px',
-          }}>↗ Full View</a>
-        <span style={{
-          fontFamily: FN, fontSize: 9, fontWeight: 600,
-          color: 'var(--c-td)', letterSpacing: '0.04em',
-          textTransform: 'uppercase',
-        }}>{open ? 'Collapse' : 'Expand'}</span>
-      </button>
-      {open && (
-        <div style={{
-          borderTop: `1px solid var(--c-cardBd)`,
-          background: 'var(--c-bg)',
-          animation: 'tasks-v8-slide-in 200ms ease-out',
-        }}>
-          <iframe
-            title="Google Calendar"
-            src={src}
-            style={{
-              border: 0, width: '100%', height: 600,
-              display: 'block',
-            }}
-            loading="lazy"
-          />
+          title="Open full Google Calendar in a new tab"
+          style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-ac)', letterSpacing: '0.12em', textTransform: 'uppercase', textDecoration: 'none', border: '1px solid var(--c-ac)', padding: '3px 8px' }}>↗ Full View</a>
+        <button onClick={load} disabled={loading} title="Refresh"
+          style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-tm)', letterSpacing: '0.12em', textTransform: 'uppercase', background: 'transparent', border: `1px solid var(--c-cardBd)`, padding: '3px 8px', cursor: loading ? 'wait' : 'pointer' }}>{loading ? '…' : '↻'}</button>
+      </div>
+      {err && <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-ac)' }}>Couldn't load events — tap Reconnect above, then refresh.</div>}
+      {!err && events && events.length === 0 && (
+        <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-td)' }}>No upcoming events.</div>
+      )}
+      {!err && events && events.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
+          {events.map((ev) => (
+            <a key={ev.id} href={ev.htmlLink || fullCalendarHref} target="_blank" rel="noopener noreferrer"
+              style={{ display: 'flex', alignItems: 'baseline', gap: 10, textDecoration: 'none', padding: '4px 0', borderBottom: `1px solid var(--c-cardBd)` }}>
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: 'var(--c-ac)', letterSpacing: '0.04em', minWidth: 84, flexShrink: 0, textTransform: 'uppercase' }}>{dayLabel(ev.start)}</span>
+              <span style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', minWidth: 50, flexShrink: 0 }}>{timeLabel(ev)}</span>
+              <span style={{ flex: 1, fontFamily: FB, fontSize: 13, color: 'var(--c-tx)' }}>{ev.title}</span>
+            </a>
+          ))}
         </div>
       )}
     </div>
@@ -1414,12 +1414,14 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         )}
         <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} />
         <span style={{
-          fontFamily: FN, fontSize: 10, fontWeight: 700,
-          color: hasDue ? dm.color : 'var(--c-td)',
-          letterSpacing: '0.04em',
-          width: 56, textAlign: 'right',
-          flexShrink: 0,
-        }}>{hasDue ? dm.label : '—'}</span>
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center',
+          width: 56, flexShrink: 0, lineHeight: 1.15,
+        }}>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: hasDue ? dm.color : 'var(--c-td)', letterSpacing: '0.04em' }}>{hasDue ? dm.label : '—'}</span>
+          {hasDue && row._dueTime && (
+            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-tm)', letterSpacing: '0.02em' }}>{row._dueTime}</span>
+          )}
+        </span>
       </div>
       {expanded && (
         <div style={{
@@ -1692,6 +1694,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       _owner: o,
       _priority: p,
       _dueAt: dueAt,
+      _dueTime: dueTimeFromBody(r.body), // explicit HH:MM, or null if date-only
       _approvals: approvals, // null for non-shared, {ohad, yuval} for shared
       // _display = title only (owner + priority + due all stripped). This is
       // what the row, search, and Calendar sync should show / match against.
@@ -1994,7 +1997,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         )}
       </div>
 
-      <CalendarEmbedCard />
+      <CalendarEmbedCard connected={gcalConnected} />
 
       {/* Owner tabs + view toggle */}
       <div style={{
@@ -2217,6 +2220,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 _owner,
                 _priority: priorityFromBody(row.body),
                 _dueAt: dueAtFromBody(row.body),
+                _dueTime: dueTimeFromBody(row.body),
                 _approvals: _owner === 'shared' ? approvalsFromTags(row.tags) : null,
                 _display: displayBodyOf(row.body),
               };
