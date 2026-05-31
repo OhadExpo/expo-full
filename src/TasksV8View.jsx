@@ -552,7 +552,13 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
   return (
     <div
       onFocus={() => setFocused(true)}
-      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false); }}
+      onBlur={(e) => {
+        // Collapse only on a real focus move to an element OUTSIDE the composer.
+        // A null relatedTarget means focus went to a native popup (the <select>
+        // dropdown, the date picker) or nowhere — NOT a dismissal — so keep the
+        // composer open; otherwise opening those controls would collapse it.
+        if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget)) setFocused(false);
+      }}
       style={{
       borderBottom: `1px solid var(--c-cardBd)`,
       background: 'var(--c-sf2, transparent)',
