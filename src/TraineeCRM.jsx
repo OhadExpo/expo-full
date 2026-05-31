@@ -30,10 +30,13 @@ import NotesInline from './NotesInline';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
-const KIND_ICON = {
-  whatsapp: '🟢', call: '☎', meeting: '🤝', note: '🗒',
-  email: '✉', instagram: '📷', sms: '💬',
-  session: '🏋', plan: '📋', payment: '₪', task: '✓',
+// Category colour per activity kind — replaces emojis (brand is cyan/mono,
+// no emojis). Contact = cyan, messaging = green, money/training = green,
+// notes = muted. Rendered as a small dot, matching the CadencePill.
+const KIND_COLOR = {
+  whatsapp: C.gn, sms: C.gn, call: C.ac, meeting: C.ac,
+  email: C.ac, instagram: C.ac, note: C.tm,
+  session: C.gn, plan: C.ac, payment: C.gn, task: C.ac,
 };
 
 const KIND_LABEL = {
@@ -109,12 +112,13 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex, bareMode =
             display: 'flex', gap: 10, padding: '8px 0',
             borderBottom: `1px solid ${C.cardBd}`,
           }}>
-            <div style={{ flexShrink: 0, fontSize: 14, width: 22, textAlign: 'center' }}>
-              {KIND_ICON[ev.kind] || '•'}
+            <div style={{ flexShrink: 0, width: 14, display: 'flex', justifyContent: 'center', paddingTop: 5 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: KIND_COLOR[ev.kind] || C.tm, flexShrink: 0 }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 9, fontFamily: FN, color: C.td, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 2 }}>
-                {KIND_LABEL[ev.kind] || ev.kind.toUpperCase()} · {new Date(ev.ts).toLocaleString()}
+              <div style={{ fontSize: 9, fontFamily: FN, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 3 }}>
+                <span style={{ color: KIND_COLOR[ev.kind] || C.tm }}>{KIND_LABEL[ev.kind] || ev.kind.toUpperCase()}</span>
+                <span style={{ color: C.td }}> · {new Date(ev.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(ev.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
                 {!isManual && <span style={{ marginLeft: 6, color: C.tm }}>· AUTO</span>}
               </div>
               <div dir="auto" style={{
@@ -231,7 +235,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
                 background: 'transparent', color: kind === k ? C.ac : C.tm,
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
                 cursor: 'pointer',
-              }}>{KIND_ICON[k]} {KIND_LABEL[k]}</button>
+              }}>{KIND_LABEL[k]}</button>
           ))}
         </div>
         <textarea value={summary} onChange={e => setSummary(e.target.value)} dir="auto"
