@@ -409,40 +409,59 @@ export function OfflineStatusPill() {
 // onPick(side) is wired in App.jsx — it sets the same sessionStorage key and
 // triggers a re-render.
 export const PORTAL_CHOICE_KEY = 'expo-portal-choice'; // 'trainer' | 'client'
+// Deliberately NOT the EntryChooser split-screen — this is a compact, centered
+// "destination" chooser (numbered stacked rows) so the post-login portal pick
+// reads differently from the public sign-in front door, while keeping the EXPO
+// dark / cyan-hairline / mono brand.
 export function RolePickerScreen({ name, onPick, onSignOut }) {
-  const card = (label, sub, side) => (
-    <button
-      onClick={() => onPick(side)}
+  const Row = ({ idx, title, sub, side }) => (
+    <button onClick={() => onPick(side)} className="rp-row"
       style={{
-        background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '28px 24px',
-        color: C.tx, fontFamily: FB, cursor: 'pointer', textAlign: 'center',
-        display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220,
-        transition: 'border-color 120ms, transform 120ms',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.transform = 'translateY(-2px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = `${C.cardBd}`; e.currentTarget.style.transform = 'translateY(0)'; }}
-    >
-      <div style={{ fontSize: 32 }}>{side === 'trainer' ? '🧠' : '💪'}</div>
-      <div style={{ fontSize: 16, fontWeight: 700 }}>{label}</div>
-      <div style={{ fontSize: 12, color: C.tm }}>{sub}</div>
+        display: 'flex', alignItems: 'center', gap: 18, width: '100%',
+        background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
+        padding: '20px 22px', cursor: 'pointer', textAlign: 'left', color: C.tx, fontFamily: FB,
+      }}>
+      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac, letterSpacing: '0.1em', minWidth: 22 }}>{idx}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontFamily: FN, fontSize: 15, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{title}</span>
+        <span style={{ display: 'block', fontSize: 12.5, color: C.tm, marginTop: 3 }}>{sub}</span>
+      </span>
+      <span className="rp-arrow" aria-hidden="true" style={{ fontFamily: FN, fontSize: 18, color: C.ac }}>→</span>
     </button>
   );
   return (
-    <div data-theme="dark" style={{ ...wrapStyle, padding: '20px' }}>
-      <div style={{ width: '100%', maxWidth: 380, padding: '0 28px', boxSizing: 'border-box', textAlign: 'center', marginBottom: 28 }}>
-        <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', width: '100%', height: 'auto', maxHeight: '20vh', objectFit: 'contain', marginBottom: 12 }} />
-        <div style={{ color: C.tm, fontSize: 15 }}>Hey {name || 'there'} — which side today?</div>
+    <div data-theme="dark" style={{
+      background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      padding: '24px',
+      // Centered radial cyan wash — brand glow, but composed toward the middle
+      // (vs EntryChooser's bottom-anchored per-panel gradients).
+      backgroundImage: `radial-gradient(ellipse 80% 55% at 50% 38%, ${C.ac}1f 0%, transparent 70%)`,
+    }}>
+      <style>{`
+        .rp-row { transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
+        .rp-row:hover { border-color: var(--c-ac) !important; background: rgba(57,189,255,0.07) !important; transform: translateY(-1px); }
+        .rp-row:hover .rp-arrow { transform: translateX(4px); transition: transform 160ms ease; }
+        @keyframes rp-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+      <div style={{ width: '100%', maxWidth: 460, animation: 'rp-in 480ms ease both' }}>
+        <div style={{ textAlign: 'center', marginBottom: 30 }}>
+          <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', height: 42, width: 'auto', margin: '0 auto 22px', objectFit: 'contain' }} />
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.28em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Choose your portal</div>
+          <div style={{ color: C.tx, fontSize: 16, fontWeight: 600 }}>Hey {name || 'there'} 👋</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Row idx="01" title="Coach Portal" sub="Manage tasks, athletes & plans" side="trainer" />
+          <Row idx="02" title="Training Portal" sub="Your own program & workouts" side="client" />
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 26 }}>
+          <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.14em' }}>
+            {name || 'Signed in'}
+            <span style={{ margin: '0 9px', opacity: 0.5 }}>·</span>
+            <button onClick={onSignOut} style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FN, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', padding: 0 }}>Sign out</button>
+          </span>
+        </div>
       </div>
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {card('Coach Portal', 'Manage clients & plans', 'trainer')}
-        {card('Training Portal', 'View your own program', 'client')}
-      </div>
-      <button
-        onClick={onSignOut}
-        style={{ marginTop: 28, background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontFamily: FB, fontSize: 12 }}
-      >
-        Sign out
-      </button>
     </div>
   );
 }
