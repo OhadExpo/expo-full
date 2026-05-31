@@ -528,7 +528,11 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
   const [source, setSource] = useState('manual'); // 'manual' | 'center'
   const [focused, setFocused] = useState(false);
   const inputRef = React.useRef(null);
-  const expanded = focused || body.trim() !== '';
+  // Stay expanded while focus is anywhere inside the composer, OR once any
+  // field has been touched. Without this, clicking the date / time / athlete
+  // controls (which steal focus from the title input) collapsed the whole
+  // composer mid-edit whenever the title was still empty.
+  const expanded = focused || body.trim() !== '' || !!due || !!time || !!traineeId || priority !== 'normal';
 
   const submit = async () => {
     const trimmed = body.trim();
@@ -546,7 +550,10 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
   };
 
   return (
-    <div style={{
+    <div
+      onFocus={() => setFocused(true)}
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setFocused(false); }}
+      style={{
       borderBottom: `1px solid var(--c-cardBd)`,
       background: 'var(--c-sf2, transparent)',
       transition: 'padding 180ms ease',
@@ -564,8 +571,6 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           type="text"
           value={body}
           onChange={(e) => setBody(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 180)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
           placeholder="Add task…"
           style={{
