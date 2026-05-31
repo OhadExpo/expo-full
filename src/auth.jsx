@@ -449,15 +449,18 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', height: 44, width: 'auto', margin: '0 auto 22px', objectFit: 'contain' }} />
           <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 10 }}>Choose your portal</div>
-          {/* Render in Heebo (FH) so the Latin "Hey" and the Hebrew name use ONE
-              typeface — Nord (the default Latin face) lacks Hebrew, so a mixed
-              greeting fell back to a taller Hebrew font and the two looked
-              different sizes. */}
-          <div style={{ color: C.tx, fontFamily: FH, fontSize: 17, fontWeight: 600, lineHeight: 1.3 }}>Hey {name || 'there'}</div>
+          {/* "HEY" in Nord (FB), the Hebrew name in Heebo (FH). Nord caps render
+              taller than Heebo glyphs at the same px (measured: 12px vs 10px ink
+              at 17px), so HEY is set to 14px to match the name's visual height.
+              Vertically centered so the two sit at the same height. */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1 }}>
+            <span style={{ fontFamily: FB, fontSize: 14, letterSpacing: '0.06em' }}>HEY</span>
+            <span style={{ fontFamily: FH, fontSize: 17 }}>{name || 'there'}</span>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          <Card kicker="Manage" title="Coach Portal" sub="Tasks, athletes & plans" side="trainer" />
-          <Card kicker="Train" title="Training Portal" sub="Your own program & workouts" side="client" />
+          <Card kicker="Manage" title="Coach" sub="Tasks, athletes & plans" side="trainer" />
+          <Card kicker="Workout" title="Train" sub="Your own program & workouts" side="client" />
         </div>
         <div style={{ textAlign: 'center', marginTop: 28 }}>
           <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.14em' }}>
