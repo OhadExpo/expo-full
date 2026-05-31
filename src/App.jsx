@@ -908,8 +908,12 @@ function AuthedApp() {
   ];
   // Staff see only their whitelisted top-level tabs (the Athletes submenu's
   // Roster/Programs/Exercises are all in STAFF_TABS, so the dropdown stays
-  // intact). Owner sees the full row.
-  const visibleTabs = isOwner ? tabs : tabs.filter(t => STAFF_TABS.includes(t.key));
+  // intact). The Portal tab stays for dual-role staff (e.g. Yuval, who is
+  // also an athlete) so they can switch to their own training portal. Owner
+  // sees the full row.
+  const visibleTabs = isOwner
+    ? tabs
+    : tabs.filter(t => STAFF_TABS.includes(t.key) || (t.key === 'client' && isBoth));
 
   // Pre-compute plan counts per trainee. Counts roll up to the parent ID:
   // a plan on tr_xxx__0 or __1 (couple sub-members) also increments tr_xxx so
