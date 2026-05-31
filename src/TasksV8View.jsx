@@ -47,7 +47,6 @@ import {
   getTokenScopes,
   subscribeAndCacheProviderToken,
   GoogleCalendarAuthError,
-  fetchUpcomingEvents,
 } from './googleCalendarSync';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -302,8 +301,20 @@ function StatusIconGlyph({ status, theme, size = 16 }) {
     }}>{opt.glyph}</span>
   );
 }
-function StatusPill({ status, theme, onSetStatus }) {
+function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const [open, setOpen] = useState(false);
+  // Read-only (another partner's task): show the status glyph but don't let
+  // the viewer open the menu / change it.
+  if (readOnly) {
+    return (
+      <span title="Read-only — this is the other partner's task" style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: 22, height: 22, flexShrink: 0, opacity: 0.7,
+      }}>
+        <StatusIconGlyph status={status} theme={theme} size={16} />
+      </span>
+    );
+  }
   return (
     <span style={{ position: 'relative', display: 'inline-flex' }}>
       <button
@@ -730,70 +741,80 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
 // from Google's embed surface. The user must be signed into Google in
 // the same browser for the calendar to render (which they will be, since
 // the GIS connect flow above primed that session).
-// Upcoming-events panel, rendered from the Calendar API (not the embed
-// iframe — the embed needs the viewer's browser to be signed into Google, so
-// it failed for anyone who only did the OAuth popup). Uses our token, so it
-// works for every connected user. Full View link opens the real Google
-// Calendar (where the browser's own login + Tasks layer apply).
-function CalendarEmbedCard({ connected }) {
-  const [events, setEvents] = useState(null);
-  const [err, setErr] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const refined = isRefined5b();
-  const fullCalendarHref = 'https://calendar.google.com/calendar/u/0/r';
-
-  const load = React.useCallback(() => {
-    setLoading(true); setErr(false);
-    fetchUpcomingEvents({ maxResults: 30 })
-      .then((list) => { setEvents(list); setErr(false); })
-      .catch(() => { setEvents(null); setErr(true); })
-      .finally(() => setLoading(false));
-  }, []);
-
+function CalendarEmbedCard() {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(null);
   useEffect(() => {
-    if (connected) load();
-    else { setEvents(null); setErr(false); }
-  }, [connected, load]);
-
-  if (!connected) return null; // Connect button lives in the header bar above.
-
-  const dayLabel = (iso) => {
-    const d = new Date(iso);
-    const today = new Date(); today.setHours(0,0,0,0);
-    const dd = new Date(d); dd.setHours(0,0,0,0);
-    const diff = Math.round((dd - today) / 86400000);
-    if (diff === 0) return 'Today';
-    if (diff === 1) return 'Tomorrow';
-    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  };
-  const timeLabel = (ev) => ev.allDay ? 'All day'
-    : new Date(ev.start).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return;
+      setEmail(data?.user?.email || 'ohadyproductions@gmail.com');
+    }).catch(() => {
+      if (!cancelled) setEmail('ohadyproductions@gmail.com');
+    });
+    return () => { cancelled = true; };
+  }, []);
+  const src = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(email || 'ohadyproductions@gmail.com')}&ctz=Asia%2FJerusalem&mode=WEEK&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=0`;
+  // Google Calendar's embed URL strips the Tasks layer (Google decision —
+  // not a parameter we can flip). Surface a direct link to the full view
+  // where Tasks ARE visible, opened in a new tab.
+  const fullCalendarHref = 'https://calendar.google.com/calendar/u/0/r';
   return (
-    <div style={{ border: `1px solid var(--c-cardBd)`, background: refined ? '#FFFFFF' : 'var(--c-sf)', marginBottom: 12, padding: '10px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: (events && events.length) || err ? 10 : 0 }}>
-        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: 'var(--c-tx)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Calendar</span>
+    <div style={{
+      border: `1px solid var(--c-cardBd)`,
+      background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+      marginBottom: 12,
+    }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        title={open ? 'Collapse calendar' : 'Expand calendar'}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          padding: '10px 14px', textAlign: 'left',
+        }}>
+        <span style={{
+          fontFamily: FN, fontSize: 12, fontWeight: 700,
+          color: 'var(--c-tm)',
+          transition: 'transform 120ms ease',
+          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+        }}>▾</span>
+        <span style={{
+          fontFamily: FN, fontSize: 11, fontWeight: 700,
+          color: 'var(--c-tx)', letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+        }}>📅 Google Calendar</span>
         <span style={{ flex: 1 }} />
         <a href={fullCalendarHref} target="_blank" rel="noopener noreferrer"
-          title="Open full Google Calendar in a new tab"
-          style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-ac)', letterSpacing: '0.12em', textTransform: 'uppercase', textDecoration: 'none', border: '1px solid var(--c-ac)', padding: '3px 8px' }}>↗ Full View</a>
-        <button onClick={load} disabled={loading} title="Refresh"
-          style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: 'var(--c-tm)', letterSpacing: '0.12em', textTransform: 'uppercase', background: 'transparent', border: `1px solid var(--c-cardBd)`, padding: '3px 8px', cursor: loading ? 'wait' : 'pointer' }}>{loading ? '…' : '↻'}</button>
-      </div>
-      {err && <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-ac)' }}>Couldn't load events — tap Reconnect above, then refresh.</div>}
-      {!err && events && events.length === 0 && (
-        <div style={{ fontFamily: FB, fontSize: 12, color: 'var(--c-td)' }}>No upcoming events.</div>
-      )}
-      {!err && events && events.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
-          {events.map((ev) => (
-            <a key={ev.id} href={ev.htmlLink || fullCalendarHref} target="_blank" rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'baseline', gap: 10, textDecoration: 'none', padding: '4px 0', borderBottom: `1px solid var(--c-cardBd)` }}>
-              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: 'var(--c-ac)', letterSpacing: '0.04em', minWidth: 84, flexShrink: 0, textTransform: 'uppercase' }}>{dayLabel(ev.start)}</span>
-              <span style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', minWidth: 50, flexShrink: 0 }}>{timeLabel(ev)}</span>
-              <span style={{ flex: 1, fontFamily: FB, fontSize: 13, color: 'var(--c-tx)' }}>{ev.title}</span>
-            </a>
-          ))}
+          onClick={(e) => e.stopPropagation()}
+          title="Open full Google Calendar (with Tasks layer + multi-calendar) in a new tab"
+          style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 700,
+            color: 'var(--c-ac)', letterSpacing: '0.12em',
+            textTransform: 'uppercase', textDecoration: 'none',
+            border: '1px solid var(--c-ac)', padding: '3px 8px',
+          }}>↗ Full View</a>
+        <span style={{
+          fontFamily: FN, fontSize: 9, fontWeight: 600,
+          color: 'var(--c-td)', letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+        }}>{open ? 'Collapse' : 'Expand'}</span>
+      </button>
+      {open && (
+        <div style={{
+          borderTop: `1px solid var(--c-cardBd)`,
+          background: 'var(--c-bg)',
+          animation: 'tasks-v8-slide-in 200ms ease-out',
+        }}>
+          <iframe
+            title="Google Calendar"
+            src={src}
+            style={{
+              border: 0, width: '100%', height: 600,
+              display: 'block',
+            }}
+            loading="lazy"
+          />
         </div>
       )}
     </div>
@@ -1997,7 +2018,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         )}
       </div>
 
-      <CalendarEmbedCard connected={gcalConnected} />
+      <CalendarEmbedCard />
 
       {/* Owner tabs + view toggle */}
       <div style={{
@@ -2005,11 +2026,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {/* Viewer-perspective owner tabs. Ohad sees Ohad + Shared (his
-              queue); Yuval will see Yuval + Shared once he has his own
-              auth identity. The OTHER's tab is hidden — there's no
-              productive reason to look at someone else's private queue.
-              Until Yuval logs in separately, viewer is always 'ohad'. */}
+          {/* Viewer-perspective owner tabs. (See-each-other read-only feature
+              lands next; reverted to per-viewer tabs to ship the calendar fix.) */}
           {viewerOwner !== 'yuval' && (
             <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')}   color={C.ac} />
           )}
