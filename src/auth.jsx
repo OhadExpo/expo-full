@@ -409,24 +409,27 @@ export function OfflineStatusPill() {
 // onPick(side) is wired in App.jsx — it sets the same sessionStorage key and
 // triggers a re-render.
 export const PORTAL_CHOICE_KEY = 'expo-portal-choice'; // 'trainer' | 'client'
-// Deliberately NOT the EntryChooser split-screen — this is a compact, centered
-// "destination" chooser (numbered stacked rows) so the post-login portal pick
-// reads differently from the public sign-in front door, while keeping the EXPO
-// dark / cyan-hairline / mono brand.
+// EXPO cyan brand (matches expo-app / expo-il): dark bg, cyan radial glow,
+// cyan-hairline cards that light up + glow on hover, mono headlines, cyan
+// ENTER CTA. Two centered cards (not the full-bleed split-screen sign-in
+// chooser). No emojis anywhere.
 export function RolePickerScreen({ name, onPick, onSignOut }) {
-  const Row = ({ idx, title, sub, side }) => (
-    <button onClick={() => onPick(side)} className="rp-row"
+  const Card = ({ kicker, title, sub, side }) => (
+    <button onClick={() => onPick(side)} className="rp-card"
       style={{
-        display: 'flex', alignItems: 'center', gap: 18, width: '100%',
-        background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-        padding: '20px 22px', cursor: 'pointer', textAlign: 'left', color: C.tx, fontFamily: FB,
+        flex: '1 1 0', minWidth: 220, position: 'relative', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-end',
+        gap: 12, minHeight: 250, padding: '28px 26px', borderRadius: 0,
+        background: `radial-gradient(ellipse 110% 80% at 50% 130%, ${C.ac}24 0%, transparent 62%), var(--c-sf)`,
+        border: `1px solid ${C.cardBd}`, cursor: 'pointer', textAlign: 'left',
+        color: C.tx, fontFamily: FB,
       }}>
-      <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: C.ac, letterSpacing: '0.1em', minWidth: 22 }}>{idx}</span>
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontFamily: FN, fontSize: 15, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{title}</span>
-        <span style={{ display: 'block', fontSize: 12.5, color: C.tm, marginTop: 3 }}>{sub}</span>
+      <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, letterSpacing: '0.26em', fontWeight: 700, textTransform: 'uppercase' }}>{kicker}</span>
+      <span style={{ fontFamily: FN, fontSize: 25, fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.05, textTransform: 'uppercase' }}>{title}</span>
+      <span style={{ fontSize: 13, color: C.tm, lineHeight: 1.5 }}>{sub}</span>
+      <span style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 18px', background: C.ac, color: '#0E0F12', fontFamily: FN, fontSize: 11, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+        Enter <span className="rp-arrow" aria-hidden="true">{'→'}</span>
       </span>
-      <span className="rp-arrow" aria-hidden="true" style={{ fontFamily: FN, fontSize: 18, color: C.ac }}>→</span>
     </button>
   );
   return (
@@ -434,27 +437,26 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
       background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       padding: '24px',
-      // Centered radial cyan wash — brand glow, but composed toward the middle
-      // (vs EntryChooser's bottom-anchored per-panel gradients).
-      backgroundImage: `radial-gradient(ellipse 80% 55% at 50% 38%, ${C.ac}1f 0%, transparent 70%)`,
+      backgroundImage: `radial-gradient(ellipse 80% 55% at 50% 36%, ${C.ac}1f 0%, transparent 70%)`,
     }}>
       <style>{`
-        .rp-row { transition: border-color 160ms ease, background 160ms ease, transform 160ms ease; }
-        .rp-row:hover { border-color: var(--c-ac) !important; background: rgba(57,189,255,0.07) !important; transform: translateY(-1px); }
-        .rp-row:hover .rp-arrow { transform: translateX(4px); transition: transform 160ms ease; }
+        .rp-card { transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease; }
+        .rp-card:hover { border-color: var(--c-ac) !important; transform: translateY(-3px); box-shadow: inset 0 0 0 1px var(--c-ac), 0 18px 40px rgba(57,189,255,0.18); }
+        .rp-card:hover .rp-arrow { display: inline-block; transform: translateX(4px); transition: transform 180ms ease; }
         @keyframes rp-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
-      <div style={{ width: '100%', maxWidth: 460, animation: 'rp-in 480ms ease both' }}>
-        <div style={{ textAlign: 'center', marginBottom: 30 }}>
-          <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', height: 42, width: 'auto', margin: '0 auto 22px', objectFit: 'contain' }} />
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.28em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Choose your portal</div>
-          <div style={{ color: C.tx, fontSize: 16, fontWeight: 600 }}>Hey {name || 'there'} 👋</div>
+      <div style={{ width: '100%', maxWidth: 620, animation: 'rp-in 480ms ease both' }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', height: 44, width: 'auto', margin: '0 auto 22px', objectFit: 'contain' }} />
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 10 }}>Choose your portal</div>
+          {/* "Hey" and the (Hebrew) name share one font-size so they sit at the same height. */}
+          <div style={{ color: C.tx, fontSize: 17, fontWeight: 600, lineHeight: 1.3 }}>Hey {name || 'there'}</div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <Row idx="01" title="Coach Portal" sub="Manage tasks, athletes & plans" side="trainer" />
-          <Row idx="02" title="Training Portal" sub="Your own program & workouts" side="client" />
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <Card kicker="Manage" title="Coach Portal" sub="Tasks, athletes & plans" side="trainer" />
+          <Card kicker="Train" title="Training Portal" sub="Your own program & workouts" side="client" />
         </div>
-        <div style={{ textAlign: 'center', marginTop: 26 }}>
+        <div style={{ textAlign: 'center', marginTop: 28 }}>
           <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.14em' }}>
             {name || 'Signed in'}
             <span style={{ margin: '0 9px', opacity: 0.5 }}>·</span>
@@ -475,8 +477,7 @@ export function UnauthorizedScreen({ email, onSignOut }) {
       </div>
       <div style={cardStyle}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: C.tx, marginBottom: 8 }}>Access Denied</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 14 }}>Access Denied</div>
           <div style={{ fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
             <strong style={{ color: C.ac }}>{email}</strong> is not registered.<br />
             Contact your coach to get access.
