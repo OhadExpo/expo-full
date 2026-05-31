@@ -1241,7 +1241,7 @@ function SharedApprovalBar({ row, onSetApproval }) {
   );
 }
 
-function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, onSetSharedApproval }) {
+function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, onSetSharedApproval, readOnly = false }) {
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag/glink/approved) out of the
   // visible tag list. Approvals are shown via SharedApprovalBar.
@@ -1280,7 +1280,9 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
       )}
       <SharedApprovalBar row={row} onSetApproval={onSetSharedApproval} />
       <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {gcalConnected ? (
+        {readOnly ? (
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Read-only — this is the other partner's task</span>
+        ) : gcalConnected ? (
           syncedEventId ? (
             <>
               <button onClick={(e) => { e.stopPropagation(); onSyncToCalendar(row); }}
@@ -1348,7 +1350,7 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, onSetSharedApproval }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, onSetSharedApproval, readOnly = false }) {
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1433,7 +1435,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
               flexShrink: 0,
             }}>½</span>
         )}
-        <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} />
+        <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
         <span style={{
           display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center',
           width: 56, flexShrink: 0, lineHeight: 1.15,
@@ -1453,6 +1455,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             onSyncToCalendar={onSyncToCalendar}
             onDeleteFromCalendar={onDeleteFromCalendar}
             onSetSharedApproval={onSetSharedApproval}
+            readOnly={readOnly}
           />
         </div>
       )}
@@ -1736,6 +1739,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // show only shared. Without this a shared task was invisible on the viewer's
   // default tab — Yuval never saw tasks Ohad shared with him.
   const ownerMatches = (r) => r._owner === owner || (owner !== 'shared' && r._owner === 'shared');
+
+  // A task is read-only for the current viewer when it belongs solely to the
+  // OTHER partner. Your own tasks + shared tasks stay editable. (UI guard —
+  // both are trusted staff at the data layer; this prevents accidental edits.)
+  const isReadOnly = (r) => r._owner !== viewerOwner && r._owner !== 'shared';
 
   // Owner + open filter is the base. Search narrows further.
   // Terminal states (done, cancelled) drop to the bottom pool.
@@ -2026,14 +2034,12 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {/* Viewer-perspective owner tabs. (See-each-other read-only feature
-              lands next; reverted to per-viewer tabs to ship the calendar fix.) */}
-          {viewerOwner !== 'yuval' && (
-            <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')}   color={C.ac} />
-          )}
-          {viewerOwner === 'yuval' && (
-            <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')}  color={YUVAL_COLOR} />
-          )}
+          {/* Both partners see all three tabs so each can SEE the other's
+              tasks; tasks owned solely by the other partner render read-only
+              (no status change / calendar edit) — only your own + shared are
+              editable. Default tab is the viewer's own (clamped on mount). */}
+          <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')}   color={C.ac} />
+          <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')}  color={YUVAL_COLOR} />
           <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
         </div>
         <ViewToggle value={view} onChange={setView} />
@@ -2098,7 +2104,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   onToggleCollapse={() => toggleSectionCollapse(section.key)}
                 />
                 {!isCollapsed && section.rows.map(row => (
-                  <TaskRow key={row.id} row={row}
+                  <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
                     theme={theme} showAvatar={owner === 'shared'}
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
@@ -2134,7 +2140,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 }}>{autoOpen ? '▾' : '▸'} {autoSection.rows.length} auto-alerts</span>
               </div>
               {autoOpen && autoSection.rows.map(row => (
-                <TaskRow key={row.id} row={row}
+                <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
@@ -2180,7 +2186,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               </div>
               <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                 {section.rows.map(row => (
-                  <TaskRow key={row.id} row={row}
+                  <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
                     theme={theme} showAvatar={owner === 'shared'}
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
@@ -2243,7 +2249,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 _display: displayBodyOf(row.body),
               };
               return (
-                <TaskRow key={row.id} row={decoratedDone}
+                <TaskRow key={row.id} row={decoratedDone} readOnly={isReadOnly(decoratedDone)}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
