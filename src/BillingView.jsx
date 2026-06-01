@@ -144,7 +144,7 @@ export default function BillingView({ trainees }) {
       {/* SETTINGS */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>💰 BIT SETTINGS</span>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>BIT SETTINGS</span>
         </RefinedHeaderStrip>
         {/* Settings = identity only (phone + name). Default amount + VAT
             live in the New Request modal now — they're per-request choices,

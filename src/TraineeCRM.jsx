@@ -321,11 +321,11 @@ function CoachHistoryCard({ trainee, clientWorkouts, payments, planIndex, onCrea
   const TabBtn = ({ id, label }) => (
     <button onClick={() => setTab(id)}
       style={{
-        padding: '6px 12px', border: `1px solid ${tab === id ? C.ac : C.cardBd}`,
-        borderBottom: tab === id ? `2px solid ${C.ac}` : `1px solid ${C.cardBd}`,
-        background: 'transparent', color: tab === id ? C.ac : C.tm,
-        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-        cursor: 'pointer', borderRadius: 0,
+        padding: '6px 2px', marginRight: 22, border: 'none', background: 'transparent',
+        borderBottom: `2px solid ${tab === id ? C.ac : 'transparent'}`,
+        color: tab === id ? C.ac : C.tm,
+        fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+        cursor: 'pointer', borderRadius: 0, marginBottom: -1,
       }}>{label}</button>
   );
 
@@ -350,7 +350,7 @@ function CoachHistoryCard({ trainee, clientWorkouts, payments, planIndex, onCrea
         </div>
       </RefinedHeaderStrip>
 
-      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
         <TabBtn id="actions" label="ACTIONS" />
         <TabBtn id="activity" label="ACTIVITY" />
       </div>

@@ -181,7 +181,7 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            🏆 CHALLENGES ({challenges.length})
+            CHALLENGES ({challenges.length})
           </span>
           <button onClick={() => { setEditChallenge(null); setShowCreate(true); }}
             style={{

@@ -502,7 +502,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
         <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
-              📌 Tasks ({counts.all})
+              Tasks ({counts.all})
             </span>
             <button onClick={() => setAdding(!adding)}
               style={{
@@ -517,7 +517,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       ) : (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
           <div style={{ fontSize: 10, fontFamily: FN, color: 'var(--c-ac)', letterSpacing: '0.18em', fontWeight: 700 }}>
-            📌 TASKS ({counts.all})
+            TASKS ({counts.all})
           </div>
           <button onClick={() => setAdding(!adding)}
             style={{

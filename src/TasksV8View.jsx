@@ -783,7 +783,7 @@ function CalendarEmbedCard() {
           fontFamily: FN, fontSize: 11, fontWeight: 700,
           color: 'var(--c-tx)', letterSpacing: '0.12em',
           textTransform: 'uppercase',
-        }}>📅 Google Calendar</span>
+        }}>Google Calendar</span>
         <span style={{ flex: 1 }} />
         <a href={fullCalendarHref} target="_blank" rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
@@ -1331,7 +1331,7 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
                 letterSpacing: '0.12em', padding: '4px 10px',
                 cursor: 'pointer', borderRadius: 0,
                 textTransform: 'uppercase',
-              }}>📅 Add to Calendar</button>
+              }}>Add to Calendar</button>
           )
         ) : (
           <span style={{
@@ -2001,7 +2001,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 letterSpacing: '0.12em', padding: '5px 11px',
                 cursor: 'pointer', borderRadius: 0,
                 textTransform: 'uppercase',
-              }}>📅 Calendar Synced ✓</button>
+              }}>Calendar Synced ✓</button>
             {lastSyncedLabel && (
               <span style={{
                 fontFamily: FN, fontSize: 9, fontWeight: 600,
@@ -2022,7 +2022,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               letterSpacing: '0.12em', padding: '6px 12px',
               cursor: gcalBusy ? 'wait' : 'pointer', borderRadius: 0,
               textTransform: 'uppercase', opacity: gcalBusy ? 0.6 : 1,
-            }}>📅 Connect Google Calendar</button>
+            }}>Connect Google Calendar</button>
         )}
       </div>
 

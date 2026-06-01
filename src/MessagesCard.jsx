@@ -148,7 +148,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
               textTransform: 'uppercase', color: '#FFFFFF',
               display: 'inline-flex', alignItems: 'center', gap: 8,
             }}>
-              💬 Messages
+              Messages
               {threads.length > 0 && (
                 <span style={{
                   fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
@@ -174,7 +174,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
       ) : (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <SectionLabel color={C.ac} style={{ fontSize: C.alertLabelSize }}>
-            {`💬 Messages${threads.length > 0 ? ` (${showHandled ? threads.length : unreadCount})` : ''}`}
+            {`Messages${threads.length > 0 ? ` (${showHandled ? threads.length : unreadCount})` : ''}`}
           </SectionLabel>
           {unreadCount > 0 && (
             <button onClick={markRead}
