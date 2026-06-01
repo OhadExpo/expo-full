@@ -48,7 +48,7 @@ const STRINGS = {
   },
   'hero.cta.coach':      { en: 'SEE COACH VIEW →',     he: 'הצד של המאמן ←' },
   'hero.cta.athlete':    { en: 'SEE ATHLETE VIEW →',   he: 'הצד של המתאמן ←' },
-  'hero.cta.waitlist':   { en: 'OR JOIN WAITLIST',     he: 'או הצטרף לרשימה' },
+  'hero.cta.waitlist':   { en: 'JOIN WAITLIST →',      he: 'הצטרף לרשימה ←' },
   'hero.smallprint':     { en: 'NO CARD · NO SIGNUP · DEMO RUNS ON YOUR OWN CLIP', he: 'בלי כרטיס · בלי הרשמה · ההדגמה רצה על הקליפ שלך' },
   // Hero stat band — mirrors the expo-il online/performance-center heroes.
   // Numbers are the real, already-public EXPO figures (same ones on
@@ -422,6 +422,65 @@ function FeatureCard({ tag, title, body, isHe }) {
   );
 }
 
+// Spreadsheets-vs-EXPO comparison. EXPO grew out of replacing a Google
+// Sheets roster system, so this is the most resonant pitch for a coach
+// still living in tabs. Two parallel columns; ✓/✕ are symbols, not emojis.
+function ComparisonSection({ isHe }) {
+  const T = isHe ? {
+    badge: 'גיליון אלקטרוני מול EXPO', h2: 'מה אתה משאיר מאחור.',
+    sheet: 'גיליון אלקטרוני', expo: 'EXPO',
+    rows: [
+      ['הסרטונים נתקעים בגלריה בטלפון', 'בקרה לפי חזרה, עם חותמת זמן — בתוך האפליקציה'],
+      ['ספירת חזרות בעין', 'ספירה אוטומטית — זיהוי תנוחה'],
+      ['אין פורטל — שולחים צילומי מסך', 'פורטל ממותג לכל מתאמן'],
+      ['העתק-הדבק בין טאבים', 'בלוקים + ייבוא מ-xlsx'],
+      ['זוכרים מי שקט (או לא)', 'תזכורות וואטסאפ אוטומטיות'],
+      ['נתונים מפוזרים בין קבצים', 'מנוע אחד · ייצוא בכל רגע'],
+    ],
+  } : {
+    badge: 'SPREADSHEETS vs EXPO', h2: 'What you leave behind.',
+    sheet: 'SPREADSHEET', expo: 'EXPO',
+    rows: [
+      ['Clips stuck in your camera roll', 'Per-rep, timestamped — in the app'],
+      ['Reps counted by eye', 'Automatic — pose detection'],
+      ['No portal — you send screenshots', 'Branded portal per athlete'],
+      ['Copy-paste between tabs', 'Block-based authoring + xlsx import'],
+      ['Follow-ups tracked by memory', 'Dormant-WhatsApp nudges, automatic'],
+      ['Data scattered across files', 'One engine · export anytime'],
+    ],
+  };
+  const Col = ({ title, idx, win }) => (
+    <div className="cl-card" style={{
+      flex: '1 1 0', minWidth: 260, background: 'var(--c-sf)',
+      border: `1px solid ${win ? C.ac : C.cardBd}`, borderRadius: 0,
+      padding: '24px 22px', textAlign: isHe ? 'right' : 'left',
+    }}>
+      <div style={{ fontFamily: FN, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700,
+        color: win ? C.ac : C.tm, marginBottom: 14 }}>{title}</div>
+      {T.rows.map((r, i) => (
+        <div key={i} style={{
+          display: 'flex', gap: 10, alignItems: 'flex-start', padding: '9px 0',
+          borderTop: i ? `1px solid ${C.cardBd}` : 'none',
+          flexDirection: isHe ? 'row-reverse' : 'row',
+        }}>
+          <span style={{ color: win ? C.ac : C.td, fontFamily: FN, fontSize: 13, fontWeight: 700, flexShrink: 0, lineHeight: 1.5 }}>{win ? '✓' : '✕'}</span>
+          <span style={{ fontFamily: FB, fontSize: 13.5, color: win ? C.tx : C.tm, lineHeight: 1.5, opacity: win ? 1 : 0.85 }}>{r[idx]}</span>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <section style={{ maxWidth: 980, margin: '0 auto', padding: '60px 16px 20px' }}>
+      <div style={{ fontFamily: FN, color: C.ac, fontSize: 11, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>{T.badge}</div>
+      <h2 style={{ fontFamily: FB, fontSize: 'clamp(22px, 3.5vw, 30px)', fontWeight: 700, margin: '0 0 28px', letterSpacing: -0.3, textAlign: 'center' }}>{T.h2}</h2>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+        <Col title={T.sheet} idx={0} win={false} />
+        <Col title={T.expo} idx={1} win={true} />
+      </div>
+    </section>
+  );
+}
+
 export default function CoachLanding({ lang = 'en' }) {
   const isHe = lang === 'he';
   const t = makeT(lang);
@@ -563,8 +622,8 @@ export default function CoachLanding({ lang = 'en' }) {
               border: `1px solid ${C.bd2}`, padding: '13px 26px', fontSize: 13,
             }}>{t('hero.cta.athlete')}</a>
             <a href="#waitlist" style={{
-              ...baseBtn, background: 'transparent', color: C.tm,
-              padding: '13px 18px', fontSize: 13,
+              ...baseBtn, background: 'transparent', color: C.ac,
+              border: `1px solid ${C.ac}`, padding: '13px 26px', fontSize: 13,
             }}>{t('hero.cta.waitlist')}</a>
           </div>
           <div style={{
@@ -642,6 +701,9 @@ export default function CoachLanding({ lang = 'en' }) {
             <FeatureCard isHe={isHe} tag={t('feat.export.tag')} title={t('feat.export.title')} body={t('feat.export.body')} />
           </div>
         </section>
+
+        {/* Spreadsheets vs EXPO */}
+        <ComparisonSection isHe={isHe} />
 
         {/* Why I'm building this */}
         <section style={{
