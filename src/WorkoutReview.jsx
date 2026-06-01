@@ -1239,13 +1239,13 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
               style={{padding:'3px 10px',borderRadius:0,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
                 background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-              💬 {commentsEnabled ? 'ON' : 'OFF'}
+              {commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF'}
             </button>
           )}
           {onReviewNotesChange && role === 'trainer' && (
             <button onClick={addComment} title="Comment & draw at this timestamp — color swatches appear once a comment is open"
               style={{padding:'3px 10px',borderRadius:0,border:`1px solid rgba(57,189,255,0.251)`,
-                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>💬✏️ COMMENT</button>
+                background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>COMMENT</button>
           )}
         </div>
         <div style={{flex:1,display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end'}}>
@@ -1311,8 +1311,8 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         <div style={{background:C.sf2,border:`1px solid rgba(57,189,255,0.376)`,borderRadius:0,padding:10,marginTop:8}}>
           <div style={{fontSize:10,fontFamily:FN,color:C.ac,fontWeight:700,marginBottom:6,textAlign:'center'}}>
             {composing.editId
-              ? (composing.isReply ? '✏️ EDITING REPLY' : `✏️ EDITING COMMENT AT ${fmtTs(composing.ts)}`)
-              : (composing.replyToId ? '↳ REPLYING' : `💬 COMMENT AT ${fmtTs(composing.ts)}`)}
+              ? (composing.isReply ? 'EDITING REPLY' : `EDITING COMMENT AT ${fmtTs(composing.ts)}`)
+              : (composing.replyToId ? '↳ REPLYING' : `COMMENT AT ${fmtTs(composing.ts)}`)}
           </div>
           <textarea value={composeText} autoFocus dir="auto"
             onChange={e => setComposeText(e.target.value)}

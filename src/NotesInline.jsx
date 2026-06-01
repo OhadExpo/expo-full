@@ -293,7 +293,7 @@ export default function NotesInline({
               )}
               <span style={{ flex: 1 }} />
               <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
-                {new Date(n.created_at).toLocaleString()}
+                {new Date(n.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(n.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
               </span>
               <button onClick={() => remove(n.id)} title="Remove"
                 style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
@@ -346,7 +346,7 @@ export default function NotesInline({
                       cursor: 'pointer', fontSize: 11, padding: '3px 8px', borderRadius: 0,
                       fontFamily: FN, fontWeight: 700, letterSpacing: '0.12em', height: 26,
                       display: 'inline-flex', alignItems: 'center',
-                    }}>✏️ EDIT</button>
+                    }}>EDIT</button>
                 ) : <span />}
                 {actionBtn || <span />}
               </div>

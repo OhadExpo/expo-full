@@ -282,7 +282,7 @@ export default function WaitlistView({ trainees }) {
         </div>
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${gateColor}`, borderRadius: 0, padding: '12px 18px', minWidth: 220 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-            <span style={{ fontFamily: FN, fontSize: 9, color: gateColor, letterSpacing: '0.18em', fontWeight: 700 }}>🎯 MULTI-TENANT GATE</span>
+            <span style={{ fontFamily: FN, fontSize: 9, color: gateColor, letterSpacing: '0.18em', fontWeight: 700 }}>MULTI-TENANT GATE</span>
             <span style={{ fontFamily: FN, fontSize: 14, color: gateColor, fontWeight: 700 }}>{gateProgress}/{COACH_GATE}</span>
           </div>
           <div style={{ height: 6, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, overflow: 'hidden' }}>
@@ -364,7 +364,7 @@ export default function WaitlistView({ trainees }) {
                       {l.notes && (
                         <div title="AI summary of the chat conversation"
                           style={{ fontFamily: FB, fontSize: 11, color: C.tm, fontStyle: 'italic', marginTop: 4, lineHeight: 1.35, maxWidth: 320, whiteSpace: 'normal' }}>
-                          💬 {l.notes}
+                          {l.notes}
                         </div>
                       )}
                       {(() => {
@@ -393,7 +393,7 @@ export default function WaitlistView({ trainees }) {
                       {(() => {
                         const isChat = l.source === 'expo-app-chat';
                         const isForm = l.source === 'expo-app';
-                        const label = isChat ? '💬 CHAT' : (isForm ? 'FORM' : (l.source || '—').toUpperCase());
+                        const label = isChat ? 'CHAT' : (isForm ? 'FORM' : (l.source || '—').toUpperCase());
                         const color = isChat ? C.gn : (isForm ? C.ac : C.tm);
                         return (
                           <span title={isChat ? 'Captured via /coaches chat bot' : (isForm ? 'Submitted via /coaches waitlist form' : l.source)}
@@ -570,7 +570,7 @@ function LeadCard({ lead, draggable, onDragStart, onDragEnd, isDragging, notes, 
       </div>
       {l.notes && (
         <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, fontStyle: 'italic', lineHeight: 1.35, marginBottom: 6 }}>
-          💬 {l.notes.length > 100 ? `${l.notes.slice(0, 100)}…` : l.notes}
+          {l.notes.length > 100 ? `${l.notes.slice(0, 100)}…` : l.notes}
         </div>
       )}
       <textarea value={notes[l.id] || ''} onChange={e => setNote(l.id, e.target.value)} rows={2}
