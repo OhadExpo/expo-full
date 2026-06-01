@@ -342,7 +342,7 @@ function DemoEmbed({ t }) {
 
 function PricingTier({ name, slots, popular, features, cta, price, priceSub, popularLabel, isHe }) {
   return (
-    <div style={{
+    <div className="cl-card" style={{
       background: 'transparent',
       border: popular ? `1px solid ${C.ac}` : `1px solid ${C.cardBd}`,
       borderRadius: 0, padding: '24px 20px', textAlign: isHe ? 'right' : 'left',
@@ -403,7 +403,7 @@ function PricingTier({ name, slots, popular, features, cta, price, priceSub, pop
 
 function FeatureCard({ tag, title, body, isHe }) {
   return (
-    <div style={{
+    <div className="cl-card" style={{
       background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
       padding: 22, textAlign: isHe ? 'right' : 'left',
     }}>
@@ -468,6 +468,10 @@ export default function CoachLanding({ lang = 'en' }) {
         a:focus-visible, button:focus-visible {
           outline: 2px solid ${C.ac}; outline-offset: 2px; border-radius: 4px;
         }
+        /* Feature + pricing cards lift and glow cyan on hover — premium feel,
+           matching the portal picker cards. */
+        .cl-card { transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease; }
+        .cl-card:hover { border-color: ${C.ac} !important; transform: translateY(-3px); box-shadow: inset 0 0 0 1px ${C.ac}, 0 16px 36px rgba(57,189,255,0.14); }
         /* Sticky bottom CTA bar — only on phones/small tablets where the
            hero buttons scroll out of view. Desktop already shows them in
            the header + hero, so the sticky bar would be redundant noise. */
