@@ -235,7 +235,7 @@ function DemoDashboard({ onJumpToTrainee }) {
       }}>
         {onlineNow.length > 0 && (
           <Panel
-            title={<span><span style={{ color: C.gn }}>🟢</span> ONLINE NOW ({onlineNow.length})</span>}
+            title={<span><span style={{ color: C.gn }}></span> ONLINE NOW ({onlineNow.length})</span>}
             tint={C.gn}
           >
             {onlineNow.map(t => (
@@ -271,7 +271,7 @@ function DemoDashboard({ onJumpToTrainee }) {
             next to the money-out queue. */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Panel
-            title={<span><span style={{ color: C.rd }}>💰</span> OVERDUE PAYMENT ({overdue.length})</span>}
+            title={<span><span style={{ color: C.rd }}></span> OVERDUE PAYMENT ({overdue.length})</span>}
             tint={C.rd}
           >
             {overdue.map((t, i) => (
@@ -285,7 +285,7 @@ function DemoDashboard({ onJumpToTrainee }) {
           </Panel>
 
           <Panel
-            title={<span><span style={{ color: C.ac }}>📩</span> NEW LEADS (3)</span>}
+            title={<span><span style={{ color: C.ac }}></span> NEW LEADS (3)</span>}
             tint={C.ac}
           >
             {[
@@ -305,7 +305,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         </div>
 
         <Panel
-          title={<span><span style={{ color: C.tm }}>💤</span> DORMANT ({dormant.length})</span>}
+          title={<span><span style={{ color: C.tm }}></span> DORMANT ({dormant.length})</span>}
           tint={C.tm}
         >
           {dormant.map(t => (
@@ -829,7 +829,7 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES'
         <button title="Demo only" style={{
           ...baseBtn, background: 'transparent', color: C.tm,
           border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11,
-        }}>✏️ EDIT</button>
+        }}>EDIT</button>
         <button title="Demo only" style={{
           ...baseBtn, background: 'transparent', color: C.rd,
           border: `1px solid rgba(255,71,87,0.251)`, padding: '8px 14px', fontSize: 11,
@@ -1297,7 +1297,7 @@ function DemoPrograms() {
             <>
               <div style={{ fontSize: 12, color: C.td, marginBottom: 12, fontFamily: FN }}>{meta}</div>
               <div style={{ background: C.sf, border: `1px dashed ${C.bd2}`, borderRadius: 0, padding: 40, textAlign: 'center', color: C.tm, fontFamily: FB, fontSize: 13 }}>
-                📋 No programs match your search.
+                No programs match your search.
               </div>
             </>
           );
