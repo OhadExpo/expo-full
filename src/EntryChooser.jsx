@@ -166,7 +166,11 @@ function Panel({ side, dim, highlight, onEnter, onLeave, onClick, headline, subh
 
         <p style={{
           margin: '0 0 28px', fontSize: 14, color: C.tm, lineHeight: 1.65,
-          maxWidth: 440, marginInline: 'auto', minHeight: '4.5em',
+          // 6.8em reserves room for the longest body (3 lines side-by-side) so
+          // both panels' bodies occupy equal height — keeps the benefits + CTA
+          // vertically symmetric across the two panels (they're centered, so an
+          // uneven body offsets the CTAs). Panels stack < 880px, where it's moot.
+          maxWidth: 440, marginInline: 'auto', minHeight: '6.8em',
         }}>{body}</p>
 
         <div style={{ marginBottom: 32 }}>
