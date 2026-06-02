@@ -63,11 +63,10 @@ export default function Gym() {
       <style>{`
         .gym-section { padding: 64px 24px; max-width: 1100px; margin: 0 auto; }
         .gym-2col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 1px; }
-        .gym-trial { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
+        .gym-trial { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
         @media (max-width: 720px) {
           .gym-section { padding: 44px 18px; }
           .gym-2col { grid-template-columns: 1fr; }
-          .gym-trial { grid-template-columns: 1fr; gap: 18px; }
         }
       `}</style>
 
