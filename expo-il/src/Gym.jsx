@@ -22,6 +22,8 @@ import { Analytics, track } from '@vercel/analytics/react';
 import { C, FN, FB, EXPO_LOGO_NAV, CONTACT } from './theme';
 import { useT, useLang, setLang } from './i18n';
 import { GCAL_GYM } from './EntryChooser';
+import founderOhad from './assets/founder-ohad.jpg';
+import founderYuval from './assets/founder-yuval.jpg';
 
 function trackAndOpen(event, payload) {
   try { track(event, payload || {}); } catch {}
@@ -564,25 +566,20 @@ function Team({ heb }) {
       }}>
         {people.map((p, i) => (
           <div key={i} style={{
-            background: C.sf, border: `1px solid ${C.ac}40`, padding: '26px 22px',
-            display: 'flex', flexDirection: 'column', gap: 14,
+            background: C.sf, border: `1px solid ${C.ac}40`, padding: '28px 24px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 6,
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
-                border: `1px solid ${C.ac}`, background: `${C.ac}1A`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: FN, fontSize: 20, fontWeight: 800, color: C.ac,
-              }}>{p.initials}</div>
-              <div>
-                <div style={{ fontFamily: FN, fontSize: 17, fontWeight: 800, color: C.tx, lineHeight: 1.2 }}>{p.name}</div>
-                <div style={{
-                  fontFamily: FN, fontSize: 10.5, color: C.ac, letterSpacing: '0.12em',
-                  fontWeight: 700, textTransform: 'uppercase', marginTop: 4,
-                }}>{p.role}</div>
-              </div>
-            </div>
-            <p style={{ margin: 0, fontSize: 13.5, color: C.tm, lineHeight: 1.65 }}>{p.bio}</p>
+            <img src={i === 0 ? founderOhad : founderYuval} alt={p.name} loading="lazy"
+              style={{
+                width: '100%', maxWidth: 200, aspectRatio: '1 / 1', objectFit: 'cover',
+                borderRadius: 16, border: `1px solid ${C.ac}66`, marginBottom: 12,
+              }} />
+            <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, lineHeight: 1.2 }}>{p.name}</div>
+            <div style={{
+              fontFamily: FN, fontSize: 10.5, color: C.ac, letterSpacing: '0.12em',
+              fontWeight: 700, textTransform: 'uppercase', marginTop: 2,
+            }}>{p.role}</div>
+            <p style={{ margin: '12px 0 0', fontSize: 13.5, color: C.tm, lineHeight: 1.65, textAlign: 'start' }}>{p.bio}</p>
           </div>
         ))}
       </div>
