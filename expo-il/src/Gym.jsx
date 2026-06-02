@@ -60,7 +60,13 @@ export default function Gym() {
     }}>
       <style>{`
         .gym-section { padding: 64px 24px; max-width: 1100px; margin: 0 auto; }
-        @media (max-width: 720px) { .gym-section { padding: 44px 18px; } }
+        .gym-2col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 1px; }
+        .gym-trial { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
+        @media (max-width: 720px) {
+          .gym-section { padding: 44px 18px; }
+          .gym-2col { grid-template-columns: 1fr; }
+          .gym-trial { grid-template-columns: 1fr; gap: 18px; }
+        }
       `}</style>
 
       <Header heb={heb} onBookClick={scrollToCalendar} />
@@ -70,6 +76,8 @@ export default function Gym() {
       <WhyInPerson heb={heb} />
       <Approach heb={heb} />
       <WhatsIncluded heb={heb} />
+      <HowItWorks heb={heb} />
+      <WhyNotJust heb={heb} />
       <Location heb={heb} />
       <TrialCallout heb={heb} onBookClick={scrollToCalendar} />
       <div ref={calendarRef} id="calendar" style={{ scrollMarginTop: 80 }}>
@@ -189,8 +197,8 @@ function Hero({ heb, onBookClick }) {
           margin: '0 auto 36px', maxWidth: 580, fontSize: 16, color: C.tm,
           lineHeight: 1.7,
         }}>{heb
-          ? 'מרכז ביצועים שבנוי סביב כוח מתוכנת, ניידות, וריקאברי משולב. אימון בקבוצות קטנות עם תוכנית אישית, וטיפול חודשי כחלק מהמנוי — לא תוספת.'
-          : 'A performance center built around programmed strength, mobility, and integrated recovery. Small-group coaching with your own program — and a monthly massage that is part of the membership, not an add-on.'}</p>
+          ? 'מרכז ביצועים שבנוי סביב כוח מתוכנת, ניידות וריקאברי. אימון בקבוצות קטנות עם תוכנית אישית — ועיסוי ספורט חודשי שמובנה במנוי, לא תוספת בתשלום.'
+          : 'A performance center built around programmed strength, mobility, and recovery. Small-group coaching with your own program — and a monthly sports massage built into the membership, not a paid add-on.'}</p>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onBookClick}
@@ -319,12 +327,12 @@ function WhyInPerson({ heb }) {
     ? [
         { h: 'עיניים על כל סט', b: 'קבוצה של 4–7 בלבד. אני רואה כל חזרה ומתקן באוויר — לא שיעור שבו אתה מספר.' },
         { h: 'תוכנית, לא אימון', b: 'בלוקים של 4–8 שבועות שנבנים סביב המספרים שלך. השינוי בין שבוע לשבוע מתוכנן, לא אקראי.' },
-        { h: 'ריקאברי בתוך המחיר', b: 'טיפול חודשי של 45–60 דקות הוא חלק מהמנוי — לא בונוס מדי פעם. הגוף צריך את זה, והמחיר משקף את זה.' },
+        { h: 'עיסוי, לא בונוס', b: 'עיסוי ספורט של 45–60 דקות בכל חודש עם מטפל ייעודי, מובנה במנוי. פחות כאבי שריר, טווחי תנועה פתוחים, וגוף שמחזיק את העומס לאורך זמן.' },
       ]
     : [
         { h: 'Coached eyes, every set', b: 'Groups of 4–7 only. I see every rep and correct it mid-set — not a class where you are a number.' },
         { h: 'Programming, not workouts', b: '4–8 week blocks built around your numbers. The week-to-week change is structured, not random.' },
-        { h: 'Recovery is in the price', b: 'A monthly 45–60 minute massage is part of your membership — not a sometimes-bonus. The body needs it; the price reflects that.' },
+        { h: 'Massage, not a bonus', b: 'A 45–60 minute sports massage every month with a dedicated therapist, built into the membership. Less soreness, freer range of motion, and a body that holds up to the load over time.' },
       ];
   return (
     <section data-fade className="gym-section">
@@ -367,12 +375,12 @@ function Approach({ heb }) {
     ? [
         { n: '01', h: 'תוכנית כוח מתוכננת', b: 'בלוקים של 4–8 שבועות. מחזורים שמתעדכנים לפי הביצועים, לא לפי תחושה. כל סט נכתב מראש.' },
         { n: '02', h: 'ניידות וטווחי תנועה', b: 'עבודה ממוקדת על הצוואר, הכתפיים, הירך, והקרסול. לא Stretching אחרי. חלק מהאימון.' },
-        { n: '03', h: 'התאוששות מובנית', b: 'סשני התאוששות חודשיים של 45–60 דקות, ואופציה ל-15–20 דקות לפני/אחרי אימון לפי הצורך.' },
+        { n: '03', h: 'עיסוי ספורט מובנה', b: 'עיסוי חודשי של 45–60 דקות עם מטפל ייעודי, ועיסוי קצר של 15–20 דקות לפני/אחרי אימון לפי הצורך. פחות כאב, פחות פציעות, יותר רציפות.' },
       ]
     : [
         { n: '01', h: 'Programmed strength', b: '4–8 week blocks. Cycles adapt to your numbers, not your mood. Every set written ahead.' },
         { n: '02', h: 'Mobility and range', b: 'Targeted work on neck, shoulders, hips, ankles. Not a "stretch at the end" — part of the session.' },
-        { n: '03', h: 'Structured recovery', b: 'Monthly 45–60 min recovery sessions, with 15–20 min pre/post-training add-ons when you need them.' },
+        { n: '03', h: 'Built-in sports massage', b: 'A monthly 45–60 min massage with a dedicated therapist, plus 15–20 min pre/post-training work when you need it. Less soreness, fewer injuries, more consistency.' },
       ];
   return (
     <section data-fade className="gym-section">
@@ -411,6 +419,120 @@ function Approach({ heb }) {
   );
 }
 
+// ─── How it works ────────────────────────────────────────────────────
+// Reframes the offer as a pathway rather than a list of services — the
+// pattern premium coaching pages convert on. Pulled from the founder
+// customer-journey: assessment → tailored block → integrated recovery →
+// measure & adjust. Sets expectations and makes the process feel real.
+function HowItWorks({ heb }) {
+  const steps = heb
+    ? [
+        { n: '01', h: 'אבחון תנועה', b: 'מפגש פתיחה: שיחת מטרות, אבחון תנועה, ואימון היכרות. יוצאים עם תמונה ברורה של איפה הגוף עומד.' },
+        { n: '02', h: 'תוכנית בבלוק', b: 'בלוק של 4–8 שבועות שנבנה סביב המטרה והמספרים שלך, באימון בקבוצה קטנה של 4–7.' },
+        { n: '03', h: 'עיסוי וריקאברי', b: 'עיסוי ספורט חודשי וניהול עומסים, מובנים בתוך התוכנית — כדי שתתאמן ברצף בלי לשבור את הגוף.' },
+        { n: '04', h: 'מדידה ועדכון', b: 'בסוף הבלוק מודדים שוב, רואים מה זז, ובונים את הבלוק הבא. התקדמות שמודדים, לא תחושה.' },
+      ]
+    : [
+        { n: '01', h: 'Movement assessment', b: 'An opening session: goals, a movement screen, and an intro workout. You leave with a clear picture of where your body stands.' },
+        { n: '02', h: 'Your training block', b: 'A 4–8 week block built around your goal and your numbers, coached in a small group of 4–7.' },
+        { n: '03', h: 'Massage & recovery', b: 'A monthly sports massage and load management, built into the plan — so you train consistently without breaking the body down.' },
+        { n: '04', h: 'Measure & adjust', b: 'At the end of the block we re-measure, see what moved, and build the next one. Progress you measure, not guess.' },
+      ];
+  return (
+    <section data-fade className="gym-section">
+      <SectionHeader heb={heb}
+        kicker={heb ? 'איך זה עובד' : 'HOW IT WORKS'}
+        title={heb ? 'הדרך, בארבעה שלבים' : 'The path, in four steps'}
+        subtitle={heb
+          ? 'לא כניסה לחדר כושר — תהליך. ככה זה נראה מהמפגש הראשון והלאה.'
+          : 'Not a gym check-in — a process. Here is what it looks like from the first session on.'} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 14, marginTop: 32,
+      }}>
+        {steps.map((s, i) => (
+          <div key={i} style={{
+            background: C.bg, border: `1px solid ${C.ac}26`, padding: '24px 20px',
+            position: 'relative', display: 'flex', flexDirection: 'column', gap: 10,
+          }}>
+            <div style={{
+              fontFamily: FN, fontSize: 12, color: C.ac, letterSpacing: '0.2em', fontWeight: 800,
+            }}>{heb ? 'שלב ' : 'STEP '}{s.n}</div>
+            <h3 style={{
+              margin: 0, fontFamily: FN, fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em',
+              color: C.tx, lineHeight: 1.3,
+            }}>{s.h}</h3>
+            <p style={{ margin: 0, fontSize: 13, color: C.tm, lineHeight: 1.6 }}>{s.b}</p>
+            {/* connector arrow between steps (hidden on the last) */}
+            {i < steps.length - 1 && (
+              <div aria-hidden style={{
+                position: 'absolute', insetInlineEnd: -9, top: '50%', transform: 'translateY(-50%)',
+                color: `${C.ac}66`, fontFamily: FN, fontSize: 16, fontWeight: 800, zIndex: 1,
+              }}>{heb ? '←' : '→'}</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── Why not just… (differentiation) ─────────────────────────────────
+// The sharpest unused asset from the founder differentiation doc: why a
+// paying athlete picks EXPO over the alternatives they actually weigh —
+// a gym, a private trainer, a sports physio, a standalone masseur.
+// Outcome-led, not feature-led (athletes buy transformation, not square
+// footage). Recovery-as-medical-claim is deliberately avoided: we say
+// "bridge to ready-to-perform" and "manage load," never "fix."
+function WhyNotJust({ heb }) {
+  const rows = heb
+    ? [
+        { alt: 'חדר כושר', their: 'ציוד ושעות פתוחות — אתה מול המכונות לבד, בלי לדעת אם אתה מתקדם.', ours: 'אבחון, תוכנית אישית, ועיניים על כל סט. יודעים בדיוק מה עובד.' },
+        { alt: 'מאמן אישי', their: 'יחס צמוד, אבל יקר — ובלי מעטפת ריקאברי.', ours: 'אותו ליווי מדויק בקבוצה קטנה, עם עיסוי חודשי מובנה, בעלות נמוכה יותר.' },
+        { alt: 'פיזיותרפיה', their: 'מטפלת בכאב, ונעצרת כשהוא נעלם.', ours: 'גשר מ"כבר לא כואב" ל"מוכן לבצע". מודדים התקדמות אתלטית, לא רק כאב.' },
+        { alt: 'מעסה ספורט', their: 'עיסוי נעים, מנותק מהאימון.', ours: 'עיסוי שהוא חלק מתוכנית כוח וממדידה — לא טיפול שעומד בפני עצמו.' },
+      ]
+    : [
+        { alt: 'a gym', their: 'Equipment and open hours — you face the machines alone, with no idea if you are progressing.', ours: 'Assessment, your own program, and eyes on every set. We know exactly what is working.' },
+        { alt: 'a personal trainer', their: 'Close attention, but expensive — and no recovery wrapped in.', ours: 'The same precise coaching in a small group, with a monthly massage built in, for less.' },
+        { alt: 'sports physio', their: 'Treats the pain, and stops when it is gone.', ours: 'A bridge from "no longer hurts" to "ready to perform." We track athletic progress, not just pain.' },
+        { alt: 'a masseur', their: 'A nice massage, disconnected from your training.', ours: 'Massage that is part of a strength program and measured progress — not a standalone treatment.' },
+      ];
+  return (
+    <section data-fade className="gym-section">
+      <SectionHeader heb={heb}
+        kicker={heb ? 'במה זה שונה' : 'WHY EXPO'}
+        title={heb ? 'למה כאן, ולא…' : 'Why here, not…'}
+        subtitle={heb
+          ? 'רוב האנשים מתלבטים בין כמה אפשרויות. זה ההבדל, בלי לסבך.'
+          : 'Most people weigh a few options. Here is the difference, plainly.'} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(258px, 1fr))', gap: 14, marginTop: 32,
+      }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{
+            background: C.sf, border: `1px solid ${C.ac}26`, padding: '22px 20px',
+            display: 'flex', flexDirection: 'column', gap: 12,
+          }}>
+            <div style={{
+              fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.16em', fontWeight: 800,
+              textTransform: 'uppercase',
+            }}>{heb ? 'במקום ' : 'INSTEAD OF '}{r.alt}</div>
+            <div style={{ display: 'flex', gap: 8, fontSize: 13, color: C.tm, lineHeight: 1.6 }}>
+              <span style={{ color: C.tm, flexShrink: 0, fontWeight: 800 }}>−</span><span>{r.their}</span>
+            </div>
+            <div style={{
+              display: 'flex', gap: 8, fontSize: 13.5, color: C.tx, lineHeight: 1.6,
+              borderTop: `1px solid ${C.ac}26`, paddingTop: 12,
+            }}>
+              <span style={{ color: C.ac, flexShrink: 0, fontWeight: 800 }}>+</span><span>{r.ours}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ─── Trial callout ───────────────────────────────────────────────────
 // Pre-calendar nudge: the founder business plan defines a paid trial
 // (₪200 — assessment + intro session) as the standard on-ramp. Putting
@@ -419,12 +541,11 @@ function Approach({ heb }) {
 function TrialCallout({ heb, onBookClick }) {
   return (
     <section data-fade className="gym-section" style={{ paddingTop: 24, paddingBottom: 24 }}>
-      <div style={{
+      <div className="gym-trial" style={{
         background: `linear-gradient(135deg, ${C.ac}1A 0%, transparent 60%), ${C.sf}`,
         border: `1px solid ${C.ac}40`,
         borderInlineStart: `3px solid ${C.ac}`,
         padding: '28px 26px',
-        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 24, alignItems: 'center',
       }}>
         <div>
           <div style={{
@@ -463,7 +584,7 @@ function WhatsIncluded({ heb }) {
         { i: '◯', h: 'אבחון תנועה ראשוני', b: 'מיפוי טווחי תנועה, חוזק וחולשות.' },
         { i: '◇', h: 'תוכנית מותאמת', b: 'בלוק של 4–8 שבועות שמתעדכן לפי ההתקדמות.' },
         { i: '◬', h: 'עבודת ניידות', b: 'מובנית בתוך האימון — כתפיים, ירך, קרסול.' },
-        { i: '◉', h: 'סשני התאוששות', b: 'חודשי של 45–60 דקות, ולפי הצורך תוספות לפני/אחרי אימון.' },
+        { i: '◉', h: 'עיסוי ספורט', b: 'עיסוי חודשי של 45–60 דקות עם מטפל ייעודי, ותוספות קצרות לפני/אחרי אימון לפי הצורך.' },
         { i: '◈', h: 'מעקב באפליקציה', b: 'גישה לאפליקציית EXPO לתיעוד אימונים והודעות.' },
         { i: '✦', h: 'תקשורת ישירה', b: 'וואטסאפ ישיר אליי לשאלות בין אימונים.' },
       ]
@@ -471,7 +592,7 @@ function WhatsIncluded({ heb }) {
         { i: '◯', h: 'Initial movement assessment', b: 'Map of your range, strengths, and weak links.' },
         { i: '◇', h: 'Tailored programming', b: '4–8 week blocks that adjust to your progress.' },
         { i: '◬', h: 'Mobility work', b: 'Built into the session — shoulders, hips, ankles.' },
-        { i: '◉', h: 'Recovery sessions', b: 'Monthly 45–60 min, plus optional pre/post-training add-ons.' },
+        { i: '◉', h: 'Sports massage', b: 'Monthly 45–60 min with a dedicated therapist, plus short pre/post-training work as needed.' },
         { i: '◈', h: 'In-app tracking', b: 'EXPO athlete app — log sessions, message me, see history.' },
         { i: '✦', h: 'Direct line', b: 'My WhatsApp for questions between sessions.' },
       ];
@@ -513,9 +634,8 @@ function Location({ heb }) {
       <SectionHeader heb={heb}
         kicker={heb ? 'איפה' : 'WHERE'}
         title={heb ? 'המרכז' : 'The performance center'} />
-      <div style={{
-        marginTop: 32, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.4fr)',
-        gap: 1, border: `1px solid ${C.ac}26`, background: `${C.ac}26`,
+      <div className="gym-2col" style={{
+        marginTop: 32, border: `1px solid ${C.ac}26`, background: `${C.ac}26`,
       }}>
         {/* Address card */}
         <div style={{ background: C.bg, padding: '32px 28px' }}>
@@ -675,12 +795,14 @@ function FAQ({ heb }) {
     ? [
         { q: 'אני חדש לחלוטין באימוני כוח. זה מתאים לי?', a: 'בהחלט. רוב המתאמנים מתחילים אצלי בלי רקע קודם. אבחון התנועה הראשון בודק מאיפה להתחיל.' },
         { q: 'יש פציעה ישנה. אפשר להתאמן?', a: 'תלוי בפציעה — אחרי השיחה הראשונה נדע אם זה הכיוון או שצריך הפניה למישהו אחר. אני לא מבטיח דברים שאני לא יכול לעמוד בהם.' },
+        { q: 'העיסוי באמת כלול, או שזו תוספת בתשלום?', a: 'כלול. כל מנוי כולל עיסוי ספורט חודשי של 45–60 דקות עם מטפל ייעודי — לא בונוס שמופיע פעם בכמה חודשים. אפשר להוסיף עיסוי קצר לפני או אחרי אימון לפי הצורך.' },
         { q: 'מה עולה חודש?', a: 'תלוי בקצב (פעם, פעמיים, או שלוש בשבוע). שולח מחירון מסודר אחרי שאלת התשובה הראשונה.' },
         { q: 'איך מבטלים אימון?', a: 'עד 4 שעות לפני. אחרי זה האימון נכנס לחשבון. הכל בוואטסאפ.' },
       ]
     : [
         { q: 'I am totally new to strength training. Is this for me?', a: 'Yes. Most of my clients start with no prior background. The first assessment session figures out where to start.' },
         { q: 'I have an old injury. Can I still train?', a: 'Depends on the injury — after the first call we will know if this is the right path or if I should refer you on. I do not promise things I cannot deliver.' },
+        { q: 'Is the massage really included, or is it a paid add-on?', a: 'Included. Every membership comes with a monthly 45–60 minute sports massage from a dedicated therapist — not an occasional perk. Short pre- or post-training work can be added when you need it.' },
         { q: 'What does it cost per month?', a: 'Depends on cadence (1, 2, or 3 sessions per week). I send a clear price sheet after the first reply.' },
         { q: 'Cancellation policy?', a: '4 hours notice. After that the session counts. All over WhatsApp.' },
       ];
