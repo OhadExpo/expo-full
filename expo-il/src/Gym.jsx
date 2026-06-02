@@ -546,12 +546,12 @@ function WhyNotJust({ heb }) {
 function Team({ heb }) {
   const people = heb
     ? [
-        { initials: 'א', name: 'אוהד', role: 'אימון · כוח ואתלטיקה', bio: 'בונה את התוכניות, מנהל את רצפת האימון, ומאמן כל קבוצה בעצמו. כל סט נכתב מראש ומתעדכן לפי המספרים שלך.' },
-        { initials: 'י', name: 'יובל ברקוביץ׳', role: 'ריקאברי · עיסוי ספורט ורפואי', bio: 'מטפל בעיסוי ספורט ורפואי, מוסמך מכון וינגייט, עם התמחות בשחרור ובפתיחת טווחי תנועה. אחראי על כל הריקאברי במרכז — העיסוי החודשי, העבודה הקצרה לפני ואחרי אימון, וניהול העומסים שמחזיק אותך מתאמן ברצף.' },
+        { initials: 'א', name: 'אוהד', role: 'אימון · כוח ואתלטיקה', bio: 'מאמן כוח ואתלטיקה, ובין השאר מאמן הכושר של קבוצת בני הרצליה בכדורסל. בונה את התוכניות, מנהל את רצפת האימון, ומאמן כל קבוצה בעצמו — כל סט נכתב מראש ומתעדכן לפי המספרים שלך.' },
+        { initials: 'י', name: 'יובל ברקוביץ׳', role: 'ריקאברי · עיסוי ספורט ורפואי', bio: 'מטפל בעיסוי ספורט ורפואי, מוסמך מכון וינגייט, עם התמחות בשחרור ובפתיחת טווחי תנועה. אחראי על כל הריקאברי במרכז — העיסוי החודשי, העבודה לפני ואחרי אימון, וניהול העומסים.' },
       ]
     : [
-        { initials: 'O', name: 'Ohad', role: 'Coaching · strength & athletics', bio: 'Builds the programs, runs the training floor, and coaches every group himself. Every set is written ahead and adjusts to your numbers.' },
-        { initials: 'Y', name: 'Yuval Berkovitch', role: 'Recovery · sports & medical massage', bio: 'A Wingate-certified sports- and medical-massage therapist who specializes in release and opening range of motion. He owns all recovery at the center — the monthly massage, short pre/post-training work, and the load management that keeps you training consistently.' },
+        { initials: 'O', name: 'Ohad', role: 'Coaching · strength & athletics', bio: 'A strength and athletics coach — and the fitness coach for Bnei Herzliya basketball. He builds the programs, runs the floor, and coaches every group himself; every set is written ahead and adjusts to your numbers.' },
+        { initials: 'Y', name: 'Yuval Berkovitch', role: 'Recovery · sports & medical massage', bio: 'A Wingate-certified sports- and medical-massage therapist specializing in release and range-of-motion work. He owns all recovery at the center — the monthly massage, pre/post-training work, and load management.' },
       ];
   return (
     <section data-fade className="gym-section">
