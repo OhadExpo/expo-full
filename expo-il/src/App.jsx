@@ -8,7 +8,28 @@ import Chat from './Chat';
 // (existing programs catalog) and PHYSICAL GYM (calendar/booking).
 // EntryChooser is the new homepage; Gym holds the booking UI.
 import EntryChooser, { GCAL_ONLINE } from './EntryChooser';
-const Gym = lazy(() => import('./Gym'));
+
+// Stale-chunk recovery: a visitor whose tab predates a deploy will 404 on a
+// lazy chunk (Vercel then serves index.html → "MIME text/html" error) and see
+// a blank page. Reload once to pull the fresh index + chunk; clear the guard
+// on success so the next deploy can recover too, and never loop more than once.
+const CHUNK_RELOAD_KEY = 'expo-il-chunk-reloaded';
+function lazyWithReload(factory) {
+  return lazy(() => factory().then((mod) => {
+    try { sessionStorage.removeItem(CHUNK_RELOAD_KEY); } catch {}
+    return mod;
+  }).catch((err) => {
+    try {
+      if (!sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
+        window.location.reload();
+        return new Promise(() => {}); // hold the page until the reload swaps it
+      }
+    } catch {}
+    throw err; // already retried once — let the error surface
+  }));
+}
+const Gym = lazyWithReload(() => import('./Gym'));
 
 // Wrapped <a> that fires a Vercel Analytics custom event before the click is
 // honoured. Vercel Analytics has to be enabled in the project dashboard for
