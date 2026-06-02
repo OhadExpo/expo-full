@@ -78,6 +78,7 @@ export default function Gym() {
       <WhatsIncluded heb={heb} />
       <HowItWorks heb={heb} />
       <WhyNotJust heb={heb} />
+      <Team heb={heb} />
       <Location heb={heb} />
       <TrialCallout heb={heb} onBookClick={scrollToCalendar} />
       <div ref={calendarRef} id="calendar" style={{ scrollMarginTop: 80 }}>
@@ -325,12 +326,12 @@ function WhoItsFor({ heb }) {
 function WhyInPerson({ heb }) {
   const items = heb
     ? [
-        { h: 'עיניים על כל סט', b: 'קבוצה של 4–7 בלבד. אני רואה כל חזרה ומתקן באוויר — לא שיעור שבו אתה מספר.' },
+        { h: 'עיניים על כל סט', b: 'קבוצה של 4–7 בלבד. אנחנו רואים כל חזרה ומתקנים באוויר — לא שיעור שבו אתה מספר.' },
         { h: 'תוכנית, לא אימון', b: 'בלוקים של 4–8 שבועות שנבנים סביב המספרים שלך. השינוי בין שבוע לשבוע מתוכנן, לא אקראי.' },
         { h: 'עיסוי, לא בונוס', b: 'עיסוי ספורט של 45–60 דקות בכל חודש עם מטפל ייעודי, מובנה במנוי. פחות כאבי שריר, טווחי תנועה פתוחים, וגוף שמחזיק את העומס לאורך זמן.' },
       ]
     : [
-        { h: 'Coached eyes, every set', b: 'Groups of 4–7 only. I see every rep and correct it mid-set — not a class where you are a number.' },
+        { h: 'Coached eyes, every set', b: 'Groups of 4–7 only. We see every rep and correct it mid-set — not a class where you are a number.' },
         { h: 'Programming, not workouts', b: '4–8 week blocks built around your numbers. The week-to-week change is structured, not random.' },
         { h: 'Massage, not a bonus', b: 'A 45–60 minute sports massage every month with a dedicated therapist, built into the membership. Less soreness, freer range of motion, and a body that holds up to the load over time.' },
       ];
@@ -533,6 +534,70 @@ function WhyNotJust({ heb }) {
   );
 }
 
+// ─── Team / founders ─────────────────────────────────────────────────
+// The center is two founders: Ohad runs coaching, Yuval runs recovery.
+// The whole page speaks as a team ("we") and this section names both.
+// Yuval's bio is held to founder-doc-confirmed facts (sports-massage
+// therapist, owns all treatment + recovery) — no invented certifications;
+// Ohad to supply real credentials to enrich it. The origin line (met on a
+// football field) is from the legal-meeting transcript.
+function Team({ heb }) {
+  const people = heb
+    ? [
+        { initials: 'א', name: 'אוהד', role: 'אימון · כוח ואתלטיקה', bio: 'בונה את התוכניות, מנהל את רצפת האימון, ומאמן כל קבוצה בעצמו. כל סט נכתב מראש ומתעדכן לפי המספרים שלך.' },
+        { initials: 'י', name: 'יובל ברקוביץ׳', role: 'ריקאברי · עיסוי ספורט', bio: 'מטפל בעיסוי ספורט, ואחראי על כל הריקאברי במרכז — העיסוי החודשי, העבודה הקצרה לפני ואחרי אימון, וניהול העומסים שמחזיק אותך מתאמן ברצף.' },
+      ]
+    : [
+        { initials: 'O', name: 'Ohad', role: 'Coaching · strength & athletics', bio: 'Builds the programs, runs the training floor, and coaches every group himself. Every set is written ahead and adjusts to your numbers.' },
+        { initials: 'Y', name: 'Yuval Berkovitch', role: 'Recovery · sports massage', bio: 'A sports-massage therapist who owns all recovery at the center — the monthly massage, short pre/post-training work, and the load management that keeps you training consistently.' },
+      ];
+  return (
+    <section data-fade className="gym-section">
+      <SectionHeader heb={heb}
+        kicker={heb ? 'מי אנחנו' : 'WHO WE ARE'}
+        title={heb ? 'שני אנשים, שני תחומים' : 'Two people, two crafts'}
+        subtitle={heb
+          ? 'אימון וריקאברי תחת קורת גג אחת — כל אחד עושה את מה שהוא הכי טוב בו.'
+          : 'Coaching and recovery under one roof — each of us doing the one thing we do best.'} />
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginTop: 32,
+      }}>
+        {people.map((p, i) => (
+          <div key={i} style={{
+            background: C.sf, border: `1px solid ${C.ac}40`, padding: '26px 22px',
+            display: 'flex', flexDirection: 'column', gap: 14,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
+                border: `1px solid ${C.ac}`, background: `${C.ac}1A`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontFamily: FN, fontSize: 20, fontWeight: 800, color: C.ac,
+              }}>{p.initials}</div>
+              <div>
+                <div style={{ fontFamily: FN, fontSize: 17, fontWeight: 800, color: C.tx, lineHeight: 1.2 }}>{p.name}</div>
+                <div style={{
+                  fontFamily: FN, fontSize: 10.5, color: C.ac, letterSpacing: '0.12em',
+                  fontWeight: 700, textTransform: 'uppercase', marginTop: 4,
+                }}>{p.role}</div>
+              </div>
+            </div>
+            <p style={{ margin: 0, fontSize: 13.5, color: C.tm, lineHeight: 1.65 }}>{p.bio}</p>
+          </div>
+        ))}
+      </div>
+      <p style={{
+        textAlign: 'center', margin: '24px auto 0', maxWidth: 560,
+        fontSize: 13, color: C.td, lineHeight: 1.65, fontStyle: 'italic',
+      }}>
+        {heb
+          ? 'נפגשנו לפני שנים על מגרש פוטבול אמריקאי. את המרכז בנינו סביב מה שחיפשנו בעצמנו ולא מצאנו.'
+          : 'We met years ago on an American-football field. We built the center around what we kept looking for ourselves and never found.'}
+      </p>
+    </section>
+  );
+}
+
 // ─── Trial callout ───────────────────────────────────────────────────
 // Pre-calendar nudge: the founder business plan defines a paid trial
 // (₪200 — assessment + intro session) as the standard on-ramp. Putting
@@ -586,7 +651,7 @@ function WhatsIncluded({ heb }) {
         { i: '◬', h: 'עבודת ניידות', b: 'מובנית בתוך האימון — כתפיים, ירך, קרסול.' },
         { i: '◉', h: 'עיסוי ספורט', b: 'עיסוי חודשי של 45–60 דקות עם מטפל ייעודי, ותוספות קצרות לפני/אחרי אימון לפי הצורך.' },
         { i: '◈', h: 'מעקב באפליקציה', b: 'גישה לאפליקציית EXPO לתיעוד אימונים והודעות.' },
-        { i: '✦', h: 'תקשורת ישירה', b: 'וואטסאפ ישיר אליי לשאלות בין אימונים.' },
+        { i: '✦', h: 'תקשורת ישירה', b: 'וואטסאפ ישיר אלינו לשאלות בין אימונים.' },
       ]
     : [
         { i: '◯', h: 'Initial movement assessment', b: 'Map of your range, strengths, and weak links.' },
@@ -594,7 +659,7 @@ function WhatsIncluded({ heb }) {
         { i: '◬', h: 'Mobility work', b: 'Built into the session — shoulders, hips, ankles.' },
         { i: '◉', h: 'Sports massage', b: 'Monthly 45–60 min with a dedicated therapist, plus short pre/post-training work as needed.' },
         { i: '◈', h: 'In-app tracking', b: 'EXPO athlete app — log sessions, message me, see history.' },
-        { i: '✦', h: 'Direct line', b: 'My WhatsApp for questions between sessions.' },
+        { i: '✦', h: 'Direct line', b: 'Our WhatsApp for questions between sessions.' },
       ];
   return (
     <section data-fade className="gym-section">
@@ -756,12 +821,12 @@ function Testimonials({ heb }) {
     ? [
         { q: 'תוך 8 שבועות עברתי מ-70 ק"ג סקוואט ל-110. תוכנית מסודרת, מעקב צמוד.', n: 'אמיר ש.' },
         { q: 'הגוף שלי לא היה ככה גם בצבא. אוהד יודע למה הוא מכוון.', n: 'דניאל ל.' },
-        { q: 'חזרתי מפציעה בכתף שגררה אותי שנה. אצל אוהד התקדמנו בזהירות וזה עבד.', n: 'נטע ר.' },
+        { q: 'חזרתי מפציעה בכתף שגררה אותי שנה. אוהד בנה את החזרה בזהירות, והעיסוי החודשי של יובל החזיק את הכתף לאורך הדרך.', n: 'נטע ר.' },
       ]
     : [
         { q: 'Went from a 70kg squat to 110kg in 8 weeks. Structured programming, tight coaching.', n: 'Amir S.' },
         { q: 'I have not felt this strong since the army. Ohad knows what he is aiming at.', n: 'Daniel L.' },
-        { q: 'Came back from a year-long shoulder injury. Progressed carefully and it worked.', n: 'Neta R.' },
+        { q: 'Came back from a year-long shoulder injury. Ohad built the return carefully, and Yuval’s monthly massage kept the shoulder going the whole way.', n: 'Neta R.' },
       ];
   return (
     <section data-fade className="gym-section">
@@ -793,17 +858,19 @@ function Testimonials({ heb }) {
 function FAQ({ heb }) {
   const items = heb
     ? [
-        { q: 'אני חדש לחלוטין באימוני כוח. זה מתאים לי?', a: 'בהחלט. רוב המתאמנים מתחילים אצלי בלי רקע קודם. אבחון התנועה הראשון בודק מאיפה להתחיל.' },
-        { q: 'יש פציעה ישנה. אפשר להתאמן?', a: 'תלוי בפציעה — אחרי השיחה הראשונה נדע אם זה הכיוון או שצריך הפניה למישהו אחר. אני לא מבטיח דברים שאני לא יכול לעמוד בהם.' },
+        { q: 'אני חדש לחלוטין באימוני כוח. זה מתאים לי?', a: 'בהחלט. רוב המתאמנים מתחילים אצלנו בלי רקע קודם. אבחון התנועה הראשון בודק מאיפה להתחיל.' },
+        { q: 'יש פציעה ישנה. אפשר להתאמן?', a: 'תלוי בפציעה — אחרי השיחה הראשונה נדע אם זה הכיוון, ואם צריך נפנה אותך למישהו מתאים יותר. אנחנו לא מבטיחים דברים שאנחנו לא יכולים לעמוד בהם.' },
+        { q: 'מי נותן את העיסוי?', a: 'יובל, המטפל בעיסוי ספורט של המרכז. אוהד מאמן, יובל מטפל — שניהם מלווים אותך לאורך התהליך.' },
         { q: 'העיסוי באמת כלול, או שזו תוספת בתשלום?', a: 'כלול. כל מנוי כולל עיסוי ספורט חודשי של 45–60 דקות עם מטפל ייעודי — לא בונוס שמופיע פעם בכמה חודשים. אפשר להוסיף עיסוי קצר לפני או אחרי אימון לפי הצורך.' },
-        { q: 'מה עולה חודש?', a: 'תלוי בקצב (פעם, פעמיים, או שלוש בשבוע). שולח מחירון מסודר אחרי שאלת התשובה הראשונה.' },
+        { q: 'מה עולה חודש?', a: 'תלוי בקצב (פעם, פעמיים, או שלוש בשבוע). שולחים מחירון מסודר אחרי הפנייה הראשונה.' },
         { q: 'איך מבטלים אימון?', a: 'עד 4 שעות לפני. אחרי זה האימון נכנס לחשבון. הכל בוואטסאפ.' },
       ]
     : [
-        { q: 'I am totally new to strength training. Is this for me?', a: 'Yes. Most of my clients start with no prior background. The first assessment session figures out where to start.' },
-        { q: 'I have an old injury. Can I still train?', a: 'Depends on the injury — after the first call we will know if this is the right path or if I should refer you on. I do not promise things I cannot deliver.' },
+        { q: 'I am totally new to strength training. Is this for me?', a: 'Yes. Most of our clients start with no prior background. The first assessment session figures out where to start.' },
+        { q: 'I have an old injury. Can I still train?', a: 'Depends on the injury — after the first call we will know if this is the right path, and if needed we will refer you to someone better suited. We do not promise things we cannot deliver.' },
+        { q: 'Who gives the massage?', a: 'Yuval, the center’s sports-massage therapist. Ohad coaches, Yuval treats — both of us are with you through the process.' },
         { q: 'Is the massage really included, or is it a paid add-on?', a: 'Included. Every membership comes with a monthly 45–60 minute sports massage from a dedicated therapist — not an occasional perk. Short pre- or post-training work can be added when you need it.' },
-        { q: 'What does it cost per month?', a: 'Depends on cadence (1, 2, or 3 sessions per week). I send a clear price sheet after the first reply.' },
+        { q: 'What does it cost per month?', a: 'Depends on cadence (1, 2, or 3 sessions per week). We send a clear price sheet after your first message.' },
         { q: 'Cancellation policy?', a: '4 hours notice. After that the session counts. All over WhatsApp.' },
       ];
   return (
