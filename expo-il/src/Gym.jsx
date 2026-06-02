@@ -545,11 +545,11 @@ function Team({ heb }) {
   const people = heb
     ? [
         { initials: 'א', name: 'אוהד', role: 'אימון · כוח ואתלטיקה', bio: 'בונה את התוכניות, מנהל את רצפת האימון, ומאמן כל קבוצה בעצמו. כל סט נכתב מראש ומתעדכן לפי המספרים שלך.' },
-        { initials: 'י', name: 'יובל ברקוביץ׳', role: 'ריקאברי · עיסוי ספורט', bio: 'מטפל בעיסוי ספורט, ואחראי על כל הריקאברי במרכז — העיסוי החודשי, העבודה הקצרה לפני ואחרי אימון, וניהול העומסים שמחזיק אותך מתאמן ברצף.' },
+        { initials: 'י', name: 'יובל ברקוביץ׳', role: 'ריקאברי · עיסוי ספורט ורפואי', bio: 'מטפל בעיסוי ספורט ורפואי, מוסמך מכון וינגייט, עם התמחות בשחרור ובפתיחת טווחי תנועה. אחראי על כל הריקאברי במרכז — העיסוי החודשי, העבודה הקצרה לפני ואחרי אימון, וניהול העומסים שמחזיק אותך מתאמן ברצף.' },
       ]
     : [
         { initials: 'O', name: 'Ohad', role: 'Coaching · strength & athletics', bio: 'Builds the programs, runs the training floor, and coaches every group himself. Every set is written ahead and adjusts to your numbers.' },
-        { initials: 'Y', name: 'Yuval Berkovitch', role: 'Recovery · sports massage', bio: 'A sports-massage therapist who owns all recovery at the center — the monthly massage, short pre/post-training work, and the load management that keeps you training consistently.' },
+        { initials: 'Y', name: 'Yuval Berkovitch', role: 'Recovery · sports & medical massage', bio: 'A Wingate-certified sports- and medical-massage therapist who specializes in release and opening range of motion. He owns all recovery at the center — the monthly massage, short pre/post-training work, and the load management that keeps you training consistently.' },
       ];
   return (
     <section data-fade className="gym-section">
@@ -860,7 +860,7 @@ function FAQ({ heb }) {
     ? [
         { q: 'אני חדש לחלוטין באימוני כוח. זה מתאים לי?', a: 'בהחלט. רוב המתאמנים מתחילים אצלנו בלי רקע קודם. אבחון התנועה הראשון בודק מאיפה להתחיל.' },
         { q: 'יש פציעה ישנה. אפשר להתאמן?', a: 'תלוי בפציעה — אחרי השיחה הראשונה נדע אם זה הכיוון, ואם צריך נפנה אותך למישהו מתאים יותר. אנחנו לא מבטיחים דברים שאנחנו לא יכולים לעמוד בהם.' },
-        { q: 'מי נותן את העיסוי?', a: 'יובל, המטפל בעיסוי ספורט של המרכז. אוהד מאמן, יובל מטפל — שניהם מלווים אותך לאורך התהליך.' },
+        { q: 'מי נותן את העיסוי?', a: 'יובל, המטפל בעיסוי ספורט ורפואי של המרכז, מוסמך מכון וינגייט. אוהד מאמן, יובל מטפל — שניהם מלווים אותך לאורך התהליך.' },
         { q: 'העיסוי באמת כלול, או שזו תוספת בתשלום?', a: 'כלול. כל מנוי כולל עיסוי ספורט חודשי של 45–60 דקות עם מטפל ייעודי — לא בונוס שמופיע פעם בכמה חודשים. אפשר להוסיף עיסוי קצר לפני או אחרי אימון לפי הצורך.' },
         { q: 'מה עולה חודש?', a: 'תלוי בקצב (פעם, פעמיים, או שלוש בשבוע). שולחים מחירון מסודר אחרי הפנייה הראשונה.' },
         { q: 'איך מבטלים אימון?', a: 'עד 4 שעות לפני. אחרי זה האימון נכנס לחשבון. הכל בוואטסאפ.' },
@@ -868,7 +868,7 @@ function FAQ({ heb }) {
     : [
         { q: 'I am totally new to strength training. Is this for me?', a: 'Yes. Most of our clients start with no prior background. The first assessment session figures out where to start.' },
         { q: 'I have an old injury. Can I still train?', a: 'Depends on the injury — after the first call we will know if this is the right path, and if needed we will refer you to someone better suited. We do not promise things we cannot deliver.' },
-        { q: 'Who gives the massage?', a: 'Yuval, the center’s sports-massage therapist. Ohad coaches, Yuval treats — both of us are with you through the process.' },
+        { q: 'Who gives the massage?', a: 'Yuval, the center’s Wingate-certified sports- and medical-massage therapist. Ohad coaches, Yuval treats — both of us are with you through the process.' },
         { q: 'Is the massage really included, or is it a paid add-on?', a: 'Included. Every membership comes with a monthly 45–60 minute sports massage from a dedicated therapist — not an occasional perk. Short pre- or post-training work can be added when you need it.' },
         { q: 'What does it cost per month?', a: 'Depends on cadence (1, 2, or 3 sessions per week). We send a clear price sheet after your first message.' },
         { q: 'Cancellation policy?', a: '4 hours notice. After that the session counts. All over WhatsApp.' },
