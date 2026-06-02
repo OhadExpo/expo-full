@@ -103,7 +103,7 @@ export default function EntryChooser() {
           headline={heb ? 'אימון אונליין' : 'ONLINE TRAINING'}
           subhead={heb ? 'תוכניות אימון מוכנות' : 'Ready-to-Run Programs'}
           body={heb
-            ? 'בלוקים של 4 שבועות. תוכניות מקיפות של 12 שבועות. פלטפורמת אימון, מעקב, וניתוח טופס מבוסס AI.'
+            ? 'בלוקים של 4 שבועות. תוכניות מקיפות של 12 שבועות. פלטפורמת אימון, מעקב, וניתוח ביצוע מבוסס AI.'
             : 'Four-week training blocks. Twelve-week phases. The full EXPO platform — programming, logging, AI-driven form analysis.'}
           benefits={heb
             ? ['קטלוג תוכניות', 'אפליקציה מלאה', 'תמיכה בוואטסאפ']

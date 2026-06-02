@@ -346,7 +346,7 @@ const STRINGS = {
   'trust.badge':      { en: 'WHY IT IS SAFE TO BUY', he: 'למה זה בטוח לקנות' },
   'trust.bit.t':      { en: 'Pay via Bit',           he: 'תשלום בביט' },
   'trust.bit.s':      { en: 'Israeli mobile payment, no card details exchanged', he: 'תשלום ישראלי בנייד, בלי פרטי כרטיס אשראי' },
-  'trust.invoice.t':  { en: 'חשבונית מס דיגיטלית',   he: 'חשבונית מס דיגיטלית' },
+  'trust.invoice.t':  { en: 'Digital tax invoice',   he: 'חשבונית מס דיגיטלית' },
   'trust.invoice.s':  { en: 'Issued via Green Invoice the same day. עוסק מורשה.', he: 'נשלחת דרך חשבונית ירוקה באותו יום. עוסק מורשה.' },
   'trust.vat.t':      { en: 'VAT included',          he: 'כולל מע״מ' },
   'trust.vat.s':      { en: 'Every price on the catalog already includes 18% VAT — no surprises at checkout.', he: 'כל מחיר בקטלוג כבר כולל 18% מע״מ. בלי הפתעות.' },
