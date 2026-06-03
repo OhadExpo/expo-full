@@ -922,11 +922,16 @@ function Footer({ heb }) {
       <div style={{
         maxWidth: 1100, margin: '0 auto',
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 32,
+        alignItems: 'start',
         paddingBottom: 32, borderBottom: `1px solid ${C.ac}26`,
       }}>
         <div>
-          <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 28, width: 'auto', marginBottom: 12 }} />
-          <p style={{ fontSize: 12, color: C.tm, lineHeight: 1.6, maxWidth: 260 }}>
+          {/* 28px header band shared with the label columns so all three
+              columns' body rows start on the same line. */}
+          <div style={{ height: 28, display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+            <img src={EXPO_LOGO_NAV} alt="EXPO" style={{ height: 28, width: 'auto', display: 'block' }} />
+          </div>
+          <p style={{ fontSize: 12, color: C.tm, lineHeight: 1.6, margin: 0 }}>
             {heb
               ? 'מרכז ביצועים אתלטי — כוח, ניידות וריקאברי, באימון קבוצתי מבוסס תוכנית.'
               : 'EXPO Athletic Performance Center — strength, mobility, and recovery, in programmed small-group coaching.'}
@@ -934,7 +939,8 @@ function Footer({ heb }) {
         </div>
         <div>
           <div style={{
-            fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.22em', fontWeight: 700, marginBottom: 12,
+            height: 28, display: 'flex', alignItems: 'center',
+            fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.22em', fontWeight: 700, marginBottom: 14,
           }}>{heb ? 'יצירת קשר' : 'CONTACT'}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <a href={`https://wa.me/${CONTACT.whatsapp}`} target="_blank" rel="noopener"
@@ -947,7 +953,8 @@ function Footer({ heb }) {
         </div>
         <div>
           <div style={{
-            fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.22em', fontWeight: 700, marginBottom: 12,
+            height: 28, display: 'flex', alignItems: 'center',
+            fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.22em', fontWeight: 700, marginBottom: 14,
           }}>{heb ? 'גם בעולם' : 'ALSO ON EXPO'}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <a href="#/online" style={{ color: C.tx, fontSize: 13, textDecoration: 'none' }}>

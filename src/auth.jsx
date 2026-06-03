@@ -449,12 +449,11 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <img src={EXPO_LOGO} alt="EXPO" style={{ display: 'block', height: 44, width: 'auto', margin: '0 auto 22px', objectFit: 'contain' }} />
           <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 10 }}>Choose your portal</div>
-          {/* "HEY" in Nord (FB), the Hebrew name in Heebo (FH). Nord caps render
-              taller than Heebo glyphs at the same px (measured: 12px vs 10px ink
-              at 17px), so HEY is set to 14px to match the name's visual height.
-              Vertically centered so the two sit at the same height. */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1 }}>
-            <span style={{ fontFamily: FB, fontSize: 14, letterSpacing: '0.06em' }}>HEY</span>
+          {/* "HEY" in Nord (FB), the Hebrew name in Heebo (FH). Both sit on the
+              shared text baseline so the two words read as one line — centering
+              line-boxes of different fonts/sizes staggers them visually. */}
+          <div style={{ display: 'inline-flex', alignItems: 'baseline', justifyContent: 'center', gap: 9, color: C.tx, fontWeight: 600, lineHeight: 1 }}>
+            <span style={{ fontFamily: FB, fontSize: 15, letterSpacing: '0.06em' }}>HEY</span>
             <span style={{ fontFamily: FH, fontSize: 17 }}>{name || 'there'}</span>
           </div>
         </div>
