@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { fmtPrettyDate } from './dates';
-import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
+import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES, GENDER_OPTIONS } from './theme';
 
 // Hebrew renders ~3px smaller than Nord at the same fontSize. Same
 // helper applied to NotesWidget, PlansView, WorkoutReview,
@@ -989,6 +989,7 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
                     <Input label="Name" value={m.name || ""} onChange={e => upd('name', e.target.value)} />
                     <EmailsInput label="Email" value={m._emails || emailsToArr(m.email)} onChange={next => upd('_emails', next)} />
                     <Input label="Phone" value={m.phone || ""} onChange={e => upd('phone', e.target.value)} placeholder="+972..." autoComplete="off" />
+                    <Select label="Gender" placeholder="—" options={GENDER_OPTIONS} value={m.gender || ""} onChange={v => upd('gender', v)} />
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                       <Input label="Age" type="number" value={m.age || ""} onChange={e => upd('age', e.target.value)} />
                       <Input label="Weight" type="number" value={m.weight || ""} onChange={e => upd('weight', e.target.value)} />
@@ -1028,6 +1029,7 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
               )}
             </div>
             <Input label="Phone" value={editForm.phone || ""} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} placeholder="+972..." autoComplete="off" />
+            <Select label="Gender" placeholder="—" options={GENDER_OPTIONS} value={editForm.gender || ""} onChange={v => setEditForm({ ...editForm, gender: v })} />
             <Input label="Age" type="number" value={editForm.age || ""} onChange={e => setEditForm({ ...editForm, age: e.target.value })} />
             <Input label="Weight (kg)" type="number" value={editForm.weight || ""} onChange={e => setEditForm({ ...editForm, weight: e.target.value })} />
             <Input label="Height (cm)" type="number" value={editForm.height || ""} onChange={e => setEditForm({ ...editForm, height: e.target.value })} />

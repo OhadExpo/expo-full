@@ -577,7 +577,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                               fontWeight:600,fontSize:13,color:C.tx,textAlign:'center',
                               minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                             }}>{m.name || `Member ${mi+1}`}</div>
-                            <WhatsAppCheckInButton name={m.name || t.name} phone={m.phone} />
+                            <WhatsAppCheckInButton name={m.name || t.name} phone={m.phone} gender={m.gender} />
                           </div>
                           <EmailsCell email={m.email} style={{ fontSize:12, color:C.tm, marginTop:2, textAlign:'center', width:'100%' }} />
                           {m.phone && (
@@ -658,7 +658,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   into the header span via the {online && <OnlineDot />} above. */}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <WhatsAppCheckInButton name={t.name} phone={t.phone} />
+                  <WhatsAppCheckInButton name={t.name} phone={t.phone} gender={t.gender} />
                 </div>
                 <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
                 {t.phone && (

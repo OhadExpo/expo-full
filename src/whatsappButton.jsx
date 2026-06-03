@@ -12,6 +12,30 @@ export function normalizePhoneIL(raw) {
   return digits;
 }
 
+// Build the prefilled Hebrew check-in, conjugated to the athlete's gender.
+// `gender` is 'male' | 'female' | undefined. Hebrew 2nd-person is gendered,
+// so we conjugate the verbs that differ (קופץ/קופצת, בוא/בואי). When gender
+// is unknown we fall back to forms that read naturally without committing to
+// a gender: past-tense "התאמנת" + the "אותך" pronoun are spelled identically
+// for both, and "נראה"/"נתאם" are inclusive ("let's").
+export function checkInMessage({ firstName, days, gender }) {
+  const dormant = days != null;
+  if (gender === 'male') {
+    return dormant
+      ? `היי ${firstName}, מזמן לא התאמנת! הכל טוב? בוא נתאם אימון לשבוע הקרוב.`
+      : `היי ${firstName}, מה נשמע? מתי קופץ לאימון?`;
+  }
+  if (gender === 'female') {
+    return dormant
+      ? `היי ${firstName}, מזמן לא התאמנת! הכל טוב? בואי נתאם אימון לשבוע הקרוב.`
+      : `היי ${firstName}, מה נשמע? מתי קופצת לאימון?`;
+  }
+  // Unknown gender — neutral-but-personal fallback.
+  return dormant
+    ? `היי ${firstName}, מזמן לא התאמנת! הכל טוב אצלך? מתי נתאם אימון לשבוע הקרוב?`
+    : `היי ${firstName}, מה נשמע? מתי נראה אותך באימון?`;
+}
+
 // Darker brand green for better contrast on cyan cards in light mode.
 // #25d366 (WhatsApp brand light) washes out on #39BDFF; #128C7E is
 // WhatsApp's own secondary darker green and reads clearly here.
@@ -20,17 +44,13 @@ const WA_GREEN = '#128C7E';
 // Round green pill with the WhatsApp logo. Click → wa.me with prefilled
 // Hebrew check-in. `days` (optional) becomes part of the dormant copy; when
 // omitted, sends a generic catch-up. Returns null when no usable phone.
-export function WhatsAppCheckInButton({ name, phone, days, size = 16, padding = '1px 2px' }) {
+export function WhatsAppCheckInButton({ name, phone, days, gender, size = 16, padding = '1px 2px' }) {
   const num = normalizePhoneIL(phone);
   if (!num) return null;
   const handleClick = (e) => {
     e.stopPropagation();
     const firstName = (name || '').split(/\s+/)[0] || name || '';
-    const ago = days == null ? '' : `${days} ימים`;
-    const msg = days == null
-      ? `היי ${firstName}. מה קורה? הכל בסדר? מתי קופצים לאימון?`
-      : `היי ${firstName}. עברו ${ago} מאז האימון האחרון. הכל בסדר? בוא נתאם משהו השבוע.`;
-    const url = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+    const url = `https://wa.me/${num}?text=${encodeURIComponent(checkInMessage({ firstName, days, gender }))}`;
     window.open(url, '_blank', 'noopener');
   };
   return (

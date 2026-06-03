@@ -74,6 +74,9 @@ export const REQUIRED_PATTERNS = ["Horizontal Push","Horizontal Pull","Vertical 
 export const TRAINING_FORMATS = ["Gym, Single","Gym, Couple","Gym, Group","Online Client","Hybrid"];
 export const TRAINEE_STATUSES = ["Active","On Hold","Inactive","Trial","Archived"];
 export const PACKAGE_TYPES = ["Single Session","8 Sessions","24 Sessions","Monthly","Custom"];
+// Canonical value stays English ('male'/'female') so message/conjugation logic
+// is stable; the label is the Hebrew the coach sees in the picker.
+export const GENDER_OPTIONS = [{ value: "male", label: "זכר" }, { value: "female", label: "נקבה" }];
 export const SUPERSET_LABELS = ["","A","B","C","D","E"];
 export const PAYMENT_METHODS = ["Cash","Bank Transfer","Bit","PayBox","Credit Card","Other"];
 export const PAYMENT_STATUSES = ["Paid","Pending","Overdue","Partial"];
