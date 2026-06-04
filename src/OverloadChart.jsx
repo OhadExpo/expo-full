@@ -58,30 +58,6 @@ function recentTrend(series) {
 const TREND_COLOR = { up: C.gn, down: C.rd, flat: C.tm, new: C.td };
 const TREND_ARROW = { up: '↑', down: '↓', flat: '→', new: '·' };
 
-function Sparkline({ series, width = 96, height = 28 }) {
-  if (series.length < 2) return <span style={{ color: C.td, fontSize: 11, fontFamily: FN }}>—</span>;
-  const loads = series.map(s => s.topLoad);
-  const min = Math.min(...loads);
-  const max = Math.max(...loads);
-  const range = max - min || 1;
-  const pad = 3;
-  const W = width - pad * 2;
-  const H = height - pad * 2;
-  const points = series.map((s, i) => {
-    const x = pad + (i / (series.length - 1)) * W;
-    const y = pad + H - ((s.topLoad - min) / range) * H;
-    return [x, y];
-  });
-  const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
-  const color = TREND_COLOR[recentTrend(series).dir] || C.tm;
-  return (
-    <svg width={width} height={height} style={{ display: 'block' }}>
-      <path d={path} stroke={color} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={points[points.length - 1][0]} cy={points[points.length - 1][1]} r={2.6} fill={color} />
-    </svg>
-  );
-}
-
 const fmtDate = (d) => {
   try {
     return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -196,7 +172,6 @@ export default function OverloadChart({ workouts, exercises }) {
               {th('name', 'EXERCISE')}
               {th('load', 'LAST', 'right')}
               {th('delta', 'Δ RECENT', 'right')}
-              <th style={{ padding: '8px 10px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: C.td, borderBottom: `1px solid ${C.cardBd}` }}>TREND</th>
               {th('sess', 'SESS', 'right')}
               {th('recent', 'LAST DATE', 'right')}
             </tr>
@@ -216,13 +191,12 @@ export default function OverloadChart({ workouts, exercises }) {
                     <td style={{ padding: '9px 10px', textAlign: 'right', fontFamily: FN, fontSize: 12, fontWeight: 700, color: tc, whiteSpace: 'nowrap' }}>
                       {TREND_ARROW[row.trend]} {row.trend === 'new' ? 'new' : `${row.deltaPct > 0 ? '+' : ''}${row.deltaPct}%`}
                     </td>
-                    <td style={{ padding: '4px 10px' }}><Sparkline series={row.series} /></td>
                     <td style={{ padding: '9px 10px', textAlign: 'right', fontFamily: FN, fontSize: 12, color: C.tm }}>{row.sessionCount}</td>
                     <td style={{ padding: '9px 10px', textAlign: 'right', fontFamily: FN, fontSize: 11, color: C.tm, whiteSpace: 'nowrap' }}>{fmtDate(row.lastDate)}</td>
                   </tr>
                   {open && (
                     <tr>
-                      <td colSpan={6} style={{ padding: '4px 10px 12px 30px', background: 'var(--c-rowHover, transparent)' }}>
+                      <td colSpan={5} style={{ padding: '4px 10px 12px 30px', background: 'var(--c-rowHover, transparent)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                           {[...row.series].reverse().map((s, i) => (
                             <div key={i} style={{ display: 'flex', gap: 14, fontFamily: FN, fontSize: 12, color: C.tm, alignItems: 'baseline' }}>
@@ -240,7 +214,7 @@ export default function OverloadChart({ workouts, exercises }) {
               );
             })}
             {view.length === 0 && (
-              <tr><td colSpan={6} style={{ padding: 20, textAlign: 'center', color: C.tm, fontSize: 13 }}>No exercises match.</td></tr>
+              <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', color: C.tm, fontSize: 13 }}>No exercises match.</td></tr>
             )}
           </tbody>
         </table>
