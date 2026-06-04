@@ -110,13 +110,106 @@ function TestRow({ index, test, value, onChange }) {
   );
 }
 
-function SectionBlock({ section, scores, setScore }) {
+// 1-3 score is semantic: 1 poor (red) · 2 moderate (orange) · 3 good (green).
+const SCORE_COLORS = { 1: 'var(--c-rd)', 2: 'var(--c-or)', 3: 'var(--c-gn)' };
+const isScore = (v) => v === 1 || v === 2 || v === 3;
+
+// Tap group for one 1-3 score. Selected fills solid in its color; the rest sit
+// as faint outlines so an unscored row reads calm. Tapping the active number
+// clears it. Legacy free-text (e.g. "4", "R-4") shows as a faint `was:` hint.
+function ScoreButtons({ value, onChange }) {
+  const sel = isScore(value) ? value : null;
+  const legacy = (value != null && value !== '' && !isScore(value)) ? String(value) : null;
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 5 }}>
+        {[1, 2, 3].map(n => {
+          const on = sel === n;
+          const col = SCORE_COLORS[n];
+          return (
+            <button key={n} type="button" onClick={() => onChange(on ? null : n)}
+              style={{
+                width: 32, height: 32, borderRadius: 0, cursor: 'pointer',
+                fontFamily: FN, fontSize: 14, fontWeight: 800,
+                border: `1px solid ${col}`, background: on ? col : 'transparent',
+                color: on ? '#000000' : col, opacity: on ? 1 : 0.45,
+                transition: 'opacity 120ms ease, background 120ms ease',
+              }}>{n}</button>
+          );
+        })}
+      </div>
+      {legacy && (
+        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', marginTop: 3 }}>was: {legacy}</div>
+      )}
+    </div>
+  );
+}
+
+// Movements row — qualitative scoring. Three zones: TEST+goal · WATCH (the
+// parameters to observe, from the ATH EVAL sheet) · SCORE (1-3 tap, per side
+// for sided moves) + a collapsible per-exercise note.
+function MovementRow({ index, test, value, note, onScore, onNote }) {
+  const hasSides = Array.isArray(test.sides);
+  const [noteOpen, setNoteOpen] = useState(!!note);
+  const setSide = (side, v) => onScore({ ...(typeof value === 'object' && value ? value : {}), [side]: v });
+
+  return (
+    <div style={{ borderBottom: `1px solid var(--c-cardBd)` }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px',
+        gap: 12, padding: '12px 0', alignItems: 'start',
+      }}>
+        <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-td)', fontWeight: 700, paddingTop: 6 }}>{index}</div>
+        <div style={{ paddingTop: 4 }}>
+          <div style={{ fontSize: 13, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
+          {test.goal && <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', marginTop: 2 }}>{test.goal}</div>}
+        </div>
+        {/* WATCH — parameters, one per line, muted reference */}
+        <div style={{ paddingTop: 4, display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {(test.params || []).map((p, i) => (
+            <div key={i} style={{ fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', lineHeight: 1.3, display: 'flex', gap: 6 }}>
+              <span style={{ color: 'var(--c-ac)', flexShrink: 0 }}>·</span><span>{p}</span>
+            </div>
+          ))}
+        </div>
+        {/* SCORE — 1-3 tap (L/R stacked for sided), plus note toggle */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+          {hasSides ? test.sides.map(s => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: 'var(--c-ac)', width: 10 }}>{s}</span>
+              <ScoreButtons value={typeof value === 'object' && value ? value[s] : undefined} onChange={v => setSide(s, v)} />
+            </div>
+          )) : (
+            <ScoreButtons value={value} onChange={v => onScore(v)} />
+          )}
+          <button type="button" onClick={() => setNoteOpen(o => !o)}
+            title={note ? 'Edit note' : 'Add note'}
+            style={{
+              background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 0',
+              fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+              color: note ? 'var(--c-ac)' : 'var(--c-td)',
+            }}>📝 {note ? 'NOTE' : 'NOTE +'}</button>
+        </div>
+      </div>
+      {noteOpen && (
+        <div style={{ padding: '0 0 12px 36px' }}>
+          <input value={note || ''} onChange={e => onNote(e.target.value)} dir="auto"
+            placeholder={`Note · ${test.label}`}
+            style={{ ...inputBase, width: '100%', maxWidth: 520 }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionBlock({ section, scores, setScore, notes, setNote }) {
+  const isMovements = section.id === 'movements';
   return (
     <div style={{
-      marginBottom: 18,
+      marginBottom: 22,
       background: 'var(--c-sf)',
       padding: '14px 16px',
-      border: `1px solid var(--c-cardBd)`,
     }}>
       <div style={{
         fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
@@ -128,22 +221,28 @@ function SectionBlock({ section, scores, setScore }) {
           {section.hint}
         </div>
       )}
-      {/* Column headers — same template as TestRow so they align */}
+      {/* Column headers — template matches the row variant so they align */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '28px minmax(170px, 1.5fr) minmax(95px, 0.9fr) minmax(220px, 2fr)',
-        gap: 10, padding: '4px 0 6px', marginBottom: 0,
+        gridTemplateColumns: isMovements
+          ? '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px'
+          : '28px minmax(170px, 1.5fr) minmax(95px, 0.9fr) minmax(220px, 2fr)',
+        gap: 12, padding: '4px 0 6px',
         borderBottom: `1px solid var(--c-cardBd)`,
       }}>
-        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>#</div>
-        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>TEST</div>
-        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>GOAL</div>
-        <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>SCORE</div>
+        {['#', 'TEST', isMovements ? 'WATCH' : 'GOAL', 'SCORE'].map((h, i) => (
+          <div key={i} style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.1em', fontWeight: 700 }}>{h}</div>
+        ))}
       </div>
-      {section.tests.map((t, i) => (
-        <TestRow key={t.id} index={i + 1} test={t} value={scores[t.id]}
-          onChange={v => setScore(t.id, v)} />
-      ))}
+      {isMovements
+        ? section.tests.map((t, i) => (
+            <MovementRow key={t.id} index={i + 1} test={t} value={scores[t.id]}
+              note={notes?.[t.id]} onScore={v => setScore(t.id, v)} onNote={v => setNote(t.id, v)} />
+          ))
+        : section.tests.map((t, i) => (
+            <TestRow key={t.id} index={i + 1} test={t} value={scores[t.id]}
+              onChange={v => setScore(t.id, v)} />
+          ))}
     </div>
   );
 }
@@ -151,7 +250,7 @@ function SectionBlock({ section, scores, setScore }) {
 function RomBlock({ rom, setRom }) {
   const set = (key, v) => setRom({ ...rom, [key]: v });
   return (
-    <div style={{ marginBottom: 18, background: 'var(--c-sf)', padding: '14px 16px', border: `1px solid var(--c-cardBd)` }}>
+    <div style={{ marginBottom: 22, background: 'var(--c-sf)', padding: '14px 16px' }}>
       <div style={{
         fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.2em',
         color: 'var(--c-ac)', marginBottom: 6, paddingBottom: 6,
@@ -197,10 +296,25 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   const [age, setAge] = useState(existing?.age ?? trainee?.age ?? '');
   const [heightCm, setHeightCm] = useState(existing?.height_cm ?? trainee?.height ?? '');
   const [weightKg, setWeightKg] = useState(existing?.weight_kg ?? trainee?.weight ?? '');
-  const [scores, setScores] = useState(existing?.scores || {});
+  // Per-exercise notes live under a reserved `__notes` key inside the scores
+  // JSONB. Split it out of the live scores state so the score-render loops and
+  // countFilled (which iterate schema test ids) never see it; re-merge on save.
+  const [scores, setScores] = useState(() => {
+    const { __notes, ...rest } = existing?.scores || {};
+    return rest;
+  });
+  const [exNotes, setExNotes] = useState(() => existing?.scores?.__notes || {});
   const [rom, setRom] = useState(existing?.rom || {});
   useEscClose(true, onClose); // Escape closes the editor (matches scrim-click)
   const [notes, setNotes] = useState(existing?.notes || '');
+
+  const setExNote = (testId, v) => {
+    setExNotes(prev => {
+      const next = { ...prev };
+      if (!v) delete next[testId]; else next[testId] = v;
+      return next;
+    });
+  };
 
   const setScore = (testId, value) => {
     setScores(prev => {
@@ -216,10 +330,11 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   };
 
   const save = async () => {
+    const scoresOut = Object.keys(exNotes).length ? { ...scores, __notes: exNotes } : scores;
     await onSave({
       eval_date: evalDate, eval_time: evalTime || null,
       age, height_cm: heightCm, weight_kg: weightKg,
-      scores, rom, notes: notes || null,
+      scores: scoresOut, rom, notes: notes || null,
     });
     onClose();
   };
@@ -268,7 +383,8 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
         </div>
 
         {EVAL_SCHEMA.sections.map(s => (
-          <SectionBlock key={s.id} section={s} scores={scores} setScore={setScore} />
+          <SectionBlock key={s.id} section={s} scores={scores} setScore={setScore}
+            notes={exNotes} setNote={setExNote} />
         ))}
 
         <RomBlock rom={rom} setRom={setRom} />
