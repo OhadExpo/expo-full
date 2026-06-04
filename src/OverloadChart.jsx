@@ -1,23 +1,23 @@
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB } from './theme';
 
-// Compute top-set load per session for one exercise
-// Returns array of { date, topLoad, topReps, avgRpe } sorted chronologically
+// Progressive Overload — one searchable/sortable table of every lift the
+// athlete has logged loads on. Each row collapses to a one-line trend summary;
+// clicking it expands the lift's full story (all-time PR · trend chart · stats ·
+// session history with PR badges) — the merged "Records" deep-dive.
+//
 // Workouts come from two sources with different field shapes:
 //   • trainer in-person workouts table — ex.exerciseId, set.completed, w.status
 //   • athlete portal logs (clientWorkouts) — ex.eid, set.done, no w.status
-// Read both shapes so online clients (who log in their portal) aren't shown
-// an empty overload section while their loads sit right there in Records.
+// Read both so online clients (who log in their portal) and in-person athletes
+// share one progression view.
 const exKey = (e) => e.exerciseId || e.eid;
 const setDone = (s) => s.completed || s.done;
 function computeSessionSeries(workouts, exerciseId) {
   const series = [];
   workouts.forEach(w => {
-    // No w.status gate — portal logs have no status; the in-person source is
-    // already pre-filtered to completed by the caller.
     const exInstances = (w.exercises || []).filter(e => exKey(e) === exerciseId);
     if (exInstances.length === 0) return;
-    // Flatten all completed sets across instances of this exercise in this session
     const sets = [];
     exInstances.forEach(ex => (ex.sets || []).forEach(s => {
       if (!setDone(s)) return;
@@ -29,21 +29,22 @@ function computeSessionSeries(workouts, exerciseId) {
     // Top set = max load (ties broken by max reps)
     const top = sets.reduce((a, b) => b.load > a.load || (b.load === a.load && b.reps > a.reps) ? b : a);
     const rpes = sets.map(s => s.rpe).filter(r => r != null);
-    const avgRpe = rpes.length > 0 ? rpes.reduce((a,b)=>a+b, 0) / rpes.length : null;
+    const avgRpe = rpes.length > 0 ? rpes.reduce((a, b) => a + b, 0) / rpes.length : null;
     series.push({
       date: w.completedAt || w.date,
       topLoad: top.load,
       topReps: top.reps,
       avgRpe,
+      planName: w.planName || null, // block context (portal logs carry it)
+      week: w.week ?? null,
     });
   });
-  return series.sort((a,b) => new Date(a.date) - new Date(b.date));
+  return series.sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
 // Trend is classified on the RECENT window (last top-set vs the one ~3 sessions
 // back) so a lift that climbed early but has plateaued reads as a stall NOW —
-// which is the thing a coach wants to catch — instead of being hidden behind a
-// big all-time gain. ±2.5% is the flat band.
+// which is the thing a coach wants to catch. ±2.5% is the flat band.
 const FLAT_BAND = 2.5;
 function recentTrend(series) {
   if (series.length < 2) return { dir: 'new', pct: 0, deltaKg: 0 };
@@ -59,10 +60,109 @@ const TREND_COLOR = { up: C.gn, down: C.rd, flat: C.tm, new: C.td };
 const TREND_ARROW = { up: '↑', down: '↓', flat: '→', new: '·' };
 
 const fmtDate = (d) => {
-  try {
-    return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  } catch { return ''; }
+  try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
+  catch { return ''; }
 };
+const blockAbbrev = (name) => {
+  if (!name) return '';
+  const m = name.match(/#(\d+)/);
+  return m ? 'B' + m[1] : name.slice(0, 6);
+};
+
+// Compact area trend chart for the expanded detail. Plots each session's
+// top-set load; PR session dot highlighted, trend-coloured line + fill.
+function TrendChart({ series }) {
+  if (series.length < 2) return null;
+  const VW = 600, VH = 96, pad = 10;
+  const loads = series.map(s => s.topLoad);
+  const min = Math.min(...loads), max = Math.max(...loads);
+  const range = max - min || 1;
+  const prVal = max;
+  const W = VW - pad * 2, H = VH - pad * 2;
+  const pts = series.map((s, i) => [
+    pad + (i / (series.length - 1)) * W,
+    pad + H - ((s.topLoad - min) / range) * H,
+    s.topLoad,
+  ]);
+  const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const area = `${line} L ${pts[pts.length - 1][0].toFixed(1)},${VH - 1} L ${pts[0][0].toFixed(1)},${VH - 1} Z`;
+  const color = TREND_COLOR[recentTrend(series).dir] || C.ac;
+  const gid = `ovl-fill`;
+  return (
+    <svg viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: 72 }}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path d={line} stroke={color} strokeWidth="1.5" vectorEffect="non-scaling-stroke" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => {
+        const isLast = i === pts.length - 1;
+        const isPr = p[2] === prVal;
+        return <circle key={i} cx={p[0]} cy={p[1]} r={isLast ? 4 : isPr ? 3 : 2} fill={isLast ? color : isPr ? C.ac : C.tm} vectorEffect="non-scaling-stroke" />;
+      })}
+    </svg>
+  );
+}
+
+function StatInline({ label, value, color }) {
+  return (
+    <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+      <span style={{ fontFamily: FN, fontSize: 8, color: C.tm, letterSpacing: '0.14em', fontWeight: 700 }}>{label}</span>
+      <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, color: color || C.tx }}>{value}</span>
+    </span>
+  );
+}
+
+// The expanded lift detail — all-time PR + trend chart + stats + session
+// history, styled to match the table (FN labels, hairline rules, PR chips).
+function LiftDetail({ row }) {
+  const allDelta = +(row.lastLoad - row.series[0].topLoad).toFixed(1);
+  return (
+    <div style={{ padding: '14px 16px 18px 30px' }}>
+      {/* PR + inline stats */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 28px', alignItems: 'flex-end', marginBottom: 14 }}>
+        <span style={{ display: 'inline-flex', flexDirection: 'column' }}>
+          <span style={{ fontFamily: FN, fontSize: 8, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 2 }}>ALL-TIME PR</span>
+          <span style={{ fontFamily: FB, fontSize: 22, fontWeight: 800, color: C.ac, lineHeight: 1 }}>
+            {row.allTimePR}
+            <span style={{ fontSize: 12, color: C.tm, fontWeight: 400, marginLeft: 4 }}>kg{row.allTimePRReps ? ` × ${row.allTimePRReps}` : ''}</span>
+            <span style={{ fontSize: 11, color: C.tm, fontWeight: 400, marginLeft: 10, fontFamily: FN }}>{fmtDate(row.allTimePRDate)}</span>
+          </span>
+        </span>
+        <span style={{ flex: 1 }} />
+        <StatInline label="LATEST" value={`${row.lastLoad}kg`} />
+        <StatInline label="Δ ALL-TIME" value={`${allDelta > 0 ? '+' : ''}${allDelta}kg`} color={allDelta >= 0 ? C.gn : C.rd} />
+        <StatInline label="SESSIONS" value={row.sessionCount} />
+      </div>
+      <TrendChart series={row.series} />
+      {/* Session history — newest first, PR row badged */}
+      <div style={{ marginTop: 14 }}>
+        <div style={{ fontFamily: FN, fontSize: 8, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>SESSION HISTORY</div>
+        {[...row.series].reverse().map((s, i) => {
+          const isPR = s.topLoad === row.allTimePR;
+          return (
+            <div key={i} style={{
+              display: 'grid', gridTemplateColumns: '70px 70px 1fr auto', gap: 12, alignItems: 'center',
+              padding: '6px 0', fontFamily: FN, fontSize: 12,
+              borderTop: i > 0 ? `1px solid ${C.cardBd}` : 'none',
+            }}>
+              <span style={{ color: C.td }}>{fmtDate(s.date)}</span>
+              <span style={{ color: C.tm, fontSize: 10 }}>{s.planName ? `${blockAbbrev(s.planName)}${s.week ? `·W${s.week}` : ''}` : ''}</span>
+              <span style={{ color: C.tx, fontWeight: 700 }}>{s.topLoad}kg <span style={{ color: C.tm, fontWeight: 400 }}>× {s.topReps || '—'}</span></span>
+              <span style={{ textAlign: 'right', color: C.td, whiteSpace: 'nowrap' }}>
+                {s.avgRpe != null ? `RPE ${s.avgRpe.toFixed(1)}` : ''}
+                {isPR && <span style={{ marginLeft: 8, fontSize: 9, color: C.ac, border: `1px solid ${C.ac}`, padding: '1px 5px', fontWeight: 700, letterSpacing: '0.08em' }}>PR</span>}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function OverloadChart({ workouts, exercises }) {
   const [query, setQuery] = useState('');
@@ -70,7 +170,6 @@ export default function OverloadChart({ workouts, exercises }) {
   const [sort, setSort] = useState({ key: 'recent', dir: -1 }); // recent|delta|load|sess|name
   const [expanded, setExpanded] = useState(null);
 
-  // Build per-exercise aggregate
   const stats = useMemo(() => {
     const byExId = new Map();
     workouts.forEach(w => {
@@ -88,12 +187,15 @@ export default function OverloadChart({ workouts, exercises }) {
       const exMeta = exercises.find(e => e.id === exId);
       const title = exMeta?.title || byExId.get(exId) || '(unknown exercise)';
       const t = recentTrend(series);
+      const allTimePR = Math.max(...series.map(s => s.topLoad));
+      const prEntry = series.find(s => s.topLoad === allTimePR);
       rows.push({
         exId, title, series,
         lastLoad: series[series.length - 1].topLoad,
         lastDate: series[series.length - 1].date,
         sessionCount: series.length,
         trend: t.dir, deltaPct: t.pct, deltaKg: t.deltaKg,
+        allTimePR, allTimePRReps: prEntry?.topReps ?? null, allTimePRDate: prEntry?.date,
       });
     }
     return rows;
@@ -156,7 +258,6 @@ export default function OverloadChart({ workouts, exercises }) {
 
   return (
     <div>
-      {/* Controls — search + trend filter chips */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <input value={query} onChange={e => setQuery(e.target.value)} placeholder="🔍  search exercise"
           style={{ flex: '1 1 200px', minWidth: 160, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '7px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
@@ -166,7 +267,7 @@ export default function OverloadChart({ workouts, exercises }) {
       </div>
 
       <div style={{ overflowX: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
           <thead>
             <tr>
               {th('name', 'EXERCISE')}
@@ -185,7 +286,7 @@ export default function OverloadChart({ workouts, exercises }) {
                   <tr onClick={() => setExpanded(open ? null : row.exId)}
                     style={{ cursor: 'pointer', borderBottom: `1px solid ${C.cardBd}`, background: open ? 'var(--c-rowHover, transparent)' : 'transparent' }}>
                     <td style={{ padding: '9px 10px', fontSize: 13, color: C.tx, fontWeight: 600, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      <span style={{ color: C.td, marginRight: 6, fontSize: 10 }}>{open ? '▾' : '▸'}</span>{row.title}
+                      <span style={{ color: open ? C.ac : C.td, marginRight: 6, fontSize: 10 }}>{open ? '▾' : '▸'}</span>{row.title}
                     </td>
                     <td style={{ padding: '9px 10px', textAlign: 'right', fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx }}>{row.lastLoad}kg</td>
                     <td style={{ padding: '9px 10px', textAlign: 'right', fontFamily: FN, fontSize: 12, fontWeight: 700, color: tc, whiteSpace: 'nowrap' }}>
@@ -196,17 +297,8 @@ export default function OverloadChart({ workouts, exercises }) {
                   </tr>
                   {open && (
                     <tr>
-                      <td colSpan={5} style={{ padding: '4px 10px 12px 30px', background: 'var(--c-rowHover, transparent)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                          {[...row.series].reverse().map((s, i) => (
-                            <div key={i} style={{ display: 'flex', gap: 14, fontFamily: FN, fontSize: 12, color: C.tm, alignItems: 'baseline' }}>
-                              <span style={{ width: 60, color: C.td }}>{fmtDate(s.date)}</span>
-                              <span style={{ color: C.tx, fontWeight: 700 }}>{s.topLoad}kg</span>
-                              <span>× {s.topReps || '—'}</span>
-                              <span style={{ color: C.td }}>{s.avgRpe != null ? `RPE ${s.avgRpe.toFixed(1)}` : ''}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <td colSpan={5} style={{ padding: 0, background: 'var(--c-rowHover, transparent)', borderBottom: `1px solid ${C.cardBd}` }}>
+                        <LiftDetail row={row} />
                       </td>
                     </tr>
                   )}

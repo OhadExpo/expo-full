@@ -27,7 +27,6 @@ const bitDeepLink = (phone, amount, reference) => {
   };
 };
 import OverloadChart from './OverloadChart';
-import TraineePRsView from './TraineePRsView';
 import TraineeCRM from './TraineeCRM';
 import CoachMessages from './CoachMessages';
 import CoachContractComposer from './CoachContractComposer';
@@ -619,15 +618,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === ATHLETIC EVALUATION — slot #9 */}
       {td && <TraineeEvaluation trainee={td} />}
 
-      {/* === OVERLOAD — slot #10 */}
+      {/* === PROGRESSIVE OVERLOAD — slot #10. Now the single progression
+          hub: the table is the overview, each row expands into the lift's
+          full record (all-time PR · trend chart · session history). The old
+          standalone "Records" section was merged in here to kill the overlap. */}
       <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Progressive Overload</h3>
       <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
-
-      {/* === RECORDS — slot #11. tcw is already filtered to this
-          athlete (incl. couple sub-members) so no extra traineeId filter
-          is needed; couples → parent + __0 + __1 surface combined. */}
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Records</h3>
-      <TraineePRsView clientWorkouts={tcw} embedded />
 
 
       <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null);setPendingBlankCouple(false)}} title={`+ New Program for ${td.name}`}>
