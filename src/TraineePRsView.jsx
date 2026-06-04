@@ -420,22 +420,26 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                           );
                         })}
                       </svg>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                        <div style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, textAlign: 'center' }}>
-                          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>LATEST</div>
-                          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color: C.tx }}>{kgData[kgData.length - 1].load}kg</div>
-                        </div>
-                        <div style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, textAlign: 'center' }}>
-                          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>CHANGE</div>
-                          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color: (kgData[kgData.length - 1].load - kgData[0].load) >= 0 ? C.gn : C.rd }}>
-                            {(kgData[kgData.length - 1].load - kgData[0].load) > 0 ? '+' : ''}{(kgData[kgData.length - 1].load - kgData[0].load).toFixed(1)}kg
+                      {(() => {
+                        const chg = kgData[kgData.length - 1].load - kgData[0].load;
+                        const cells = [
+                          ['LATEST', `${kgData[kgData.length - 1].load}kg`, C.tx],
+                          ['CHANGE', `${chg > 0 ? '+' : ''}${chg.toFixed(1)}kg`, chg >= 0 ? C.gn : C.rd],
+                          ['WEEKS', `${kgData.length}`, C.tx],
+                        ];
+                        // Integrated stat strip — hairline dividers instead of three
+                        // nested boxes, so it reads as one footer of the trend card.
+                        return (
+                          <div style={{ display: 'flex', marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.cardBd}` }}>
+                            {cells.map(([label, val, color], i) => (
+                              <div key={i} style={{ flex: 1, textAlign: 'center', borderLeft: i > 0 ? `1px solid ${C.cardBd}` : 'none' }}>
+                                <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>{label}</div>
+                                <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color, marginTop: 3 }}>{val}</div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                        <div style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, textAlign: 'center' }}>
-                          <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>WEEKS</div>
-                          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FN, color: C.tx }}>{kgData.length}</div>
-                        </div>
-                      </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}
