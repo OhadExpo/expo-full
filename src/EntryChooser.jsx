@@ -179,6 +179,11 @@ function Panel({ side, dim, highlight, onEnter, onLeave, onClick, headline, subh
               fontFamily: FN, fontSize: 11, color: C.tx, letterSpacing: '0.04em', padding: '8px 0',
               borderTop: i === 0 ? `1px solid ${C.ac}26` : 'none',
               borderBottom: `1px solid ${C.ac}26`, fontWeight: 600,
+              // Single line per benefit so both panels' benefit blocks are
+              // identical height at every width — otherwise an uneven wrap
+              // offsets the vertically-centered content and the two headlines
+              // (SIGN IN / FOR COACHES) sit at different heights.
+              whiteSpace: 'nowrap', lineHeight: 1.4,
             }}>{b}</div>
           ))}
         </div>
