@@ -14,8 +14,8 @@ import { EVAL_SCHEMA, romKey } from './evaluationSchema';
 
 const inputBase = {
   background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,
-  padding: '8px 10px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 12,
-  outline: 'none', boxSizing: 'border-box', minWidth: 0,
+  padding: '7px 8px', color: 'var(--c-tx)', fontFamily: FN, fontSize: 12,
+  outline: 'none', boxSizing: 'border-box', minWidth: 0, textAlign: 'center',
 };
 
 // One test row mirrors the ATH EVAL.xlsx layout: # · NAME · GOAL · SCORE.
@@ -42,18 +42,18 @@ function TestRow({ index, test, value, onChange }) {
   return (
     <div className="eval-row" style={{
       display: 'grid',
-      gridTemplateColumns: '28px minmax(170px, 1.5fr) minmax(95px, 0.9fr) minmax(220px, 2fr)',
-      gap: 10, padding: '8px 0', alignItems: 'center',
+      gridTemplateColumns: '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)',
+      gap: 10, padding: '7px 0', alignItems: 'center',
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
       <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
       <div style={{ fontSize: 13, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
       <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3 }}>{test.goal || '—'}</div>
       <div style={{ minWidth: 0 }}>
-        {/* simple */}
+        {/* simple — capped width so a lone number doesn't float in a huge box */}
         {!hasSides && !isComposite && (
           <input value={value || ''} onChange={e => setSimple(e.target.value)}
-            placeholder={test.unit || ''} style={{ ...inputBase, width: '100%' }} />
+            placeholder={test.unit || ''} style={{ ...inputBase, width: '100%', maxWidth: 120 }} />
         )}
         {/* sided, non-composite — two stacked rows on narrow, side-by-side on wide */}
         {hasSides && !isComposite && (
@@ -228,8 +228,8 @@ function SectionBlock({ section, scores, setScore, notes, setNote }) {
         display: 'grid',
         gridTemplateColumns: isMovements
           ? '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px'
-          : '28px minmax(170px, 1.5fr) minmax(95px, 0.9fr) minmax(220px, 2fr)',
-        gap: 12, padding: '4px 0 6px',
+          : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)',
+        gap: isMovements ? 12 : 10, padding: '4px 0 6px',
         borderBottom: `1px solid var(--c-cardBd)`,
       }}>
         {['#', 'TEST', isMovements ? 'WATCH' : 'GOAL', 'SCORE'].map((h, i) => (
@@ -350,7 +350,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
       <div onClick={e => e.stopPropagation()} style={{
         background: isRefined5b() ? '#FFFFFF' : 'var(--c-bg)',
         border: `1px solid var(--c-ac)`, borderRadius: 0,
-        padding: 24, maxWidth: 1180, width: '100%',
+        padding: 24, maxWidth: 880, width: '100%',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontFamily: FN, fontSize: 18, color: 'var(--c-tx)', letterSpacing: '0.04em' }}>
