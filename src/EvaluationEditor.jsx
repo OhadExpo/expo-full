@@ -173,16 +173,18 @@ function MovementRow({ index, test, value, note, onScore, onNote }) {
             </div>
           ))}
         </div>
-        {/* SCORE — 1-3 tap (L/R stacked for sided), plus note toggle */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-          {hasSides ? test.sides.map(s => (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: 'var(--c-ac)', width: 10 }}>{s}</span>
-              <ScoreButtons value={typeof value === 'object' && value ? value[s] : undefined} onChange={v => setSide(s, v)} />
+        {/* SCORE — 1-3 tap. Every line is [side-label · buttons], right-aligned,
+            with a fixed-width label slot (blank on bilateral) so the button
+            columns line up across sided and bilateral rows alike. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
+          {(hasSides ? test.sides : [null]).map((s, i) => (
+            <div key={s || i} style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+              <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: 'var(--c-ac)', width: 12, textAlign: 'right' }}>{s || ''}</span>
+              <ScoreButtons
+                value={s ? (typeof value === 'object' && value ? value[s] : undefined) : value}
+                onChange={v => (s ? setSide(s, v) : onScore(v))} />
             </div>
-          )) : (
-            <ScoreButtons value={value} onChange={v => onScore(v)} />
-          )}
+          ))}
           <button type="button" onClick={() => setNoteOpen(o => !o)}
             title={note ? 'Edit note' : 'Add note'}
             style={{
