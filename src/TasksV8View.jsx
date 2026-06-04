@@ -1401,17 +1401,27 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             flexShrink: 0,
           }} />
         )}
-        <div style={{
-          flex: 1, minWidth: 0,
-          fontFamily: heb ? FH : FB,
-          fontSize: heb ? 14 : 13,
-          fontWeight: 500,
-          color: 'var(--c-tx)',
-          direction: heb ? 'rtl' : 'ltr',
-          textAlign: heb ? 'right' : 'left',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          <HighlightedText text={row._display} query={search} />
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start' }}>
+          <div style={{
+            maxWidth: '100%',
+            fontFamily: heb ? FH : FB,
+            fontSize: heb ? 14 : 13,
+            fontWeight: 500,
+            color: 'var(--c-tx)',
+            direction: heb ? 'rtl' : 'ltr',
+            textAlign: heb ? 'right' : 'left',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            <HighlightedText text={row._display} query={search} />
+          </div>
+          {/* Due as a calendar subtitle under the title (Things-3 pattern) —
+              frees the row edge and reads cleaner than the old cramped stack. */}
+          {hasDue && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 600, color: dm.color, letterSpacing: '0.03em', direction: 'ltr' }}>
+              <span style={{ fontSize: 9, opacity: 0.85 }}>📅</span>
+              <span>{dm.label}{row._dueTime ? ` · ${row._dueTime}` : ''}{isOverdue ? ' · overdue' : ''}</span>
+            </div>
+          )}
         </div>
         {/* Hover-revealed quick action — Linear pattern. Doesn't do anything
             yet (Phase 1 hooks up a quick-menu), just signals interactivity. */}
@@ -1436,15 +1446,6 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             }}>½</span>
         )}
         <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
-        <span style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center',
-          width: 56, flexShrink: 0, lineHeight: 1.15,
-        }}>
-          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: hasDue ? dm.color : 'var(--c-td)', letterSpacing: '0.04em' }}>{hasDue ? dm.label : '—'}</span>
-          {hasDue && row._dueTime && (
-            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-tm)', letterSpacing: '0.02em' }}>{row._dueTime}</span>
-          )}
-        </span>
       </div>
       {expanded && (
         <div style={{
