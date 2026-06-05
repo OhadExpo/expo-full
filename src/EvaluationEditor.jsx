@@ -272,14 +272,16 @@ function RomBlock({ rom, setRom }) {
             {j.label}
           </div>
           <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8,
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(168px, 1fr))', gap: 8,
             minWidth: 0,
           }}>
             {j.axes.map(ax => {
               const k = romKey(j.id, ax);
               return (
                 <div key={ax} style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                  <div style={{ flex: 1, fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ax}</div>
+                  {/* Wrap, don't ellipsis — "Internal/External Rotation" must show
+                      in full even in the narrow ROM column. */}
+                  <div style={{ flex: 1, fontFamily: FB, fontSize: 11, color: 'var(--c-tm)', lineHeight: 1.2 }}>{ax}</div>
                   <input value={rom[k] || ''} onChange={e => set(k, e.target.value)}
                     placeholder="°" style={{ ...inputBase, width: 56, padding: '6px 8px', textAlign: 'center' }} />
                 </div>
