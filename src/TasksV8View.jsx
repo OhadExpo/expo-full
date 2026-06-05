@@ -1386,6 +1386,28 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           transition: 'background 120ms ease',
         }}
       >
+        {/* Due-date rail — a fixed-width left column so every date scans down
+            one vertical line instead of hiding as cramped subtitle text. The
+            Hebrew rows are RTL, so the LEFT edge is the reader's line-end (the
+            Things-3 trailing-date slot). Slot width is reserved even when a row
+            has no date, so dated and undated rows stay aligned. Colour = urgency
+            (red overdue, cyan today, muted future); a subtle tint + border give
+            it weight without shouting. The redundant "overdue" word is gone —
+            the row's red left edge-bar already carries that signal. */}
+        <div style={{ flexShrink: 0, width: 56, display: 'flex', justifyContent: 'center' }}>
+          {hasDue && (
+            <div style={{
+              display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
+              padding: row._dueTime ? '2px 7px' : '4px 7px', lineHeight: 1.05,
+              fontFamily: FN, direction: 'ltr',
+              background: isOverdue ? 'rgba(229,72,77,0.10)' : isToday ? 'rgba(57,189,255,0.12)' : 'transparent',
+              border: `1px solid ${isOverdue ? 'var(--c-rd)' : isToday ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', color: dm.color, whiteSpace: 'nowrap' }}>{dm.label}</span>
+              {row._dueTime && <span style={{ fontSize: 8.5, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.03em' }}>{row._dueTime}</span>}
+            </div>
+          )}
+        </div>
         {showAvatar && <AssigneeDot owner={row._owner} />}
         {/* Priority indicator — single-character glyph in the colour of the
             priority. Absent for NORMAL so the row doesn't pay rent for the
@@ -1414,14 +1436,6 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           }}>
             <HighlightedText text={row._display} query={search} />
           </div>
-          {/* Due as a calendar subtitle under the title (Things-3 pattern) —
-              frees the row edge and reads cleaner than the old cramped stack. */}
-          {hasDue && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 10, fontWeight: 600, color: dm.color, letterSpacing: '0.03em', direction: 'ltr' }}>
-              <span style={{ fontSize: 9, opacity: 0.85 }}>📅</span>
-              <span>{dm.label}{row._dueTime ? ` · ${row._dueTime}` : ''}{isOverdue ? ' · overdue' : ''}</span>
-            </div>
-          )}
         </div>
         {/* Hover-revealed quick action — Linear pattern. Doesn't do anything
             yet (Phase 1 hooks up a quick-menu), just signals interactivity. */}
