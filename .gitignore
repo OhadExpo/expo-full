@@ -70,3 +70,8 @@ _biz_extract/
 
 # Dev server log captured during local audit sessions
 .dev-server.log
+
+# EXPO Performance Center business/legal/financial folder (confidential —
+# strategy, finances, partnership/legal, lawyer + accountant recordings).
+# Lives in the repo dir; must NEVER reach the public GitHub repo.
+EXPO - המרכז למצויינות-פיתוח אתלטית/
