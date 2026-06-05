@@ -38,20 +38,20 @@ Last synced to code: 2026-06-05.
 | `/coach/dashboard` | dashboard | `DashboardView` | ✅ pass1 |
 | `/coach/athletes` (`/coach/trainees` legacy) | trainees | `TraineesView` | ✅ pass1 |
 | `/coach/athletes/<id>` | trainees | `TraineeDetail` | ✅ pass1 |
-| `/coach/athletes/<id>/preview` | trainees | `CoachPreviewPortal` | ⬜ |
-| `/coach/programs` | plans | `PlansView` | ⬜ |
-| `/coach/programs/<id>/preview` | plans | `CoachPreviewPortal` (plan) | ⬜ |
-| `/coach/exercises` | exercises | `ExercisesView` | ⬜ |
+| `/coach/athletes/<id>/preview` | trainees | `CoachPreviewPortal` | ✅ pass2 |
+| `/coach/programs` | plans | `PlansView` | ✅ pass2 |
+| `/coach/programs/<id>/preview` | plans | `CoachPreviewPortal` (plan) | ✅ pass2 |
+| `/coach/exercises` | exercises | `ExercisesView` | ✅ pass2 |
 | `/coach/review` | review | `WorkoutReview` | ✅ pass1 |
-| `/coach/workouts` | workouts | `WorkoutsView` | ⬜ |
+| `/coach/workouts` | workouts | `WorkoutsView` | ✅ pass2 |
 | `/coach/intake` | intake | `IntakeView` | ✅ pass1 |
 | `/coach/waitlist` | waitlist | `WaitlistView` | ✅ pass1 |
-| `/coach/chat-audit` | chatAudit | `ChatAuditView` | ⬜ |
+| `/coach/chat-audit` | chatAudit | `ChatAuditView` | ✅ pass2 |
 | `/coach/smart-import` | smartImport | `SmartImportView` | ✅ pass1 |
 | `/coach/tasks` | tasks | `CoachTasksView` (TasksV8View) | ✅ pass1 |
-| `/coach/bugs` | bugs | `BugsView` | ⬜ |
-| `/coach/challenges` | challenges | `ChallengesView` | ⬜ |
-| `/coach/calendar` | calendar | `BookingView` | ⬜ |
+| `/coach/bugs` | bugs | `BugsView` | ✅ pass2 |
+| `/coach/challenges` | challenges | `ChallengesView` | ✅ pass2 |
+| `/coach/calendar` | calendar | `BookingView` | ✅ pass2 |
 | `/coach/billing` | billing | `BillingView` | ✅ pass1 |
 
 Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/RLS.
@@ -62,10 +62,10 @@ Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/R
 |---------|-------|---------|
 | `/athlete` PROGRAM | warm-ups → Start Check-In → set logging → FORM CHECK upload | ✅ pass1 (+E2E upload) |
 | `/athlete` BW | bodyweight log | ✅ pass1 |
-| `/athlete` MEAL LOG | `MealLogger` (page mode) | ⬜ |
+| `/athlete` MEAL LOG | `MealLogger` (page mode) | ✅ pass2 |
 | `/athlete` HISTORY | past workouts | ⬜ (null-guard bug found) |
-| `/athlete` PRs | `TraineePRsView` | ⬜ |
-| `/athlete` MESSAGES | `CoachMessages` (page mode) | ⬜ |
+| `/athlete` PRs | `TraineePRsView` | ✅ pass2 |
+| `/athlete` MESSAGES | `CoachMessages` (page mode) | ✅ pass2 |
 
 ---
 
@@ -76,7 +76,7 @@ Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/R
 | `#/`, empty, `#programs`/`#why`/`#how`/`#contact`/`#faq`/`#discovery-call` | home | home tree (sections) | ✅ pass1 |
 | `#/online`, `#/online/*` | home | catalog on home | ✅ pass1 |
 | `#/gym`, `#/gym/*` | gym | `Gym` | ✅ pass1 |
-| `#/programs/<id>` (detail) | detail | `ProgramDetail` | ⬜ |
+| `#/programs/<id>` (detail) | detail | `ProgramDetail` | ✅ pass2 |
 | chooser | chooser | `EntryChooser` (expo-il) | ✅ pass1 |
 
 ---
@@ -93,6 +93,8 @@ Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/R
 
 ## Coverage ledger
 
-Pass 1 (2026-06-05) covered: dashboard, athletes/TraineeDetail, review, intake, waitlist, smart-import, tasks, billing, athlete PROGRAM+BW, full expo-il home/online/gym/chooser, all demo/coaches/try/sandbox surfaces.
+Pass 1 (2026-06-05): dashboard, athletes/TraineeDetail, review, intake, waitlist, smart-import, tasks, billing, athlete PROGRAM+BW, full expo-il home/online/gym/chooser, all demo/coaches/try/sandbox surfaces.
 
-Still ⬜ (next pass target): coach `exercises, workouts, plans(+preview), chat-audit, bugs, challenges, calendar`, athlete-portal `meal/history/PRs/messages`, public `book/p/sign/intake-form/login`, expo-il `program detail`.
+Pass 2 (2026-06-05): coach `exercises, workouts, plans(+preview), chat-audit, bugs, challenges, calendar`, `CoachPreviewPortal`; athlete-portal `meal/history/PRs/messages`; public `book/p/sign/intake-form/login`; expo-il `program detail`. Fixed: 6 DB-string-deref white-screen/crash guards (commit a421d3c). Remaining defense-in-depth (LOW, not live bugs): MealLogger/CoachMessages lack their own demoMode prop (parent-gated); CoachMessages refined-ternary.
+
+All 38 manifest surfaces now have ≥1 audit pass. Re-run from this ledger for future sweeps.
