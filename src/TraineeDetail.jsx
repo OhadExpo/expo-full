@@ -85,7 +85,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // Couple values that the hooks below need are nullable in that window;
   // guard expressions, then early-return after all hooks have registered.
   const couple = !!td && Array.isArray(td.members) && td.members.length === 2;
-  const totalPaid=tPay.reduce((a,p)=>a+(parseFloat(p.amount)||0),0);
+  // Paid-only — matches the dashboard's tPaidOnly semantics so a Pending /
+  // Canceled Bit request never inflates the "total paid" badge.
+  const totalPaid=tPay.filter(p=>p.status==='Paid').reduce((a,p)=>a+(parseFloat(p.amount)||0),0);
   // "Last Payment" tile derives from the actual ledger (most-recent Paid row
   // in tPay, which is backed by bit_payment_requests). Falls back to the
   // legacy td.lastPayment field for trainees imported before the table

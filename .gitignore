@@ -27,6 +27,8 @@ New Programs/
 *.png
 *.jpg
 *.jpeg
+# ...but public/ holds real deployed assets (icons, og-image), not screenshots.
+!public/og-image.png
 amit-*.png
 chat-*.png
 coach-*.png

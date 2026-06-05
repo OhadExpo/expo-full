@@ -23,6 +23,22 @@
   <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png"/>
   <link rel="shortcut icon" href="/favicon.ico"/>
   <title>EXPO</title>
+  <!-- Open Graph / link-unfurl preview. Without these, WhatsApp/iMessage fall
+       back to grabbing the tiny square app icon — a 1200x630 og-image renders
+       a proper banner card instead. SPA shell is static, so every route shares
+       this preview. -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="EXPO"/>
+  <meta property="og:title" content="EXPO — Programmed Training"/>
+  <meta property="og:description" content="Structured strength & programming by Ohad. The same training system used with every athlete I coach."/>
+  <meta property="og:url" content="https://expo-app.co.il/"/>
+  <meta property="og:image" content="https://expo-app.co.il/og-image.png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="EXPO — Programmed Training"/>
+  <meta name="twitter:description" content="Structured strength & programming by Ohad. The same training system used with every athlete I coach."/>
+  <meta name="twitter:image" content="https://expo-app.co.il/og-image.png"/>
   <!-- Preconnect to Supabase so the first auth + plans query doesn't pay
        the full TCP+TLS handshake cost on a cold visit. -->
   <link rel="preconnect" href="https://gtcbfglttoiyfsnfbhdy.supabase.co" crossorigin/>

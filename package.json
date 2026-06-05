@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "lint": "eslint src expo-il/src",
-    "build": "node scripts/check-bare-css-fns.js && eslint src expo-il/src && vite build",
+    "build": "node scripts/check-bare-css-fns.js && node scripts/check-surfaces.mjs && eslint src expo-il/src && vite build",
+    "surfaces": "node scripts/check-surfaces.mjs",
     "build:nocheck": "vite build",
     "preview": "vite preview",
     "guard": "node scripts/check-bare-css-fns.js"
