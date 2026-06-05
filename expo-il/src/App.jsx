@@ -47,6 +47,10 @@ function trackAndOpen(event, payload) {
 // Anything else falls back to Home.
 // ───────────────────────────────────────────────────────────────────────────
 
+// Scroll-target sections that live ON the home/catalog view (have matching
+// id="…" elements). A bare `#<id>` for these must keep the home view mounted.
+const HOME_SECTIONS = new Set(['programs', 'why', 'how', 'contact', 'faq', 'discovery-call']);
+
 function parseHash(hash) {
   const h = (hash || '').replace(/^#\/?/, '');
   // 2026-05-14 dual-arm split. Empty hash now shows the EntryChooser
@@ -57,6 +61,11 @@ function parseHash(hash) {
   if (h === 'gym' || h.startsWith('gym/')) return { view: 'gym' };
   const m = h.match(/^programs\/([a-z0-9-]+)$/i);
   if (m) return { view: 'detail', programId: m[1] };
+  // Bare home-page section anchors (hero "BROWSE PROGRAMS"/"HOW IT WORKS",
+  // skip-link, bookmarked #programs). These are scroll targets ON the home
+  // view — keep the catalog mounted instead of bouncing to the chooser, and
+  // let the browser's native #id scroll land the visitor on the section.
+  if (HOME_SECTIONS.has(h)) return { view: 'home', scrollTo: h };
   // Unknown path — fall through to the chooser so visitors don't land
   // on a bare 404 from a typo'd URL.
   return { view: 'chooser' };
