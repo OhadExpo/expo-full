@@ -186,7 +186,10 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
   if (!format && !hasSessions && !(programs > 0) && !lastWk) return null;
   return (
     <CardSection label="Training" center={center}>
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {/* Reserve 3 rows so the section is the same height on every card —
+          keeps the Bodyweight divider + graph below it aligned across the
+          grid regardless of which optional rows a given athlete has. */}
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4, minHeight: 50 }}>
         {(format || hasSessions) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
             {format && (
@@ -656,7 +659,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               {/* IDENTITY: name + status badge live in the card header — no
                   body duplicate. Same shape in both themes; OnlineDot moves
                   into the header span via the {online && <OnlineDot />} above. */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minHeight: 52, justifyContent: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} gender={t.gender} />
                 </div>
