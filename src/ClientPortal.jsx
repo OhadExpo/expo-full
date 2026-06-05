@@ -583,7 +583,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
 
     const previewUrl = URL.createObjectURL(file);
-    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, pendingBlobId:null}; return n; });
+    setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], has:true, videoUrl:previewUrl, fileName:file.name, uploading:true, uploaded:false, compressProgress:0, uploadProgress:0, pendingBlobId:null, videoError:false}; return n; });
 
     // Hoist these so the catch handler (offline-queue path) can read them.
     // Inside-try-only declarations made the enqueueBlob() call silently
