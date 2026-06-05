@@ -63,7 +63,7 @@ Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/R
 | `/athlete` PROGRAM | warm-ups → Start Check-In → set logging → FORM CHECK upload | ✅ pass1 (+E2E upload) |
 | `/athlete` BW | bodyweight log | ✅ pass1 |
 | `/athlete` MEAL LOG | `MealLogger` (page mode) | ✅ pass2 |
-| `/athlete` HISTORY | past workouts | ⬜ (null-guard bug found) |
+| `/athlete` HISTORY | past workouts | ✅ pass2 (null-guards fixed, commit 127783f) |
 | `/athlete` PRs | `TraineePRsView` | ✅ pass2 |
 | `/athlete` MESSAGES | `CoachMessages` (page mode) | ✅ pass2 |
 
