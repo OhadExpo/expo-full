@@ -533,7 +533,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) {
-        const publicUrl = `${supaUrl}/storage/v1/object/public/form-videos/${path}`;
+        const publicUrl = `${SUPA_URL}/storage/v1/object/public/form-videos/${path}`;
         resolve({ publicUrl });
       } else {
         console.error('Upload response:', xhr.status, xhr.responseText);
