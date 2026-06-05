@@ -213,6 +213,81 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
   );
 }
 
+// CollapsibleSection — a card whose cyan strip-header IS the expand/collapse
+// handle. The strip becomes a button (title + optional count + optional right-
+// side actions + a rotating chevron); the body animates open/closed via the
+// CSS grid 0fr→1fr height trick (same as the dashboard dropout card). Open
+// state persists in localStorage per `storageKey`, so a coach's collapse
+// layout sticks across reloads — important on TraineeDetail where they'd
+// otherwise re-set it every visit.
+//
+// Props:
+//   title       — strip text (uppercased FN, white on the strip)
+//   count       — optional number rendered as "(N)" after the title
+//   right       — optional JSX (action buttons/counters) on the strip's right.
+//                 Clicks inside it are stopped so they don't toggle the section.
+//   storageKey  — localStorage id; omit for non-persisted (defaults to open).
+//   defaultOpen — initial state when no stored value (default true)
+//   leftStripe  — severity left border colour (e.g. C.rd)
+//   padY/padX   — body padding (strip padding is fixed 8/padX to match strips)
+//   bare        — for sections whose CHILD already renders its own card/chart
+//                 (BWChart, OverloadChart, …): drops the outer card chrome and
+//                 body padding so there's no double-card. The strip becomes a
+//                 fully-bordered bar matching TraineeDetail's inline strips.
+//   right       — extra JSX on the strip's right (clicks stopPropagated)
+export function CollapsibleSection({ title, count, right, storageKey, defaultOpen = true, leftStripe, padY = 14, padX = 18, bare = false, style, children }) {
+  const storeId = storageKey ? `expo-collapse:${storageKey}` : null;
+  const [open, setOpen] = React.useState(() => {
+    if (!storeId) return defaultOpen;
+    try { const v = localStorage.getItem(storeId); return v == null ? defaultOpen : v === '1'; } catch { return defaultOpen; }
+  });
+  const toggle = () => setOpen(o => {
+    const n = !o;
+    try { if (storeId) localStorage.setItem(storeId, n ? '1' : '0'); } catch { /* private mode */ }
+    return n;
+  });
+  const baseBorder = `1px solid ${C.cardBd}`;
+  const stripStyle = bare
+    ? { background: 'var(--c-stripBg, var(--c-sf))', border: baseBorder, padding: '10px 14px' }
+    : { background: 'var(--c-stripBg, var(--c-sf))', borderBottom: open ? `1px solid ${C.cardBd}` : 'none', padding: `8px ${padX}px` };
+  const outerStyle = bare
+    ? { ...style }
+    : { background: 'var(--c-sf)', border: baseBorder, borderLeft: leftStripe ? `3px solid ${leftStripe}` : baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style };
+  return (
+    <div style={outerStyle}>
+      <div
+        onClick={toggle}
+        role="button" tabIndex={0}
+        aria-expanded={open}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } }}
+        style={{
+          ...stripStyle,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 12, cursor: 'pointer', userSelect: 'none',
+        }}
+      >
+        <span style={{
+          color: '#FFFFFF', fontFamily: FN, fontSize: 13, fontWeight: 700,
+          letterSpacing: '0.04em', textTransform: 'uppercase',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+        }}>{title}{count != null && ` (${count})`}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{right}</span>}
+          <span aria-hidden style={{
+            color: '#FFFFFF', fontSize: 12, lineHeight: 1, display: 'inline-block',
+            transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',
+          }}>▾</span>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
+        <div style={{ overflow: 'hidden' }}>
+          <div style={{ padding: bare ? '8px 0 0' : `12px ${padX}px ${padY}px` }}>{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // RefinedTable — cyan-strip-header + white-body table for /coach surfaces.
 // In refined mode, the <thead> row gets the cyan-strip treatment; rows
 // switch to white bg with subtle hover tint via var(--c-rowHover).

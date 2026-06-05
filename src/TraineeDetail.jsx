@@ -9,7 +9,7 @@ import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSE
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b, toast, confirmToast, useEscClose, SectionLabel } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection } from './ui';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { normalizePhoneIL } from './whatsappButton';
@@ -448,9 +448,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           for visual parity. Header = "Billing (N)" + total-paid badge;
           headerRight = the 3 action buttons. Body = payments table or
           empty state. */}
-      <Card style={{marginBottom:16}}
-        header={<span style={{fontWeight:700,fontSize:13,letterSpacing:'0.04em',textTransform:'uppercase'}}>Billing ({tPay.length}){totalPaid>0&&<span style={{color:'#FFFFFF',marginLeft:8,opacity:0.85,fontWeight:400}}>· ₪{totalPaid.toLocaleString()} total paid</span>}</span>}
-        headerRight={<div style={{display:'flex',gap:0}}>
+      <CollapsibleSection title="Billing" count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16}}
+        right={<>
+          {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginRight:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} paid</span>}
+          <div style={{display:'flex',gap:0}}>
           {/* F-27 — open the brand-rich contract composer. */}
           <button onClick={()=>setShowContract(true)}
             style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:'pointer',borderRadius:0}}>📄 CONTRACT</button>
@@ -461,7 +462,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:bitPhone?'#FFFFFF':'rgba(255,255,255,0.45)',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:bitPhone?'pointer':'not-allowed',borderRadius:0}}>📲 REQUEST VIA BIT</button>
           <button onClick={()=>setShowPayForm(true)}
             style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:'#FFFFFF',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:'pointer',borderRadius:0}}>+ ADD PAYMENT</button>
-        </div>}>
+        </div></>}>
       {tPay.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>No payments recorded.</div>:(
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
           <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
@@ -490,7 +491,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <button onClick={()=>handleEditPay(p)} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
               <button onClick={()=>handleDeletePay(p.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginLeft:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
-      </Card>
+      </CollapsibleSection>
       {showContract && (
         <CoachContractComposer
           trainee={trainee}
@@ -544,28 +545,23 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         />
       )}
 
-      {/* === BODYWEIGHT — slot #6 */}
-      <div style={{ background:'var(--c-stripBg, var(--c-sf))', border:`1px solid ${C.cardBd}`, padding:'10px 14px', margin:'20px 0 8px' }}>
-        <SectionLabel as="div" style={{ color:'#FFFFFF', fontSize:13 }}>Bodyweight ({tBw.length})</SectionLabel>
-      </div>
-      <BWChart entries={tBw} />
+      {/* === BODYWEIGHT — slot #6 (collapsible; chart is self-carded → bare) */}
+      <CollapsibleSection bare title="Bodyweight" count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0'}}>
+        <BWChart entries={tBw} />
+      </CollapsibleSection>
 
-      {/* === WORKOUTS — slot #7 */}
-      <div style={{ background:'var(--c-stripBg, var(--c-sf))', border:`1px solid ${C.cardBd}`, padding:'10px 14px', margin:'20px 0 8px' }}>
-        <SectionLabel as="div" style={{ color:'#FFFFFF', fontSize:13 }}>Recent Workouts ({tAllWorkouts.length})</SectionLabel>
-      </div>
-      {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
-        tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div></Card>)}
+      {/* === WORKOUTS — slot #7 (collapsible) */}
+      <CollapsibleSection bare title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0'}}>
+        {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
+          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div></Card>)}
+      </CollapsibleSection>
 
       {/* === ASSIGNED PROGRAMS — slot #8 */}
       {couple ? <>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:'var(--c-stripBg, var(--c-sf))',border:`1px solid ${C.cardBd}`,padding:'8px 14px',margin:"28px 0 8px"}}>
-          <SectionLabel as="div" style={{color:'#FFFFFF',fontSize:13}}>Assigned Programs ({tp.length})</SectionLabel>
-          <div style={{display:'flex',gap:6,alignItems:'center'}}>
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
-          </div>
-        </div>
+        <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
+          </>}>
         <div className="td-couple-row" style={{display:'flex',gap:12}}>
           {[0,1].map(mi => {
             const m = td.members[mi];
@@ -609,16 +605,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             );
           })}
         </div>
+        </CollapsibleSection>
       </> : <>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:'var(--c-stripBg, var(--c-sf))',border:`1px solid ${C.cardBd}`,padding:'8px 14px',margin:"28px 0 8px"}}>
-          <SectionLabel as="div" style={{color:'#FFFFFF',fontSize:13}}>Assigned Programs ({tp.length})</SectionLabel>
-          <div style={{display:'flex',gap:6,alignItems:'center'}}>
+        <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
-          </div>
-        </div>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
+          </>}>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
+        </CollapsibleSection>
       </>}
 
       {/* === ATHLETIC EVALUATION — slot #9 */}
@@ -628,10 +623,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           hub: the table is the overview, each row expands into the lift's
           full record (all-time PR · trend chart · session history). The old
           standalone "Records" section was merged in here to kill the overlap. */}
-      <div style={{ background:'var(--c-stripBg, var(--c-sf))', border:`1px solid ${C.cardBd}`, padding:'10px 14px', margin:'20px 0 8px' }}>
-        <SectionLabel as="div" style={{ color:'#FFFFFF', fontSize:13 }}>Progressive Overload</SectionLabel>
-      </div>
-      <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
+      <CollapsibleSection bare title="Progressive Overload" storageKey={`td-overload-${trainee}`} style={{margin:'20px 0 0'}}>
+        <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
+      </CollapsibleSection>
 
 
       <Modal open={showAssign} onClose={()=>{setShowAssign(false);setPendingAssignPlan(null);setPendingBlankCouple(false)}} title={`+ New Program for ${td.name}`}>
