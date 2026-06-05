@@ -79,4 +79,8 @@ export const PACKAGE_TYPES = ["Single Session","8 Sessions","24 Sessions","Month
 export const GENDER_OPTIONS = [{ value: "male", label: "זכר" }, { value: "female", label: "נקבה" }];
 export const SUPERSET_LABELS = ["","A","B","C","D","E"];
 export const PAYMENT_METHODS = ["Cash","Bank Transfer","Bit","PayBox","Credit Card","Other"];
-export const PAYMENT_STATUSES = ["Paid","Pending","Overdue","Partial"];
+// Only states that round-trip through the bit_payment_requests adapter.
+// "Overdue" is DERIVED (computed from last-paid date by autoTasks/Dashboard),
+// not a stored status; "Partial" needs paid_amount<amount handling — both were
+// silently dropping rows when chosen, so they're out of the manual selector.
+export const PAYMENT_STATUSES = ["Paid","Pending","Canceled"];

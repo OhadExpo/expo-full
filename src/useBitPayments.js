@@ -76,17 +76,25 @@ export default function useBitPayments() {
 
   const payments = rows.map(adapt);
 
-  const addPayment = useCallback(async ({ traineeId, amount, date, notes }) => {
-    const paidAt = date ? new Date(date + 'T12:00:00Z').toISOString() : new Date().toISOString();
+  const addPayment = useCallback(async ({ traineeId, amount, date, notes, status }) => {
+    // Honor the form's Status selector (was hard-coded 'paid', so every
+    // recorded payment counted as collected money regardless of choice).
+    const inv = status ? Object.entries(STATUS_LABEL).find(([, v]) => v === status) : null;
+    const dbStatus = inv ? inv[0] : (status ? status.toLowerCase() : 'paid');
     const row = {
       trainee_id: traineeId,
       amount: Number(amount) || 0,
-      paid_amount: Number(amount) || 0,
       currency: 'ils',
       reference: notes || null,
-      status: 'paid',
-      paid_at: paidAt,
+      status: dbStatus,
     };
+    // paid_at / paid_amount only make sense once money actually arrived — the
+    // adapter reads them as the canonical date/amount. For pending/canceled
+    // rows leave them null so they fall back to created_at and aren't counted.
+    if (dbStatus === 'paid') {
+      row.paid_amount = Number(amount) || 0;
+      row.paid_at = date ? new Date(date + 'T12:00:00Z').toISOString() : new Date().toISOString();
+    }
     const { data, error } = await supabase.from('bit_payment_requests').insert(row).select().single();
     if (error) {
       console.warn('addPayment failed:', error.message);

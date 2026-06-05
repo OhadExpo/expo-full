@@ -144,7 +144,7 @@ function MetaBlock({ contract }) {
     { l: 'MONTHLY RATE', v: `₪${Math.round(c.monthly_rate || 0).toLocaleString()}` },
     { l: 'SESSIONS / WEEK', v: c.sessions_per_week ? `${c.sessions_per_week}` : '—' },
     { l: 'PACKAGE LENGTH', v: c.package_length_months ? `${c.package_length_months} mo` : 'Open-ended' },
-    { l: 'TOTAL (PRE-VAT)', v: `₪${Math.round(total).toLocaleString()}` },
+    { l: 'TOTAL (INCL. VAT)', v: `₪${Math.round(total).toLocaleString()}` },
   ];
   return (
     <div style={{

@@ -784,7 +784,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
             REVENUE
           </span>
           <span style={{ fontFamily: FN, fontSize: 10, color: refined ? 'rgba(255,255,255,0.75)' : 'var(--c-tm)', letterSpacing: '0.12em', fontWeight: 700 }}>
-            VAT-EXCL · 6 MO TREND
+            INCL. VAT · 6 MO TREND
           </span>
         </div>
       </RefinedHeaderStrip>

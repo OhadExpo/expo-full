@@ -156,7 +156,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         await updatePayment(editPayId, { amount: payForm.amount, date: payForm.date, notes: payForm.notes, status: payForm.status });
         setEditPayId(null);
       } else {
-        await addPayment({ traineeId: trainee, amount: payForm.amount, date: payForm.date, notes: payForm.notes });
+        await addPayment({ traineeId: trainee, amount: payForm.amount, date: payForm.date, notes: payForm.notes, status: payForm.status });
       }
     }catch(err){ console.warn('payment write failed:', err.message); }
     setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
