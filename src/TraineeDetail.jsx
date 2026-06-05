@@ -9,7 +9,7 @@ import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSE
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b, toast, confirmToast, useEscClose } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b, toast, confirmToast, useEscClose, SectionLabel } from './ui';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { normalizePhoneIL } from './whatsappButton';
@@ -543,11 +543,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       )}
 
       {/* === BODYWEIGHT — slot #6 */}
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Bodyweight ({tBw.length})</h3>
+      <div style={{ background:'var(--c-stripBg, var(--c-sf))', border:`1px solid ${C.cardBd}`, padding:'10px 14px', margin:'20px 0 8px' }}>
+        <SectionLabel as="div" style={{ color:'#FFFFFF', fontSize:13 }}>Bodyweight ({tBw.length})</SectionLabel>
+      </div>
       <BWChart entries={tBw} />
 
       {/* === WORKOUTS — slot #7 */}
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Recent Workouts ({tAllWorkouts.length})</h3>
+      <div style={{ background:'var(--c-stripBg, var(--c-sf))', border:`1px solid ${C.cardBd}`, padding:'10px 14px', margin:'20px 0 8px' }}>
+        <SectionLabel as="div" style={{ color:'#FFFFFF', fontSize:13 }}>Recent Workouts ({tAllWorkouts.length})</SectionLabel>
+      </div>
       {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
         tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div></Card>)}
 
@@ -622,7 +626,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           hub: the table is the overview, each row expands into the lift's
           full record (all-time PR · trend chart · session history). The old
           standalone "Records" section was merged in here to kill the overlap. */}
-      <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:"20px 0 12px"}}>Progressive Overload</h3>
+      <div style={{ background:'var(--c-stripBg, var(--c-sf))', border:`1px solid ${C.cardBd}`, padding:'10px 14px', margin:'20px 0 8px' }}>
+        <SectionLabel as="div" style={{ color:'#FFFFFF', fontSize:13 }}>Progressive Overload</SectionLabel>
+      </div>
       <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
 
 
