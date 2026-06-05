@@ -557,8 +557,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* === ASSIGNED PROGRAMS — slot #8 */}
       {couple ? <>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"28px 0 12px"}}>
-          <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:'var(--c-stripBg, var(--c-sf))',border:`1px solid ${C.cardBd}`,padding:'8px 14px',margin:"28px 0 8px"}}>
+          <SectionLabel as="div" style={{color:'#FFFFFF',fontSize:13}}>Assigned Programs ({tp.length})</SectionLabel>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
@@ -608,8 +608,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           })}
         </div>
       </> : <>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"28px 0 12px"}}>
-          <h3 style={{fontFamily:FN,fontSize:14,color:C.tm,margin:0}}>Assigned Programs ({tp.length})</h3>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:'var(--c-stripBg, var(--c-sf))',border:`1px solid ${C.cardBd}`,padding:'8px 14px',margin:"28px 0 8px"}}>
+          <SectionLabel as="div" style={{color:'#FFFFFF',fontSize:13}}>Assigned Programs ({tp.length})</SectionLabel>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
