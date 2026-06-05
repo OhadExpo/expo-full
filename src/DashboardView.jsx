@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
-import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast } from './ui';
+import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -437,14 +437,8 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
       {isOwner && funnel && (funnel.sessions || funnel.messages || funnel.total) ? (() => {
         const refined = isRefined5b();
         return (
-          <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '14px 18px', marginBottom: 14 }}>
-            {/* Strip rendered in BOTH themes for layout parity. */}
-            <RefinedHeaderStrip>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ fontSize: 11, fontFamily: FN, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>INCOMING · 30D</span>
-                <span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>
-              </div>
-            </RefinedHeaderStrip>
+          <CollapsibleSection title="Incoming · 30D" storageKey="dash-incoming" style={{ marginBottom: 14 }}
+            right={<span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
               {[
                 { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
@@ -458,7 +452,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
                 </div>
               ))}
             </div>
-          </div>
+          </CollapsibleSection>
         );
       })() : null}
 
@@ -775,27 +769,8 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
   const subStyle = { fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em', marginTop: 2 };
 
   return (
-    <div style={{
-      background: 'var(--c-sf)',
-      border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 20,
-      boxShadow: C.cardShadow,
-      // The outer card needs padding == RefinedHeaderStrip's padX/padY,
-      // because the strip uses negative margins to extend itself to the
-      // card edges. Zero padding here = strip pulled outside the visible
-      // card and "REVENUE" rendered off-canvas, invisible to the user.
-      padding: PAD,
-    }}>
-      <RefinedHeaderStrip padY={PAD} padX={PAD}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            REVENUE
-          </span>
-          <span style={{ fontFamily: FN, fontSize: 10, color: refined ? 'rgba(255,255,255,0.75)' : 'var(--c-tm)', letterSpacing: '0.12em', fontWeight: 700 }}>
-            INCL. VAT · 6 MO TREND
-          </span>
-        </div>
-      </RefinedHeaderStrip>
-
+    <CollapsibleSection title="Revenue" storageKey="dash-revenue" style={{ marginBottom: 20 }}
+      right={<span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.12em', fontWeight: 700 }}>INCL. VAT · 6 MO TREND</span>}>
       <div>
         {/* Top row — 6 metric tiles. responsive auto-fit so it collapses
             to 3 / 2 / 1 column at narrower viewports. */}
@@ -864,7 +839,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
           </div>
         </div>
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }
 
