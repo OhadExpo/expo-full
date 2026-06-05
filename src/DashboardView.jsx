@@ -46,8 +46,12 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
     // false-positive on clients who train solo through the portal.
     const tWorkPortal = (clientWorkouts || []).filter(w => ids.has(w.clientId));
     const tWork = [...tWorkInPerson, ...tWorkPortal];
-    const totalPaid = tPay.reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
-    const lastPay = tPay.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+    // Only PAID rows count as collected money / "last payment". A pending or
+    // canceled Bit request must not inflate totals or (via lastPay.date below)
+    // silently clear the overdue signal. Mirrors thisMonthPaid/totalAllPaid.
+    const tPaidOnly = tPay.filter(p => p.status === 'Paid');
+    const totalPaid = tPaidOnly.reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
+    const lastPay = tPaidOnly.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
     const lastWorkout = tWork.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
     return { ...t, totalPaid, lastPay, lastWorkout, workoutCount: tWork.length, planCount: planCounts[t.id] || 0 };
   }), [trainees, payments, workouts, clientWorkouts, planCounts]);

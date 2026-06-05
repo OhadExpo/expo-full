@@ -361,7 +361,7 @@ const rulePaymentOverdue = {
     for (const t of trainees) {
       if (t.status !== 'Active') continue;
       if (isGhostTrainee(t, ctx)) continue;
-      const tPay = (payments || []).filter(p => p.traineeId === t.id);
+      const tPay = (payments || []).filter(p => p.traineeId === t.id && p.status === 'Paid');
       const monthly = parseFloat(t.monthly) || 0;
       if (tPay.length === 0) {
         // "Never paid" after 21d since start
@@ -402,7 +402,7 @@ const rulePaymentOverdue = {
       // They match today (auto_ref === t.id) but the sync layer compares
       // against auto_ref; future rule changes mustn't drift the two apart.
       if (!t) { closing.add(row.auto_ref); continue; }
-      const tPay = (payments || []).filter(p => p.traineeId === t.id);
+      const tPay = (payments || []).filter(p => p.traineeId === t.id && p.status === 'Paid');
       if (tPay.length === 0) continue;
       const latest = tPay.reduce((a, b) =>
         new Date(b.date) > new Date(a.date) ? b : a);
