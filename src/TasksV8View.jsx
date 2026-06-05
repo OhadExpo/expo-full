@@ -1989,7 +1989,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           letterSpacing: '0.18em', textTransform: 'uppercase',
           color: 'var(--c-tx)',
         }}>Tasks</h2>
-        {gcalConnected ? (
+        {viewerOwner !== 'yuval' && (gcalConnected ? (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
             <button
               onClick={handleDisconnectGcal}
@@ -2024,10 +2024,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               cursor: gcalBusy ? 'wait' : 'pointer', borderRadius: 0,
               textTransform: 'uppercase', opacity: gcalBusy ? 0.6 : 1,
             }}>Connect Google Calendar</button>
-        )}
+        ))}
       </div>
 
-      <CalendarEmbedCard />
+      {/* Yuval (staff/masseur) gets EXPO CRM + tasks only — no Google Calendar
+          integration (the embed never renders for him anyway since it needs the
+          viewer's browser signed in as the calendar owner). */}
+      {viewerOwner !== 'yuval' && <CalendarEmbedCard />}
 
       {/* Owner tabs + view toggle */}
       <div style={{
