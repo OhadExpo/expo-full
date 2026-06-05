@@ -75,3 +75,9 @@ _biz_extract/
 # strategy, finances, partnership/legal, lawyer + accountant recordings).
 # Lives in the repo dir; must NEVER reach the public GitHub repo.
 EXPO - המרכז למצויינות-פיתוח אתלטית/
+
+# Loose dev screenshots / audit artifacts at repo root — never repo state.
+/*.png
+/*.jpg
+/*.jpeg
+.parity-audit/
