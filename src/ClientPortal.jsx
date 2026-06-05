@@ -613,14 +613,23 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (shouldCompress) {
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase:'compress'}; return n; });
         try {
-          const result = await compressVideoChrome(file, pct => {
-            setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
-          });
+          // Hard timeout: compressVideoChrome can hang forever if the hidden
+          // <video> never fires onloadedmetadata (some mobile codecs / HEVC
+          // never load AND never error). Race it against a wall-clock cap so a
+          // stuck encode can't freeze the upload on "Compressing %" — we just
+          // fall through and ship the original blob (bucket has no size limit).
+          const COMPRESS_TIMEOUT_MS = 40_000;
+          const result = await Promise.race([
+            compressVideoChrome(file, pct => {
+              setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
+            }),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('compression timed out')), COMPRESS_TIMEOUT_MS)),
+          ]);
           uploadBlob = result.blob;
           ext = result.ext;
           contentType = result.blob.type;
         } catch (compressErr) {
-          console.warn('Compression failed, uploading original:', compressErr);
+          console.warn('Compression failed/timed out, uploading original:', compressErr);
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:100}; return n; });
         }
       }
