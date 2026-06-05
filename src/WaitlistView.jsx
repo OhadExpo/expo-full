@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b, confirmToast } from './ui';
+import { isRefined5b, confirmToast, SectionLabel } from './ui';
 import { supabase } from './supabase';
 
 const COACH_GATE = 5;
@@ -298,13 +298,18 @@ export default function WaitlistView({ trainees }) {
           time-to-contact, source split, signup conversion, and avg intent.
           Hidden when there are no leads at all. */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 14, padding: '14px 18px', border: `1px solid ${C.cardBd}` }}>
+        <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
+        <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>Funnel</SectionLabel>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, padding: '14px 18px' }}>
           <StatTile label="Leads" value={total} sub={`${active} uncontacted`} />
           <StatTile label="Contact rate" value={`${(stats.contactRate * 100).toFixed(0)}%`} sub={`${stats.contactedCount} / ${total}`} color={stats.contactRate >= 0.8 ? C.gn : (stats.contactRate >= 0.5 ? C.or : C.rd)} />
           <StatTile label="Median t→contact" value={fmtTtc(stats.ttcMedianMs)} sub={stats.contactedCount === 0 ? 'no contacted yet' : `across ${stats.contactedCount}`} />
           <StatTile label="Signed up" value={stats.signupCount} sub={stats.contactedCount === 0 ? '—' : `${(stats.signupRate * 100).toFixed(0)}% of contacted`} color={C.ac} />
           <StatTile label="Source mix" value={`${stats.sourceCount.chat} · ${stats.sourceCount.form} · ${stats.sourceCount.paid}`} sub="chat · form · paid" />
           <StatTile label="Avg intent" value={`${stats.avgIntent.toFixed(1)} / 4`} color={stats.avgIntent >= 2.5 ? C.ac : C.tm} />
+        </div>
         </div>
       )}
 
@@ -340,7 +345,11 @@ export default function WaitlistView({ trainees }) {
         const refined = isRefined5b();
         const headBorder = refined ? `rgba(0,0,0,0.10)` : C.cardBd;
         return (
-        <div style={{ overflowX: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
+          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>Leads — {sorted.length}</SectionLabel>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${headBorder}` }}>
@@ -438,6 +447,7 @@ export default function WaitlistView({ trainees }) {
               })}
             </tbody>
           </table>
+          </div>
         </div>
         );
       })()}
