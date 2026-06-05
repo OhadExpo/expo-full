@@ -201,7 +201,7 @@ export default function ChatAuditView() {
                 background: 'transparent', fontSize: 11,
               }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{g.site.toUpperCase()}</span>
+                  <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{(g.site||'').toUpperCase()}</span>
                   <span style={{ fontFamily: FB, color: C.tm }}>{g.turns.length} turn{g.turns.length === 1 ? '' : 's'}</span>
                   {g.errorCount > 0 && (
                     <span style={{ fontFamily: FN, color: C.rd, fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount} error{g.errorCount === 1 ? '' : 's'}</span>

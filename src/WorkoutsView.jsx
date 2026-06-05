@@ -129,7 +129,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     })) : []);
     const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,
       date:new Date().toISOString(),status:"in-progress",
-      exercises:dayExercises.map(ex=>({...ex,id:uid(),sets:Array.from({length:ex.sets},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))})),
+      exercises:dayExercises.map(ex=>({...ex,id:uid(),sets:Array.from({length:Number(ex.sets)||3},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))})),
       notes:""};
     setWorkouts(prev=>[...prev,w]); setActiveWorkout(w.id);
   };

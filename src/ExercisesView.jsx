@@ -14,7 +14,7 @@ export default function ExercisesView({ exercises, setExercises }) {
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const clearFilters = () => setFilters({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
 
-  const filtered = exercises.filter(e => {
+  const filtered = (exercises||[]).filter(e => {
     if (search) {
       const q = search.toLowerCase();
       const tokens = q.split(/\s+/).filter(Boolean);

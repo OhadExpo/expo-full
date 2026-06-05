@@ -192,7 +192,7 @@ export default function BookingView({ trainees }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                 <span style={{ fontFamily: FN, fontSize: 9, color: sevColor, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${sevColor}`, padding: '2px 8px' }}>
-                  {b.status.toUpperCase()}
+                  {(b.status||'').toUpperCase()}
                 </span>
                 <span style={{ fontWeight: 700, fontSize: 14, color: C.tx }}>{trainee?.name || b.contact_name}</span>
                 <span style={{ flex: 1 }} />

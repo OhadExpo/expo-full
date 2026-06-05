@@ -140,8 +140,12 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
       // We only need meals within any challenge's window — query the
       // earliest start, latest end across the relevant challenges.
       const windows = challenges.filter(c => c.goal_type === 'meal_log_streak');
-      const minStart = windows.reduce((a, c) => Math.min(a, new Date(c.start_at).getTime()), Infinity);
-      const maxEnd   = windows.reduce((a, c) => Math.max(a, new Date(c.end_at).getTime()),   0);
+      const t = (v) => { const ms = new Date(v).getTime(); return Number.isFinite(ms) ? ms : null; };
+      const starts = windows.map(c => t(c.start_at)).filter(v => v !== null);
+      const ends   = windows.map(c => t(c.end_at)).filter(v => v !== null);
+      if (!starts.length || !ends.length) { if (!cancelled) setMeals([]); return; }
+      const minStart = Math.min(...starts);
+      const maxEnd   = Math.max(...ends);
       const { data } = await supabase
         .from('athlete_meals')
         .select('client_id,meal_date,logged_at')

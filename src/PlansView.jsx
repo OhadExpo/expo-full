@@ -1168,7 +1168,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 
   const filtered = useMemo(() => {
     let result = planIndex;
-    if (search) { const q = search.toLowerCase(); result = result.filter(p => p.name.toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
+    if (search) { const q = search.toLowerCase(); result = result.filter(p => (p.name||'').toLowerCase().includes(q) || (traineeMap[p.traineeId]||'').toLowerCase().includes(q)); }
     if (filterTrainee) result = result.filter(p => p.traineeId === filterTrainee);
     // Apply the user-chosen sort. 'created' uses block-number-aware chrono
     // sort (sortProgramsChrono) so Drive-imported plans that share a single
