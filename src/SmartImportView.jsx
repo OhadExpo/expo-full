@@ -17,7 +17,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
-import { Btn, Input, Select, Badge, isRefined5b } from './ui';
+import { Btn, Input, Select, Badge, SectionLabel, isRefined5b } from './ui';
 
 // Drop target rendered below the header when no file has been picked
 // yet. The header copy ("Drop any document — XLSX, CSV, PDF, image,
@@ -463,22 +463,31 @@ export default function SmartImportView() {
       )}
 
       {fileName && (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, alignItems: 'end' }}>
-          <div>
-            <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>FILE · {fileKind.toUpperCase()}</div>
-            <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</div>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
+          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>FILE</SectionLabel>
           </div>
-          {sheets.length > 1 && (
-            <Select label="Sheet/Page" options={sheets.map((s, i) => ({ value: String(i), label: s.sheetName + (s.guessedTarget ? ` · ${s.guessedTarget}` : '') }))} value={String(activeSheetIdx)} onChange={onSheetChange} />
-          )}
-          <Select label="Target" options={TARGETS.map(t => ({ value: t.value, label: t.label }))} value={target} onChange={onTargetChange} />
-          <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length}>{analyzing ? 'Analyzing…' : 'Analyze with AI'}</Btn>
+          <div style={{ padding: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, alignItems: 'end' }}>
+            <div>
+              <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>FILE · {fileKind.toUpperCase()}</div>
+              <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</div>
+            </div>
+            {sheets.length > 1 && (
+              <Select label="Sheet/Page" options={sheets.map((s, i) => ({ value: String(i), label: s.sheetName + (s.guessedTarget ? ` · ${s.guessedTarget}` : '') }))} value={String(activeSheetIdx)} onChange={onSheetChange} />
+            )}
+            <Select label="Target" options={TARGETS.map(t => ({ value: t.value, label: t.label }))} value={target} onChange={onTargetChange} />
+            <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length}>{analyzing ? 'Analyzing…' : 'Analyze with AI'}</Btn>
+          </div>
         </div>
       )}
 
       {sheetGrid && (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
-          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, marginBottom: 6, letterSpacing: '0.18em', fontWeight: 700 }}>SHEET PREVIEW · {sheetGrid.headers.length} cols · {sheetGrid.rows.length} rows</div>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
+          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>SHEET PREVIEW</SectionLabel>
+          </div>
+          <div style={{ padding: 12 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, marginBottom: 6, letterSpacing: '0.18em', fontWeight: 700 }}>{sheetGrid.headers.length} cols · {sheetGrid.rows.length} rows</div>
           <div style={{ overflowX: 'auto', maxHeight: 200, overflowY: 'auto', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
             <table style={{ borderCollapse: 'collapse', fontSize: 11, fontFamily: FB, color: C.tx }}>
               <thead><tr style={{ background: 'transparent' }}>{sheetGrid.headers.map((h, i) => (
@@ -491,15 +500,20 @@ export default function SmartImportView() {
               ))}</tbody>
             </table>
           </div>
+          </div>
         </div>
       )}
 
       {err && <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '10px 12px', marginBottom: 12, fontSize: 12 }}>{err}</div>}
 
       {mapping && (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
+          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>AI MAPPING</SectionLabel>
+          </div>
+          <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>AI MAPPING <Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% confident</Badge></div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}><Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% confident</Badge></div>
             <Btn onClick={runTransform} disabled={transforming}>{transforming ? 'Transforming…' : 'Preview Transform'}</Btn>
           </div>
           {mapping.notes && <div style={{ fontSize: 12, color: C.tm, lineHeight: 1.5, marginBottom: 8 }}>💡 {mapping.notes}</div>}
@@ -529,14 +543,19 @@ export default function SmartImportView() {
               );
             })}
           </div>
+          </div>
         </div>
       )}
 
       {transform && (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 12 }}>
+        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
+          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>PREVIEW</SectionLabel>
+          </div>
+          <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>
-              PREVIEW <Badge color={C.gn}>{transform.items.length} item{transform.items.length === 1 ? '' : 's'}</Badge>
+              <Badge color={C.gn}>{transform.items.length} item{transform.items.length === 1 ? '' : 's'}</Badge>
               {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginLeft: 6 }}>{transform.errors.length} error{transform.errors.length === 1 ? '' : 's'}</Badge>}
             </div>
             <Btn onClick={commit} disabled={committing || transform.items.length === 0}>{committing ? 'Writing…' : 'Commit to Database'}</Btn>
@@ -558,6 +577,7 @@ export default function SmartImportView() {
               </ul>
             </details>
           )}
+          </div>
         </div>
       )}
 

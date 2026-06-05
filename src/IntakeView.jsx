@@ -9,7 +9,7 @@
 // sends a link to can submit. There is no public /intake landing page.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { Btn, Modal, Card, Badge, isRefined5b, confirmToast } from './ui';
+import { Btn, Modal, Card, Badge, isRefined5b, confirmToast, SectionLabel } from './ui';
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 
@@ -195,14 +195,18 @@ export default function IntakeView({ trainees }) {
   return (
     <div>
       {/* Header — counts + Generate Link CTA */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 18, background: isRefined5b() ? '#FFFFFF' : C.sf, border: `1px solid ${isRefined5b() ? C.cardBd : C.bd}`, padding: '14px 18px' }}>
-        <div>
-          <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: '0.18em', textTransform: 'uppercase' }}>INTAKE</div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 4 }}>
-            {counts.open} open · {counts.initial} initial · {counts.assessment} assessment · {counts.progress} progress · {counts.total} total
-          </div>
+      <div style={{ marginBottom: 18, background: isRefined5b() ? '#FFFFFF' : C.sf, border: `1px solid ${isRefined5b() ? C.cardBd : C.bd}` }}>
+        <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>INTAKE</SectionLabel>
         </div>
-        <Btn onClick={() => setShowGen(true)} style={{ height: 36, padding: '0 18px' }}>+ Generate Link</Btn>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, padding: '14px 18px' }}>
+          <div>
+            <div style={{ fontFamily: FB, fontSize: 12, color: C.tm }}>
+              {counts.open} open · {counts.initial} initial · {counts.assessment} assessment · {counts.progress} progress · {counts.total} total
+            </div>
+          </div>
+          <Btn onClick={() => setShowGen(true)} style={{ height: 36, padding: '0 18px' }}>+ Generate Link</Btn>
+        </div>
       </div>
 
       {/* Filter bar */}
@@ -217,9 +221,11 @@ export default function IntakeView({ trainees }) {
 
       {/* Recent unused tokens (so Ohad can re-copy a link he just made) */}
       {tokens.filter(t => !t.used_at).length > 0 && (
-        <div style={{ marginBottom: 18, padding: '10px 12px', border: `1px solid ${C.cardBd}` }}>
-          <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>UNUSED LINKS</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ marginBottom: 18, border: `1px solid ${C.cardBd}` }}>
+          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>UNUSED LINKS</SectionLabel>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px' }}>
             {tokens.filter(t => !t.used_at).slice(0, 5).map(t => {
               const origin = typeof window !== 'undefined' ? window.location.origin : '';
               const url = `${origin}/intake/${t.locale}?t=${t.token}`;

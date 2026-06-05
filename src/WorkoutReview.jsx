@@ -6,7 +6,7 @@ import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 // missing ascenders/descenders). Per feedback_new_ui_box_dimensions:
 // "Hebrew bumps +3px inside the box, never resizes the box itself."
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { isRefined5b, useEscClose } from './ui';
+import { isRefined5b, useEscClose, SectionLabel } from './ui';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import useAutosave from './hooks/useAutosave';
@@ -1698,7 +1698,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         </button>
 
         {/* Workout header */}
-        <div style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:16,marginBottom:16}}>
+        <div style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:16}}>
+          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>WORKOUT</SectionLabel>
+          </div>
+          <div style={{padding:16}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
             <div>
               <h2 style={{margin:0,fontFamily:FN,fontSize:18,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -1726,6 +1730,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <div style={{fontSize:13,color:C.tx}}>{wo.notes}</div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Exercise cards */}
@@ -2081,19 +2086,20 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         const withVideo = queue.length;
         return (
           <div style={{
-            display:'flex',justifyContent:'space-between',alignItems:'center',
             background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0,
-            padding:'10px 14px', marginBottom:14,
+            marginBottom:14,
           }}>
-            <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+              <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>REVIEW QUEUE</SectionLabel>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px'}}>
               <div style={{
                 width:28,height:28,borderRadius:0,background:C.acD,
                 display:'flex',alignItems:'center',justifyContent:'center',
                 fontFamily:FN,fontSize:12,fontWeight:700,color:C.ac,
               }}>{queue.length}</div>
               <div>
-                <div style={{fontFamily:FN,fontSize:11,color:C.ac,letterSpacing:1.2,fontWeight:700}}>REVIEW QUEUE</div>
-                <div style={{fontFamily:FB,fontSize:11,color:C.tm,marginTop:2}}>
+                <div style={{fontFamily:FB,fontSize:11,color:C.tm}}>
                   {queue.length} pending with form video{queue.length === 1 ? '' : 's'}
                 </div>
               </div>
