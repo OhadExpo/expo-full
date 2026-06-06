@@ -785,7 +785,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const t = setTimeout(() => setShowResumedPill(false), 6000);
     return () => clearTimeout(t);
   }, [showResumedPill]);
-  const bar = <div style={{padding:'10px 16px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
+  const bar = <div style={{padding:'calc(10px + env(safe-area-inset-top)) 16px 10px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',height:32}}>
       <EXPOMark theme="dark" height={36} style={{flexShrink:0}} />
       <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
@@ -1598,7 +1598,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
   const renderTopHeader = () => (
     <>
-      <div style={{background:C.bg,padding:'20px 20px 18px',borderBottom:`1px solid ${C.bd2}`}}>
+      <div style={{background:C.bg,padding:'calc(20px + env(safe-area-inset-top)) 20px 18px',borderBottom:`1px solid ${C.bd2}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
