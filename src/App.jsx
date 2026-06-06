@@ -782,7 +782,16 @@ function AuthedApp() {
     const onAthlete = p === '/athlete' || p.startsWith('/athlete/');
     const onLogin = p.startsWith('/login');
     if (isClient && !onAthlete) window.history.replaceState(null, '', '/athlete');
-    else if (isTrainer && !onCoach) { window.history.replaceState(null, '', '/coach/dashboard'); setTab('dashboard'); }
+    else if (isTrainer && !onCoach) {
+      window.history.replaceState(null, '', '/coach/dashboard');
+      // Back-stop: push a duplicate landing entry so the FIRST browser Back
+      // is absorbed by popstate (returns to dashboard, handled in-app)
+      // instead of falling through to the pre-login page and ejecting the
+      // user from the SPA. This is what Yuval hit — landing replaced the
+      // only app entry, so one Back left the app entirely.
+      window.history.pushState(null, '', '/coach/dashboard');
+      setTab('dashboard');
+    }
   }, [tL, isClient, isTrainer]);
 
   // Sync URL when tab or trainee changes (coach mode only)
@@ -844,9 +853,19 @@ function AuthedApp() {
   // these tabs; this backstops direct navigation.
   useEffect(() => {
     if (isCoach && !isOwner && tab && !STAFF_TABS.includes(tab)) {
-      navTo('dashboard');
+      // Bounce via REPLACE, not push. navTo() pushes a new history entry, so
+      // a staff user (Yuval) who back-navigated onto a forbidden tab would
+      // get a phantom /coach/dashboard pushed on top — making the next Back
+      // re-land on the forbidden URL and bounce again, or fall through below
+      // the app's first entry and eject him entirely. Replacing the current
+      // entry keeps the history stack clean.
+      setTab('dashboard');
+      setSelectedTrainee(null);
+      if (window.location.pathname !== '/coach/dashboard') {
+        window.history.replaceState(null, '', '/coach/dashboard');
+      }
     }
-  }, [isCoach, isOwner, tab, navTo]);
+  }, [isCoach, isOwner, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Earlier a one-time BILLING seed lived here that gated on
   // `!t.monthly` — it ran successfully on the first sign-in, then went
