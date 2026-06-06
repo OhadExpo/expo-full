@@ -659,7 +659,13 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               {/* IDENTITY: name + status badge live in the card header — no
                   body duplicate. Same shape in both themes; OnlineDot moves
                   into the header span via the {online && <OnlineDot />} above. */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minHeight: 52, justifyContent: 'center' }}>
+              {/* FIXED height (not minHeight) + centered: the WhatsApp icon
+                  and phone line are present on some athletes and absent on
+                  others, which made this block's height — and therefore the
+                  first divider below it — float card-to-card. A fixed slot
+                  sized for the worst case (icon + 2-line email + phone) keeps
+                  every card's dividers on the same horizontal lines. */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, justifyContent: 'center', overflow: 'hidden' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} gender={t.gender} />
                 </div>

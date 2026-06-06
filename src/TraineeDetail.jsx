@@ -438,9 +438,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             {[["Age",td.age||"—"],["Weight",td.weight?`${td.weight}kg`:"—"],["Height",td.height?`${td.height}cm`:"—"]].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,textAlign:"center"}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2,textAlign:"center"}}>{v}</div></div>)}
           </div>
-          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[֐-׿]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
+          {/* All three sub-cards share ONE border color (the canonical cyan
+              hairline) so the borders read as a uniform set — the semantic
+              cue lives in the LABEL color (injuries=orange, goals=cyan,
+              notes=muted), not the border. Was: orange / cyan / grey borders. */}
+          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[֐-׿]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
           {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[֐-׿]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
-          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[֐-׿]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
+          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[֐-׿]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
         </Card>
       )}
 

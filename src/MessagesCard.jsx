@@ -136,56 +136,41 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
       boxShadow: C.cardShadow,
       marginBottom: 20,
     }}>
-      {/* Header — cyan strip in light (brand identity), plain inline
-          label in dark (matches every other dashboard alert tile and
-          stops the strip from rendering as an invisible darker rectangle
-          when var(--c-sf) collapses to the card body color). */}
-      {refined ? (
-        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-            <span style={{
-              fontWeight: 700, fontSize: 13, letterSpacing: '0.04em',
-              textTransform: 'uppercase', color: '#FFFFFF',
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-            }}>
-              Messages
-              {threads.length > 0 && (
-                <span style={{
-                  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                  color: '#FFFFFF', opacity: 0.85,
-                }}>
-                  ({showHandled ? threads.length : unreadCount})
-                </span>
-              )}
-            </span>
-            {unreadCount > 0 && (
-              <button onClick={markRead}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(255,255,255,0.55)',
-                  color: '#FFFFFF',
-                  padding: '3px 10px', borderRadius: 0,
-                  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                  cursor: 'pointer',
-                }}>MARK ALL READ</button>
+      {/* Header — canonical cyan strip in BOTH themes, matching every other
+          dashboard card (Overdue Payment, New Leads, etc.). It used to drop
+          to a bare inline label in dark, which is exactly the off-brand
+          "card with no title strip" Ohad flagged. White text reads on the
+          strip in both themes. */}
+      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span style={{
+            fontWeight: 700, fontSize: 13, letterSpacing: '0.04em',
+            textTransform: 'uppercase', color: '#FFFFFF',
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+          }}>
+            Messages
+            {threads.length > 0 && (
+              <span style={{
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                color: '#FFFFFF', opacity: 0.85,
+              }}>
+                ({showHandled ? threads.length : unreadCount})
+              </span>
             )}
-          </div>
-        </RefinedHeaderStrip>
-      ) : (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-          <SectionLabel color={C.ac} style={{ fontSize: C.alertLabelSize }}>
-            {`Messages${threads.length > 0 ? ` (${showHandled ? threads.length : unreadCount})` : ''}`}
-          </SectionLabel>
+          </span>
           {unreadCount > 0 && (
             <button onClick={markRead}
               style={{
-                background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac,
+                background: 'transparent',
+                border: '1px solid rgba(255,255,255,0.55)',
+                color: '#FFFFFF',
+                padding: '3px 10px', borderRadius: 0,
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                padding: '3px 10px', borderRadius: 0, cursor: 'pointer',
+                cursor: 'pointer',
               }}>MARK ALL READ</button>
           )}
         </div>
-      )}
+      </RefinedHeaderStrip>
 
       {loading ? (
         <div style={{ padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 12, fontFamily: FN, letterSpacing: '0.12em' }}>
