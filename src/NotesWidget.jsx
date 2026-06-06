@@ -11,7 +11,7 @@
 import React, { useMemo, useState } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -312,6 +312,8 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
 
 export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [], viewerOwner = 'ohad' }) {
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
+  // Collapsible on the dashboard (compact). Full /coach/tasks view ignores it.
+  const [open, setOpen] = usePersistentState('dash-tasks', true);
   const [adding, setAdding] = useState(false);
   const [body, setBody] = useState('');
   const [tagsInput, setTagsInput] = useState('');
@@ -502,19 +504,24 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       {compact ? (
         // Compact (Dashboard) — header lives in the cyan strip on top to
         // match the visual rhythm of every other dashboard card.
-        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={open ? 10 : 0}>
+          <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
             <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
               Tasks ({counts.all})
             </span>
-            <button onClick={() => setAdding(!adding)}
-              style={{
-                background: 'transparent',
-                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
-                color: refined ? '#FFFFFF' : 'var(--c-ac)',
-                padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
-                fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-              }}>{adding ? 'CLOSE' : '+ TASK'}</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button onClick={(e) => { e.stopPropagation(); setOpen(true); setAdding(a => !a); }}
+                style={{
+                  background: 'transparent',
+                  border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
+                  color: refined ? '#FFFFFF' : 'var(--c-ac)',
+                  padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
+                  fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+                }}>{adding ? 'CLOSE' : '+ TASK'}</button>
+              <span aria-hidden style={{ color: refined ? '#FFFFFF' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+            </div>
           </div>
         </RefinedHeaderStrip>
       ) : (
@@ -531,6 +538,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
         </div>
       )}
 
+      {/* Collapse body on the dashboard (compact) when closed; full view always shows it. */}
+      {(!compact || open) && (<>
       {/* F-35 — knowledge-base search. Hidden in compact (dashboard
           widget) mode; the full /coach/tasks view exposes the box. A
           leading "#" scopes to tags; bare text searches body + tags +
@@ -787,6 +796,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
           }}>OPEN FULL TASKS ({counts.all}) →</button>
       )}
+      </>)}
     </div>
   );
 }

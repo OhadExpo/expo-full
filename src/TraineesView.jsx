@@ -514,7 +514,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   ...boxBase, marginLeft: 6,
                   border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac,
                   fontFamily: `Heebo, ${FN}`, fontSize: 13, letterSpacing: 0, lineHeight: 1,
-                }}>{sortDir === 'desc' ? '↑ ת→א' : '↓ א→ת'}</button>
+                }}>{sortDir === 'desc' ? 'ת→א' : 'א→ת'}</button>
             ) : (
               <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
                 title={
@@ -584,7 +584,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                     {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
                         {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
-                        <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',textAlign:'center',overflow:'hidden'}}>
+                        <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',gap:4,textAlign:'center',overflow:'hidden'}}>
                           <div style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center',minHeight:28}}>
                             <div style={{
                               fontWeight:600,fontSize:13,color:C.tx,textAlign:'center',
@@ -594,11 +594,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                           </div>
                           {m.phone && (
                             <div style={{
-                              fontFamily:FN,fontSize:11,color:C.tm,marginTop:2,letterSpacing:0.5,textAlign:'center',width:'100%',
+                              fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:0.5,textAlign:'center',width:'100%',
                               whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                             }}>{m.phone}</div>
                           )}
-                          <EmailsCell email={m.email} style={{ fontSize:12, color:C.tm, marginTop:2, textAlign:'center', width:'100%' }} />
+                          <EmailsCell email={m.email} style={{ fontSize:12, color:C.tm, textAlign:'center', width:'100%' }} />
                         </div>
                       </React.Fragment>
                     ))}

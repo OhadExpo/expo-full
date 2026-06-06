@@ -13,7 +13,7 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { C, FN, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, SectionLabel } from './ui';
+import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
 
@@ -48,6 +48,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
   // card was reading isRefined5b() once on mount and going stale.
   const { theme } = useTheme();
   const refined = theme === 'light' || isRefined5b();
+  const [open, setOpen] = usePersistentState('dash-messages', true);
   const PAD = 14;
 
   const reload = useCallback(async () => {
@@ -141,8 +142,10 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
           to a bare inline label in dark, which is exactly the off-brand
           "card with no title strip" Ohad flagged. White text reads on the
           strip in both themes. */}
-      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={open ? 10 : 0}>
+        <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
           <span style={{
             fontWeight: 700, fontSize: 13, letterSpacing: '0.04em',
             textTransform: 'uppercase', color: '#FFFFFF',
@@ -158,20 +161,24 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
               </span>
             )}
           </span>
-          {unreadCount > 0 && (
-            <button onClick={markRead}
-              style={{
-                background: 'transparent',
-                border: '1px solid rgba(255,255,255,0.55)',
-                color: '#FFFFFF',
-                padding: '3px 10px', borderRadius: 0,
-                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                cursor: 'pointer',
-              }}>MARK ALL READ</button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            {unreadCount > 0 && (
+              <button onClick={(e) => { e.stopPropagation(); markRead(); }}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.55)',
+                  color: '#FFFFFF',
+                  padding: '3px 10px', borderRadius: 0,
+                  fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                  cursor: 'pointer',
+                }}>MARK ALL READ</button>
+            )}
+            <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+          </div>
         </div>
       </RefinedHeaderStrip>
 
+      {open && (<>
       {loading ? (
         <div style={{ padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 12, fontFamily: FN, letterSpacing: '0.12em' }}>
           LOADING…
@@ -316,6 +323,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
           )}
         </div>
       )}
+      </>)}
     </div>
   );
 }

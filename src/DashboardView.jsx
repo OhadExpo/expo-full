@@ -125,6 +125,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
   // Outstanding — sum of pending Bit payment requests.
   const [outstanding, setOutstanding] = useState({ amount: 0, count: 0 });
   const [dropoutExpanded, setDropoutExpanded] = usePersistentState('dash-dropout', false);
+  const [allAthletesOpen, setAllAthletesOpen] = usePersistentState('dash-all-athletes', true);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -630,10 +631,13 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0 }}>
           {/* Canonical cyan strip-header + title, matching every other card on
               this page (RefinedHeaderStrip pattern). */}
-          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+          <div onClick={() => setAllAthletesOpen(o => !o)} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAllAthletesOpen(o => !o); } }}
+            style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: allAthletesOpen ? '1px solid var(--c-cardBd)' : 'none', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
             <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>All Athletes — {sorted.length}</SectionLabel>
+            <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: allAthletesOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          {allAthletesOpen && <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
@@ -679,7 +683,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
               ))}
             </tbody>
           </table>
-          </div>
+          </div>}
         </div>
         );
       })()}

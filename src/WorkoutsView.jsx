@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, uid } from './theme';
 
