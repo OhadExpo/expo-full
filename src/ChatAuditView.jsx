@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b } from './ui';
+import { isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 
 // Inline `**bold**` renderer for bot messages. The marketing chat model
@@ -188,29 +188,18 @@ export default function ChatAuditView() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {grouped.map(g => (
-            <div key={g.sessionId || g.startedAt}
-              style={{
-                background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
-                border: `1px solid ${g.errorCount > 0 ? C.rd : C.cardBd}`,
-                borderRadius: 0, overflow: 'hidden',
-              }}>
-              {/* Session header */}
-              <div style={{
-                padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}`,
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                background: 'transparent', fontSize: 11,
-              }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{(g.site||'').toUpperCase()}</span>
-                  <span style={{ fontFamily: FB, color: C.tm }}>{g.turns.length} turn{g.turns.length === 1 ? '' : 's'}</span>
-                  {g.errorCount > 0 && (
-                    <span style={{ fontFamily: FN, color: C.rd, fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount} error{g.errorCount === 1 ? '' : 's'}</span>
-                  )}
-                </div>
-                <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }} title={fmtDate(g.lastAt)}>{ago(g.lastAt)} ago</span>
-              </div>
+            <CollapsibleSection key={g.sessionId || g.startedAt}
+              defaultOpen={false}
+              leftStripe={g.errorCount > 0 ? C.rd : undefined}
+              style={{ marginBottom: 0 }}
+              titleNode={<span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.6)', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.18em' }}>{(g.site || '').toUpperCase()}</span>
+                <span style={{ fontFamily: FB, color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>{g.turns.length} turn{g.turns.length === 1 ? '' : 's'}</span>
+                {g.errorCount > 0 && <span style={{ fontFamily: FN, color: '#FFFFFF', fontSize: 10, fontWeight: 700 }}>⚠ {g.errorCount}</span>}
+              </span>}
+              right={<span style={{ fontFamily: FN, color: 'rgba(255,255,255,0.72)', fontSize: 10 }} title={fmtDate(g.lastAt)}>{ago(g.lastAt)} ago</span>}>
               {/* Turns */}
-              <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {g.turns.map(t => (
                   <div key={t.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{
@@ -251,7 +240,7 @@ export default function ChatAuditView() {
                   </div>
                 ))}
               </div>
-            </div>
+            </CollapsibleSection>
           ))}
         </div>
       )}

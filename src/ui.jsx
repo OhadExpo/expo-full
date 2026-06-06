@@ -425,7 +425,13 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
   const hasStrip = !!header;
   const padNum = typeof padding === 'number' ? padding : 20;
   return (
-    <div onClick={onClick} style={{
+    <div onClick={onClick}
+      // Clickable cards get a keyboard path (Enter/Space) + button semantics so
+      // they aren't mouse-only. No-op when the card isn't interactive.
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(e); } } : undefined}
+      style={{
       background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`,
       borderLeft: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,

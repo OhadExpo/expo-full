@@ -2127,6 +2127,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             const reviewed = !!wo.reviewedAt;
             return (
               <div key={wo.id} onClick={() => setSelectedWo(wo.id)}
+                role="button" tabIndex={0}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedWo(wo.id); } }}
                 style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
                   marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
