@@ -159,15 +159,24 @@ export async function isCalendarConnected() {
   }
   const verifiedAt = parseInt(localStorage.getItem(VERIFIED_CACHE_KEY) || '0', 10);
   if (verifiedAt && Date.now() - verifiedAt < VERIFIED_TTL_MS) return true;
+  const testUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1';
   try {
-    const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    let res = await fetch(testUrl, { headers: { Authorization: `Bearer ${token}` } });
+    // 401/403 → the cached token expired (GIS tokens last ~1h). Before giving
+    // up and forcing a fresh CONSENT prompt, try a SILENT refresh on the
+    // consent the user already granted (prompt:'' shows no UI). This is the
+    // difference between "stays connected forever" and "asks to log in every
+    // hour" — only disconnect if the silent grant itself fails.
+    if (res.status === 401 || res.status === 403) {
+      const fresh = await requestSilentToken();
+      if (fresh) res = await fetch(testUrl, { headers: { Authorization: `Bearer ${fresh}` } });
+    }
     if (res.ok) {
       localStorage.setItem(VERIFIED_CACHE_KEY, String(Date.now()));
       return true;
     }
-    // 401/403 → cached token is stale or has lost scope.
+    // Silent refresh also failed (not signed into Google here, or consent
+    // revoked) — now it's genuinely disconnected.
     clearCachedTokens();
     localStorage.removeItem(VERIFIED_CACHE_KEY);
     return false;
