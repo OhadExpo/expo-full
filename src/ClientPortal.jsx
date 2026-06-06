@@ -817,7 +817,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const wi = parseInt(step.slice(2));
     const wu = warmup[wi];
     const vid = ytId(wu.vid);
-    return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12}}>
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,padding:'4px 10px',fontFamily:FN,fontSize:9,color:C.or,fontWeight:700,letterSpacing:'0.18em',minWidth:110,textAlign:'center',fontVariantNumeric:'tabular-nums',boxSizing:'border-box'}}>WARM-UP {wi+1}/{wuCount}</div></div>
@@ -889,7 +889,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     }
     return out;
   })();
-  if (step === 'end') return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+  if (step === 'end') return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20,textAlign:'center'}}>
       <EXPOMark theme="dark" height={36} style={{marginBottom:16}} />
       <h2 style={{margin:'0 0 8px',fontFamily:FN,fontSize:22}}>Nice Work! 🎉</h2>
@@ -1298,7 +1298,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     </div>;
   };
 
-  return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+  return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
     <div style={{padding:20}}>
       {isSuperset && <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'8px 12px',marginBottom:18,textAlign:'center'}}>
         <div style={{fontSize:11,fontFamily:FN,color:C.ac,fontWeight:700,letterSpacing:'0.08em'}}>SUPERSET {group.superset} · {groupExs.length} EXERCISES</div>
@@ -1686,7 +1686,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const maxBw = rawMax + pad;
     const minBw = rawMin - pad;
     const range = maxBw - minBw;
-    return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
@@ -1825,7 +1825,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   }
 
   // History
-  if (vw === 'hist' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+  if (vw === 'hist' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
     <div style={{padding:'14px 20px 20px'}}>
       <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700,marginBottom:14}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
@@ -1872,7 +1872,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         </div>; })}</div></div>;
 
   // MEAL LOG page — full-screen, lazy-loaded.
-  if (vw === 'meal' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+  if (vw === 'meal' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
     <div style={{padding:'14px 20px 28px'}}>
       {demoMode ? (
@@ -1889,7 +1889,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
 
   // MESSAGES page — surfaces the same thread that lived inline on the
   // Program view before 2026-05-16.
-  if (vw === 'msg' && trainee) return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+  if (vw === 'msg' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
     <div style={{padding:'14px 20px 28px'}}>
       {demoMode ? (
@@ -1911,7 +1911,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
 
   // Program view
   if (trainee) { const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
-    return <div style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'center'}}>
