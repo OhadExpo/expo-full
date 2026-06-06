@@ -448,9 +448,12 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   // trainee collapse into ONE synthetic "needs outreach" card. The card
   // carries the underlying rows in `__sources`, so mark-done fans out
   // and closes every contributing row.
-  const openRowsRaw = filtered.filter(r => r.status !== 'done');
+  // 'cancelled' is terminal like 'done' — it belongs in history, not the
+  // active list. (Cancelling used to hard-delete; now it archives here.)
+  const isTerminal = (r) => r.status === 'done' || r.status === 'cancelled';
+  const openRowsRaw = filtered.filter(r => !isTerminal(r));
   const openRows = throttleWhatsAppTasks(openRowsRaw);
-  const doneRows = filtered.filter(r => r.status === 'done');
+  const doneRows = filtered.filter(isTerminal);
   const pinned = openRows.filter(r => r.pinned);
   const recent = openRows.filter(r => !r.pinned).slice(0, compact ? 3 : 10);
   const visible = compact
@@ -690,12 +693,12 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 onToggleDone={() => toggleDoneSmart(n)}
                 onTogglePin={() => togglePin(n.id)}
                 onRemove={async () => {
-                  // Hard-delete with no second chance was the previous
-                  // behaviour. A single misclick on the × wiped the
-                  // task. Confirm first; coach can still get rid of it
-                  // in two clicks.
-                  if (await confirmToast('Delete this task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
-                    remove(n.id);
+                  // Cancel ≠ delete. The × on an ACTIVE task now ARCHIVES it
+                  // as 'cancelled' (kept in history below), instead of the old
+                  // hard-delete that lost it forever. Permanent deletion is
+                  // still available from the history pool's × on demand.
+                  if (await confirmToast('Cancel this task? It moves to history (not deleted).', { okLabel: 'Cancel task', cancelLabel: 'Keep' })) {
+                    update(n.id, { status: 'cancelled', completed_at: new Date().toISOString() });
                   }
                 }}
                 actionButton={
@@ -719,7 +722,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       {visibleDone.length > 0 && (
         <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px dashed var(--c-cardBd)` }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>
-            ✓ DONE ({doneRows.length}{visibleDone.length < doneRows.length ? ` · showing ${visibleDone.length}` : ''})
+            ✓ HISTORY ({doneRows.length}{visibleDone.length < doneRows.length ? ` · showing ${visibleDone.length}` : ''})
           </div>
           {visibleDone.map(n => {
             const heb = isHebrew(n.body);
@@ -732,13 +735,18 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                 display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0',
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
-                <input type="checkbox" checked={true} onChange={() => toggleDone(n.id)}
-                  style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
+                <input type="checkbox" checked={true}
+                  title={n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen'}
+                  onChange={() => n.status === 'cancelled'
+                    ? update(n.id, { status: 'open', completed_at: null })
+                    : toggleDone(n.id)}
+                  style={{ width: 14, height: 14, accentColor: n.status === 'cancelled' ? 'var(--c-tm)' : 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.08em', marginBottom: 2 }}>
                     {TARGET_ICON[n.target_kind] || '·'} {TARGET_LABEL[n.target_kind] || 'NOTE'}
                     {n.target_label && <span style={{ color: 'var(--c-ac)', marginLeft: 6 }}>· {n.target_label}</span>}
-                    {n.completed_at && <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· done {fmtPrettyDate(n.completed_at)}</span>}
+                    {n.status === 'cancelled' && <span style={{ color: 'var(--c-or)', marginLeft: 6, fontWeight: 700 }}>· CANCELLED</span>}
+                    {n.completed_at && <span style={{ color: 'var(--c-tm)', marginLeft: 6 }}>· {n.status === 'cancelled' ? 'cancelled' : 'done'} {fmtPrettyDate(n.completed_at)}</span>}
                   </div>
                   <div style={{
                     fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.4, whiteSpace: 'pre-wrap', textDecoration: 'line-through',

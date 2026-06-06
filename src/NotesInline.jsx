@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask } from './autoTasks';
@@ -124,8 +124,10 @@ export default function NotesInline({
     cancelEdit();
   };
 
-  const open = rows.filter(r => r.status !== 'done');
-  const done = rows.filter(r => r.status === 'done').slice(0, 3);
+  // 'cancelled' is terminal like 'done' — archived to history, not active.
+  const isTerminal = (r) => r.status === 'done' || r.status === 'cancelled';
+  const open = rows.filter(r => !isTerminal(r));
+  const done = rows.filter(isTerminal).slice(0, 3);
   const visibleOpen = compact ? open.slice(0, 3) : open;
   const showCreatePlanBtn = !!onCreatePlanForTask && targetKind === 'trainee';
 
@@ -309,7 +311,12 @@ export default function NotesInline({
               <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
                 {new Date(n.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(n.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
               </span>
-              <button onClick={() => remove(n.id)} title="Remove"
+              <button onClick={async () => {
+                  // Cancel ≠ delete — archive to history instead of wiping it.
+                  if (await confirmToast('Cancel this task? It moves to history (not deleted).', { okLabel: 'Cancel task', cancelLabel: 'Keep' })) {
+                    update(n.id, { status: 'cancelled', completed_at: new Date().toISOString() });
+                  }
+                }} title="Cancel (archive to history)"
                 style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
             </div>
 
@@ -381,9 +388,16 @@ export default function NotesInline({
                 // strikethrough body unreadable on white in light mode.
                 display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0',
               }}>
-                <input type="checkbox" checked={true} onChange={() => toggleDone(n.id)}
-                  style={{ width: 14, height: 14, accentColor: 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
+                <input type="checkbox" checked={true}
+                  title={n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen'}
+                  onChange={() => n.status === 'cancelled'
+                    ? update(n.id, { status: 'open', completed_at: null })
+                    : toggleDone(n.id)}
+                  style={{ width: 14, height: 14, accentColor: n.status === 'cancelled' ? 'var(--c-tm)' : 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
+                  {n.status === 'cancelled' && (
+                    <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 2 }}>CANCELLED</div>
+                  )}
                   <div style={{
                     fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.5, whiteSpace: 'pre-wrap', textDecoration: 'line-through',
                     direction: heb ? 'rtl' : 'ltr', fontFamily: FB,
