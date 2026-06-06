@@ -201,7 +201,7 @@ function sourceKey(row) {
 function sourceLabel(key, sampleRow) {
   if (key === 'center') return 'Performance Center';
   if (key === 'auto')   return 'Auto-tasks';
-  if (key === 'manual') return 'Manual';
+  if (key === 'manual') return 'General';
   if (key.startsWith('trainee:')) return sampleRow?.target_label || 'Athlete';
   return key;
 }
@@ -305,13 +305,27 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const [open, setOpen] = useState(false);
   // Read-only (another partner's task): show the status glyph but don't let
   // the viewer open the menu / change it.
+  // A labelled pill — the old 16px glyph was too small and read as
+  // decoration, not a control. Now: status color + word + caret, sized to
+  // tap. Colors come from statusColors (null for 'open' → neutral outline).
+  const opt = STATUS_OPTIONS.find(o => o.id === status) || STATUS_OPTIONS[0];
+  const sc = statusColors(status, theme);
+  const pillColor = sc ? sc.bg : 'var(--c-tm)';
+  const filled = !!sc; // open/no-color renders as an outline, the rest fill
+  const pillBase = {
+    display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+    height: 26, padding: '0 10px', borderRadius: 0,
+    fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+    textTransform: 'uppercase', whiteSpace: 'nowrap',
+    border: `1px solid ${pillColor}`,
+    background: filled ? pillColor : 'transparent',
+    color: filled ? (sc.fg || '#FFFFFF') : pillColor,
+  };
   if (readOnly) {
     return (
-      <span title="Read-only — this is the other partner's task" style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: 22, height: 22, flexShrink: 0, opacity: 0.7,
-      }}>
-        <StatusIconGlyph status={status} theme={theme} size={16} />
+      <span title="Read-only — this is the other partner's task"
+        style={{ ...pillBase, opacity: 0.65 }}>
+        <span style={{ fontSize: 12, lineHeight: 1 }}>{opt.glyph}</span>{opt.label}
       </span>
     );
   }
@@ -321,12 +335,10 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
         onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
         onBlur={() => setTimeout(() => setOpen(false), 160)}
         title="Click to change status"
-        style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          background: 'transparent', border: 'none', padding: 0,
-          width: 22, height: 22, cursor: 'pointer', flexShrink: 0,
-        }}>
-        <StatusIconGlyph status={status} theme={theme} size={16} />
+        style={{ ...pillBase, cursor: 'pointer' }}>
+        <span style={{ fontSize: 12, lineHeight: 1 }}>{opt.glyph}</span>
+        {opt.label}
+        <span style={{ fontSize: 8, opacity: 0.8, marginLeft: 1 }}>▾</span>
       </button>
       {open && (
         <div
@@ -626,7 +638,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           {[['ohad','O',C.ac],['yuval','Y',YUVAL_COLOR],['shared','·','linear-gradient(135deg,'+C.ac+' 0% 50%,'+YUVAL_COLOR+' 50% 100%)']].map(([id,initial,color]) => (
             <button key={id}
               onMouseDown={(e) => { e.preventDefault(); setAssignee(id); }}
-              title={id === 'shared' ? 'Both Ohad + Yuval' : id === 'yuval' ? 'Yuval' : 'Ohad'}
+              title={id === 'shared' ? 'Shared (Ohad + Yuval)' : id === 'yuval' ? 'Yuval' : 'Ohad'}
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: 22, height: 22, borderRadius: '50%',
@@ -711,19 +723,25 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               ))}
             </select>
           )}
-          {/* Source selector — Manual / Performance Center */}
-          {[['manual', 'Manual'], ['center', 'Performance Center']].map(([id, label]) => (
-            <button key={id}
-              onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
-              style={{
-                background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent',
-                color: source === id ? 'var(--c-ac)' : 'var(--c-tm)',
-                border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-                fontFamily: FN, fontSize: 9, fontWeight: 700,
-                letterSpacing: '0.12em', padding: '3px 8px', height: 22,
-                cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
-              }}>{label}</button>
-          ))}
+          {/* Source selector — General / Performance Center. Wrapped in a
+              non-wrapping group so the two tabs never split across lines
+              ("Performance Center" is long enough to push the second tab
+              onto its own row otherwise). */}
+          <div style={{ display: 'inline-flex', gap: 8, flexShrink: 0 }}>
+            {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => (
+              <button key={id}
+                onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
+                style={{
+                  background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent',
+                  color: source === id ? 'var(--c-ac)' : 'var(--c-tm)',
+                  border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+                  fontFamily: FN, fontSize: 9, fontWeight: 700,
+                  letterSpacing: '0.12em', padding: '3px 8px', height: 22,
+                  cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                }}>{label}</button>
+            ))}
+          </div>
           <span style={{ flex: 1 }} />
           <span style={{
             fontFamily: FN, fontSize: 9, fontWeight: 600,
@@ -1029,10 +1047,13 @@ function MigrationPendingHint() {
   );
 }
 
-function CommentsThread({ noteId, defaultAuthor }) {
+function CommentsThread({ noteId, viewer }) {
   const { rows, loading, available, add } = useCoachNoteComments(noteId);
   const [draft, setDraft] = useState('');
-  const [author, setAuthor] = useState(defaultAuthor || 'ohad');
+  // Author is LOCKED to the signed-in viewer — you can only ever comment as
+  // yourself. The old O/Y toggle let Ohad post as Yuval (and vice versa),
+  // which misattributes every action. Identity comes from auth, not a button.
+  const author = viewer === 'yuval' ? 'yuval' : 'ohad';
   const [busy, setBusy] = useState(false);
   if (!available) {
     // Migration not applied — render an actionable hint with a one-click
@@ -1102,24 +1123,15 @@ function CommentsThread({ noteId, defaultAuthor }) {
         display: 'flex', gap: 6, alignItems: 'stretch',
         marginTop: rows.length > 0 ? 8 : 0,
       }}>
-        {/* Author toggle — 2-letter pill so Ohad can comment as Yuval (or vice versa
-            once Yuval has his own auth identity) without re-logging in. */}
-        <div style={{ display: 'flex', flexShrink: 0 }}>
-          {['ohad','yuval'].map(a => (
-            <button key={a} type="button"
-              onMouseDown={(e) => { e.preventDefault(); setAuthor(a); }}
-              title={a === 'ohad' ? 'Comment as Ohad' : 'Comment as Yuval'}
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 26, height: 30, borderRadius: 0,
-                background: author === a ? (a === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)') : 'transparent',
-                color: author === a ? '#FFFFFF' : 'var(--c-tm)',
-                border: author === a ? 'none' : `1px solid var(--c-cardBd)`,
-                fontFamily: FN, fontSize: 10, fontWeight: 700,
-                cursor: 'pointer',
-              }}>{a === 'yuval' ? 'Y' : 'O'}</button>
-          ))}
-        </div>
+        {/* Author is fixed to the viewer — a non-interactive identity chip
+            stands in for the old toggle so it's clear who you're posting as. */}
+        <span title={`Posting as ${author === 'yuval' ? 'Yuval' : 'Ohad'}`}
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, width: 30, height: 30, borderRadius: 0,
+            background: author === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)',
+            color: '#FFFFFF', fontFamily: FN, fontSize: 11, fontWeight: 700,
+          }}>{author === 'yuval' ? 'Y' : 'O'}</span>
         <input type="text" value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onClick={(e) => e.stopPropagation()}
@@ -1198,53 +1210,11 @@ function EventTimeline({ noteId }) {
   );
 }
 
-// Pill bar shown in the expanded view of a shared task. Lets the coach
-// flip each side's approval explicitly (matters while Yuval doesn't yet
-// have his own auth — once he does, his side becomes self-service and
-// this UI degrades to a status indicator instead of a control).
-function SharedApprovalBar({ row, onSetApproval }) {
-  if (row._owner !== 'shared') return null;
-  const approvals = row._approvals || { ohad: false, yuval: false };
-  const Pill = ({ who, label, color, approved }) => (
-    <button onClick={(e) => { e.stopPropagation(); onSetApproval(row, who, !approved); }}
-      title={approved ? `Revoke ${label}'s approval` : `Approve as ${label}`}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        background: approved ? color : 'transparent',
-        color: approved ? '#FFFFFF' : color,
-        border: `1px solid ${color}`,
-        fontFamily: FN, fontSize: 9, fontWeight: 700,
-        letterSpacing: '0.12em', padding: '4px 10px',
-        cursor: 'pointer', borderRadius: 0,
-        textTransform: 'uppercase',
-      }}>{approved ? '✓' : '○'} {label}</button>
-  );
-  const bothApproved = approvals.ohad && approvals.yuval;
-  return (
-    <div style={{ marginTop: 10, direction: 'ltr',
-      display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <span style={{
-        fontFamily: FN, fontSize: 9, fontWeight: 700,
-        letterSpacing: '0.12em', color: 'var(--c-tm)',
-        textTransform: 'uppercase',
-      }}>Dual approval</span>
-      <Pill who="ohad"  label="Ohad"  color="var(--c-ac)"   approved={approvals.ohad} />
-      <Pill who="yuval" label="Yuval" color={YUVAL_COLOR}    approved={approvals.yuval} />
-      <span style={{
-        fontFamily: FN, fontSize: 9, fontWeight: 600,
-        color: bothApproved ? 'var(--c-gn)' : 'var(--c-td)',
-        letterSpacing: '0.04em', textTransform: 'uppercase',
-      }}>{bothApproved ? 'Both approved · task is done'
-         : approvals.ohad || approvals.yuval ? `Waiting for ${approvals.ohad ? 'Yuval' : 'Ohad'}`
-         : 'Needs both signoffs'}</span>
-    </div>
-  );
-}
-
-function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, onSetSharedApproval, readOnly = false }) {
+function ExpandedDetail({ row, displayBody, viewer, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, readOnly = false }) {
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag/glink/approved) out of the
-  // visible tag list. Approvals are shown via SharedApprovalBar.
+  // visible tag list. (Dual-approval removed 2026-06-06 — any legacy
+  // `approved:` tags are simply hidden.)
   const rawTags = (Array.isArray(row.tags) ? row.tags : []).filter(t =>
     !t.startsWith('gevent:') && !t.startsWith('getag:') && !t.startsWith('glink:') && !t.startsWith('approved:')
   );
@@ -1266,7 +1236,8 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
       fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.6,
       direction: heb ? 'rtl' : 'ltr',
     }}>
-      <div style={{ marginBottom: 6, color: 'var(--c-tx)' }}>{displayBody}</div>
+      {/* Title is NOT repeated here — the row above shows it in full once
+          expanded. Detail starts at tags / approval / calendar / comments. */}
       {tags.length > 0 && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6, direction: 'ltr' }}>
           {tags.map(t => (
@@ -1278,7 +1249,6 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
           ))}
         </div>
       )}
-      <SharedApprovalBar row={row} onSetApproval={onSetSharedApproval} />
       <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {readOnly ? (
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Read-only — this is the other partner's task</span>
@@ -1344,13 +1314,13 @@ function ExpandedDetail({ row, displayBody, gcalConnected, onSyncToCalendar, onD
       {/* Comments + audit timeline (Phase 2). Both gracefully no-op
           when their migrations haven't been applied — Comments shows
           a hint, EventTimeline silently absents itself. */}
-      <CommentsThread noteId={row.id} defaultAuthor={row._owner === 'yuval' ? 'yuval' : 'ohad'} />
+      <CommentsThread noteId={row.id} viewer={viewer} />
       <EventTimeline noteId={row.id} />
     </div>
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, onSetSharedApproval, readOnly = false }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, viewer, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, readOnly = false }) {
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1369,6 +1339,38 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
                   : isToday   ? 'var(--c-ac)'
                   : isStuck   ? 'var(--c-rd)'
                               : 'transparent';
+
+  // Priority is shown for ALL four levels (Ohad: "each row should show
+  // low/normal/high/urgent"), as a colored dot + label sitting to the
+  // right of the date+time.
+  const PRIORITY_META = {
+    urgent: { label: 'URGENT', color: 'var(--c-rd)' },
+    high:   { label: 'HIGH',   color: YUVAL_COLOR },
+    normal: { label: 'NORMAL', color: 'var(--c-tm)' },
+    low:    { label: 'LOW',    color: 'var(--c-td)' },
+  };
+  const pmeta = PRIORITY_META[priority] || PRIORITY_META.normal;
+
+  // Athlete name when the task is linked to a trainee; nothing otherwise
+  // (Ohad: "what athlete, or if none attached, don't show it").
+  const athleteName = (row.target_kind === 'trainee' && row.target_label) ? row.target_label : null;
+
+  // Due shown as relative word + real date + time on ONE row (his spec:
+  // "relative + date + time"), e.g. "TMRW · 7 Jun 09:00".
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const RELATIVE_WORDS = new Set(['TODAY','TMRW','YDAY','SUN','MON','TUE','WED','THU','FRI','SAT']);
+  let dateStr = null;
+  if (hasDue) {
+    const dd = new Date(row._dueAt);
+    if (!isNaN(dd.getTime())) {
+      const real = `${dd.getDate()} ${MON[dd.getMonth()]}`;
+      dateStr = RELATIVE_WORDS.has(dm.label) ? `${dm.label} · ${real}` : real;
+      if (row._dueTime) dateStr += ` ${row._dueTime}`;
+    }
+  }
+  const dateBorder = isOverdue ? 'var(--c-rd)' : isToday ? 'var(--c-ac)' : 'var(--c-cardBd)';
+  const dateBg = isOverdue ? 'rgba(229,72,77,0.10)' : isToday ? 'rgba(57,189,255,0.12)' : 'transparent';
+
   return (
     <React.Fragment>
       <div
@@ -1386,43 +1388,40 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           transition: 'background 120ms ease',
         }}
       >
-        {/* Due-date rail — a fixed-width left column so every date scans down
-            one vertical line instead of hiding as cramped subtitle text. The
-            Hebrew rows are RTL, so the LEFT edge is the reader's line-end (the
-            Things-3 trailing-date slot). Slot width is reserved even when a row
-            has no date, so dated and undated rows stay aligned. Colour = urgency
-            (red overdue, cyan today, muted future); a subtle tint + border give
-            it weight without shouting. The redundant "overdue" word is gone —
-            the row's red left edge-bar already carries that signal. */}
-        <div style={{ flexShrink: 0, width: 56, display: 'flex', justifyContent: 'center' }}>
-          {hasDue && (
-            <div style={{
-              display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
-              padding: row._dueTime ? '2px 7px' : '4px 7px', lineHeight: 1.05,
-              fontFamily: FN, direction: 'ltr',
-              background: isOverdue ? 'rgba(229,72,77,0.10)' : isToday ? 'rgba(57,189,255,0.12)' : 'transparent',
-              border: `1px solid ${isOverdue ? 'var(--c-rd)' : isToday ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-            }}>
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.02em', color: dm.color, whiteSpace: 'nowrap' }}>{dm.label}</span>
-              {row._dueTime && <span style={{ fontSize: 8.5, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.03em' }}>{row._dueTime}</span>}
-            </div>
+        {/* Meta cluster — date+time, then priority (dot to its RIGHT), then
+            athlete. Forced LTR internally so the order reads the same on
+            Hebrew (RTL) and English rows. Each chip is no-wrap. */}
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, direction: 'ltr' }}>
+          {dateStr && (
+            <span style={{
+              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
+              color: isOverdue ? 'var(--c-rd)' : isToday ? 'var(--c-ac)' : dm.color,
+              whiteSpace: 'nowrap', padding: '2px 7px',
+              border: `1px solid ${dateBorder}`, background: dateBg,
+            }}>{dateStr}</span>
+          )}
+          <span title={`Priority: ${pmeta.label}`} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+            color: pmeta.color, whiteSpace: 'nowrap',
+          }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+              background: priority === 'low' ? 'transparent' : pmeta.color,
+              border: priority === 'low' ? `1.5px solid ${pmeta.color}` : 'none',
+            }} />
+            {pmeta.label}
+          </span>
+          {athleteName && (
+            <span title={`Athlete: ${athleteName}`} style={{
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
+              color: 'var(--c-ac)', whiteSpace: 'nowrap', maxWidth: 130,
+              overflow: 'hidden', textOverflow: 'ellipsis',
+              border: `1px solid var(--c-ac)`, padding: '2px 7px',
+            }}>{athleteName}</span>
           )}
         </div>
         {showAvatar && <AssigneeDot owner={row._owner} />}
-        {/* Priority indicator — single-character glyph in the colour of the
-            priority. Absent for NORMAL so the row doesn't pay rent for the
-            common case. URGENT = filled red dot, HIGH = orange dot, LOW =
-            hollow grey dot. */}
-        {priority !== 'normal' && (
-          <span title={`Priority: ${priority.toUpperCase()}`} style={{
-            width: 10, height: 10, borderRadius: '50%',
-            background: priority === 'urgent' ? 'var(--c-rd)'
-                      : priority === 'high'   ? YUVAL_COLOR
-                                              : 'transparent',
-            border: priority === 'low' ? `1.5px solid var(--c-td)` : 'none',
-            flexShrink: 0,
-          }} />
-        )}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start' }}>
           <div style={{
             maxWidth: '100%',
@@ -1432,7 +1431,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             color: 'var(--c-tx)',
             direction: heb ? 'rtl' : 'ltr',
             textAlign: heb ? 'right' : 'left',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            // Truncate when collapsed; show the FULL title when expanded so
+            // it isn't repeated in the detail body below (that dup was removed).
+            ...(expanded
+              ? { whiteSpace: 'normal', wordBreak: 'break-word' }
+              : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
           }}>
             <HighlightedText text={row._display} query={search} />
           </div>
@@ -1445,20 +1448,6 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           width: 14, textAlign: 'center', cursor: 'pointer',
           flexShrink: 0,
         }} title="More actions (Phase 1)">⋯</span>
-        {/* Half-approved badge — shared tasks where exactly one of the
-            two has signed off. Lives just LEFT of the status pill so
-            it's visible in the same scan as the status glyph. */}
-        {row._owner === 'shared' && row._approvals && (row._approvals.ohad !== row._approvals.yuval) && row.status !== 'done' && row.status !== 'cancelled' && (
-          <span title={`Approved by ${row._approvals.ohad ? 'Ohad' : 'Yuval'} · waiting for ${row._approvals.ohad ? 'Yuval' : 'Ohad'}`}
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              width: 18, height: 18, borderRadius: '50%',
-              border: `1px solid ${row._approvals.ohad ? 'var(--c-ac)' : YUVAL_COLOR}`,
-              fontFamily: FN, fontSize: 9, fontWeight: 700,
-              color: row._approvals.ohad ? 'var(--c-ac)' : YUVAL_COLOR,
-              flexShrink: 0,
-            }}>½</span>
-        )}
         <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
       </div>
       {expanded && (
@@ -1466,10 +1455,10 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           animation: 'tasks-v8-slide-in 200ms ease-out',
         }}>
           <ExpandedDetail row={row} displayBody={row._display}
+            viewer={viewer}
             gcalConnected={gcalConnected}
             onSyncToCalendar={onSyncToCalendar}
             onDeleteFromCalendar={onDeleteFromCalendar}
-            onSetSharedApproval={onSetSharedApproval}
             readOnly={readOnly}
           />
         </div>
@@ -1838,57 +1827,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     if (n.has(id)) n.delete(id); else n.add(id);
     return n;
   });
-  // Toggle one half of the dual-approval on a shared task. Lets the
-  // expanded-row UI add Yuval's signoff explicitly while Yuval doesn't
-  // yet have his own auth identity (Ohad clicks the "Approve as Yuval"
-  // pill on Yuval's behalf during pairing); once Yuval has his own
-  // login the actor will derive from auth.user().email.
-  const setSharedApproval = async (row, who, value) => {
-    if (row._owner !== 'shared') return;
-    const nextTags = withApproval(row.tags, who, value);
-    const approvals = approvalsFromTags(nextTags);
-    const bothApproved = approvals.ohad && approvals.yuval;
-    const patch = { tags: nextTags.length ? nextTags : null };
-    if (bothApproved) {
-      patch.status = 'done';
-      patch.completed_at = new Date().toISOString();
-    } else if (row.status === 'done') {
-      // No longer both approved — bounce back to open.
-      patch.status = 'open';
-      patch.completed_at = null;
-    }
-    await update(row.id, patch);
-    const actor = who;
-    if (bothApproved) {
-      recordNoteEvent({ noteId: row.id, actor, kind: 'status_changed', fromValue: row.status || 'open', toValue: 'done', detail: 'both approved' });
-      toast('Both approved — task done ✓', 'success', { ttl: 3000 });
-    } else if (value) {
-      recordNoteEvent({ noteId: row.id, actor, kind: 'status_changed', fromValue: row.status || 'open', toValue: 'half_approved', detail: `${who} approved · waiting for ${who === 'ohad' ? 'Yuval' : 'Ohad'}` });
-      toast(`${who === 'ohad' ? 'Ohad' : 'Yuval'} approved · waiting for ${who === 'ohad' ? 'Yuval' : 'Ohad'}`, 'info', { ttl: 3500 });
-    } else {
-      recordNoteEvent({ noteId: row.id, actor, kind: 'reopened', toValue: 'open', detail: `${who} revoked approval` });
-    }
-  };
-
   const setStatus = async (row, target) => {
-    // Shared tasks need dual-approval to reach 'done'. Single 'done' click
-    // from the status popover adds the clicker's approval (defaults to
-    // 'ohad' until Yuval's own auth lands); the other half lives on the
-    // "Approve as Yuval" pill in the expanded row.
-    if (row._owner === 'shared' && target === 'done') {
-      const approvals = approvalsFromTags(row.tags);
-      const me = 'ohad'; // TODO: derive from auth.user() once Yuval signs in separately
-      if (!approvals[me]) {
-        await setSharedApproval(row, me, true);
-        return;
-      }
-      // Already approved by me — fall through to set the other side
-      // OR if both are set, normal terminal logic handles it below.
-    }
-    // coach_notes.status is TEXT with no enum constraint, so all 6 states
-    // (open / working / waiting / stuck / done / cancelled) persist as
-    // their literal value. completed_at is stamped for the two terminal
-    // states (done / cancelled) and cleared when reopening.
+    // No dual-approval / half-approved state (removed 2026-06-06). A shared
+    // task is a single row with a single status — either partner changes it
+    // and it applies for both immediately. coach_notes.status is TEXT with
+    // no enum constraint, so all 6 states (open / working / waiting / stuck /
+    // done / cancelled) persist literally. completed_at is stamped for the
+    // two terminal states and cleared on reopen.
     const terminal = (target === 'done' || target === 'cancelled');
     const prev = row.status || 'open';
     if (prev === target) return;
@@ -1896,17 +1841,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       status: target,
       completed_at: terminal ? new Date().toISOString() : null,
     };
-    // Reopening a shared task wipes pending approvals so a fresh review
-    // round starts clean. Going to done keeps the approval tags as the
-    // audit record of who signed off.
-    if (row._owner === 'shared' && !terminal) {
-      patch.tags = stripApprovals(row.tags);
-      if (patch.tags.length === 0) patch.tags = null;
-    }
     await update(row.id, patch);
-    // Audit log — actor is the row's owner today; will key off auth
-    // identity once Yuval has his own login.
-    const actor = row._owner === 'yuval' ? 'yuval' : 'ohad';
+    // Audit log — actor is the signed-in VIEWER (who actually clicked), not
+    // the row's nominal owner, so "who changed the status" is accurate even
+    // on shared tasks.
+    const actor = viewerOwner;
     const kind = (terminal === false && (prev === 'done' || prev === 'cancelled'))
       ? 'reopened'
       : 'status_changed';
@@ -2127,11 +2066,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
                     onSetStatus={setStatus}
-                    now={now} search={search}
+                    now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
                   onDeleteFromCalendar={handleDeleteFromCalendar}
-                  onSetSharedApproval={setSharedApproval} />
+                  />
                 ))}
               </React.Fragment>
             );
@@ -2163,11 +2102,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
                   onSetStatus={setStatus}
-                  now={now} search={search}
+                  now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
                   onDeleteFromCalendar={handleDeleteFromCalendar}
-                  onSetSharedApproval={setSharedApproval} />
+                  />
               ))}
             </React.Fragment>
           )}
@@ -2213,7 +2152,6 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     gcalConnected={gcalConnected}
                     onSyncToCalendar={handleSyncToCalendar}
                     onDeleteFromCalendar={handleDeleteFromCalendar}
-                    onSetSharedApproval={setSharedApproval}
                     now={now} />
                 ))}
               </div>
@@ -2272,11 +2210,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
                   onSetStatus={setStatus}
-                  now={now} search={search}
+                  now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
                   onDeleteFromCalendar={handleDeleteFromCalendar}
-                  onSetSharedApproval={setSharedApproval} />
+                  />
               );
             })}
           {doneOpen && done.length > 5 && (
