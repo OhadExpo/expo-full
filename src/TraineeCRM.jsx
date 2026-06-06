@@ -24,7 +24,8 @@ import { isRefined5b, RefinedHeaderStrip, useEscClose } from './ui';
 import CoachMessages from './CoachMessages';
 import {
   useTraineeActivity, useCompletedTasksForTrainee,
-  deriveCadence, deriveAutoEvents, mergeFeed, ACT_KINDS,
+  deriveHealth, deriveTenure,
+  deriveAutoEvents, mergeFeed, ACT_KINDS,
 } from './crmData';
 import NotesInline from './NotesInline';
 
@@ -46,42 +47,95 @@ const KIND_LABEL = {
 };
 
 const cadenceColor = (level) => ({
-  'on-track': C.gn, 'slipping': C.or, 'at-risk': C.rd, 'inactive': C.td,
+  'on-track': C.gn, 'slipping': C.or, 'at-risk': C.rd, 'inactive': C.td, 'unknown': C.tm,
 }[level] || C.tm);
 
-function CadencePill({ cadence }) {
-  const col = cadenceColor(cadence.level);
+const DIM_LABEL = { session: 'TRAIN', contact: 'CONTACT', payment: 'PAY' };
+
+// Composite health pill — worst of session / contact / payment (#1), with a
+// breakdown chip per dimension so the coach sees WHICH channel went cold.
+function HealthPill({ health }) {
+  const col = cadenceColor(health.level);
+  const dims = [
+    ['session', health.session],
+    ['contact', health.contact],
+    ['payment', health.payment],
+  ];
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: 8,
-      padding: '6px 12px', border: `1px solid ${col}`,
-      background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
-      fontFamily: FN, fontSize: 11, color: col, letterSpacing: '0.06em', fontWeight: 700,
-    }}>
-      <span style={{
-        width: 8, height: 8, borderRadius: '50%', background: col, flexShrink: 0,
-      }} />
-      {cadence.label}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{
+        display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+        padding: '6px 12px', border: `1px solid ${col}`,
+        background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+        fontFamily: FN, fontSize: 11, color: col, letterSpacing: '0.06em', fontWeight: 700,
+      }}>
+        <span style={{ width: 8, height: 8, borderRadius: '50%', background: col, flexShrink: 0 }} />
+        {health.label}
+      </div>
+      {/* Per-dimension breakdown. 'unknown' dims are muted, not alarming. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {dims.map(([key, d]) => {
+          const c = cadenceColor(d.level);
+          const muted = d.level === 'unknown';
+          return (
+            <span key={key} title={d.label} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 5,
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+              color: muted ? C.td : c, padding: '2px 7px',
+              border: `1px solid ${muted ? C.cardBd : c}`,
+            }}>
+              <span style={{ width: 5, height: 5, borderRadius: '50%', background: muted ? C.td : c }} />
+              {DIM_LABEL[key]}
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-function ActivityFeed({ trainee, clientWorkouts, payments, planIndex, bareMode = false }) {
-  // Activity log scopes to the parent trainee ID AND any member IDs for couples.
-  const allIds = useMemo(() => {
-    const ids = [];
-    if (trainee?.id) ids.push(trainee.id);
-    if (Array.isArray(trainee?.members)) trainee.members.forEach(m => m?.id && ids.push(m.id));
-    return ids;
-  }, [trainee]);
+// Compact stats strip: last trained vs last talked (#2) + tenure (#5).
+function StatsStrip({ health, tenure }) {
+  const d = health.session.daysSinceLast;
+  const c = health.contact.days;
+  const Stat = ({ label, value, tone }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <span style={{ fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: '0.12em', fontWeight: 700 }}>{label}</span>
+      <span style={{ fontFamily: FN, fontSize: 12, color: tone || C.tx, letterSpacing: '0.04em', fontWeight: 700 }}>{value}</span>
+    </div>
+  );
+  return (
+    <div style={{
+      display: 'flex', gap: 18, padding: '8px 12px', flexWrap: 'wrap',
+      border: `1px solid ${C.cardBd}`, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+    }}>
+      <Stat label="LAST TRAINED" value={d == null ? '—' : `${d}d ago`} tone={cadenceColor(health.session.level)} />
+      <Stat label="LAST TALKED" value={c == null ? '—' : `${c}d ago`} tone={cadenceColor(health.contact.level)} />
+      {tenure && <Stat label="CLIENT" value={tenure.label} />}
+    </div>
+  );
+}
 
-  const { rows: manualRows, remove } = useTraineeActivity(allIds);
+function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, bareMode = false }) {
+  const { rows: manualRows, remove, update } = activity;
   const completedTasks = useCompletedTasksForTrainee(trainee?.id);
   const autoEvents = useMemo(
     () => deriveAutoEvents(trainee, clientWorkouts, payments, planIndex, completedTasks),
     [trainee, clientWorkouts, payments, planIndex, completedTasks],
   );
   const merged = useMemo(() => mergeFeed(manualRows, autoEvents), [manualRows, autoEvents]);
+
+  // Inline edit (#4) — a typo in a logged activity no longer means delete +
+  // retype. Only manual rows are editable; auto-events are computed.
+  const [editId, setEditId] = useState(null);
+  const [editText, setEditText] = useState('');
+  const startEdit = (ev) => { setEditId(ev.id); setEditText(ev.summary); };
+  const cancelEdit = () => { setEditId(null); setEditText(''); };
+  const saveEdit = async () => {
+    const s = editText.trim();
+    if (s && editId) await update(editId, { summary: s });
+    cancelEdit();
+  };
 
   // Collapsed default: 3 rows. Was 8 — every trainee page got a
   // 400-480px tower of activity by default which crowded out the rest
@@ -121,14 +175,29 @@ function ActivityFeed({ trainee, clientWorkouts, payments, planIndex, bareMode =
                 <span style={{ color: C.td }}> · {new Date(ev.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(ev.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
                 {!isManual && <span style={{ marginLeft: 6, color: C.tm }}>· AUTO</span>}
               </div>
-              <div dir="auto" style={{
-                fontSize: 12, color: C.tx, lineHeight: 1.4,
-                fontFamily: FB,
-              }}>{ev.summary}</div>
+              {editId === ev.id ? (
+                <textarea value={editText} onChange={e => setEditText(e.target.value)} dir="auto" autoFocus
+                  onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                  onBlur={saveEdit} rows={Math.max(2, editText.split('\n').length)}
+                  style={{
+                    width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0,
+                    padding: '6px 8px', color: C.tx, fontSize: 12, outline: 'none', boxSizing: 'border-box',
+                    resize: 'vertical', fontFamily: heb ? FH : FB,
+                  }} />
+              ) : (
+                <div dir="auto" style={{
+                  fontSize: 12, color: C.tx, lineHeight: 1.4,
+                  fontFamily: FB,
+                }}>{ev.summary}</div>
+              )}
             </div>
-            {isManual && (
-              <button onClick={() => remove(ev.id)} title="Remove"
-                style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, padding: '0 4px', alignSelf: 'flex-start' }}>×</button>
+            {isManual && editId !== ev.id && (
+              <div style={{ display: 'flex', gap: 2, alignSelf: 'flex-start', flexShrink: 0 }}>
+                <button onClick={() => startEdit(ev)} title="Edit"
+                  style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 11, padding: '0 4px' }}>✏</button>
+                <button onClick={() => remove(ev.id)} title="Remove"
+                  style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, padding: '0 4px' }}>×</button>
+              </div>
             )}
           </div>
         );
@@ -302,18 +371,12 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
 //   1. NEXT ACTIONS (NotesInline in bareMode)
 //   2. ACTIVITY    (ActivityFeed in bareMode)
 // The combined "+ LOG" composer writes to BOTH systems in one submit.
-function CoachHistoryCard({ trainee, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab }) {
+function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab }) {
   const [showLog, setShowLog] = useState(false);
   // Tabbed CRM body (chosen 2026-05-23): one of ACTIONS / ACTIVITY visible
   // at a time so the two sub-sections don't compete visually.
   const [tab, setTab] = useState('actions');
-  const allIds = useMemo(() => {
-    const ids = [];
-    if (trainee?.id) ids.push(trainee.id);
-    if (Array.isArray(trainee?.members)) trainee.members.forEach(m => m?.id && ids.push(m.id));
-    return ids;
-  }, [trainee]);
-  const { add: addActivity, refetch } = useTraineeActivity(allIds);
+  const { add: addActivity, refetch } = activity;
 
   const refined = isRefined5b();
   const PAD = 14;
@@ -369,6 +432,7 @@ function CoachHistoryCard({ trainee, clientWorkouts, payments, planIndex, onCrea
       ) : (
         <ActivityFeed
           trainee={trainee}
+          activity={activity}
           clientWorkouts={clientWorkouts}
           payments={payments}
           planIndex={planIndex}
@@ -403,13 +467,28 @@ function SubSection({ title, marginTop = 0, children }) {
 export default function TraineeCRM({ trainee, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab }) {
   // Rules-of-Hooks: hook calls must come before any early return so the
   // hook count stays stable across renders.
-  const cadence = useMemo(() => deriveCadence(trainee, clientWorkouts), [trainee, clientWorkouts]);
+  // Activity is fetched once here and threaded down to the history card +
+  // feed (was fetched twice) so the composite health pill, the "last talked"
+  // stat, and the feed all read the same rows.
+  const allIds = useMemo(() => {
+    const ids = [];
+    if (trainee?.id) ids.push(trainee.id);
+    if (Array.isArray(trainee?.members)) trainee.members.forEach(m => m?.id && ids.push(m.id));
+    return ids;
+  }, [trainee]);
+  const activity = useTraineeActivity(allIds);
+  const health = useMemo(
+    () => deriveHealth(trainee, clientWorkouts, activity.rows, payments),
+    [trainee, clientWorkouts, activity.rows, payments],
+  );
+  const tenure = useMemo(() => deriveTenure(trainee), [trainee]);
   if (!trainee) return null;
 
   return (
     <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
-        <CadencePill cadence={cadence} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+        <HealthPill health={health} />
+        <StatsStrip health={health} tenure={tenure} />
         {trainee?.status && trainee.status !== 'Active' && (
           <div style={{
             fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em',
@@ -419,6 +498,7 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
       </div>
       <CoachHistoryCard
         trainee={trainee}
+        activity={activity}
         clientWorkouts={clientWorkouts}
         payments={payments}
         planIndex={planIndex}

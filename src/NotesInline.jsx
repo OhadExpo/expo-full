@@ -194,7 +194,14 @@ export default function NotesInline({
         const heb = isHebrew(n.body);
         const editingThis = editingId === n.id;
         const tone = n.auto_kind ? (AUTO_KIND_TONE[n.auto_kind] || 'cyan') : null;
-        const stripeColor = tone ? TONE_COLOR[tone] : 'var(--c-cardBd)';
+        // Stale follow-up nudge: a manual task open 7+ days is being ignored.
+        // Give it an orange stripe + flag so it stops blending in. Auto-tasks
+        // already carry their own severity tone, so this only applies to
+        // hand-written ones.
+        const staleDays = (!n.auto_kind && n.created_at)
+          ? Math.floor((Date.now() - new Date(n.created_at).getTime()) / 86400000) : 0;
+        const isStale = staleDays >= 7;
+        const stripeColor = tone ? TONE_COLOR[tone] : (isStale ? TONE_COLOR.orange : 'var(--c-cardBd)');
         const kindLabel = n.auto_kind ? (AUTO_KIND_LABEL[n.auto_kind] || 'AUTO') : null;
         const kindAction = n.auto_kind ? AUTO_KIND_ACTION[n.auto_kind] : null;
         // Build the per-task action button. Manual trainee tasks fall
@@ -290,6 +297,13 @@ export default function NotesInline({
                     }}>⚙ {kindLabel}</span>
                   <ExplainInfoButton note={n} trainee={trainee} color={stripeColor} />
                 </>
+              )}
+              {isStale && (
+                <span title={`Open ${staleDays} days — follow up`}
+                  style={{
+                    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+                    color: 'var(--c-or)', border: `1px solid var(--c-or)`, padding: '2px 8px',
+                  }}>⚠ FOLLOW UP {staleDays}d</span>
               )}
               <span style={{ flex: 1 }} />
               <span style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.04em' }}>
