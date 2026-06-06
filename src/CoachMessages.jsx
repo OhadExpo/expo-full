@@ -12,7 +12,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, toast } from './ui';
+import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -218,6 +218,8 @@ function MessageBubble({ msg, viewerRole }) {
 export default function CoachMessages({ traineeId, role = 'coach', recipientEmail, senderLabel }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Collapsible — the cyan strip is the toggle. Persisted per trainee+role.
+  const [open, setOpen] = usePersistentState(`msg-${role}-${traineeId}`, true);
   const refined = isRefined5b();
   const PAD = 14;
 
@@ -288,14 +290,18 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       background: 'var(--c-sf)',
       border: `1px solid var(--c-cardBd)`, borderRadius: 0, padding: PAD, marginBottom: 12,
     }}>
-      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={open ? 10 : 0}>
+        <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
             MESSAGES ({rows.length})
           </span>
+          <span aria-hidden style={{ color: refined ? '#FFFFFF' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
         </div>
       </RefinedHeaderStrip>
 
+      {open && (<>
       {loading ? (
         <div style={{ padding: 20, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>Loading…</div>
       ) : rows.length === 0 ? (
@@ -314,6 +320,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
           upload: (blob) => uploadVoiceNote(blob, traineeId),
           send,
         }} />
+      </>)}
     </div>
   );
 }

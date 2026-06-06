@@ -482,6 +482,13 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
   const titleId = React.useId();
   const cardRef = React.useRef(null);
   const lastFocusRef = React.useRef(null);
+  // onClose is almost always an inline arrow (new identity every render). Keep
+  // it in a ref so the focus/trap effect can depend on [open] ALONE — if it
+  // depended on onClose, every parent re-render (e.g. each keystroke in a
+  // form field) re-ran the effect and its setTimeout stole focus back to the
+  // first field. That was the app-wide "input gets stuck after every digit".
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
   React.useEffect(() => {
     if (!open) return;
     // Save the focus element so we can restore on close — keyboard users
@@ -489,7 +496,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
     const FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose?.(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return; }
       if (e.key !== 'Tab') return;
       // Focus trap — keep Tab cycling inside the card. Without this,
       // keyboard users can Tab out of the modal into the underlying
@@ -533,7 +540,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
       // may have unmounted (e.g. modal opened from a deleted row).
       try { lastFocusRef.current?.focus?.(); } catch {}
     };
-  }, [open, onClose]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- onClose via ref
   if (!open) return null;
   return (
     <div
@@ -552,6 +559,9 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
   const msgId = React.useId();
   const cardRef = React.useRef(null);
   const lastFocusRef = React.useRef(null);
+  // Ref so the effect depends on [open] alone — see Modal note above.
+  const onCancelRef = React.useRef(onCancel);
+  onCancelRef.current = onCancel;
   React.useEffect(() => {
     if (!open) return;
     // Mirror Modal's a11y — this is a destructive-confirm dialog, so
@@ -559,7 +569,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
     lastFocusRef.current = (typeof document !== 'undefined') ? document.activeElement : null;
     const FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onCancel?.(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); onCancelRef.current?.(); return; }
       if (e.key !== 'Tab') return;
       const node = cardRef.current;
       if (!node) return;
@@ -584,7 +594,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
       clearTimeout(t);
       try { lastFocusRef.current?.focus?.(); } catch {}
     };
-  }, [open, onCancel]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- onCancel via ref
   if (!open) return null;
   return (
     <div role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={onCancel}>
@@ -608,13 +618,19 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
 // Call unconditionally at the top of a component; pass `active` to gate it.
 const DIALOG_FOCUSABLE = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
 export const useEscClose = (active, onClose) => {
+  // Ref so the effect depends on [active] alone. With onClose (usually an
+  // inline arrow) in the deps, every parent re-render re-ran the effect and
+  // its cleanup fired prevFocus.focus() — yanking focus out of whatever field
+  // the user was typing in. App-wide "input stuck after every digit".
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
   React.useEffect(() => {
     if (!active) return;
     // Element focused before the dialog opened — restored on close so
     // keyboard users return to where they were.
     const prevFocus = (typeof document !== 'undefined') ? document.activeElement : null;
     const onKey = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose?.(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); onCloseRef.current?.(); return; }
       if (e.key !== 'Tab') return;
       // Trap within the topmost dialog (last one mounted wins for stacks).
       const dialogs = document.querySelectorAll('[role="dialog"]');
@@ -632,7 +648,7 @@ export const useEscClose = (active, onClose) => {
       // Wrapped — the trigger may have unmounted (e.g. a deleted row).
       try { prevFocus?.focus?.(); } catch {}
     };
-  }, [active, onClose]);
+  }, [active]); // eslint-disable-line react-hooks/exhaustive-deps -- onClose via ref
 };
 export const EmptyState = ({ icon, message }) => (
   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 60, color: C.td }}>

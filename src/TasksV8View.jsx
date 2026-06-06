@@ -281,13 +281,15 @@ function AssigneeDot({ owner, size = 14 }) {
 // Linear-style status ICON, six states per Yuval's spec:
 //   ○ open  ◐ working  ◯ waiting  ⚠ stuck  ● done  ⊘ cancelled
 // Replaces the old 4-state text pill. Click opens a 6-option popover.
+// Labels renamed 2026-06-06 (Ohad) — open→To Do, working→In Progress. ids are
+// unchanged so existing rows + statusColors/STATUS_CYCLE keep working.
 const STATUS_OPTIONS = [
-  { id: 'open',      label: 'Open',      glyph: '○' },
-  { id: 'working',   label: 'Working',   glyph: '◐' },
-  { id: 'waiting',   label: 'Waiting',   glyph: '◯' },
-  { id: 'stuck',     label: 'Stuck',     glyph: '⚠' },
-  { id: 'done',      label: 'Done',      glyph: '●' },
-  { id: 'cancelled', label: 'Cancelled', glyph: '⊘' },
+  { id: 'open',      label: 'To Do',       glyph: '○' },
+  { id: 'working',   label: 'In Progress', glyph: '◐' },
+  { id: 'waiting',   label: 'Waiting',     glyph: '◯' },
+  { id: 'stuck',     label: 'Stuck',       glyph: '⚠' },
+  { id: 'done',      label: 'Done',        glyph: '●' },
+  { id: 'cancelled', label: 'Cancelled',   glyph: '⊘' },
 ];
 function StatusIconGlyph({ status, theme, size = 16 }) {
   const opt = STATUS_OPTIONS.find(o => o.id === status) || STATUS_OPTIONS[0];
@@ -1744,10 +1746,16 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // default tab — Yuval never saw tasks Ohad shared with him.
   const ownerMatches = (r) => r._owner === owner || (owner !== 'shared' && r._owner === 'shared');
 
-  // A task is read-only for the current viewer when it belongs solely to the
-  // OTHER partner. Your own tasks + shared tasks stay editable. (UI guard —
-  // both are trusted staff at the data layer; this prevents accidental edits.)
-  const isReadOnly = (r) => r._owner !== viewerOwner && r._owner !== 'shared';
+  // Read-only rules (UI guard — both are trusted staff at the data layer):
+  //  1. A task that belongs solely to the OTHER partner is never editable here.
+  //  2. A SHARED task is editable ONLY on the Shared tab — never from an
+  //     individual (Ohad/Yuval) tab, even though it shows there. Editing a
+  //     shared task should happen in the shared context, not "as" one partner.
+  const isReadOnly = (r) => {
+    if (r._owner !== viewerOwner && r._owner !== 'shared') return true;
+    if (r._owner === 'shared' && owner !== 'shared') return true;
+    return false;
+  };
 
   // Owner + open filter is the base. Search narrows further.
   // Terminal states (done, cancelled) drop to the bottom pool.

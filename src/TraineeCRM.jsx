@@ -20,7 +20,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, useEscClose } from './ui';
+import { isRefined5b, RefinedHeaderStrip, useEscClose, usePersistentState } from './ui';
 import CoachMessages from './CoachMessages';
 import {
   useTraineeActivity, useCompletedTasksForTrainee,
@@ -373,6 +373,9 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
 // The combined "+ LOG" composer writes to BOTH systems in one submit.
 function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planIndex, onCreatePlanForTask, onOpenIntakeTab }) {
   const [showLog, setShowLog] = useState(false);
+  // Collapsible — the cyan strip title is the toggle (the + LOG button stays
+  // independent). Persisted per trainee.
+  const [open, setOpen] = usePersistentState(`crm-hist-${trainee.id}`, true);
   // Tabbed CRM body (chosen 2026-05-23): one of ACTIONS / ACTIVITY visible
   // at a time so the two sub-sections don't compete visually.
   const [tab, setTab] = useState('actions');
@@ -397,22 +400,28 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
       background: 'var(--c-sf)',
       border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: PAD, marginBottom: 12,
     }}>
-      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={10}>
+      <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={open ? 10 : 0}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            COACH HISTORY
-          </span>
+          <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none', flex: 1, minWidth: 0 }}>
+            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
+              COACH HISTORY
+            </span>
+            <span aria-hidden style={{ color: refined ? '#FFFFFF' : C.tx, fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+          </div>
           <button onClick={() => setShowLog(true)}
             style={{
               background: 'transparent',
               border: `1px solid ${refined ? '#FFFFFF' : C.ac}`,
               color: refined ? '#FFFFFF' : C.ac,
               padding: '3px 10px', borderRadius: 0, fontFamily: FN, fontSize: 10,
-              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', flexShrink: 0,
             }}>+ LOG</button>
         </div>
       </RefinedHeaderStrip>
 
+      {open && (<>
       <div style={{ display: 'flex', gap: 0, marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
         <TabBtn id="actions" label="ACTIONS" />
         <TabBtn id="activity" label="ACTIVITY" />
@@ -439,6 +448,7 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
           bareMode
         />
       )}
+      </>)}
 
       {showLog && (
         <CombinedLogModal

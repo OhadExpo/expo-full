@@ -376,12 +376,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         <Card style={{marginBottom:12,textAlign:'center'}}
           header={(() => {
             const heb = isHebrew(td.name);
-            return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{td.name} · Shared · {td.format}</span>;
+            return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{td.name} · {td.format}</span>;
           })()}
           headerRight={<Badge color={statusColor[td.status]} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{td.status}</Badge>}>
           {!isRefined5b() && (
             <div style={{fontSize:12,color:C.tm,fontFamily:FN,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:8}}>
-              Shared · {td.format} · <Badge color={statusColor[td.status]}>{td.status}</Badge>
+              {td.format} · <Badge color={statusColor[td.status]}>{td.status}</Badge>
             </div>
           )}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(100px, 1fr))',gap:10}}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, uid } from './theme';
 
@@ -36,19 +36,78 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     }
     return null;
   };
+  // Collapse (long in-person sessions): a finished exercise folds to a
+  // one-line summary so the rest of the list stays scannable. Auto-collapses
+  // once every set is logged; tap the summary (or the HIDE control) to toggle.
+  const [manualCollapse, setManualCollapse] = useState({}); // exIdx → explicit override
+  // Sticky progress header pins below the coach nav (position:sticky top:0).
+  // Measure the nav height so it stays correct at any width / wrap.
+  const [stickyTop, setStickyTop] = useState(57);
+  useEffect(() => {
+    const measure = () => { const h = document.querySelector('header'); if (h) setStickyTop(Math.round(h.getBoundingClientRect().height)); };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+  const allDone = (ex) => ex.sets.length > 0 && ex.sets.every(s => s.completed);
+  const isCollapsed = (ex, exIdx) =>
+    manualCollapse[exIdx] !== undefined ? manualCollapse[exIdx] : allDone(ex);
+  const toggleCollapse = (ex, exIdx) =>
+    setManualCollapse(m => ({ ...m, [exIdx]: !isCollapsed(ex, exIdx) }));
+
   const renderExercise = (ex, exIdx, inGroup, withDivider) => {
     const exData = exercises.find(e=>e.id===ex.exerciseId);
     const videoUrl = ex.videoUrl ?? ex.vid ?? exData?.videoLink ?? '';
     const last = lastTimeFor(ex);
-    return (
-      <div key={ex.id} style={{background: inGroup ? 'transparent' : (isRefined5b() ? '#FFFFFF' : 'var(--c-sf)'), border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:8}}>
-          <span style={{fontWeight:700,color:C.tx}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
-          <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span>
-          {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
-          {last && <span title={`Top set on ${fmtPrettyDate(last.date)}`} style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',color:C.gn,background:'rgba(0,202,114,0.12)',padding:'3px 8px'}}>LAST · {last.load}KG × {last.reps||'—'}</span>}
+    const cue = ex.q || exData?.cues || ex.notes;
+    const doneCount = ex.sets.filter(s => s.completed).length;
+    // Collapsed = a one-line summary the coach can tap to reopen.
+    if (isCollapsed(ex, exIdx)) {
+      const fullyDone = allDone(ex);
+      return (
+        <div key={ex.id} onClick={() => toggleCollapse(ex, exIdx)}
+          style={{
+            background: inGroup ? 'transparent' : 'var(--c-sf)',
+            border: inGroup ? 'none' : `1px solid ${C.cardBd}`,
+            borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined,
+            borderLeft: `3px solid ${fullyDone ? C.gn : C.cardBd}`,
+            borderRadius: 0, padding: inGroup ? '12px' : '14px',
+            marginBottom: inGroup ? 0 : 10, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+          }}>
+          <span style={{ fontWeight: 700, color: C.tx, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {fullyDone && <span style={{ color: C.gn, marginRight: 6 }}>✓</span>}
+            {exIdx+1}. {exData?.title||ex.title||"Unknown"}
+          </span>
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: fullyDone ? C.gn : C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>
+            {doneCount}/{ex.sets.length} SETS · OPEN ▾
+          </span>
         </div>
-        {(ex.q || exData?.cues || ex.notes) && <div style={{fontSize:11,color:C.tm,fontStyle:'italic',marginBottom:8,lineHeight:1.45}}>💡 {ex.q || exData?.cues || ex.notes}</div>}
+      );
+    }
+    return (
+      <div key={ex.id} style={{background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
+        {/* Header: title + meta on the left (wraps freely), HIDE control fixed
+            top-right. alignItems:flex-start keeps HIDE aligned to the first
+            line even when the meta wraps to two rows. */}
+        <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:8}}>
+          <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            <span style={{fontWeight:700,color:C.tx}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
+            <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span>
+            {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
+            {last && <span title={`Top set on ${fmtPrettyDate(last.date)}`} style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',color:C.gn,background:'rgba(0,202,114,0.12)',padding:'3px 8px'}}>LAST · {last.load}KG × {last.reps||'—'}</span>}
+          </div>
+          <button onClick={() => toggleCollapse(ex, exIdx)} title="Collapse this exercise"
+            style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>HIDE ▴</button>
+        </div>
+        {/* Coach cue — was tiny faded italic (unreadable). Now a readable
+            accent-barred block: full-size, not italic, RTL-aware for Hebrew. */}
+        {cue && (
+          <div style={{display:'flex',gap:10,marginBottom:10,background:'rgba(57,189,255,0.06)',borderInlineStart:`3px solid ${C.ac}`,padding:'9px 12px'}}>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:C.ac,flexShrink:0,paddingTop:2}}>CUE</span>
+            <div style={{minWidth:0,flex:1,fontSize:13,color:C.tx,lineHeight:1.5,direction:isHebrew(cue)?'rtl':'ltr',textAlign:isHebrew(cue)?'right':'left',fontFamily:isHebrew(cue)?FH:FB,wordBreak:'break-word'}}>{cue}</div>
+          </div>
+        )}
         <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
           {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
         {ex.sets.map((set,sIdx)=>(
@@ -70,19 +129,22 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
   const isCompleted = workout.status==="completed";
   return (
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK</button>
-        {!isCompleted&&<Btn variant="success" onClick={onComplete}>Complete Workout</Btn>}
-        {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>Completed</Badge>}
-      </div>
-      <div style={{marginBottom:16}}>
+      {/* Sticky action + progress header — pinned just below the coach nav so
+          the % progress and Complete Workout stay on screen through a long
+          scroll. Solid page-bg so set rows don't bleed through underneath. */}
+      <div style={{position:'sticky',top:stickyTop,zIndex:40,background:C.bg,paddingTop:8,paddingBottom:10,marginBottom:8,borderBottom:`1px solid ${C.cardBd}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK</button>
+          {!isCompleted&&<Btn variant="success" onClick={onComplete}>Complete Workout</Btn>}
+          {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>Completed</Badge>}
+        </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
           <span>{workout.dayName} {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
-          <span>{doneSets}/{totalSets} · {pct}%</span></div>
+          <span style={{color:C.tx,fontWeight:700}}>{doneSets}/{totalSets} · {pct}%</span></div>
         <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
       </div>
       {groups.map((g,gi) => g.ss ? (
-        <div key={gi} style={{border:`1px solid ${C.pu}`, borderLeft:`3px solid ${C.pu}`, borderRadius:0, padding:'8px 12px 4px', marginBottom:10, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)'}}>
+        <div key={gi} style={{border:`1px solid ${C.pu}`, borderLeft:`3px solid ${C.pu}`, borderRadius:0, padding:'8px 12px 4px', marginBottom:10, background: 'var(--c-sf)'}}>
           <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:C.pu,textTransform:'uppercase',marginBottom:2}}>Superset {g.ss}</div>
           {g.items.map(({ex,i},k) => renderExercise(ex, i, true, k>0))}
         </div>

@@ -122,11 +122,15 @@ function CardBWSparkline({ entries }) {
   const values = entries.map(e => e.bw);
   const min = Math.min(...values);
   const max = Math.max(...values);
+  const flat = max === min;
   const span = (max - min) || 1;
   const xStep = (W - PAD * 2) / (entries.length - 1);
   const polyline = entries.map((e, i) => {
     const x = PAD + i * xStep;
-    const y = PAD + (1 - (e.bw - min) / span) * (H - PAD * 2);
+    // A flat line (no change) is drawn through the MIDDLE of the box so it
+    // lines up with the kg text's vertical center — otherwise the span
+    // fallback parked it at the bottom edge, sitting below the text.
+    const y = flat ? H / 2 : PAD + (1 - (e.bw - min) / span) * (H - PAD * 2);
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
   const last = entries[entries.length - 1].bw;
@@ -190,20 +194,22 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
           keeps the Bodyweight divider + graph below it aligned across the
           grid regardless of which optional rows a given athlete has. */}
       <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4, minHeight: 50 }}>
-        {(format || hasSessions) && (
+        {/* Row 1: format stands alone (e.g. GYM, SINGLE). Row 2: sessions-left
+            + programs share one row. */}
+        {format && (
+          <div style={{ display: 'flex', justifyContent: justify }}>
+            <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{format}</span>
+          </div>
+        )}
+        {(hasSessions || programs > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'center', justifyContent: justify }}>
-            {format && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, fontWeight: 700, textTransform: 'uppercase' }}>{format}</span>
-            )}
-            {format && hasSessions && <MidDot />}
             {hasSessions && (
               <span style={{ fontFamily: FN, fontSize: 11, color: sessionsRemaining <= 2 ? C.rd : C.gn, fontWeight: 700 }}>{sessionsRemaining} SESSIONS LEFT</span>
             )}
-          </div>
-        )}
-        {programs > 0 && (
-          <div style={{ display: 'flex', justifyContent: justify }}>
-            <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{programs} PROGRAMS</span>
+            {hasSessions && programs > 0 && <MidDot />}
+            {programs > 0 && (
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{programs} PROGRAMS</span>
+            )}
           </div>
         )}
         {lastWk && (
@@ -225,7 +231,7 @@ function FinancialsBlock({ pay, monthly, center = false }) {
     <span key="pay" style={{ fontFamily: FN, fontSize: 11, color: pay.color, fontWeight: 700, letterSpacing: 1 }}>{pay.label}</span>
   );
   if (monthly > 0) items.push(
-    <span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.td, fontWeight: 700, letterSpacing: 1 }}>₪{monthly}/MO</span>
+    <span key="mo" style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700, letterSpacing: 1 }}>₪{monthly}/MO</span>
   );
   if (items.length === 0) {
     return (
@@ -570,25 +576,29 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   {/* IDENTITY: name + status badge live in the card header
                       (Card's header + headerRight props). No duplicate body
                       banner — Ohad called the inner repeat useless 2026-05-12. */}
-                  <div style={{display:'flex',marginTop:8,width:'100%',alignSelf:'stretch'}}>
+                  {/* FIXED 80px + vertically centered — same as the single-card
+                      identity block, so a couple card's first row (name +
+                      WhatsApp) and its section dividers line up with single
+                      cards across the grid, always. */}
+                  <div style={{display:'flex',width:'100%',alignSelf:'stretch',height:80,paddingTop:4,boxSizing:'border-box'}}>
                     {[m0, m1].map((m, mi) => (
                       <React.Fragment key={mi}>
                         {mi === 1 && <div style={{width:1,background:C.bd,margin:'0 12px',alignSelf:'stretch'}} />}
-                        <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center'}}>
+                        <div style={{flex:1,minWidth:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',textAlign:'center',overflow:'hidden'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center',minHeight:28}}>
                             <div style={{
                               fontWeight:600,fontSize:13,color:C.tx,textAlign:'center',
                               minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                             }}>{m.name || `Member ${mi+1}`}</div>
                             <WhatsAppCheckInButton name={m.name || t.name} phone={m.phone} gender={m.gender} />
                           </div>
-                          <EmailsCell email={m.email} style={{ fontSize:12, color:C.tm, marginTop:2, textAlign:'center', width:'100%' }} />
                           {m.phone && (
                             <div style={{
-                              fontFamily:FN,fontSize:10,color:C.tm,marginTop:2,letterSpacing:0.5,textAlign:'center',width:'100%',
+                              fontFamily:FN,fontSize:11,color:C.tm,marginTop:2,letterSpacing:0.5,textAlign:'center',width:'100%',
                               whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                             }}>{m.phone}</div>
                           )}
+                          <EmailsCell email={m.email} style={{ fontSize:12, color:C.tm, marginTop:2, textAlign:'center', width:'100%' }} />
                         </div>
                       </React.Fragment>
                     ))}
@@ -665,14 +675,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   first divider below it — float card-to-card. A fixed slot
                   sized for the worst case (icon + 2-line email + phone) keeps
                   every card's dividers on the same horizontal lines. */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, justifyContent: 'center', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, height: 80, justifyContent: 'flex-start', paddingTop: 4, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 28 }}>
                   <WhatsAppCheckInButton name={t.name} phone={t.phone} gender={t.gender} />
                 </div>
-                <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
                 {t.phone && (
                   <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 0.5, textAlign: 'center' }}>{t.phone}</div>
                 )}
+                <EmailsCell email={t.email} style={{ fontSize: 12, color: C.tm, textAlign: 'center', maxWidth: '100%' }} />
               </div>
 
               <FinancialsBlock pay={pay} monthly={t.monthly} center />

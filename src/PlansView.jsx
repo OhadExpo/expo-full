@@ -1302,6 +1302,19 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     }
   };
 
+  // Row action button — TEXT label only (Ohad: the icons are unnecessary once
+  // the words are visible). One shape across all row variants. `children`
+  // (the old icon) is intentionally ignored.
+  const LabeledBtn = ({ onClick, title, label, danger }) => (
+    <button onClick={onClick} title={title}
+      style={{
+        background: isRefined5b() ? 'transparent' : 'var(--c-sf)',
+        border:`1px solid ${danger ? 'rgba(255,71,87,0.5)' : C.ac}`, borderRadius:0,
+        color: danger ? C.rd : C.ac, cursor:'pointer', padding:'5px 10px', lineHeight:1, flexShrink:0,
+        fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', whiteSpace:'nowrap',
+      }}>{label}</button>
+  );
+
   const traineeOptions = useMemo(() => {
     const ids = [...new Set(planIndex.map(p => p.traineeId).filter(Boolean))];
     return ids.map(id => ({ value: id, label: traineeMap[id] || id })).sort((a,b) => a.label.localeCompare(b.label));
@@ -1515,23 +1528,23 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       const curKey = visKeyForPlan(cur, trainees);
                       if (!curKey) return null;
                       const earlierKeys = row.earlier.map(p => visKeyForPlan(p, trainees)).filter(Boolean);
-                      return <button onClick={e => { e.stopPropagation(); const next = { ...portalVis, [curKey]: true }; earlierKeys.forEach(k => { next[k] = false; }); setPortalVis(next); }}
-                        title="Hide earlier blocks on portal; keep only current"
-                        style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1,fontWeight:700,whiteSpace:'nowrap'}}>
+                      return <LabeledBtn onClick={e => { e.stopPropagation(); const next = { ...portalVis, [curKey]: true }; earlierKeys.forEach(k => { next[k] = false; }); setPortalVis(next); }}
+                        title="Hide earlier blocks on portal; keep only current" label="ONLY THIS">
                         <ActionIcon kind="target" fallback="🎯" color={C.ac} />
-                      </button>;
+                      </LabeledBtn>;
                     })()}
                     {setPortalVis && (() => {
                       const vk = visKeyForPlan(cur, trainees);
                       if (!vk) return null;
                       const isVis = portalVis?.[vk] !== false;
-                      return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center'}}>
+                      return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
                         <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
+                        <span style={{fontFamily:FN,fontSize:7,fontWeight:700,letterSpacing:'0.06em',color:C.tm,whiteSpace:'nowrap'}}>{isVis?'ON PORTAL':'HIDDEN'}</span>
                       </button>;
                     })()}
-                    {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,borderRadius:0,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="eye" fallback="👁" color={C.tm} /></button>}
-                    <button onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></button>
-                    <button onClick={e=>{e.stopPropagation();handleShare(cur.id);}} title="Public share — copies a /p/<token> URL anyone can open" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>🔗</button>
+                    {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW"><ActionIcon kind="eye" fallback="👁" color={C.ac} /></LabeledBtn>}
+                    <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE"><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></LabeledBtn>
+                    <LabeledBtn onClick={e=>{e.stopPropagation();handleShare(cur.id);}} title="Public share — copies a /p/<token> URL anyone can open" label="SHARE">🔗</LabeledBtn>
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
@@ -1553,13 +1566,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           const vk = visKeyForPlan(p, trainees);
                           if (!vk) return null;
                           const isVis = portalVis?.[vk] !== false;
-                          return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',flexShrink:0}}>
+                          return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3,flexShrink:0}}>
                             <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
+                            <span style={{fontFamily:FN,fontSize:7,fontWeight:700,letterSpacing:'0.06em',color:C.tm,whiteSpace:'nowrap'}}>{isVis?'ON PORTAL':'HIDDEN'}</span>
                           </button>;
                         })()}
-                        {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.tm,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}><ActionIcon kind="eye" fallback="👁" color={C.tm} /></button>}
-                        <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></button>
-                        <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" style={{background:'var(--c-sf)',border:`1px solid rgba(255,71,87,0.502)`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'2px 7px',fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0}}>×</button>
+                        {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" label="PREVIEW"><ActionIcon kind="eye" fallback="👁" color={C.ac} /></LabeledBtn>}
+                        <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE"><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></LabeledBtn>
+                        <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" label="DELETE" danger>×</LabeledBtn>
                       </div>
                     ))}
                   </div>
@@ -1598,13 +1612,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   const vk = visKeyForPlan(p, trainees);
                   if (!vk) return null;
                   const isVis = portalVis?.[vk] !== false;
-                  return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center'}}>
+                  return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
                     <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
+                    <span style={{fontFamily:FN,fontSize:7,fontWeight:700,letterSpacing:'0.06em',color:C.tm,whiteSpace:'nowrap'}}>{isVis?'ON PORTAL':'HIDDEN'}</span>
                   </button>;
                 })()}
-                {onPreviewPlan && <button onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,borderRadius:0,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="eye" fallback="👁" color={C.tm} /></button>}
-                <button onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></button>
-                <button onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" style={{background:'var(--c-sf)',border:`1px solid rgba(255,71,87,0.502)`,borderRadius:0,color:C.rd,cursor:"pointer",padding:'3px 7px',fontFamily:FN,fontSize:13,lineHeight:1}}>×</button>
+                {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" label="PREVIEW"><ActionIcon kind="eye" fallback="👁" color={C.ac} /></LabeledBtn>}
+                <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" label="DUPLICATE"><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></LabeledBtn>
+                <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" label="DELETE" danger>×</LabeledBtn>
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>))}
