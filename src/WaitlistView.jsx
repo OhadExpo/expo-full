@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b, confirmToast, SectionLabel } from './ui';
+import { isRefined5b, confirmToast, SectionLabel, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 
 const COACH_GATE = 5;
@@ -298,11 +298,8 @@ export default function WaitlistView({ trainees }) {
           time-to-contact, source split, signup conversion, and avg intent.
           Hidden when there are no leads at all. */}
       {stats && (
-        <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 14 }}>
-        <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>Funnel</SectionLabel>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, padding: '14px 18px' }}>
+        <CollapsibleSection title="Funnel" storageKey="waitlist-funnel" style={{ marginBottom: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
           <StatTile label="Leads" value={total} sub={`${active} uncontacted`} />
           <StatTile label="Contact rate" value={`${(stats.contactRate * 100).toFixed(0)}%`} sub={`${stats.contactedCount} / ${total}`} color={stats.contactRate >= 0.8 ? C.gn : (stats.contactRate >= 0.5 ? C.or : C.rd)} />
           <StatTile label="Median t→contact" value={fmtTtc(stats.ttcMedianMs)} sub={stats.contactedCount === 0 ? 'no contacted yet' : `across ${stats.contactedCount}`} />
@@ -310,7 +307,7 @@ export default function WaitlistView({ trainees }) {
           <StatTile label="Source mix" value={`${stats.sourceCount.chat} · ${stats.sourceCount.form} · ${stats.sourceCount.paid}`} sub="chat · form · paid" />
           <StatTile label="Avg intent" value={`${stats.avgIntent.toFixed(1)} / 4`} color={stats.avgIntent >= 2.5 ? C.ac : C.tm} />
         </div>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* Filter + F-28 view toggle */}

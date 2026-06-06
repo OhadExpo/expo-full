@@ -13,7 +13,7 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
-import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast } from './ui';
+import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, CollapsibleSection } from './ui';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -108,12 +108,7 @@ export default function BookingView({ trainees }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* SETTINGS */}
-      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
-        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>BOOKING SETTINGS</span>
-          </div>
-        </RefinedHeaderStrip>
+      <CollapsibleSection title="Booking Settings" storageKey="cal-settings" style={{ marginBottom: 0 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginBottom: 10 }}>
           <Input label="Slug (public URL)" value={draftSettings?.slug || ''} onChange={e => setDraftSettings({ ...draftSettings, slug: e.target.value })} placeholder="ohad" />
           <Input label="Display name" value={draftSettings?.display_name || ''} onChange={e => setDraftSettings({ ...draftSettings, display_name: e.target.value })} placeholder="Ohad — EXPO" />
@@ -136,17 +131,12 @@ export default function BookingView({ trainees }) {
           <span style={{ flex: 1 }} />
           <Btn onClick={saveSettings}>Save settings</Btn>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* AVAILABILITY */}
-      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
-        <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>WEEKLY AVAILABILITY ({rules.length})</span>
-            <button onClick={addRule}
-              style={{ background: 'transparent', border: `1px solid ${refined ? '#FFFFFF' : C.ac}`, color: refined ? '#FFFFFF' : C.ac, padding: '4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>+ ADD RULE</button>
-          </div>
-        </RefinedHeaderStrip>
+      <CollapsibleSection title="Weekly Availability" count={rules.length} storageKey="cal-availability" style={{ marginBottom: 0 }}
+        right={<button onClick={addRule}
+          style={{ background: 'transparent', border: '1px solid #FFFFFF', color: '#FFFFFF', padding: '4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' }}>+ ADD RULE</button>}>
         {rules.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
             No availability rules. Add one to allow bookings.
@@ -170,7 +160,7 @@ export default function BookingView({ trainees }) {
               style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14 }}>×</button>
           </div>
         ))}
-      </div>
+      </CollapsibleSection>
 
       {/* UPCOMING */}
       <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: PAD }}>
