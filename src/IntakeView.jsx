@@ -9,7 +9,7 @@
 // sends a link to can submit. There is no public /intake landing page.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { Btn, Modal, Card, Badge, isRefined5b, confirmToast, SectionLabel } from './ui';
+import { Btn, Modal, Card, Badge, isRefined5b, confirmToast, SectionLabel, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 
@@ -221,11 +221,8 @@ export default function IntakeView({ trainees }) {
 
       {/* Recent unused tokens (so Ohad can re-copy a link he just made) */}
       {tokens.filter(t => !t.used_at).length > 0 && (
-        <div style={{ marginBottom: 18, border: `1px solid ${C.cardBd}` }}>
-          <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
-            <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>UNUSED LINKS</SectionLabel>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px' }}>
+        <CollapsibleSection title="Unused Links" count={tokens.filter(t => !t.used_at).length} storageKey="intake-unused" defaultOpen={false} style={{ marginBottom: 18 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {tokens.filter(t => !t.used_at).slice(0, 5).map(t => {
               const origin = typeof window !== 'undefined' ? window.location.origin : '';
               const url = `${origin}/intake/${t.locale}?t=${t.token}`;
@@ -243,7 +240,7 @@ export default function IntakeView({ trainees }) {
               );
             })}
           </div>
-        </div>
+        </CollapsibleSection>
       )}
 
       {/* List */}

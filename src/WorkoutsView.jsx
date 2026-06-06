@@ -6,7 +6,7 @@ import { C, FN, FB, FH, uid } from './theme';
 // x-height, missing ascenders/descenders). Same pattern that's already
 // applied to NotesWidget, PlansView, WorkoutReview.
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
+import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 
 function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack }) {
@@ -262,10 +262,9 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       {inProgress.length>0&&<><h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.or,textTransform:"uppercase",letterSpacing:'0.18em',marginBottom:12}}>In Progress ({inProgress.length})</h3>
         {inProgress.map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId); return<Card key={w.id} onClick={()=>setActiveWorkout(w.id)} style={{marginBottom:8,borderColor:'rgba(255,165,2,0.251)'}}>
           <div style={{fontWeight:600,color:C.tx}}>{w.dayName}</div><div style={{fontSize:12,color:C.tm}}>{trainee?.name||"—"} · {fmtPrettyDate(w.date)}</div></Card>})}</>}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:20,marginBottom:12}}>
-        <h3 style={{fontFamily:FN,fontSize:12,color:C.td,textTransform:"uppercase",margin:0}}>Completed ({completed.length})</h3>
-        <select value={filterTrainee} onChange={e=>setFilterTrainee(e.target.value)} style={{...baseInput,width:180,padding:"4px 8px",fontSize:12}}>
-          <option value="">All Athletes</option>{trainees.filter(t=>t.status!=='Archived').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></div>
+      <CollapsibleSection title="Completed" count={completed.length} storageKey="workouts-completed" style={{marginTop:20}}
+        right={<select value={filterTrainee} onChange={e=>setFilterTrainee(e.target.value)} style={{...baseInput,width:180,padding:"4px 8px",fontSize:12}}>
+          <option value="">All Athletes</option>{trainees.filter(t=>t.status!=='Archived').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select>}>
       {completed.length===0?<EmptyState icon="📊" message="No completed workouts yet." />:
         completed.slice().reverse().map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId);
           return<Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -274,6 +273,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
             <div style={{display:"flex",alignItems:"center",gap:6}}><Badge color={C.gn}>Completed</Badge>
               <button onClick={()=>setActiveWorkout(w.id)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4}}>✏️</button>
               <button onClick={()=>setConfirmDelete(w.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button></div></div></Card>})}
+      </CollapsibleSection>
       <ConfirmDialog open={!!confirmDelete} title="Delete Workout?" message="Session count will not be restored."
         onConfirm={()=>{setWorkouts(prev=>prev.filter(w=>w.id!==confirmDelete));setConfirmDelete(null)}} onCancel={()=>setConfirmDelete(null)} />
     </div>);
