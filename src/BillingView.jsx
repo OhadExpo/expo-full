@@ -55,15 +55,17 @@ export default function BillingView({ trainees }) {
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const [{ data: s }, { data: r }] = await Promise.all([
-      supabase.from('coach_payment_settings').select('*').eq('coach_email', coachEmail).maybeSingle(),
-      supabase.from('bit_payment_requests').select('*').order('created_at', { ascending: false }).limit(200),
-    ]);
-    const seed = s || { coach_email: coachEmail, bit_phone: '', bit_display_name: 'אוהד', currency: 'ils', vat_rate: 0.18, default_monthly: 800 };
-    setSettings(s);
-    setDraftSettings(seed);
-    setRequests(r || []);
-    setLoading(false);
+    try {
+      const [{ data: s }, { data: r }] = await Promise.all([
+        supabase.from('coach_payment_settings').select('*').eq('coach_email', coachEmail).maybeSingle(),
+        supabase.from('bit_payment_requests').select('*').order('created_at', { ascending: false }).limit(200),
+      ]);
+      const seed = s || { coach_email: coachEmail, bit_phone: '', bit_display_name: 'אוהד', currency: 'ils', vat_rate: 0.18, default_monthly: 800 };
+      setSettings(s);
+      setDraftSettings(seed);
+      setRequests(r || []);
+    } catch { /* a thrown read leaves prior data in place */ }
+    finally { setLoading(false); } // never strand the spinner
   }, []);
 
   // Save-button dirty check. The four user-editable fields are bit_phone,

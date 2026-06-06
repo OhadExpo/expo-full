@@ -58,7 +58,11 @@ Object.entries(EX).forEach(([k,v]) => { if(v.t) EX_BY_TITLE[v.t.toLowerCase()] =
 //   b) Drive-import / compressed shape: d.ex = [{ eid, s, r, tempo, superset, n }]
 // Drive-imported plans store only `eid`; the title/video/cues live in the trainer exercise library,
 // so we must look them up there. This path covers the majority of plans in Supabase.
-function trainerPlanToPortal(plan, trainerExercises) {
+// exById / exByTitle are Maps prebuilt once per render of the parent (useMemo
+// on the stable trainerExercises array). Replaces two O(library) .find scans
+// per exercise — at 1,467 exercises × dozens of plan rows that was ~100k+
+// comparisons on every portal re-render (incl. the 30s presence beat).
+function trainerPlanToPortal(plan, exById, exByTitle) {
   return {
     name: plan.name,
     phase: plan.phase || '',
@@ -80,10 +84,10 @@ function trainerPlanToPortal(plan, trainerExercises) {
         ex: rawList.map((pe, peIdx) => {
           // Normalize: compressed shape uses eid/s/r, trainer shape uses exerciseId/sets/reps.
           const libId = pe.exerciseId || pe.eid || null;
-          let exData = libId ? trainerExercises.find(e => e.id === libId) : null;
+          let exData = libId ? (exById.get(libId) || null) : null;
           if (!exData && pe.title) {
             const needle = pe.title.toLowerCase().trim();
-            exData = trainerExercises.find(e => (e.title || '').toLowerCase().trim() === needle) || null;
+            exData = exByTitle.get(needle) || null;
           }
           // Resolved title: trainer-library hit > inline pe.title > "Exercise N"
           // placeholder. The library is the canonical source — if we have it,
@@ -1458,10 +1462,26 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
 
   const clientName = trainee?.name || '';
 
+  // Prebuilt lookup maps so plan→portal conversion is O(1) per exercise instead
+  // of scanning the whole (1,467-entry) library twice per row, every render.
+  const exById = useMemo(() => {
+    const m = new Map();
+    for (const e of (trainerExercises || [])) m.set(e.id, e);
+    return m;
+  }, [trainerExercises]);
+  const exByTitle = useMemo(() => {
+    const m = new Map();
+    for (const e of (trainerExercises || [])) {
+      const k = (e.title || '').toLowerCase().trim();
+      if (k && !m.has(k)) m.set(k, e);
+    }
+    return m;
+  }, [trainerExercises]);
+
   // All plans live in the Supabase `plans` table (populated from Drive).
   // Preserve traineeId so the visibility key can include the couple member suffix.
   const mergedPlans = trainee
-    ? clientPlans.map(p => ({ ...trainerPlanToPortal(p, trainerExercises || []), traineeId: p.traineeId }))
+    ? clientPlans.map(p => ({ ...trainerPlanToPortal(p, exById, exByTitle), traineeId: p.traineeId }))
     : [];
 
   // Filter by portal visibility toggles, then sort newest-first via the

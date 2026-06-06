@@ -43,16 +43,18 @@ export default function BookingView({ trainees }) {
 
   const reload = useCallback(async () => {
     setLoading(true);
-    const [{ data: s }, { data: r }, { data: b }] = await Promise.all([
-      supabase.from('coach_booking_settings').select('*').eq('coach_email', coachEmail).maybeSingle(),
-      supabase.from('availability_rules').select('*').eq('coach_email', coachEmail).order('day_of_week').order('start_time'),
-      supabase.from('bookings').select('*').eq('coach_email', coachEmail).gte('start_at', new Date(Date.now() - 7 * 86400000).toISOString()).order('start_at'),
-    ]);
-    setSettings(s);
-    setDraftSettings(s || { coach_email: coachEmail, slug: 'ohad', display_name: 'Ohad — EXPO', duration_min: 60, buffer_min: 15, lead_time_hours: 4, zoom_url: '', cancellation_policy: 'Cancel at least 4 hours in advance to avoid a session being marked used.' });
-    setRules(r || []);
-    setBookings(b || []);
-    setLoading(false);
+    try {
+      const [{ data: s }, { data: r }, { data: b }] = await Promise.all([
+        supabase.from('coach_booking_settings').select('*').eq('coach_email', coachEmail).maybeSingle(),
+        supabase.from('availability_rules').select('*').eq('coach_email', coachEmail).order('day_of_week').order('start_time'),
+        supabase.from('bookings').select('*').eq('coach_email', coachEmail).gte('start_at', new Date(Date.now() - 7 * 86400000).toISOString()).order('start_at'),
+      ]);
+      setSettings(s);
+      setDraftSettings(s || { coach_email: coachEmail, slug: 'ohad', display_name: 'Ohad — EXPO', duration_min: 60, buffer_min: 15, lead_time_hours: 4, zoom_url: '', cancellation_policy: 'Cancel at least 4 hours in advance to avoid a session being marked used.' });
+      setRules(r || []);
+      setBookings(b || []);
+    } catch { /* a thrown read leaves prior data in place */ }
+    finally { setLoading(false); } // never strand the spinner
   }, []);
 
   useEffect(() => { reload(); }, [reload]);

@@ -108,10 +108,12 @@ export default function WaitlistView({ trainees }) {
         else {
           const r3 = await baseQuery('id,email,source,context,user_agent,created_at,consumed_at');
           if (!live()) return;
-          if (!r3.error) setLeads(r3.data || []);
+          // Always resolve leads out of null — even if every tier errored —
+          // so the view never strands on "Loading waitlist…".
+          setLeads(r3.error ? [] : (r3.data || []));
         }
       }
-    } catch {}
+    } catch { if (live()) setLeads(p => p || []); }
     try {
       const { data } = await supabase.from('store').select('value').eq('key', NOTES_KEY).maybeSingle();
       if (live() && data?.value && typeof data.value === 'object') setNotes(data.value);
