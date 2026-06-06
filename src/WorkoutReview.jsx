@@ -6,7 +6,7 @@ import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 // missing ascenders/descenders). Per feedback_new_ui_box_dimensions:
 // "Hebrew bumps +3px inside the box, never resizes the box itself."
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { isRefined5b, useEscClose, SectionLabel } from './ui';
+import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection } from './ui';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import useAutosave from './hooks/useAutosave';
@@ -2110,10 +2110,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
       {/* Group by client */}
       {Object.entries(byClient).map(([cid, data]) => (
-        <div key={cid} style={{marginBottom:20}}>
-          <div style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:C.ac,fontWeight:700,marginBottom:8}}>
-            {isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})
-          </div>
+        <CollapsibleSection key={cid} bare storageKey={`review-client-${cid}`} style={{marginBottom:20}}
+          titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>}>
           {data.workouts.slice()
             // Unreviewed first (by most-recent date), then reviewed (by most-recent date)
             .sort((a, b) => {
@@ -2166,7 +2164,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               </div>
             );
           })}
-        </div>
+        </CollapsibleSection>
       ))}
       {deleteModal}
     </div>

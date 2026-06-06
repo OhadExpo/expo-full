@@ -235,7 +235,10 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
 //                 body padding so there's no double-card. The strip becomes a
 //                 fully-bordered bar matching TraineeDetail's inline strips.
 //   right       — extra JSX on the strip's right (clicks stopPropagated)
-export function CollapsibleSection({ title, count, right, storageKey, defaultOpen = true, leftStripe, padY = 14, padX = 18, bare = false, style, children }) {
+//   titleNode   — custom JSX for the title (overrides `title`/`count`); use
+//                 for Hebrew/RTL or non-uppercase labels. Render it white so
+//                 it reads on the strip.
+export function CollapsibleSection({ title, titleNode, count, right, storageKey, defaultOpen = true, leftStripe, padY = 14, padX = 18, bare = false, style, children }) {
   const storeId = storageKey ? `expo-collapse:${storageKey}` : null;
   const [open, setOpen] = React.useState(() => {
     if (!storeId) return defaultOpen;
@@ -266,11 +269,13 @@ export function CollapsibleSection({ title, count, right, storageKey, defaultOpe
           gap: 12, cursor: 'pointer', userSelect: 'none',
         }}
       >
-        <span style={{
-          color: '#FFFFFF', fontFamily: FN, fontSize: 13, fontWeight: 700,
-          letterSpacing: '0.04em', textTransform: 'uppercase',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
-        }}>{title}{count != null && ` (${count})`}</span>
+        {titleNode ? <span style={{ minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
+          <span style={{
+            color: '#FFFFFF', fontFamily: FN, fontSize: 13, fontWeight: 700,
+            letterSpacing: '0.04em', textTransform: 'uppercase',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
+          }}>{title}{count != null && ` (${count})`}</span>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{right}</span>}
           <span aria-hidden style={{
