@@ -162,6 +162,11 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
 
 
 const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"8px 10px",color:C.tx,fontFamily:FB,fontSize:14,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
+// Set-logging inputs (reps/load/RPE) during a live workout: bigger tap target
+// + fontSize 16 (anything smaller makes iOS zoom the page on focus, which
+// breaks the logging flow). Used with inputMode + select-on-focus below.
+const seti = {...bi,fontSize:16,padding:"12px 8px",fontVariantNumeric:"tabular-nums"};
+const selectOnFocus = (e) => { try { e.target.select(); } catch {} };
 const Bg = ({children,color=C.ac,style:s}) => <span style={{display:"inline-block",padding:"3px 10px",borderRadius:0,fontSize:10,fontWeight:700,fontFamily:FN,background:'var(--c-sf)',border:`1px solid ${color}`,color,letterSpacing:'0.18em',textTransform:'uppercase',...s}}>{children}</span>;
 
 // Renders a Google Photos share URL as an inline player. Google blocks
@@ -1187,7 +1192,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       })()}
 
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
-        <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,marginBottom:4}}>
+        <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,marginBottom:4}}>
           {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => {
           // Ghost row above each set: REPS/KG/RPE the trainee logged for
@@ -1207,7 +1212,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           const showGhost = prior && !isRefined5b();
           return <React.Fragment key={si}>
             {showGhost && <div style={{
-              display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,
+              display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,
               // marginBottom 0 — ghost W1 row sits flush against its
               // live W2 row directly below, reading as a stacked
               // pair within one set. marginTop 8 between sets keeps
@@ -1226,12 +1231,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.rpe || '—'}</div>
               <div />
             </div>}
-            <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 32px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
+            <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
-              <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} placeholder="—" style={bi}/>
-              <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} placeholder="kg" style={bi}/>
-              <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} placeholder="—" style={bi}/>
-              <div style={{textAlign:'center'}}><input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:18,height:18,accentColor:C.gn,cursor:'pointer'}}/></div>
+              <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
+              <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder="kg" style={seti}/>
+              <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder="—" style={seti}/>
+              {/* Whole cell is the tap target (not just the 18px box) so a
+                  sweaty mid-set tap lands. 24px box, centered. */}
+              <label style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:44,cursor:'pointer'}}>
+                <input type="checkbox" checked={set.done} onChange={e => uSet(ei,si,'done',e.target.checked)} style={{width:24,height:24,accentColor:C.gn,cursor:'pointer'}}/>
+              </label>
             </div>
           </React.Fragment>;
         })}</div>
