@@ -1418,27 +1418,27 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   return (
     <div>
       <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch",flexWrap:"wrap"}}>
-        <div style={{flex:1,minWidth:180,display:'flex'}}><input placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,height:42,padding:'0 14px',fontSize:13,lineHeight:'42px',display:'flex',alignItems:'center',textAlignLast:'center',border:`1px solid ${C.ac}`}} /></div>
+        <div style={{flex:1,minWidth:180,display:'flex'}}><input title="Search programs by name or block (e.g. “Block #5”, “GPP”)" placeholder="Search programs..." value={search} onChange={e=>{setSearch(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,height:42,padding:'0 14px',fontSize:13,lineHeight:'42px',display:'flex',alignItems:'center',textAlignLast:'center',border:`1px solid ${C.ac}`}} /></div>
         <div style={{position:'relative',width:200,display:'flex'}}>
-          <select value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,height:42,padding:'0 36px 0 14px',fontSize:13,appearance:'none',WebkitAppearance:'none',textAlign:'center',textAlignLast:'center',flex:1,border:`1px solid ${C.ac}`}}>
+          <select title="Show only one athlete's programs (default: everyone, grouped by athlete)" value={filterTrainee} onChange={e=>{setFilterTrainee(e.target.value);setVisibleCount(PAGE_SIZE)}} style={{...baseInput,height:42,padding:'0 36px 0 14px',fontSize:13,appearance:'none',WebkitAppearance:'none',textAlign:'center',textAlignLast:'center',flex:1,border:`1px solid ${C.ac}`}}>
             <option value="">All Athletes ({planIndex.length})</option>
             {traineeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.ac,fontSize:16,lineHeight:1}}>▾</span>
         </div>
-        <Btn onClick={handleNewPlan} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+ New Program</Btn>
+        <Btn title="Create a new, empty program — you pick the athlete inside the editor" onClick={handleNewPlan} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+ New Program</Btn>
       </div>
       {/* Sort controls. Click an inactive field to activate it (keeps current dir);
           click the active field to flip direction. Arrow points 'up' for asc. */}
       <div style={{display:"flex",gap:6,marginBottom:16,alignItems:"center",flexWrap:"wrap",fontFamily:FN,fontSize:11}}>
         {[
-          ['name','Name'],
-          ['created','Uploaded'],
-          ['updated','Last edited'],
-        ].map(([field,label]) => {
+          ['name','Name','Sort by program name. Click again to flip A–Z / Z–A.'],
+          ['created','Uploaded','Sort by when the program was created/imported. Click again to flip newest/oldest.'],
+          ['updated','Last edited','Sort by when the program was last edited. Click again to flip newest/oldest.'],
+        ].map(([field,label,tip]) => {
           const active = sortField === field;
           return (
-            <button key={field} onClick={() => {
+            <button key={field} title={tip} onClick={() => {
               if (active) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
               else setSortField(field);
             }} style={{
