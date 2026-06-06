@@ -6,6 +6,20 @@ import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RES
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, RefinedHeaderStrip } from './ui';
+
+// Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
+// `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
+// array on every keystroke (~30k comparisons/keypress). Rebuilds the Map only
+// when the exercises array reference changes (load/save), so all callers get
+// O(1) lookups for free without each needing its own useMemo.
+let _exMapSrc = null, _exMap = null;
+function exById(exercises) {
+  if (_exMapSrc !== exercises) {
+    _exMapSrc = exercises;
+    _exMap = new Map((exercises || []).map(e => [e.id, e]));
+  }
+  return _exMap;
+}
 import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
@@ -45,7 +59,7 @@ function PatternCoverage({ plan, exercises }) {
   const pats = useMemo(() => {
     const s = new Set();
     plan.days.forEach(d => d.exercises.forEach(pe => {
-      const ex = exercises.find(e => e.id === pe.exerciseId);
+      const ex = exById(exercises).get(pe.exerciseId);
       if (ex?.movementPattern) s.add(ex.movementPattern);
     }));
     return s;
@@ -237,7 +251,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
 // Small button shown inline in an exercise row. Clicking it opens the browser modal.
 function ExPicker({ exercises, value, onChange, label, fallbackTitle }) {
   const [modalOpen, setModalOpen] = useState(false);
-  const sel = exercises.find(e => e.id === value);
+  const sel = exById(exercises).get(value);
   const displayTitle = sel?.title || fallbackTitle || '';
   const hasDisplay = !!displayTitle;
   const unlinked = !sel && !!fallbackTitle;
@@ -500,7 +514,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             )
                           )}
                           {dayExs.map((pe, ei) => {
-                            const exData = exercises.find(e => e.id === pe.exerciseId);
+                            const exData = exById(exercises).get(pe.exerciseId);
                             const title = exData?.title || pe.title || (pe.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
                             const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : C.td;
                             const weeks = Math.max((pe.wk?.length||0), (pe.wkS?.length||0), 1);
@@ -803,7 +817,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     )
                   )}
                   {dayExs.map((ex, exIdx) => {
-                    const exData = exercises.find(e=>e.id===ex.exerciseId);
+                    const exData = exById(exercises).get(ex.exerciseId);
                     const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
                     const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
@@ -886,7 +900,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <div style={{textAlign:"center",padding:30,color:C.td}}><p style={{fontSize:13}}>No exercises.</p><Btn onClick={()=>setAddExerciseOpen(true)} style={{marginTop:8}}>+ Add Exercise</Btn></div>
       :<div>
         {day?.exercises.map((ex,exIdx) => {
-          const exData = exercises.find(e=>e.id===ex.exerciseId);
+          const exData = exById(exercises).get(ex.exerciseId);
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
           return(<div key={ex.id} className="ex-row-card" style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${ex.superset?sc:C.cardBd}`,borderLeft:`3px solid ${ex.superset?sc:C.cardBd}`,borderRadius:0,padding:12,marginBottom:8}}>
@@ -1610,7 +1624,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <div key={d.id} style={{marginBottom:10}}>
                 <div style={{fontFamily:FN,fontSize:10,fontWeight:700,color:C.tx,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>{d.name}</div>
                 {d.exercises.slice(0,8).map((pe,ei) => {
-                  const ex = exercises.find(e=>e.id===pe.exerciseId);
+                  const ex = exById(exercises).get(pe.exerciseId);
                   const title = ex?.title || pe.title || '—';
                   return (
                     <div key={pe.id||ei} style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12,padding:'2px 0',borderBottom:`1px solid rgba(57,189,255,0.102)`}}>
