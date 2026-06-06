@@ -293,6 +293,23 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
   );
 }
 
+// usePersistentState — useState whose value is mirrored to localStorage under
+// the shared `expo-collapse:` namespace, so collapse/expand layout (and any
+// other small UI preference) survives reloads and sessions. Works for booleans
+// and plain JSON-serialisable objects (e.g. the Tasks per-section collapse map).
+// Same persistence model as CollapsibleSection's storageKey.
+export function usePersistentState(key, initial) {
+  const id = `expo-collapse:${key}`;
+  const [val, setVal] = React.useState(() => {
+    try { const v = localStorage.getItem(id); return v == null ? initial : JSON.parse(v); }
+    catch { return initial; }
+  });
+  React.useEffect(() => {
+    try { localStorage.setItem(id, JSON.stringify(val)); } catch { /* private mode */ }
+  }, [id, val]);
+  return [val, setVal];
+}
+
 // RefinedTable — cyan-strip-header + white-body table for /coach surfaces.
 // In refined mode, the <thead> row gets the cyan-strip treatment; rows
 // switch to white bg with subtle hover tint via var(--c-rowHover).

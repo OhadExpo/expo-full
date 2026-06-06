@@ -27,7 +27,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, toast } from './ui';
+import { isRefined5b, toast, usePersistentState } from './ui';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
 import {
@@ -1510,10 +1510,10 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const [sortBy, setSortBy] = useState('date');
   const [sortDir, setSortDir] = useState('asc');
   const [search, setSearch] = useState('');
-  const [doneOpen, setDoneOpen] = useState(false);
-  const [autoOpen, setAutoOpen] = useState(false);
+  const [doneOpen, setDoneOpen] = usePersistentState('tasks-done', false);
+  const [autoOpen, setAutoOpen] = usePersistentState('tasks-auto', false);
   const [quickFilter, setQuickFilter] = useState('all'); // all | today | overdue | stuck | nodate
-  const [collapsedSections, setCollapsedSections] = useState({});
+  const [collapsedSections, setCollapsedSections] = usePersistentState('tasks-sections', {});
   const [gcalConnected, setGcalConnected] = useState(false);
   const [gcalBusy, setGcalBusy] = useState(false);
   const now = useMemo(() => new Date(), []);

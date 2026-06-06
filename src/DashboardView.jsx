@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
-import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection } from './ui';
+import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -124,7 +124,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
 
   // Outstanding — sum of pending Bit payment requests.
   const [outstanding, setOutstanding] = useState({ amount: 0, count: 0 });
-  const [dropoutExpanded, setDropoutExpanded] = useState(false);
+  const [dropoutExpanded, setDropoutExpanded] = usePersistentState('dash-dropout', false);
   useEffect(() => {
     let cancelled = false;
     (async () => {
