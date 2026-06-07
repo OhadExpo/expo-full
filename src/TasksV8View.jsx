@@ -782,7 +782,7 @@ function CalendarEmbedCard() {
   return (
     <div style={{
       border: `1px solid var(--c-cardBd)`,
-      background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+      background: 'var(--c-sf)',
       marginBottom: 12,
     }}>
       <button
@@ -1087,7 +1087,7 @@ function CommentsThread({ noteId, viewer }) {
           <div key={c.id} style={{
             padding: '8px 10px', marginBottom: 6,
             border: `1px solid var(--c-cardBd)`,
-            background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+            background: 'var(--c-sf)',
           }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -2023,7 +2023,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       {view === 'list' ? (
         <div style={{
           border: `1px solid var(--c-cardBd)`,
-          background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+          background: 'var(--c-sf)',
           borderRadius: 0,
         }}>
           <SmartComposer onSubmit={onComposerSubmit} defaultAssignee={owner === 'shared' ? 'ohad' : owner} trainees={trainees} />
@@ -2130,7 +2130,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           {sections.map(section => (
             <div key={section.key} style={{
               border: `1px solid var(--c-cardBd)`,
-              background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+              background: 'var(--c-sf)',
               borderRadius: 0,
               display: 'flex', flexDirection: 'column',
             }}>
@@ -2181,7 +2181,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         <div style={{
           marginTop: 14,
           border: `1px solid var(--c-cardBd)`,
-          background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+          background: 'var(--c-sf)',
         }}>
           <div
             onClick={() => setDoneOpen(o => !o)}

@@ -66,7 +66,7 @@ function HealthPill({ health }) {
       <div style={{
         display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
         padding: '6px 12px', border: `1px solid ${col}`,
-        background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+        background: 'var(--c-sf)',
         fontFamily: FN, fontSize: 11, color: col, letterSpacing: '0.06em', fontWeight: 700,
       }}>
         <span style={{ width: 8, height: 8, borderRadius: '50%', background: col, flexShrink: 0 }} />
@@ -107,7 +107,7 @@ function StatsStrip({ health, tenure }) {
   return (
     <div style={{
       display: 'flex', gap: 18, padding: '8px 12px', flexWrap: 'wrap',
-      border: `1px solid ${C.cardBd}`, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+      border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)',
     }}>
       <Stat label="LAST TRAINED" value={d == null ? '—' : `${d}d ago`} tone={cadenceColor(health.session.level)} />
       <Stat label="LAST TALKED" value={c == null ? '—' : `${c}d ago`} tone={cadenceColor(health.contact.level)} />

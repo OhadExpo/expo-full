@@ -332,7 +332,7 @@ export default function WaitlistView({ trainees }) {
       </div>
 
       {sorted.length === 0 ? (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO COACH SIGNUPS YET</div>
           <div style={{ fontFamily: FB, fontSize: 13, color: C.tm }}>
             When a coach submits the form on /coaches#waitlist, they'll appear here.
@@ -505,7 +505,7 @@ function KanbanBoard({ leads, moveLead, removeLead, notes, setNote }) {
             onDragLeave={onDragLeave(stage.id)}
             onDrop={onDrop(stage.id)}
             style={{
-              background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',
+              background: 'var(--c-sf)',
               border: `1px solid ${isOver ? stage.color : C.cardBd}`,
               borderTop: `3px solid ${stage.color}`,
               padding: 10, minHeight: 240,

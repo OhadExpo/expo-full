@@ -512,7 +512,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
       {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20, alignItems: 'start' }}>
           {onlineNow.length > 0 && (
-            <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
               <RefinedHeaderStrip>
                 <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dot" color="#FFFFFF"/>Online Now ({onlineNow.length})</SectionLabel>
               </RefinedHeaderStrip>
@@ -525,7 +525,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
             </div>
           )}
           {expiring.length > 0 && (
-            <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
               <RefinedHeaderStrip>
                 <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>Expiring Packages ({expiring.length})</SectionLabel>
               </RefinedHeaderStrip>
@@ -540,7 +540,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
           {isOwner && (overduePayment.length > 0 || (leads && leads.length > 0)) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {overduePayment.length > 0 && (
-                <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+                <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
                   <RefinedHeaderStrip>
                     <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>Overdue Payment ({overduePayment.length})</SectionLabel>
                   </RefinedHeaderStrip>
@@ -560,7 +560,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
                 const gateOpen = coachLeads >= COACH_GATE;
                 const gateColor = gateOpen ? C.gn : (coachLeads > 0 ? C.or : C.td);
                 return (
-                <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
+                <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
                   <RefinedHeaderStrip>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>New Leads ({leads.length})</SectionLabel>
@@ -595,7 +595,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
             </div>
           )}
           {dropoutRisk.length > 0 && (
-            <div className="alert-card" style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
               <RefinedHeaderStrip>
                 <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>Dormant ({dropoutRisk.length})</SectionLabel>
               </RefinedHeaderStrip>
@@ -691,7 +691,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
       {/* Dropout risk — fully collapsed by default. Header is the only
           visible row when closed (shows count + chevron); click to expand. */}
       {dropoutRisk.length > 0 && (
-        <div className="alert-card" style={{ marginTop: 20, background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '0 18px', boxShadow: C.cardShadow }}>
+        <div className="alert-card" style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '0 18px', boxShadow: C.cardShadow }}>
           {/* Keep card padding + header strip static (always the collapsed
               geometry) so the strip's -18px bleed always lands on the card
               edge. All expand/collapse motion lives in the height-animating

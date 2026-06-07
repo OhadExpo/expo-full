@@ -175,7 +175,7 @@ export default function ChatAuditView() {
       </div>
 
       {grouped.length === 0 ? (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>
             {migrationMissing ? 'MIGRATION NOT APPLIED' : 'NO CHAT TURNS YET'}
           </div>

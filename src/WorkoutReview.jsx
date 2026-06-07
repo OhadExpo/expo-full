@@ -1698,7 +1698,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         </button>
 
         {/* Workout header */}
-        <div style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:16}}>
+        <div style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:16}}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
             <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>WORKOUT</SectionLabel>
           </div>
@@ -1775,7 +1775,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           }
 
           return (
-            <div key={i} data-ex-idx={i} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`${isExpanded?'1px':'0.25px'} solid ${isExpanded?C.ac:C.cardBd}`,borderRadius:0,marginBottom:8,overflow:"hidden"}}>
+            <div key={i} data-ex-idx={i} style={{background: 'var(--c-sf)',border:`${isExpanded?'1px':'0.25px'} solid ${isExpanded?C.ac:C.cardBd}`,borderRadius:0,marginBottom:8,overflow:"hidden"}}>
               {/* Header row — click to expand */}
               <div onClick={() => setExpandedEx(isExpanded?null:i)}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
@@ -2129,7 +2129,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <div key={wo.id} onClick={() => setSelectedWo(wo.id)}
                 role="button" tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedWo(wo.id); } }}
-                style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
+                style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
                   marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
                 onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}

@@ -44,7 +44,7 @@ export default function ExercisesView({ exercises, setExercises }) {
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px', border: `1px solid ${C.ac}` }} /></div>
         <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
-      <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: isRefined5b() ? 0 : 10, marginBottom: 12, overflow: 'hidden' }}>
+      <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: isRefined5b() ? 0 : 10, marginBottom: 12, overflow: 'hidden' }}>
         {isRefined5b() ? (
           <div style={{ background: 'var(--c-sf)', padding: '8px 14px', borderBottom: '1px solid rgba(0,0,0,0.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>

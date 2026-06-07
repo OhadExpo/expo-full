@@ -66,7 +66,7 @@ function PatternCoverage({ plan, exercises }) {
   }, [plan.days, exercises]);
   const missing = REQUIRED_PATTERNS.filter(p => !pats.has(p));
   if (exercises.length === 0) return null;
-  return (<div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
+  return (<div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
     <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
     <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={pats.has(p) ? {} : {fontWeight:500,opacity:0.65}}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
@@ -311,7 +311,7 @@ function WarmupEditor({ plan, setPlan }) {
   const add = () => { setOpen(true); setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', sets: 1, reps: '', tempo: '', vid: '' }] })); };
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   return (
-    <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
+    <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: open && warmup.length ? 10 : 0 }}>
         <button onClick={() => setOpen(o => !o)} title={open ? 'Collapse warm-up' : 'Expand warm-up'}
           style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8 }}>
@@ -480,7 +480,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                 const dayExs = d.exercises || [];
                 const tinyInputRO = {...baseInput, padding:'3px 6px', fontSize:11, minWidth:0, width:'100%', boxSizing:'border-box', color:C.tm, cursor:'default'};
                 return (
-                  <div key={d.id || di} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
+                  <div key={d.id || di} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
                     <div style={{display:'flex',alignItems:'center',marginBottom:8,gap:10}}>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
@@ -790,7 +790,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           return (
-            <div key={d.id} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
+            <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
               <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
@@ -903,7 +903,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const exData = exById(exercises).get(ex.exerciseId);
           const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
-          return(<div key={ex.id} className="ex-row-card" style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${ex.superset?sc:C.cardBd}`,borderLeft:`3px solid ${ex.superset?sc:C.cardBd}`,borderRadius:0,padding:12,marginBottom:8}}>
+          return(<div key={ex.id} className="ex-row-card" style={{background: 'var(--c-sf)',border:`1px solid ${ex.superset?sc:C.cardBd}`,borderLeft:`3px solid ${ex.superset?sc:C.cardBd}`,borderRadius:0,padding:12,marginBottom:8}}>
             <div className="ex-row-outer" style={{display:"grid",gridTemplateColumns:"54px 1fr 54px",gap:12,alignItems:"start"}}>
               <div draggable
                 onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${activeDay}:${exIdx}`); setDragSrc({dayIdx: activeDay, exIdx}); }}
@@ -1308,11 +1308,34 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const LabeledBtn = ({ onClick, title, label, danger }) => (
     <button onClick={onClick} title={title}
       style={{
+        display:'inline-flex', alignItems:'center', justifyContent:'center',
+        height:30, width:92, padding:0, lineHeight:1, flexShrink:0,
         background: isRefined5b() ? 'transparent' : 'var(--c-sf)',
         border:`1px solid ${danger ? 'rgba(255,71,87,0.5)' : C.ac}`, borderRadius:0,
-        color: danger ? C.rd : C.ac, cursor:'pointer', padding:'5px 10px', lineHeight:1, flexShrink:0,
+        color: danger ? C.rd : C.ac, cursor:'pointer',
         fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', whiteSpace:'nowrap',
       }}>{label}</button>
+  );
+
+  // Portal-visibility as a single-line pill (status dot + text) at the same
+  // height as the action buttons — replaces the 2-line switch+caption column
+  // that didn't vertically align with the rest of the row.
+  const PortalPill = ({ on, onClick, onLabel = 'ON PORTAL', offLabel = 'HIDDEN', title }) => (
+    <button onClick={onClick}
+      title={title || (on ? 'Visible on athlete portal — click to hide' : 'Hidden from athlete portal — click to show')}
+      style={{
+        // Fixed width so both states of a toggle (and every toggle on the
+        // page) are identical length — keeps the pill columns symmetric
+        // across rows regardless of the label inside.
+        display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6,
+        height:30, width:108, padding:0, lineHeight:1, flexShrink:0, borderRadius:0, cursor:'pointer',
+        background:'transparent', border:`1px solid ${on ? C.gn : C.cardBd}`,
+        color: on ? C.gn : C.tm,
+        fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', whiteSpace:'nowrap',
+      }}>
+      <span style={{ width:7, height:7, borderRadius:'50%', background: on ? C.gn : C.td, flexShrink:0 }} />
+      {on ? onLabel : offLabel}
+    </button>
   );
 
   const traineeOptions = useMemo(() => {
@@ -1490,7 +1513,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             // picker is right there for assignment after the editor opens).
             if (row.orphan) {
               return (
-                <div key={row.tid} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                <div key={row.tid} style={{background: 'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                   <div style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>NO PROGRAM ASSIGNED</div>
@@ -1500,7 +1523,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               );
             }
             return (
-              <div key={row.tid} style={{background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0}}>
+              <div key={row.tid} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0}}>
                 {/* Current-block row — clicking opens the plan editor. */}
                 <div onClick={()=>handleOpenPlan(cur.id)}
                   onMouseEnter={e => {
@@ -1515,36 +1538,39 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{cur.name||"Untitled"}</div>
                     <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
                   </div>
-                  <div style={{display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
-                    <span title={`Last session: ${tagText.toLowerCase()}`} style={{fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,padding:'3px 7px',whiteSpace:'nowrap'}}>{tagText.toLowerCase()}</span>
-                    {row.earlier.length > 0 && (
+                  {/* Fixed-width columns + reserved empty slots for the +N and
+                      LATEST-ONLY controls (absent on rows with no earlier
+                      blocks) so every box sits in the same column down the
+                      list. Order: tag · +N · ON PORTAL · LATEST ONLY · PREVIEW
+                      · DUPLICATE · SHARE. */}
+                  <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
+                    <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:30,width:112,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
+                    {row.earlier.length > 0 ? (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                        style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',padding:'3px 8px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',whiteSpace:'nowrap',minWidth:34,textAlign:'center'}}>
+                        style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:30,width:44,background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>
                         {expanded?`▴ ${row.earlier.length}`:`▾ +${row.earlier.length}`}
                       </button>
-                    )}
-                    {setPortalVis && row.earlier.length > 0 && (() => {
-                      const curKey = visKeyForPlan(cur, trainees);
-                      if (!curKey) return null;
-                      const earlierKeys = row.earlier.map(p => visKeyForPlan(p, trainees)).filter(Boolean);
-                      return <LabeledBtn onClick={e => { e.stopPropagation(); const next = { ...portalVis, [curKey]: true }; earlierKeys.forEach(k => { next[k] = false; }); setPortalVis(next); }}
-                        title="Hide earlier blocks on portal; keep only current" label="ONLY THIS">
-                        <ActionIcon kind="target" fallback="🎯" color={C.ac} />
-                      </LabeledBtn>;
-                    })()}
-                    {setPortalVis && (() => {
+                    ) : <div style={{width:44,flexShrink:0}} />}
+                    {setPortalVis ? (() => {
                       const vk = visKeyForPlan(cur, trainees);
-                      if (!vk) return null;
+                      if (!vk) return <div style={{width:108,flexShrink:0}} />;
                       const isVis = portalVis?.[vk] !== false;
-                      return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-                        <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
-                        <span style={{fontFamily:FN,fontSize:7,fontWeight:700,letterSpacing:'0.06em',color:C.tm,whiteSpace:'nowrap'}}>{isVis?'ON PORTAL':'HIDDEN'}</span>
-                      </button>;
-                    })()}
-                    {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW"><ActionIcon kind="eye" fallback="👁" color={C.ac} /></LabeledBtn>}
-                    <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE"><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></LabeledBtn>
-                    <LabeledBtn onClick={e=>{e.stopPropagation();handleShare(cur.id);}} title="Public share — copies a /p/<token> URL anyone can open" label="SHARE">🔗</LabeledBtn>
+                      return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
+                    })() : <div style={{width:108,flexShrink:0}} />}
+                    {setPortalVis && row.earlier.length > 0 ? (() => {
+                      const curKey = visKeyForPlan(cur, trainees);
+                      if (!curKey) return <div style={{width:108,flexShrink:0}} />;
+                      const earlierKeys = row.earlier.map(p => visKeyForPlan(p, trainees)).filter(Boolean);
+                      const latestOnly = (portalVis?.[curKey] !== false) && earlierKeys.every(k => portalVis?.[k] === false);
+                      return <PortalPill on={latestOnly}
+                        onLabel="LATEST ONLY" offLabel="ALL BLOCKS"
+                        title={latestOnly ? 'Only the latest block shows on the portal — click to show all' : 'Show only the latest block on the portal (hide older)'}
+                        onClick={e => { e.stopPropagation(); const next = { ...portalVis, [curKey]: true }; earlierKeys.forEach(k => { next[k] = latestOnly ? true : false; }); setPortalVis(next); }} />;
+                    })() : <div style={{width:108,flexShrink:0}} />}
+                    {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />}
+                    <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />
+                    <LabeledBtn onClick={e=>{e.stopPropagation();handleShare(cur.id);}} title="Public share — copies a /p/<token> URL anyone can open" label="SHARE" />
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
@@ -1566,10 +1592,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           const vk = visKeyForPlan(p, trainees);
                           if (!vk) return null;
                           const isVis = portalVis?.[vk] !== false;
-                          return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3,flexShrink:0}}>
-                            <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
-                            <span style={{fontFamily:FN,fontSize:7,fontWeight:700,letterSpacing:'0.06em',color:C.tm,whiteSpace:'nowrap'}}>{isVis?'ON PORTAL':'HIDDEN'}</span>
-                          </button>;
+                          return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
                         })()}
                         {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" label="PREVIEW"><ActionIcon kind="eye" fallback="👁" color={C.ac} /></LabeledBtn>}
                         <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE"><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></LabeledBtn>
@@ -1607,15 +1630,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{p.name||"Untitled"}</div>
                 <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex{p.phase?` · ${p.phase}`:''}</div>
               </div>
-              <div style={{display:"flex",gap:8,flexShrink:0,alignItems:'center'}}>
+              <div style={{display:"flex",gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end'}}>
                 {setPortalVis && (() => {
                   const vk = visKeyForPlan(p, trainees);
                   if (!vk) return null;
                   const isVis = portalVis?.[vk] !== false;
-                  return <button onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} title={isVis?'Visible on athlete portal — click to hide':'Hidden from athlete portal — click to show'} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-                    <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
-                    <span style={{fontFamily:FN,fontSize:7,fontWeight:700,letterSpacing:'0.06em',color:C.tm,whiteSpace:'nowrap'}}>{isVis?'ON PORTAL':'HIDDEN'}</span>
-                  </button>;
+                  return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
                 })()}
                 {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" label="PREVIEW"><ActionIcon kind="eye" fallback="👁" color={C.ac} /></LabeledBtn>}
                 <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" label="DUPLICATE"><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></LabeledBtn>

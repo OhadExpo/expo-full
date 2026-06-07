@@ -253,7 +253,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
         )}
 
         {rows.length === 0 ? (
-          <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
+          <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 30, textAlign: 'center' }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>NO RECORDS YET</div>
             <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
               Log a few sessions with weights and your records will show up here.
@@ -324,7 +324,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
               <>
                 {/* PR hero card */}
                 <div style={{
-                  background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0,
+                  background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0,
                   padding: '20px 18px', textAlign: 'center', marginBottom: 14,
                 }}>
                   <div style={{ fontFamily: FN, fontSize: 9, color: C.ac, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>ALL-TIME PR</div>
@@ -368,7 +368,7 @@ export default function TraineePRsView({ clientWorkouts, traineeId, header, embe
                   const range = maxKg - minKg || 1;
                   const W = Math.max(kgData.length * 60, 300);
                   return (
-                    <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
+                    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14, marginBottom: 14 }}>
                       <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>TREND · KG / WEEK</div>
                       <svg viewBox={`0 -10 ${W} 185`} style={{ width: '100%', height: 185 }}>
                         {[0, 0.25, 0.5, 0.75, 1].map((p, i) => {

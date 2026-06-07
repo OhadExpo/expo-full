@@ -463,7 +463,7 @@ export default function SmartImportView() {
       )}
 
       {fileName && (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
             <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>FILE</SectionLabel>
           </div>
@@ -482,7 +482,7 @@ export default function SmartImportView() {
       )}
 
       {sheetGrid && (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
             <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>SHEET PREVIEW</SectionLabel>
           </div>
@@ -507,7 +507,7 @@ export default function SmartImportView() {
       {err && <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '10px 12px', marginBottom: 12, fontSize: 12 }}>{err}</div>}
 
       {mapping && (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
             <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>AI MAPPING</SectionLabel>
           </div>
@@ -548,7 +548,7 @@ export default function SmartImportView() {
       )}
 
       {transform && (
-        <div style={{ background: isRefined5b() ? '#FFFFFF' : 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
+        <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 12 }}>
           <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
             <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>PREVIEW</SectionLabel>
           </div>
