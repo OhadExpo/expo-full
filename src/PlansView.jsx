@@ -1004,8 +1004,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                         title="Drag to reorder"
                         style={{display:"flex",alignItems:"center",gap:5,minWidth:0,cursor:"grab",userSelect:"none",padding:dragSrc&&dragSrc.dayIdx===dayIdx?"16px 0":0,transition:"padding 120ms",opacity:dragSrc&&dragSrc.dayIdx===dayIdx&&dragSrc.exIdx===exIdx?0.4:1,background:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?"rgba(57,189,255,0.10)":"transparent",borderTop:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?`3px solid ${C.ac}`:"none"}}>
-                        <span style={{color:C.tm, fontFamily:FN, fontSize:12, fontWeight:400}}>⇕</span>
-                        <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:12}}>{exIdx+1}</span>
+                        <span style={{color:C.tm, fontFamily:FN, fontSize:10, lineHeight:1, fontWeight:400}}>⇕</span>
+                        <span style={{color:C.tx, fontFamily:FN, fontWeight:700, fontSize:12, lineHeight:1}}>{exIdx+1}</span>
                       </div>
                       <div onClick={()=>toggleOvExpand(ex.id)} title="Click to expand — swap exercise, edit notes & video inline"
                         style={{color:C.tx, minWidth:0, borderLeft:`3px solid ${ex.superset?sc:'transparent'}`, paddingLeft:6, cursor:"pointer", display:"flex", alignItems:"center", gap:6}}>
@@ -1013,7 +1013,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         <span style={{overflowWrap:"anywhere", wordBreak:"break-word"}}>{title}</span>
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
-                        style={{...tinyInput, color:sc, fontFamily:FN, fontWeight:600}}>
+                        style={{...tinyInput, color:sc, fontFamily:FN, fontWeight:600, height:20, minHeight:20, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
                         {SUPERSET_LABELS.map(s => <option key={s} value={s}>{s||"—"}</option>)}
                       </select>
                       {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
@@ -1068,7 +1068,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               {/* Add-exercise — ported to the unified view (the only add buttons
                   used to live in the dead detail view, so the unified editor
                   couldn't add exercises at all). Targets THIS day. */}
-              <Btn variant="ghost" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
+              <Btn variant="ghost" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{width:"100%",justifyContent:"center",marginTop:4}}>+ Add Exercise</Btn>
               </div></div>
             </div>
           );
@@ -1076,7 +1076,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         {/* Add-day — ported to the unified view (the only add-day button lived
             in the dead detail view, so the unified editor couldn't add days). */}
         <button onClick={addDay} title="Add a day to this program"
-          style={{background:'transparent',border:`1px dashed ${C.ac}`,borderRadius:0,padding:'11px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>+ ADD DAY</button>
+          style={{background:`${C.ac}12`,border:`1px solid ${C.ac}`,borderRadius:0,padding:'15px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase'}}>+ ADD DAY</button>
       </div>}
       {!overview && day && <div style={{marginBottom:12}}><Input label={`Day ${activeDay+1} Name`} value={day.name} onChange={e=>updateDay(activeDay,{name:e.target.value})} /></div>}
       {/* Per-day "📆 Daily Routine" toggle. When ON, this specific day lets

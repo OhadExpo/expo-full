@@ -17,6 +17,21 @@ export function useDelayedUnmount(open, delay = 200) {
   return { mounted, closing };
 }
 
+// Value-holding variant for overlays rendered as `{state && <overlay>}` where
+// the body reads `state`. Holds the last non-null value through the exit so
+// the content doesn't blank out mid-animation. Returns { value, closing }.
+export function useDelayedUnmountValue(value, delay = 200) {
+  const [held, setHeld] = React.useState(value);
+  const [closing, setClosing] = React.useState(false);
+  React.useEffect(() => {
+    let t;
+    if (value != null) { setHeld(value); setClosing(false); }
+    else if (held != null) { setClosing(true); t = setTimeout(() => { setHeld(null); setClosing(false); }, delay); }
+    return () => clearTimeout(t);
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { value: held, closing };
+}
+
 // Per stroke ruling (`feedback_stroke_ruling.md`): default-state inputs use
 // 0.25px C.ac4D (30% alpha). Bright 1px C.ac is reserved for primary CTAs
 // (Btn primary variant). Active focus would step up to 2px C.ac, but we
