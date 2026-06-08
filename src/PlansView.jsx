@@ -445,22 +445,16 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   }, [pickedId, loadCmp, clearCmp]);
 
   return (
-    <div style={{flex:1, minWidth:0, alignSelf:'stretch', position:'relative'}}>
-      {/* Faded vertical divider as an absolute-positioned 1px strip with a
-          vertical gradient — fades to transparent at the top and bottom
-          edges, low alpha (~25%) in the middle. Sits at x=-8 so it lands
-          in the middle of the flex gap between halves. pointerEvents:none
-          so it never intercepts clicks. */}
-      <div style={{position:'absolute', top:0, bottom:0, left:-8, width:1, background:'linear-gradient(to bottom, transparent 0%, rgba(127,127,131,0.35) 12%, rgba(127,127,131,0.35) 88%, transparent 100%)', pointerEvents:'none', zIndex:0}} />
+    <div style={{flex:1, minWidth:0, alignSelf:'stretch', position:'relative', overflowY:'auto', minHeight:0, paddingRight:8}}>
       {/* Filter row is ALWAYS rendered. Hiding it on empty-state would trap
           the user (e.g. picked athlete with no programs and couldn't change
           back). Empty states below render after the filter row so the
           athlete dropdown stays reachable. */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))',gap:12,marginBottom:20,position:'relative'}}>
-        <div style={{gridColumn:'span 2', minWidth:0}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20,position:'relative'}}>
+        <div style={{minWidth:0}}>
           <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder="Pick athlete…" />
         </div>
-        <div style={{gridColumn:'span 2', minWidth:0}}>
+        <div style={{minWidth:0}}>
           <Select label="Program Filter"
             options={selectedAthleteId ? candidates.map(p => ({value: p.id, label: p.name})) : []}
             value={pickedId}
@@ -486,11 +480,11 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           <PatternCoverage plan={cmpPlan} exercises={exercises} />
               {/* Warm-up (foldable, mirrors editor). */}
               {Array.isArray(cmpPlan.warmup) && cmpPlan.warmup.length > 0 && (
-                <div style={{border:`1px solid ${C.cardBd}`, padding:10, marginBottom:12}}>
+                <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:12, marginBottom:16}}>
                   <button onClick={() => setWarmOpen(o => !o)}
                     style={{background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8}}>
-                    <span style={{fontSize:10, color:C.or, fontFamily:FN, fontWeight:700, width:10, textAlign:'center'}}>{warmOpen ? '▾' : '▸'}</span>
-                    <span style={{fontSize:11, fontFamily:FN, fontWeight:700, color:C.or, letterSpacing:'0.06em'}}>WARM-UP ({cmpPlan.warmup.length})</span>
+                    <span style={{fontSize:10, color:C.or, fontFamily:FN, fontWeight:700, width:10, display:'inline-block', textAlign:'center'}}>{warmOpen ? '▾' : '▸'}</span>
+                    <span style={{fontSize:12, fontFamily:FN, fontWeight:700, color:C.or, letterSpacing:'0.06em'}}>WARM-UP ({cmpPlan.warmup.length})</span>
                   </button>
                   {warmOpen && <div style={{marginTop:8}}>
                     {cmpPlan.warmup.map((w, i) => (
@@ -525,7 +519,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             compare side — load values change every block and
                             aren't useful for delta-scanning. Same column
                             template otherwise. */}
-                        <div style={{display:'grid',gridTemplateColumns:'36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(48px,60px) minmax(80px,1.3fr) 24px',gap:'6px 8px',fontSize:12,alignItems:'center',minWidth:554}}>
+                        <div style={{display:'grid',gridTemplateColumns:'30px minmax(0,3.3fr) 50px minmax(36px,0.8fr) minmax(46px,1fr) minmax(38px,60px) minmax(52px,1.3fr) 20px',gap:'5px 7px',fontSize:12,alignItems:'center',minWidth:0}}>
                           {['#','EXERCISE','GRP','SETS','REPS','RPE','TEMPO',''].map((h,hi) =>
                             hi === 0 ? (
                               <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -893,8 +887,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           <Btn onClick={handleSave} disabled={saving} style={{height:42,minWidth:190,padding:'0 20px',fontSize:13,letterSpacing:'0.18em',lineHeight:'42px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
-      <div style={{display:compareActive?'flex':'block',gap:16,alignItems:'flex-start'}}>
-      <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto'}}>
+      <div style={{display:compareActive?'flex':'block',gap:16,alignItems:compareActive?'stretch':'flex-start',maxHeight:compareActive?'calc(100vh - 175px)':undefined}}>
+      <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',overflowY:compareActive?'auto':'visible',minHeight:0,paddingRight:compareActive?8:0}}>
       <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
