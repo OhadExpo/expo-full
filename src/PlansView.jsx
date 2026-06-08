@@ -371,7 +371,7 @@ function WarmupEditor({ plan, setPlan }) {
               <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
                 onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
                 placeholder="https://youtube.com/..." />
-              <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: C.rd, cursor: 'pointer', padding: 4, marginBottom: 4, opacity: 0.6, fontSize: 16 }}>🗑</button>
+              <button onClick={() => remove(i)} aria-label="Remove warm-up" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, marginBottom: 4, display: 'flex', alignItems: 'center' }}><TrashIcon size={16} /></button>
             </div>
             {/* Legacy free-text rx, only when the new fields are empty AND a
                 pre-split rx exists. Lets the coach see what the athlete is
@@ -590,6 +590,19 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
         </>
       )}
     </div>
+  );
+}
+
+// Red trash icon — an SVG (not the 🗑 emoji, which ignores `color`) so it
+// renders clearly RED in both light and dark themes via C.rd.
+function TrashIcon({ size = 14, color = C.rd }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }} aria-hidden="true">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
   );
 }
 
@@ -984,7 +997,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const tinyInput = {...baseInput, background:'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           const dayCollapsed = !!collapsedDays[d.id];
           return (
-            <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
+            <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'12px 12px 6px'}}>
               <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
                 <span role="button" tabIndex={0} onClick={()=>toggleDayCollapse(d.id)}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleDayCollapse(d.id); } }}
@@ -1071,8 +1084,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       <input value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder="kg/%" style={tinyInput} />
                       <input value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" style={tinyInput} />
                       <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
-                      <button onClick={()=>removeExFromDay(dayIdx, exIdx)} title="Remove exercise from this day"
-                        style={{background:"none",border:"none",color:C.rd,cursor:"pointer",fontSize:13,opacity:0.55,padding:0}}>🗑</button>
+                      <button onClick={()=>removeExFromDay(dayIdx, exIdx)} title="Remove exercise from this day" aria-label="Remove exercise"
+                        style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
                           REPS (col 5), shown only when the row is expanded. */}
                       {ovExpanded[ex.id] && <label style={{gridColumn:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
