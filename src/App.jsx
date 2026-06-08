@@ -641,7 +641,7 @@ function AuthedApp() {
   // Smart Import, Export). A staff-tailored dashboard is future work; for now
   // his dashboard is just his task queue (see DashboardView `isOwner` branch).
   const STAFF_TABS = ['dashboard','tasks'];
-  const clientTrainee = useMemo(() => {
+  const storeClientTrainee = useMemo(() => {
     if (!email) return null;
     return (trainees || []).find(t => {
       if (!t.email) return false;
@@ -649,6 +649,23 @@ function AuthedApp() {
       return emails.some(e => e.toLowerCase() === email);
     }) || null;
   }, [trainees, email]);
+  // Athletes can't read the full `expo-trainees` store under RLS (locked to
+  // staff + presence keys on 2026-06-06), so a fresh athlete login can't
+  // self-match there. Fall back to the self-scoped my_trainee() RPC
+  // (SECURITY DEFINER — returns ONLY the caller's own record, no PII leak).
+  // selfTrainee: null = none, undefined = checking (avoids an "unauthorized"
+  // flash before the RPC resolves).
+  const [selfTrainee, setSelfTrainee] = useState(null);
+  useEffect(() => {
+    if (!email || storeClientTrainee || isTrainerEmail) { setSelfTrainee(null); return; }
+    let cancelled = false;
+    setSelfTrainee(undefined);
+    supabase.rpc('my_trainee')
+      .then(({ data }) => { if (!cancelled) setSelfTrainee(data || null); })
+      .catch(() => { if (!cancelled) setSelfTrainee(null); });
+    return () => { cancelled = true; };
+  }, [email, storeClientTrainee, isTrainerEmail]);
+  const clientTrainee = storeClientTrainee || selfTrainee || null;
   const hasClientRow = !!clientTrainee;
   const isBoth = isTrainerEmail && hasClientRow;
 
@@ -996,7 +1013,7 @@ function AuthedApp() {
   // Authenticated but email not recognized — show Access Denied.
   // Wait for trainees to load before deciding so real clients don't flash this.
   // Excludes isBoth since they're handled by the picker branch above.
-  if (tL && !isTrainer && !isClient && !isBoth) {
+  if (tL && selfTrainee !== undefined && !isTrainer && !isClient && !isBoth) {
     return <UnauthorizedScreen email={session?.user?.email || ''} onSignOut={signOut} />;
   }
 
