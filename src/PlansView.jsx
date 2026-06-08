@@ -593,6 +593,120 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   );
 }
 
+// Full per-exercise detail editor (badges + 3-state library-cues notes +
+// 3-state video override). Shared by the unified overview's inline-expand
+// panel so it has EVERY feature the old detail card had. `update(patch)`
+// abstracts the day/exercise write so either view can drive it.
+function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
+  const libCues = exData?.cues || '';
+  const hasNoteOverride = !!ex.notesEdited || !!(ex.notes && ex.notes.length > 0);
+  const noteValue = hasNoteOverride ? (ex.notes || '') : libCues;
+  const isFallback = !hasNoteOverride && libCues;
+  const libUrl = exData?.videoLink || '';
+  const hasVidOverride = ex.videoUrl !== undefined;
+  const vidValue = hasVidOverride ? (ex.videoUrl || '') : libUrl;
+  return (
+    <>
+      {exData ? <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
+        {exData.movementPattern && <Badge color={C.gn}>{exData.movementPattern}</Badge>}
+        {exData.laterality && <Badge color={C.tm}>{exData.laterality}</Badge>}
+        {exData.primaryMuscles && <span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
+      </div> : (exTitle ? <div style={{fontSize:11,color:C.or,marginTop:4}}>📝 {exTitle}</div> : null)}
+      <div style={{display:'grid',gridTemplateColumns:'2.4fr 1fr',gap:16,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.cardBd}`,alignItems:'stretch'}}>
+        {/* NOTES (right, narrow ~30% — most cues only fill half the box) */}
+        <div style={{gridColumn:2,display:'flex',flexDirection:'column',minWidth:0}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,minHeight:14,gap:8,flexWrap:'wrap'}}>
+            <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>NOTES</span>
+            <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+              {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>FROM LIBRARY</span>}
+              {hasNoteOverride && libCues && <button onClick={()=>update({notes:'',notesEdited:false})} title="Discard this program's override and show the library cues again. Doesn't touch the library." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0}}>↩ LIBRARY</button>}
+              {hasNoteOverride && (ex.notes||'').length>0 && <button onClick={()=>update({notes:'',notesEdited:true})} title="Clear the note for this program only (library is untouched)." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.rd,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0,opacity:0.7}}>× CLEAR</button>}
+            </div>
+          </div>
+          <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."} style={{...baseInput,textAlign:'center',flex:1,minHeight:72,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
+        </div>
+        {/* VIDEO (left, wide) — URL + embed sized to the column. */}
+        <div style={{gridColumn:1,gridRow:1,display:'flex',flexDirection:'column',minWidth:0,gap:6}}>
+          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>VIDEO</span>
+          <div style={{display:"grid",gridTemplateColumns:vidValue?"1fr auto":"1fr",gap:6,alignItems:"stretch"}}>
+            <Input value={vidValue} onChange={e=>update({videoUrl:e.target.value})}
+              onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update({ videoUrl: resolved }); }}
+              placeholder="📹 Video URL" />
+            {vidValue && <a href={vidValue} target="_blank" rel="noreferrer" title={hasVidOverride?"Per-program URL":"From exercise library"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.1em',color:hasVidOverride?C.ac:C.tm,textDecoration:"none",padding:"0 9px",border:`${hasVidOverride?'1px':'0.25px'} solid ${hasVidOverride?C.ac:C.cardBd}`,borderRadius:0,whiteSpace:"nowrap",boxSizing:"border-box"}}>{hasVidOverride?"OPEN":"LIB"}</a>}
+          </div>
+          {vidValue && showEmbed && <div style={{marginTop:2}}><VideoEmbed url={vidValue} /></div>}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// The full exercise editor card — the polished detail layout (field grid with
+// per-week sets/reps toggles + labels, then badges/notes/video via
+// ExEditorExtras). Reused as the overview's inline-expand panel so "expand a
+// row" shows the exact good detail card. `update(patch)` drives either view.
+function ExFullEditor({ ex, exData, exTitle, update, weeks, exercises }) {
+  const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
+  const lbl = {fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:"0.18em",fontFamily:FN};
+  const toggleBtn = {background:"none",border:"none",color:C.ac,fontSize:11,cursor:"pointer",padding:"0 2px",marginLeft:"auto",fontFamily:FN,lineHeight:1,whiteSpace:"nowrap"};
+  return (
+    <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${ex.superset?C.ac:C.cardBd}`,borderRadius:0,padding:14,display:'flex',flexDirection:'column'}}>
+      <div className="ex-row-grid" style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr",minWidth:0,gap:12,alignItems:"end"}}>
+        <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />
+        <div style={{minWidth:0}}>
+          <Select label="Superset" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>update({superset:v})} />
+        </div>
+        {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+              <label style={lbl}>Sets / Wk</label>
+              <button onClick={()=>update({wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3})} title="Single sets value" style={toggleBtn}>↤</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},minmax(36px,1fr))`,gap:3}}>
+              {Array.from({length:weeks}).map((_,i) => (
+                <input key={i} value={ex.wkS[i]||""} onChange={e=>{const next=resize(ex.wkS,weeks,""); next[i]=e.target.value; update({wkS:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:4,minWidth:0}}>
+              <label style={{...lbl,whiteSpace:"nowrap"}}>Sets</label>
+              <button onClick={()=>update({wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} title="Set different sets per week" style={toggleBtn}>↦</button>
+            </div>
+            <input type="number" value={ex.sets} onChange={e=>update({sets:parseInt(e.target.value)||0})} style={{...baseInput}} />
+          </div>
+        )}
+        {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+              <label style={lbl}>Reps / Wk</label>
+              <button onClick={()=>update({wk:null,reps:ex.wk[0]||"8-12"})} title="Single reps value" style={toggleBtn}>↤</button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},minmax(36px,1fr))`,gap:3}}>
+              {Array.from({length:weeks}).map((_,i) => (
+                <input key={i} value={ex.wk[i]||""} onChange={e=>{const next=resize(ex.wk,weeks,""); next[i]=e.target.value; update({wk:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+              <label style={lbl}>Reps</label>
+              <button onClick={()=>update({wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} title="Set different reps per week" style={toggleBtn}>↦</button>
+            </div>
+            <input value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder="8-12" style={{...baseInput}} />
+          </div>
+        )}
+        <Input label="Load" value={ex.load} onChange={e=>update({load:e.target.value})} placeholder="kg/%" />
+        <Input label="RPE" value={ex.rpe} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" />
+        <Input label="Tempo" value={ex.tempo} onChange={e=>update({tempo:e.target.value})} placeholder="3010" />
+      </div>
+      <ExEditorExtras ex={ex} exData={exData} exTitle={exTitle} update={update} />
+    </div>
+  );
+}
+
 function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, weeklyFocus, setWeeklyFocus, planIndex, onPreviewPlan }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
@@ -602,6 +716,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
   const [collapsedEx, setCollapsedEx] = usePersistentState('plan-collapsed-ex', {}); // detail-view exercise cards collapse
+  // Unified view: expand an OVERVIEW row inline to its full detail (swap +
+  // notes + video) — combines overview + detail in one place.
+  const [ovExpanded, setOvExpanded] = usePersistentState('plan-ov-expanded', {});
+  const toggleOvExpand = (id) => setOvExpanded(prev => ({ ...prev, [id]: !prev[id] }));
   const toggleExCollapse = (id) => setCollapsedEx(prev => ({ ...prev, [id]: !prev[id] }));
   // Compare mode: side-by-side 50/50 split with a read-only view of a
   // previous program (same athlete). Only available WHEN Overview is on —
@@ -755,6 +873,15 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12,flexWrap:'wrap'}}>
         <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flex:'1 1 100%',justifyContent:'center',position:'relative'}}>
           <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap',position:'absolute',left:0}}>← BACK</button>
+          {/* Athlete assignment — editable, to the LEFT of the block dropdown
+              (Ohad). This is the ONLY athlete control now (dropped the duplicate
+              field from the row below). */}
+          <select value={plan.traineeId||""} onChange={e=>setPlan({...plan,traineeId:e.target.value})}
+            title="Assign this program to an athlete"
+            style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',height:42,padding:'0 10px',borderRadius:0,outline:'none',maxWidth:200}}>
+            <option value="">Unassigned</option>
+            {trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </select>
           {/* Switch-program dropdown — lets the coach scroll between this
               athlete's programs (current + earlier blocks) without leaving
               the editor. Saves any pending edits first. Mounted only when
@@ -796,7 +923,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             disabled={!overview}
             title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous program (read-only)'}
             style={{background:'var(--c-sf)',border:`${compareActive?'1px':'0.25px'} solid ${compareActive?C.ac:C.cardBd}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:!overview?C.td:(compareActive?C.ac:C.tm),cursor:!overview?'not-allowed':'pointer',opacity:!overview?0.5:1,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{compareActive?'✓ COMPARE':'↔ COMPARE'}</button>
-          <button onClick={()=>setOverview(v=>!v)} style={{background:'var(--c-sf)',border:`${overview?'1px':'0.25px'} solid ${overview?C.ac:C.cardBd}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:overview?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{overview?'✓ OVERVIEW':'OVERVIEW'}</button>
           {onPreviewPlan && plan?.id && <button onClick={async () => { await flushAutosave(); onPreviewPlan(plan.id); }}
             title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -809,12 +935,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto'}}>
       <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
-        <Select label="Assign to Athlete" options={[{value:"",label:"Unassigned"}, ...trainees.flatMap(t => {
-          if (t.members && t.members.length === 2) {
-            return t.members.map((m, i) => ({ value: t.id + '__' + i, label: m.name || ('Member ' + (i+1)) }));
-          }
-          return [{ value: t.id, label: t.name }];
-        })]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
+        {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
         {/* Weeks selector hidden for daily-routine plans — a daily routine
             has no week structure. Athlete logs it unlimited times during
@@ -869,8 +990,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
                 <span style={{color:C.td,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
-                <button onClick={()=>{setActiveDay(dayIdx);setOverview(false)}} title="Open this day in the detail editor — needed to add exercises, change the exercise itself, or edit notes/URL"
-                  style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.18em',marginLeft:"auto"}}>DETAIL ▸</button>
+                {(() => {
+                  const dayIds = (dayExs||[]).map(e=>e.id);
+                  const anyOpen = dayIds.some(id=>ovExpanded[id]);
+                  return <button onClick={()=>setOvExpanded(prev=>{ const next={...prev}; dayIds.forEach(id=>{ if(anyOpen) delete next[id]; else next[id]=true; }); return next; })}
+                    title={anyOpen?'Collapse all exercises in this day':'Expand all exercises in this day to edit fully'}
+                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',marginLeft:"auto",whiteSpace:'nowrap'}}>{anyOpen?'▴ COLLAPSE ALL':'▾ EXPAND ALL'}</button>;
+                })()}
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
@@ -908,8 +1034,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         <span style={{color:C.tm, fontFamily:FN, fontSize:12, fontWeight:400}}>⇕</span>
                         <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:12}}>{exIdx+1}</span>
                       </div>
-                      <div title="Exercise name links to the library — open DETAIL to swap the exercise or edit notes/URL"
-                        style={{color:C.tx, minWidth:0, overflowWrap:"anywhere", wordBreak:"break-word", borderLeft:`3px solid ${ex.superset?sc:'transparent'}`, paddingLeft:6}}>{title}</div>
+                      <div onClick={()=>toggleOvExpand(ex.id)} title="Click to expand — swap exercise, edit notes & video inline"
+                        style={{color:C.tx, minWidth:0, borderLeft:`3px solid ${ex.superset?sc:'transparent'}`, paddingLeft:6, cursor:"pointer", display:"flex", alignItems:"center", gap:6}}>
+                        <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:ovExpanded[ex.id]?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
+                        <span style={{overflowWrap:"anywhere", wordBreak:"break-word"}}>{title}</span>
+                      </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
                         style={{...tinyInput, color:sc, fontFamily:FN, fontWeight:600}}>
                         {SUPERSET_LABELS.map(s => <option key={s} value={s}>{s||"—"}</option>)}
@@ -939,6 +1068,26 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
                       <button onClick={()=>removeExFromDay(dayIdx, exIdx)} title="Remove exercise from this day"
                         style={{background:"none",border:"none",color:C.rd,cursor:"pointer",fontSize:13,opacity:0.55,padding:0}}>🗑</button>
+                      {/* Per-week toggles, column-aligned under SETS (col 4) and
+                          REPS (col 5), shown only when the row is expanded. */}
+                      {ovExpanded[ex.id] && <label style={{gridColumn:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
+                        <input type="checkbox" checked={!!(ex.wkS&&ex.wkS.length)} onChange={()=> (ex.wkS&&ex.wkS.length) ? update({wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3}) : update({wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> per week
+                      </label>}
+                      {ovExpanded[ex.id] && <label style={{gridColumn:5,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
+                        <input type="checkbox" checked={!!(ex.wk&&ex.wk.length)} onChange={()=> (ex.wk&&ex.wk.length) ? update({wk:null,reps:ex.wk[0]||"8-12"}) : update({wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> per week
+                      </label>}
+                      {/* Inline full detail — the combined overview+detail panel. */}
+                      <div style={{gridColumn:'1 / -1', display:'grid', gridTemplateRows: ovExpanded[ex.id]?'1fr':'0fr', transition:'grid-template-rows 260ms ease'}}>
+                       <div style={{overflow:'hidden', minHeight:0}}>
+                        <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${ex.superset?sc:C.ac}`, padding:14, margin:'2px 0 12px', display:'flex', flexDirection:'column', gap:12}}>
+                          {/* Only the bits NOT already in the table row — no duplicate
+                              sets/reps/load/etc. Swap the exercise + per-week toggle
+                              + the polished notes/video block (ExEditorExtras). */}
+                          <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />
+                          <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} showEmbed={!!ovExpanded[ex.id]} />
+                        </div>
+                       </div>
+                      </div>
                     </React.Fragment>;
                   })}
                 </div></div>
@@ -997,19 +1146,14 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 style={{display:"flex",flexDirection:"row",alignItems:"center",gap:6,cursor:"grab",userSelect:"none",padding:dragging?"26px 0":0,transition:"padding 120ms, background 120ms",opacity:dragSrc&&dragSrc.dayIdx===activeDay&&dragSrc.exIdx===exIdx?0.4:1,background:dropHere?"rgba(57,189,255,0.12)":"transparent",borderTop:dropHere?`3px solid ${C.ac}`:"none"}}>
                 <span style={{fontFamily:FN,fontSize:11,color:C.tm,lineHeight:1,fontWeight:400}}>⇕</span>
                 <span style={{fontFamily:FN,fontSize:12,color:C.tm,fontWeight:700,lineHeight:1}}>{exIdx+1}</span>
-                <span role="button" tabIndex={0} onClick={e=>{e.stopPropagation(); toggleExCollapse(ex.id);}}
-                  onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); e.stopPropagation(); toggleExCollapse(ex.id); } }}
+                <button onClick={e=>{e.stopPropagation(); toggleExCollapse(ex.id);}}
+                  onMouseDown={e=>e.stopPropagation()}
                   title={exCollapsed?'Expand exercise':'Collapse exercise'}
-                  style={{cursor:'pointer',color:C.ac,fontSize:16,fontWeight:700,lineHeight:1,marginLeft:2,transform:exCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease'}}>▾</span>
+                  style={{cursor:'pointer',background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,borderRadius:0,width:22,height:22,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,lineHeight:1,padding:0,flexShrink:0,transform:exCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease'}}>▾</button>
               </div>
               <div className="ex-row-scroll" style={{overflowX:"auto"}}>
-                {exCollapsed ? (
-                  <div onClick={()=>toggleExCollapse(ex.id)} title="Expand to edit"
-                    style={{cursor:'pointer',padding:'6px 2px',display:'flex',alignItems:'baseline',gap:10,minWidth:0}}>
-                    <span style={{fontWeight:700,fontSize:13,color:C.tx,fontFamily:FB,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{exTitle||ex.title||'(unnamed exercise)'}</span>
-                    <span style={{fontSize:11,color:C.tm,fontFamily:FN,whiteSpace:'nowrap',letterSpacing:'0.04em'}}>{[ex.sets?`${ex.sets} sets`:null, ex.reps?`${ex.reps} reps`:null].filter(Boolean).join(' · ')}</span>
-                  </div>
-                ) : (<>
+                {/* Field row (name → tempo) ALWAYS visible + editable, even when
+                    collapsed (Ohad). Collapsing only hides the badges/notes/video. */}
                 <div className="ex-row-grid" style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr",minWidth:740,gap:12,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} onPickName={name=>updateEx(exIdx,{exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />
                   <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise." style={{minWidth:0}}>
@@ -1023,8 +1167,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
                         <div style={{display:"flex",flexDirection:"column",gap:4}}>
                           <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Sets / Wk</label>
-                            <button onClick={()=>updateEx(exIdx,{wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3})} title="Collapse to single sets value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>← flat</button>
+                            <label style={{fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:"0.18em",fontFamily:FN}}>Sets / Wk</label>
+                            <button onClick={()=>updateEx(exIdx,{wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3})} title="Collapse to single sets value" aria-label="Collapse to single sets value" style={{background:"none",border:"none",color:C.ac,fontSize:11,cursor:"pointer",padding:"0 2px",marginLeft:"auto",fontFamily:FN,lineHeight:1,whiteSpace:"nowrap"}}>↤</button>
                           </div>
                           <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},minmax(40px,1fr))`,gap:3}}>
                             {Array.from({length:weeks}).map((_,i) => (
@@ -1035,7 +1179,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       ) : (
                         <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0}}>
                           <div style={{display:"flex",alignItems:"baseline",gap:4,minWidth:0}}>
-                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN,whiteSpace:"nowrap"}}>Sets</label>
+                            <label style={{fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:"0.18em",fontFamily:FN,whiteSpace:"nowrap"}}>Sets</label>
                             <button onClick={()=>updateEx(exIdx,{wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} title="Set different sets per week" aria-label="Set different sets per week" style={{background:"none",border:"none",color:C.ac,fontSize:11,cursor:"pointer",padding:"0 2px",marginLeft:"auto",fontFamily:FN,lineHeight:1,whiteSpace:"nowrap"}}>↦</button>
                           </div>
                           <input type="number" value={ex.sets} onChange={e=>updateEx(exIdx,{sets:parseInt(e.target.value)||0})} style={{...baseInput}} />
@@ -1044,8 +1188,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (
                         <div style={{display:"flex",flexDirection:"column",gap:4}}>
                           <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps / Wk</label>
-                            <button onClick={()=>updateEx(exIdx,{wk:null,reps:ex.wk[0]||"8-12"})} title="Collapse to single reps value" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,fontFamily:FN,marginLeft:"auto"}}>← flat</button>
+                            <label style={{fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:"0.18em",fontFamily:FN}}>Reps / Wk</label>
+                            <button onClick={()=>updateEx(exIdx,{wk:null,reps:ex.wk[0]||"8-12"})} title="Collapse to single reps value" aria-label="Collapse to single reps value" style={{background:"none",border:"none",color:C.ac,fontSize:11,cursor:"pointer",padding:"0 2px",fontFamily:FN,marginLeft:"auto",lineHeight:1,whiteSpace:"nowrap"}}>↤</button>
                           </div>
                           <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},minmax(40px,1fr))`,gap:3}}>
                             {Array.from({length:weeks}).map((_,i) => (
@@ -1056,8 +1200,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       ) : (
                         <div style={{display:"flex",flexDirection:"column",gap:4}}>
                           <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                            <label style={{fontSize:10,fontWeight:700,color:C.td,textTransform:"uppercase",letterSpacing:"0.08em",fontFamily:FN}}>Reps</label>
-                            <button onClick={()=>updateEx(exIdx,{wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} title="Set different reps per week" style={{background:"none",border:"none",color:C.ac,fontSize:10,cursor:"pointer",padding:0,marginLeft:"auto",fontFamily:FN}}>per week →</button>
+                            <label style={{fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:"0.18em",fontFamily:FN}}>Reps</label>
+                            <button onClick={()=>updateEx(exIdx,{wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} title="Set different reps per week" aria-label="Set different reps per week" style={{background:"none",border:"none",color:C.ac,fontSize:11,cursor:"pointer",padding:"0 2px",marginLeft:"auto",fontFamily:FN,lineHeight:1,whiteSpace:"nowrap"}}>↦</button>
                           </div>
                           <input value={ex.reps||""} onChange={e=>updateEx(exIdx,{reps:e.target.value})} placeholder="8-12" style={{...baseInput}} />
                         </div>
@@ -1068,6 +1212,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   <Input label="RPE" value={ex.rpe} onChange={e=>updateEx(exIdx,{rpe:e.target.value})} placeholder="7-8" />
                   <Input label="Tempo" value={ex.tempo} onChange={e=>updateEx(exIdx,{tempo:e.target.value})} placeholder="3010" />
                 </div>
+                {!exCollapsed && (<>
                 {exData?<div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
                   {exData.movementPattern&&<Badge color={C.gn}>{exData.movementPattern}</Badge>}
                   {exData.laterality&&<Badge color={C.tm}>{exData.laterality}</Badge>}
@@ -1185,9 +1330,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </>)}
               {/* Clear, always-visible delete at the BOTTOM of the card (Ohad) —
                   works whether the exercise is collapsed or expanded. */}
-              <div style={{display:"flex",justifyContent:"flex-end",marginTop:exCollapsed?6:10,paddingTop:8,borderTop:`1px solid ${C.cardBd}`}}>
+              <div style={{marginTop:exCollapsed?8:12,paddingTop:10,borderTop:`1px solid ${C.cardBd}`}}>
                 <button onClick={()=>removeEx(exIdx)} title="Remove this exercise from the day"
-                  style={{background:"transparent",border:`1px solid ${C.rd}`,color:C.rd,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:"0.12em",padding:"5px 12px",borderRadius:0,display:"inline-flex",alignItems:"center",gap:6}}>🗑 REMOVE EXERCISE</button>
+                  style={{width:"100%",background:`${C.rd}14`,border:`1px solid ${C.rd}`,color:C.rd,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:"0.14em",padding:"10px 12px",borderRadius:0,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>🗑 REMOVE EXERCISE</button>
               </div>
               </div><div /></div></div>);
         })}
