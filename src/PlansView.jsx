@@ -604,6 +604,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [quickName, setQuickName] = useState(''); // draft quick-add-by-name input
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
+  const [collapsedEx, setCollapsedEx] = usePersistentState('plan-collapsed-ex', {}); // detail-view exercise cards collapse
+  const toggleExCollapse = (id) => setCollapsedEx(prev => ({ ...prev, [id]: !prev[id] }));
   // Compare mode: side-by-side 50/50 split with a read-only view of a
   // previous program (same athlete). Only available WHEN Overview is on —
   // anchored to the wide grid where row-by-row delta-scanning actually pays
@@ -978,19 +980,15 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <div style={{textAlign:"center",padding:30,color:C.td}}>
           <p style={{fontSize:13}}>No exercises.</p>
           <Btn onClick={()=>setAddExerciseOpen(true)} style={{marginTop:8}}>+ Add Exercise</Btn>
-          <div style={{display:'flex',gap:6,marginTop:10,maxWidth:480,margin:'10px auto 0'}}>
-            <input value={quickName} onChange={e=>setQuickName(e.target.value)} dir="auto"
-              onKeyDown={e=>{ if(e.key==='Enter'){ e.preventDefault(); addExByName(quickName); setQuickName(''); } }}
-              placeholder="Draft — type a name, press Enter (no notes/video)"
-              style={{...baseInput, flex:1, fontSize:13, textAlign:'left'}} />
-            <Btn variant="ghost" onClick={()=>{ addExByName(quickName); setQuickName(''); }} disabled={!quickName.trim()} style={{whiteSpace:'nowrap'}}>+ NAME</Btn>
-          </div>
         </div>
       :<div>
         {day?.exercises.map((ex,exIdx) => {
           const exData = exById(exercises).get(ex.exerciseId);
-          const exTitle = exData ? exData.title : (ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
+          const exTitle = exData ? exData.title : (ex.title || ex.notes?.match(/^\[(.+)\]$/)?.[1] || '');
           const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:"transparent";
+          const exCollapsed = !!collapsedEx[ex.id];
+          const dragging = dragSrc && dragSrc.dayIdx===activeDay;
+          const dropHere = dragOver && dragOver.dayIdx===activeDay && dragOver.exIdx===exIdx;
           return(<div key={ex.id} className="ex-row-card" style={{background: 'var(--c-sf)',border:`1px solid ${ex.superset?sc:C.cardBd}`,borderLeft:`3px solid ${ex.superset?sc:C.cardBd}`,borderRadius:0,padding:12,marginBottom:8}}>
             <div className="ex-row-outer" style={{display:"grid",gridTemplateColumns:"54px 1fr 54px",gap:12,alignItems:"start"}}>
               <div draggable
@@ -1000,11 +998,22 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 onDrop={e => { e.preventDefault(); if (dragSrc && dragSrc.dayIdx===activeDay && dragSrc.exIdx!==exIdx) reorderExInDay(activeDay, dragSrc.exIdx, exIdx); setDragSrc(null); setDragOver(null); }}
                 onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                 title="Drag to reorder"
-                style={{display:"flex",flexDirection:"row",alignItems:"center",gap:6,cursor:"grab",userSelect:"none",opacity:dragSrc&&dragSrc.dayIdx===activeDay&&dragSrc.exIdx===exIdx?0.4:1,borderTop:dragOver&&dragOver.dayIdx===activeDay&&dragOver.exIdx===exIdx?`2px solid ${C.ac}`:"none"}}>
+                style={{display:"flex",flexDirection:"row",alignItems:"center",gap:6,cursor:"grab",userSelect:"none",padding:dragging?"26px 0":0,transition:"padding 120ms, background 120ms",opacity:dragSrc&&dragSrc.dayIdx===activeDay&&dragSrc.exIdx===exIdx?0.4:1,background:dropHere?"rgba(57,189,255,0.12)":"transparent",borderTop:dropHere?`3px solid ${C.ac}`:"none"}}>
                 <span style={{fontFamily:FN,fontSize:11,color:C.tm,lineHeight:1,fontWeight:400}}>⇕</span>
                 <span style={{fontFamily:FN,fontSize:12,color:C.tm,fontWeight:700,lineHeight:1}}>{exIdx+1}</span>
+                <span role="button" tabIndex={0} onClick={e=>{e.stopPropagation(); toggleExCollapse(ex.id);}}
+                  onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); e.stopPropagation(); toggleExCollapse(ex.id); } }}
+                  title={exCollapsed?'Expand exercise':'Collapse exercise'}
+                  style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,marginLeft:2,transform:exCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease'}}>▾</span>
               </div>
               <div className="ex-row-scroll" style={{overflowX:"auto"}}>
+                {exCollapsed ? (
+                  <div onClick={()=>toggleExCollapse(ex.id)} title="Expand to edit"
+                    style={{cursor:'pointer',padding:'6px 2px',display:'flex',alignItems:'baseline',gap:10,minWidth:0}}>
+                    <span style={{fontWeight:700,fontSize:13,color:C.tx,fontFamily:FB,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>{exTitle||ex.title||'(unnamed exercise)'}</span>
+                    <span style={{fontSize:11,color:C.tm,fontFamily:FN,whiteSpace:'nowrap',letterSpacing:'0.04em'}}>{[ex.sets?`${ex.sets} sets`:null, ex.reps?`${ex.reps} reps`:null].filter(Boolean).join(' · ')}</span>
+                  </div>
+                ) : (<>
                 <div className="ex-row-grid" style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr auto",minWidth:780,gap:12,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} onPickName={name=>updateEx(exIdx,{exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />
                   <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise." style={{minWidth:0}}>
@@ -1178,19 +1187,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     </div>
                   );
                 })()}
+              </>)}
               </div><div /></div></div>);
         })}
         <Btn variant="ghost" onClick={()=>setAddExerciseOpen(true)} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
-        {/* Draft quick-add: type a name + Enter to drop an exercise with no
-            library link / notes / video — sketch the program fast, attach
-            details later by opening the row and picking the library exercise. */}
-        <div style={{display:'flex',gap:6,marginTop:8}}>
-          <input value={quickName} onChange={e=>setQuickName(e.target.value)} dir="auto"
-            onKeyDown={e=>{ if(e.key==='Enter'){ e.preventDefault(); addExByName(quickName); setQuickName(''); } }}
-            placeholder="Draft — type an exercise name, press Enter (no notes/video)"
-            style={{...baseInput, flex:1, fontSize:13, textAlign:'left'}} />
-          <Btn variant="ghost" onClick={()=>{ addExByName(quickName); setQuickName(''); }} disabled={!quickName.trim()} style={{whiteSpace:'nowrap'}}>+ NAME</Btn>
-        </div>
       </div>)}
       </div>
       {compareActive && (
