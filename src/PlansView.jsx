@@ -683,6 +683,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // visibilitychange/unmount paths don't issue a redundant write.
     markClean();
     setSaving(false);
+    // Save Program exits back to the programs list (Ohad) — autosave already
+    // keeps drafts safe; the explicit Save is the "done, get me out" action.
+    onCancel();
   };
   const handleBack = async () => {
     // Awaiting flushAutosave resolves only after every queued + in-flight
@@ -714,8 +717,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         }
       `}</style>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12,flexWrap:'wrap'}}>
-        <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flex:'1 1 240px'}}>
-          <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap'}}>← BACK</button>
+        <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flex:'1 1 100%',justifyContent:'center',position:'relative'}}>
+          <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap',position:'absolute',left:0}}>← BACK</button>
           {/* Switch-program dropdown — lets the coach scroll between this
               athlete's programs (current + earlier blocks) without leaving
               the editor. Saves any pending edits first. Mounted only when
@@ -739,7 +742,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   onSwitchProgram(nextId);
                 }}
                   title="Switch to another program for this athlete"
-                  style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                  style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap',textAlign:'center'}}>
                   {sameAthlete.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
                 </select>
                 <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
@@ -747,7 +750,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             );
           })()}
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"stretch"}}>
+        <div style={{display:"flex",gap:8,alignItems:"stretch",justifyContent:"center",flexWrap:"wrap",flex:"1 1 100%"}}>
           {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:11,fontWeight:600,color:statusLabel.color,letterSpacing:"0.04em",alignSelf:'center'}}>{statusLabel.text}</span>}
           {/* COMPARE: read-only view of a previous program for the same
               athlete, stacked below the Overview grid. Only enabled when
@@ -776,6 +779,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           }
           return [{ value: t.id, label: t.name }];
         })]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
+        {/* Phase + Weeks share one grid cell (2-col sub-grid) so Weeks never
+            lands on a row by itself when the outer grid wraps. */}
+        <div style={{display:'grid',gridTemplateColumns: plan.kind !== 'daily' ? '1fr 1fr' : '1fr',gap:12}}>
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
         {/* Weeks selector hidden for daily-routine plans — a daily routine
             has no week structure. Athlete logs it unlimited times during
@@ -793,6 +799,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             setPlan({...plan, weeks: n, days: nextDays});
           }} />
         )}
+        </div>
       </div>
       <PatternCoverage plan={plan} exercises={exercises} />
       <WarmupEditor plan={plan} setPlan={setPlan} />
