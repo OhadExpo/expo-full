@@ -5,7 +5,7 @@ import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RES
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, RefinedHeaderStrip, usePersistentState } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, RefinedHeaderStrip, usePersistentState, useDelayedUnmount } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -149,11 +149,12 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
   // can see at a glance which dimensions are constraining the result list.
   const filterStyleActive = { ...filterSelectStyle, border: `1px solid ${C.ac}`, color: C.tx };
 
-  if (!open) return null;
+  const { mounted, closing } = useDelayedUnmount(open);
+  if (!mounted) return null;
 
   return (
-    <div className="motion-fade-in" style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: C.scrim, backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} className="motion-rise" style={{ background: C.sf, border:`1px solid ${C.bd}`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `0 20px 60px ${C.shadow}` }}>
+    <div className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: C.scrim, backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border:`1px solid ${C.bd}`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `0 20px 60px ${C.shadow}` }}>
         {/* Header hero — eyebrow tag (action), big exercise name, metadata.
             Lifts the current exercise out of the page header and into a
             scannable hierarchy: WHAT you're replacing, in big type, with
@@ -670,6 +671,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
+  const [confirmDeleteDay, setConfirmDeleteDay] = useState(null); // dayIdx pending delete-confirm
   const [overview, setOverview] = useState(true); // Overview is the default view (Ohad)
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
@@ -834,12 +836,15 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {/* Athlete assignment — editable, to the LEFT of the block dropdown
               (Ohad). This is the ONLY athlete control now (dropped the duplicate
               field from the row below). */}
-          <select value={plan.traineeId||""} onChange={e=>setPlan({...plan,traineeId:e.target.value})}
-            title="Assign this program to an athlete"
-            style={{background:'var(--c-sf)',border:`0.25px solid ${C.cardBd}`,color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',height:42,padding:'0 10px',borderRadius:0,outline:'none',maxWidth:200}}>
-            <option value="">Unassigned</option>
-            {trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <div style={{position:'relative',display:'flex',minWidth:0,flex:'1 1 240px',maxWidth:360}}>
+            <select value={plan.traineeId||""} onChange={e=>setPlan({...plan,traineeId:e.target.value})}
+              title="Assign this program to an athlete"
+              style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',height:42,padding:'0 36px 0 18px',borderRadius:0,outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',textAlign:'center',textAlignLast:'center',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
+              <option value="">Unassigned</option>
+              {trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
+          </div>
           {/* Switch-program dropdown — lets the coach scroll between this
               athlete's programs (current + earlier blocks) without leaving
               the editor. Saves any pending edits first. Mounted only when
@@ -877,10 +882,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               athlete, stacked below the Overview grid. Only enabled when
               Overview is on — single-day detail-view comparisons were too
               cramped to be useful, so we anchor compare to the wide grid. */}
-          <button onClick={()=>{ if (!overview) return; setCompareOpen(v=>!v); }}
-            disabled={!overview}
-            title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous program (read-only)'}
-            style={{background:'var(--c-sf)',border:`${compareActive?'1px':'0.25px'} solid ${compareActive?C.ac:C.cardBd}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:!overview?C.td:(compareActive?C.ac:C.tm),cursor:!overview?'not-allowed':'pointer',opacity:!overview?0.5:1,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>{compareActive?'✓ COMPARE':'↔ COMPARE'}</button>
+          <button onClick={()=>setCompareOpen(v=>!v)}
+            title="Compare with a previous program (read-only)"
+            style={{background: compareActive ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'}}><span style={{display:'inline-block',width:13,textAlign:'center',flexShrink:0}}>{compareActive?'✓':'↔'}</span>COMPARE</button>
           {onPreviewPlan && plan?.id && <button onClick={async () => { await flushAutosave(); onPreviewPlan(plan.id); }}
             title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -953,7 +957,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     unlimited times per block, no DONE lock, no week rotation. */}
                 <button onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { kind: 'daily' }); }}
                   title={d.kind==='daily' ? 'Daily Routine ON — unlimited logs per block, no DONE lock, no week rotation. Click for a standard week-paced day.' : 'Make this a Daily Routine day (unlimited logs, no DONE lock, no week rotation).'}
-                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,padding:"3px 9px",color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap'}}>📆 {d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
+                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,padding:"3px 9px",color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',minWidth:94,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>📆 {d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
                 {(() => {
                   const dayIds = (dayExs||[]).map(e=>e.id);
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);
@@ -963,7 +967,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 })()}
                 {/* Remove-day — ported from the dead detail view (unified had
                     no way to delete a day). Confirm since it's destructive. */}
-                {plan.days.length > 1 && <button onClick={()=>{ if (window.confirm(`Delete "${d.name||'this day'}" and its ${dayExs.length} exercise(s)? This can't be undone.`)) removeDay(dayIdx); }} title="Delete this day" aria-label="Delete day" style={{background:'transparent',border:'none',color:C.rd,cursor:'pointer',fontSize:17,lineHeight:1,padding:'0 4px',opacity:0.55,flexShrink:0}}>×</button>}
+                {plan.days.length > 1 && <button onClick={()=>setConfirmDeleteDay(dayIdx)} title="Delete this day" aria-label="Delete day" style={{background:'transparent',border:'none',color:C.rd,cursor:'pointer',fontSize:17,lineHeight:1,padding:'0 4px',opacity:0.55,flexShrink:0}}>×</button>}
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
@@ -991,7 +995,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
                     return <React.Fragment key={ex.id}>
                       {/* Super-subtle dashed divider between exercises. */}
-                      {exIdx > 0 && <div style={{gridColumn:'1 / -1', borderTop:`1px dashed ${C.ac}`, opacity:0.12, margin:0, position:'relative', top:'-1.5px'}} />}
+                      {exIdx > 0 && <div style={{gridColumn:'1 / -1', borderTop:`1px dashed ${C.ac}`, opacity:0.22, margin:0, position:'relative', top:'-1.5px'}} />}
                       <div draggable
                         onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${dayIdx}:${exIdx}`); setDragSrc({dayIdx, exIdx}); }}
                         onDragOver={e => { if (dragSrc && dragSrc.dayIdx===dayIdx) { e.preventDefault(); e.dataTransfer.dropEffect='move'; setDragOver({dayIdx, exIdx}); } }}
@@ -1335,6 +1339,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         exercises={exercises}
         title="Add Exercise to Day"
       />
+      <ConfirmDialog
+        open={confirmDeleteDay !== null}
+        title="Delete day?"
+        message={confirmDeleteDay !== null ? `"${plan.days[confirmDeleteDay]?.name || 'This day'}" and its ${plan.days[confirmDeleteDay]?.exercises?.length || 0} exercise(s) will be removed. This can't be undone.` : ''}
+        onConfirm={()=>{ removeDay(confirmDeleteDay); setConfirmDeleteDay(null); }}
+        onCancel={()=>setConfirmDeleteDay(null)}
+      />
     </div>);
 }
 
@@ -1466,10 +1477,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       }
       setLinkedTaskId(null);
     }
-    setEditMode(false);
-    clearPlan();
+    // Stay in the editor after Save (Ohad) — refresh the program index in the
+    // background, but do NOT unmount the editor. BACK is the explicit leave.
     await reloadIndex();
-    if (onCloseEditor) onCloseEditor();
   };
 
   // Consume a pending task→plan handoff (set by clicking "→ NEW PROGRAM"

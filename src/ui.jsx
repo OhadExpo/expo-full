@@ -1,6 +1,22 @@
 import React from 'react';
 import { C, FN, FB } from './theme';
 
+// Delayed-unmount for exit animations: keeps a node mounted for `delay` ms
+// after `open` flips false so it can play a .motion-fade-out / .motion-fall
+// exit before React removes it. Returns { mounted, closing }. Keep `delay`
+// in sync with the exit keyframe duration in themes.css (~190ms).
+export function useDelayedUnmount(open, delay = 200) {
+  const [mounted, setMounted] = React.useState(open);
+  const [closing, setClosing] = React.useState(false);
+  React.useEffect(() => {
+    let t;
+    if (open) { setMounted(true); setClosing(false); }
+    else if (mounted) { setClosing(true); t = setTimeout(() => { setMounted(false); setClosing(false); }, delay); }
+    return () => clearTimeout(t);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { mounted, closing };
+}
+
 // Per stroke ruling (`feedback_stroke_ruling.md`): default-state inputs use
 // 0.25px C.ac4D (30% alpha). Bright 1px C.ac is reserved for primary CTAs
 // (Btn primary variant). Active focus would step up to 2px C.ac, but we
@@ -541,14 +557,15 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
       try { lastFocusRef.current?.focus?.(); } catch {}
     };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- onClose via ref
-  if (!open) return null;
+  const { mounted, closing } = useDelayedUnmount(open);
+  if (!mounted) return null;
   return (
     <div
-      role="dialog" aria-modal="true" aria-labelledby={titleId} className="motion-fade-in"
+      role="dialog" aria-modal="true" aria-labelledby={titleId} className={closing ? 'motion-fade-out' : 'motion-fade-in'}
       style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: C.scrim, backdropFilter: "blur(8px)" }}
       onClick={onClose}
     >
-      <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className="motion-rise" style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
+      <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
           <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
           <button onClick={onClose} aria-label="Close dialog" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
@@ -595,10 +612,11 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
       try { lastFocusRef.current?.focus?.(); } catch {}
     };
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- onCancel via ref
-  if (!open) return null;
+  const { mounted, closing } = useDelayedUnmount(open);
+  if (!mounted) return null;
   return (
-    <div role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} className="motion-fade-in" style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={onCancel}>
-      <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className="motion-rise" style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: 400, padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
+    <div role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={onCancel}>
+      <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: 400, padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         <h3 id={titleId} style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
         <p id={msgId} style={{ margin: "0 0 22px", fontSize: 13, color: C.tm, fontFamily: FB, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>

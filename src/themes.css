@@ -531,3 +531,14 @@ html, body {
 }
 @keyframes expoFadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes expoRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Matching EXITS — overlays ease out instead of popping. Driven by a
+   delayed-unmount hook (useDelayedUnmount) that keeps the node mounted for
+   the animation's duration before React removes it. Durations here must stay
+   in sync with the hook's timeout (200ms). */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-fade-out { animation: expoFadeOut .19s ease both; }
+  .motion-fall { animation: expoFall .19s cubic-bezier(.4,0,.7,.4) both; }
+}
+@keyframes expoFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes expoFall { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(5px); } }
