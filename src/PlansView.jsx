@@ -612,7 +612,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
         {exData.laterality && <Badge color={C.tm}>{exData.laterality}</Badge>}
         {exData.primaryMuscles && <span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
       </div> : (exTitle ? <div style={{fontSize:11,color:C.or,marginTop:4}}>📝 {exTitle}</div> : null)}
-      <div style={{display:'grid',gridTemplateColumns:'2.4fr 1fr',gap:16,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.cardBd}`,alignItems:'stretch'}}>
+      <div style={{display:'grid',gridTemplateColumns:'55fr 45fr',gap:16,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.cardBd}`,alignItems:'stretch'}}>
         {/* NOTES (right, narrow ~30% — most cues only fill half the box) */}
         <div style={{gridColumn:2,display:'flex',flexDirection:'column',minWidth:0}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,minHeight:14,gap:8,flexWrap:'wrap'}}>
@@ -1079,7 +1079,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       {/* Inline full detail — the combined overview+detail panel. */}
                       <div style={{gridColumn:'1 / -1', display:'grid', gridTemplateRows: ovExpanded[ex.id]?'1fr':'0fr', transition:'grid-template-rows 260ms ease'}}>
                        <div style={{overflow:'hidden', minHeight:0}}>
-                        <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${ex.superset?sc:C.ac}`, padding:14, margin:'2px 0 12px', display:'flex', flexDirection:'column', gap:12}}>
+                        <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${ex.superset?sc:C.ac}`, padding:14, margin:'2px 0 12px', maxWidth:780, display:'flex', flexDirection:'column', gap:12}}>
                           {/* Only the bits NOT already in the table row — no duplicate
                               sets/reps/load/etc. Swap the exercise + per-week toggle
                               + the polished notes/video block (ExEditorExtras). */}
