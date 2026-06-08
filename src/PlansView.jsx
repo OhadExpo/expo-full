@@ -55,7 +55,7 @@ async function maybeResolveGooglePhotos(url) {
   } catch { return url; }
 }
 
-function PatternCoverage({ plan, exercises }) {
+function PatternCoverage({ plan, exercises, cols = 5 }) {
   const pats = useMemo(() => {
     const s = new Set();
     plan.days.forEach(d => d.exercises.forEach(pe => {
@@ -68,7 +68,7 @@ function PatternCoverage({ plan, exercises }) {
   if (exercises.length === 0) return null;
   return (<div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
     <div style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, marginBottom: 8, letterSpacing:'0.06em' }}>PATTERN COVERAGE: {REQUIRED_PATTERNS.length - missing.length}/{REQUIRED_PATTERNS.length}</div>
-    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={pats.has(p) ? {} : {fontWeight:500,opacity:0.65}}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: 5 }}>{REQUIRED_PATTERNS.map(p => <Badge key={p} color={pats.has(p) ? C.gn : C.tm} style={{ width:'100%', boxSizing:'border-box', justifyContent:'center', textAlign:'center', ...(pats.has(p) ? {} : {fontWeight:500,opacity:0.65}) }}>{pats.has(p) ? "✓" : "✗"} {p}</Badge>)}</div>
   </div>);
 }
 
@@ -408,6 +408,8 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   // the most useful comparison appears first.
   const [selectedAthleteId, setSelectedAthleteId] = useState(() => currentPlan?.traineeId || '');
   const [warmOpen, setWarmOpen] = useState(false);
+  const [collapsedCmpDays, setCollapsedCmpDays] = useState({}); // per-day collapse on the compare side
+  const toggleCmpDay = (k) => setCollapsedCmpDays(prev => ({ ...prev, [k]: !prev[k] }));
   const { plan: cmpPlan, load: loadCmp, clear: clearCmp, loading } = useFullPlan();
   // Athlete options for the dropdown — flatten couples to per-member rows
   // so the picker matches the rest of the app.
@@ -445,7 +447,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   }, [pickedId, loadCmp, clearCmp]);
 
   return (
-    <div style={{flex:1, minWidth:0, alignSelf:'stretch', position:'relative', overflowY:'auto', minHeight:0, paddingRight:8}}>
+    <div style={{flex:1, minWidth:0, alignSelf:'stretch', position:'relative', overflowY:'auto', minHeight:0}}>
       {/* Filter row is ALWAYS rendered. Hiding it on empty-state would trap
           the user (e.g. picked athlete with no programs and couldn't change
           back). Empty states below render after the filter row so the
@@ -477,15 +479,18 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           {/* Pattern coverage of the compared plan. Same component the
               editor renders on the left, so the box sits at the same
               vertical position on both halves. */}
-          <PatternCoverage plan={cmpPlan} exercises={exercises} />
+          <PatternCoverage plan={cmpPlan} exercises={exercises} cols={3} />
               {/* Warm-up (foldable, mirrors editor). */}
               {Array.isArray(cmpPlan.warmup) && cmpPlan.warmup.length > 0 && (
                 <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:12, marginBottom:16}}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                   <button onClick={() => setWarmOpen(o => !o)}
                     style={{background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8}}>
                     <span style={{fontSize:10, color:C.or, fontFamily:FN, fontWeight:700, width:10, display:'inline-block', textAlign:'center'}}>{warmOpen ? '▾' : '▸'}</span>
                     <span style={{fontSize:12, fontFamily:FN, fontWeight:700, color:C.or, letterSpacing:'0.06em'}}>WARM-UP ({cmpPlan.warmup.length})</span>
                   </button>
+                  <span aria-hidden style={{visibility:'hidden', padding:'4px 10px', fontFamily:FN, fontSize:11, fontWeight:700, border:'1px solid transparent', borderRadius:0}}>+ Add Warm-Up</span>
+                  </div>
                   {warmOpen && <div style={{marginTop:8}}>
                     {cmpPlan.warmup.map((w, i) => (
                       <div key={i} style={{display:'grid', gridTemplateColumns:'24px 2fr 1fr', gap:8, padding:'4px 0', alignItems:'center', borderTop:i === 0 ? 'none' : `1px solid rgba(57,189,255,0.102)`}}>
@@ -504,13 +509,17 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
               {(cmpPlan.days || []).map((d, di) => {
                 const dayExs = d.exercises || [];
                 const tinyInputRO = {...baseInput, padding:'3px 6px', fontSize:11, minWidth:0, width:'100%', boxSizing:'border-box', color:C.tm, cursor:'default'};
+                const cmpDayKey = d.id || di;
+                const cmpCollapsed = !!collapsedCmpDays[cmpDayKey];
                 return (
                   <div key={d.id || di} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
-                    <div style={{display:'flex',alignItems:'center',marginBottom:8,gap:10}}>
+                    <div style={{display:'flex',alignItems:'center',marginBottom:8,gap:10,position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4}}>
+                      <span role="button" tabIndex={0} onClick={()=>toggleCmpDay(cmpDayKey)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpDay(cmpDayKey); } }} title={cmpCollapsed?'Expand day':'Collapse day'} style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,userSelect:'none'}}>{cmpCollapsed?'▸':'▾'}</span>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
                       <span style={{color:C.td,fontSize:12,whiteSpace:'nowrap'}}>({dayExs.length} ex)</span>
                     </div>
+                    {!cmpCollapsed && (<>
                     {dayExs.length === 0 ? (
                       <div style={{color:C.td,fontSize:12,fontStyle:'italic'}}>No exercises.</div>
                     ) : (
@@ -519,8 +528,8 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             compare side — load values change every block and
                             aren't useful for delta-scanning. Same column
                             template otherwise. */}
-                        <div style={{display:'grid',gridTemplateColumns:'30px minmax(0,3.3fr) 50px minmax(36px,0.8fr) minmax(46px,1fr) minmax(38px,60px) minmax(52px,1.3fr) 20px',gap:'5px 7px',fontSize:12,alignItems:'center',minWidth:0}}>
-                          {['#','EXERCISE','GRP','SETS','REPS','RPE','TEMPO',''].map((h,hi) =>
+                        <div style={{display:'grid',gridTemplateColumns:'30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px',gap:'3px 8px',fontSize:12,alignItems:'center',minWidth:0}}>
+                          {['#','EXERCISE','GRP','SETS','REPS','LOAD','RPE','TEMPO',''].map((h,hi) =>
                             hi === 0 ? (
                               <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
                                 <span style={{fontFamily:FN, fontSize:12, lineHeight:1, fontWeight:400, opacity:0}}>⇕</span>
@@ -544,6 +553,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : C.td;
                             const weeks = Math.max((pe.wk?.length||0), (pe.wkS?.length||0), 1);
                             return <React.Fragment key={pe.id || ei}>
+                              {ei > 0 && <div style={{gridColumn:'1 / -1', borderTop:`1px dashed ${C.ac}`, opacity:0.22, margin:0}} />}
                               {/* Same flex+⇕ structure as the left side's
                                   number cell. fontSize:12 matches the grid
                                   default, so the number's baseline aligns
@@ -571,6 +581,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                               ) : (
                                 <input value={pe.reps || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               )}
+                              <input value={pe.load || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <input value={pe.rpe || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <input value={pe.tempo || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <div />
@@ -579,6 +590,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                         </div>
                       </div>
                     )}
+                    </>)}
                   </div>
                 );
               })}
@@ -681,6 +693,27 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // off. Layout matches the original side-by-side pattern.
   const [compareOpen, setCompareOpen] = useState(false);
   const compareActive = compareOpen && overview;
+  // Three scrollers in compare: each half is a bounded overflow:auto pane with
+  // its OWN scrollbar (scroll one side alone), AND a wheel anywhere over the
+  // area scrolls BOTH in lock-step so you can run them all the way down
+  // together. Native non-passive listener so preventDefault stops the default
+  // single-pane scroll; only prevents when something moved.
+  const compareScrollRef = useRef(null);
+  useEffect(() => {
+    const el = compareScrollRef.current;
+    if (!el || !compareActive) return;
+    const onWheel = (e) => {
+      let scrolled = false;
+      for (const k of el.children) {
+        const before = k.scrollTop;
+        k.scrollTop += e.deltaY;
+        if (k.scrollTop !== before) scrolled = true;
+      }
+      if (scrolled) e.preventDefault();
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [compareActive]);
   // Auto-close compare when the user leaves Overview, so the state doesn't
   // linger and re-fire if Overview is toggled back on later.
   React.useEffect(() => { if (!overview && compareOpen) setCompareOpen(false); }, [overview, compareOpen]);
@@ -887,8 +920,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           <Btn onClick={handleSave} disabled={saving} style={{height:42,minWidth:190,padding:'0 20px',fontSize:13,letterSpacing:'0.18em',lineHeight:'42px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
-      <div style={{display:compareActive?'flex':'block',gap:16,alignItems:compareActive?'stretch':'flex-start',maxHeight:compareActive?'calc(100vh - 175px)':undefined}}>
-      <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',overflowY:compareActive?'auto':'visible',minHeight:0,paddingRight:compareActive?8:0}}>
+      <div ref={compareScrollRef} style={{display:compareActive?'flex':'block',gap:16,alignItems:compareActive?'stretch':'flex-start',maxHeight:compareActive?'calc(100vh - 170px)':undefined}}>
+      <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',overflowY:compareActive?'auto':'visible',minHeight:0}}>
       <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
@@ -910,7 +943,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           }} />
         )}
       </div>
-      <PatternCoverage plan={plan} exercises={exercises} />
+      <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
       <WarmupEditor plan={plan} setPlan={setPlan} />
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
           via a small 📆 toggle inside the day's content (see below). A daily
@@ -938,7 +971,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const dayCollapsed = !!collapsedDays[d.id];
           return (
             <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'12px 12px 6px'}}>
-              <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
+              <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4} : {})}}>
                 <span role="button" tabIndex={0} onClick={()=>toggleDayCollapse(d.id)}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleDayCollapse(d.id); } }}
                   title={dayCollapsed?'Expand day':'Collapse day'}
@@ -965,7 +998,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:`36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth:Math.max(614,540+weeks*40)}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? 0 : Math.max(614,540+weeks*40)}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
