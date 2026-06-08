@@ -607,15 +607,24 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
   const vidValue = hasVidOverride ? (ex.videoUrl || '') : libUrl;
   return (
     <>
-      {exData ? <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
+      {(exData && (exData.movementPattern || exData.laterality || exData.primaryMuscles)) ? <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
         {exData.movementPattern && <Badge color={C.gn}>{exData.movementPattern}</Badge>}
         {exData.laterality && <Badge color={C.tm}>{exData.laterality}</Badge>}
         {exData.primaryMuscles && <span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
-      </div> : (exTitle ? <div style={{fontSize:11,color:C.or,marginTop:4}}>📝 {exTitle}</div> : null)}
-      <div style={{display:'grid',gridTemplateColumns:'55fr 45fr',gap:16,marginTop:10,paddingTop:10,borderTop:`1px solid ${C.cardBd}`,alignItems:'stretch'}}>
-        {/* NOTES (right, narrow ~30% — most cues only fill half the box) */}
-        <div style={{gridColumn:2,display:'flex',flexDirection:'column',minWidth:0}}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6,minHeight:14,gap:8,flexWrap:'wrap'}}>
+      </div> : (!exData && exTitle ? <div style={{fontSize:11,color:C.or,marginBottom:6}}>📝 {exTitle}</div> : null)}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,paddingTop:10,borderTop:`1px solid ${C.cardBd}`,alignItems:'stretch'}}>
+        {/* LEFT (50%): video URL + NOTES, content centered in the half (same
+            maxWidth as the thumbnail) so both halves are symmetric. */}
+        <div style={{gridColumn:1,gridRow:1,display:'flex',flexDirection:'column',minWidth:0}}>
+         <div style={{width:'100%',maxWidth:440,marginLeft:'auto',marginRight:'auto',display:'flex',flexDirection:'column',gap:6,flex:1}}>
+          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>VIDEO</span>
+          <div style={{display:"grid",gridTemplateColumns:vidValue?"1fr auto":"1fr",gap:6,alignItems:"stretch"}}>
+            <Input value={vidValue} onChange={e=>update({videoUrl:e.target.value})}
+              onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update({ videoUrl: resolved }); }}
+              placeholder="📹 Video URL" />
+            {vidValue && <a href={vidValue} target="_blank" rel="noreferrer" title={hasVidOverride?"Per-program URL":"From exercise library"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.1em',color:hasVidOverride?C.ac:C.tm,textDecoration:"none",padding:"0 9px",border:`${hasVidOverride?'1px':'0.25px'} solid ${hasVidOverride?C.ac:C.cardBd}`,borderRadius:0,whiteSpace:"nowrap",boxSizing:"border-box"}}>{hasVidOverride?"OPEN":"LIB"}</a>}
+          </div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:4,marginBottom:6,minHeight:14,gap:8,flexWrap:'wrap'}}>
             <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>NOTES</span>
             <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
               {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>FROM LIBRARY</span>}
@@ -624,17 +633,11 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
             </div>
           </div>
           <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."} style={{...baseInput,textAlign:'center',flex:1,minHeight:72,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
+         </div>
         </div>
-        {/* VIDEO (left, wide) — URL + embed sized to the column. */}
-        <div style={{gridColumn:1,gridRow:1,display:'flex',flexDirection:'column',minWidth:0,gap:6}}>
-          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>VIDEO</span>
-          <div style={{display:"grid",gridTemplateColumns:vidValue?"1fr auto":"1fr",gap:6,alignItems:"stretch"}}>
-            <Input value={vidValue} onChange={e=>update({videoUrl:e.target.value})}
-              onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update({ videoUrl: resolved }); }}
-              placeholder="📹 Video URL" />
-            {vidValue && <a href={vidValue} target="_blank" rel="noreferrer" title={hasVidOverride?"Per-program URL":"From exercise library"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.1em',color:hasVidOverride?C.ac:C.tm,textDecoration:"none",padding:"0 9px",border:`${hasVidOverride?'1px':'0.25px'} solid ${hasVidOverride?C.ac:C.cardBd}`,borderRadius:0,whiteSpace:"nowrap",boxSizing:"border-box"}}>{hasVidOverride?"OPEN":"LIB"}</a>}
-          </div>
-          {vidValue && showEmbed && <div style={{marginTop:2}}><VideoEmbed url={vidValue} /></div>}
+        {/* RIGHT (50%): the video thumbnail. */}
+        <div style={{gridColumn:2,gridRow:1,display:'flex',flexDirection:'column',minWidth:0,justifyContent:'center'}}>
+          {vidValue && showEmbed && <div style={{maxWidth:440,marginLeft:'auto',marginRight:'auto',width:'100%'}}><VideoEmbed url={vidValue} /></div>}
         </div>
       </div>
     </>
@@ -852,8 +855,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         /* Editor field row: 4 across on wide, 2 on medium, 1 on narrow —
            never 3, so Weeks never lands on a row by itself, and Phase/Block
            always has room (no label wrap / misalignment). */
-        .plan-fields-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        @media (max-width: 1100px) { .plan-fields-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        .plan-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        @media (max-width: 1100px) { .plan-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (max-width: 620px) { .plan-fields-grid { grid-template-columns: 1fr; } }
         @media (max-width: 900px) {
           .ex-row-outer { grid-template-columns: 38px 1fr !important; gap: 8px !important; }
@@ -978,7 +981,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const dayExs = d.exercises || [];
           const weeks = plan.weeks || 4;
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
-          const tinyInput = {...baseInput, padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
+          const tinyInput = {...baseInput, background:'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           const dayCollapsed = !!collapsedDays[d.id];
           return (
             <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
@@ -1000,7 +1003,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:`36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:Math.max(614,540+weeks*40)}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:`36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth:Math.max(614,540+weeks*40)}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -1023,6 +1026,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
                     return <React.Fragment key={ex.id}>
+                      {/* Super-subtle dashed divider between exercises. */}
+                      {exIdx > 0 && <div style={{gridColumn:'1 / -1', borderTop:`1px dashed ${C.ac}`, opacity:0.12, margin:0, position:'relative', top:'-1.5px'}} />}
                       <div draggable
                         onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${dayIdx}:${exIdx}`); setDragSrc({dayIdx, exIdx}); }}
                         onDragOver={e => { if (dragSrc && dragSrc.dayIdx===dayIdx) { e.preventDefault(); e.dataTransfer.dropEffect='move'; setDragOver({dayIdx, exIdx}); } }}
@@ -1079,7 +1084,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       {/* Inline full detail — the combined overview+detail panel. */}
                       <div style={{gridColumn:'1 / -1', display:'grid', gridTemplateRows: ovExpanded[ex.id]?'1fr':'0fr', transition:'grid-template-rows 260ms ease'}}>
                        <div style={{overflow:'hidden', minHeight:0}}>
-                        <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${ex.superset?sc:C.ac}`, padding:14, margin:'2px 0 12px', maxWidth:780, display:'flex', flexDirection:'column', gap:12}}>
+                        <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${ex.superset?sc:C.ac}`, padding:14, margin:'2px 0 12px', display:'flex', flexDirection:'column', gap:12}}>
                           {/* Only the bits NOT already in the table row — no duplicate
                               sets/reps/load/etc. Swap the exercise + per-week toggle
                               + the polished notes/video block (ExEditorExtras). */}
