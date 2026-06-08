@@ -701,7 +701,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   useEffect(() => {
     if (!compareActive) return;
     const onWheel = (e) => {
-      if (e.target && e.target.closest && e.target.closest('[data-compare-pane]')) return;
+      if (!e.target || !e.target.closest) return;
+      if (e.target.closest('[data-compare-pane]')) return; // over a pane → it scrolls itself
+      if (e.target.closest('[role="dialog"]')) return; // a modal is open over compare → let it scroll, don't hijack
       const panes = document.querySelectorAll('[data-compare-pane]');
       if (!panes.length) return;
       let scrolled = false;
