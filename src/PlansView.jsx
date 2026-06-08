@@ -1058,6 +1058,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   })}
                 </div></div>
               }
+              {/* Add-exercise — ported to the unified view (the only add buttons
+                  used to live in the dead detail view, so the unified editor
+                  couldn't add exercises at all). Targets THIS day. */}
+              <Btn variant="ghost" onClick={()=>{ setActiveDay(dayIdx); setAddExerciseOpen(true); }} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
               </div></div>
             </div>
           );
