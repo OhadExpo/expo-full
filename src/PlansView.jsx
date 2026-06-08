@@ -523,12 +523,12 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                     {dayExs.length === 0 ? (
                       <div style={{color:C.td,fontSize:12,fontStyle:'italic'}}>No exercises.</div>
                     ) : (
-                      <div style={{overflowX:'auto',margin:'0 -12px',padding:'0 12px'}}>
+                      <div style={{overflowX:'auto',margin:'0 -12px',padding:'0 12px 7px'}}>
                         {/* LOAD column intentionally omitted on the read-only
                             compare side — load values change every block and
                             aren't useful for delta-scanning. Same column
                             template otherwise. */}
-                        <div style={{display:'grid',gridTemplateColumns:'30px minmax(130px,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px',gap:'3px 8px',fontSize:12,alignItems:'center',minWidth:0}}>
+                        <div style={{display:'grid',gridTemplateColumns:'30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px',gap:'3px 8px',fontSize:12,alignItems:'center',minWidth:Math.max(614,540+(cmpPlan.weeks||4)*40)}}>
                           {['#','EXERCISE','GRP','SETS','REPS','LOAD','RPE','TEMPO',''].map((h,hi) =>
                             hi === 0 ? (
                               <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -701,7 +701,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   useEffect(() => {
     if (!compareActive) return;
     const onWheel = (e) => {
-      if (e.target && e.target.closest && e.target.closest('[data-compare-pane]')) return; // over a pane → it scrolls itself
+      if (e.target && e.target.closest && e.target.closest('[data-compare-pane]')) return;
       const panes = document.querySelectorAll('[data-compare-pane]');
       if (!panes.length) return;
       let scrolled = false;
@@ -995,7 +995,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns: compareActive ? `30px minmax(130px,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? 0 : Math.max(614,540+weeks*40)}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div style={{display:"grid",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: Math.max(614,540+weeks*40)}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
