@@ -597,7 +597,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
 // renders clearly RED in both light and dark themes via C.rd.
 function TrashIcon({ size = 14, color = C.rd }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }} aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', opacity: 0.68 }} aria-hidden="true">
       <polyline points="3 6 5 6 21 6" />
       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
       <line x1="10" y1="11" x2="10" y2="17" />
@@ -625,11 +625,12 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
         {exData.laterality && <Badge color={C.tm}>{exData.laterality}</Badge>}
         {exData.primaryMuscles && <span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
       </div> : (!exData && exTitle ? <div style={{fontSize:11,color:C.or,marginBottom:6}}>📝 {exTitle}</div> : null)}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,paddingTop:10,borderTop:`1px solid ${C.cardBd}`,alignItems:'stretch'}}>
-        {/* LEFT (50%): video URL + NOTES, content centered in the half (same
-            maxWidth as the thumbnail) so both halves are symmetric. */}
-        <div style={{gridColumn:1,gridRow:1,display:'flex',flexDirection:'column',minWidth:0}}>
-         <div style={{width:'100%',maxWidth:440,marginLeft:'auto',marginRight:'auto',display:'flex',flexDirection:'column',gap:6,flex:1}}>
+      {/* Video URL spans the top; NOTES (left) + thumbnail (right) sit in an
+          aligned row below — the spacer on the right matches the NOTES label
+          row, so the notes box and the thumbnail are the exact same height
+          (tops AND bottoms line up). */}
+      <div style={{paddingTop:10,borderTop:`1px solid ${C.cardBd}`,display:'flex',flexDirection:'column',gap:10}}>
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
           <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>VIDEO</span>
           <div style={{display:"grid",gridTemplateColumns:vidValue?"1fr auto":"1fr",gap:6,alignItems:"stretch"}}>
             <Input value={vidValue} onChange={e=>update({videoUrl:e.target.value})}
@@ -637,20 +638,27 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
               placeholder="📹 Video URL" />
             {vidValue && <a href={vidValue} target="_blank" rel="noreferrer" title={hasVidOverride?"Per-program URL":"From exercise library"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.1em',color:hasVidOverride?C.ac:C.tm,textDecoration:"none",padding:"0 9px",border:`${hasVidOverride?'1px':'0.25px'} solid ${hasVidOverride?C.ac:C.cardBd}`,borderRadius:0,whiteSpace:"nowrap",boxSizing:"border-box"}}>{hasVidOverride?"OPEN":"LIB"}</a>}
           </div>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:4,marginBottom:6,minHeight:14,gap:8,flexWrap:'wrap'}}>
-            <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>NOTES</span>
-            <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-              {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>FROM LIBRARY</span>}
-              {hasNoteOverride && libCues && <button onClick={()=>update({notes:'',notesEdited:false})} title="Discard this program's override and show the library cues again. Doesn't touch the library." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0}}>↩ LIBRARY</button>}
-              {hasNoteOverride && (ex.notes||'').length>0 && <button onClick={()=>update({notes:'',notesEdited:true})} title="Clear the note for this program only (library is untouched)." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.rd,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0,opacity:0.7}}>× CLEAR</button>}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,alignItems:'stretch'}}>
+          {/* NOTES (left) */}
+          <div style={{gridColumn:1,display:'flex',flexDirection:'column',minWidth:0,gap:6}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:16,gap:8,flexWrap:'wrap'}}>
+              <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>NOTES</span>
+              <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                {isFallback && <span title="Auto-prefilled from the exercise library — start typing to override for this program only" style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>FROM LIBRARY</span>}
+                {hasNoteOverride && libCues && <button onClick={()=>update({notes:'',notesEdited:false})} title="Discard this program's override and show the library cues again. Doesn't touch the library." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0}}>↩ LIBRARY</button>}
+                {hasNoteOverride && (ex.notes||'').length>0 && <button onClick={()=>update({notes:'',notesEdited:true})} title="Clear the note for this program only (library is untouched)." style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.rd,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',padding:'2px 7px',cursor:'pointer',borderRadius:0,opacity:0.7}}>× CLEAR</button>}
+              </div>
+            </div>
+            <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."} style={{...baseInput,textAlign:'center',flex:1,minHeight:120,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
+          </div>
+          {/* THUMBNAIL (right) — spacer mirrors the NOTES label row height. */}
+          <div style={{gridColumn:2,display:'flex',flexDirection:'column',minWidth:0,gap:6}}>
+            <div aria-hidden style={{minHeight:16,visibility:'hidden'}} />
+            <div style={{flex:1,display:'flex',alignItems:'flex-start',justifyContent:'center'}}>
+              {vidValue && showEmbed && <div style={{maxWidth:440,width:'100%'}}><VideoEmbed url={vidValue} /></div>}
             </div>
           </div>
-          <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."} style={{...baseInput,textAlign:'center',flex:1,minHeight:72,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
-         </div>
-        </div>
-        {/* RIGHT (50%): the video thumbnail. */}
-        <div style={{gridColumn:2,gridRow:1,display:'flex',flexDirection:'column',minWidth:0,justifyContent:'center'}}>
-          {vidValue && showEmbed && <div style={{maxWidth:440,marginLeft:'auto',marginRight:'auto',width:'100%'}}><VideoEmbed url={vidValue} /></div>}
         </div>
       </div>
     </>
