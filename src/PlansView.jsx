@@ -961,6 +961,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     title={anyOpen?'Collapse all exercises in this day':'Expand all exercises in this day to edit fully'}
                     style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',whiteSpace:'nowrap'}}>{anyOpen?'▴ COLLAPSE ALL':'▾ EXPAND ALL'}</button>;
                 })()}
+                {/* Remove-day — ported from the dead detail view (unified had
+                    no way to delete a day). Confirm since it's destructive. */}
+                {plan.days.length > 1 && <button onClick={()=>{ if (window.confirm(`Delete "${d.name||'this day'}" and its ${dayExs.length} exercise(s)? This can't be undone.`)) removeDay(dayIdx); }} title="Delete this day" aria-label="Delete day" style={{background:'transparent',border:'none',color:C.rd,cursor:'pointer',fontSize:17,lineHeight:1,padding:'0 4px',opacity:0.55,flexShrink:0}}>×</button>}
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
@@ -1066,6 +1069,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             </div>
           );
         })}
+        {/* Add-day — ported to the unified view (the only add-day button lived
+            in the dead detail view, so the unified editor couldn't add days). */}
+        <button onClick={addDay} title="Add a day to this program"
+          style={{background:'transparent',border:`1px dashed ${C.ac}`,borderRadius:0,padding:'11px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase'}}>+ ADD DAY</button>
       </div>}
       {!overview && day && <div style={{marginBottom:12}}><Input label={`Day ${activeDay+1} Name`} value={day.name} onChange={e=>updateDay(activeDay,{name:e.target.value})} /></div>}
       {/* Per-day "📆 Daily Routine" toggle. When ON, this specific day lets
