@@ -316,8 +316,8 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const pillColor = sc ? sc.bg : 'var(--c-tm)';
   const filled = !!sc; // open/no-color renders as an outline, the rest fill
   const pillBase = {
-    display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-    height: 26, padding: '0 10px', borderRadius: 0,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexShrink: 0,
+    height: 26, minWidth: 118, padding: '0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
     border: `1px solid ${pillColor}`,

@@ -1203,14 +1203,14 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
         <div style={{flex:1,display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-start'}}>
           <button onClick={togglePose} disabled={poseLoading}
-            style={{padding:'3px 10px',borderRadius:0,border:`${poseOn?'2px':'0px'} solid ${C.ac}`,
+            style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${poseOn?C.ac:'transparent'}`,minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
               background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
             {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
           </button>
           <button onClick={toggleReps} disabled={poseLoading}
             title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-            style={{padding:'3px 10px',borderRadius:0,border:`${repsOn?'2px':'0px'} solid ${C.gn}`,
+            style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${repsOn?C.gn:'transparent'}`,minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
               background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
             {repsOn ? `REPS ${reps}` : 'REPS'}
@@ -1237,7 +1237,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {notes.length > 0 && role !== 'trainer' && (
             <button onClick={toggleComments}
               title={commentsEnabled ? 'Auto-pause at comments ON — click to disable' : 'Comments hidden — click to enable auto-pause'}
-              style={{padding:'3px 10px',borderRadius:0,border:`${commentsEnabled?'2px':'0px'} solid ${C.ac}`,
+              style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${commentsEnabled?C.ac:'transparent'}`,minWidth:116,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
                 background:commentsEnabled?C.acD:'transparent',color:commentsEnabled?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
               {commentsEnabled ? 'COMMENTS ON' : 'COMMENTS OFF'}
             </button>
@@ -1260,7 +1260,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       <div style={{display:'flex',gap:4,alignItems:'center',justifyContent:'center',flexWrap:'wrap'}}>
         {speeds.map(s => (
           <button key={s} onClick={() => setSpeed(s)} title={`Playback speed ${s}x`}
-            style={{padding:'3px 6px',borderRadius:0,border:`${speed===s?'2px':'0px'} solid ${C.ac}`,
+            style={{padding:'3px 6px',borderRadius:0,border:`2px solid ${speed===s?C.ac:'transparent'}`,boxSizing:'border-box',
               background:speed===s?C.acD:'transparent',color:speed===s?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
         ))}
