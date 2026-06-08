@@ -414,7 +414,7 @@ function ClientPortalMock({ onPick }) {
       <div style={{ padding: '14px 20px 0', display: 'flex', gap: 4 }}>
         {[['prog', 'Program'], ['bwt', 'BW'], ['pr', 'PRs'], ['hist', `History (${HISTORY.length})`]].map(([k, l]) => (
           <button key={k} onClick={() => setVw(k)} style={{
-            flex: 1, padding: 8, borderRadius: 0,
+            flex: 1, padding: 8, borderRadius: 0, boxSizing: 'border-box',
             border: `${vw === k ? '2px' : '0.25px'} solid ${C.ac}${vw === k ? '' : '4D'}`,
             background: vw === k ? C.acD : 'transparent',
             color: vw === k ? C.ac : C.tm,
@@ -440,7 +440,7 @@ function ClientPortalMock({ onPick }) {
             <div style={{ display: 'flex', gap: 4, marginBottom: 10, flexWrap: 'wrap' }}>
               {Array.from({ length: PLAN.weeks }, (_, w) => (
                 <button key={w} onClick={() => setWk(w)} style={{
-                  flex: '1 1 40px', padding: '6px 0', borderRadius: 0,
+                  flex: '1 1 40px', padding: '6px 0', borderRadius: 0, boxSizing: 'border-box',
                   border: `${wk === w ? '2px' : '0.25px'} solid ${C.ac}${wk === w ? '' : '4D'}`,
                   background: wk === w ? C.acD : 'transparent',
                   color: wk === w ? C.ac : C.tm,
@@ -609,7 +609,7 @@ function ClientPortalMock({ onPick }) {
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {Array.from({ length: PLAN.weeks }, (_, w) => (
                 <button key={w} onClick={() => setWk(w)} style={{
-                  flex: '1 1 40px', padding: '8px 0', borderRadius: 0,
+                  flex: '1 1 40px', padding: '8px 0', borderRadius: 0, boxSizing: 'border-box',
                   border: `${wk === w ? '2px' : '0.25px'} solid ${C.ac}${wk === w ? '' : '4D'}`,
                   background: wk === w ? C.acD : 'transparent',
                   color: wk === w ? C.ac : C.tm,
