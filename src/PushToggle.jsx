@@ -95,10 +95,10 @@ export default function PushToggle({ role = 'athlete', compact = false }) {
         {!iosNotInstalled && !denied && (
           enabled ? (
             <button onClick={onDisable} disabled={busy}
-              style={btnGhost(busy)}>{busy ? '…' : 'TURN OFF'}</button>
+              style={{...btnGhost(busy), minWidth:88, textAlign:'center'}}>{busy ? '…' : 'TURN OFF'}</button>
           ) : (
             <button onClick={onEnable} disabled={busy}
-              style={btnAccent(busy)}>{busy ? '…' : 'ENABLE'}</button>
+              style={{...btnAccent(busy), minWidth:88, textAlign:'center'}}>{busy ? '…' : 'ENABLE'}</button>
           )
         )}
       </div>

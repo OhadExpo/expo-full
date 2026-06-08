@@ -359,6 +359,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
               background: 'transparent', color: summary.trim() ? C.ac : C.td,
               fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
               cursor: summary.trim() ? 'pointer' : 'default',
+              minWidth: 124, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             }}>{saving ? 'SAVING…' : alsoTask ? 'LOG + TASK →' : 'LOG →'}</button>
         </div>
       </div>

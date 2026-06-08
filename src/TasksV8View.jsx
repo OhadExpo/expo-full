@@ -1034,6 +1034,7 @@ function MigrationPendingHint() {
           border: 'none', fontFamily: FN, fontSize: 10, fontWeight: 700,
           letterSpacing: '0.12em', padding: '6px 12px', cursor: 'pointer',
           borderRadius: 0, textTransform: 'uppercase',
+          minWidth: 104, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         }}>{copied ? '✓ Copied' : '1. Copy SQL'}</button>
         <a href={studioHref} target="_blank" rel="noopener noreferrer"
           style={{
