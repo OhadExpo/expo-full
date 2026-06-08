@@ -453,7 +453,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           headerRight = the 3 action buttons. Body = payments table or
           empty state. */}
       <CollapsibleSection title="Billing" count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16}}
-        right={<>
+        right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
           {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginRight:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} paid</span>}
           <div style={{display:'flex',gap:0}}>
           {/* F-27 — open the brand-rich contract composer. */}
@@ -466,7 +466,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:bitPhone?'#FFFFFF':'rgba(255,255,255,0.45)',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:bitPhone?'pointer':'not-allowed',borderRadius:0}}>📲 REQUEST VIA BIT</button>
           <button onClick={()=>setShowPayForm(true)}
             style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:'#FFFFFF',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:'pointer',borderRadius:0}}>+ ADD PAYMENT</button>
-        </div></>}>
+        </div></div>}>
       {tPay.length===0?<div style={{color:C.td,fontSize:13,textAlign:'center',padding:'10px 0'}}>No payments recorded.</div>:(
         <div style={{overflowX:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontFamily:FB,fontSize:13}}>
           <thead><tr style={{borderBottom:`1px solid ${C.cardBd}`}}>{["Date","Amount","Method","Status","Notes",""].map(h=><th key={h} style={{textAlign:"center",padding:"6px 10px",fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{h}</th>)}</tr></thead>
