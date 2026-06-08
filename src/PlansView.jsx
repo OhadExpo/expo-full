@@ -5,7 +5,7 @@ import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RES
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, RefinedHeaderStrip } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, RefinedHeaderStrip, usePersistentState } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -75,7 +75,8 @@ function PatternCoverage({ plan, exercises }) {
 // Shared modal for browsing and picking an exercise.
 // Props: open, onClose, onPick(exerciseId), exercises, currentId, title
 // onPickName(name) — optional: pick a FREE-TEXT name not in the library.
-function ExerciseBrowserModal({ open, onClose, onPick, onPickName, exercises, currentId, currentEx, fallbackTitle }) {
+// onCreateLibrary(name) — optional: create a real library exercise + link it.
+function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibrary, exercises, currentId, currentEx, fallbackTitle }) {
   const [search, setSearch] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const [filters, setFilters] = useState({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
@@ -213,13 +214,26 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, exercises, cu
           {filt.length === 0 ? (
             <div style={{ padding: 40, fontSize: 13, color: C.td, textAlign: 'center' }}>
               No exercises found. Try relaxing filters or the search term.
-              {onPickName && search.trim() && (
-                <div style={{ marginTop: 16 }}>
-                  <button onClick={pickName}
-                    style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', padding: '8px 16px', borderRadius: 0 }}>
-                    + ADD “{search.trim()}” AS A NEW EXERCISE
-                  </button>
-                  <div style={{ marginTop: 8, fontSize: 10, color: C.td }}>Adds it by name only — no library link, notes, or video.</div>
+              {(onPickName || onCreateLibrary) && search.trim() && (
+                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+                  {onPickName && (
+                    <div>
+                      <button onClick={pickName}
+                        style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', padding: '8px 16px', borderRadius: 0 }}>
+                        + ADD “{search.trim()}” TO THIS PROGRAM ONLY
+                      </button>
+                      <div style={{ marginTop: 6, fontSize: 10, color: C.td }}>By name only — no library link, notes, or video.</div>
+                    </div>
+                  )}
+                  {onCreateLibrary && (
+                    <div>
+                      <button onClick={() => { onCreateLibrary(search.trim()); onClose(); }}
+                        style={{ background: C.ac, border: `1px solid ${C.ac}`, color: '#FFFFFF', cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', padding: '8px 16px', borderRadius: 0 }}>
+                        + CREATE “{search.trim()}” IN THE LIBRARY
+                      </button>
+                      <div style={{ marginTop: 6, fontSize: 10, color: C.td }}>Adds a reusable library exercise (edit details later in Exercises).</div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -581,13 +595,15 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, weeklyFocus, setWeeklyFocus, planIndex, onPreviewPlan }) {
+function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, weeklyFocus, setWeeklyFocus, planIndex, onPreviewPlan }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [overview, setOverview] = useState(true); // Overview is the default view (Ohad)
   const [quickName, setQuickName] = useState(''); // draft quick-add-by-name input
+  const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
+  const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
   // Compare mode: side-by-side 50/50 split with a read-only view of a
   // previous program (same athlete). Only available WHEN Overview is on —
   // anchored to the wide grid where row-by-row delta-scanning actually pays
@@ -640,6 +656,22 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     const ex = defaultPlanEx();
     ex.order = plan.days[activeDay]?.exercises.length || 0;
     ex.title = t;
+    updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
+  };
+  // Create a REAL library exercise (reusable, editable in the library) and
+  // link this plan row to it — vs addExByName which is plan-only free text.
+  const createLibraryExercise = (name) => {
+    const t = (name || '').trim();
+    if (!t || !setExercises) return;
+    const id = uid();
+    setExercises(prev => [...(prev || []), {
+      id, title: t, category: '', resistanceType: '', bodyPosition: '',
+      movementType: '', movementPattern: '', laterality: '', primaryMuscles: '',
+      secondaryMuscles: '', cues: '', videoLink: '',
+    }]);
+    const ex = defaultPlanEx();
+    ex.order = plan.days[activeDay]?.exercises.length || 0;
+    ex.exerciseId = id;
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
   };
   // When the coach swaps the exerciseId on an existing row, re-seed the
@@ -826,15 +858,21 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const weeks = plan.weeks || 4;
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
+          const dayCollapsed = !!collapsedDays[d.id];
           return (
             <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12}}>
               <div style={{display:"flex",alignItems:"center",marginBottom:8,gap:10}}>
+                <span role="button" tabIndex={0} onClick={()=>toggleDayCollapse(d.id)}
+                  onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleDayCollapse(d.id); } }}
+                  title={dayCollapsed?'Expand day':'Collapse day'}
+                  style={{cursor:'pointer',color:C.tm,fontSize:13,lineHeight:1,flexShrink:0,transform:dayCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease',userSelect:'none'}}>▾</span>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
                 <span style={{color:C.td,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
                 <button onClick={()=>{setActiveDay(dayIdx);setOverview(false)}} title="Open this day in the detail editor — needed to add exercises, change the exercise itself, or edit notes/URL"
                   style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.18em',marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
+              <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
                 <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:`36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:Math.max(614,540+weeks*40)}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
@@ -905,6 +943,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   })}
                 </div></div>
               }
+              </div></div>
             </div>
           );
         })}
@@ -1167,6 +1206,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         onClose={()=>setAddExerciseOpen(false)}
         onPick={id=>{ addExWithId(id); setAddExerciseOpen(false); }}
         onPickName={name=>{ addExByName(name); setAddExerciseOpen(false); }}
+        onCreateLibrary={setExercises ? (name=>{ createLibraryExercise(name); setAddExerciseOpen(false); }) : undefined}
         exercises={exercises}
         title="Add Exercise to Day"
       />
@@ -1191,7 +1231,7 @@ function visKeyForPlan(p, trainees) {
   return `${trainee.name}:${p.name}:m0`;
 }
 
-export default function PlansView({ planIndex, reloadIndex, trainees, exercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
+export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [linkedTaskId, setLinkedTaskId] = useState(null);
   const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
@@ -1506,7 +1546,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // programs via the new in-editor dropdown — PlanEditor's internal `plan`
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
-    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} onPreviewPlan={onPreviewPlan} />;
+    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} onPreviewPlan={onPreviewPlan} />;
   }
 
   return (
