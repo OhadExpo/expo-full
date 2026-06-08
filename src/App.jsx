@@ -746,6 +746,12 @@ function AuthedApp() {
         const parts = sub.split('/');
         return { mode:'coach', tab:'plans', planPreviewId: parts[1] };
       }
+      // /coach/programs/<planId> — open that program in the editor (deep-link
+      // so a refresh / tab-duplicate lands back in the same editor).
+      if (sub.startsWith('programs/')) {
+        const parts = sub.split('/');
+        if (parts[1]) return { mode:'coach', tab:'plans', planEditId: parts[1] };
+      }
       const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
@@ -763,7 +769,7 @@ function AuthedApp() {
   const [selectedTrainee,setSelectedTrainee]=useState(initRoute.traineeId || null);
   const [previewTrainee,setPreviewTrainee]=useState(initRoute.preview ? initRoute.traineeId : null);
   const [previewPlan,setPreviewPlan]=useState(initRoute.planPreviewId || null);
-  const [selectedPlanId,setSelectedPlanId]=useState(null);
+  const [selectedPlanId,setSelectedPlanId]=useState(initRoute.planEditId || null);
   // Tracks where the plan editor was entered FROM, so the back button
   // routes the coach back there instead of always landing on /programs.
   // null = no editor open; { kind: 'trainees', traineeId: 'tr_xxx' } = came
@@ -809,7 +815,7 @@ function AuthedApp() {
   useEffect(() => {
     const onPop = () => {
       const r = getRoute();
-      if (r.mode === 'coach') { setTab(r.tab); setSelectedTrainee(r.traineeId); setPreviewTrainee(r.preview ? r.traineeId : null); setPreviewPlan(r.planPreviewId || null); }
+      if (r.mode === 'coach') { setTab(r.tab); setSelectedTrainee(r.traineeId); setPreviewTrainee(r.preview ? r.traineeId : null); setPreviewPlan(r.planPreviewId || null); setSelectedPlanId(r.planEditId || null); }
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
@@ -1095,7 +1101,7 @@ function AuthedApp() {
           {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
           {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout}/>}
           {tab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
-          {tab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} setExercises={setExercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVis} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
+          {tab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} setExercises={setExercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onEditorOpen={(id)=>{ const path='/coach/programs/'+id; if(window.location.pathname!==path) window.history.pushState(null,'',path); }} onEditorClose={()=>{ const p=window.location.pathname; if(p.startsWith('/coach/programs/')&&!p.endsWith('/preview')) window.history.replaceState(null,'','/coach/programs'); }} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVis} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
           {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}
           {tab==="tasks"&&<CoachTasksView trainees={trainees} onSelectTrainee={id=>navTo("trainees",id)} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
           {tab==="bugs"&&<BugsView/>}

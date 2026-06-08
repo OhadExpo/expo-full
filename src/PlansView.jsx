@@ -1233,7 +1233,7 @@ function visKeyForPlan(p, trainees) {
   return `${trainee.name}:${p.name}:m0`;
 }
 
-export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
+export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
   const { plan: editPlanData, loading: editLoading, load: loadFullPlan, clear: clearPlan, setPlan: setEditPlan } = useFullPlan();
   const [linkedTaskId, setLinkedTaskId] = useState(null);
   const { plan: previewPlan, load: loadPreviewPlan, clear: clearPreviewPlan } = useFullPlan();
@@ -1255,6 +1255,16 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       loadFullPlan(openPlanId).then(() => { setEditMode(true); if (onPlanOpened) onPlanOpened(); });
     }
   }, [openPlanId]);
+
+  // Report editor open/close to the parent so it can deep-link the URL
+  // (/coach/programs/<planId>) — a refresh / tab-duplicate then reopens the
+  // same editor instead of dropping back to the list. Ref-guarded so close
+  // only fires after a real open (not on initial mount).
+  const wasEditingRef = React.useRef(false);
+  React.useEffect(() => {
+    if (editMode && editPlanData?.id) { if (onEditorOpen) onEditorOpen(editPlanData.id); wasEditingRef.current = true; }
+    else if (!editMode && wasEditingRef.current) { if (onEditorClose) onEditorClose(); wasEditingRef.current = false; }
+  }, [editMode, editPlanData?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Athlete-grouped view: collapsed by default, expanded individually per
   // athlete row. Lives in a Set so toggling one row doesn't churn other rows
