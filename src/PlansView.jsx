@@ -665,72 +665,6 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
   );
 }
 
-// The full exercise editor card — the polished detail layout (field grid with
-// per-week sets/reps toggles + labels, then badges/notes/video via
-// ExEditorExtras). Reused as the overview's inline-expand panel so "expand a
-// row" shows the exact good detail card. `update(patch)` drives either view.
-function ExFullEditor({ ex, exData, exTitle, update, weeks, exercises }) {
-  const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
-  const lbl = {fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:"0.18em",fontFamily:FN};
-  const toggleBtn = {background:"none",border:"none",color:C.ac,fontSize:11,cursor:"pointer",padding:"0 2px",marginLeft:"auto",fontFamily:FN,lineHeight:1,whiteSpace:"nowrap"};
-  return (
-    <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${ex.superset?C.ac:C.cardBd}`,borderRadius:0,padding:14,display:'flex',flexDirection:'column'}}>
-      <div className="ex-row-grid" style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr",minWidth:0,gap:12,alignItems:"end"}}>
-        <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />
-        <div style={{minWidth:0}}>
-          <Select label="Superset" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>update({superset:v})} />
-        </div>
-        {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
-          <div style={{display:"flex",flexDirection:"column",gap:4}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-              <label style={lbl}>Sets / Wk</label>
-              <button onClick={()=>update({wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3})} title="Single sets value" style={toggleBtn}>↤</button>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},minmax(36px,1fr))`,gap:3}}>
-              {Array.from({length:weeks}).map((_,i) => (
-                <input key={i} value={ex.wkS[i]||""} onChange={e=>{const next=resize(ex.wkS,weeks,""); next[i]=e.target.value; update({wkS:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:4,minWidth:0}}>
-              <label style={{...lbl,whiteSpace:"nowrap"}}>Sets</label>
-              <button onClick={()=>update({wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} title="Set different sets per week" style={toggleBtn}>↦</button>
-            </div>
-            <input type="number" value={ex.sets} onChange={e=>update({sets:parseInt(e.target.value)||0})} style={{...baseInput}} />
-          </div>
-        )}
-        {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (
-          <div style={{display:"flex",flexDirection:"column",gap:4}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-              <label style={lbl}>Reps / Wk</label>
-              <button onClick={()=>update({wk:null,reps:ex.wk[0]||"8-12"})} title="Single reps value" style={toggleBtn}>↤</button>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:`repeat(${weeks},minmax(36px,1fr))`,gap:3}}>
-              {Array.from({length:weeks}).map((_,i) => (
-                <input key={i} value={ex.wk[i]||""} onChange={e=>{const next=resize(ex.wk,weeks,""); next[i]=e.target.value; update({wk:next})}} placeholder={"W"+(i+1)} style={{...baseInput,padding:"4px 6px",fontSize:11,minWidth:0}} />
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{display:"flex",flexDirection:"column",gap:4}}>
-            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-              <label style={lbl}>Reps</label>
-              <button onClick={()=>update({wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} title="Set different reps per week" style={toggleBtn}>↦</button>
-            </div>
-            <input value={ex.reps||""} onChange={e=>update({reps:e.target.value})} placeholder="8-12" style={{...baseInput}} />
-          </div>
-        )}
-        <Input label="Load" value={ex.load} onChange={e=>update({load:e.target.value})} placeholder="kg/%" />
-        <Input label="RPE" value={ex.rpe} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" />
-        <Input label="Tempo" value={ex.tempo} onChange={e=>update({tempo:e.target.value})} placeholder="3010" />
-      </div>
-      <ExEditorExtras ex={ex} exData={exData} exTitle={exTitle} update={update} />
-    </div>
-  );
-}
-
 function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, weeklyFocus, setWeeklyFocus, planIndex, onPreviewPlan }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
@@ -1014,12 +948,18 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
                   style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260}} />
                 <span style={{color:C.td,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
+                {/* Per-day Daily-Routine toggle — ported from the old detail view
+                    (the unified view had dropped it). ON = athlete logs this day
+                    unlimited times per block, no DONE lock, no week rotation. */}
+                <button onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { kind: 'daily' }); }}
+                  title={d.kind==='daily' ? 'Daily Routine ON — unlimited logs per block, no DONE lock, no week rotation. Click for a standard week-paced day.' : 'Make this a Daily Routine day (unlimited logs, no DONE lock, no week rotation).'}
+                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,padding:"3px 9px",color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap'}}>📆 {d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
                 {(() => {
                   const dayIds = (dayExs||[]).map(e=>e.id);
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);
                   return <button onClick={()=>setOvExpanded(prev=>{ const next={...prev}; dayIds.forEach(id=>{ if(anyOpen) delete next[id]; else next[id]=true; }); return next; })}
                     title={anyOpen?'Collapse all exercises in this day':'Expand all exercises in this day to edit fully'}
-                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',marginLeft:"auto",whiteSpace:'nowrap'}}>{anyOpen?'▴ COLLAPSE ALL':'▾ EXPAND ALL'}</button>;
+                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',whiteSpace:'nowrap'}}>{anyOpen?'▴ COLLAPSE ALL':'▾ EXPAND ALL'}</button>;
                 })()}
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
