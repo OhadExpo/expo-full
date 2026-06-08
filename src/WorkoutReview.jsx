@@ -6,7 +6,7 @@ import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 // missing ascenders/descenders). Per feedback_new_ui_box_dimensions:
 // "Hebrew bumps +3px inside the box, never resizes the box itself."
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection } from './ui';
+import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection, useDelayedUnmountValue } from './ui';
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import useAutosave from './hooks/useAutosave';
@@ -1390,7 +1390,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
 // Side-by-side video compare. Two FormVideoPlayer instances + a sync button
 // that copies the left player's currentTime onto the right (cheap manual sync,
 // good enough for "this week vs 4 weeks ago" form review).
-function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rightTitle, onClose }) {
+function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rightTitle, onClose, closing }) {
   const [leftVid, setLeftVid] = useState(null);
   const [rightVid, setRightVid] = useState(null);
   useEscClose(true, onClose); // Escape closes the compare modal
@@ -1402,8 +1402,8 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   const playBoth = () => { leftVid?.play(); rightVid?.play(); };
   const pauseBoth = () => { leftVid?.pause(); rightVid?.pause(); };
   return (
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" className="motion-fade-in" style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
-      <div onClick={e => e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
+      <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Compare</h3>
           <div style={{display:'flex',gap:6,alignItems:'center'}}>
@@ -1474,6 +1474,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // After pick, switches to CompareModal with both URLs.
   const [comparePicker, setComparePicker] = useState(null); // { left: {url,label}, candidates: [...] }
   const [compareActive, setCompareActive] = useState(null); // { left, right }
+  const cmpPickerHold = useDelayedUnmountValue(comparePicker); // hold through exit anim
+  const cmpVideosHold = useDelayedUnmountValue(compareActive);
   // Escape closes the delete-confirm + compare-picker overlays.
   useEscClose(!!deleteConfirmFor, () => { setDeleteConfirmFor(null); setDeleteConfirmText(''); });
   useEscClose(!!comparePicker, () => setComparePicker(null));
@@ -1528,6 +1530,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // cards and the detail-screen DELETE button — render it in each return
   // path that needs it.
   const woForConfirm = deleteConfirmFor ? clientWorkouts.find(w => w.id === deleteConfirmFor) : null;
+  const delHold = useDelayedUnmountValue(woForConfirm); // hold through exit anim
   const onDeleteConfirm = () => {
     const id = deleteConfirmFor;
     deleteWorkout && deleteWorkout(id);
@@ -1540,15 +1543,15 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     }
   };
   const confirmOk = deleteConfirmText.trim().toLowerCase() === 'delete';
-  const deleteModal = woForConfirm ? (
+  const deleteModal = delHold.value ? (
     <div onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
-      role="dialog" aria-modal="true" aria-label="Delete workout" className="motion-fade-in"
+      role="dialog" aria-modal="true" aria-label="Delete workout" className={delHold.closing ? 'motion-fade-out' : 'motion-fade-in'}
       style={{position:'fixed',inset:0,background:C.scrim,display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
-      <div onClick={e => e.stopPropagation()}
+      <div onClick={e => e.stopPropagation()} className={delHold.closing ? 'motion-fall' : 'motion-rise'}
         style={{background:C.bg,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:20,maxWidth:380,width:'100%'}}>
         <div style={{fontFamily:FN,fontSize:13,color:C.rd||'#ff6b6b',marginBottom:6,fontWeight:700,textAlign:'center'}}>DELETE WORKOUT</div>
         <div style={{fontSize:13,color:C.tx,marginBottom:6,textAlign:'center'}}>
-          {woForConfirm.dayName} · {woForConfirm.planName} · W{woForConfirm.week}
+          {delHold.value.dayName} · {delHold.value.planName} · W{delHold.value.week}
         </div>
         <div style={{fontSize:12,color:C.tm,marginBottom:14,textAlign:'center'}}>
           This permanently removes the workout, its sets, form videos, and review notes. Type <span style={{color:C.rd||'#ff6b6b',fontWeight:700}}>delete</span> to confirm.
@@ -1665,16 +1668,16 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     return (
       <div>
         {/* Compare picker: pick second video from the same client */}
-        {comparePicker && (
-          <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label="Pick a video to compare" className="motion-fade-in" style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
-            <div onClick={e => e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxHeight:'80vh',overflow:'auto',padding:20}}>
+        {cmpPickerHold.value && (
+          <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label="Pick a video to compare" className={cmpPickerHold.closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
+            <div onClick={e => e.stopPropagation()} className={cmpPickerHold.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxHeight:'80vh',overflow:'auto',padding:20}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                 <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>Compare with…</h3>
                 <button onClick={() => setComparePicker(null)} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:16}}>✕</button>
               </div>
-              <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{comparePicker.candidates.length} other video{comparePicker.candidates.length===1?'':'s'} from this client:</div>
-              {comparePicker.candidates.map((c, i) => (
-                <div key={i} onClick={() => { setCompareActive({ left: comparePicker.left, right: { url: c.cloudUrl, label: c.label, title: c.title } }); setComparePicker(null); }}
+              <div style={{fontSize:11,color:C.tm,marginBottom:10}}>{cmpPickerHold.value.candidates.length} other video{cmpPickerHold.value.candidates.length===1?'':'s'} from this client:</div>
+              {cmpPickerHold.value.candidates.map((c, i) => (
+                <div key={i} onClick={() => { setCompareActive({ left: cmpPickerHold.value.left, right: { url: c.cloudUrl, label: c.label, title: c.title } }); setComparePicker(null); }}
                   style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:6,cursor:'pointer',transition:'border-color .15s'}}
                   onMouseEnter={e => e.currentTarget.style.borderColor = C.ac}
                   onMouseLeave={e => e.currentTarget.style.borderColor = C.bd}>
@@ -1685,10 +1688,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           </div>
         )}
         {/* Compare modal: two players side by side */}
-        {compareActive && (
+        {cmpVideosHold.value && (
           <CompareModal
-            leftLabel={compareActive.left.label} leftUrl={compareActive.left.url} leftTitle={compareActive.left.title}
-            rightLabel={compareActive.right.label} rightUrl={compareActive.right.url} rightTitle={compareActive.right.title}
+            leftLabel={cmpVideosHold.value.left.label} leftUrl={cmpVideosHold.value.left.url} leftTitle={cmpVideosHold.value.left.title}
+            rightLabel={cmpVideosHold.value.right.label} rightUrl={cmpVideosHold.value.right.url} rightTitle={cmpVideosHold.value.right.title}
+            closing={cmpVideosHold.closing}
             onClose={() => setCompareActive(null)}
           />
         )}
