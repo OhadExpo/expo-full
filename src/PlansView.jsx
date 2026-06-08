@@ -963,7 +963,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);
                   return <button onClick={()=>setOvExpanded(prev=>{ const next={...prev}; dayIds.forEach(id=>{ if(anyOpen) delete next[id]; else next[id]=true; }); return next; })}
                     title={anyOpen?'Collapse all exercises in this day':'Expand all exercises in this day to edit fully'}
-                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',whiteSpace:'nowrap'}}>{anyOpen?'▴ COLLAPSE ALL':'▾ EXPAND ALL'}</button>;
+                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',whiteSpace:'nowrap',minWidth:128,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{anyOpen?'▴ COLLAPSE ALL':'▾ EXPAND ALL'}</button>;
                 })()}
                 {/* Remove-day — ported from the dead detail view (unified had
                     no way to delete a day). Confirm since it's destructive. */}
@@ -1004,7 +1004,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                         title="Drag to reorder"
                         style={{display:"flex",alignItems:"center",gap:5,minWidth:0,cursor:"grab",userSelect:"none",padding:dragSrc&&dragSrc.dayIdx===dayIdx?"16px 0":0,transition:"padding 120ms",opacity:dragSrc&&dragSrc.dayIdx===dayIdx&&dragSrc.exIdx===exIdx?0.4:1,background:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?"rgba(57,189,255,0.10)":"transparent",borderTop:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?`3px solid ${C.ac}`:"none"}}>
-                        <span style={{color:C.tm, fontFamily:FN, fontSize:10, lineHeight:1, fontWeight:400}}>⇕</span>
+                        <span style={{color:C.tm, fontFamily:FN, fontSize:11, lineHeight:1, fontWeight:400, position:'relative', top:'1px'}}>⇕</span>
                         <span style={{color:C.tx, fontFamily:FN, fontWeight:700, fontSize:12, lineHeight:1}}>{exIdx+1}</span>
                       </div>
                       <div onClick={()=>toggleOvExpand(ex.id)} title="Click to expand — swap exercise, edit notes & video inline"
