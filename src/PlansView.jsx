@@ -733,6 +733,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           Tempo / Trash) wraps so per-week inputs don't force horizontal
           scroll. Drag-handle column gets smaller; tempo wraps under load. */}
       <style>{`
+        /* Editor field row: 4 across on wide, 2 on medium, 1 on narrow —
+           never 3, so Weeks never lands on a row by itself, and Phase/Block
+           always has room (no label wrap / misalignment). */
+        .plan-fields-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        @media (max-width: 1100px) { .plan-fields-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 620px) { .plan-fields-grid { grid-template-columns: 1fr; } }
         @media (max-width: 900px) {
           .ex-row-outer { grid-template-columns: 38px 1fr !important; gap: 8px !important; }
           .ex-row-outer > div:last-child { display: none !important; }
@@ -803,7 +809,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       </div>
       <div style={{display:compareActive?'flex':'block',gap:16,alignItems:'flex-start'}}>
       <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto'}}>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(200px, 1fr))",gap:12,marginBottom:20}}>
+      <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         <Select label="Assign to Athlete" options={[{value:"",label:"Unassigned"}, ...trainees.flatMap(t => {
           if (t.members && t.members.length === 2) {
@@ -811,9 +817,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           }
           return [{ value: t.id, label: t.name }];
         })]} value={plan.traineeId} onChange={v => setPlan({...plan,traineeId:v})} />
-        {/* Phase + Weeks share one grid cell (2-col sub-grid) so Weeks never
-            lands on a row by itself when the outer grid wraps. */}
-        <div style={{display:'grid',gridTemplateColumns: plan.kind !== 'daily' ? '1fr 1fr' : '1fr',gap:12}}>
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
         {/* Weeks selector hidden for daily-routine plans — a daily routine
             has no week structure. Athlete logs it unlimited times during
@@ -831,7 +834,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             setPlan({...plan, weeks: n, days: nextDays});
           }} />
         )}
-        </div>
       </div>
       <PatternCoverage plan={plan} exercises={exercises} />
       <WarmupEditor plan={plan} setPlan={setPlan} />
