@@ -485,3 +485,49 @@ html, body {
 [data-theme="light"] :not(button):not(a):not(select):not(input):not(textarea):not([role="button"])[style*="letter-spacing: 0.18em"] {
   color: var(--c-acText) !important;
 }
+
+/* === Soft motion ========================================================
+   Smooths state changes app-wide so interactions EASE instead of snap —
+   the same soft feel as the plan-editor expand animation, applied to every
+   interactive element across all surfaces (coach, athlete, marketing, gym,
+   demo, expo-il). Color/bg/border/shadow transitions are universally safe;
+   hover-brightness + active-press give a gentle tactile response regardless
+   of an element's (usually inline) background. transform-based so no layout
+   shift. Fully disabled under prefers-reduced-motion.
+   ======================================================================== */
+@media (prefers-reduced-motion: no-preference) {
+  button, a, select, input, textarea, summary, label,
+  [role="button"], [role="tab"], [role="switch"], [role="menuitem"] {
+    transition: background-color .18s ease, border-color .18s ease, color .15s ease,
+                box-shadow .2s ease, transform .12s ease, opacity .15s ease, filter .15s ease;
+  }
+  button:not(:disabled):hover,
+  [role="button"]:not([aria-disabled="true"]):hover,
+  [role="tab"]:hover {
+    filter: brightness(1.09);
+  }
+  button:not(:disabled):active,
+  [role="button"]:not([aria-disabled="true"]):active,
+  [role="tab"]:active {
+    transform: translateY(1px);
+  }
+  /* Clickable cards/rows (inline cursor:pointer) get a whisper-soft hover
+     lift so lists feel alive without moving the layout. */
+  [style*="cursor: pointer"]:hover { filter: brightness(1.05); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: .001ms !important;
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Gentle entrance for content that mounts/expands — opt in with class. */
+@media (prefers-reduced-motion: no-preference) {
+  .motion-fade-in { animation: expoFadeIn .22s ease both; }
+  .motion-rise { animation: expoRise .26s cubic-bezier(.22,.61,.36,1) both; }
+}
+@keyframes expoFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes expoRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
