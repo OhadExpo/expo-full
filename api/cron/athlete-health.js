@@ -119,6 +119,11 @@ export default async function handler(req, res) {
     const exRows = await ex.json();
     if (!Array.isArray(exRows) || exRows.length === 0) throw new Error('exercise library not readable by athlete');
     checks.exercises = 'ok';
+
+    // 5. bodyweight — per-athlete RLS on the bw_logs table (read must not error).
+    const bw = await fetch(`${SUPA_URL}/rest/v1/bw_logs?select=id&limit=1`, { headers: ah });
+    if (!bw.ok) throw new Error(`bw_logs read HTTP ${bw.status}`);
+    checks.bodyweight = 'ok';
   } catch (e) {
     failure = e?.message || 'unknown failure';
   }
