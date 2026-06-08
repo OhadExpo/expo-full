@@ -1402,7 +1402,7 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   const playBoth = () => { leftVid?.play(); rightVid?.play(); };
   const pauseBoth = () => { leftVid?.pause(); rightVid?.pause(); };
   return (
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
+    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Compare videos" className="motion-fade-in" style={{position:'fixed',inset:0,zIndex:1200,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:32,overflow:'auto'}}>
       <div onClick={e => e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,width:'min(1400px, 96vw)',padding:20}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
           <h3 style={{margin:0,fontFamily:FN,fontSize:16,color:C.tx}}>Compare</h3>
@@ -1542,7 +1542,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   const confirmOk = deleteConfirmText.trim().toLowerCase() === 'delete';
   const deleteModal = woForConfirm ? (
     <div onClick={() => { setDeleteConfirmFor(null); setDeleteConfirmText(''); }}
-      role="dialog" aria-modal="true" aria-label="Delete workout"
+      role="dialog" aria-modal="true" aria-label="Delete workout" className="motion-fade-in"
       style={{position:'fixed',inset:0,background:C.scrim,display:'flex',alignItems:'center',justifyContent:'center',zIndex:1200,padding:20}}>
       <div onClick={e => e.stopPropagation()}
         style={{background:C.bg,border:`1px solid ${C.rd||'#c94444'}`,borderRadius:0,padding:20,maxWidth:380,width:'100%'}}>
@@ -1666,7 +1666,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       <div>
         {/* Compare picker: pick second video from the same client */}
         {comparePicker && (
-          <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label="Pick a video to compare" style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
+          <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label="Pick a video to compare" className="motion-fade-in" style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
             <div onClick={e => e.stopPropagation()} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxHeight:'80vh',overflow:'auto',padding:20}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                 <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>Compare with…</h3>
