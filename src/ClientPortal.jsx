@@ -1324,7 +1324,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 }
 
 // Main client portal
-export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false }) {
+export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false }) {
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
   // The old email-lookup login lived inside this component and bypassed auth;
   // it's gone. Trainee is fixed for the session.
@@ -1374,7 +1374,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [plansLoadError, setPlansLoadError] = useState(null);
 
   // Resolve client from trainees (Supabase)
-  const trainee = (trainees || []).find(t => t.id === ci);
+  // Athletes can't read the full trainees store (RLS); fall back to the
+  // gate-resolved record (my_trainee RPC) passed down from App so the portal
+  // doesn't hang on "Loading your program…" with an empty trainees list.
+  const trainee = (trainees || []).find(t => t.id === ci) || (selfTrainee && selfTrainee.id === ci ? selfTrainee : null);
 
   // Restore last-viewed week when a client logs in so they don't land on W1
   // every session when they're mid-way through a block.
