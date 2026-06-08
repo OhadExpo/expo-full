@@ -348,6 +348,7 @@ const SignaturePad = React.forwardRef(function SignaturePad({ disabled, onSubmit
             color: hasInk && !disabled ? '#FFFFFF' : C.td,
             fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.18em',
             cursor: hasInk && !disabled ? 'pointer' : 'not-allowed',
+            minWidth: 180, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{submitting ? 'SIGNING…' : 'SIGN AGREEMENT →'}</button>
       </div>
     </div>

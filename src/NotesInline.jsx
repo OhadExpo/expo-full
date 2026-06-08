@@ -289,6 +289,7 @@ export default function NotesInline({
                 style={{
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 12, padding: 0, flexShrink: 0,
+                  width: 26, minWidth: 26, textAlign: 'center',
                 }}>{n.pinned ? '📌' : '○'}</button>
               {kindLabel && (
                 <>

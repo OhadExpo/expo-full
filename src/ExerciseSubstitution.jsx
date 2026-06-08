@@ -159,6 +159,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
             border: `1px solid ${C.ac}`,
             fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
             cursor: 'pointer',
+            minWidth: 120, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{traveling ? '✓ TRAVELING' : '✈ TRAVELING'}</button>
           <span style={{ fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.12em', fontWeight: 700, marginLeft: 4 }}>HAVE:</span>
           {EQUIP_CHIPS.map(chip => {

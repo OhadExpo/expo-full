@@ -320,7 +320,7 @@ export function PasswordChangeModal({ onClose }) {
             {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${(!saving && currentPw && pw && confirmPw) ? C.ac : C.cardBd}`, background: 'transparent', color: (!saving && currentPw && pw && confirmPw) ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default' }}>{saving ? '...' : 'Save'}</button>
+              <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${(!saving && currentPw && pw && confirmPw) ? C.ac : C.cardBd}`, background: 'transparent', color: (!saving && currentPw && pw && confirmPw) ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default', minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{saving ? '...' : 'Save'}</button>
             </div>
           </>
         )}

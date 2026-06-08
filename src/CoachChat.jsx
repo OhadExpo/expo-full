@@ -312,6 +312,7 @@ export default function CoachChat() {
                             border: `1px solid ${captureState === 'sending' ? C.cardBd : C.ac}`, borderRadius: 0, padding: '6px 10px',
                             fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
                             cursor: captureState === 'sending' ? 'default' : 'pointer',
+                            minWidth: 64, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                           }}>{captureState === 'sending' ? '…' : 'JOIN'}</button>
                       </form>
                     )}

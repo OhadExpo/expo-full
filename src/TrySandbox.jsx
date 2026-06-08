@@ -672,6 +672,7 @@ function ClientPortalMock({ onPick }) {
                   background: done ? C.gnD : C.acD,
                   color: done ? C.gn : C.ac,
                   fontFamily: FB, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>{done ? 'Again' : '📝 Log'}</button>
               </div>
               {day.ex.map((ex, i) => (
@@ -1049,6 +1050,7 @@ function TraineeHomeMock({ onPick }) {
                   ...baseBtn, background: 'transparent', color: isLogged ? C.gn : C.tm,
                   border: `1px solid ${isLogged ? C.gn : C.bd}`,
                   padding: '8px 14px', fontSize: 12,
+                  minWidth: 104, justifyContent: 'center',
                 }}>{isLogged ? '✓ LOGGED' : 'MARK DONE'}</button>
                 <button style={{
                   ...baseBtn, background: 'transparent', color: C.tm,
@@ -1280,6 +1282,7 @@ function ExercisePicker({ pov, onPick }) {
         background: 'none', border: 'none', color: C.tm, cursor: 'pointer',
         fontFamily: FN, fontSize: 11, letterSpacing: 1, fontWeight: 600, padding: 0,
         textDecoration: overrideOpen ? 'none' : 'underline', marginBottom: 12,
+        minWidth: 220, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       }}>{overrideOpen ? 'HIDE OVERRIDE' : 'NOT THIS LIFT? OVERRIDE →'}</button>
 
       {overrideOpen && (

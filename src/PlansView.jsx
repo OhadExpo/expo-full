@@ -335,6 +335,7 @@ function WarmupEditor({ plan, setPlan }) {
   // is one click away (otherwise a coach would have to expand the empty
   // card just to discover the add control).
   const [open, setOpen] = useState(warmup.length === 0);
+  const [vidShow, setVidShow] = useState({}); // per-row video preview toggle (collapsed by default so rows stay compact)
   const update = (idx, patch) => setPlan(p => ({ ...p, warmup: (p.warmup || []).map((w, i) => i === idx ? { ...w, ...patch } : w) }));
   // New warm-ups carry sets/reps/tempo as first-class fields. Legacy plans
   // still carry an `rx` string instead — those keep rendering verbatim until
@@ -386,7 +387,13 @@ function WarmupEditor({ plan, setPlan }) {
                   style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× CLEAR</button>
               </div>
             )}
-            {w.vid && <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 480 }}><VideoEmbed url={w.vid} /></div></div>}
+            {w.vid && <div style={{ marginTop: 6 }}>
+              <button onClick={() => setVidShow(s => ({ ...s, [i]: !s[i] }))}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 9, display: 'inline-block', textAlign: 'center' }}>{vidShow[i] ? '▾' : '▸'}</span>{vidShow[i] ? 'HIDE VIDEO' : 'SHOW VIDEO'}
+              </button>
+              {vidShow[i] && <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 480 }}><VideoEmbed url={w.vid} /></div></div>}
+            </div>}
           </div>
         ))}
         {warmup.length === 0 && <div style={{ fontSize: 11, color: C.td, marginTop: 8 }}>No warm-ups. Click "+ Add Warm-Up" to add one.</div>}

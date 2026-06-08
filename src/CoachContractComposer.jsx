@@ -124,6 +124,7 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
                   flex: 2, padding: '10px', background: C.ac, border: `1px solid ${C.ac}`,
                   color: '#FFFFFF', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
                   cursor: 'pointer',
+                  minWidth: 210, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>{creating ? 'CREATING…' : 'CREATE + COPY LINK →'}</button>
             </div>
           </div>

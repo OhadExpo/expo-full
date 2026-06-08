@@ -115,6 +115,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             background: 'transparent', border: 'none', cursor: 'pointer',
             color: n.pinned ? 'var(--c-or)' : 'var(--c-td)', fontSize: 11,
             padding: 0, flexShrink: 0, lineHeight: 1,
+            width: 26, minWidth: 26, textAlign: 'center',
           }}>{n.pinned ? '📌' : '○'}</button>
         {n.target_label ? (() => {
           // Hebrew renders ~3px smaller than Nord at the same fontSize — Heebo's
@@ -519,6 +520,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
                   color: refined ? '#FFFFFF' : 'var(--c-ac)',
                   padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                   fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+                  minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>{adding ? 'CLOSE' : '+ TASK'}</button>
               <span aria-hidden style={{ color: refined ? '#FFFFFF' : 'var(--c-tx)', fontSize: 12, lineHeight: 1, transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
             </div>

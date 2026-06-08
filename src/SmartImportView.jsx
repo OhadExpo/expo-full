@@ -450,7 +450,7 @@ export default function SmartImportView() {
         <input ref={inputRef} type="file"
           accept=".xlsx,.xls,.ods,.csv,.tsv,.txt,.md,.pdf,.png,.jpg,.jpeg,.webp,image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           onChange={onPick} style={{ display: 'none' }} />
-        <Btn onClick={() => inputRef.current?.click()} disabled={parsing}>{parsing ? 'Reading…' : (fileName ? 'Replace File' : 'Pick File')}</Btn>
+        <Btn onClick={() => inputRef.current?.click()} disabled={parsing} style={{ minWidth: 124, justifyContent: 'center' }}>{parsing ? 'Reading…' : (fileName ? 'Replace File' : 'Pick File')}</Btn>
       </div>
 
       {/* Drop zone — only shown before a file is picked. The header copy
@@ -476,7 +476,7 @@ export default function SmartImportView() {
               <Select label="Sheet/Page" options={sheets.map((s, i) => ({ value: String(i), label: s.sheetName + (s.guessedTarget ? ` · ${s.guessedTarget}` : '') }))} value={String(activeSheetIdx)} onChange={onSheetChange} />
             )}
             <Select label="Target" options={TARGETS.map(t => ({ value: t.value, label: t.label }))} value={target} onChange={onTargetChange} />
-            <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length}>{analyzing ? 'Analyzing…' : 'Analyze with AI'}</Btn>
+            <Btn onClick={analyze} disabled={analyzing || !sheetGrid?.headers?.length} style={{ minWidth: 140, justifyContent: 'center' }}>{analyzing ? 'Analyzing…' : 'Analyze with AI'}</Btn>
           </div>
         </div>
       )}
@@ -514,7 +514,7 @@ export default function SmartImportView() {
           <div style={{ padding: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}><Badge color={lowConf ? C.or : C.gn}>{Math.round((mapping.confidence ?? 0) * 100)}% confident</Badge></div>
-            <Btn onClick={runTransform} disabled={transforming}>{transforming ? 'Transforming…' : 'Preview Transform'}</Btn>
+            <Btn onClick={runTransform} disabled={transforming} style={{ minWidth: 160, justifyContent: 'center' }}>{transforming ? 'Transforming…' : 'Preview Transform'}</Btn>
           </div>
           {mapping.notes && <div style={{ fontSize: 12, color: C.tm, lineHeight: 1.5, marginBottom: 8 }}>💡 {mapping.notes}</div>}
           {Array.isArray(mapping.warnings) && mapping.warnings.length > 0 && (
@@ -558,7 +558,7 @@ export default function SmartImportView() {
               <Badge color={C.gn}>{transform.items.length} item{transform.items.length === 1 ? '' : 's'}</Badge>
               {transform.errors.length > 0 && <Badge color={C.rd} style={{ marginLeft: 6 }}>{transform.errors.length} error{transform.errors.length === 1 ? '' : 's'}</Badge>}
             </div>
-            <Btn onClick={commit} disabled={committing || transform.items.length === 0}>{committing ? 'Writing…' : 'Commit to Database'}</Btn>
+            <Btn onClick={commit} disabled={committing || transform.items.length === 0} style={{ minWidth: 168, justifyContent: 'center' }}>{committing ? 'Writing…' : 'Commit to Database'}</Btn>
           </div>
           {Array.isArray(transform.warnings) && transform.warnings.length > 0 && (
             <ul style={{ margin: '4px 0 10px 16px', padding: 0, color: C.or, fontSize: 12 }}>

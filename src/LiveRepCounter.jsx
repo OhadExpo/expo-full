@@ -316,6 +316,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
             border: '1px solid ' + (voiceOn ? C.ac : 'rgba(255,255,255,0.3)'),
             fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
             cursor: 'pointer',
+            minWidth: 130, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>{voiceOn ? '🎤 LISTENING' : '🎤 VOICE OFF'}</button>
         {status !== 'counting' ? (
           <button onClick={beginCounting}
