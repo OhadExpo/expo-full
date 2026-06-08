@@ -28,6 +28,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, usePersistentState } from './ui';
+import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
 import {
@@ -1475,6 +1476,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 
 export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const { rows, loading, update, create } = useCoachNotes({ limit: 200 });
+  // Subscribe to theme changes so StatusPill colors update live on a dark/light
+  // toggle (was read once via getAttribute → went stale until next re-render).
+  const { theme: liveTheme } = useTheme();
   // viewerOwner is the partner currently looking at the surface. Used to
   // hide the OTHER partner's private queue tab + clamp the initial owner
   // selection to a tab they can actually see. Default 'ohad' until Yuval
@@ -1712,7 +1716,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       }
     }
   };
-  const theme = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark';
+  const theme = liveTheme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark');
 
   const decorated = useMemo(() => rows.map(r => {
     const o = ownerFromBody(r.body);
@@ -1735,11 +1739,16 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // A shared task ("Ohad + Yuval: …") belongs to BOTH partners, so it shows on
   // each person's own tab AND the dedicated Shared tab. Personal-tab counts
   // therefore include shared; the Shared tab counts shared only.
-  const counts = useMemo(() => ({
-    ohad:   decorated.filter(r => r._owner === 'ohad'  || r._owner === 'shared').length,
-    yuval:  decorated.filter(r => r._owner === 'yuval' || r._owner === 'shared').length,
-    shared: decorated.filter(r => r._owner === 'shared').length,
-  }), [decorated]);
+  // Tab counts = ACTIVE (open) tasks only — done/cancelled are terminal and
+  // shouldn't inflate the badge (OHAD showing 100 incl. 90+ done made no sense).
+  const counts = useMemo(() => {
+    const active = (r) => r.status !== 'done' && r.status !== 'cancelled';
+    return {
+      ohad:   decorated.filter(r => active(r) && (r._owner === 'ohad'  || r._owner === 'shared')).length,
+      yuval:  decorated.filter(r => active(r) && (r._owner === 'yuval' || r._owner === 'shared')).length,
+      shared: decorated.filter(r => active(r) && r._owner === 'shared').length,
+    };
+  }, [decorated]);
 
   // On a personal tab (ohad/yuval) include shared tasks too; on the Shared tab
   // show only shared. Without this a shared task was invisible on the viewer's
@@ -2068,7 +2077,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   collapsed={isCollapsed}
                   onToggleCollapse={() => toggleSectionCollapse(section.key)}
                 />
-                {!isCollapsed && section.rows.map(row => (
+                <div style={{ display: 'grid', gridTemplateRows: isCollapsed ? '0fr' : '1fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
+                {section.rows.map(row => (
                   <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
                     theme={theme} showAvatar={owner === 'shared'}
                     expanded={expandedRows.has(row.id)}
@@ -2080,6 +2090,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   onDeleteFromCalendar={handleDeleteFromCalendar}
                   />
                 ))}
+                </div></div>
               </React.Fragment>
             );
           })}
@@ -2104,7 +2115,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   textTransform: 'uppercase',
                 }}>{autoOpen ? '▾' : '▸'} {autoSection.rows.length} auto-alerts</span>
               </div>
-              {autoOpen && autoSection.rows.map(row => (
+              <div style={{ display: 'grid', gridTemplateRows: autoOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
+              {autoSection.rows.map(row => (
                 <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
@@ -2116,6 +2128,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   onDeleteFromCalendar={handleDeleteFromCalendar}
                   />
               ))}
+              </div></div>
             </React.Fragment>
           )}
         </div>
@@ -2198,7 +2211,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               {doneOpen ? `Showing latest ${Math.min(done.length, 5)}` : 'Click to expand'}
             </span>
           </div>
-          {doneOpen && [...done]
+          <div style={{ display: 'grid', gridTemplateRows: doneOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
+          {[...done]
             .sort((a, b) => new Date(b.completed_at || b.created_at) - new Date(a.completed_at || a.created_at))
             .slice(0, 5)
             .map(row => {
@@ -2225,7 +2239,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   />
               );
             })}
-          {doneOpen && done.length > 5 && (
+          {done.length > 5 && (
             <div style={{
               padding: '10px 14px',
               fontFamily: FN, fontSize: 9, fontWeight: 700,
@@ -2233,6 +2247,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               textTransform: 'uppercase', textAlign: 'center',
             }}>{done.length - 5} more done · view all in Phase 1</div>
           )}
+          </div></div>
         </div>
       )}
 

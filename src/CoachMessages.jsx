@@ -301,7 +301,8 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
         </div>
       </RefinedHeaderStrip>
 
-      {open && (<>
+      <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
+      <div style={{ overflow: 'hidden', minHeight: 0 }}>
       {loading ? (
         <div style={{ padding: 20, textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>Loading…</div>
       ) : rows.length === 0 ? (
@@ -320,7 +321,8 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
           upload: (blob) => uploadVoiceNote(blob, traineeId),
           send,
         }} />
-      </>)}
+      </div>
+      </div>
     </div>
   );
 }

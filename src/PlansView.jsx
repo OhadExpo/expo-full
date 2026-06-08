@@ -36,7 +36,7 @@ function ActionIcon({ kind, fallback, color = 'currentColor', size = 14 }) {
   }
 }
 
-const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: 3, reps: "8-12", load: "", rpe: "", tempo: "", rest: "90", notes: "", order: 0, superset: "", wk: null });
+const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: "", reps: "", load: "", rpe: "", tempo: "", rest: "", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
 
 const PAGE_SIZE = 25;
@@ -135,7 +135,10 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
     else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
   };
 
-  const subtitle = (ex) => [ex.resistanceType, ex.bodyPosition, ex.movementType].filter(Boolean).join(' · ');
+  // Show the first 2-3 available parameters so similar exercises are
+  // distinguishable (athletic/med-ball rows often lack resistance/body-position
+  // but DO have category + laterality). movementPattern is shown separately.
+  const subtitle = (ex) => [ex.category, ex.resistanceType, ex.bodyPosition, ex.movementType, ex.laterality].filter(Boolean).slice(0, 3).join(' · ');
   const muscles = (ex) => [ex.primaryMuscles, ex.secondaryMuscles].filter(Boolean).join(' / ');
   const filterSelectStyle = { ...baseInput, padding: '7px 10px', fontSize: 12 };
   // Active filters get the brand cyan border + subtle bg tint so the coach
@@ -207,7 +210,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
           {filt.length === 0 ? (
             <div style={{ padding: 40, fontSize: 13, color: C.td, textAlign: 'center' }}>No exercises found. Try relaxing filters or the search term.</div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
               {filt.map((ex, idx) => {
                 const isActive = idx === activeIdx;
                 const isSelected = ex.id === currentId;
@@ -230,8 +233,8 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
                       transition: 'all 0.1s', position: 'relative'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ex.title}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: C.tx, lineHeight: 1.3, flex: 1, overflowWrap: 'anywhere' }}>{ex.title}</div>
                       {isSelected && <span title="Currently linked exercise" style={{ fontSize: 8, fontFamily: FN, fontWeight: 700, color: C.ac, letterSpacing: '0.18em', whiteSpace: 'nowrap', border: `1px solid ${C.ac}`, padding: '1px 5px' }}>CURRENT</span>}
                       {!isSelected && ex.movementPattern && <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.gn, whiteSpace: 'nowrap' }}>{ex.movementPattern}</span>}
                     </div>
@@ -568,7 +571,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
-  const [overview, setOverview] = useState(false);
+  const [overview, setOverview] = useState(true); // Overview is the default view (Ohad)
+  const [quickName, setQuickName] = useState(''); // draft quick-add-by-name input
   // Compare mode: side-by-side 50/50 split with a read-only view of a
   // previous program (same athlete). Only available WHEN Overview is on —
   // anchored to the wide grid where row-by-row delta-scanning actually pays
@@ -610,6 +614,17 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // truth for what the athlete sees.
     const lib = exerciseId ? (exercises || []).find(e => e.id === exerciseId) : null;
     if (lib?.cues) ex.n = lib.cues;
+    updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
+  };
+  // Draft quick-add: append an exercise by NAME only — no library link, no
+  // cues/notes, no video. exerciseId stays "" so the row renders via ex.title.
+  // Lets the coach sketch a whole program fast, then attach details later.
+  const addExByName = (name) => {
+    const t = (name || '').trim();
+    if (!t) return;
+    const ex = defaultPlanEx();
+    ex.order = plan.days[activeDay]?.exercises.length || 0;
+    ex.title = t;
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
   };
   // When the coach swaps the exerciseId on an existing row, re-seed the
@@ -799,7 +814,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.18em',marginLeft:"auto"}}>DETAIL ▸</button>
               </div>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:"36px minmax(180px,3.3fr) 56px minmax(50px,0.8fr) minmax(60px,1fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px",gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:614}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:"0 12px"}}><div style={{display:"grid",gridTemplateColumns:`36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"6px 8px",fontSize:12,alignItems:"center",minWidth:Math.max(614,540+weeks*40)}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -897,7 +912,17 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         </div>
       )}
       {!overview && (day&&day.exercises.length===0?
-        <div style={{textAlign:"center",padding:30,color:C.td}}><p style={{fontSize:13}}>No exercises.</p><Btn onClick={()=>setAddExerciseOpen(true)} style={{marginTop:8}}>+ Add Exercise</Btn></div>
+        <div style={{textAlign:"center",padding:30,color:C.td}}>
+          <p style={{fontSize:13}}>No exercises.</p>
+          <Btn onClick={()=>setAddExerciseOpen(true)} style={{marginTop:8}}>+ Add Exercise</Btn>
+          <div style={{display:'flex',gap:6,marginTop:10,maxWidth:480,margin:'10px auto 0'}}>
+            <input value={quickName} onChange={e=>setQuickName(e.target.value)} dir="auto"
+              onKeyDown={e=>{ if(e.key==='Enter'){ e.preventDefault(); addExByName(quickName); setQuickName(''); } }}
+              placeholder="Draft — type a name, press Enter (no notes/video)"
+              style={{...baseInput, flex:1, fontSize:13, textAlign:'left'}} />
+            <Btn variant="ghost" onClick={()=>{ addExByName(quickName); setQuickName(''); }} disabled={!quickName.trim()} style={{whiteSpace:'nowrap'}}>+ NAME</Btn>
+          </div>
+        </div>
       :<div>
         {day?.exercises.map((ex,exIdx) => {
           const exData = exById(exercises).get(ex.exerciseId);
@@ -1093,6 +1118,16 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </div><div /></div></div>);
         })}
         <Btn variant="ghost" onClick={()=>setAddExerciseOpen(true)} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
+        {/* Draft quick-add: type a name + Enter to drop an exercise with no
+            library link / notes / video — sketch the program fast, attach
+            details later by opening the row and picking the library exercise. */}
+        <div style={{display:'flex',gap:6,marginTop:8}}>
+          <input value={quickName} onChange={e=>setQuickName(e.target.value)} dir="auto"
+            onKeyDown={e=>{ if(e.key==='Enter'){ e.preventDefault(); addExByName(quickName); setQuickName(''); } }}
+            placeholder="Draft — type an exercise name, press Enter (no notes/video)"
+            style={{...baseInput, flex:1, fontSize:13, textAlign:'left'}} />
+          <Btn variant="ghost" onClick={()=>{ addExByName(quickName); setQuickName(''); }} disabled={!quickName.trim()} style={{whiteSpace:'nowrap'}}>+ NAME</Btn>
+        </div>
       </div>)}
       </div>
       {compareActive && (
@@ -1610,7 +1645,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       {!grouped && (filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
         <div style={{display:"grid",gap:6}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
-          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: isRefined5b() ? '#FFFFFF' : undefined, borderLeft:`3px solid ${C.ac}`}}
+          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: 'var(--c-sf)', borderLeft:`3px solid ${C.ac}`}}
             onMouseEnter={e => {
               const x = e.clientX, y = e.clientY;
               clearTimeout(hoverTimerRef.current);

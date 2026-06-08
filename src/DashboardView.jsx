@@ -637,7 +637,8 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
             <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>All Athletes — {sorted.length}</SectionLabel>
             <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: allAthletesOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
           </div>
-          {allAthletesOpen && <div style={{ overflowX: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateRows: allAthletesOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
+          <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
             <thead>
               <tr style={{ background: refined ? 'var(--c-sf)' : 'transparent', borderBottom: `1px solid ${refined ? 'rgba(0,0,0,0.10)' : C.cardBd}` }}>
@@ -683,7 +684,8 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
               ))}
             </tbody>
           </table>
-          </div>}
+          </div>
+          </div></div>
         </div>
         );
       })()}

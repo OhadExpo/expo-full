@@ -421,7 +421,8 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
         </div>
       </RefinedHeaderStrip>
 
-      {open && (<>
+      <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
+      <div style={{ overflow: 'hidden', minHeight: 0 }}>
       <div style={{ display: 'flex', gap: 0, marginBottom: 12, borderBottom: `1px solid ${C.cardBd}` }}>
         <TabBtn id="actions" label="ACTIONS" />
         <TabBtn id="activity" label="ACTIVITY" />
@@ -448,7 +449,8 @@ function CoachHistoryCard({ trainee, activity, clientWorkouts, payments, planInd
           bareMode
         />
       )}
-      </>)}
+      </div>
+      </div>
 
       {showLog && (
         <CombinedLogModal

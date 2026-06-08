@@ -107,6 +107,79 @@
   --c-cardShadow: 0 1px 2px rgba(15,23,42,0.06), 0 4px 14px rgba(15,23,42,0.08);
 }
 
+/* === CANDIDATE A — "Warm soft" — cream off-white cards on a warm grey-beige
+ * body. Less clinical / less stark-white than the current light theme.
+ * Preview via ?theme=lightA. Same cyan strip + accents + text as light. */
+[data-theme="lightA"] {
+  --c-bg: #E7E3DB;
+  --c-sf: #FBF9F5;
+  --c-sf2: #EFEBE3;
+  --c-sf3: #E0DBD1;
+  --c-stripBg: #39BDFF;
+  --c-headerBg: #FBF9F5;
+  --c-divider: rgba(57,189,255,0.22);
+  --c-badgeBg: #FBF9F5;
+  --c-kpiNumberSize: 40px;
+  --c-alertLabelSize: 13px;
+  --c-rowHover: rgba(57,189,255,0.06);
+  --c-stripText: #FFFFFF;
+  --c-stripBorder: rgba(255,255,255,0.55);
+  --c-bd: rgba(57,189,255,0.32);
+  --c-bd2: rgba(57,189,255,0.48);
+  --c-tx: #1A1712;
+  --c-tm: #57514A;
+  --c-td: #8A8278;
+  --c-ac: #1A1712;
+  --c-acH: #000000;
+  --c-acText: #0A78B0;
+  --c-acSurface: #1A1712;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(57,189,255,0.42);
+  --c-rd: #B91C1C; --c-rdD: rgba(185,28,28,0.10);
+  --c-gn: #15803D; --c-gnD: rgba(21,128,61,0.10);
+  --c-or: #C2410C; --c-orD: rgba(194,65,12,0.10);
+  --c-pu: #6D28D9; --c-puD: rgba(109,40,217,0.10);
+  --c-scrim: rgba(0,0,0,0.45);
+  --c-shadow: rgba(40,30,15,0.10);
+  --c-cardShadow: 0 1px 2px rgba(40,30,15,0.06), 0 4px 14px rgba(40,30,15,0.09);
+}
+
+/* === CANDIDATE B — "Cool contrast" — soft off-white cool cards on a deeper
+ * slate-grey body. Cards pop, much less overall white. ?theme=lightB. */
+[data-theme="lightB"] {
+  --c-bg: #AEB6C2;
+  --c-sf: #EFF2F6;
+  --c-sf2: #E2E6EC;
+  --c-sf3: #D3D8E0;
+  --c-stripBg: #39BDFF;
+  --c-headerBg: #EFF2F6;
+  --c-divider: rgba(57,189,255,0.22);
+  --c-badgeBg: #EFF2F6;
+  --c-kpiNumberSize: 40px;
+  --c-alertLabelSize: 13px;
+  --c-rowHover: rgba(57,189,255,0.07);
+  --c-stripText: #FFFFFF;
+  --c-stripBorder: rgba(255,255,255,0.55);
+  --c-bd: rgba(57,189,255,0.32);
+  --c-bd2: rgba(57,189,255,0.48);
+  --c-tx: #0E0F12;
+  --c-tm: #424A59;
+  --c-td: #6B7280;
+  --c-ac: #0E0F12;
+  --c-acH: #000000;
+  --c-acText: #0A78B0;
+  --c-acSurface: #0E0F12;
+  --c-acOnSurface: #FFFFFF;
+  --c-cardBd: rgba(57,189,255,0.42);
+  --c-rd: #B91C1C; --c-rdD: rgba(185,28,28,0.10);
+  --c-gn: #15803D; --c-gnD: rgba(21,128,61,0.10);
+  --c-or: #C2410C; --c-orD: rgba(194,65,12,0.10);
+  --c-pu: #6D28D9; --c-puD: rgba(109,40,217,0.10);
+  --c-scrim: rgba(0,0,0,0.45);
+  --c-shadow: rgba(15,23,42,0.12);
+  --c-cardShadow: 0 1px 2px rgba(15,23,42,0.07), 0 4px 14px rgba(15,23,42,0.12);
+}
+
 /* === SAVED — original white-cards light direction (pre-cyan-cards iteration).
  * Pure white bg + pure white cards + cyan-30% hairline + zero shadow.
  * Most reductive light variant; the hairline + severity stripe carry the design.

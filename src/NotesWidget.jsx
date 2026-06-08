@@ -441,7 +441,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       else if (c[r.target_kind] != null) c[r.target_kind]++;
     }
     return c;
-  }, [rows]);
+  }, [rows, viewerOwner]); // viewerOwner read via belongsToViewer — must be a dep
 
   // Open tasks float to the top; done tasks pool at the bottom under a
   // collapsed "DONE" group. Pinned-open before unpinned-open.
@@ -539,7 +539,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
       )}
 
       {/* Collapse body on the dashboard (compact) when closed; full view always shows it. */}
-      {(!compact || open) && (<>
+      <div style={{ display: 'grid', gridTemplateRows: (!compact || open) ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
+      <div style={{ overflow: 'hidden', minHeight: 0 }}>
       {/* F-35 — knowledge-base search. Hidden in compact (dashboard
           widget) mode; the full /coach/tasks view exposes the box. A
           leading "#" scopes to tags; bare text searches body + tags +
@@ -796,7 +797,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
           }}>OPEN FULL TASKS ({counts.all}) →</button>
       )}
-      </>)}
+      </div>
+      </div>
     </div>
   );
 }

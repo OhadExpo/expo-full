@@ -178,7 +178,8 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
         </div>
       </RefinedHeaderStrip>
 
-      {open && (<>
+      <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
+      <div style={{ overflow: 'hidden', minHeight: 0 }}>
       {loading ? (
         <div style={{ padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 12, fontFamily: FN, letterSpacing: '0.12em' }}>
           LOADING…
@@ -323,7 +324,8 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
           )}
         </div>
       )}
-      </>)}
+      </div>
+      </div>
     </div>
   );
 }

@@ -195,7 +195,7 @@ export default function IntakeView({ trainees }) {
   return (
     <div>
       {/* Header — counts + Generate Link CTA */}
-      <div style={{ marginBottom: 18, background: isRefined5b() ? '#FFFFFF' : C.sf, border: `1px solid ${isRefined5b() ? C.cardBd : C.bd}` }}>
+      <div style={{ marginBottom: 18, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}` }}>
         <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
           <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>INTAKE</SectionLabel>
         </div>
