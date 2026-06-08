@@ -211,31 +211,29 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
           </div>
         </div>
         <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 22px 22px', marginTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
+          {/* "Add by name" / "Create in library" — offered whenever the coach
+              has typed something, EVEN when there are matching suggestions
+              (Ohad: the exact name they want may not be in the list). */}
+          {(onPickName || onCreateLibrary) && search.trim() && (
+            <div style={{ marginBottom: 12, padding: 12, border: `1px dashed ${C.cardBd}`, display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontSize: 10, color: C.td, fontFamily: FN, letterSpacing: '0.06em', width: '100%', textAlign: 'center' }}>NOT IN THE LIST?</span>
+              {onPickName && (
+                <button onClick={pickName} title="Add by name only — no library link, notes, or video"
+                  style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', padding: '7px 14px', borderRadius: 0 }}>
+                  + ADD “{search.trim()}” (THIS PROGRAM ONLY)
+                </button>
+              )}
+              {onCreateLibrary && (
+                <button onClick={() => { onCreateLibrary(search.trim()); onClose(); }} title="Create a reusable library exercise (edit details later in Exercises)"
+                  style={{ background: '#39BDFF', border: '1px solid #39BDFF', color: '#FFFFFF', cursor: 'pointer', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', padding: '7px 14px', borderRadius: 0 }}>
+                  + CREATE “{search.trim()}” IN LIBRARY
+                </button>
+              )}
+            </div>
+          )}
           {filt.length === 0 ? (
             <div style={{ padding: 40, fontSize: 13, color: C.td, textAlign: 'center' }}>
               No exercises found. Try relaxing filters or the search term.
-              {(onPickName || onCreateLibrary) && search.trim() && (
-                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-                  {onPickName && (
-                    <div>
-                      <button onClick={pickName}
-                        style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', padding: '8px 16px', borderRadius: 0 }}>
-                        + ADD “{search.trim()}” TO THIS PROGRAM ONLY
-                      </button>
-                      <div style={{ marginTop: 6, fontSize: 10, color: C.td }}>By name only — no library link, notes, or video.</div>
-                    </div>
-                  )}
-                  {onCreateLibrary && (
-                    <div>
-                      <button onClick={() => { onCreateLibrary(search.trim()); onClose(); }}
-                        style={{ background: C.ac, border: `1px solid ${C.ac}`, color: '#FFFFFF', cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', padding: '8px 16px', borderRadius: 0 }}>
-                        + CREATE “{search.trim()}” IN THE LIBRARY
-                      </button>
-                      <div style={{ marginTop: 6, fontSize: 10, color: C.td }}>Adds a reusable library exercise (edit details later in Exercises).</div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
@@ -601,7 +599,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [overview, setOverview] = useState(true); // Overview is the default view (Ohad)
-  const [quickName, setQuickName] = useState(''); // draft quick-add-by-name input
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
   const [collapsedEx, setCollapsedEx] = usePersistentState('plan-collapsed-ex', {}); // detail-view exercise cards collapse
@@ -717,9 +714,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // visibilitychange/unmount paths don't issue a redundant write.
     markClean();
     setSaving(false);
-    // Save Program exits back to the programs list (Ohad) — autosave already
-    // keeps drafts safe; the explicit Save is the "done, get me out" action.
-    onCancel();
+    // Stay in the editor after Save (Ohad) — the URL stays /coach/programs/<id>
+    // so a refresh keeps you here. BACK is the explicit "leave" action.
   };
   const handleBack = async () => {
     // Awaiting flushAutosave resolves only after every queued + in-flight
@@ -806,7 +802,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             PORTAL
           </button>}
-          <Btn onClick={handleSave} disabled={saving} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
+          <Btn onClick={handleSave} disabled={saving} style={{height:42,padding:'0 20px',fontSize:13,letterSpacing:'0.18em',lineHeight:'42px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
       <div style={{display:compareActive?'flex':'block',gap:16,alignItems:'flex-start'}}>
@@ -1004,7 +1000,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 <span role="button" tabIndex={0} onClick={e=>{e.stopPropagation(); toggleExCollapse(ex.id);}}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); e.stopPropagation(); toggleExCollapse(ex.id); } }}
                   title={exCollapsed?'Expand exercise':'Collapse exercise'}
-                  style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,marginLeft:2,transform:exCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease'}}>▾</span>
+                  style={{cursor:'pointer',color:C.ac,fontSize:16,fontWeight:700,lineHeight:1,marginLeft:2,transform:exCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease'}}>▾</span>
               </div>
               <div className="ex-row-scroll" style={{overflowX:"auto"}}>
                 {exCollapsed ? (
@@ -1014,7 +1010,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     <span style={{fontSize:11,color:C.tm,fontFamily:FN,whiteSpace:'nowrap',letterSpacing:'0.04em'}}>{[ex.sets?`${ex.sets} sets`:null, ex.reps?`${ex.reps} reps`:null].filter(Boolean).join(' · ')}</span>
                   </div>
                 ) : (<>
-                <div className="ex-row-grid" style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr auto",minWidth:780,gap:12,alignItems:"end"}}>
+                <div className="ex-row-grid" style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr",minWidth:740,gap:12,alignItems:"end"}}>
                   <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} onPickName={name=>updateEx(exIdx,{exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />
                   <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise." style={{minWidth:0}}>
                     <Select label="Superset" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
@@ -1071,7 +1067,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   <Input label="Load" value={ex.load} onChange={e=>updateEx(exIdx,{load:e.target.value})} placeholder="kg/%" />
                   <Input label="RPE" value={ex.rpe} onChange={e=>updateEx(exIdx,{rpe:e.target.value})} placeholder="7-8" />
                   <Input label="Tempo" value={ex.tempo} onChange={e=>updateEx(exIdx,{tempo:e.target.value})} placeholder="3010" />
-                  <button onClick={()=>removeEx(exIdx)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,marginBottom:4,opacity:0.6}}>🗑</button>
                 </div>
                 {exData?<div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap",alignItems:"center"}}>
                   {exData.movementPattern&&<Badge color={C.gn}>{exData.movementPattern}</Badge>}
@@ -1188,6 +1183,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   );
                 })()}
               </>)}
+              {/* Clear, always-visible delete at the BOTTOM of the card (Ohad) —
+                  works whether the exercise is collapsed or expanded. */}
+              <div style={{display:"flex",justifyContent:"flex-end",marginTop:exCollapsed?6:10,paddingTop:8,borderTop:`1px solid ${C.cardBd}`}}>
+                <button onClick={()=>removeEx(exIdx)} title="Remove this exercise from the day"
+                  style={{background:"transparent",border:`1px solid ${C.rd}`,color:C.rd,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:"0.12em",padding:"5px 12px",borderRadius:0,display:"inline-flex",alignItems:"center",gap:6}}>🗑 REMOVE EXERCISE</button>
+              </div>
               </div><div /></div></div>);
         })}
         <Btn variant="ghost" onClick={()=>setAddExerciseOpen(true)} style={{width:"100%",justifyContent:"center",marginTop:8}}>+ Add Exercise</Btn>
