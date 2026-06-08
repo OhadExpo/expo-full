@@ -74,7 +74,8 @@ function PatternCoverage({ plan, exercises }) {
 
 // Shared modal for browsing and picking an exercise.
 // Props: open, onClose, onPick(exerciseId), exercises, currentId, title
-function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, currentEx, fallbackTitle }) {
+// onPickName(name) — optional: pick a FREE-TEXT name not in the library.
+function ExerciseBrowserModal({ open, onClose, onPick, onPickName, exercises, currentId, currentEx, fallbackTitle }) {
   const [search, setSearch] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const [filters, setFilters] = useState({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
@@ -128,10 +129,12 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
   }, [activeIdx, open]);
 
   const pick = (ex) => { onPick(ex.id); onClose(); };
+  // Add the typed search text as a free-text exercise (not in the library).
+  const pickName = () => { const t = (search || '').trim(); if (t && onPickName) { onPickName(t); onClose(); } };
   const onKeyDown = (e) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, filt.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, 0)); }
-    else if (e.key === 'Enter') { e.preventDefault(); if (filt[activeIdx]) pick(filt[activeIdx]); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (filt[activeIdx]) pick(filt[activeIdx]); else pickName(); }
     else if (e.key === 'Escape') { e.preventDefault(); onClose(); }
   };
 
@@ -208,7 +211,18 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
         </div>
         <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: '10px 22px 22px', marginTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
           {filt.length === 0 ? (
-            <div style={{ padding: 40, fontSize: 13, color: C.td, textAlign: 'center' }}>No exercises found. Try relaxing filters or the search term.</div>
+            <div style={{ padding: 40, fontSize: 13, color: C.td, textAlign: 'center' }}>
+              No exercises found. Try relaxing filters or the search term.
+              {onPickName && search.trim() && (
+                <div style={{ marginTop: 16 }}>
+                  <button onClick={pickName}
+                    style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', padding: '8px 16px', borderRadius: 0 }}>
+                    + ADD “{search.trim()}” AS A NEW EXERCISE
+                  </button>
+                  <div style={{ marginTop: 8, fontSize: 10, color: C.td }}>Adds it by name only — no library link, notes, or video.</div>
+                </div>
+              )}
+            </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 6 }}>
               {filt.map((ex, idx) => {
@@ -252,7 +266,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, exercises, currentId, cur
 }
 
 // Small button shown inline in an exercise row. Clicking it opens the browser modal.
-function ExPicker({ exercises, value, onChange, label, fallbackTitle }) {
+function ExPicker({ exercises, value, onChange, onPickName, label, fallbackTitle }) {
   const [modalOpen, setModalOpen] = useState(false);
   const sel = exById(exercises).get(value);
   const displayTitle = sel?.title || fallbackTitle || '';
@@ -276,6 +290,7 @@ function ExPicker({ exercises, value, onChange, label, fallbackTitle }) {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onPick={id => { onChange(id); setModalOpen(false); }}
+        onPickName={onPickName ? (name => { onPickName(name); setModalOpen(false); }) : undefined}
         exercises={exercises}
         currentId={value}
         currentEx={sel}
@@ -943,7 +958,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </div>
               <div className="ex-row-scroll" style={{overflowX:"auto"}}>
                 <div className="ex-row-grid" style={{display:"grid",gridTemplateColumns:"4.4fr 1fr 1fr 1.5fr 1fr 1fr 1.6fr auto",minWidth:780,gap:12,alignItems:"end"}}>
-                  <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} label="Exercise" fallbackTitle={ex.title} />
+                  <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>updateEx(exIdx,{exerciseId:id})} onPickName={name=>updateEx(exIdx,{exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />
                   <div title="Superset letter — exercises sharing the same letter (A, B, C) are performed back-to-back as a superset. Leave blank for a standalone exercise." style={{minWidth:0}}>
                     <Select label="Superset" options={SUPERSET_LABELS.map(s=>({value:s,label:s||"—"}))} value={ex.superset||""} onChange={v=>updateEx(exIdx,{superset:v})} />
                   </div>
@@ -1144,6 +1159,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         open={addExerciseOpen}
         onClose={()=>setAddExerciseOpen(false)}
         onPick={id=>{ addExWithId(id); setAddExerciseOpen(false); }}
+        onPickName={name=>{ addExByName(name); setAddExerciseOpen(false); }}
         exercises={exercises}
         title="Add Exercise to Day"
       />
