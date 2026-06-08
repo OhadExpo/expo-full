@@ -427,7 +427,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
         <Btn variant="ghost" onClick={onClose} disabled={saving}>Cancel</Btn>
-        <Btn onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Btn>
+        <Btn onClick={save} disabled={saving} style={{minWidth:104,justifyContent:'center'}}>{saving ? 'Saving…' : 'Save'}</Btn>
       </div>
     </Modal>
   );
