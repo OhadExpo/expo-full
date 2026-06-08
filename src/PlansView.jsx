@@ -447,7 +447,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   }, [pickedId, loadCmp, clearCmp]);
 
   return (
-    <div style={{flex:1, minWidth:0, alignSelf:'stretch', position:'relative', overflowY:'auto', minHeight:0}}>
+    <div data-compare-pane style={{flex:1, minWidth:0, alignSelf:'stretch', position:'relative', overflowY:'auto', minHeight:0}}>
       {/* Filter row is ALWAYS rendered. Hiding it on empty-state would trap
           the user (e.g. picked athlete with no programs and couldn't change
           back). Empty states below render after the filter row so the
@@ -693,26 +693,23 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // off. Layout matches the original side-by-side pattern.
   const [compareOpen, setCompareOpen] = useState(false);
   const compareActive = compareOpen && overview;
-  // Three scrollers in compare: each half is a bounded overflow:auto pane with
-  // its OWN scrollbar (scroll one side alone), AND a wheel anywhere over the
-  // area scrolls BOTH in lock-step so you can run them all the way down
-  // together. Native non-passive listener so preventDefault stops the default
-  // single-pane scroll; only prevents when something moved.
-  const compareScrollRef = useRef(null);
+  // Three scrollers in compare: wheel OVER a pane scrolls only that pane (each
+  // half is its own bounded overflow:auto with its own scrollbar); wheel over
+  // the grey page edges / background scrolls BOTH in lock-step. Window-level
+  // non-passive listener so it can claim wheels over the background and
+  // preventDefault the page scroll only when a pane actually moved.
   useEffect(() => {
-    const el = compareScrollRef.current;
-    if (!el || !compareActive) return;
+    if (!compareActive) return;
     const onWheel = (e) => {
+      if (e.target && e.target.closest && e.target.closest('[data-compare-pane]')) return; // over a pane → it scrolls itself
+      const panes = document.querySelectorAll('[data-compare-pane]');
+      if (!panes.length) return;
       let scrolled = false;
-      for (const k of el.children) {
-        const before = k.scrollTop;
-        k.scrollTop += e.deltaY;
-        if (k.scrollTop !== before) scrolled = true;
-      }
+      panes.forEach(k => { const b = k.scrollTop; k.scrollTop += e.deltaY; if (k.scrollTop !== b) scrolled = true; });
       if (scrolled) e.preventDefault();
     };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    window.addEventListener('wheel', onWheel, { passive: false });
+    return () => window.removeEventListener('wheel', onWheel);
   }, [compareActive]);
   // Auto-close compare when the user leaves Overview, so the state doesn't
   // linger and re-fire if Overview is toggled back on later.
@@ -920,8 +917,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           <Btn onClick={handleSave} disabled={saving} style={{height:42,minWidth:190,padding:'0 20px',fontSize:13,letterSpacing:'0.18em',lineHeight:'42px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
       </div>
-      <div ref={compareScrollRef} style={{display:compareActive?'flex':'block',gap:16,alignItems:compareActive?'stretch':'flex-start',maxHeight:compareActive?'calc(100vh - 170px)':undefined}}>
-      <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',overflowY:compareActive?'auto':'visible',minHeight:0}}>
+      <div style={{display:compareActive?'flex':'block',gap:16,alignItems:compareActive?'stretch':'flex-start',maxHeight:compareActive?'calc(100vh - 170px)':undefined}}>
+      <div data-compare-pane style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',overflowY:compareActive?'auto':'visible',minHeight:0}}>
       <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
