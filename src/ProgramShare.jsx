@@ -145,13 +145,18 @@ function PlanReadOnly({ plan }) {
         </SectionCard>
       )}
 
-      {days.map((d, di) => (
-        <SectionCard key={di} label={`DAY ${String.fromCharCode(65 + di)}${d?.title ? ' · ' + d.title : ''}`}>
-          {(d?.exercises || []).map((ex, ei) => (
-            <ExerciseLine key={ei} idx={ei} ex={ex} />
-          ))}
-        </SectionCard>
-      ))}
+      {days.map((d, di) => {
+        const dayLabel = d?.name || d?.title;
+        return (
+          <SectionCard key={di} label={`DAY ${String.fromCharCode(65 + di)}${dayLabel ? ' · ' + dayLabel : ''}`}>
+            {/* Plans exist in two shapes: new (d.exercises / sets / reps) and
+                old (d.ex / s / r, names enriched server-side from the eid). */}
+            {(d?.exercises || d?.ex || []).map((ex, ei) => (
+              <ExerciseLine key={ei} idx={ei} ex={ex} />
+            ))}
+          </SectionCard>
+        );
+      })}
 
       {days.length === 0 && warmup.length === 0 && (
         <div style={{
@@ -182,9 +187,9 @@ function SectionCard({ label, children }) {
 
 function ExerciseLine({ idx, ex }) {
   const name = ex?.name || ex?.title || ex?.ex || 'Exercise';
-  const sets = ex?.sets;
-  const reps = ex?.reps;
-  const notes = ex?.notes || ex?.coachNotes;
+  const sets = ex?.sets ?? ex?.s;
+  const reps = ex?.reps ?? ex?.r;
+  const notes = ex?.notes || ex?.coachNotes || ex?.n;
   const heb = isHebrew(name);
   return (
     <div style={{
