@@ -690,12 +690,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [overview, setOverview] = useState(true); // Overview is the default view (Ohad)
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
-  const [collapsedEx, setCollapsedEx] = usePersistentState('plan-collapsed-ex', {}); // detail-view exercise cards collapse
   // Unified view: expand an OVERVIEW row inline to its full detail (swap +
   // notes + video) — combines overview + detail in one place.
   const [ovExpanded, setOvExpanded] = usePersistentState('plan-ov-expanded', {});
   const toggleOvExpand = (id) => setOvExpanded(prev => ({ ...prev, [id]: !prev[id] }));
-  const toggleExCollapse = (id) => setCollapsedEx(prev => ({ ...prev, [id]: !prev[id] }));
   // Compare mode: side-by-side 50/50 split with a read-only view of a
   // previous program (same athlete). Only available WHEN Overview is on —
   // anchored to the wide grid where row-by-row delta-scanning actually pays
@@ -786,29 +784,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     ex.exerciseId = id;
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
   };
-  // When the coach swaps the exerciseId on an existing row, re-seed the
-  // ex.n notes from the new library entry's cues — unless the coach has
-  // already typed a custom note (don't clobber their orange text). Mirror
-  // the same logic for ex.notes/notesEdited: an explicit empty override
-  // (notesEdited=true, notes='') gets discarded on swap so the new
-  // exercise's library cues show; a real typed override is preserved.
-  const updateEx = (ei,u) => {
-    const exs=[...plan.days[activeDay].exercises];
-    const cur = exs[ei];
-    let next = {...cur,...u};
-    if (u.exerciseId && u.exerciseId !== cur.exerciseId) {
-      if (!(cur.n && cur.n.trim())) {
-        const lib = (exercises || []).find(e => e.id === u.exerciseId);
-        if (lib?.cues) next.n = lib.cues;
-      }
-      if (!(cur.notes && cur.notes.trim())) {
-        next.notes = '';
-        next.notesEdited = false;
-      }
-    }
-    exs[ei]=next;
-    updateDay(activeDay,{exercises:exs});
-  };
   // Per-day variants — used by the overview table so a row in any day can be
   // edited without first switching `activeDay` (and without leaving overview).
   const updateExInDay = (di, ei, u) => setPlan(p => ({...p, days: p.days.map((d, idx) => {
@@ -818,7 +793,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     return {...d, exercises: exs};
   })}));
   const removeExFromDay = (di, ei) => setPlan(p => ({...p, days: p.days.map((d, idx) => idx === di ? {...d, exercises: (d.exercises||[]).filter((_,i) => i !== ei)} : d)}));
-  const removeEx = ei => updateDay(activeDay, {exercises:plan.days[activeDay].exercises.filter((_,i)=>i!==ei)});
   const day = plan.days[activeDay];
   const handleSave = async () => {
     setSaving(true);
