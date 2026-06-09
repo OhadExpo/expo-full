@@ -16,13 +16,13 @@ Fitness coaching platform for Ohad's personal training business. Replaces a Goog
 - **Trainer login code:** `#81` — never change or lose this without explicit confirmation
 - **Design system:** Dark theme, bg `#0a0a0b`, accent `#39BDFF`, JetBrains Mono + DM Sans
 - **Test fixture client:** Diego Day (`diego@diegoday.com`)
-- **Data scale (approximate, verify from repo when it matters):** ~20 real clients, mid-hundreds of exercises, ~90 plans
+- **Data scale (approximate, verify from repo when it matters):** ~20 real clients, ~1,470 exercises, ~210 plans
 
 ### Architecture notes
 
 - Plans live in a normalized Supabase `plans` table. The old JSON-blob-in-`store`-table structure is gone — do not write code against it.
 - Vercel auto-deploy takes ~8–15 seconds after `git push`. Wait for the new bundle before verifying changes.
-- Storage API for client portal uses `window.storage.get/set` — not `localStorage`.
+- Shared app state lives in the Supabase `store` table (key/value JSON blobs) accessed via `useSupaStore.js`, with a localStorage snapshot fallback for some keys. There is no `window.storage` API.
 
 ### Active backlog (verify against `docs/backlog.md` if it exists, otherwise ask)
 
@@ -170,12 +170,15 @@ EXPO's data model, validation logic, and any programming-related features depend
 - Every microcycle must cover primary patterns: Hip Hinge, Squat, Horizontal Push, Horizontal Pull, Vertical Push, Vertical Pull, Carry, Rotation/Anti-Rotation
 - Red flags requiring medical referral (never program through): saddle anesthesia, bowel/bladder dysfunction, drop foot, unexplained weight loss, night pain unrelated to position
 
-### Storage keys (client portal)
+### Store keys (Supabase `store` table)
 
 - `expo-trainees`
 - `expo-exercises`
-- `expo-plans`
 - `expo-workouts`
+- `expo-cw`
+- `expo-bw`
+
+(Plans are NOT a store key — they live in the normalized `plans` table.)
 
 ---
 
