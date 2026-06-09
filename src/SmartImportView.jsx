@@ -366,8 +366,10 @@ export default function SmartImportView() {
         const arr = row?.value || [];
         const keyOf = t => `${(t.name || '').toLowerCase().trim()}|${(t.phone || '').replace(/\D/g, '').slice(-9)}`;
         const existing = new Map(arr.map(t => [keyOf(t), t]));
-        let added = 0; let updated = 0;
+        let added = 0; let updated = 0; let skippedNameless = 0;
         for (const item of transform.items) {
+          // A nameless trainee row crashes every roster filter/sort downstream.
+          if (!(item.name || '').trim()) { skippedNameless++; continue; }
           const k = keyOf(item);
           if (existing.has(k)) { Object.assign(existing.get(k), item); updated++; }
           else {
@@ -377,7 +379,7 @@ export default function SmartImportView() {
         }
         const { error } = await supabase.from('store').upsert({ key: 'expo-trainees', value: arr, updated_at: new Date().toISOString() });
         if (error) throw error;
-        summary = `+${added} new athletes, ${updated} updated.`;
+        summary = `+${added} new athletes, ${updated} updated.` + (skippedNameless ? ` Skipped ${skippedNameless} nameless row(s).` : '');
       } else if (target === 'programs') {
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-exercises').maybeSingle();
         const lib = row?.value || [];

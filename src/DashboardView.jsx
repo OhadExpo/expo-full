@@ -56,10 +56,10 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
     return { ...t, totalPaid, lastPay, lastWorkout, workoutCount: tWork.length, planCount: planCounts[t.id] || 0 };
   }), [trainees, payments, workouts, clientWorkouts, planCounts]);
 
-  const filtered = enriched.filter(t => !filter || t.name.toLowerCase().includes(filter.toLowerCase()));
+  const filtered = enriched.filter(t => !filter || (t.name || '').toLowerCase().includes(filter.toLowerCase()));
   const sorted = [...filtered].sort((a, b) => {
-    if (sort === 'name') return a.name.localeCompare(b.name) * dir;
-    if (sort === 'status') return a.status.localeCompare(b.status) * dir;
+    if (sort === 'name') return (a.name || '').localeCompare(b.name || '') * dir;
+    if (sort === 'status') return (a.status || '').localeCompare(b.status || '') * dir;
     if (sort === 'sessions') return ((Number.isFinite(a.sessionsRemaining) ? a.sessionsRemaining : 0) - (Number.isFinite(b.sessionsRemaining) ? b.sessionsRemaining : 0)) * dir;
     if (sort === 'paid') return (a.totalPaid - b.totalPaid) * dir;
     if (sort === 'lastPay') return ((a.lastPay ? new Date(a.lastPay.date).getTime() : 0) - (b.lastPay ? new Date(b.lastPay.date).getTime() : 0)) * dir;
@@ -317,10 +317,13 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
     // `data` instead and project the two keys the rule consumers need.
     let cancelled = false;
     (async () => {
-      const { data: plans } = await supabase
+      const { data: plans, error: plansErr } = await supabase
         .from('plans')
         .select('id, name, trainee_id, data, created_at')
         .limit(500);
+      // A failed read would make the no-plan rule fire for every trainee —
+      // one transient error must not spawn ~20 spurious auto-tasks.
+      if (plansErr) { console.warn('autoTasks: plans read failed, skipping sync', plansErr); return; }
       const planList = (plans || []).map(p => ({
         id: p.id,
         name: p.name,

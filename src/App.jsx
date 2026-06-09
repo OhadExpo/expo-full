@@ -908,7 +908,12 @@ function AuthedApp() {
   },[setTrainees]);
 
   const handleExport=async()=>{
-    const { data: allPlans } = await supabase.from('plans').select('*');
+    const { data: allPlans, error: plansErr } = await supabase.from('plans').select('*');
+    if (plansErr) {
+      // A backup with silently-empty plans is worse than no backup.
+      alert('Export aborted — plans could not be read: ' + plansErr.message);
+      return;
+    }
     const data=JSON.stringify({trainees,exercises,plans:allPlans||[],workouts,payments,clientWorkouts,bwLog,exportDate:new Date().toISOString(),version:"1.0"},null,2);
     const blob=new Blob([data],{type:"application/json"});const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download=`expo-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(url);

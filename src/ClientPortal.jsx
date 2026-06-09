@@ -252,7 +252,21 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   })();
   const groupCount = groups.length;
 
-  const [step, setStep] = useState(_restoredSession?.step || (wuCount > 0 ? 'wu0' : 0));
+  const [step, setStep] = useState(() => {
+    // Clamp a restored draft step against the CURRENT plan shape — the coach
+    // may have removed warm-ups or shrunk the day since the draft was saved,
+    // and an out-of-range 'wuN' would crash on warmup[wi].vid every load.
+    const r = _restoredSession?.step;
+    if (typeof r === 'string' && r.startsWith('wu')) {
+      const wi = parseInt(r.slice(2), 10);
+      if (Number.isFinite(wi) && wi >= 0 && wi < wuCount) return r;
+    } else if (typeof r === 'number' && r >= 0 && r < groupCount) {
+      return r;
+    } else if (r === 'end') {
+      return r;
+    }
+    return wuCount > 0 ? 'wu0' : 0;
+  });
   const [notes, setNotes] = useState(_restoredSession?.notes || '');
   // Per-week sets (ex.wkS) takes precedence over the scalar ex.s for allocating log rows.
   // weekNum is 0-indexed; fall back to the flat sets count (or 3) if the week is missing.
