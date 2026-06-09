@@ -153,7 +153,7 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
   if (!mounted) return null;
 
   return (
-    <div className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: C.scrim, backdropFilter: 'blur(8px)' }} onClick={onClose}>
+    <div role="dialog" aria-modal="true" className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 40, background: C.scrim, backdropFilter: 'blur(8px)' }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border:`1px solid ${C.bd}`, borderRadius: 0, width: 'min(900px, 92vw)', maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: `0 20px 60px ${C.shadow}` }}>
         {/* Header hero — eyebrow tag (action), big exercise name, metadata.
             Lifts the current exercise out of the page header and into a
@@ -817,7 +817,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // day grid to fit. Without this each pane is ~580px on a 1536 screen —
     // narrower than the grid's min-width — so the grid overflowed and the last
     // (clipped, empty) column read as wasted whitespace on the card's right.
-    <div style={compareActive ? { width: 'min(96vw, 2400px)', position: 'relative', left: '50%', transform: 'translateX(-50%)' } : undefined}>
+    // Centered via margin, NOT transform: a transformed ancestor becomes the
+    // containing block for position:fixed, which would anchor every modal
+    // (exercise browser, confirm dialog) to this wrapper instead of the viewport.
+    <div style={compareActive ? { width: 'min(96vw, 2400px)', marginLeft: 'calc(50% - min(48vw, 1200px))' } : undefined}>
       {/* Narrow-screen layout for the exercise rows. Below 900px the
           8-column grid (Exercise / Superset / Sets / Reps / Load / RPE /
           Tempo / Trash) wraps so per-week inputs don't force horizontal
@@ -1312,7 +1315,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const handleDuplicate = async (planId) => {
     const { supabase: sb } = await import('./supabase');
     const { data } = await sb.from('plans').select('*').eq('id', planId).single();
-    if (data) { await duplicatePlan({ id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase, notes: data.notes, active: data.active, createdAt: data.created_at, days: data.data?.days||[], warmup: data.data?.warmup||[] }); await reloadIndex(); }
+    if (data) { await duplicatePlan({ id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase, notes: data.notes, active: data.active, createdAt: data.created_at, days: data.data?.days||[], warmup: data.data?.warmup||[], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase }); await reloadIndex(); }
   };
   const handleDelete = async (planId) => { await deletePlan(planId); setConfirmDelete(null); await reloadIndex(); };
 
