@@ -1440,6 +1440,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // Review is purely about reviewing what athletes uploaded.
   const [selectedWo, setSelectedWo] = useState(null);
   const [expandedEx, setExpandedEx] = useState(null);
+  // Library lookup Map — 1,467 exercises; a .find() per card per render
+  // (and this view re-renders per focus-textarea keystroke) is the known
+  // perf antipattern.
+  const exById = useMemo(() => new Map((exercises || []).map(e => [e.id, e])), [exercises]);
   // Review-queue jump: clicking the "N pending" summary scrolls to and
   // force-expands the section of the first pending-with-video athlete.
   // jumpSignal is a counter so re-clicking the same athlete re-fires the
@@ -1511,7 +1515,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // Jump from the review-queue summary to the first pending athlete: expand
   // their section and scroll it into view (after the expand animation begins).
   const jumpToPending = () => {
-    const first = (clientWorkouts || []).find(w => !w.reviewedAt && hasReviewableVideo(w));
+    // Oldest-first, matching findNextUnreviewed (the save-&-next order) so
+    // the jump and the review flow agree on who is "first".
+    const first = (clientWorkouts || [])
+      .filter(w => !w.reviewedAt && hasReviewableVideo(w))
+      .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
     if (!first) return;
     const cid = first.clientId || 'unknown';
     setJumpClient(cid);
@@ -1761,7 +1769,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           const isExpanded = expandedEx === i;
           const doneSets = ex.sets.filter(s => s.done).length;
           const libId = ex.eid?.startsWith('dyn_') ? ex.eid.slice(4) : ex.eid;
-          const fromLib = (exercises || []).find(e => e.id === libId);
+          const fromLib = exById.get(libId);
           const exName = EX[ex.eid]?.t || fromLib?.title || ex.title || ex.eid;
           const formVideo = wo.formVideos?.[i];
           const currentFocus = getFocus(wo.planName, wo.dayName, ex.eid, wo.week || 1);
@@ -2166,7 +2174,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             .map(wo => {
             const doneSets = wo.exercises.reduce((a,ex) => a + ex.sets.filter(s=>s.done).length, 0);
             const totalSets = wo.exercises.reduce((a,ex) => a + ex.sets.length, 0);
-            const hasFormVids = wo.formVideos?.some(f => f?.has);
+            const hasFormVids = hasReviewableVideo(wo);
             const reviewed = !!wo.reviewedAt;
             return (
               <div key={wo.id} onClick={() => setSelectedWo(wo.id)}

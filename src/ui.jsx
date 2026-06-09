@@ -275,10 +275,16 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
     if (!storeId) return defaultOpen;
     try { const v = localStorage.getItem(storeId); return v == null ? defaultOpen : v === '1'; } catch { return defaultOpen; }
   });
-  // External force-open: when `openSignal` changes to a truthy value the
+  // External force-open: when `openSignal` CHANGES to a truthy value the
   // section expands (and persists open). Lets a parent — e.g. the review
   // queue summary — jump to and reveal a specific collapsed section.
+  // Change-only (not on mount): the parent's signal value survives a
+  // list↔detail roundtrip, and firing on remount would force the section
+  // back open after the user deliberately collapsed it.
+  const prevSignalRef = React.useRef(openSignal);
   React.useEffect(() => {
+    if (openSignal === prevSignalRef.current) return;
+    prevSignalRef.current = openSignal;
     if (!openSignal) return;
     setOpen(true);
     try { if (storeId) localStorage.setItem(storeId, '1'); } catch { /* private mode */ }
@@ -324,7 +330,11 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
         </div>
       </div>
       <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
-        <div style={{ overflow: 'hidden' }}>
+        {/* inert when collapsed: the 0fr trick keeps children mounted, so
+            without it hidden buttons (e.g. DELETE rows) stay tab-focusable
+            and Enter-activatable while invisible. Empty string = set the
+            attribute (React 18 passes unknown attrs through as strings). */}
+        <div style={{ overflow: 'hidden' }} inert={open ? undefined : ''}>
           <div style={{ padding: bare ? '8px 0 0' : `12px ${padX}px ${padY}px` }}>{children}</div>
         </div>
       </div>
