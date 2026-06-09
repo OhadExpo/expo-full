@@ -353,24 +353,26 @@ function WarmupEditor({ plan, setPlan }) {
         <Btn variant="ghost" onClick={add} style={{ padding: '4px 10px', fontSize: 11 }}>+ Add Warm-Up</Btn>
       </div>
       {open && <>
+        {/* Column-header row — table layout matching the day-exercise grid
+            (labels live here once, not repeated per row). */}
+        {warmup.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: '32px 1.6fr 56px 72px 72px 1.4fr 24px', gap: 10, marginBottom: 6, padding: '0 2px' }}>
+            {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'VIDEO URL', ''].map((h, hi) => (
+              <div key={hi} style={{ fontFamily: FN, fontSize: 9, color: C.td, fontWeight: 700, letterSpacing: '0.1em', textAlign: hi === 0 ? 'center' : 'left' }}>{h}</div>
+            ))}
+          </div>
+        )}
         {warmup.map((w, i) => (
           <div key={i} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: i < warmup.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
-            {/* Main row: structured fields (sets × reps × tempo) match the
-                main-exercise editor row shape. Existing plans authored before
-                this split kept their string `rx` — we render that as a small
-                legacy line below and let the coach clear it once they've
-                filled in the new fields. Order of operations on each row:
-                  - never wipe legacy w.rx on load (preserved unless coach
-                    clicks the × on the legacy line)
-                  - the displayed athlete value prefers sets/reps over rx
-                    once sets/reps exist (see wuRx() helper). */}
-            <div style={{ display: 'grid', gridTemplateColumns: '32px 1.6fr 56px 72px 72px 1.4fr 24px', gap: 10, alignItems: 'end' }}>
-              <div style={{ paddingBottom: 9, fontFamily: FN, fontSize: 11, color: C.tm, fontWeight: 700, textAlign: 'center', letterSpacing: '0.18em' }}>{i + 1}</div>
-              <Input label={i === 0 ? 'Exercise' : ''} value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
-              <Input label={i === 0 ? 'Sets' : ''} type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" />
-              <Input label={i === 0 ? 'Reps' : ''} value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" />
-              <Input label={i === 0 ? 'Tempo' : ''} value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" />
-              <Input label={i === 0 ? 'Video URL' : ''} value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
+            {/* Structured fields (sets × reps × tempo). Legacy pre-split plans
+                keep their `rx` string, rendered as a dismissible line below. */}
+            <div style={{ display: 'grid', gridTemplateColumns: '32px 1.6fr 56px 72px 72px 1.4fr 24px', gap: 10, alignItems: 'center' }}>
+              <div style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontWeight: 700, textAlign: 'center', letterSpacing: '0.04em' }}>{i + 1}</div>
+              <Input label="" value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
+              <Input label="" type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" />
+              <Input label="" value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" />
+              <Input label="" value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" />
+              <Input label="" value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
                 onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
                 placeholder="https://youtube.com/..." />
               <button onClick={() => remove(i)} aria-label="Remove warm-up" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, marginBottom: 4, display: 'flex', alignItems: 'center' }}><TrashIcon size={16} /></button>
