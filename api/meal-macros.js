@@ -20,6 +20,23 @@ export const config = {
   maxDuration: 30,
 };
 
+const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
+const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+
+// Tiny in-memory rate limiter — best-effort, resets on cold start.
+// Same pattern as api/chat.js. 20 analyses/hour/IP is far above any real
+// athlete's meal cadence but stops a cost-burn loop.
+const rateBuckets = new Map();
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60 * 60 * 1000;
+function allowRate(ip) {
+  const now = Date.now();
+  const arr = (rateBuckets.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT) { rateBuckets.set(ip, arr); return false; }
+  arr.push(now); rateBuckets.set(ip, arr);
+  return true;
+}
+
 const SYSTEM = `You are a precise nutrition estimator. The user will show you a meal photo. Estimate the macronutrient profile of what's visible.
 
 OUTPUT FORMAT — return ONLY valid JSON with this exact shape, no preamble:
@@ -50,11 +67,47 @@ export default async function handler(req, res) {
     res.status(500).json({ error: 'Server not configured — ANTHROPIC_API_KEY missing.' });
     return;
   }
+  // Paid endpoint: require a Supabase session, like /api/push and
+  // /api/smart-import. Without this anyone with the URL can burn the
+  // Anthropic key in a loop.
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Missing Authorization bearer token.' });
+    return;
+  }
+  try {
+    const userR = await fetch(`${SUPA_URL}/auth/v1/user`, {
+      headers: {
+        'apikey': SUPA_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${authHeader.slice('Bearer '.length).trim()}`,
+      },
+    });
+    if (!userR.ok) {
+      res.status(401).json({ error: 'auth lookup failed' });
+      return;
+    }
+  } catch {
+    res.status(500).json({ error: 'auth lookup error' });
+    return;
+  }
+
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  if (!allowRate(ip)) {
+    res.status(429).json({ error: 'Rate limit — try again later.' });
+    return;
+  }
+
   const body = req.body || {};
   const photoUrl = String(body.photoUrl || '').trim();
   const hint = String(body.hint || '').trim().slice(0, 200);
   if (!photoUrl || !/^https?:\/\//i.test(photoUrl)) {
     res.status(400).json({ error: 'photoUrl is required and must be http(s).' });
+    return;
+  }
+  // Meal photos only ever live in our own storage bucket — refuse to act
+  // as a generic vision proxy for arbitrary URLs.
+  if (!photoUrl.startsWith(`${SUPA_URL}/storage/v1/object/`)) {
+    res.status(400).json({ error: 'photoUrl must be an EXPO storage URL.' });
     return;
   }
 

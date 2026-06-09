@@ -107,6 +107,17 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Sender authorization. Legitimate flows are exactly:
+  //   coach → athlete (CoachMessages / review), athlete → coach
+  //   (message-to-coach, workout-complete), and self (device test).
+  // Anything else lets one athlete push attacker-controlled
+  // notifications (title/body/url) to another athlete's devices.
+  const OWNER_EMAIL = 'ohadyproductions@gmail.com';
+  if (callerEmail !== OWNER_EMAIL && toEmail !== OWNER_EMAIL && toEmail !== callerEmail) {
+    res.status(403).json({ error: 'Not allowed to push to this target.' });
+    return;
+  }
+
   // Resolve target's subscriptions via SECURITY DEFINER RPC. Avoids
   // needing a service-role key in env — the function is gated to
   // authenticated callers and has the same trust boundary as the

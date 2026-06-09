@@ -85,9 +85,14 @@ export default function MealLogger({ clientId, page = false }) {
     setAnalyzing(true);
     setError(null);
     try {
+      // The endpoint requires a Supabase session (paid AI call).
+      const { data: { session } = {} } = await supabase.auth.getSession();
       const r = await fetch('/api/meal-macros', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({ photoUrl, hint }),
       });
       // The endpoint *should* always return JSON, but a Vercel runtime
