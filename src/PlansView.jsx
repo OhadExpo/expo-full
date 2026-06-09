@@ -947,6 +947,33 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, background:'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
           const dayCollapsed = !!collapsedDays[d.id];
+          // Drag-reorder. The whole day grid is the drop zone (not just the
+          // narrow drag-handle column it used to be — that made the indicator
+          // update only when the cursor happened to be over the # cell, so it
+          // showed the wrong slot most of the time). `dragOver.gap` is the slot
+          // 0..len the row will land in, picked by comparing the cursor against
+          // each row's vertical centre. A solid line marks that slot.
+          const dragging = dragSrc && dragSrc.dayIdx === dayIdx;
+          const isGap = (g) => dragging && dragOver && dragOver.dayIdx === dayIdx && dragOver.gap === g;
+          const gapLine = (active) => ({ gridColumn: '1 / -1', borderTop: active ? `2px solid ${C.ac}` : `1px dashed ${C.ac}`, opacity: active ? 1 : 0.22, margin: 0, position: 'relative', top: '-1.5px', transition: 'opacity 120ms ease, border-top-color 120ms ease' });
+          const onGridDragOver = (e) => {
+            if (!dragging) return;
+            e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+            const rows = [...e.currentTarget.querySelectorAll('[data-exrow]')];
+            let gap = rows.length;
+            for (let i = 0; i < rows.length; i++) { const r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { gap = i; break; } }
+            setDragOver(prev => (prev && prev.dayIdx === dayIdx && prev.gap === gap) ? prev : { dayIdx, gap });
+          };
+          const onGridDrop = (e) => {
+            e.preventDefault();
+            if (dragging && dragOver && dragOver.dayIdx === dayIdx) {
+              const from = dragSrc.exIdx;
+              let to = dragOver.gap;
+              if (to > from) to -= 1; // source is spliced out first, so slots above it shift down one
+              if (to !== from) reorderExInDay(dayIdx, from, to);
+            }
+            setDragSrc(null); setDragOver(null);
+          };
           return (
             <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'12px 12px 6px'}}>
               <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",marginBottom:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4} : {})}}>
@@ -976,7 +1003,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div style={{display:"grid",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: Math.max(614,540+weeks*40)}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: Math.max(614,540+weeks*40)}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -999,16 +1026,16 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
                     return <React.Fragment key={ex.id}>
-                      {/* Super-subtle dashed divider between exercises. */}
-                      {exIdx > 0 && <div style={{gridColumn:'1 / -1', borderTop:`1px dashed ${C.ac}`, opacity:0.22, margin:0, position:'relative', top:'-1.5px'}} />}
-                      <div draggable
+                      {/* Insertion indicator above row 0 (drag slot 0). */}
+                      {exIdx === 0 && isGap(0) && <div style={gapLine(true)} />}
+                      {/* Divider between exercises — doubles as the drag-drop
+                          insertion line for the slot above this row. */}
+                      {exIdx > 0 && <div style={gapLine(isGap(exIdx))} />}
+                      <div draggable data-exrow={exIdx}
                         onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${dayIdx}:${exIdx}`); setDragSrc({dayIdx, exIdx}); }}
-                        onDragOver={e => { if (dragSrc && dragSrc.dayIdx===dayIdx) { e.preventDefault(); e.dataTransfer.dropEffect='move'; setDragOver({dayIdx, exIdx}); } }}
-                        onDragLeave={() => { if (dragOver && dragOver.dayIdx===dayIdx && dragOver.exIdx===exIdx) setDragOver(null); }}
-                        onDrop={e => { e.preventDefault(); if (dragSrc && dragSrc.dayIdx===dayIdx && dragSrc.exIdx!==exIdx) reorderExInDay(dayIdx, dragSrc.exIdx, exIdx); setDragSrc(null); setDragOver(null); }}
                         onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                         title="Drag to reorder"
-                        style={{display:"flex",alignItems:"center",gap:5,minWidth:0,cursor:"grab",userSelect:"none",padding:dragSrc&&dragSrc.dayIdx===dayIdx?"16px 0":0,transition:"padding 120ms",opacity:dragSrc&&dragSrc.dayIdx===dayIdx&&dragSrc.exIdx===exIdx?0.4:1,background:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?"rgba(57,189,255,0.10)":"transparent",borderTop:dragOver&&dragOver.dayIdx===dayIdx&&dragOver.exIdx===exIdx?`3px solid ${C.ac}`:"none"}}>
+                        style={{display:"flex",alignItems:"center",gap:5,minWidth:0,cursor:"grab",userSelect:"none",opacity:dragging&&dragSrc.exIdx===exIdx?0.4:1,transition:"opacity 120ms"}}>
                         <span style={{color:C.tm, fontFamily:FN, fontSize:11, lineHeight:1, fontWeight:400, position:'relative', top:'1px'}}>⇕</span>
                         <span style={{color:C.tx, fontFamily:FN, fontWeight:700, fontSize:12, lineHeight:1}}>{exIdx+1}</span>
                       </div>
@@ -1068,6 +1095,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       </div>
                     </React.Fragment>;
                   })}
+                  {/* Insertion indicator below the last row (final drag slot). */}
+                  {isGap(dayExs.length) && <div style={gapLine(true)} />}
                 </div></div>
               }
               {/* Add-exercise — ported to the unified view (the only add buttons
