@@ -812,7 +812,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   };
   const statusLabel = autosaveStatusLabel(autoStatus, C);
   return (
-    <div>
+    // In compare mode the editor breaks out of the global <main> 1200px cap
+    // so the two side-by-side panes are each wide enough for the full 9-column
+    // day grid to fit. Without this each pane is ~580px on a 1536 screen —
+    // narrower than the grid's min-width — so the grid overflowed and the last
+    // (clipped, empty) column read as wasted whitespace on the card's right.
+    <div style={compareActive ? { width: 'min(96vw, 2400px)', position: 'relative', left: '50%', transform: 'translateX(-50%)' } : undefined}>
       {/* Narrow-screen layout for the exercise rows. Below 900px the
           8-column grid (Exercise / Superset / Sets / Reps / Load / RPE /
           Tempo / Trash) wraps so per-week inputs don't force horizontal
