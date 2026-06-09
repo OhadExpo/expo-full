@@ -269,12 +269,20 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
 //   titleNode   — custom JSX for the title (overrides `title`/`count`); use
 //                 for Hebrew/RTL or non-uppercase labels. Render it white so
 //                 it reads on the strip.
-export function CollapsibleSection({ title, titleNode, count, right, storageKey, defaultOpen = true, leftStripe, padY = 14, padX = 18, bare = false, style, children }) {
+export function CollapsibleSection({ title, titleNode, count, right, storageKey, defaultOpen = true, leftStripe, padY = 14, padX = 18, bare = false, style, children, domId, openSignal }) {
   const storeId = storageKey ? `expo-collapse:${storageKey}` : null;
   const [open, setOpen] = React.useState(() => {
     if (!storeId) return defaultOpen;
     try { const v = localStorage.getItem(storeId); return v == null ? defaultOpen : v === '1'; } catch { return defaultOpen; }
   });
+  // External force-open: when `openSignal` changes to a truthy value the
+  // section expands (and persists open). Lets a parent — e.g. the review
+  // queue summary — jump to and reveal a specific collapsed section.
+  React.useEffect(() => {
+    if (!openSignal) return;
+    setOpen(true);
+    try { if (storeId) localStorage.setItem(storeId, '1'); } catch { /* private mode */ }
+  }, [openSignal]); // eslint-disable-line react-hooks/exhaustive-deps
   const toggle = () => setOpen(o => {
     const n = !o;
     try { if (storeId) localStorage.setItem(storeId, n ? '1' : '0'); } catch { /* private mode */ }
@@ -288,7 +296,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
     ? { ...style }
     : { background: 'var(--c-sf)', border: baseBorder, borderLeft: leftStripe ? `3px solid ${leftStripe}` : baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style };
   return (
-    <div style={outerStyle}>
+    <div id={domId} style={outerStyle}>
       <div
         onClick={toggle}
         role="button" tabIndex={0}

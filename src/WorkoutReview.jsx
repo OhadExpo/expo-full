@@ -1433,13 +1433,19 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   );
 }
 
-export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, planIndex, trainees, exercises, markReviewed, updateFormVideos, deleteWorkout }) {
+export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, planIndex, trainees, exercises, markReviewed, updateFormVideos, deleteWorkout, onOpenTrainee }) {
   // "Log In-Person Session" used to live as a subtab here. It moved out
   // 2026-05-28 — the in-person logging surface is now reachable directly
   // via `▶ LOG SESSION` on each TraineeDetail and at /coach/workouts.
   // Review is purely about reviewing what athletes uploaded.
   const [selectedWo, setSelectedWo] = useState(null);
   const [expandedEx, setExpandedEx] = useState(null);
+  // Review-queue jump: clicking the "N pending" summary scrolls to and
+  // force-expands the section of the first pending-with-video athlete.
+  // jumpSignal is a counter so re-clicking the same athlete re-fires the
+  // expand effect even when the client id is unchanged.
+  const [jumpClient, setJumpClient] = useState(null);
+  const [jumpSignal, setJumpSignal] = useState(0);
   // Dashboard task → review handoff. The TASKS widget stashes the workout
   // id in sessionStorage before routing here so the review tab opens
   // directly on the requested workout instead of the queue list.
@@ -1501,6 +1507,19 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     if (!byClient[key]) byClient[key] = { name: nameOf(key), workouts: [] };
     byClient[key].workouts.push(w);
   });
+
+  // Jump from the review-queue summary to the first pending athlete: expand
+  // their section and scroll it into view (after the expand animation begins).
+  const jumpToPending = () => {
+    const first = (clientWorkouts || []).find(w => !w.reviewedAt && hasReviewableVideo(w));
+    if (!first) return;
+    const cid = first.clientId || 'unknown';
+    setJumpClient(cid);
+    setJumpSignal(s => s + 1);
+    setTimeout(() => {
+      document.getElementById(`review-client-${cid}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 60);
+  };
 
   const setFocus = (planName, dayName, eid, week, val) => {
     const fk = `${planName}|${dayName}|${eid}|W${week}`;
@@ -2093,20 +2112,28 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0,
             marginBottom:14,
           }}>
-            <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '10px 14px' }}>
+            <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '0 14px', minHeight: 45, boxSizing: 'border-box', display: 'flex', alignItems: 'center' }}>
               <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>REVIEW QUEUE</SectionLabel>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px'}}>
+            {/* Clickable: jumps to + expands the first pending athlete's
+                section so the coach can act on the count, not just read it. */}
+            <div onClick={jumpToPending} role="button" tabIndex={0}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToPending(); } }}
+              title="Jump to the pending workout"
+              style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',cursor:'pointer'}}
+              onMouseEnter={e=>e.currentTarget.style.background=C.acD}
+              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
               <div style={{
                 width:28,height:28,borderRadius:0,background:C.acD,
                 display:'flex',alignItems:'center',justifyContent:'center',
-                fontFamily:FN,fontSize:12,fontWeight:700,color:C.ac,
+                fontFamily:FN,fontSize:12,fontWeight:700,color:C.ac,flexShrink:0,
               }}>{queue.length}</div>
-              <div>
+              <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:FB,fontSize:11,color:C.tm}}>
                   {queue.length} pending with form video{queue.length === 1 ? '' : 's'}
                 </div>
               </div>
+              <span style={{color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',flexShrink:0}}>REVIEW →</span>
             </div>
           </div>
         );
@@ -2115,6 +2142,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       {/* Group by client */}
       {Object.entries(byClient).map(([cid, data]) => (
         <CollapsibleSection key={cid} bare storageKey={`review-client-${cid}`} style={{marginBottom:20}}
+          domId={`review-client-${cid}`} openSignal={jumpClient === cid ? jumpSignal : 0}
           titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>}>
           {data.workouts.slice()
             // Unreviewed first (by most-recent date), then reviewed (by most-recent date)
@@ -2170,6 +2198,19 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               </div>
             );
           })}
+          {/* Jump to the athlete's full page (their completed workouts,
+              programs, notes) — saves the coach a trip back to Athletes. */}
+          {onOpenTrainee && (
+            <button onClick={() => onOpenTrainee(cid)}
+              title="Open this athlete's page"
+              style={{width:'100%',marginTop:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,
+                padding:'9px 0',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',
+                textTransform:'uppercase',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
+              onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
+              View athlete page →
+            </button>
+          )}
         </CollapsibleSection>
       ))}
       {deleteModal}

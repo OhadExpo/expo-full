@@ -975,7 +975,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             setDragSrc(null); setDragOver(null);
           };
           return (
-            <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'12px 12px 6px'}}>
+            <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'12px'}}>
               <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",marginBottom:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4} : {})}}>
                 <span role="button" tabIndex={0} onClick={()=>toggleDayCollapse(d.id)}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleDayCollapse(d.id); } }}
