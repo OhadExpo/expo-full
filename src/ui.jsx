@@ -290,7 +290,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
   });
   const baseBorder = `1px solid ${C.cardBd}`;
   const stripStyle = bare
-    ? { background: 'var(--c-stripBg, var(--c-sf))', border: baseBorder, padding: '10px 14px' }
+    ? { background: 'var(--c-stripBg, var(--c-sf))', border: baseBorder, padding: '10px 14px', minHeight: 45, boxSizing: 'border-box' }
     : { background: 'var(--c-stripBg, var(--c-sf))', borderBottom: open ? `1px solid ${C.cardBd}` : 'none', padding: `8px ${padX}px` };
   const outerStyle = bare
     ? { ...style }
