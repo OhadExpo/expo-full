@@ -2143,7 +2143,18 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       {Object.entries(byClient).map(([cid, data]) => (
         <CollapsibleSection key={cid} bare storageKey={`review-client-${cid}`} style={{marginBottom:20}}
           domId={`review-client-${cid}`} openSignal={jumpClient === cid ? jumpSignal : 0}
-          titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>}>
+          titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>}
+          right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
+            <button onClick={() => onOpenTrainee(cid)}
+              title="Open this athlete's page"
+              style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF',borderRadius:0,
+                padding:'3px 10px',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',
+                textTransform:'uppercase',cursor:'pointer',whiteSpace:'nowrap',lineHeight:1.5}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor='#FFFFFF'}
+              onMouseLeave={e=>e.currentTarget.style.borderColor='rgba(255,255,255,0.55)'}>
+              Athlete page →
+            </button>
+          ) : null}>
           {data.workouts.slice()
             // Unreviewed first (by most-recent date), then reviewed (by most-recent date)
             .sort((a, b) => {
@@ -2198,19 +2209,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               </div>
             );
           })}
-          {/* Jump to the athlete's full page (their completed workouts,
-              programs, notes) — saves the coach a trip back to Athletes. */}
-          {onOpenTrainee && (
-            <button onClick={() => onOpenTrainee(cid)}
-              title="Open this athlete's page"
-              style={{width:'100%',marginTop:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,
-                padding:'9px 0',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',
-                textTransform:'uppercase',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}
-              onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
-              onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
-              View athlete page →
-            </button>
-          )}
         </CollapsibleSection>
       ))}
       {deleteModal}
