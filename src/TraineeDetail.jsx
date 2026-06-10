@@ -6,7 +6,7 @@ import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSE
 // helper applied to NotesWidget, PlansView, WorkoutReview,
 // WorkoutsView. Used here for the couple/solo header strip + the
 // per-member name column.
-const isHebrew = (s) => /[֐-׿]/.test(s || '');
+const isHebrew = (s) => /[\\u0590-\\u05FF]/.test(s || '');
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, isRefined5b, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection } from './ui';
@@ -276,8 +276,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
           </div>
           {m.injuries&&<div style={{marginTop:10,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Injuries</div><div style={{fontSize:13,color:C.tx,direction:/[\u0590-\u05FF]/.test(m.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\u0590-\u05FF]/.test(m.injuries)?FH:undefined}}>{m.injuries}</div></div>}
-          {m.goals&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,textAlign:'center'}}>{m.goals}</div></div>}
-          {m.notes&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,textAlign:'center'}}>{m.notes}</div></div>}
+          {m.goals&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:'uppercase',marginBottom:4,textAlign:'center'}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\\u0590-\\u05FF]/.test(m.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(m.goals)?FH:undefined}}>{m.goals}</div></div>}
+          {m.notes&&<div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.bd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:'center'}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\\u0590-\\u05FF]/.test(m.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(m.notes)?FH:undefined}}>{m.notes}</div></div>}
         </Card>
         {showPrograms && <>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',margin:'12px 0 6px',gap:8}}>
@@ -442,9 +442,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               hairline) so the borders read as a uniform set — the semantic
               cue lives in the LABEL color (injuries=orange, goals=cyan,
               notes=muted), not the border. Was: orange / cyan / grey borders. */}
-          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[֐-׿]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
-          {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[֐-׿]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
-          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[֐-׿]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[֐-׿]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
+          {td.injuries&&<div style={{marginTop:12,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.or,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Injuries / Conditions</div><div style={{fontSize:13,color:C.tx,direction:/[\\u0590-\\u05FF]/.test(td.injuries)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(td.injuries)?FH:undefined}}>{td.injuries}</div></div>}
+          {td.goals&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:10,fontFamily:FN,color:C.ac,textTransform:"uppercase",marginBottom:4,textAlign:"center"}}>Goals</div><div style={{fontSize:13,color:C.tx,direction:/[\\u0590-\\u05FF]/.test(td.goals)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(td.goals)?FH:undefined}}>{td.goals}</div></div>}
+          {td.notes&&<div style={{marginTop:8,padding:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700,marginBottom:4,textAlign:"center"}}>Notes</div><div style={{fontSize:13,color:C.tm,direction:/[\\u0590-\\u05FF]/.test(td.notes)?'rtl':'ltr',textAlign:'center',fontFamily:/[\\u0590-\\u05FF]/.test(td.notes)?FH:undefined}}>{td.notes}</div></div>}
         </Card>
       )}
 

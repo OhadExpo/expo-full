@@ -563,7 +563,8 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                               // adding pixel values manually.
                               <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0, borderLeft:'3px solid transparent', paddingLeft:6}}>{h}</div>
                             ) : (
-                              <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>
+                              // Box-column headers center over their inputs.
+                              <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0,textAlign:'center'}}>{h}</div>
                             )
                           )}
                           {dayExs.map((pe, ei) => {
@@ -1010,7 +1011,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     unlimited times per block, no DONE lock, no week rotation. */}
                 <button onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { kind: 'daily' }); }}
                   title={d.kind==='daily' ? 'Daily Routine ON — unlimited logs per block, no DONE lock, no week rotation. Click for a standard week-paced day.' : 'Make this a Daily Routine day (unlimited logs, no DONE lock, no week rotation).'}
-                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,padding:"3px 9px",color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',minWidth:94,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>📆 {d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
+                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,padding:"3px 0",color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>📆 {d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
                 {(() => {
                   const dayIds = (dayExs||[]).map(e=>e.id);
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);
@@ -1021,7 +1022,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     setOvExpanded(prev=>{ const next={...prev}; dayIds.forEach(id=>{ if(anyOpen) delete next[id]; else next[id]=true; }); return next; });
                   }}
                     title={anyOpen?'Collapse all exercises in this day':'Expand all exercises in this day to edit fully'}
-                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:"3px 10px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',whiteSpace:'nowrap',minWidth:128,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{anyOpen?'▴ COLLAPSE ALL':'▾ EXPAND ALL'}</button>;
+                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:"3px 0",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',whiteSpace:'nowrap',width:142,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{anyOpen?'▴ COLLAPSE ALL':'▾ EXPAND ALL'}</button>;
                 })()}
                 {/* Remove-day — ported from the dead detail view (unified had
                     no way to delete a day). Confirm since it's destructive. */}
@@ -1029,7 +1030,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: Math.max(614,540+weeks*40)}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : Math.max(614,540+weeks*40)}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -1043,7 +1044,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       // to content text x-position. Pixel-perfect by design.
                       <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0, borderLeft:'3px solid transparent', paddingLeft:6}}>{h}</div>
                     ) : (
-                      <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0}}>{h}</div>
+                      // Box-column headers center over their inputs.
+                      <div key={hi} style={{fontSize:9,fontFamily:FN,color:C.td,minWidth:0,textAlign:'center'}}>{h}</div>
                     )
                   )}
                   {dayExs.map((ex, exIdx) => {

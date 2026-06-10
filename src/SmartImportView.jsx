@@ -65,6 +65,18 @@ async function siFetch(body) {
   return fetch('/api/smart-import', { method: 'POST', headers, body: JSON.stringify(body) });
 }
 
+// Text-first parse: a Vercel runtime crash (timeout, OOM, cold-start failure)
+// returns PLAINTEXT, and an unconditional r.json() surfaces a useless
+// "Unexpected token" SyntaxError instead of the real failure.
+async function siJson(r) {
+  const raw = await r.text();
+  try { return JSON.parse(raw); }
+  catch {
+    const snippet = raw.replace(/\s+/g, ' ').slice(0, 140);
+    throw new Error(`Server error (${r.status})${snippet ? ` — ${snippet}` : ''}`);
+  }
+}
+
 const TARGETS = [
   { value: 'exercises', label: 'Exercise Library', hint: 'Add or merge into the shared exercise library.' },
   { value: 'athletes', label: 'Athletes', hint: 'Add or update trainees in expo-trainees.' },
@@ -195,7 +207,7 @@ export default function SmartImportView() {
           images = [{ mediaType: m[1], data: m[2] }];
         }
         const r = await siFetch({ kind: 'vision-extract', images, target });
-        const j = await r.json();
+        const j = await siJson(r);
         if (!r.ok || j.error) throw new Error(j.error || `vision HTTP ${r.status}`);
         const out = (j.sheets || []).map(s => ({
           headers: s.headers || [], rows: s.rows || [], sample: s.sample || (s.rows || []).slice(0, 6),
@@ -257,7 +269,7 @@ export default function SmartImportView() {
         sheetName: sheetGrid.sheetName,
         existingContext,
       });
-      const j = await r.json();
+      const j = await siJson(r);
       if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
       setMapping(j);
     } catch (e) { setErr('Analyze failed: ' + e.message); }
@@ -292,7 +304,7 @@ export default function SmartImportView() {
           rows: chunk,
           existingContext,
         });
-        const j = await r.json();
+        const j = await siJson(r);
         if (!r.ok || j.error) throw new Error(j.error || `HTTP ${r.status}`);
         if (Array.isArray(j.items)) allItems.push(...j.items);
         if (Array.isArray(j.errors)) allErrors.push(...j.errors.map(e => ({ ...e, rowIdx: (e.rowIdx ?? 0) + i })));

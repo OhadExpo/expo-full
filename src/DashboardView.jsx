@@ -118,8 +118,10 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
       out.push({ label: d.toLocaleString('en-US', { month: 'short' }), value: total });
     }
     return out;
+  // Depend on `payments` itself — keying on .length kept the chart stale
+  // when a pending request flipped to Paid (status change, same count).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payments.length]);
+  }, [payments]);
   const maxBar = Math.max(1, ...monthBars.map(b => b.value));
 
   // Outstanding — sum of pending Bit payment requests.

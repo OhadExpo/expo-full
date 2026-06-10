@@ -31,7 +31,7 @@ function EmailsCell({ email, style }) {
       }>{visible.join(', ')}</span>
       <span
         onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-        style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1 }}
+        style={{ color: C.ac, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, lineHeight: 1, minWidth: 34, display: 'inline-flex', justifyContent: 'center' }}
       >
         {expanded ? 'LESS' : `+${arr.length - 2}`}
       </span>
