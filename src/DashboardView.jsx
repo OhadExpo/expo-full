@@ -667,7 +667,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
                   <td style={{ padding: '12px', fontWeight: 600, color: C.tx, textAlign: 'center' }}>{t.name}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}><Badge color={statusColor[t.status] || C.td}>{t.status}</Badge></td>
                   <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.format}</td>
-                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.package}{isOwner && t.packagePrice ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
+                  <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>{t.package}{isOwner && Number.isFinite(parseInt(t.packagePrice)) ? ` · ₪${parseInt(t.packagePrice).toLocaleString()}` : ''}</td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
                     {t.sessionsRemaining > 0 ? (
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>

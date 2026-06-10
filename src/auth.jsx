@@ -474,7 +474,10 @@ export function RolePickerScreen({ name, onPick, onSignOut }) {
 }
 
 // Unauthorized screen — when email doesn't match any known user
-export function UnauthorizedScreen({ email, onSignOut }) {
+export function UnauthorizedScreen({ email, onSignOut, verifyError = false, onRetry }) {
+  // verifyError = the account lookup FAILED (network / RLS), which is NOT the
+  // same as "not registered". Show a softer, retryable message so a real
+  // athlete isn't told they don't exist over a transient blip.
   return (
     <div data-theme="dark" style={wrapStyle}>
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
@@ -482,11 +485,22 @@ export function UnauthorizedScreen({ email, onSignOut }) {
       </div>
       <div style={cardStyle}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 14 }}>Access Denied</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.3em', fontWeight: 700, textTransform: 'uppercase', marginBottom: 14 }}>{verifyError ? "Couldn't Verify Account" : 'Access Denied'}</div>
           <div style={{ fontSize: 13, color: C.tm, lineHeight: 1.5 }}>
-            <strong style={{ color: C.ac }}>{email}</strong> is not registered.<br />
-            Contact your coach to get access.
+            {verifyError ? (
+              <><strong style={{ color: C.ac }}>{email}</strong> — we couldn't reach the server to verify your account.<br />Check your connection and try again.</>
+            ) : (
+              <><strong style={{ color: C.ac }}>{email}</strong> is not registered.<br />Contact your coach to get access.</>
+            )}
           </div>
+          {verifyError && onRetry && (
+            <button
+              onClick={onRetry}
+              style={{ marginTop: 20, marginRight: 8, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '10px 20px', color: C.ac, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}
+            >
+              Try Again
+            </button>
+          )}
           <button
             onClick={onSignOut}
             style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '10px 20px', color: C.rd, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}

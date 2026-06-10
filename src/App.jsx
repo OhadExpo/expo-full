@@ -656,13 +656,17 @@ function AuthedApp() {
   // selfTrainee: null = none, undefined = checking (avoids an "unauthorized"
   // flash before the RPC resolves).
   const [selfTrainee, setSelfTrainee] = useState(null);
+  // Distinguish an RPC FAILURE (network / RLS regression) from a genuine
+  // "no trainee row" — the former must not read as "you're not registered".
+  const [selfTraineeError, setSelfTraineeError] = useState(false);
   useEffect(() => {
-    if (!email || storeClientTrainee || isTrainerEmail) { setSelfTrainee(null); return; }
+    if (!email || storeClientTrainee || isTrainerEmail) { setSelfTrainee(null); setSelfTraineeError(false); return; }
     let cancelled = false;
     setSelfTrainee(undefined);
+    setSelfTraineeError(false);
     supabase.rpc('my_trainee')
-      .then(({ data }) => { if (!cancelled) setSelfTrainee(data || null); })
-      .catch(() => { if (!cancelled) setSelfTrainee(null); });
+      .then(({ data, error }) => { if (cancelled) return; if (error) { setSelfTraineeError(true); setSelfTrainee(null); } else { setSelfTrainee(data || null); } })
+      .catch(() => { if (!cancelled) { setSelfTraineeError(true); setSelfTrainee(null); } });
     return () => { cancelled = true; };
   }, [email, storeClientTrainee, isTrainerEmail]);
   const clientTrainee = storeClientTrainee || selfTrainee || null;
@@ -1022,7 +1026,9 @@ function AuthedApp() {
   // Wait for trainees to load before deciding so real clients don't flash this.
   // Excludes isBoth since they're handled by the picker branch above.
   if (tL && selfTrainee !== undefined && !isTrainer && !isClient && !isBoth) {
-    return <UnauthorizedScreen email={session?.user?.email || ''} onSignOut={signOut} />;
+    return <UnauthorizedScreen email={session?.user?.email || ''} onSignOut={signOut}
+      verifyError={selfTraineeError}
+      onRetry={() => { setSelfTrainee(undefined); setSelfTraineeError(false); supabase.rpc('my_trainee').then(({ data, error }) => { if (error) { setSelfTraineeError(true); setSelfTrainee(null); } else { setSelfTrainee(data || null); } }).catch(() => { setSelfTraineeError(true); setSelfTrainee(null); }); }} />;
   }
 
   // Client view — portal for the logged-in client. Dual-role users (an

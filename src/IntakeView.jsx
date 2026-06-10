@@ -257,7 +257,7 @@ export default function IntakeView({ trainees }) {
             <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setOpenSubmission(s)}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 <Badge color={s.form_type === 'initial' ? C.ac : (s.form_type === 'assessment' ? C.or : C.gn)}>{s.form_type}</Badge>
-                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.18em' }}>{s.locale.toUpperCase()}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, fontWeight: 700, letterSpacing: '0.18em' }}>{(s.locale || '').toUpperCase()}</span>
                 <span style={{ fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600, direction: RTL.test(s.name || '') ? 'rtl' : 'ltr' }}>{s.name || '(no name)'}</span>
                 {s.traineeName && (
                   <span style={{ fontFamily: FB, fontSize: 12, color: C.ac }}>→ {s.traineeName}</span>
@@ -280,7 +280,7 @@ export default function IntakeView({ trainees }) {
       ))}
 
       {/* Detail modal */}
-      <Modal open={!!openSubmission} onClose={() => setOpenSubmission(null)} title={openSubmission ? `${openSubmission.form_type} · ${openSubmission.locale.toUpperCase()} — ${openSubmission.name || openSubmission.email || ''}` : ''} wide>
+      <Modal open={!!openSubmission} onClose={() => setOpenSubmission(null)} title={openSubmission ? `${openSubmission.form_type} · ${(openSubmission.locale || '').toUpperCase()} — ${openSubmission.name || openSubmission.email || ''}` : ''} wide>
         {openSubmission && <PayloadDetail form={detailForm} payload={openSubmission.payload} />}
       </Modal>
 
