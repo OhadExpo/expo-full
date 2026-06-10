@@ -4,6 +4,7 @@ import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } fro
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { WhatsAppCheckInButton } from './whatsappButton';
+import { supabase } from './supabase';
 
 const isCouple = (t) => t.members && t.members.length === 2;
 
@@ -334,6 +335,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const [archiveConfirm, setArchiveConfirm] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleteTyped, setDeleteTyped] = useState("");
+  const [purgeHistory, setPurgeHistory] = useState(false);
+  const [purging, setPurging] = useState(false);
   // Escape-to-close for the hand-rolled permanent-delete confirm overlay.
   useEscClose(!!deleteConfirm, () => {setDeleteConfirm(null);setDeleteTyped("")});
   const [addMenuOpen, setAddMenuOpen] = useState(false);
@@ -436,9 +439,18 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const handleRestore = (id) => {
     setTrainees(prev => prev.map(t => t.id === id ? {...t, status: "Inactive", archivedAt: undefined} : t));
   };
-  const handlePermanentDelete = (id) => {
+  const handlePermanentDelete = async (id) => {
+    // Optional hard purge of every history table keyed to this trainee id
+    // (and couple sub-ids) via the owner-gated SECURITY DEFINER RPC. Runs
+    // BEFORE the roster removal so a mid-way failure leaves the row intact.
+    if (purgeHistory) {
+      setPurging(true);
+      const { error } = await supabase.rpc('purge_trainee_data', { p_trainee_id: id });
+      setPurging(false);
+      if (error) { alert('History purge failed — nothing was deleted: ' + error.message); return; }
+    }
     setTrainees(prev => prev.filter(t => t.id !== id));
-    setDeleteConfirm(null); setDeleteTyped("");
+    setDeleteConfirm(null); setDeleteTyped(""); setPurgeHistory(false);
   };
 
   return (
@@ -797,22 +809,28 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         onCancel={() => setArchiveConfirm(null)} />
 
       {/* Permanent delete — type DELETE to confirm */}
-      {deleteConfirm && <div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("")}}>
-        <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.rd}`, borderRadius: 0, width: 420, padding: 24 }}>
+      {deleteConfirm && <div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>
+        <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.rd}`, borderRadius: 0, width: 440, maxWidth: 'calc(100vw - 24px)', padding: 24 }}>
           <h3 style={{ margin: "0 0 8px", fontFamily: FN, fontSize: 15, color: C.rd, textAlign: "center" }}>⚠ Permanent Deletion</h3>
-          {/* Honest copy: this removes the athlete from the roster only —
-              plans, workouts and payments stay in their tables (orphaned). */}
-          <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>This will permanently remove <strong style={{color:C.tx}}>{deleteConfirm.name}</strong> from the roster. Their programs, workout history and payment records are kept but no longer reachable.</p>
-          <p style={{ margin: "0 0 16px", fontSize: 13, color: C.rd, fontWeight: 600, textAlign: "center" }}>This cannot be undone.</p>
+          <p style={{ margin: "0 0 6px", fontSize: 13, color: C.tm, textAlign: "center" }}>This will permanently remove <strong style={{color:C.tx}}>{deleteConfirm.name}</strong> from the roster. By default their programs, workout history and payment records are kept (just no longer reachable).</p>
+          <p style={{ margin: "0 0 14px", fontSize: 13, color: C.rd, fontWeight: 600, textAlign: "center" }}>This cannot be undone.</p>
+          {/* Opt-in hard purge — separate, deliberate choice. Erases revenue
+              history too, so it's never the default. */}
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 16, padding: "10px 12px", border: `1px solid ${purgeHistory ? C.rd : C.cardBd}`, background: purgeHistory ? C.rdD : 'transparent', cursor: "pointer" }}>
+            <input type="checkbox" checked={purgeHistory} onChange={e => setPurgeHistory(e.target.checked)} style={{ marginTop: 2, accentColor: C.rd, cursor: "pointer" }} />
+            <span style={{ fontSize: 12, color: purgeHistory ? C.rd : C.tm, lineHeight: 1.45 }}>
+              Also <strong>erase all their history</strong> — programs, workouts, payments, messages, evaluations. This wipes their revenue from your reports and is not recoverable.
+            </span>
+          </label>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: "uppercase", fontFamily: FN, display: "block", marginBottom: 4, textAlign: "center" }}>Type "DELETE" to confirm</label>
             <input value={deleteTyped} onChange={e => setDeleteTyped(e.target.value)} style={{ background: 'var(--c-sf2)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: "8px 12px", color: C.tx, fontFamily: FN, fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box", letterSpacing: "0.1em", textAlign: "center" }} placeholder="DELETE" autoComplete="off" />
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Btn variant="ghost" onClick={() => {setDeleteConfirm(null);setDeleteTyped("")}}>Cancel</Btn>
-            <Btn variant="danger" onClick={() => { if (deleteTyped.trim().toUpperCase() === "DELETE") handlePermanentDelete(deleteConfirm.id); }}
-              style={{ opacity: deleteTyped.trim().toUpperCase() === "DELETE" ? 1 : 0.3, pointerEvents: deleteTyped.trim().toUpperCase() === "DELETE" ? "auto" : "none" }}>
-              Delete Permanently</Btn>
+            <Btn variant="ghost" onClick={() => {setDeleteConfirm(null);setDeleteTyped("");setPurgeHistory(false)}}>Cancel</Btn>
+            <Btn variant="danger" disabled={purging} onClick={() => { if (deleteTyped.trim().toUpperCase() === "DELETE") handlePermanentDelete(deleteConfirm.id); }}
+              style={{ opacity: (deleteTyped.trim().toUpperCase() === "DELETE" && !purging) ? 1 : 0.3, pointerEvents: (deleteTyped.trim().toUpperCase() === "DELETE" && !purging) ? "auto" : "none" }}>
+              {purging ? 'Purging…' : (purgeHistory ? 'Delete + Erase History' : 'Delete Permanently')}</Btn>
           </div>
         </div>
       </div>}
