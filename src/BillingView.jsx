@@ -53,18 +53,23 @@ export default function BillingView({ trainees }) {
 
   const traineesById = useMemo(() => Object.fromEntries((trainees || []).map(t => [t.id, t])), [trainees]);
 
+  const [loadError, setLoadError] = useState(null);
   const reload = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
-      const [{ data: s }, { data: r }] = await Promise.all([
+      const [{ data: s, error: se }, { data: r, error: re }] = await Promise.all([
         supabase.from('coach_payment_settings').select('*').eq('coach_email', coachEmail).maybeSingle(),
         supabase.from('bit_payment_requests').select('*').order('created_at', { ascending: false }).limit(200),
       ]);
+      // PostgREST errors don't throw — surface them so an RLS/permission
+      // failure doesn't read as "No payment requests yet".
+      if (se || re) { setLoadError((se || re).message); return; }
       const seed = s || { coach_email: coachEmail, bit_phone: '', bit_display_name: 'אוהד', currency: 'ils', vat_rate: 0.18, default_monthly: 800 };
       setSettings(s);
       setDraftSettings(seed);
       setRequests(r || []);
-    } catch { /* a thrown read leaves prior data in place */ }
+    } catch (e) { setLoadError(e?.message || 'Could not load billing data.'); }
     finally { setLoading(false); } // never strand the spinner
   }, []);
 
@@ -184,7 +189,11 @@ export default function BillingView({ trainees }) {
               }}>+ NEW REQUEST</button>
           </div>
         </RefinedHeaderStrip>
-        {requests.length === 0 ? (
+        {loadError ? (
+          <div style={{ padding: 14, textAlign: 'center', color: C.rd, fontSize: 13 }}>
+            Couldn’t load billing data: {loadError}. <button onClick={reload} style={{ background: 'transparent', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textDecoration: 'underline' }}>RETRY</button>
+          </div>
+        ) : requests.length === 0 ? (
           <div style={{ padding: 14, textAlign: 'center', color: C.td, fontSize: 13 }}>
             No payment requests yet. {settings?.bit_phone ? 'Tap "+ NEW REQUEST" to create one.' : 'Configure your Bit phone above first.'}
           </div>

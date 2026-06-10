@@ -1512,7 +1512,20 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const [collapsedSections, setCollapsedSections] = usePersistentState('tasks-sections', {});
   const [gcalConnected, setGcalConnected] = useState(false);
   const [gcalBusy, setGcalBusy] = useState(false);
-  const now = useMemo(() => new Date(), []);
+  // `now` rolls over at local midnight so TODAY / overdue chips don't go
+  // stale in a tab left open past 00:00. Timer is scheduled to the next
+  // midnight (then re-armed), not a wasteful per-minute interval.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    let id;
+    const arm = () => {
+      const d = new Date();
+      const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 5);
+      id = setTimeout(() => { setNow(new Date()); arm(); }, next - d);
+    };
+    arm();
+    return () => clearTimeout(id);
+  }, []);
 
   const toggleSectionCollapse = (key) => setCollapsedSections(p => ({ ...p, [key]: !p[key] }));
 

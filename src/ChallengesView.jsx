@@ -165,8 +165,10 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
         .eq('challenge_id', challengeId)
         .eq('trainee_id', r.trainee_id)
     );
-    await Promise.all(updates);
-    toast('Leaderboard snapshot saved.', 'success', { ttl: 3000 });
+    const results = await Promise.all(updates);
+    const failed = results.filter(r => r?.error).length;
+    if (failed) { toast(`Snapshot partly failed — ${failed} row(s) not saved.`, 'error', { ttl: 6000 }); }
+    else { toast('Leaderboard snapshot saved.', 'success', { ttl: 3000 }); }
     reload();
   };
 
@@ -327,10 +329,12 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
       const toAdd = [...participantIds].filter(id => !existing.has(id));
       const toRemove = [...existing].filter(id => !participantIds.has(id));
       if (toAdd.length > 0) {
-        await supabase.from('challenge_participants').insert(toAdd.map(id => ({ challenge_id: challengeId, trainee_id: id })));
+        const { error } = await supabase.from('challenge_participants').insert(toAdd.map(id => ({ challenge_id: challengeId, trainee_id: id })));
+        if (error) throw error;
       }
       if (toRemove.length > 0) {
-        await supabase.from('challenge_participants').delete().eq('challenge_id', challengeId).in('trainee_id', toRemove);
+        const { error } = await supabase.from('challenge_participants').delete().eq('challenge_id', challengeId).in('trainee_id', toRemove);
+        if (error) throw error;
       }
       toast('Challenge saved.', 'success', { ttl: 3000 });
       onSaved();

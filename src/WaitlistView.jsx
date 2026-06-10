@@ -166,22 +166,28 @@ export default function WaitlistView({ trainees }) {
     if (reachedOut) patch.consumed_at = new Date().toISOString();
     if (nextStage === 'lead') patch.consumed_at = null;
     setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, ...patch } : l));
-    try { await supabase.from('leads').update(patch).eq('id', id); } catch {}
+    // On failure, resync from the server so the optimistic change doesn't
+    // silently diverge (and "resurrect" on next load).
+    const { error } = await supabase.from('leads').update(patch).eq('id', id);
+    if (error) { alert('Update failed: ' + error.message); reload(); }
   };
 
   const markContacted = async (id) => {
     setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, consumed_at: new Date().toISOString(), stage: 'contacted' } : l));
-    try { await supabase.from('leads').update({ consumed_at: new Date().toISOString(), stage: 'contacted' }).eq('id', id); } catch {}
+    const { error } = await supabase.from('leads').update({ consumed_at: new Date().toISOString(), stage: 'contacted' }).eq('id', id);
+    if (error) { alert('Update failed: ' + error.message); reload(); }
   };
   const undoContacted = async (id) => {
     setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, consumed_at: null } : l));
-    try { await supabase.from('leads').update({ consumed_at: null }).eq('id', id); } catch {}
+    const { error } = await supabase.from('leads').update({ consumed_at: null }).eq('id', id);
+    if (error) { alert('Update failed: ' + error.message); reload(); }
   };
   const removeLead = async (id) => {
     // confirmToast — iOS PWA blocks the native confirm() dialog.
     if (!(await confirmToast('Delete this lead permanently?', { okLabel: 'Delete', cancelLabel: 'Cancel' }))) return;
     setLeads(curr => (curr || []).filter(l => l.id !== id));
-    try { await supabase.from('leads').delete().eq('id', id); } catch {}
+    const { error } = await supabase.from('leads').delete().eq('id', id);
+    if (error) { alert('Delete failed: ' + error.message); reload(); }
   };
 
   const enriched = useMemo(() => (leads || []).map(l => ({
