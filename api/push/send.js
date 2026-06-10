@@ -136,7 +136,8 @@ export default async function handler(req, res) {
   );
   if (!subsR.ok) {
     const t = await subsR.text().catch(() => '');
-    res.status(502).json({ error: `subs lookup failed (${subsR.status})`, raw: t.slice(0, 300) });
+    console.error('push/send subs lookup failed:', subsR.status, t.slice(0, 300));
+    res.status(502).json({ error: `subs lookup failed (${subsR.status})` });
     return;
   }
   const subs = await subsR.json();

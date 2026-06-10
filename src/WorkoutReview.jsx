@@ -1815,6 +1815,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             <div key={i} data-ex-idx={i} style={{background: 'var(--c-sf)',border:`${isExpanded?'1px':'0.25px'} solid ${isExpanded?C.ac:C.cardBd}`,borderRadius:0,marginBottom:8,overflow:"hidden"}}>
               {/* Header row — click to expand */}
               <div onClick={() => setExpandedEx(isExpanded?null:i)}
+                role="button" tabIndex={0} aria-expanded={isExpanded}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedEx(isExpanded?null:i); } }}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
                 <div style={{width:26,height:26,borderRadius:0,background:doneSets===ex.sets.length?C.gnD:C.acD,
                   display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FN,fontSize:11,fontWeight:700,
@@ -2068,7 +2070,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             ) : (
               <button onClick={() => { setSelectedWo(null); setExpandedEx(null); window.scrollTo(0,0); }}
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.gn}`,
-                  background:C.gn,color:"#0a0a0b",fontFamily:FN,fontSize:13,fontWeight:700,
+                  background:C.gn,color:"#FFFFFF",fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
                 ✓ REVIEWED — BACK TO LIST
               </button>

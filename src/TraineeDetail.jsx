@@ -684,6 +684,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           return (
           <div>
             <div onClick={startBlankForTrainee}
+              role="button" tabIndex={0}
+              onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); startBlankForTrainee(); } }}
               style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'12px 14px',marginBottom:12,cursor:'pointer',transition:'background .15s'}}
               onMouseEnter={e=>e.currentTarget.style.background='rgba(57,189,255,0.094)'}
               onMouseLeave={e=>e.currentTarget.style.background='var(--c-sf)'}>

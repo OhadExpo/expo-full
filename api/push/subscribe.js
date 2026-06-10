@@ -86,7 +86,8 @@ export default async function handler(req, res) {
   );
   if (!upsertR.ok) {
     const text = await upsertR.text().catch(() => '');
-    res.status(502).json({ error: `upsert failed (${upsertR.status})`, raw: text.slice(0, 300) });
+    console.error('push/subscribe upsert failed:', upsertR.status, text.slice(0, 300));
+    res.status(502).json({ error: `upsert failed (${upsertR.status})` });
     return;
   }
 

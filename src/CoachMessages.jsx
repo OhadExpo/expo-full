@@ -77,7 +77,17 @@ function useVoiceRecorder() {
     if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
   }, []);
 
-  return { recording, elapsed, blob, error, start, stop, reset };
+  // Stable object URL for the preview <audio> — minting one inline in render
+  // leaked a new blob: URL per render until tab close.
+  const [blobUrl, setBlobUrl] = useState(null);
+  useEffect(() => {
+    if (!blob) { setBlobUrl(null); return undefined; }
+    const u = URL.createObjectURL(blob);
+    setBlobUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [blob]);
+
+  return { recording, elapsed, blob, blobUrl, error, start, stop, reset };
 }
 
 async function uploadVoiceNote(blob, traineeId) {
@@ -157,7 +167,7 @@ function Composer({ onSend, role, draftKey }) {
         )}
         {rec.blob && !rec.recording && (
           <>
-            <audio controls src={URL.createObjectURL(rec.blob)} style={{ height: 30, maxWidth: 220 }} />
+            <audio controls src={rec.blobUrl} style={{ height: 30, maxWidth: 220 }} />
             <button onClick={rec.reset}
               style={recBtnStyle('var(--c-tm)')}>↺ RE-RECORD</button>
           </>

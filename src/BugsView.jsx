@@ -130,6 +130,8 @@ export default function BugsView() {
             marginBottom: 8, padding: '10px 12px',
           }}>
             <div onClick={() => setExpandedId(expanded ? null : r.id)}
+              role="button" tabIndex={0} aria-expanded={expanded}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedId(expanded ? null : r.id); } }}
               style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <span style={{ fontFamily: FN, fontSize: 9, color: sevColor, fontWeight: 700, letterSpacing: '0.12em',
                 border: `1px solid ${sevColor}`, padding: '1px 6px' }}>{(r.status||'').toUpperCase()}</span>

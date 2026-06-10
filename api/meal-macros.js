@@ -132,7 +132,8 @@ export default async function handler(req, res) {
     });
     if (!r.ok) {
       const errBody = await r.text().catch(() => '');
-      res.status(502).json({ error: `Anthropic ${r.status}`, raw: errBody.slice(0, 400) });
+      console.error('meal-macros Anthropic error:', r.status, errBody.slice(0, 400));
+      res.status(502).json({ error: `Anthropic ${r.status}` });
       return;
     }
     const data = await r.json();

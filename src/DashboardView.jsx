@@ -706,6 +706,8 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
               animation. The strip's -18px bleed needs the 18px h-padding. */}
           <RefinedHeaderStrip padY={0} marginBottom={0}>
             <div onClick={() => setDropoutExpanded(o => !o)}
+              role="button" tabIndex={0} aria-expanded={dropoutExpanded}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDropoutExpanded(o => !o); } }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }}
               title={dropoutExpanded ? 'Click to collapse' : 'Click to expand'}>
               <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="trendingDown" color="#FFFFFF"/>Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>

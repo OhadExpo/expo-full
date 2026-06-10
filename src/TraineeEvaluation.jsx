@@ -164,6 +164,8 @@ function EvalListRow({ evaluation, onOpenEditor }) {
     }}>
       {/* Summary row — clickable */}
       <div onClick={() => setOpen(!open)}
+        role="button" tabIndex={0} aria-expanded={open}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(!open); } }}
         style={{
           display: 'flex', alignItems: 'center', gap: 14, padding: '10px 14px',
           cursor: 'pointer', flexWrap: 'wrap',
