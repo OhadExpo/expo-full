@@ -448,6 +448,13 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
     if (pickedId) loadCmp(pickedId); else clearCmp();
   }, [pickedId, loadCmp, clearCmp]);
 
+  // Read-only inline expand — mirrors the editor's row expand (badges,
+  // notes incl. the library-cues fallback, video thumbnail) without any
+  // editing. Keyed per exercise; reset when the compared program changes.
+  const [cmpExpandedEx, setCmpExpandedEx] = useState({});
+  useEffect(() => { setCmpExpandedEx({}); }, [pickedId]);
+  const toggleCmpEx = (k) => setCmpExpandedEx(prev => ({ ...prev, [k]: !prev[k] }));
+
   return (
     <div style={{flex:1, minWidth:0, alignSelf:'stretch', display:'flex', flexDirection:'column', minHeight:0}}>
       {/* Filter row is ALWAYS rendered. Hiding it on empty-state would trap
@@ -561,6 +568,13 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             const title = exData?.title || pe.title || (pe.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
                             const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : C.td;
                             const weeks = Math.max((pe.wk?.length||0), (pe.wkS?.length||0), 1);
+                            const exKey = pe.id || `${cmpDayKey}-${ei}`;
+                            const exOpen = !!cmpExpandedEx[exKey];
+                            // Same 3-state note/video resolution as the editor:
+                            // program override wins, else library cues/link.
+                            const cmpNote = (pe.notesEdited || (pe.notes && pe.notes.length > 0)) ? (pe.notes || '') : (exData?.cues || '');
+                            const cmpNoteFromLib = !(pe.notesEdited || (pe.notes && pe.notes.length > 0)) && !!exData?.cues;
+                            const cmpVid = pe.videoUrl !== undefined ? (pe.videoUrl || '') : (exData?.videoLink || '');
                             return <React.Fragment key={pe.id || ei}>
                               {ei > 0 && <div style={{gridColumn:'1 / -1', borderTop:`1px dashed ${C.ac}`, opacity:0.22, margin:0}} />}
                               {/* Same flex+⇕ structure as the left side's
@@ -572,8 +586,13 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                 <span style={{fontFamily:FN, fontSize:12, fontWeight:400, opacity:0}}>⇕</span>
                                 <span style={{color:C.tm, fontFamily:FN, fontWeight:700, fontSize:12}}>{ei + 1}</span>
                               </div>
-                              <div title={title}
-                                style={{color:C.tx, minWidth:0, overflowWrap:'break-word', wordBreak:'normal', borderLeft:`3px solid ${pe.superset?sc:'transparent'}`, paddingLeft:6}}>{title}</div>
+                              <div title={title} onClick={()=>toggleCmpEx(exKey)}
+                                role="button" tabIndex={0} aria-expanded={exOpen}
+                                onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpEx(exKey); } }}
+                                style={{color:C.tx, minWidth:0, overflowWrap:'break-word', wordBreak:'normal', borderLeft:`3px solid ${pe.superset?sc:'transparent'}`, paddingLeft:6, cursor:'pointer', display:'flex', alignItems:'center', gap:6}}>
+                                <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
+                                <span style={{overflowWrap:'break-word', wordBreak:'normal'}}>{title}</span>
+                              </div>
                               <input value={pe.superset || ''} readOnly tabIndex={-1}
                                 style={{...tinyInputRO, color:pe.superset?sc:C.td, fontFamily:FN, fontWeight:600}} />
                               {Array.isArray(pe.wkS) && pe.wkS.length > 0 ? (
@@ -593,6 +612,33 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                               <input value={pe.load || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <input value={pe.rpe || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <input value={pe.tempo || ''} readOnly tabIndex={-1} style={tinyInputRO} />
+                              {exOpen && (
+                                <div style={{gridColumn:'1 / -1', background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${C.ac}`, padding:'12px 14px', margin:'2px 0 6px'}}>
+                                  {(exData && (exData.movementPattern || exData.laterality || exData.primaryMuscles)) && (
+                                    <div style={{display:'flex',gap:6,marginBottom:10,flexWrap:'wrap',alignItems:'center'}}>
+                                      {exData.movementPattern && <Badge color={C.gn}>{exData.movementPattern}</Badge>}
+                                      {exData.laterality && <Badge color={C.tm}>{exData.laterality}</Badge>}
+                                      {exData.primaryMuscles && <span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
+                                    </div>
+                                  )}
+                                  <div style={{display:'grid',gridTemplateColumns:cmpVid?'1fr 1fr':'1fr',gap:16,alignItems:'start'}}>
+                                    <div style={{minWidth:0}}>
+                                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                                        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>NOTES</span>
+                                        {cmpNoteFromLib && <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.tm,letterSpacing:'0.12em'}}>FROM LIBRARY</span>}
+                                      </div>
+                                      <div dir="auto" style={{fontSize:13,color:cmpNote?C.tx:C.td,lineHeight:1.55,whiteSpace:'pre-wrap',fontFamily:isHebrew(cmpNote)?FH:FB}}>{cmpNote || 'No notes.'}</div>
+                                      {pe.rest && <div style={{marginTop:10,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:8}}>REST</span>{pe.rest}</div>}
+                                    </div>
+                                    {cmpVid && (
+                                      <div style={{minWidth:0}}>
+                                        <div style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em',marginBottom:6}}>VIDEO</div>
+                                        <div style={{maxWidth:440}}><VideoEmbed url={cmpVid} /></div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </React.Fragment>;
                           })}
                         </div>
