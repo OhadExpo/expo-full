@@ -1,11 +1,11 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 
 // Heebo's x-height is smaller than Nord's at the same fontSize, so Hebrew
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, RefinedHeaderStrip, usePersistentState, useDelayedUnmount } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -24,17 +24,6 @@ import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStor
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
 import { sortProgramsChrono } from './traineeUtils';
-
-function ActionIcon({ kind, fallback, color = 'currentColor', size = 14 }) {
-  if (!isRefined5b()) return fallback;
-  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { verticalAlign: 'middle', display: 'inline-block' } };
-  switch (kind) {
-    case 'target': return <svg {...common}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill={color}/></svg>;
-    case 'eye': return <svg {...common}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
-    case 'duplicate': return <svg {...common}><rect x="9" y="9" width="13" height="13"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
-    default: return fallback;
-  }
-}
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: "", reps: "", load: "", rpe: "", tempo: "", rest: "", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
@@ -692,13 +681,12 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, weeklyFocus, setWeeklyFocus, planIndex, onPreviewPlan }) {
+function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [confirmDeleteDay, setConfirmDeleteDay] = useState(null); // dayIdx pending delete-confirm
-  const [overview, setOverview] = useState(true); // Overview is the default view (Ohad)
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
   // Unified view: expand an OVERVIEW row inline to its full detail (swap +
@@ -706,11 +694,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [ovExpanded, setOvExpanded] = usePersistentState('plan-ov-expanded', {});
   const toggleOvExpand = (id) => setOvExpanded(prev => ({ ...prev, [id]: !prev[id] }));
   // Compare mode: side-by-side 50/50 split with a read-only view of a
-  // previous program (same athlete). Only available WHEN Overview is on —
-  // anchored to the wide grid where row-by-row delta-scanning actually pays
-  // off. Layout matches the original side-by-side pattern.
+  // previous program (same athlete). (The old overview/detail toggle is
+  // gone — the unified overview is the only view, so compareActive is
+  // simply compareOpen.)
   const [compareOpen, setCompareOpen] = useState(false);
-  const compareActive = compareOpen && overview;
+  const compareActive = compareOpen;
   // Three scrollers in compare: wheel OVER a pane scrolls only that pane (each
   // half is its own bounded overflow:auto with its own scrollbar); wheel over
   // the grey page edges / background scrolls BOTH in lock-step. Window-level
@@ -731,9 +719,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     window.addEventListener('wheel', onWheel, { passive: false });
     return () => window.removeEventListener('wheel', onWheel);
   }, [compareActive]);
-  // Auto-close compare when the user leaves Overview, so the state doesn't
-  // linger and re-fire if Overview is toggled back on later.
-  React.useEffect(() => { if (!overview && compareOpen) setCompareOpen(false); }, [overview, compareOpen]);
   // Drag-to-reorder state for the Overview view. Source = the row picked up;
   // over = the row currently being hovered as a drop target (used to draw the
   // insertion bar). Reorder is constrained to within the source row's day.
@@ -804,7 +789,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     return {...d, exercises: exs};
   })}));
   const removeExFromDay = (di, ei) => setPlan(p => ({...p, days: p.days.map((d, idx) => idx === di ? {...d, exercises: (d.exercises||[]).filter((_,i) => i !== ei)} : d)}));
-  const day = plan.days[activeDay];
   const handleSave = async () => {
     setSaving(true);
     await onSave(plan);
@@ -832,31 +816,14 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // containing block for position:fixed, which would anchor every modal
     // (exercise browser, confirm dialog) to this wrapper instead of the viewport.
     <div style={compareActive ? { width: 'min(96vw, 2400px)', marginLeft: 'calc(50% - min(48vw, 1200px))' } : undefined}>
-      {/* Narrow-screen layout for the exercise rows. Below 900px the
-          8-column grid (Exercise / Superset / Sets / Reps / Load / RPE /
-          Tempo / Trash) wraps so per-week inputs don't force horizontal
-          scroll. Drag-handle column gets smaller; tempo wraps under load. */}
       <style>{`
-        /* Editor field row: 4 across on wide, 2 on medium, 1 on narrow —
-           never 3, so Weeks never lands on a row by itself, and Phase/Block
+        /* Editor field row: 3 across on wide, 1 on narrow, so Phase/Block
            always has room (no label wrap / misalignment). */
         .plan-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        @media (max-width: 1100px) { .plan-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
         @media (max-width: 620px) { .plan-fields-grid { grid-template-columns: 1fr; } }
-        @media (max-width: 900px) {
-          .ex-row-outer { grid-template-columns: 38px 1fr !important; gap: 8px !important; }
-          .ex-row-outer > div:last-child { display: none !important; }
-          .ex-row-scroll { overflow-x: visible !important; }
-          .ex-row-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            min-width: 0 !important;
-            gap: 10px !important;
-          }
-          .ex-row-grid > :first-child { grid-column: 1 / -1; }
-        }
-        @media (max-width: 560px) {
-          .ex-row-grid { grid-template-columns: 1fr !important; }
-        }
+        /* (Removed .ex-row-outer/.ex-row-scroll/.ex-row-grid rules — those
+           classes died with the !overview detail view; the unified grid
+           handles narrow widths via its own overflowX scroll.) */
       `}</style>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12,flexWrap:'wrap'}}>
         <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flex:'1 1 100%',justifyContent:'center',position:'relative'}}>
@@ -907,9 +874,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <div style={{display:"flex",gap:8,alignItems:"stretch",justifyContent:"center",flexWrap:"wrap",flex:"1 1 100%"}}>
           {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:11,fontWeight:600,color:statusLabel.color,letterSpacing:"0.04em",alignSelf:'center'}}>{statusLabel.text}</span>}
           {/* COMPARE: read-only view of a previous program for the same
-              athlete, stacked below the Overview grid. Only enabled when
-              Overview is on — single-day detail-view comparisons were too
-              cramped to be useful, so we anchor compare to the wide grid. */}
+              athlete, side-by-side with the editor grid. */}
           <button onClick={()=>setCompareOpen(v=>!v)}
             title="Compare with a previous program (read-only)"
             style={{background: compareActive ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'}}><span style={{display:'inline-block',width:13,textAlign:'center',flexShrink:0}}>{compareActive?'✓':'↔'}</span>COMPARE</button>
@@ -958,9 +923,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           during the block — e.g., a "Morning Routine" day inside a Mon/Wed/Fri
           program. Plan-level kind='daily' is the legacy form (96e5f72) and is
           treated as "all days daily" at display time. */}
-      {/* (Removed dead `!overview` day-tab selector — overview is forced true,
-          so this never rendered. The unified view below is the only view.) */}
-      {overview && <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+      <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
         {plan.days.map((d, dayIdx) => {
           const dayExs = d.exercises || [];
           const weeks = plan.weeks || 4;
@@ -1139,7 +1102,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             in the dead detail view, so the unified editor couldn't add days). */}
         <button onClick={addDay} title="Add a day to this program"
           style={{background:`${C.ac}12`,border:`1px solid ${C.ac}`,borderRadius:0,padding:'15px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase'}}>+ ADD DAY</button>
-      </div>}
+      </div>
       {/* (Removed dead `!overview` detail-view day-name input + daily-routine
           toggle — overview is forced true so they never rendered; both live
           in the unified day-card header above.) */}
@@ -1165,7 +1128,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         onPickName={name=>{ addExByName(name); setAddExerciseOpen(false); }}
         onCreateLibrary={setExercises ? (name=>{ createLibraryExercise(name); setAddExerciseOpen(false); }) : undefined}
         exercises={exercises}
-        title="Add Exercise to Day"
       />
       <ConfirmDialog
         open={confirmDeleteDay !== null}
@@ -1519,7 +1481,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // programs via the new in-editor dropdown — PlanEditor's internal `plan`
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
-    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} onPreviewPlan={onPreviewPlan} />;
+    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} />;
   }
 
   return (
@@ -1665,9 +1627,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           const isVis = portalVis?.[vk] !== false;
                           return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
                         })()}
-                        {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" label="PREVIEW"><ActionIcon kind="eye" fallback="👁" color={C.ac} /></LabeledBtn>}
-                        <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE"><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></LabeledBtn>
-                        <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" label="DELETE" danger>×</LabeledBtn>
+                        {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" label="PREVIEW" />}
+                        <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE" />
+                        <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" label="DELETE" danger />
                       </div>
                     ))}
                   </div>
@@ -1708,9 +1670,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   const isVis = portalVis?.[vk] !== false;
                   return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
                 })()}
-                {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" label="PREVIEW"><ActionIcon kind="eye" fallback="👁" color={C.ac} /></LabeledBtn>}
-                <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" label="DUPLICATE"><ActionIcon kind="duplicate" fallback="⎘" color={C.ac} /></LabeledBtn>
-                <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" label="DELETE" danger>×</LabeledBtn>
+                {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" label="PREVIEW" />}
+                <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" label="DUPLICATE" />
+                <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" label="DELETE" danger />
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
         </div>))}

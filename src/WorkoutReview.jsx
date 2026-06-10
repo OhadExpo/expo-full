@@ -1476,8 +1476,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Delete-confirm modal state. The workout id under threat + the user's typed
-  // verification ("delete" or "remove" required) before the destructive call
-  // is enabled.
+  // verification (the word "delete", case-insensitive) before the destructive
+  // call is enabled.
   const [deleteConfirmFor, setDeleteConfirmFor] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   // Compare flow: when set, shows picker modal for selecting the second video.
@@ -2120,7 +2120,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       {(() => {
         const queue = (clientWorkouts || []).filter(w => !w.reviewedAt && hasReviewableVideo(w));
         if (queue.length === 0) return null;
-        const withVideo = queue.length;
         return (
           <div style={{
             background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0,
