@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { C, FN, FB, uid, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 import { Btn, Input, Select, TextArea, Badge, Modal, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
 const defaultExercise = () => ({ id: uid(), title: "", category: "", resistanceType: "", bodyPosition: "", movementType: "", laterality: "", movementPattern: "", primaryMuscles: "", secondaryMuscles: "", primaryJoints: "", jointMovements: "", videoLink: "", cues: "", notes: "" });
@@ -14,7 +14,11 @@ export default function ExercisesView({ exercises, setExercises }) {
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const clearFilters = () => setFilters({ category: "", resistanceType: "", bodyPosition: "", movementType: "", movementPattern: "", laterality: "" });
 
-  const filtered = (exercises||[]).filter(e => {
+  // 1,467-row library: memoize the filter and cap the rendered rows.
+  // Without the cap every search keystroke re-rendered a ~1,500-row table.
+  const ROW_CAP = 200;
+  const [showAll, setShowAll] = useState(false);
+  const filtered = useMemo(() => (exercises||[]).filter(e => {
     if (search) {
       const q = search.toLowerCase();
       const tokens = q.split(/\s+/).filter(Boolean);
@@ -28,7 +32,8 @@ export default function ExercisesView({ exercises, setExercises }) {
     if (filters.movementPattern && e.movementPattern !== filters.movementPattern) return false;
     if (filters.laterality && e.laterality !== filters.laterality) return false;
     return true;
-  });
+  }), [exercises, search, filters]);
+  const rows = showAll ? filtered : filtered.slice(0, ROW_CAP);
   const handleSave = () => {
     if (!form.title) return;
     if (editId) setExercises(prev => prev.map(e => e.id === editId ? form : e));
@@ -90,7 +95,7 @@ export default function ExercisesView({ exercises, setExercises }) {
               {["Title","Category","Resistance","Pattern","Laterality",""].map(h =>
                 <th key={h} style={{ textAlign: "left", padding: "8px 10px", fontSize: 9, fontFamily: FN, color: refined ? '#FFFFFF' : C.tm, textTransform: "uppercase", letterSpacing: '0.18em', fontWeight: 700 }}>{h}</th>)}
             </tr></thead>
-            <tbody>{filtered.map(ex => (
+            <tbody>{rows.map(ex => (
               <tr key={ex.id} style={{ borderBottom: `1px solid ${C.cardBd}` }} onMouseEnter={e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2} onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
                 <td style={{ padding: "10px", color: C.tx, fontWeight: 600 }}>{ex.title}</td>
                 <td style={{ padding: "10px" }}>{ex.category ? <Badge>{ex.category}</Badge> : <span style={{ color: C.td, opacity: 0.55 }}>—</span>}</td>
@@ -104,7 +109,14 @@ export default function ExercisesView({ exercises, setExercises }) {
                   <button onClick={() => setConfirmDelete(ex.id)} title="Delete exercise" style={{ background: "none", border: "none", color: C.rd, cursor: "pointer", padding: 4, opacity: 0.7, display: 'inline-flex', alignItems: 'center' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   </button>
-                </td></tr>))}</tbody></table></div>
+                </td></tr>))}</tbody></table>
+          {!showAll && filtered.length > ROW_CAP && (
+            <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, borderTop: `1px solid ${C.cardBd}` }}>
+              <span style={{ fontSize: 11, fontFamily: FN, color: C.tm }}>Showing {ROW_CAP} of {filtered.length} — refine the search, or</span>
+              <button onClick={() => setShowAll(true)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '3px 12px', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em' }}>SHOW ALL</button>
+            </div>
+          )}
+        </div>
         );
       })()}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Exercise" : "New Exercise"} wide>

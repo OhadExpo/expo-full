@@ -26,13 +26,47 @@ function parseTimeStr(t) {
   return m ? [parseInt(m[1], 10), parseInt(m[2], 10)] : [0, 0];
 }
 
+// Availability rules are authored in the coach's timezone — slot INSTANTS
+// must be computed from Israel wall-clock, not the visitor's device TZ
+// (a visitor abroad was booking wall-clock times the coach never offered).
+// Display stays visitor-local: a correct instant shown in their own time.
+const COACH_TZ = 'Asia/Jerusalem';
+
+// Minutes east of UTC for COACH_TZ at a given instant (DST-aware via Intl).
+function coachTzOffsetMin(date) {
+  const dtf = new Intl.DateTimeFormat('en-US', { timeZone: COACH_TZ, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const p = Object.fromEntries(dtf.formatToParts(date).map(x => [x.type, x.value]));
+  const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute);
+  return (asUTC - date.getTime()) / 60000;
+}
+
+// Absolute instant for (y, mo, da, minutes-into-day) wall-clock in COACH_TZ.
+// Two passes handle DST transition edges.
+function coachTzInstant(y, mo, da, minOfDay) {
+  const hh = Math.floor(minOfDay / 60), mi = minOfDay % 60;
+  let t = Date.UTC(y, mo, da, hh, mi);
+  for (let i = 0; i < 2; i++) t = Date.UTC(y, mo, da, hh, mi) - coachTzOffsetMin(new Date(t)) * 60000;
+  return new Date(t);
+}
+
+// Civil (y, mo, da) of an instant as seen in COACH_TZ.
+function coachTzCivil(date) {
+  const dtf = new Intl.DateTimeFormat('en-US', { timeZone: COACH_TZ, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const p = Object.fromEntries(dtf.formatToParts(date).map(x => [x.type, x.value]));
+  return { y: +p.year, mo: +p.month - 1, da: +p.day };
+}
+
 function generateSlots(rules, duration, buffer, leadHours, windowStart, windowEnd, occupied) {
   if (!rules || rules.length === 0) return [];
   const stepMin = duration + buffer;
   const slots = [];
   const minStart = Date.now() + leadHours * 3600000;
-  for (let d = new Date(windowStart); d < windowEnd; d.setDate(d.getDate() + 1)) {
-    const dow = d.getDay();
+  const first = coachTzCivil(windowStart);
+  const nDays = Math.ceil((windowEnd - windowStart) / 86400000) + 1;
+  for (let i = 0; i < nDays; i++) {
+    // Civil-date arithmetic via Date.UTC keeps the day-of-week TZ-free.
+    const civil = new Date(Date.UTC(first.y, first.mo, first.da + i));
+    const dow = civil.getUTCDay();
     const dayRules = rules.filter(r => r.day_of_week === dow);
     for (const r of dayRules) {
       const [sh, sm] = parseTimeStr(r.start_time);
@@ -40,9 +74,9 @@ function generateSlots(rules, duration, buffer, leadHours, windowStart, windowEn
       const startMin = sh * 60 + sm;
       const endMin = eh * 60 + em;
       for (let m = startMin; m + duration <= endMin; m += stepMin) {
-        const slot = new Date(d);
-        slot.setHours(Math.floor(m / 60), m % 60, 0, 0);
+        const slot = coachTzInstant(civil.getUTCFullYear(), civil.getUTCMonth(), civil.getUTCDate(), m);
         if (slot.getTime() < minStart) continue;
+        if (slot < windowStart || slot >= windowEnd) continue;
         // Skip if it overlaps an occupied window
         const slotStart = slot.getTime();
         const slotEnd = slotStart + duration * 60000;

@@ -22,20 +22,29 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     if (ss && last && last.ss === ss) last.items.push({ex,i});
     else groups.push({ ss, items:[{ex,i}] });
   });
-  // Most-recent prior top set for this exercise — the "last time" reference,
-  // the in-person equivalent of the athlete portal's previous-week ghost row.
-  const lastTimeFor = (ex) => {
-    const sorted = (priorWorkouts||[]).slice().sort((a,b)=>new Date(b.completedAt||b.date)-new Date(a.completedAt||a.date));
+  // Library lookup Map — 1,467 exercises; this view re-renders on every set
+  // keystroke, so a linear .find per exercise card was the slowest input
+  // path in the coach app.
+  const exById = useMemo(() => new Map((exercises || []).map(e => [e.id, e])), [exercises]);
+  // Most-recent prior top set per exerciseId — the "last time" reference,
+  // the in-person equivalent of the athlete portal's previous-week ghost
+  // row. Precomputed ONCE per priorWorkouts change (it used to re-sort the
+  // whole history per exercise per render).
+  const lastTimeById = useMemo(() => {
+    const out = new Map();
+    const sorted = (priorWorkouts || []).slice().sort((a, b) => new Date(b.completedAt || b.date) - new Date(a.completedAt || a.date));
     for (const pw of sorted) {
-      const pex = (pw.exercises||[]).find(e=>e.exerciseId===ex.exerciseId);
-      if (!pex) continue;
-      const done = (pex.sets||[]).filter(s=>s.completed && parseFloat(s.load)>0);
-      if (!done.length) continue;
-      const top = done.reduce((a,b)=>parseFloat(b.load)>parseFloat(a.load)?b:a);
-      return { load: top.load, reps: top.reps, date: pw.completedAt||pw.date };
+      for (const pex of (pw.exercises || [])) {
+        if (!pex.exerciseId || out.has(pex.exerciseId)) continue;
+        const done = (pex.sets || []).filter(s => s.completed && parseFloat(s.load) > 0);
+        if (!done.length) continue;
+        const top = done.reduce((a, b) => parseFloat(b.load) > parseFloat(a.load) ? b : a);
+        out.set(pex.exerciseId, { load: top.load, reps: top.reps, date: pw.completedAt || pw.date });
+      }
     }
-    return null;
-  };
+    return out;
+  }, [priorWorkouts]);
+  const lastTimeFor = (ex) => lastTimeById.get(ex.exerciseId) || null;
   // Collapse (long in-person sessions): a finished exercise folds to a
   // one-line summary so the rest of the list stays scannable. Auto-collapses
   // once every set is logged; tap the summary (or the HIDE control) to toggle.
@@ -56,7 +65,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     setManualCollapse(m => ({ ...m, [exIdx]: !isCollapsed(ex, exIdx) }));
 
   const renderExercise = (ex, exIdx, inGroup, withDivider) => {
-    const exData = exercises.find(e=>e.id===ex.exerciseId);
+    const exData = exById.get(ex.exerciseId);
     const videoUrl = ex.videoUrl ?? ex.vid ?? exData?.videoLink ?? '';
     const last = lastTimeFor(ex);
     const cue = ex.q || exData?.cues || ex.notes;

@@ -746,7 +746,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {showDeleteConfirm && <div role="dialog" aria-modal="true" aria-label="Permanent deletion" style={{position:"fixed",inset:0,zIndex:1100,display:"flex",alignItems:"center",justifyContent:"center",background:C.scrim}} onClick={()=>{setShowDeleteConfirm(false);setDeleteTyped("")}}>
         <div onClick={e=>e.stopPropagation()} style={{background:C.bg,border:`1px solid ${C.rd}`,borderRadius:0,width:420,maxWidth:'calc(100vw - 24px)',padding:24}}>
           <h3 style={{margin:"0 0 8px",fontFamily:FN,fontSize:15,color:C.rd,textAlign:"center"}}>⚠ Permanent Deletion</h3>
-          <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>This will permanently delete <strong style={{color:C.tx}}>{td.name}</strong> and ALL their data.</p>
+          {/* Honest copy: this removes the athlete from the roster only —
+              plans, workouts and payments stay in their tables (orphaned). */}
+          <p style={{margin:"0 0 6px",fontSize:13,color:C.tm,textAlign:"center"}}>This will permanently remove <strong style={{color:C.tx}}>{td.name}</strong> from the roster. Their programs, workout history and payment records are kept but no longer reachable.</p>
           <p style={{margin:"0 0 16px",fontSize:13,color:C.rd,fontWeight:600,textAlign:"center"}}>This cannot be undone.</p>
           <div style={{marginBottom:16}}>
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:"uppercase",fontFamily:FN,display:"block",marginBottom:4,textAlign:"center"}}>Type "DELETE" to confirm</label>
@@ -947,14 +949,19 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
     onSave(toSave);
   };
 
+  // Explicit Cancel — the user chose to discard; purge the draft.
   const handleCancel = () => {
     try { localStorage.removeItem(draftKey); } catch {}
     editAutosave.markClean();
     onClose();
   };
+  // Dismiss (Escape / overlay click) is NOT a discard decision — keep the
+  // draft so an accidental Escape mid-edit doesn't destroy exactly what
+  // the autosave exists to protect. It restores on next open.
+  const handleDismiss = () => { onClose(); };
 
   return (
-    <Modal open={true} onClose={handleCancel} title={`Edit — ${td.name}`} wide>
+    <Modal open={true} onClose={handleDismiss} title={`Edit — ${td.name}`} wide>
       {editForm && <>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10, minHeight: 18 }}>
           {hasDraft ? (
