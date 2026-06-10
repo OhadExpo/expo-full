@@ -476,7 +476,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
         <button onClick={onClose} title="Close compare panel"
           style={{position:'absolute', top:-2, right:-2, background:C.bg, border:`1px solid ${C.cardBd}`, color:C.tm, cursor:'pointer', padding:'1px 6px', borderRadius:0, fontSize:11, lineHeight:1, zIndex:2}}>✕</button>
       </div>
-      <div data-compare-pane style={{position:'relative', overflowY:'auto', minHeight:0, flex:1}}>
+      <div data-compare-pane style={{position:'relative', overflowY:'auto', minHeight:0, flex:1, paddingRight:6}}>
       {!selectedAthleteId ? (
         <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick an athlete from the filter above to compare.</div>
       ) : candidates.length === 0 ? (
@@ -942,7 +942,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           }} />
         )}
       </div>
-      <div data-compare-pane style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset'}}>
+      {/* paddingRight in compare keeps the day cards / + ADD DAY box from
+          touching the pane's cyan scrollbar. */}
+      <div data-compare-pane style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingRight:compareActive?6:0}}>
       <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
       <WarmupEditor plan={plan} setPlan={setPlan} />
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
