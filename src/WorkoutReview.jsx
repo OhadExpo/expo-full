@@ -1529,8 +1529,13 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     }, 60);
   };
 
-  const setFocus = (planName, dayName, eid, week, val) => {
-    const fk = `${planName}|${dayName}|${eid}|W${week}`;
+  // Focus keys are client-scoped: `clientId|planName|dayName|eid|Wn`.
+  // The legacy un-scoped key (`planName|...`) collided across athletes who
+  // share a plan name (e.g. two people on "Block #17") AND was readable by
+  // every athlete under the old RLS. New writes always carry the client id;
+  // reads fall back to the legacy key so the coach still sees old notes.
+  const setFocus = (clientId, planName, dayName, eid, week, val) => {
+    const fk = `${clientId}|${planName}|${dayName}|${eid}|W${week}`;
     setWeeklyFocus(prev => {
       const next = { ...prev };
       // Persist the user's text verbatim. Trimming on every keystroke would
@@ -1543,9 +1548,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     });
   };
 
-  const getFocus = (planName, dayName, eid, week) => {
-    const fk = `${planName}|${dayName}|${eid}|W${week}`;
-    return weeklyFocus?.[fk] || '';
+  const getFocus = (clientId, planName, dayName, eid, week) => {
+    const scoped = weeklyFocus?.[`${clientId}|${planName}|${dayName}|${eid}|W${week}`];
+    if (scoped) return scoped;
+    return weeklyFocus?.[`${planName}|${dayName}|${eid}|W${week}`] || '';
   };
 
   // (The "Log In-Person Session" subtab was removed 2026-05-28; its
@@ -1772,8 +1778,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           const fromLib = exById.get(libId);
           const exName = EX[ex.eid]?.t || fromLib?.title || ex.title || ex.eid;
           const formVideo = wo.formVideos?.[i];
-          const currentFocus = getFocus(wo.planName, wo.dayName, ex.eid, wo.week || 1);
-          const nextFocus = getFocus(wo.planName, wo.dayName, ex.eid, nextWeek);
+          const currentFocus = getFocus(wo.clientId, wo.planName, wo.dayName, ex.eid, wo.week || 1);
+          const nextFocus = getFocus(wo.clientId, wo.planName, wo.dayName, ex.eid, nextWeek);
 
           // PREV WK: same exercise, same plan, same day, last week. Week 2+ only.
           // eid match wins; normalized title is the fallback (substitutions and
@@ -1936,7 +1942,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     </div>
                     <textarea dir="auto"
                       value={nextFocus}
-                      onChange={e => setFocus(wo.planName, wo.dayName, ex.eid, nextWeek, e.target.value)}
+                      onChange={e => setFocus(wo.clientId, wo.planName, wo.dayName, ex.eid, nextWeek, e.target.value)}
                       placeholder={isLastWeekOfBlock
                         ? `Last week of the block. Anything to carry into the next block? Load ceiling, pattern fixes, etc.`
                         : `Based on this performance, what should they focus on next week?`}
@@ -1948,7 +1954,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         wraps via flex). */}
                     <div style={{display:"grid",gridTemplateColumns:`repeat(${Math.min(planWeeks, 8)},1fr)`,gap:3,marginTop:6}}>
                       {Array.from({length: planWeeks}, (_, i) => i + 1).map(w => {
-                        const f = getFocus(wo.planName, wo.dayName, ex.eid, w);
+                        const f = getFocus(wo.clientId, wo.planName, wo.dayName, ex.eid, w);
                         const isCurrent = w === currentWeek;
                         const isNext = !isLastWeekOfBlock && w === nextWeek;
                         return (

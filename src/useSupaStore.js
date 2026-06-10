@@ -103,13 +103,20 @@ registerHandler('bw_logs.delete', async ({ filter }) => {
   const { error } = await q;
   if (error) throw error;
 });
+// Focus keys are `clientId|planName|dayName|eid|Wn` (legacy rows lack the
+// clientId prefix). The client_id column drives the athlete-side RLS
+// (wf_own_read) — rows without it are visible to staff only.
+function focusClientId(k) {
+  const seg = String(k).split('|')[0];
+  return seg.startsWith('tr_') ? seg : null;
+}
 registerHandler('weekly_focus.upsert', async ({ k, v }) => {
   // onConflict: focus_key — table has serial id PK + unique focus_key. Without
   // this, every re-write of an existing focus_key tried to INSERT and failed
   // with 23505 (unique violation). The first save for a key worked; every
   // subsequent edit was silently lost.
   const { error } = await supabase.from('weekly_focus').upsert(
-    { focus_key: k, value: v, updated_at: new Date().toISOString() },
+    { focus_key: k, value: v, client_id: focusClientId(k), updated_at: new Date().toISOString() },
     { onConflict: 'focus_key' }
   );
   if (error) throw error;
@@ -502,7 +509,7 @@ export function useSupaWeeklyFocus(initial = {}) {
     for (const [k, v] of Object.entries(pending)) {
       try {
         const { error } = await supabase.from('weekly_focus').upsert(
-          { focus_key: k, value: v, updated_at: new Date().toISOString() },
+          { focus_key: k, value: v, client_id: focusClientId(k), updated_at: new Date().toISOString() },
           { onConflict: 'focus_key' }
         );
         if (error) {

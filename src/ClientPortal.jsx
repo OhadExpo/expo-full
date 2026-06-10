@@ -992,8 +992,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const setsForDisplay = wrS ?? ex.s;
     const repsForDisplay = wr ?? ex.r;
     const f = fv[ei];
-    const fk = `${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`;
-    const wf = weeklyFocus?.[fk];
+    // Focus keys are client-scoped (`clientId|plan|day|eid|Wn`); the legacy
+    // un-scoped key is kept as a read fallback for pre-scoping notes.
+    const fk = `${clientId}|${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`;
+    const wf = weeklyFocus?.[fk] ?? weeklyFocus?.[`${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`];
 
     // Previous-week working sets for this same exercise on this same day.
     // Week 2+ only. Scoped to (planName, dayName, week=weekNum) so cross-block
@@ -2019,7 +2021,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 <div style={{fontSize:10,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase'}}>{day.ex.length} exercises</div></div>
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 16px',minWidth:78,borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
-              const focus = weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk+1}`];
+              const focus = weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${wk+1}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk+1}`];
               const v = 'vid' in ex ? ex.vid : d.vid;
               // Two-row layout: meta row (index + reps + tempo + VIDEO) is
               // always single-line so the eye never has to track a long
