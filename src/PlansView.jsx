@@ -456,12 +456,13 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   }, [pickedId, loadCmp, clearCmp]);
 
   return (
-    <div data-compare-pane style={{flex:1, minWidth:0, alignSelf:'stretch', position:'relative', overflowY:'auto', minHeight:0}}>
+    <div style={{flex:1, minWidth:0, alignSelf:'stretch', display:'flex', flexDirection:'column', minHeight:0}}>
       {/* Filter row is ALWAYS rendered. Hiding it on empty-state would trap
           the user (e.g. picked athlete with no programs and couldn't change
-          back). Empty states below render after the filter row so the
-          athlete dropdown stays reachable. */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20,position:'relative'}}>
+          back). It sits ABOVE the scroller (fixed) so the blue scrollbar
+          starts level with the content below the filter boxes — and the
+          dropdowns stay reachable however far the pane is scrolled. */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20,position:'relative',flexShrink:0}}>
         <div style={{minWidth:0}}>
           <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder="Pick athlete…" />
         </div>
@@ -475,6 +476,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
         <button onClick={onClose} title="Close compare panel"
           style={{position:'absolute', top:-2, right:-2, background:C.bg, border:`1px solid ${C.cardBd}`, color:C.tm, cursor:'pointer', padding:'1px 6px', borderRadius:0, fontSize:11, lineHeight:1, zIndex:2}}>✕</button>
       </div>
+      <div data-compare-pane style={{position:'relative', overflowY:'auto', minHeight:0, flex:1}}>
       {!selectedAthleteId ? (
         <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick an athlete from the filter above to compare.</div>
       ) : candidates.length === 0 ? (
@@ -537,8 +539,12 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                             compare side — load values change every block and
                             aren't useful for delta-scanning. Same column
                             template otherwise. */}
-                        <div style={{display:'grid',gridTemplateColumns:'30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px',gap:'3px 8px',fontSize:12,alignItems:'center',minWidth:Math.max(614,540+(cmpPlan.weeks||4)*40)}}>
-                          {['#','EXERCISE','GRP','SETS','REPS','LOAD','RPE','TEMPO',''].map((h,hi) =>
+                        {/* No trailing trash column here — the editor side
+                            ends with its 22px delete slot, but the read-only
+                            mirror has no button so the space read as dead
+                            whitespace after TEMPO. */}
+                        <div style={{display:'grid',gridTemplateColumns:'30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr)',gap:'3px 8px',fontSize:12,alignItems:'center',minWidth:Math.max(592,518+(cmpPlan.weeks||4)*40)}}>
+                          {['#','EXERCISE','GRP','SETS','REPS','LOAD','RPE','TEMPO'].map((h,hi) =>
                             hi === 0 ? (
                               <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
                                 <span style={{fontFamily:FN, fontSize:12, lineHeight:1, fontWeight:400, opacity:0}}>⇕</span>
@@ -593,7 +599,6 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                               <input value={pe.load || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <input value={pe.rpe || ''} readOnly tabIndex={-1} style={tinyInputRO} />
                               <input value={pe.tempo || ''} readOnly tabIndex={-1} style={tinyInputRO} />
-                              <div />
                             </React.Fragment>;
                           })}
                         </div>
@@ -605,6 +610,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
               })}
         </>
       )}
+      </div>
     </div>
   );
 }
@@ -911,8 +917,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         </div>
       </div>
       <div style={{display:compareActive?'flex':'block',gap:16,alignItems:compareActive?'stretch':'flex-start',maxHeight:compareActive?'calc(100vh - 170px)':undefined}}>
-      <div data-compare-pane style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',overflowY:compareActive?'auto':'visible',minHeight:0}}>
-      <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20}}>
+      {/* In compare mode each half is a fixed header row (program fields /
+          athlete filters) above its own scroller, so the blue scrollbar
+          starts level with the content below the text boxes, not above them. */}
+      <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',display:compareActive?'flex':'block',flexDirection:'column',minHeight:0}}>
+      <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20,flexShrink:0}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
@@ -933,6 +942,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           }} />
         )}
       </div>
+      <div data-compare-pane style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset'}}>
       <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
       <WarmupEditor plan={plan} setPlan={setPlan} />
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
@@ -1121,6 +1131,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       {/* (Removed dead `!overview` detail-view exercise editor — overview is
           forced true so this branch never rendered; the unified day-card
           table above is the editor. ~215 lines of dead JSX excised.) */}
+      </div>
       </div>
       {compareActive && (
         <ReadOnlyPlanPanel
