@@ -13,7 +13,7 @@ Fitness coaching platform for Ohad's personal training business. Replaces a Goog
 - **Repo:** `C:\Users\Administrator\Desktop\expo-full`
 - **GitHub:** `https://github.com/OhadExpo/expo-full.git`
 - **Tech stack:** Vite + React, Supabase, Vercel (GitHub auto-deploy on `git push` to main)
-- **Trainer login code:** `#81` — never change or lose this without explicit confirmation
+- **Auth:** Supabase email/password, dual-role picker for trainer+trainee accounts (the old `#81` trainer code is gone — removed from this doc 2026-06-10 with Ohad's approval)
 - **Design system:** Dark theme, bg `#0a0a0b`, accent `#39BDFF`, JetBrains Mono + DM Sans
 - **Test fixture client:** Diego Day (`diego@diegoday.com`)
 - **Data scale (approximate, verify from repo when it matters):** ~20 real clients, ~1,470 exercises, ~210 plans

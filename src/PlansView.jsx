@@ -1368,7 +1368,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const handleShare = async (planId) => {
     try {
       const { supabase: sb } = await import('./supabase');
-      const token = 'sh_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
+      // crypto-strong: the token is the read capability for the program.
+      const token = 'sh_' + Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
       const { error } = await sb.from('program_shares').insert({
         token,
         plan_id: planId,

@@ -27,16 +27,16 @@ export default function ContractSign() {
     let cancelled = false;
     (async () => {
       try {
+        // Token-capability read via SECURITY DEFINER — works for LOGGED-OUT
+        // recipients (the table itself has no anon/athlete policies).
         const { data, error } = await supabase
-          .from('coaching_contracts')
-          .select('*')
-          .eq('token', token)
-          .maybeSingle();
+          .rpc('get_contract_by_token', { p_token: token });
         if (cancelled) return;
         if (error) { setState({ loading: false, error: error.message, contract: null }); return; }
-        if (!data) { setState({ loading: false, error: 'Contract not found.', contract: null }); return; }
-        setState({ loading: false, error: null, contract: data });
-        if (data.athlete_signed_at) setSigned(true);
+        const row = Array.isArray(data) ? data[0] : data;
+        if (!row) { setState({ loading: false, error: 'Contract not found.', contract: null }); return; }
+        setState({ loading: false, error: null, contract: row });
+        if (row.athlete_signed_at) setSigned(true);
       } catch (e) {
         if (!cancelled) setState({ loading: false, error: e.message || 'Could not load contract.', contract: null });
       }
@@ -51,15 +51,13 @@ export default function ContractSign() {
     if (!state.contract || submitting) return;
     setSubmitting(true);
     try {
-      const { error } = await supabase
-        .from('coaching_contracts')
-        .update({
-          athlete_signature: signatureDataUrl,
-          athlete_signed_at: new Date().toISOString(),
-          status: 'signed',
-        })
-        .eq('token', token);
+      // SECURITY DEFINER sign: fires only while unsigned — a signed
+      // contract is immutable (re-sign / term tampering both refused
+      // server-side regardless of what a client sends).
+      const { data: ok, error } = await supabase
+        .rpc('sign_contract', { p_token: token, p_signature: signatureDataUrl });
       if (error) throw error;
+      if (!ok) throw new Error('This contract was already signed or the link is invalid.');
       setSigned(true);
     } catch (e) {
       alert(`Signing failed: ${e.message}`);

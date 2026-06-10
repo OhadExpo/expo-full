@@ -24,7 +24,9 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
     setCreating(true);
     setError(null);
     try {
-      const token = 'ct_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
+      // crypto-strong: the token IS the signing capability (anyone holding
+      // it can view terms + sign), so Math.random isn't acceptable entropy.
+      const token = 'ct_' + Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
       const row = {
         token,
         coach_email: coachEmail,
