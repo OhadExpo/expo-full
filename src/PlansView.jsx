@@ -387,6 +387,11 @@ function WarmupEditor({ plan, setPlan }) {
     setDragSrc(null); setDragOver(null);
   };
   const update = (idx, patch) => setPlan(p => ({ ...p, warmup: (p.warmup || []).map((w, i) => i === idx ? { ...w, ...patch } : w) }));
+  // Inline-expand per row — same pattern as the day-exercise rows: chevron
+  // on the name, panel with NOTES + full-size video. Collapses while a
+  // drag is live so the drag effect matches the day grid.
+  const [wuExpanded, setWuExpanded] = useState({});
+  const toggleWuExpand = (i) => setWuExpanded(prev => ({ ...prev, [i]: !prev[i] }));
   // New warm-ups carry sets/reps/tempo as first-class fields. Legacy plans
   // still carry an `rx` string instead — those keep rendering verbatim until
   // the coach edits them (we never touch existing rows on load).
@@ -420,21 +425,29 @@ function WarmupEditor({ plan, setPlan }) {
                 <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, textAlign: 'center' }}>{h}</div>
               )
             )}
-            {warmup.map((w, i) => (
+            {warmup.map((w, i) => {
+              const wuOpen = !!wuExpanded[i] && !dragging;
+              return (
               <React.Fragment key={i}>
                 {/* Insertion indicator above row 0 (drag slot 0). */}
                 {i === 0 && isGap(0) && <div style={gapLine(true)} />}
                 {/* Divider between rows — doubles as the drag insertion line. */}
                 {i > 0 && <div style={gapLine(isGap(i))} />}
                 <div draggable data-wurow={i}
-                  onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); setTimeout(() => setDragSrc(i), 0); }}
+                  onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); setRowDragImage(e, e.currentTarget, 8); setTimeout(() => setDragSrc(i), 0); }}
                   onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                   title="Drag to reorder"
                   style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, cursor: 'grab', userSelect: 'none', opacity: dragging && dragSrc === i ? 0.4 : 1, transition: 'opacity 120ms' }}>
                   <span style={{ color: C.tm, fontFamily: FN, fontSize: 11, lineHeight: 1, fontWeight: 400, position: 'relative', top: '1px' }}>⇕</span>
                   <span style={{ color: C.tx, fontFamily: FN, fontWeight: 700, fontSize: 12, lineHeight: 1 }}>{i + 1}</span>
                 </div>
-                <input value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" style={{ ...tinyInput, textAlign: 'left' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                  <span onClick={() => toggleWuExpand(i)} role="button" tabIndex={0} aria-expanded={wuOpen}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWuExpand(i); } }}
+                    title="Click to expand — edit note, see video"
+                    style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease', cursor: 'pointer', userSelect: 'none' }}>▾</span>
+                  <input value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" style={{ ...tinyInput, textAlign: 'left' }} />
+                </div>
                 <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
                 <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
                 <input value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" style={tinyInput} />
@@ -458,8 +471,28 @@ function WarmupEditor({ plan, setPlan }) {
                       style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× CLEAR</button>
                   </div>
                 )}
+                {/* Inline expand — note (athlete-visible) + full-size video,
+                    mirroring the day-exercise expanded panel. Orange accent
+                    keeps the warm-up identity. */}
+                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateRows: wuOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
+                  <div style={{ overflow: 'hidden', minHeight: 0 }}>
+                    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, padding: 14, margin: '2px 0 12px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'stretch' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                        <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.td, letterSpacing: '0.18em' }}>NOTES</span>
+                        <textarea value={w.note || ''} onChange={e => update(i, { note: e.target.value })} placeholder="Notes, cues... (shown to the athlete on this warm-up step)"
+                          style={{ ...baseInput, textAlign: 'center', flex: 1, minHeight: 120, padding: '10px 12px', lineHeight: 1.5, resize: 'vertical', fontFamily: FB, fontSize: 13 }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                        <div aria-hidden style={{ minHeight: 12, visibility: 'hidden' }} />
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start' }}>
+                          {w.vid ? <div style={{ width: '100%' }}><VideoEmbed url={w.vid} /></div> : <div style={{ fontSize: 11, color: C.td, alignSelf: 'center', margin: '0 auto' }}>No video.</div>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </React.Fragment>
-            ))}
+            );})}
             {/* Insertion indicator below the last row (final drag slot). */}
             {isGap(warmup.length) && <div style={gapLine(true)} />}
           </div>
@@ -775,6 +808,44 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   );
 }
 
+// Whole-row drag image. The native drag ghost is just the element that
+// carries `draggable` — here that's the narrow ⇕/number cell, so dragging
+// reads as "a number floating around". This clones the row's grid cells
+// into an offscreen replica (same resolved column template) and hands it to
+// setDragImage, so the ENTIRE row visibly travels with the cursor.
+// Must run synchronously inside dragstart. Cosmetic only — never throws.
+function setRowDragImage(e, handleEl, cellCount) {
+  try {
+    const grid = handleEl.parentElement;
+    const gcs = getComputedStyle(grid);
+    const ghost = document.createElement('div');
+    ghost.style.cssText = 'position:absolute;top:-10000px;left:0;pointer-events:none;display:grid;align-items:center;box-sizing:border-box;opacity:0.95;padding:6px 8px;';
+    ghost.style.gridTemplateColumns = gcs.gridTemplateColumns;
+    ghost.style.gap = gcs.gap;
+    ghost.style.width = grid.getBoundingClientRect().width + 'px';
+    ghost.style.background = gcs.backgroundColor && gcs.backgroundColor !== 'rgba(0, 0, 0, 0)' ? gcs.backgroundColor : 'var(--c-sf)';
+    ghost.style.border = `1px solid ${C.ac}`;
+    ghost.style.fontSize = gcs.fontSize;
+    ghost.style.fontFamily = gcs.fontFamily;
+    let n = handleEl;
+    for (let i = 0; i < cellCount && n; i++) {
+      const k = n.cloneNode(true);
+      // cloneNode copies attributes, not the live value React set on the
+      // property — sync inputs/selects so the ghost shows real content.
+      const src = n.matches('input,select,textarea') ? [n] : [...n.querySelectorAll('input,select,textarea')];
+      const dst = k.matches && k.matches('input,select,textarea') ? [k] : [...k.querySelectorAll('input,select,textarea')];
+      src.forEach((s, j) => { if (dst[j]) dst[j].value = s.value; });
+      // iframes don't render in a drag snapshot — swap for a dark stub.
+      [...(k.querySelectorAll ? k.querySelectorAll('iframe') : [])].forEach(f => { const d = document.createElement('div'); d.style.cssText = 'width:100%;height:100%;background:#0a0a0b;'; f.replaceWith(d); });
+      ghost.appendChild(k);
+      n = n.nextElementSibling;
+    }
+    document.body.appendChild(ghost);
+    e.dataTransfer.setDragImage(ghost, 24, ghost.getBoundingClientRect().height / 2);
+    setTimeout(() => ghost.remove(), 0);
+  } catch { /* drag still works with the default image */ }
+}
+
 // Red trash icon — an SVG (not the 🗑 emoji, which ignores `color`) so it
 // renders clearly RED in both light and dark themes via C.rd.
 function TrashIcon({ size = 14, color = C.rd }) {
@@ -816,7 +887,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
             left, VIDEO URL right, same 1fr/1fr split and 16px gap, so all
             four boxes share the same column edges. No OPEN/LIB button (Ohad)
             — the URL field runs the full half-width. */}
-        <div style={{display:'grid',gridTemplateColumns:picker?'1fr 1fr':'1fr',gap:16,alignItems:'end'}}>
+        <div style={{display:'grid',gridTemplateColumns:picker?'1.2fr 1fr':'1fr',gap:16,alignItems:'end'}}>
           {picker && <div style={{minWidth:0}}>{picker}</div>}
           <div style={{display:'flex',flexDirection:'column',gap:4,minWidth:0}}>
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:'uppercase',fontFamily:FN}}>Video</label>
@@ -825,7 +896,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
               placeholder="📹 Video URL" />
           </div>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,alignItems:'stretch'}}>
+        <div style={{display:'grid',gridTemplateColumns:'1.2fr 1fr',gap:16,alignItems:'stretch'}}>
           {/* NOTES (left) */}
           <div style={{gridColumn:1,display:'flex',flexDirection:'column',minWidth:0,gap:6}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',minHeight:16,gap:8,flexWrap:'wrap'}}>
@@ -838,11 +909,13 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
             </div>
             <textarea value={noteValue} onChange={e=>update({notes:e.target.value,notesEdited:true})} placeholder={libCues?"Notes / modifications (overrides library cues)":"Notes, modifications..."} style={{...baseInput,textAlign:'center',flex:1,minHeight:120,padding:'10px 12px',lineHeight:1.5,resize:'vertical',fontFamily:FB,fontSize:13}} />
           </div>
-          {/* THUMBNAIL (right) — spacer mirrors the NOTES label row height. */}
+          {/* THUMBNAIL (right) — spacer mirrors the NOTES label row height.
+              Fills the column edge-to-edge so it shares the exact left/right
+              edges with the VIDEO URL box above it (symmetric, Ohad). */}
           <div style={{gridColumn:2,display:'flex',flexDirection:'column',minWidth:0,gap:6}}>
             <div aria-hidden style={{minHeight:16,visibility:'hidden'}} />
-            <div style={{flex:1,display:'flex',alignItems:'flex-start',justifyContent:'center'}}>
-              {vidValue && showEmbed && <div style={{maxWidth:440,width:'100%'}}><VideoEmbed url={vidValue} /></div>}
+            <div style={{flex:1,display:'flex',alignItems:'flex-start'}}>
+              {vidValue && showEmbed && <div style={{width:'100%'}}><VideoEmbed url={vidValue} /></div>}
             </div>
           </div>
         </div>
@@ -1212,6 +1285,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       {exIdx > 0 && <div style={gapLine(isGap(exIdx))} />}
                       <div draggable data-exrow={exIdx}
                         onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${dayIdx}:${exIdx}`);
+                          // Whole row travels with the cursor, not just the # cell.
+                          setRowDragImage(e, e.currentTarget, 9);
                           // Deferred one tick: setting state here re-renders
                           // synchronously inside dragstart, and the layout
                           // shift (expanded panels snapping shut) makes Chrome
