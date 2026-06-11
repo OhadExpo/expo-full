@@ -346,7 +346,7 @@ function wuRx(w) {
   return (w && w.rx) || '';
 }
 
-function WarmupEditor({ plan, setPlan }) {
+function WarmupEditor({ plan, setPlan, compact = false }) {
   const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
   // Collapsed by default whenever there's content, so the warm-up doesn't
   // dominate the editor when the coach is iterating on the main exercise
@@ -411,8 +411,11 @@ function WarmupEditor({ plan, setPlan }) {
       </div>
       <div style={{ display:'grid', gridTemplateRows: open ? '1fr' : '0fr', transition:'grid-template-rows 260ms ease' }}><div style={{ overflow:'hidden', minHeight:0 }}>
         {warmup.length === 0 ? <div style={{ fontSize: 11, color: C.td, fontStyle: 'italic' }}>No warm-ups.</div> :
-          <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
-          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', gridTemplateColumns: '36px minmax(150px,2.2fr) 56px 72px 72px minmax(130px,1.6fr) 110px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: 706 }}>
+          <div style={{ overflowX: 'auto', margin: '0 -12px', padding: compact ? '0 12px 7px' : '0 12px' }}>
+          {/* compact (compare mode): minmax(0,…) columns + smaller fixed
+              cells so the grid compresses to the half-width pane exactly
+              like the day grids do — no inner horizontal scrollbar. */}
+          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', gridTemplateColumns: compact ? '30px minmax(0,2.2fr) 44px minmax(0,60px) minmax(0,60px) minmax(0,1.4fr) 84px 22px' : '36px minmax(150px,2.2fr) 56px 72px 72px minmax(130px,1.6fr) 110px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 540 : 706 }}>
             {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'VIDEO URL', '', ''].map((h, hi) =>
               hi === 0 ? (
                 <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
@@ -1163,7 +1166,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           touching the pane's cyan scrollbar. */}
       <div data-compare-pane ref={leftPaneRef} style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingRight:compareActive?6:0}}>
       <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
-      <WarmupEditor plan={plan} setPlan={setPlan} />
+      <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} />
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
           via a small 📆 toggle inside the day's content (see below). A daily
           day in a multi-day plan lets the athlete log it any number of times
