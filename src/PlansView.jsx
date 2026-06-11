@@ -360,21 +360,28 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
   const [dragSrc, setDragSrc] = useState(null);   // index being dragged
   const [dragOver, setDragOver] = useState(null); // gap 0..len the row would land in
   const dragging = dragSrc !== null;
-  const isGap = (g) => dragging && dragOver === g;
-  const gapLine = (active) => ({ gridColumn: '1 / -1', borderTop: active ? `2px solid ${C.ac}` : `1px dashed ${C.ac}`, opacity: active ? 1 : 0.22, margin: 0, position: 'relative', top: '-1.5px', transition: 'opacity 120ms ease, border-top-color 120ms ease' });
+  // Static dividers + an absolute insertion bar (see the day grid's
+  // rowDivider note) — slot changes never shift the rows.
+  const rowDivider = { gridColumn: '1 / -1', borderTop: `1px dashed ${C.ac}`, opacity: 0.22, margin: 0, position: 'relative', top: '-1.5px' };
   const onGridDragOver = (e) => {
     if (!dragging) return;
     e.preventDefault(); e.dataTransfer.dropEffect = 'move';
     const rows = [...e.currentTarget.querySelectorAll('[data-wurow]')];
     let gap = rows.length;
     for (let i = 0; i < rows.length; i++) { const r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { gap = i; break; } }
-    setDragOver(prev => prev === gap ? prev : gap);
+    const gRect = e.currentTarget.getBoundingClientRect();
+    let y;
+    if (rows.length === 0) y = 0;
+    else if (gap === 0) y = rows[0].getBoundingClientRect().top - gRect.top - 3;
+    else if (gap === rows.length) y = rows[rows.length - 1].getBoundingClientRect().bottom - gRect.top + 3;
+    else { const a = rows[gap - 1].getBoundingClientRect(), b = rows[gap].getBoundingClientRect(); y = ((a.bottom + b.top) / 2) - gRect.top; }
+    setDragOver(prev => (prev && prev.gap === gap && Math.abs(prev.y - y) < 1) ? prev : { gap, y });
   };
   const onGridDrop = (e) => {
     e.preventDefault();
     if (dragging && dragOver !== null) {
       const from = dragSrc;
-      let to = dragOver;
+      let to = dragOver.gap;
       if (to > from) to -= 1; // source is spliced out first, so slots above it shift down one
       if (to !== from) setPlan(p => {
         const arr = [...(p.warmup || [])];
@@ -417,7 +424,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
               video lives in the expanded panel like day rows). compact
               (compare mode): minmax(0,…) columns so it compresses to the
               half-width pane with no inner horizontal scrollbar. */}
-          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', gridTemplateColumns: compact ? '30px minmax(0,3.3fr) minmax(0,60px) minmax(0,80px) minmax(0,80px) 22px' : '36px minmax(180px,3.3fr) 64px 96px 96px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 380 : 480 }}>
+          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', position: 'relative', gridTemplateColumns: compact ? '30px minmax(0,3.3fr) minmax(0,60px) minmax(0,80px) minmax(0,80px) 22px' : '36px minmax(180px,3.3fr) 64px 96px 96px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 380 : 480 }}>
             {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', ''].map((h, hi) =>
               hi === 0 ? (
                 <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
@@ -434,10 +441,9 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
               const wuOpen = !!wuExpanded[i] && !dragging;
               return (
               <React.Fragment key={i}>
-                {/* Insertion indicator above row 0 (drag slot 0). */}
-                {i === 0 && isGap(0) && <div style={gapLine(true)} />}
-                {/* Divider between rows — doubles as the drag insertion line. */}
-                {i > 0 && <div style={gapLine(isGap(i))} />}
+                {/* Divider between rows — static; the insertion bar is the
+                    absolute overlay at the end of the grid. */}
+                {i > 0 && <div style={rowDivider} />}
                 <div draggable data-wurow={i}
                   onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); setRowDragImage(e, e.currentTarget, 6); setTimeout(() => setDragSrc(i), 0); }}
                   onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
@@ -521,8 +527,10 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
                 </div>
               </React.Fragment>
             );})}
-            {/* Insertion indicator below the last row (final drag slot). */}
-            {isGap(warmup.length) && <div style={gapLine(true)} />}
+            {/* Insertion bar — absolute overlay, never moves the rows. */}
+            {dragging && dragOver && dragOver.y != null && (
+              <div style={{ position: 'absolute', left: 0, right: 0, top: dragOver.y - 1, height: 2, background: C.ac, boxShadow: `0 0 5px ${C.ac}88`, pointerEvents: 'none', zIndex: 2, transition: 'top 90ms ease' }} />
+            )}
           </div>
           </div>
         }
@@ -1212,15 +1220,28 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           // 0..len the row will land in, picked by comparing the cursor against
           // each row's vertical centre. A solid line marks that slot.
           const dragging = dragSrc && dragSrc.dayIdx === dayIdx;
-          const isGap = (g) => dragging && dragOver && dragOver.dayIdx === dayIdx && dragOver.gap === g;
-          const gapLine = (active) => ({ gridColumn: '1 / -1', borderTop: active ? `2px solid ${C.ac}` : `1px dashed ${C.ac}`, opacity: active ? 1 : 0.22, margin: 0, position: 'relative', top: '-1.5px', transition: 'opacity 120ms ease, border-top-color 120ms ease' });
+          // Static divider between rows — never changes during drag, so the
+          // grid's layout is rock-stable. The insertion indicator is the
+          // absolutely-positioned bar below (zero layout impact, glides
+          // between slots via a top transition) — the old approach mutated
+          // divider border widths and mounted/unmounted edge lines, which
+          // shifted every row a few px per slot change (read as "jumpy").
+          const rowDivider = { gridColumn: '1 / -1', borderTop: `1px dashed ${C.ac}`, opacity: 0.22, margin: 0, position: 'relative', top: '-1.5px' };
           const onGridDragOver = (e) => {
             if (!dragging) return;
             e.preventDefault(); e.dataTransfer.dropEffect = 'move';
             const rows = [...e.currentTarget.querySelectorAll('[data-exrow]')];
             let gap = rows.length;
             for (let i = 0; i < rows.length; i++) { const r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { gap = i; break; } }
-            setDragOver(prev => (prev && prev.dayIdx === dayIdx && prev.gap === gap) ? prev : { dayIdx, gap });
+            // Bar y is derived from row rects (not the cursor), relative to
+            // the grid container — same gap → same y, so renders are cheap.
+            const gRect = e.currentTarget.getBoundingClientRect();
+            let y;
+            if (rows.length === 0) y = 0;
+            else if (gap === 0) y = rows[0].getBoundingClientRect().top - gRect.top - 3;
+            else if (gap === rows.length) y = rows[rows.length - 1].getBoundingClientRect().bottom - gRect.top + 3;
+            else { const a = rows[gap - 1].getBoundingClientRect(), b = rows[gap].getBoundingClientRect(); y = ((a.bottom + b.top) / 2) - gRect.top; }
+            setDragOver(prev => (prev && prev.dayIdx === dayIdx && prev.gap === gap && Math.abs(prev.y - y) < 1) ? prev : { dayIdx, gap, y });
           };
           const onGridDrop = (e) => {
             e.preventDefault();
@@ -1276,7 +1297,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
-                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : Math.max(614,540+weeks*40)}}>
+                <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : Math.max(614,540+weeks*40)}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     hi === 0 ? (
                       <div key={hi} style={{display:'flex', alignItems:'center', gap:5, minWidth:0}}>
@@ -1306,11 +1327,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     // untouched — rows re-open where they were on drop.
                     const exOpen = !!ovExpanded[ex.id] && !dragging;
                     return <React.Fragment key={ex.id}>
-                      {/* Insertion indicator above row 0 (drag slot 0). */}
-                      {exIdx === 0 && isGap(0) && <div style={gapLine(true)} />}
-                      {/* Divider between exercises — doubles as the drag-drop
-                          insertion line for the slot above this row. */}
-                      {exIdx > 0 && <div style={gapLine(isGap(exIdx))} />}
+                      {/* Divider between exercises — static; the drag
+                          insertion bar is the absolute overlay below. */}
+                      {exIdx > 0 && <div style={rowDivider} />}
                       <div draggable data-exrow={exIdx}
                         onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${dayIdx}:${exIdx}`);
                           // Whole row travels with the cursor, not just the # cell.
@@ -1387,8 +1406,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       </div>
                     </React.Fragment>;
                   })}
-                  {/* Insertion indicator below the last row (final drag slot). */}
-                  {isGap(dayExs.length) && <div style={gapLine(true)} />}
+                  {/* Insertion bar — absolute overlay, glides between slots
+                      without ever moving the rows themselves. */}
+                  {dragging && dragOver && dragOver.dayIdx === dayIdx && dragOver.y != null && (
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: dragOver.y - 1, height: 2, background: C.ac, boxShadow: `0 0 5px ${C.ac}88`, pointerEvents: 'none', zIndex: 2, transition: 'top 90ms ease' }} />
+                  )}
                 </div></div>
               }
               {/* Add-exercise — ported to the unified view (the only add buttons
