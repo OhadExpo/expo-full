@@ -406,8 +406,9 @@ function WarmupEditor({ plan, setPlan }) {
       </div>
       <div style={{ display:'grid', gridTemplateRows: open ? '1fr' : '0fr', transition:'grid-template-rows 260ms ease' }}><div style={{ overflow:'hidden', minHeight:0 }}>
         {warmup.length === 0 ? <div style={{ fontSize: 11, color: C.td, fontStyle: 'italic' }}>No warm-ups.</div> :
-          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', gridTemplateColumns: '36px minmax(180px,2.2fr) 56px 72px 72px minmax(160px,1.8fr) 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center' }}>
-            {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'VIDEO URL', ''].map((h, hi) =>
+          <div style={{ overflowX: 'auto', margin: '0 -12px', padding: '0 12px' }}>
+          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', gridTemplateColumns: '36px minmax(150px,2.2fr) 56px 72px 72px minmax(130px,1.6fr) 110px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: 706 }}>
+            {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'VIDEO URL', '', ''].map((h, hi) =>
               hi === 0 ? (
                 <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                   <span style={{ fontFamily: FN, fontSize: 12, lineHeight: 1, fontWeight: 400, opacity: 0 }}>⇕</span>
@@ -426,20 +427,23 @@ function WarmupEditor({ plan, setPlan }) {
                 {/* Divider between rows — doubles as the drag insertion line. */}
                 {i > 0 && <div style={gapLine(isGap(i))} />}
                 <div draggable data-wurow={i}
-                  onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); setDragSrc(i); }}
+                  onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); setTimeout(() => setDragSrc(i), 0); }}
                   onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                   title="Drag to reorder"
                   style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, cursor: 'grab', userSelect: 'none', opacity: dragging && dragSrc === i ? 0.4 : 1, transition: 'opacity 120ms' }}>
                   <span style={{ color: C.tm, fontFamily: FN, fontSize: 11, lineHeight: 1, fontWeight: 400, position: 'relative', top: '1px' }}>⇕</span>
                   <span style={{ color: C.tx, fontFamily: FN, fontWeight: 700, fontSize: 12, lineHeight: 1 }}>{i + 1}</span>
                 </div>
-                <input value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" style={tinyInput} />
+                <input value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" style={{ ...tinyInput, textAlign: 'left' }} />
                 <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
                 <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
                 <input value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" style={tinyInput} />
                 <input value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
                   onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
                   placeholder="https://youtube.com/..." style={tinyInput} />
+                {/* Always-on micro preview, in-row — keeps every row the same
+                    compact height instead of stacking big embeds below. */}
+                <div style={{ minWidth: 0, padding: '2px 0' }}>{w.vid ? <VideoEmbed url={w.vid} /> : null}</div>
                 <button onClick={() => remove(i)} title="Remove warm-up" aria-label="Remove warm-up"
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><TrashIcon size={15} /></button>
                 {/* Legacy free-text rx, only when the new fields are empty AND a
@@ -454,18 +458,11 @@ function WarmupEditor({ plan, setPlan }) {
                       style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× CLEAR</button>
                   </div>
                 )}
-                {/* Video preview — always on, compact, anchored under the
-                    VIDEO URL column so it reads as "the preview of THAT
-                    field" (replaces the old SHOW/HIDE toggle). */}
-                {w.vid && (
-                  <div style={{ gridColumn: 6, minWidth: 0, padding: '2px 0 6px' }}>
-                    <div style={{ maxWidth: 280 }}><VideoEmbed url={w.vid} /></div>
-                  </div>
-                )}
               </React.Fragment>
             ))}
             {/* Insertion indicator below the last row (final drag slot). */}
             {isGap(warmup.length) && <div style={gapLine(true)} />}
+          </div>
           </div>
         }
         <Btn variant="ghost" onClick={add} style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}>+ Add Warm-Up</Btn>
@@ -611,7 +608,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                                   <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:6, alignItems:'stretch'}}>
                                     <input value={w.vid} readOnly onFocus={e => e.target.select()}
                                       style={{...baseInput, padding:'6px 10px', fontSize:11, color:C.tm, cursor:'text', minWidth:0, width:'100%', boxSizing:'border-box'}} />
-                                    <button onClick={() => { navigator.clipboard?.writeText(w.vid).then(() => toast('Video URL copied')); }}
+                                    <button onClick={() => { const p = navigator.clipboard?.writeText(w.vid); if (p) p.then(() => toast('Video URL copied')).catch(() => toast('Copy blocked — click the URL and Ctrl+C', 'warn')); else toast('Copy blocked — click the URL and Ctrl+C', 'warn'); }}
                                       title="Copy video URL"
                                       style={{background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.1em', padding:'0 10px', borderRadius:0, whiteSpace:'nowrap'}}>COPY</button>
                                   </div>
@@ -647,7 +644,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                 const cmpCollapsed = !!collapsedCmpDays[cmpDayKey];
                 return (
                   <div key={d.id || di} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
-                    <div style={{display:'flex',alignItems:'center',marginBottom:cmpCollapsed?0:8,gap:10,position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4}}>
+                    <div style={{display:'flex',alignItems:'center',marginBottom:cmpCollapsed?0:8,gap:10,position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:cmpCollapsed?0:8,borderBottom:cmpCollapsed?'none':`1px solid ${C.cardBd}`}}>
                       <span role="button" tabIndex={0} onClick={()=>toggleCmpDay(cmpDayKey)} onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleCmpDay(cmpDayKey); } }} title={cmpCollapsed?'Expand day':'Collapse day'} style={{cursor:'pointer',color:C.tm,fontSize:12,lineHeight:1,userSelect:'none'}}>{cmpCollapsed?'▸':'▾'}</span>
                       <input value={d.name || `Day ${di + 1}`} readOnly tabIndex={-1}
                         style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:'4px 8px', maxWidth:260, cursor:'default'}} />
@@ -795,7 +792,7 @@ function TrashIcon({ size = 14, color = C.rd }) {
 // 3-state video override). Shared by the unified overview's inline-expand
 // panel so it has EVERY feature the old detail card had. `update(patch)`
 // abstracts the day/exercise write so either view can drive it.
-function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
+function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker = null }) {
   const libCues = exData?.cues || '';
   const hasNoteOverride = !!ex.notesEdited || !!(ex.notes && ex.notes.length > 0);
   const noteValue = hasNoteOverride ? (ex.notes || '') : libCues;
@@ -815,13 +812,17 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true }) {
           row, so the notes box and the thumbnail are the exact same height
           (tops AND bottoms line up). */}
       <div style={{paddingTop:10,borderTop:`1px solid ${C.cardBd}`,display:'flex',flexDirection:'column',gap:10}}>
-        <div style={{display:'flex',flexDirection:'column',gap:6}}>
-          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.18em'}}>VIDEO</span>
-          <div style={{display:"grid",gridTemplateColumns:vidValue?"1fr auto":"1fr",gap:6,alignItems:"stretch"}}>
+        {/* Top row mirrors the NOTES/THUMBNAIL grid below — EXERCISE picker
+            left, VIDEO URL right, same 1fr/1fr split and 16px gap, so all
+            four boxes share the same column edges. No OPEN/LIB button (Ohad)
+            — the URL field runs the full half-width. */}
+        <div style={{display:'grid',gridTemplateColumns:picker?'1fr 1fr':'1fr',gap:16,alignItems:'end'}}>
+          {picker && <div style={{minWidth:0}}>{picker}</div>}
+          <div style={{display:'flex',flexDirection:'column',gap:4,minWidth:0}}>
+            <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:'uppercase',fontFamily:FN}}>Video</label>
             <Input value={vidValue} onChange={e=>update({videoUrl:e.target.value})}
               onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update({ videoUrl: resolved }); }}
               placeholder="📹 Video URL" />
-            {vidValue && <a href={vidValue} target="_blank" rel="noreferrer" title={hasVidOverride?"Per-program URL":"From exercise library"} style={{display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.1em',color:hasVidOverride?C.ac:C.tm,textDecoration:"none",padding:"0 9px",border:`${hasVidOverride?'1px':'0.25px'} solid ${hasVidOverride?C.ac:C.cardBd}`,borderRadius:0,whiteSpace:"nowrap",boxSizing:"border-box"}}>{hasVidOverride?"OPEN":"LIB"}</a>}
           </div>
         </div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,alignItems:'stretch'}}>
@@ -1134,7 +1135,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'12px'}}>
               {/* marginBottom only while open — a collapsed card otherwise
                   reads 12px above the row but 20px below (off-centre). */}
-              <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",marginBottom:dayCollapsed?0:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4} : {})}}>
+              {/* Sticky header (compare) gets a hairline below it — rows
+                  scroll under it, so without a divider the pinned row reads
+                  as floating over the table (Ohad). */}
+              <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",marginBottom:dayCollapsed?0:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:dayCollapsed?0:8,borderBottom:dayCollapsed?'none':`1px solid ${C.cardBd}`} : {})}}>
                 <span role="button" tabIndex={0} onClick={()=>toggleDayCollapse(d.id)}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleDayCollapse(d.id); } }}
                   title={dayCollapsed?'Expand day':'Collapse day'}
@@ -1207,7 +1211,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                           insertion line for the slot above this row. */}
                       {exIdx > 0 && <div style={gapLine(isGap(exIdx))} />}
                       <div draggable data-exrow={exIdx}
-                        onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${dayIdx}:${exIdx}`); setDragSrc({dayIdx, exIdx}); }}
+                        onDragStart={e => { e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain', `${dayIdx}:${exIdx}`);
+                          // Deferred one tick: setting state here re-renders
+                          // synchronously inside dragstart, and the layout
+                          // shift (expanded panels snapping shut) makes Chrome
+                          // abort the drag before it begins. After the tick
+                          // the drag is established and layout can change.
+                          setTimeout(() => setDragSrc({dayIdx, exIdx}), 0); }}
                         onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                         title="Drag to reorder"
                         style={{display:"flex",alignItems:"center",gap:5,minWidth:0,cursor:"grab",userSelect:"none",opacity:dragging&&dragSrc.exIdx===exIdx?0.4:1,transition:"opacity 120ms"}}>
@@ -1264,9 +1274,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${ex.superset?sc:C.ac}`, padding:14, margin:'2px 0 12px', display:'flex', flexDirection:'column', gap:12}}>
                           {/* Only the bits NOT already in the table row — no duplicate
                               sets/reps/load/etc. Swap the exercise + per-week toggle
-                              + the polished notes/video block (ExEditorExtras). */}
-                          <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />
-                          <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} showEmbed={exOpen} />
+                              + the polished notes/video block (ExEditorExtras). The
+                              picker renders INSIDE extras, on one row with the
+                              video URL (50/50, aligned with notes/thumb below). */}
+                          <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} showEmbed={exOpen}
+                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />} />
                         </div>
                        </div>
                       </div>
