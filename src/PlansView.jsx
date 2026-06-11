@@ -412,18 +412,20 @@ function WarmupEditor({ plan, setPlan, compact = false }) {
       <div style={{ display:'grid', gridTemplateRows: open ? '1fr' : '0fr', transition:'grid-template-rows 260ms ease' }}><div style={{ overflow:'hidden', minHeight:0 }}>
         {warmup.length === 0 ? <div style={{ fontSize: 11, color: C.td, fontStyle: 'italic' }}>No warm-ups.</div> :
           <div style={{ overflowX: 'auto', margin: '0 -12px', padding: compact ? '0 12px 7px' : '0 12px' }}>
-          {/* compact (compare mode): minmax(0,…) columns + smaller fixed
-              cells so the grid compresses to the half-width pane exactly
-              like the day grids do — no inner horizontal scrollbar. */}
-          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', gridTemplateColumns: compact ? '30px minmax(0,2.2fr) 44px minmax(0,60px) minmax(0,60px) minmax(0,1.4fr) 84px 22px' : '36px minmax(150px,2.2fr) 56px 72px 72px minmax(130px,1.6fr) 110px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 540 : 706 }}>
-            {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'VIDEO URL', '', ''].map((h, hi) =>
+          {/* Same table structure as the day-exercise grid, just the
+              warm-up's parameters (no GRP/LOAD/RPE, no URL column — the
+              video lives in the expanded panel like day rows). compact
+              (compare mode): minmax(0,…) columns so it compresses to the
+              half-width pane with no inner horizontal scrollbar. */}
+          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', gridTemplateColumns: compact ? '30px minmax(0,3.3fr) minmax(0,60px) minmax(0,80px) minmax(0,80px) 22px' : '36px minmax(180px,3.3fr) 64px 96px 96px 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center', minWidth: compact ? 380 : 480 }}>
+            {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', ''].map((h, hi) =>
               hi === 0 ? (
                 <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                   <span style={{ fontFamily: FN, fontSize: 12, lineHeight: 1, fontWeight: 400, opacity: 0 }}>⇕</span>
                   <span style={{ fontSize: 9, fontFamily: FN, color: C.td }}>{h}</span>
                 </div>
               ) : hi === 1 ? (
-                <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>
+                <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, borderLeft: '3px solid transparent', paddingLeft: 6 }}>{h}</div>
               ) : (
                 <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, textAlign: 'center' }}>{h}</div>
               )
@@ -437,29 +439,28 @@ function WarmupEditor({ plan, setPlan, compact = false }) {
                 {/* Divider between rows — doubles as the drag insertion line. */}
                 {i > 0 && <div style={gapLine(isGap(i))} />}
                 <div draggable data-wurow={i}
-                  onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); setRowDragImage(e, e.currentTarget, 8); setTimeout(() => setDragSrc(i), 0); }}
+                  onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); setRowDragImage(e, e.currentTarget, 6); setTimeout(() => setDragSrc(i), 0); }}
                   onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
                   title="Drag to reorder"
                   style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, cursor: 'grab', userSelect: 'none', opacity: dragging && dragSrc === i ? 0.4 : 1, transition: 'opacity 120ms' }}>
                   <span style={{ color: C.tm, fontFamily: FN, fontSize: 11, lineHeight: 1, fontWeight: 400, position: 'relative', top: '1px' }}>⇕</span>
                   <span style={{ color: C.tx, fontFamily: FN, fontWeight: 700, fontSize: 12, lineHeight: 1 }}>{i + 1}</span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                  <span onClick={() => toggleWuExpand(i)} role="button" tabIndex={0} aria-expanded={wuOpen}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWuExpand(i); } }}
-                    title="Click to expand — edit note, see video"
-                    style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease', cursor: 'pointer', userSelect: 'none' }}>▾</span>
-                  <input value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" style={{ ...tinyInput, textAlign: 'left' }} />
+                {/* Name as TEXT, exactly like a day-exercise row — chevron +
+                    title, whole cell expands. Editing the name happens inside
+                    the expanded panel (where day rows put their picker).
+                    Transparent 3px borderLeft mirrors the day rows' superset
+                    bar slot so the text x-position matches the day grid. */}
+                <div onClick={() => toggleWuExpand(i)} title="Click to expand — edit name, video & note"
+                  role="button" tabIndex={0} aria-expanded={wuOpen}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleWuExpand(i); } }}
+                  style={{ color: C.tx, minWidth: 0, borderLeft: '3px solid transparent', paddingLeft: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: C.ac, fontSize: 11, fontWeight: 700, lineHeight: 1, flexShrink: 0, transform: wuOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}>▾</span>
+                  <span style={{ overflowWrap: 'anywhere', wordBreak: 'break-word', color: w.t ? C.tx : C.td }}>{w.t || 'New warm-up — click to name'}</span>
                 </div>
                 <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
                 <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
                 <input value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" style={tinyInput} />
-                <input value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
-                  onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
-                  placeholder="https://youtube.com/..." style={tinyInput} />
-                {/* Always-on micro preview, in-row — keeps every row the same
-                    compact height instead of stacking big embeds below. */}
-                <div style={{ minWidth: 0, padding: '2px 0' }}>{w.vid ? <VideoEmbed url={w.vid} /> : null}</div>
                 <button onClick={() => remove(i)} title="Remove warm-up" aria-label="Remove warm-up"
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><TrashIcon size={15} /></button>
                 {/* Legacy free-text rx, only when the new fields are empty AND a
@@ -474,21 +475,39 @@ function WarmupEditor({ plan, setPlan, compact = false }) {
                       style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× CLEAR</button>
                   </div>
                 )}
-                {/* Inline expand — note (athlete-visible) + full-size video,
-                    mirroring the day-exercise expanded panel. Orange accent
-                    keeps the warm-up identity. */}
+                {/* Inline expand — IDENTICAL structure to the day-exercise
+                    expanded panel: top row = name editor (the warm-up's
+                    "picker" slot) + VIDEO URL at 1.2fr/1fr, bottom row =
+                    NOTES + full-size embed on the same column edges.
+                    Orange accent keeps the warm-up identity. */}
                 <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateRows: wuOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}>
                   <div style={{ overflow: 'hidden', minHeight: 0 }}>
-                    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, padding: 14, margin: '2px 0 12px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'stretch' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-                        <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.td, letterSpacing: '0.18em' }}>NOTES</span>
-                        <textarea value={w.note || ''} onChange={e => update(i, { note: e.target.value })} placeholder="Notes, cues... (shown to the athlete on this warm-up step)"
-                          style={{ ...baseInput, textAlign: 'center', flex: 1, minHeight: 120, padding: '10px 12px', lineHeight: 1.5, resize: 'vertical', fontFamily: FB, fontSize: 13 }} />
+                    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, padding: 14, margin: '2px 0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'end' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                          <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>Exercise</label>
+                          <Input value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                          <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>Video</label>
+                          <Input value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
+                            onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
+                            placeholder="📹 Video URL" />
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-                        <div aria-hidden style={{ minHeight: 12, visibility: 'hidden' }} />
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start' }}>
-                          {w.vid ? <div style={{ width: '100%' }}><VideoEmbed url={w.vid} /></div> : <div style={{ fontSize: 11, color: C.td, alignSelf: 'center', margin: '0 auto' }}>No video.</div>}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'stretch' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', minHeight: 16 }}>
+                            <span style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.td, letterSpacing: '0.18em' }}>NOTES</span>
+                          </div>
+                          <textarea value={w.note || ''} onChange={e => update(i, { note: e.target.value })} placeholder="Notes, cues... (shown to the athlete on this warm-up step)"
+                            style={{ ...baseInput, textAlign: 'center', flex: 1, minHeight: 120, padding: '10px 12px', lineHeight: 1.5, resize: 'vertical', fontFamily: FB, fontSize: 13 }} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 6 }}>
+                          <div aria-hidden style={{ minHeight: 16, visibility: 'hidden' }} />
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start' }}>
+                            {w.vid && wuOpen ? <div style={{ width: '100%' }}><VideoEmbed url={w.vid} /></div> : null}
+                          </div>
                         </div>
                       </div>
                     </div>
