@@ -346,7 +346,7 @@ function wuRx(w) {
   return (w && w.rx) || '';
 }
 
-function WarmupEditor({ plan, setPlan, compact = false }) {
+function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
   const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
   // Collapsed by default whenever there's content, so the warm-up doesn't
   // dominate the editor when the coach is iterating on the main exercise
@@ -484,9 +484,15 @@ function WarmupEditor({ plan, setPlan, compact = false }) {
                   <div style={{ overflow: 'hidden', minHeight: 0 }}>
                     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, padding: 14, margin: '2px 0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, alignItems: 'end' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>Exercise</label>
-                          <Input value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
+                        {/* Real library picker, same as day exercises. A
+                            library pick links the row (w.exerciseId), takes
+                            the library title, and prefills video/cues only
+                            where the row is still empty. Free-text stays
+                            possible via the modal's add-by-name. */}
+                        <div style={{ minWidth: 0 }}>
+                          <ExPicker exercises={exercises} value={w.exerciseId || ''} label="Exercise" fallbackTitle={w.t}
+                            onChange={id => { const lib = exById(exercises).get(id); update(i, { exerciseId: id, t: lib?.title || w.t || '', ...((!w.vid && lib?.videoLink) ? { vid: lib.videoLink } : {}), ...((!w.note && lib?.cues) ? { note: lib.cues } : {}) }); }}
+                            onPickName={name => update(i, { exerciseId: '', t: name })} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                           <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>Video</label>
@@ -1185,7 +1191,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           touching the pane's cyan scrollbar. */}
       <div data-compare-pane ref={leftPaneRef} style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingRight:compareActive?6:0}}>
       <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
-      <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} />
+      <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} exercises={exercises} />
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
           via a small 📆 toggle inside the day's content (see below). A daily
           day in a multi-day plan lets the athlete log it any number of times
