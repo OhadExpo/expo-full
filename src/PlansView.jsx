@@ -5,7 +5,7 @@ import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RES
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -42,6 +42,32 @@ async function maybeResolveGooglePhotos(url) {
     const j = await r.json();
     return j?.url || url;
   } catch { return url; }
+}
+
+// In compare mode each half is a fixed header row above its own scroller.
+// The scroller's content is narrower than the pane by (scrollbar + 6px
+// paddingRight), so a full-width header row visually overhangs the boxes
+// below it (Ohad: "the text boxes should end before the scroller, level
+// with Pattern Coverage"). Measures the pane's scrollbar width so the
+// header can pad-right to the exact same content edge.
+function useScrollbarInset(active) {
+  const ref = useRef(null);
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    if (!active) { setInset(0); return; }
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setInset(el.offsetWidth - el.clientWidth);
+    measure();
+    // ResizeObserver catches the scrollbar appearing/disappearing as content
+    // grows/shrinks (it changes the content-box width), window resize covers
+    // pane-width changes.
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [active]);
+  return [ref, inset];
 }
 
 function PatternCoverage({ plan, exercises, cols = 5 }) {
@@ -328,71 +354,122 @@ function WarmupEditor({ plan, setPlan }) {
   // is one click away (otherwise a coach would have to expand the empty
   // card just to discover the add control).
   const [open, setOpen] = useState(warmup.length === 0);
-  const [vidShow, setVidShow] = useState({}); // per-row video preview toggle (collapsed by default so rows stay compact)
+  // Drag-to-reorder — same mechanics + visual language as the day-exercise
+  // grid: whole grid is the drop zone, slot picked against row centres,
+  // dashed dividers double as the insertion line.
+  const [dragSrc, setDragSrc] = useState(null);   // index being dragged
+  const [dragOver, setDragOver] = useState(null); // gap 0..len the row would land in
+  const dragging = dragSrc !== null;
+  const isGap = (g) => dragging && dragOver === g;
+  const gapLine = (active) => ({ gridColumn: '1 / -1', borderTop: active ? `2px solid ${C.ac}` : `1px dashed ${C.ac}`, opacity: active ? 1 : 0.22, margin: 0, position: 'relative', top: '-1.5px', transition: 'opacity 120ms ease, border-top-color 120ms ease' });
+  const onGridDragOver = (e) => {
+    if (!dragging) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    const rows = [...e.currentTarget.querySelectorAll('[data-wurow]')];
+    let gap = rows.length;
+    for (let i = 0; i < rows.length; i++) { const r = rows[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { gap = i; break; } }
+    setDragOver(prev => prev === gap ? prev : gap);
+  };
+  const onGridDrop = (e) => {
+    e.preventDefault();
+    if (dragging && dragOver !== null) {
+      const from = dragSrc;
+      let to = dragOver;
+      if (to > from) to -= 1; // source is spliced out first, so slots above it shift down one
+      if (to !== from) setPlan(p => {
+        const arr = [...(p.warmup || [])];
+        if (from < 0 || from >= arr.length || to < 0 || to >= arr.length) return p;
+        const [moved] = arr.splice(from, 1);
+        arr.splice(to, 0, moved);
+        return { ...p, warmup: arr };
+      });
+    }
+    setDragSrc(null); setDragOver(null);
+  };
   const update = (idx, patch) => setPlan(p => ({ ...p, warmup: (p.warmup || []).map((w, i) => i === idx ? { ...w, ...patch } : w) }));
   // New warm-ups carry sets/reps/tempo as first-class fields. Legacy plans
   // still carry an `rx` string instead — those keep rendering verbatim until
   // the coach edits them (we never touch existing rows on load).
   const add = () => { setOpen(true); setPlan(p => ({ ...p, warmup: [...(p.warmup || []), { t: '', sets: 1, reps: '', tempo: '', vid: '' }] })); };
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
+  // Same compact input the day-exercise grid uses, so warm-up rows read as
+  // the same table family as the day cards below.
+  const tinyInput = { ...baseInput, background: 'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding: '3px 6px', fontSize: 11, minWidth: 0, width: '100%', boxSizing: 'border-box' };
   return (
     <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: open && warmup.length ? 10 : 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: open ? 8 : 0 }}>
         <button onClick={() => setOpen(o => !o)} title={open ? 'Collapse warm-up' : 'Expand warm-up'}
-          style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:10, color:C.or, fontFamily:FN, fontWeight:700, width:10, display:'inline-block', textAlign:'center' }}>{open ? '▾' : '▸'}</span>
+          style={{ background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:open?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none' }}>▾</span>
           <span style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing:'0.06em' }}>WARM-UP ({warmup.length})</span>
         </button>
-        <Btn variant="ghost" onClick={add} style={{ padding: '4px 10px', fontSize: 11 }}>+ Add Warm-Up</Btn>
       </div>
-      {open && <>
-        {/* Column-header row — table layout matching the day-exercise grid
-            (labels live here once, not repeated per row). */}
-        {warmup.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '32px 1.6fr 56px 72px 72px 1.4fr 24px', gap: 10, marginBottom: 6, padding: '0 2px' }}>
-            {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'VIDEO URL', ''].map((h, hi) => (
-              <div key={hi} style={{ fontFamily: FN, fontSize: 9, color: C.td, fontWeight: 700, letterSpacing: '0.1em', textAlign: hi === 0 ? 'center' : 'left' }}>{h}</div>
-            ))}
-          </div>
-        )}
-        {warmup.map((w, i) => (
-          <div key={i} style={{ marginBottom: 10, paddingBottom: 8, borderBottom: i < warmup.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
-            {/* Structured fields (sets × reps × tempo). Legacy pre-split plans
-                keep their `rx` string, rendered as a dismissible line below. */}
-            <div style={{ display: 'grid', gridTemplateColumns: '32px 1.6fr 56px 72px 72px 1.4fr 24px', gap: 10, alignItems: 'center' }}>
-              <div style={{ fontFamily: FN, fontSize: 12, color: C.tx, fontWeight: 700, textAlign: 'center', letterSpacing: '0.04em' }}>{i + 1}</div>
-              <Input label="" value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" />
-              <Input label="" type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" />
-              <Input label="" value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" />
-              <Input label="" value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" />
-              <Input label="" value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
-                onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
-                placeholder="https://youtube.com/..." />
-              <button onClick={() => remove(i)} aria-label="Remove warm-up" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, marginBottom: 4, display: 'flex', alignItems: 'center' }}><TrashIcon size={16} /></button>
-            </div>
-            {/* Legacy free-text rx, only when the new fields are empty AND a
-                pre-split rx exists. Lets the coach see what the athlete is
-                currently being shown, then dismiss it once they've migrated. */}
-            {w.rx && (!w.sets || w.sets === '') && !w.reps && (
-              <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.tm, fontFamily: FN }}>
-                <span style={{ fontWeight: 700, letterSpacing: '0.12em', color: C.td }}>LEGACY RX:</span>
-                <span style={{ color: C.tx, fontFamily: FB }}>{w.rx}</span>
-                <button onClick={() => update(i, { rx: '' })}
-                  title="Clear the legacy rx string — the athlete will now see the structured sets/reps above (once you fill them in)."
-                  style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× CLEAR</button>
-              </div>
+      <div style={{ display:'grid', gridTemplateRows: open ? '1fr' : '0fr', transition:'grid-template-rows 260ms ease' }}><div style={{ overflow:'hidden', minHeight:0 }}>
+        {warmup.length === 0 ? <div style={{ fontSize: 11, color: C.td, fontStyle: 'italic' }}>No warm-ups.</div> :
+          <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{ display: 'grid', gridTemplateColumns: '36px minmax(180px,2.2fr) 56px 72px 72px minmax(160px,1.8fr) 24px', gap: '3px 8px', fontSize: 12, alignItems: 'center' }}>
+            {['#', 'EXERCISE', 'SETS', 'REPS', 'TEMPO', 'VIDEO URL', ''].map((h, hi) =>
+              hi === 0 ? (
+                <div key={hi} style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                  <span style={{ fontFamily: FN, fontSize: 12, lineHeight: 1, fontWeight: 400, opacity: 0 }}>⇕</span>
+                  <span style={{ fontSize: 9, fontFamily: FN, color: C.td }}>{h}</span>
+                </div>
+              ) : hi === 1 ? (
+                <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0 }}>{h}</div>
+              ) : (
+                <div key={hi} style={{ fontSize: 9, fontFamily: FN, color: C.td, minWidth: 0, textAlign: 'center' }}>{h}</div>
+              )
             )}
-            {w.vid && <div style={{ marginTop: 6 }}>
-              <button onClick={() => setVidShow(s => ({ ...s, [i]: !s[i] }))}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 9, display: 'inline-block', textAlign: 'center' }}>{vidShow[i] ? '▾' : '▸'}</span>{vidShow[i] ? 'HIDE VIDEO' : 'SHOW VIDEO'}
-              </button>
-              {vidShow[i] && <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 480 }}><VideoEmbed url={w.vid} /></div></div>}
-            </div>}
+            {warmup.map((w, i) => (
+              <React.Fragment key={i}>
+                {/* Insertion indicator above row 0 (drag slot 0). */}
+                {i === 0 && isGap(0) && <div style={gapLine(true)} />}
+                {/* Divider between rows — doubles as the drag insertion line. */}
+                {i > 0 && <div style={gapLine(isGap(i))} />}
+                <div draggable data-wurow={i}
+                  onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(i)); setDragSrc(i); }}
+                  onDragEnd={() => { setDragSrc(null); setDragOver(null); }}
+                  title="Drag to reorder"
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0, cursor: 'grab', userSelect: 'none', opacity: dragging && dragSrc === i ? 0.4 : 1, transition: 'opacity 120ms' }}>
+                  <span style={{ color: C.tm, fontFamily: FN, fontSize: 11, lineHeight: 1, fontWeight: 400, position: 'relative', top: '1px' }}>⇕</span>
+                  <span style={{ color: C.tx, fontFamily: FN, fontWeight: 700, fontSize: 12, lineHeight: 1 }}>{i + 1}</span>
+                </div>
+                <input value={w.t || ''} onChange={e => update(i, { t: e.target.value })} placeholder="e.g. BW Step-Down" style={tinyInput} />
+                <input type="number" value={w.sets ?? ''} onChange={e => update(i, { sets: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })} placeholder="1" style={tinyInput} />
+                <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
+                <input value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" style={tinyInput} />
+                <input value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
+                  onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
+                  placeholder="https://youtube.com/..." style={tinyInput} />
+                <button onClick={() => remove(i)} title="Remove warm-up" aria-label="Remove warm-up"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><TrashIcon size={15} /></button>
+                {/* Legacy free-text rx, only when the new fields are empty AND a
+                    pre-split rx exists. Lets the coach see what the athlete is
+                    currently being shown, then dismiss it once they've migrated. */}
+                {w.rx && (!w.sets || w.sets === '') && !w.reps && (
+                  <div style={{ gridColumn: '2 / -1', display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.tm, fontFamily: FN, padding: '2px 0' }}>
+                    <span style={{ fontWeight: 700, letterSpacing: '0.12em', color: C.td }}>LEGACY RX:</span>
+                    <span style={{ color: C.tx, fontFamily: FB }}>{w.rx}</span>
+                    <button onClick={() => update(i, { rx: '' })}
+                      title="Clear the legacy rx string — the athlete will now see the structured sets/reps above (once you fill them in)."
+                      style={{ background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.rd, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, opacity: 0.7 }}>× CLEAR</button>
+                  </div>
+                )}
+                {/* Video preview — always on, compact, anchored under the
+                    VIDEO URL column so it reads as "the preview of THAT
+                    field" (replaces the old SHOW/HIDE toggle). */}
+                {w.vid && (
+                  <div style={{ gridColumn: 6, minWidth: 0, padding: '2px 0 6px' }}>
+                    <div style={{ maxWidth: 280 }}><VideoEmbed url={w.vid} /></div>
+                  </div>
+                )}
+              </React.Fragment>
+            ))}
+            {/* Insertion indicator below the last row (final drag slot). */}
+            {isGap(warmup.length) && <div style={gapLine(true)} />}
           </div>
-        ))}
-        {warmup.length === 0 && <div style={{ fontSize: 11, color: C.td, marginTop: 8 }}>No warm-ups. Click "+ Add Warm-Up" to add one.</div>}
-      </>}
+        }
+        <Btn variant="ghost" onClick={add} style={{ width: '100%', justifyContent: 'center', marginTop: 4 }}>+ Add Warm-Up</Btn>
+      </div></div>
     </div>
   );
 }
@@ -454,6 +531,14 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
   const [cmpExpandedEx, setCmpExpandedEx] = useState({});
   useEffect(() => { setCmpExpandedEx({}); }, [pickedId]);
   const toggleCmpEx = (k) => setCmpExpandedEx(prev => ({ ...prev, [k]: !prev[k] }));
+  // Warm-up rows expand too — the coach copies the video URL / note from
+  // the old block while authoring the new one.
+  const [cmpWuOpen, setCmpWuOpen] = useState({});
+  useEffect(() => { setCmpWuOpen({}); }, [pickedId]);
+  const toggleCmpWu = (i) => setCmpWuOpen(prev => ({ ...prev, [i]: !prev[i] }));
+  // Filter row ends level with the scroller content below it (same
+  // scrollbar-inset alignment as the editor half's field row).
+  const [cmpPaneRef, cmpSbInset] = useScrollbarInset(true);
 
   return (
     <div style={{flex:1, minWidth:0, alignSelf:'stretch', display:'flex', flexDirection:'column', minHeight:0}}>
@@ -462,7 +547,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           back). It sits ABOVE the scroller (fixed) so the blue scrollbar
           starts level with the content below the filter boxes — and the
           dropdowns stay reachable however far the pane is scrolled. */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20,position:'relative',flexShrink:0}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20,position:'relative',flexShrink:0,paddingRight:cmpSbInset+6}}>
         <div style={{minWidth:0}}>
           <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder="Pick athlete…" />
         </div>
@@ -476,7 +561,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
         <button onClick={onClose} title="Close compare panel"
           style={{position:'absolute', top:-2, right:-2, background:C.bg, border:`1px solid ${C.cardBd}`, color:C.tm, cursor:'pointer', padding:'1px 6px', borderRadius:0, fontSize:11, lineHeight:1, zIndex:2}}>✕</button>
       </div>
-      <div data-compare-pane style={{position:'relative', overflowY:'auto', minHeight:0, flex:1, paddingRight:6}}>
+      <div data-compare-pane ref={cmpPaneRef} style={{position:'relative', overflowY:'auto', minHeight:0, flex:1, paddingRight:6}}>
       {!selectedAthleteId ? (
         <div style={{padding:'24px 16px', color:C.td, fontSize:12, textAlign:'center', fontFamily:FB}}>Pick an athlete from the filter above to compare.</div>
       ) : candidates.length === 0 ? (
@@ -491,25 +576,63 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
               editor renders on the left, so the box sits at the same
               vertical position on both halves. */}
           <PatternCoverage plan={cmpPlan} exercises={exercises} cols={3} />
-              {/* Warm-up (foldable, mirrors editor). */}
+              {/* Warm-up (foldable, mirrors editor). Each row expands to a
+                  read-only card — video URL (copyable) + note — same pattern
+                  as the exercise rows below. */}
               {Array.isArray(cmpPlan.warmup) && cmpPlan.warmup.length > 0 && (
                 <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:12, marginBottom:16}}>
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
                   <button onClick={() => setWarmOpen(o => !o)}
-                    style={{background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:8}}>
-                    <span style={{fontSize:10, color:C.or, fontFamily:FN, fontWeight:700, width:10, display:'inline-block', textAlign:'center'}}>{warmOpen ? '▾' : '▸'}</span>
+                    style={{background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:10}}>
+                    <span style={{color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:warmOpen?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none'}}>▾</span>
                     <span style={{fontSize:12, fontFamily:FN, fontWeight:700, color:C.or, letterSpacing:'0.06em'}}>WARM-UP ({cmpPlan.warmup.length})</span>
                   </button>
-                  <span aria-hidden style={{visibility:'hidden', padding:'4px 10px', fontFamily:FN, fontSize:11, fontWeight:700, border:'1px solid transparent', borderRadius:0}}>+ Add Warm-Up</span>
-                  </div>
                   {warmOpen && <div style={{marginTop:8}}>
-                    {cmpPlan.warmup.map((w, i) => (
-                      <div key={i} style={{display:'grid', gridTemplateColumns:'24px 2fr 1fr', gap:8, padding:'4px 0', alignItems:'center', borderTop:i === 0 ? 'none' : `1px solid rgba(57,189,255,0.102)`}}>
-                        <div style={{fontFamily:FN, fontSize:11, color:C.tm, fontWeight:700, textAlign:'center'}}>{i + 1}</div>
-                        <div style={{fontSize:13, color:C.tx, fontFamily:FB, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{w.t || '—'}</div>
-                        <div style={{fontSize:12, color:C.tm, fontFamily:FN}}>{wuRx(w) || '—'}</div>
-                      </div>
-                    ))}
+                    {cmpPlan.warmup.map((w, i) => {
+                      const wuOpen = !!cmpWuOpen[i];
+                      const note = w.note || w.n || '';
+                      return (
+                        <React.Fragment key={i}>
+                          <div onClick={() => toggleCmpWu(i)} role="button" tabIndex={0} aria-expanded={wuOpen}
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCmpWu(i); } }}
+                            title="Click to expand — copy video URL & note"
+                            style={{display:'grid', gridTemplateColumns:'24px 2fr 1fr', gap:8, padding:'4px 0', alignItems:'center', borderTop:i === 0 ? 'none' : `1px solid rgba(57,189,255,0.102)`, cursor:'pointer'}}>
+                            <div style={{fontFamily:FN, fontSize:11, color:C.tm, fontWeight:700, textAlign:'center'}}>{i + 1}</div>
+                            <div style={{fontSize:13, color:C.tx, fontFamily:FB, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', display:'flex', alignItems:'center', gap:6}}>
+                              <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:wuOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
+                              <span style={{overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{w.t || '—'}</span>
+                            </div>
+                            <div style={{fontSize:12, color:C.tm, fontFamily:FN}}>{wuRx(w) || '—'}</div>
+                          </div>
+                          {wuOpen && (
+                            <div style={{background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${C.or}`, padding:'12px 14px', margin:'2px 0 8px'}}>
+                              <div style={{marginBottom:10}}>
+                                <div style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.td, letterSpacing:'0.18em', marginBottom:6}}>VIDEO URL</div>
+                                {w.vid ? (
+                                  <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:6, alignItems:'stretch'}}>
+                                    <input value={w.vid} readOnly onFocus={e => e.target.select()}
+                                      style={{...baseInput, padding:'6px 10px', fontSize:11, color:C.tm, cursor:'text', minWidth:0, width:'100%', boxSizing:'border-box'}} />
+                                    <button onClick={() => { navigator.clipboard?.writeText(w.vid).then(() => toast('Video URL copied')); }}
+                                      title="Copy video URL"
+                                      style={{background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.1em', padding:'0 10px', borderRadius:0, whiteSpace:'nowrap'}}>COPY</button>
+                                  </div>
+                                ) : <div style={{fontSize:12, color:C.td}}>No video.</div>}
+                              </div>
+                              <div style={{display:'grid', gridTemplateColumns:w.vid?'1fr 1fr':'1fr', gap:16, alignItems:'start'}}>
+                                <div style={{minWidth:0}}>
+                                  <div style={{fontSize:9, fontFamily:FN, fontWeight:700, color:C.td, letterSpacing:'0.18em', marginBottom:6}}>NOTE</div>
+                                  <div dir="auto" style={{fontSize:13, color:note?C.tx:C.td, lineHeight:1.55, whiteSpace:'pre-wrap', fontFamily:isHebrew(note)?FH:FB}}>{note || 'No note.'}</div>
+                                </div>
+                                {w.vid && (
+                                  <div style={{minWidth:0}}>
+                                    <div style={{maxWidth:280}}><VideoEmbed url={w.vid} /></div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </div>}
                 </div>
               )}
@@ -782,6 +905,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // Autosave: shared hook serializes saves, flushes on tab switch / screen
   // lock / browser back / refresh / close / unmount.
   const { status: autoStatus, flush: flushAutosave, markClean } = useAutosave(plan, savePlan);
+  // Compare mode: pad the fixed Program-Name/Phase/Weeks row right so it
+  // ends level with the scroller content (Pattern Coverage), not over the
+  // scrollbar.
+  const [leftPaneRef, leftSbInset] = useScrollbarInset(compareActive);
 
   const updateDay = (i, u) => setPlan(p => ({...p, days: p.days.map((d,idx) => idx===i ? {...d,...u} : d)}));
   const addDay = () => { setPlan(p => ({...p, days: [...p.days, defaultDay(p.days.length+1)]})); setActiveDay(plan.days.length); };
@@ -937,7 +1064,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           athlete filters) above its own scroller, so the blue scrollbar
           starts level with the content below the text boxes, not above them. */}
       <div style={{flex:compareActive?1:'unset',minWidth:0,width:compareActive?'50%':'auto',display:compareActive?'flex':'block',flexDirection:'column',minHeight:0}}>
-      <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20,flexShrink:0}}>
+      <div className="plan-fields-grid" style={{display:"grid",gap:12,marginBottom:20,flexShrink:0,paddingRight:compareActive?leftSbInset+6:0}}>
         <Input label="Program Name" value={plan.name} onChange={e => setPlan({...plan,name:e.target.value})} placeholder="Hypertrophy Block A" />
         {/* "Assign to Athlete" moved to the top row next to the block dropdown. */}
         <Input label="Phase / Block" value={plan.phase||""} onChange={e => setPlan({...plan,phase:e.target.value})} placeholder="Accumulation..." />
@@ -960,7 +1087,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       </div>
       {/* paddingRight in compare keeps the day cards / + ADD DAY box from
           touching the pane's cyan scrollbar. */}
-      <div data-compare-pane style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingRight:compareActive?6:0}}>
+      <div data-compare-pane ref={leftPaneRef} style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingRight:compareActive?6:0}}>
       <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
       <WarmupEditor plan={plan} setPlan={setPlan} />
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
@@ -1067,6 +1194,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
                     const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
+                    // While a drag is live in this day, render expanded rows
+                    // as collapsed (the panel animates shut via its 0fr/1fr
+                    // transition) so the drag gets the same clean gap-line
+                    // effect as collapsed mode. ovExpanded itself is left
+                    // untouched — rows re-open where they were on drop.
+                    const exOpen = !!ovExpanded[ex.id] && !dragging;
                     return <React.Fragment key={ex.id}>
                       {/* Insertion indicator above row 0 (drag slot 0). */}
                       {exIdx === 0 && isGap(0) && <div style={gapLine(true)} />}
@@ -1082,10 +1215,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         <span style={{color:C.tx, fontFamily:FN, fontWeight:700, fontSize:12, lineHeight:1}}>{exIdx+1}</span>
                       </div>
                       <div onClick={()=>toggleOvExpand(ex.id)} title="Click to expand — swap exercise, edit notes & video inline"
-                        role="button" tabIndex={0} aria-expanded={!!ovExpanded[ex.id]}
+                        role="button" tabIndex={0} aria-expanded={exOpen}
                         onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleOvExpand(ex.id); } }}
                         style={{color:C.tx, minWidth:0, borderLeft:`3px solid ${ex.superset?sc:'transparent'}`, paddingLeft:6, cursor:"pointer", display:"flex", alignItems:"center", gap:6}}>
-                        <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:ovExpanded[ex.id]?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
+                        <span style={{color:C.ac, fontSize:11, fontWeight:700, lineHeight:1, flexShrink:0, transform:exOpen?'none':'rotate(-90deg)', transition:'transform 150ms ease'}}>▾</span>
                         <span style={{overflowWrap: compareActive ? 'break-word' : 'anywhere', wordBreak: compareActive ? 'normal' : 'break-word'}}>{title}</span>
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
@@ -1119,21 +1252,21 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
                           REPS (col 5), shown only when the row is expanded. */}
-                      {ovExpanded[ex.id] && <label style={{gridColumn:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
+                      {exOpen && <label style={{gridColumn:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
                         <input type="checkbox" checked={!!(ex.wkS&&ex.wkS.length)} onChange={()=> (ex.wkS&&ex.wkS.length) ? update({wkS:null,sets:parseInt(ex.wkS[0])||ex.sets||3}) : update({wkS:Array.from({length:weeks},()=>String(ex.sets||3))})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> per week
                       </label>}
-                      {ovExpanded[ex.id] && <label style={{gridColumn:5,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
+                      {exOpen && <label style={{gridColumn:5,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>
                         <input type="checkbox" checked={!!(ex.wk&&ex.wk.length)} onChange={()=> (ex.wk&&ex.wk.length) ? update({wk:null,reps:ex.wk[0]||"8-12"}) : update({wk:Array.from({length:weeks},()=>ex.reps||""),reps:">"})} style={{accentColor:C.ac,width:13,height:13,cursor:'pointer',flexShrink:0}} /> per week
                       </label>}
                       {/* Inline full detail — the combined overview+detail panel. */}
-                      <div style={{gridColumn:'1 / -1', display:'grid', gridTemplateRows: ovExpanded[ex.id]?'1fr':'0fr', transition:'grid-template-rows 260ms ease'}}>
+                      <div style={{gridColumn:'1 / -1', display:'grid', gridTemplateRows: exOpen?'1fr':'0fr', transition:'grid-template-rows 260ms ease'}}>
                        <div style={{overflow:'hidden', minHeight:0}}>
                         <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${ex.superset?sc:C.ac}`, padding:14, margin:'2px 0 12px', display:'flex', flexDirection:'column', gap:12}}>
                           {/* Only the bits NOT already in the table row — no duplicate
                               sets/reps/load/etc. Swap the exercise + per-week toggle
                               + the polished notes/video block (ExEditorExtras). */}
                           <ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />
-                          <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} showEmbed={!!ovExpanded[ex.id]} />
+                          <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} showEmbed={exOpen} />
                         </div>
                        </div>
                       </div>
