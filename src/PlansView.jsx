@@ -415,6 +415,21 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
           <span style={{ color:C.tm, fontSize:13, lineHeight:1, flexShrink:0, display:'inline-block', transform:open?'none':'rotate(-90deg)', transition:'transform 180ms ease', userSelect:'none' }}>▾</span>
           <span style={{ fontSize: 12, fontFamily: FN, fontWeight: 700, color: C.or, letterSpacing:'0.06em' }}>WARM-UP ({warmup.length})</span>
         </button>
+        {/* EXPAND ALL — identical control + rules as the day cards: toggles
+            every row's inline panel; expanding inside a collapsed card is
+            invisible, so it opens the card along with the rows. */}
+        {warmup.length > 0 && (() => {
+          const anyOpen = warmup.some((_, i) => wuExpanded[i]);
+          return <button onClick={() => {
+            if (!anyOpen && !open) setOpen(true);
+            setWuExpanded(prev => { const next = { ...prev }; warmup.forEach((_, i) => { if (anyOpen) delete next[i]; else next[i] = true; }); return next; });
+          }}
+            title={anyOpen ? 'Collapse all warm-ups' : 'Expand all warm-ups to edit fully'}
+            style={{ marginLeft:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, padding:'3px 0', color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.14em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+            <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}>▾</span>
+            {anyOpen ? 'COLLAPSE ALL' : 'EXPAND ALL'}
+          </button>;
+        })()}
       </div>
       <div style={{ display:'grid', gridTemplateRows: open ? '1fr' : '0fr', transition:'grid-template-rows 260ms ease' }}><div style={{ overflow:'hidden', minHeight:0 }}>
         {warmup.length === 0 ? <div style={{ fontSize: 11, color: C.td, fontStyle: 'italic' }}>No warm-ups.</div> :
