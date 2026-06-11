@@ -607,14 +607,14 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
           dropdowns stay reachable however far the pane is scrolled. */}
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20,position:'relative',flexShrink:0,paddingRight:cmpSbInset+6}}>
         <div style={{minWidth:0}}>
-          <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder="Pick athlete…" />
+          <Select label="Athlete Filter" options={athleteOptions} value={selectedAthleteId} onChange={v => { setSelectedAthleteId(v); setPickedId(''); }} placeholder="Select athlete" />
         </div>
         <div style={{minWidth:0}}>
           <Select label="Program Filter"
             options={selectedAthleteId ? candidates.map(p => ({value: p.id, label: p.name})) : []}
             value={pickedId}
             onChange={setPickedId}
-            placeholder={selectedAthleteId ? (candidates.length ? 'Pick program…' : 'No programs for this athlete') : 'Choose athlete first'} />
+            placeholder={selectedAthleteId ? (candidates.length ? 'Select program' : 'No programs for this athlete') : 'Choose athlete first'} />
         </div>
         <button onClick={onClose} title="Close compare panel"
           style={{position:'absolute', top:-2, right:-2, background:C.bg, border:`1px solid ${C.cardBd}`, color:C.tm, cursor:'pointer', padding:'1px 6px', borderRadius:0, fontSize:11, lineHeight:1, zIndex:2}}>✕</button>

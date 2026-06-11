@@ -104,7 +104,11 @@ export const Select = ({ label, options, value, onChange, placeholder }) => {
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {label && <label htmlFor={selectId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
       <select id={selectId} value={value || ""} onChange={e => onChange(e.target.value)} style={{ ...baseInput, appearance: "none", paddingRight: 30 }}>
-        {placeholder && <option value="">{placeholder}</option>}
+        {/* disabled+hidden: the placeholder is display-only when nothing is
+            selected — it never appears as a pickable item in the dropdown
+            (clicking it used to clear the selection, which read as a page
+            refresh in the compare pane). */}
+        {placeholder && <option value="" disabled hidden>{placeholder}</option>}
         {options.map(o => <option key={typeof o==="object"?o.value:o} value={typeof o==="object"?o.value:o}>{typeof o==="object"?o.label:o}</option>)}
       </select>
     </div>
