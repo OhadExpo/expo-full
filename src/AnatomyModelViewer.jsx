@@ -113,9 +113,13 @@ export default function AnatomyModelViewer({ frames }) {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.12; controls.minDistance = 0.7; controls.maxDistance = 8;
     controls.target.set(0, -0.12, 0);
+    controls.saveState();                              // so reset() returns to this framing
     // slow showcase spin on load; stops the instant the coach grabs it
     controls.autoRotate = true; controls.autoRotateSpeed = 0.9;
     controls.addEventListener('start', () => { controls.autoRotate = false; });
+    // double-tap / double-click recenters the view (and resumes the spin)
+    const onReset = () => { controls.reset(); controls.autoRotate = true; };
+    renderer.domElement.addEventListener('dblclick', onReset);
 
     const boneMat = new THREE.MeshStandardMaterial({ color: 0xeae3d2, roughness: 0.52, metalness: 0.03, side: THREE.DoubleSide });
     // wet-muscle look: deep anatomical red with a clearcoat sheen
@@ -346,6 +350,7 @@ export default function AnatomyModelViewer({ frames }) {
     window.addEventListener('resize', onResize);
     return () => {
       disposed = true; cancelAnimationFrame(raf); window.removeEventListener('resize', onResize);
+      renderer.domElement.removeEventListener('dblclick', onReset);
       controls.dispose(); renderer.dispose(); draco.dispose();
       scene.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
       try { mount.removeChild(renderer.domElement); } catch {}
