@@ -7,10 +7,17 @@
 // MediaPipe capture loop (see useMediaPipePose) and consumed by MovementLab,
 // the AR overlay, and the athletic-testing → evaluation path.
 //
-// Coordinate spaces:
-//   • landmarks       — 2D normalized [0..1] image coords (for drawing).
-//   • worldLandmarks  — 3D METRES, origin at the hip midpoint. Velocity/ROM/
-//     jump use these so a phone at any distance reads true metric values.
+// Coordinate spaces — and why each metric uses the one it does:
+//   • landmarks       — 2D normalized [0..1] image coords, ABSOLUTE in the
+//     frame. Used for velocity + jump (whole-body vertical translation).
+//   • worldLandmarks  — 3D METRES but HIP-CENTERED (origin = hip midpoint).
+//     Used for joint ANGLES (ROM/tempo/rep cycle) — rotation-invariant, so
+//     hip-centering is fine. It CANCELS whole-body translation, so it must
+//     NOT be used for bar velocity or jump height (a squat/jump moves the
+//     whole body, which is ~static relative to the hip → reads ~0).
+// Metric scale for image-space metres: shoulder→ankle length is known in
+// metres (worldLandmarks) and measured in image units, giving metres-per-
+// image-unit per frame (a mostly-vertical ruler keeps aspect-ratio error low).
 // A "frame" captured by the loop is { t (ms), landmarks, worldLandmarks }.
 
 import { ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter';
@@ -25,11 +32,20 @@ export const LM = {
 };
 
 const mid = (a, b) => (a == null || b == null ? null : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: ((a.z ?? 0) + (b.z ?? 0)) / 2 });
+const mid2 = (a, b) => (a == null || b == null ? null : { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 
-// In MediaPipe world coords +y points DOWN. Vertical "up" displacement is a
-// DECREASE in y. upPos() flips so larger = higher, which reads naturally for
-// velocity (concentric of a press/squat is upward) and jump height.
-const upPos = (lm) => (lm == null ? null : -(lm.y ?? 0));
+// metres-per-image-unit for this frame, from the shoulder→ankle ruler.
+function frameScaleY(f) {
+  const w = f.worldLandmarks, im = f.landmarks;
+  if (!w || !im) return null;
+  const ws = w[LM.L_SHO], wa = w[LM.L_ANKLE], is = im[LM.L_SHO], ia = im[LM.L_ANKLE];
+  if (!ws || !wa || !is || !ia) return null;
+  const worldLen = Math.hypot(ws.x - wa.x, ws.y - wa.y, (ws.z ?? 0) - (wa.z ?? 0));
+  const imgLen = Math.hypot(is.x - ia.x, is.y - ia.y);
+  return imgLen > 0 ? worldLen / imgLen : null;
+}
+// Image "up" position in metres: image y is DOWN, so up = -y · scale.
+function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? -lm2.y * scale : null; }
 
 // ---------------------------------------------------------------------------
 // Channel signal — the joint-angle time series a rep cycle rides on.
@@ -55,23 +71,26 @@ export function channelSignal(frames, exerciseTitle) {
 // ---------------------------------------------------------------------------
 // Rep segmentation.
 // ---------------------------------------------------------------------------
-// A rep on these channels is top → bottom → top: the angle dips at the bottom
-// and returns at the top. We find the TOP peaks (local maxima of the angle)
-// with the same prominence the offline counter validated (25°), then a rep is
-// the span between two consecutive tops, with the bottom = the angle minimum
-// between them. Returns [{ startIdx, bottomIdx, endIdx }].
+// A rep is a DIP in the joint angle (top → bottom → top). We count BOTTOMS
+// (troughs), not tops — counting tops misses the first/last rep because a clip
+// starts and ends at a top sitting on the array edge (findPeaks needs both
+// neighbours). Troughs always sit between tops, so N reps → N troughs.
+// Each rep spans the local max before the trough → trough → local max after.
+// Prominence 25° matches the offline counter. Returns [{startIdx,bottomIdx,endIdx}].
 export function segmentReps(angle, fps = 30) {
-  const minDist = Math.max(4, Math.round(fps * 0.4)); // ≥0.4s between tops
-  const tops = findPeaks(angle, 25, minDist).map(p => p.idx);
+  const minDist = Math.max(4, Math.round(fps * 0.4)); // ≥0.4s between reps
+  const inv = angle.map(v => (isReal(v) ? -v : v));
+  const bottoms = findPeaks(inv, 25, minDist).map(p => p.idx).sort((a, b) => a - b);
   const reps = [];
-  for (let i = 0; i < tops.length - 1; i++) {
-    const a = tops[i], b = tops[i + 1];
-    let bottomIdx = a, bottomV = Infinity;
-    for (let j = a; j <= b; j++) {
-      const v = angle[j];
-      if (isReal(v) && v < bottomV) { bottomV = v; bottomIdx = j; }
-    }
-    reps.push({ startIdx: a, bottomIdx, endIdx: b });
+  for (let k = 0; k < bottoms.length; k++) {
+    const b = bottoms[k];
+    const lo = k === 0 ? 0 : bottoms[k - 1];
+    const hi = k === bottoms.length - 1 ? angle.length - 1 : bottoms[k + 1];
+    let startIdx = lo, sv = -Infinity;
+    for (let j = lo; j <= b; j++) if (isReal(angle[j]) && angle[j] > sv) { sv = angle[j]; startIdx = j; }
+    let endIdx = hi, ev = -Infinity;
+    for (let j = b; j <= hi; j++) if (isReal(angle[j]) && angle[j] > ev) { ev = angle[j]; endIdx = j; }
+    reps.push({ startIdx, bottomIdx: b, endIdx });
   }
   return reps;
 }
@@ -84,10 +103,14 @@ export function segmentReps(angle, fps = 30) {
 // concentric velocity (total upward displacement / duration) and peak
 // instantaneous velocity, per rep, then velocity-loss % vs the best rep.
 export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
-  const pos = frames.map(f => {
-    const w = f.worldLandmarks; if (!w) return null;
-    if (barLandmark === 'hip') return upPos(mid(w[LM.L_HIP], w[LM.R_HIP]));
-    return upPos(mid(w[LM.L_WRIST], w[LM.R_WRIST]));
+  // Bar position in metres, IMAGE-space (absolute vertical) × per-frame scale.
+  // Using worldLandmarks here would read ~0 (the bar is static relative to the
+  // hip). A median scale per rep tames per-frame ruler jitter.
+  const scale = frames.map(frameScaleY);
+  const pos = frames.map((f, i) => {
+    const im = f.landmarks; if (!im) return null;
+    const p = barLandmark === 'hip' ? mid2(im[LM.L_HIP], im[LM.R_HIP]) : mid2(im[LM.L_WRIST], im[LM.R_WRIST]);
+    return imgUpMetres(p, scale[i]);
   });
   const perRep = reps.map(({ bottomIdx, endIdx }) => {
     const t0 = frames[bottomIdx]?.t, t1 = frames[endIdx]?.t;
@@ -149,33 +172,37 @@ export function romTempoMetrics(frames, angle, reps) {
 // ---------------------------------------------------------------------------
 // Jump test — vertical jump height from flight time (camera "combine").
 // ---------------------------------------------------------------------------
-// Track the higher-of-the-two ankles' vertical position. Standing baseline =
-// median ankle height over the first 0.5s. Flight = the contiguous span where
-// both ankles rise clearly above baseline; height = g·t²/8 from flight time.
-// Also reports the raw peak rise in metres as a cross-check.
+// Track the ankles' vertical position in IMAGE space (converted to metres via
+// the per-frame ruler — worldLandmarks would read ~0 since the whole body
+// translates relative to the hip). Standing baseline = median over the first
+// 0.5s. The airborne span is bracketed by the frame just before the first
+// supra-threshold frame and just after the last (so the sub-threshold launch/
+// land portions are included), giving flight time ≈ takeoff→landing. Height =
+// g·t²/8 (scale-free physics). Peak rise (metres) is a secondary cross-check.
 export function jumpMetrics(frames) {
   if (frames.length < 8) return null;
-  const ankle = frames.map(f => {
-    const w = f.worldLandmarks; if (!w) return null;
-    const a = upPos(w[LM.L_ANKLE]), b = upPos(w[LM.R_ANKLE]);
-    if (!isReal(a) && !isReal(b)) return null;
-    return Math.min(isReal(a) ? a : Infinity, isReal(b) ? b : Infinity) === Infinity
-      ? null : ((isReal(a) ? a : b) + (isReal(b) ? b : a)) / 2;
+  const scale = frames.map(frameScaleY);
+  const up = frames.map((f, i) => {
+    const im = f.landmarks; if (!im || !isReal(scale[i])) return null;
+    const a = mid2(im[LM.L_ANKLE], im[LM.R_ANKLE]);
+    return imgUpMetres(a, scale[i]);
   });
   const t0 = frames[0].t;
-  const baseSamples = ankle.filter((v, i) => isReal(v) && frames[i].t - t0 < 500);
+  const baseSamples = up.filter((v, i) => isReal(v) && frames[i].t - t0 < 500);
   if (baseSamples.length < 3) return null;
   const baseline = median(baseSamples);
-  const RISE = 0.06; // m above standing to count as airborne
-  let i = 0; const n = ankle.length;
-  let best = null;
+  const THR = 0.03; // m above standing to count as airborne
+  const n = up.length;
+  let best = null, i = 0;
   while (i < n) {
-    if (isReal(ankle[i]) && ankle[i] - baseline > RISE) {
+    if (isReal(up[i]) && up[i] - baseline > THR) {
       let j = i;
-      while (j + 1 < n && isReal(ankle[j + 1]) && ankle[j + 1] - baseline > RISE) j++;
-      const flightSec = (frames[j].t - frames[i].t) / 1000;
+      while (j + 1 < n && isReal(up[j + 1]) && up[j + 1] - baseline > THR) j++;
+      // bracket one frame each side to include the sub-threshold launch/landing
+      const a = Math.max(0, i - 1), b = Math.min(n - 1, j + 1);
+      const flightSec = (frames[b].t - frames[a].t) / 1000;
       let peakRise = 0;
-      for (let k = i; k <= j; k++) if (isReal(ankle[k])) peakRise = Math.max(peakRise, ankle[k] - baseline);
+      for (let k = i; k <= j; k++) if (isReal(up[k])) peakRise = Math.max(peakRise, up[k] - baseline);
       if (!best || flightSec > best.flightSec) best = { flightSec, peakRise };
       i = j + 1;
     } else i++;

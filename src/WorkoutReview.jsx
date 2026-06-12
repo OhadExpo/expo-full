@@ -506,11 +506,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // approach kept resetting count to 1 on every rep).
   const repsCountRef = useRef(0);
   const lastTempoRef = useRef(null);
-  // Trainers default to 1.5x — they review dozens of clips per session and
-  // always start by getting the gist of the lift before scrubbing back to
-  // commentable frames. Athletes (own-portal playback) keep 1x so they don't
-  // unconsciously absorb a sped-up version of their own movement.
-  const [speed, setSpeed] = useState(role === 'trainer' ? 1.5 : 1);
+  // Always start at 1x — original speed. (Was 1.5x for trainers, which both
+  // played the lift faster than reality before you'd chosen to AND left no
+  // speed button highlighted, since 1.5 isn't in the `speeds` row. The coach
+  // can still bump speed manually per clip.)
+  const [speed, setSpeed] = useState(1);
   const [loop, setLoop] = useState(false);
   const [poseOn, setPoseOn] = useState(false);
   const [poseLoading, setPoseLoading] = useState(false);
