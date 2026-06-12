@@ -103,3 +103,7 @@ EXPO - המרכז למצויינות-פיתוח אתלטית/
 # Morning sandbox credentials (local only)
 .morning-sandbox.json
 .tmp-vidgen/
+
+# dev-only anatomy test harness
+/anatomy-test.html
+src/anatomy-test.jsx

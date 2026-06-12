@@ -13,10 +13,14 @@
 // Memory rule honoured: measures + reports only. No load recommendations,
 // no auto weight bumps.
 
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, frameToPoints3D, estimateFps } from './poseLab';
+
+// Real 3D layered-anatomy viewer (three.js) — lazy so the 3D engine only ships
+// when the 3D tab is opened.
+const AnatomyViewer = lazy(() => import('./AnatomyViewer'));
 
 const POSE_CONNECTIONS = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
@@ -281,7 +285,11 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab }) {
       </div>
       {tab === 'velocity' && <VelocityTable v={result.velocity} />}
       {tab === 'rom' && <RomTable r={result.romTempo} />}
-      {tab === 'threeD' && <Viewer3D frames={frames} />}
+      {tab === 'threeD' && (
+        <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
+          <AnatomyViewer frames={frames} />
+        </Suspense>
+      )}
     </div>
   );
 }
