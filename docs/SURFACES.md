@@ -45,7 +45,6 @@ Last synced to code: 2026-06-09. (Known gate blind spot: `check-surfaces.mjs` on
 | `/coach/exercises` | exercises | `ExercisesView` | ✅ pass2 |
 | `/coach/review` | review | `WorkoutReview` | ✅ pass1 |
 | `/coach/workouts` | workouts | `WorkoutsView` | ✅ pass2 |
-| `/coach/sessions` | sessions | `SessionsView` | 🆕 2026-06-12 (gym floor: check-in + group grid) |
 | `/coach/intake` | intake | `IntakeView` | ✅ pass1 |
 | `/coach/waitlist` | waitlist | `WaitlistView` | ✅ pass1 |
 | `/coach/chat-audit` | chatAudit | `ChatAuditView` | ✅ pass2 |

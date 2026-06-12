@@ -59,7 +59,6 @@ const BugsView = lazyReload(() => import('./BugsView'));
 const ChallengesView = lazyReload(() => import('./ChallengesView'));
 const BookingView = lazyReload(() => import('./BookingView'));
 const BillingView = lazyReload(() => import('./BillingView'));
-const SessionsView = lazyReload(() => import('./SessionsView'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazyReload(() => import('./TrySandbox'));
@@ -774,7 +773,7 @@ function AuthedApp() {
         const parts = sub.split('/');
         if (parts[1]) return { mode:'coach', tab:'plans', planEditId: parts[1] };
       }
-      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',sessions:'sessions',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
+      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -949,7 +948,6 @@ function AuthedApp() {
         { route:'plans',     label:'Programs',  count:null },
         { route:'exercises', label:'Exercises', count:null },
       ] },
-    { key:'sessions',   label:'Sessions',   count:null },
     { key:'review',     label:'Review',     count:null },
     { key:'tasks',      label:'Tasks',      count:null },
     { key:'billing',    label:'Billing',    count:null },
@@ -1145,7 +1143,6 @@ function AuthedApp() {
           {tab==="challenges"&&<ChallengesView trainees={trainees} clientWorkouts={clientWorkouts} bwLog={bwLog} />}
           {tab==="calendar"&&<BookingView trainees={trainees} />}
           {tab==="billing"&&<BillingView trainees={trainees} />}
-          {tab==="sessions"&&<SessionsView trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} />}
         </Suspense>
       </main>
     </div>);
