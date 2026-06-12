@@ -69,6 +69,17 @@ Operating context: solo operator, ~20 clients, limited hours, no staff. Every ho
 
 ## Engineering rules
 
+### NEVER build or test on the live site — testing environment first, ALWAYS (hard rule, 2026-06-12)
+
+`master` auto-deploys to production (`expo-app.co.il`) where real trainees and Yuval (staff) live. So:
+
+- **Build anything new on a branch, never on `master`.** New features, experiments, refactors-in-progress — all start on a non-production branch (e.g. `lab-trial`), which Vercel auto-deploys to a **preview URL** that is the testing environment. Do not develop against the live site.
+- **Trial it there first.** Verify on the preview URL, not on production.
+- **ASK before any production deploy.** Never push to `master` (or otherwise ship to the live site) without explicitly asking Ohad first and getting a yes. The only no-ask master push is reverting Claude's own un-approved deploy to clean production back up.
+- **Preview shares the prod Supabase.** A preview URL is a separate front-end but hits the SAME database, so a true trial of anything that writes data MUST also be owner-only AND must NOT write to trainee-visible tables (`client_workouts`, etc.). Trainees' experience and their uploads must never be affected by a trial.
+
+This rule overrides any default eagerness to ship. When in doubt, branch + preview + ask.
+
 ### Verify before declaring done
 
 The primary failure mode Ohad penalizes: Claude deploys, claims success, Ohad finds it still broken.
