@@ -99,3 +99,6 @@ EXPO - המרכז למצויינות-פיתוח אתלטית/
 
 # Stray desktop media parked at repo root (not project assets)
 /*.mp3
+
+# Morning sandbox credentials (local only)
+.morning-sandbox.json
