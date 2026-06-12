@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/missed-day-nudge",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/athlete-health",
+      "schedule": "30 6 * * *"
     }
   ],
   "headers": [

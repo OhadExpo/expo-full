@@ -83,3 +83,9 @@ EXPO - המרכז למצויינות-פיתוח אתלטית/
 /*.jpg
 /*.jpeg
 .parity-audit/
+
+.env.canary
+
+.health-secret-new
+
+.ddl-batch.sql

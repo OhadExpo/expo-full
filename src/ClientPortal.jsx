@@ -432,9 +432,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
      MediaRecorder.isTypeSupported('video/mp4'));
 
   const compressVideoChrome = (file, onProgress) => new Promise((resolve, reject) => {
-    // Target: ~50MB output, computed bitrate from duration so a 5-minute video
-    // gets the same budget as a 30-second one. Quality clamped to [400 Kbps, 3 Mbps].
-    const TARGET_MB = 50;
+    // Target: ~40MB output — comfortably under Supabase's HARD 50MB per-object
+    // cap (free plan, project-wide; uploads at/over it get 413 "Payload too
+    // large" — exactly what locked Ron out on 2026-06-12). Bitrate computed
+    // from duration so a 5-minute video gets the same budget as a 30-second
+    // one. Quality clamped to [400 Kbps, 3 Mbps].
+    const TARGET_MB = 40;
     const MAX_WIDTH = 1280;
     const MIN_BITRATE = 400_000;
     const MAX_BITRATE = 3_000_000;
@@ -590,11 +593,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // the trainee is shipping the raw blob and may run into Supabase upload
     // limits / slow networks. confirmToast is async so the iOS video element
     // doesn't stall on a sync window.confirm.
+    // Supabase rejects any object >= 50MB (free-plan project-wide cap, 413).
+    // If this browser can't compress, an oversized file is GUARANTEED to fail
+    // server-side — block it here with the real reason instead of letting the
+    // upload die later as a cryptic "Load failed" (Ron, 2026-06-12).
+    const SUPA_MAX_BYTES = 50 * 1024 * 1024;
     const compressionAvailable = canCompressVideo();
-    if (!compressionAvailable && file.size > 50 * 1024 * 1024) {
+    if (!compressionAvailable && file.size > SUPA_MAX_BYTES) {
       const sizeMB = Math.round(file.size / 1e6);
-      const ok = await confirmToast(`This video is ${sizeMB}MB and your browser can't compress it here. Continue upload?\n\nFor faster uploads, record a shorter clip (under 30 seconds) or pick from your library instead of recording new.`, { okLabel: 'Upload', cancelLabel: 'Cancel' });
-      if (!ok) return;
+      toast(`Video is ${sizeMB}MB — over the 50MB upload limit, and this browser can't compress it.\nRecord a shorter clip (~30 seconds) or lower the camera resolution in Settings > Camera.`, 'error', { ttl: 9000 });
+      return;
     }
 
     // If a previously-recorded clip on this slot was queued for offline
@@ -639,8 +647,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // Hard timeout: compressVideoChrome can hang forever if the hidden
           // <video> never fires onloadedmetadata (some mobile codecs / HEVC
           // never load AND never error). Race it against a wall-clock cap so a
-          // stuck encode can't freeze the upload on "Compressing %" — we just
-          // fall through and ship the original blob (bucket has no size limit).
+          // stuck encode can't freeze the upload on "Compressing %" — we fall
+          // through to the original blob, and the size gate below catches it
+          // if it's over the 50MB server cap.
           const COMPRESS_TIMEOUT_MS = 40_000;
           const result = await Promise.race([
             compressVideoChrome(file, pct => {
@@ -655,6 +664,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           console.warn('Compression failed/timed out, uploading original:', compressErr);
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:100}; return n; });
         }
+      }
+
+      // FINAL size gate — whatever we're about to ship (compressed or original
+      // after a compression failure/timeout) must clear the 50MB server cap,
+      // or Supabase 413s it. Fail loud and early with the real reason.
+      if (uploadBlob.size > SUPA_MAX_BYTES) {
+        const sizeMB = Math.round(uploadBlob.size / 1e6);
+        URL.revokeObjectURL(previewUrl);
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:`${sizeMB}MB > 50MB limit`}; return n; });
+        toast(`Video is ${sizeMB}MB after processing — over the 50MB upload limit.\nRecord a shorter clip (~30 seconds) or lower the camera resolution.`, 'error', { ttl: 9000 });
+        return;
       }
 
       // Upload with progress (XHR for real-time %, falls back to Supabase client)

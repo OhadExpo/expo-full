@@ -190,6 +190,14 @@ export async function drainBlobs() {
     const ready = queue.filter(e => e.workoutId && e.exerciseIndex != null);
     for (const entry of ready) {
       try {
+        // Supabase hard-rejects objects >= 50MB (413, project-wide free-plan
+        // cap). A queued oversized blob would retry on every drain forever —
+        // drop it instead of looping.
+        if (entry.blob?.size > 50 * 1024 * 1024) {
+          console.warn('blobQueue: dropping oversized blob', entry.id, entry.blob.size);
+          await removeBlob(entry.id);
+          continue;
+        }
         const { error } = await supabase.storage
           .from('form-videos')
           .upload(entry.storagePath, entry.blob, { upsert: true, contentType: entry.contentType });
