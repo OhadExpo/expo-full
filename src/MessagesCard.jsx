@@ -51,6 +51,10 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
   const [open, setOpen] = usePersistentState('dash-messages', true);
   const PAD = 14;
 
+  // A failed read must NOT render as the "No messages yet" empty state —
+  // that masks an outage as an empty inbox. Track the error separately and
+  // keep any previously-loaded rows on a transient refresh failure.
+  const [loadError, setLoadError] = useState(null);
   const reload = useCallback(async () => {
     const { data, error } = await supabase
       .from('coach_messages')
@@ -58,7 +62,12 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
       .order('created_at', { ascending: false })
       .limit(120);
     setLoading(false);
-    if (error || !Array.isArray(data)) { setRows([]); return; }
+    if (error || !Array.isArray(data)) {
+      console.warn('MessagesCard load failed:', error?.message || error);
+      setLoadError(error?.message || 'read failed');
+      return;
+    }
+    setLoadError(null);
     setRows(data);
   }, []);
 
@@ -183,6 +192,20 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
       {loading ? (
         <div style={{ padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 12, fontFamily: FN, letterSpacing: '0.12em' }}>
           LOADING…
+        </div>
+      ) : threads.length === 0 && loadError ? (
+        <div style={{
+          padding: '20px 6px', textAlign: 'center', color: 'var(--c-td)',
+          fontSize: 11, fontFamily: FN, fontWeight: 700, letterSpacing: '0.12em',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+        }}>
+          <span>COULDN&apos;T LOAD MESSAGES</span>
+          <span style={{ opacity: 0.5 }}>·</span>
+          <button onClick={() => { setLoading(true); reload(); }}
+            style={{
+              background: 'transparent', border: 'none', color: 'var(--c-ac)', cursor: 'pointer',
+              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', padding: 0,
+            }}>RETRY</button>
         </div>
       ) : threads.length === 0 ? (
         <div style={{ padding: '24px 6px', textAlign: 'center', color: 'var(--c-td)', fontSize: 13 }}>
