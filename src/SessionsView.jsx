@@ -34,21 +34,14 @@ const LOGKEY = 'expo-gym-session-log'; // finished trial sessions (coach-only)
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const fresh = () => ({ reps: '', load: '', rpe: '', done: false });
 
-// SESSIONS = a menu with two ways to run the floor:
-//   • GROUP   — assign + log 4–7 athletes in one grid (big-screen friendly).
-//   • SINGLE  — start + log an in-person workout for one athlete (the existing
-//     coach logger). Deliberately NO camera/lab tools inside either of these —
-//     group sessions run on a shared screen/TV, so the Movement Lab / AR tools
-//     live on their own surfaces (per-athlete card, evaluation), never here.
-export default function SessionsView(props) {
-  const [view, setView] = useState(null); // null=menu | 'group' | 'single'
-
-  if (view === 'group') return <GroupSessions {...props} onBack={() => setView(null)} />;
-  if (view === 'single') {
+// SESSIONS — the mode comes from the nav dropdown (Sessions ▾ → Group | Single),
+// not an in-page menu. GROUP = 4–7 grid (big-screen, no camera). SINGLE = the
+// existing coach logger + the camera/Movement tools for the 1-on-1.
+export default function SessionsView({ mode = 'group', ...props }) {
+  if (mode === 'single') {
     return (
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <TrialBanner />
-        <BackBar label="SINGLE ATHLETE — IN-PERSON LOG" onBack={() => setView(null)} />
         <MovementTools />
         <Suspense fallback={<div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>}>
           <WorkoutsView workouts={props.workouts} setWorkouts={props.setWorkouts} planIndex={props.planIndex}
@@ -57,20 +50,7 @@ export default function SessionsView(props) {
       </div>
     );
   }
-  return (
-    <div style={{ maxWidth: 760, margin: '0 auto' }}>
-      <TrialBanner />
-      <Card title="SESSIONS">
-        <div style={{ padding: '6px 2px 14px', color: C.tm, fontSize: 13, lineHeight: 1.6 }}>
-          Run the floor. Pick how you're training right now:
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-          <MenuCard glyph="👥" title="GROUP SESSION" desc="Assign a program to 4–7 athletes and log everyone in one grid. Big-screen friendly." onClick={() => setView('group')} />
-          <MenuCard glyph="🏋️" title="SINGLE ATHLETE" desc="Start and log an in-person workout for one athlete you already coach." onClick={() => setView('single')} />
-        </div>
-      </Card>
-    </div>
-  );
+  return <GroupSessions trainees={props.trainees} planIndex={props.planIndex} exercises={props.exercises} />;
 }
 
 // MOVEMENT TOOLS — the camera/pose suite, in the 1-on-1 context where a coach
@@ -235,7 +215,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], onBack }
         <BackBar label="GROUP SESSION" onBack={onBack} />
         <Card title="START A GROUP SESSION">
           <div style={{ padding: '8px 2px 14px', color: C.tm, fontSize: 13, lineHeight: 1.6 }}>
-            Add the athletes training now, check them in as they arrive, and log everyone's sets in one grid. Built to run on a big screen on the floor.
+            Add the athletes training now, check them in as they arrive, and log all their sets in one grid. Built to run on a big screen on the floor.
           </div>
           <button onClick={() => setPicking(true)} style={primaryBtn}>+ START SESSION</button>
         </Card>
@@ -401,7 +381,7 @@ function TrialBanner() {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 10, background: 'rgba(57,189,255,0.08)', border: `1px solid ${C.ac}` }}>
       <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 7px' }}>TRIAL</span>
       <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4 }}>
-        Visible only to you. Athletes and staff don't see Sessions, and finishing a trial session logs coach-only — it does <strong>not</strong> appear in any athlete's history.
+        Visible only to you. Athletes and staff do not see Sessions, and finishing a trial session logs coach-only — it does <strong>not</strong> appear in any athlete history.
       </span>
     </div>
   );

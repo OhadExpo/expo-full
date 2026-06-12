@@ -782,7 +782,7 @@ function AuthedApp() {
         const parts = sub.split('/');
         if (parts[1]) return { mode:'coach', tab:'plans', planEditId: parts[1] };
       }
-      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',sessions:'sessions',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
+      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -835,7 +835,7 @@ function AuthedApp() {
     if (tab === 'client' && !isCoach) return;
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
-    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
+    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
@@ -957,7 +957,11 @@ function AuthedApp() {
         { route:'plans',     label:'Programs',  count:null },
         { route:'exercises', label:'Exercises', count:null },
       ] },
-    { key:'sessions',   label:'Sessions',   count:null },
+    { key:'sessions',   label:'Sessions',   count:null,
+      submenu: [
+        { route:'sessions',     label:'Group',  count:null },
+        { route:'sessionsSolo', label:'Single', count:null },
+      ] },
     { key:'review',     label:'Review',     count:null },
     { key:'tasks',      label:'Tasks',      count:null },
     { key:'billing',    label:'Billing',    count:null },
@@ -1157,7 +1161,7 @@ function AuthedApp() {
               STAFF_TABS) and the URL guard redirects non-owners; this isOwner
               gate is belt-and-suspenders so it can never render for anyone but
               Ohad. Athletes never reach the coach app at all. */}
-          {tab==="sessions"&&isOwner&&<SessionsView trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} />}
+          {(tab==="sessions"||tab==="sessionsSolo")&&isOwner&&<SessionsView mode={tab==="sessionsSolo"?"single":"group"} trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} />}
         </Suspense>
       </main>
     </div>);
