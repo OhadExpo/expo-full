@@ -9,13 +9,17 @@
 // from the previous version is gone (it was unreadable on narrow widths
 // and forced an awkward two-level interaction).
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, Suspense, lazy } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
-import { isRefined5b, RefinedHeaderStrip } from './ui';
+import { isRefined5b, RefinedHeaderStrip, toast } from './ui';
 import { EVAL_SCHEMA, romKey, countFilled } from './evaluationSchema';
 import { useTraineeEvaluations } from './evaluationsData';
 import EvaluationEditor from './EvaluationEditor';
+
+// MovementLab pulls MediaPipe — lazy so the trainee card doesn't carry the
+// pose bundle until the coach actually runs a camera test.
+const MovementLab = lazy(() => import('./MovementLab'));
 
 const fmtDate = (s) => s ? fmtPrettyDate(s) : '—';
 
@@ -247,10 +251,26 @@ function EvalListRow({ evaluation, onOpenEditor }) {
 export default function TraineeEvaluation({ trainee }) {
   const { rows, create, update, loading } = useTraineeEvaluations(trainee?.id);
   const [editing, setEditing] = useState(null);
+  const [cameraTest, setCameraTest] = useState(false);
 
   const onSave = async (input) => {
     if (editing === 'new') return create(input);
     if (editing?.id) return update(editing.id, input);
+  };
+
+  // Camera jump test → a new measured evaluation row. The height lands in
+  // scores.svj (Standing Vertical Jump, the schema's cm test), so it tracks
+  // longitudinally alongside hand-entered evals without changing the free-text
+  // model — it's just an objective number in the same jsonb.
+  const onSaveJump = async (j) => {
+    const today = new Date().toISOString().slice(0, 10);
+    await create({
+      eval_date: today,
+      scores: { svj: String(j.heightCm) },
+      notes: `Vertical jump ${j.heightCm}cm — camera (flight ${j.flightMs}ms, peak rise ${j.peakRiseCm}cm).`,
+    });
+    setCameraTest(false);
+    toast(`Saved ${j.heightCm}cm vertical jump to evaluation`, 'success', { ttl: 4000 });
   };
 
   if (loading) return null;
@@ -272,16 +292,37 @@ export default function TraineeEvaluation({ trainee }) {
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : 'var(--c-tx)' }}>
             Athletic Evaluation ({rows.length})
           </span>
-          <button onClick={() => setEditing('new')}
-            style={{
-              background: 'transparent',
-              border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
-              color: refined ? '#FFFFFF' : 'var(--c-ac)',
-              padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
-              fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-            }}>+ NEW EVAL</button>
+          <div style={{ display: 'flex', gap: 0 }}>
+            <button onClick={() => setCameraTest(true)}
+              style={{
+                background: 'transparent',
+                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`,
+                color: refined ? '#FFFFFF' : 'var(--c-ac)',
+                padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
+                fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+              }}>📹 CAMERA TEST</button>
+            <button onClick={() => setEditing('new')}
+              style={{
+                background: 'transparent',
+                border: `1px solid ${refined ? '#FFFFFF' : 'var(--c-ac)'}`, borderLeft: 'none',
+                color: refined ? '#FFFFFF' : 'var(--c-ac)',
+                padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
+                fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
+              }}>+ NEW EVAL</button>
+          </div>
         </div>
       </RefinedHeaderStrip>
+
+      {cameraTest && (
+        <Suspense fallback={null}>
+          <MovementLab
+            exerciseTitle="Vertical Jump"
+            initialMode="jump"
+            onSaveJump={onSaveJump}
+            onClose={() => setCameraTest(false)}
+          />
+        </Suspense>
+      )}
 
       {rows.length === 0 && (
         <div style={{ fontSize: 12, color: 'var(--c-td)', padding: '6px 0 10px' }}>
