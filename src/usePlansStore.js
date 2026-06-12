@@ -54,10 +54,41 @@ export function usePlanIndex() {
 
   const reload = useCallback(async () => {
     try {
-      // is_template_purchase is selected via "*" so the read path doesn't break
-      // before the SQL migration runs (Postgres ignores unknown columns in
-      // SELECT *; an explicit column would 400 on a pre-migration DB). The
-      // gate falls back to data.isTemplatePurchase + name prefix below.
+      // Preferred path: the plan_index view (migration
+      // 2026-06-12-plan-index-view.sql) computes day/exercise counts and
+      // day names in SQL, so the index payload is a few KB instead of
+      // every plan's full data JSONB (~290KB at 210 plans). The view is
+      // security_invoker, so row visibility matches the direct table read.
+      const { data: idx, error: idxErr } = await supabase
+        .from('plan_index')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (!idxErr && idx) {
+        setIndex(idx.map(p => ({
+          id: p.id,
+          name: p.name,
+          traineeId: p.trainee_id,
+          phase: p.phase,
+          active: p.active,
+          createdAt: p.created_at,
+          updatedAt: p.updated_at,
+          weeks: p.weeks || 4,
+          // The view already folds in the typed column + JSONB flag; keep
+          // the legacy name-prefix detection client-side.
+          isTemplatePurchase:
+            p.is_template_purchase === true
+            || /^(\[expo\]|expo · |expo - )/i.test(p.name || ''),
+          dayCount: p.day_count || 0,
+          exerciseCount: p.exercise_count || 0,
+          dayNames: Array.isArray(p.day_names) ? p.day_names : [],
+        })));
+        setLoaded(true);
+        return;
+      }
+      // Fallback: full-row read for pre-migration DBs (the view 404s until
+      // 2026-06-12-plan-index-view.sql runs). is_template_purchase is
+      // selected via "*" for the same reason — Postgres ignores unknown
+      // columns in SELECT *; an explicit column would 400 pre-migration.
       const { data } = await supabase
         .from('plans')
         .select('*')
