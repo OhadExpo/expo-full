@@ -46,7 +46,7 @@ function classifyMuscle(name, region, cx, cy) {
   const s = cx < 0 ? 'L' : 'R';
   // thin connective-tissue bands + long multi-joint tendons + scalp/ear sheets
   // protrude as spikes/horns when posed onto one rigid bone — drop them.
-  if (/retinaculum|aponeuros|ligament|septum|raphe|sheath|tendinous_arch|interosseous_membrane|annular|digitorum_longus|hallucis_longus|digiti_minimi|pollicis_longus|extensor_digitorum|flexor_digitorum|auricular|temporoparietal|epicranial|galea/.test(n)) return null;
+  if (/retinaculum|aponeuros|ligament|septum|raphe|sheath|tendinous_arch|interosseous_membrane|annular|digitorum_longus|hallucis_longus|digiti_minimi|pollicis_longus|extensor_digitorum|flexor_digitorum|auricular|temporoparietal|epicranial|galea|bursa|iliotibial|(^|_)tract/.test(n)) return null;
   // hands & feet are many small structures that splay when rigidly posed and add
   // nothing to lift mechanics — the muscle layer ends at the wrist/ankle (the
   // skeleton layer keeps them).
