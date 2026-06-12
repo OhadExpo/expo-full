@@ -102,16 +102,21 @@ export default function AnatomyModelViewer({ frames }) {
     camera.position.set(0.65, -0.05, 2.55);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); renderer.setSize(W, H);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.4;
     mount.appendChild(renderer.domElement);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-    const k = new THREE.DirectionalLight(0xffffff, 1.15); k.position.set(2, 3, 2.5); scene.add(k);
-    const fl = new THREE.DirectionalLight(0x88bbff, 0.4); fl.position.set(-2.5, 0.5, -1.5); scene.add(fl);
+    // studio 3-point + soft sky/ground hemisphere for anatomical depth
+    scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x2a1a18, 0.85));
+    const k = new THREE.DirectionalLight(0xffffff, 1.5); k.position.set(2.2, 3, 2.5); scene.add(k);
+    const fl = new THREE.DirectionalLight(0x9fc4ff, 0.7); fl.position.set(-2.6, 0.6, 1.2); scene.add(fl);
+    const rim = new THREE.DirectionalLight(0xffd9c2, 0.65); rim.position.set(-0.5, 1.5, -3); scene.add(rim);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.12; controls.minDistance = 0.7; controls.maxDistance = 8;
     controls.target.set(0, -0.12, 0);
 
-    const boneMat = new THREE.MeshStandardMaterial({ color: 0xe8e1cf, roughness: 0.6, metalness: 0.02 });
-    const muscleMat = new THREE.MeshStandardMaterial({ color: 0xb6473d, roughness: 0.72, metalness: 0.02, emissive: 0x180605, emissiveIntensity: 0.35 });
+    const boneMat = new THREE.MeshStandardMaterial({ color: 0xeae3d2, roughness: 0.52, metalness: 0.03 });
+    // wet-muscle look: deep anatomical red with a clearcoat sheen
+    const muscleMat = new THREE.MeshPhysicalMaterial({ color: 0xbe4537, roughness: 0.55, metalness: 0.0, clearcoat: 0.35, clearcoatRoughness: 0.5, sheen: 0.3, sheenColor: new THREE.Color(0x6a1812), emissive: 0x220807, emissiveIntensity: 0.28 });
 
     const skelGroup = new THREE.Group(), muscGroup = new THREE.Group();
     scene.add(skelGroup); scene.add(muscGroup);
