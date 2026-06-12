@@ -129,10 +129,31 @@ export default function AnatomyModelViewer({ frames }) {
     const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
 
     // ---- capture-space joints (post frameToPoints3D = metres, Y-up) ----
-    const framePts = poseFrames.map(f => { const p = frameToPoints3D(f.worldLandmarks); return p.map(q => q ? new THREE.Vector3(q.x, q.y, q.z) : null); });
+    const rawPts = poseFrames.map(f => { const p = frameToPoints3D(f.worldLandmarks); return p.map(q => q ? new THREE.Vector3(q.x, q.y, q.z) : null); });
+    // light temporal smoothing (0.25 / 0.5 / 0.25) damps MediaPipe's per-frame
+    // jitter on real video; null landmarks fall back to the centre frame.
+    const framePts = rawPts.map((cur, i) => {
+      const prev = rawPts[i - 1], next = rawPts[i + 1];
+      return cur.map((c, j) => {
+        if (!c) return null;
+        const p = prev && prev[j], n = next && next[j];
+        if (!p && !n) return c.clone();
+        const out = c.clone().multiplyScalar(0.5); let w = 0.5;
+        if (p) { out.add(p.clone().multiplyScalar(0.25)); w += 0.25; }
+        if (n) { out.add(n.clone().multiplyScalar(0.25)); w += 0.25; }
+        return out.multiplyScalar(1 / w);
+      });
+    });
     const cg = (fp, key) => {
       if (key === 'hipCenter') { const a = fp[23], b = fp[24]; return a && b ? a.clone().add(b).multiplyScalar(0.5) : null; }
       if (key === 'shoCenter') { const a = fp[11], b = fp[12]; return a && b ? a.clone().add(b).multiplyScalar(0.5) : null; }
+      // stable head point: ear midpoint biased slightly to the nose. The bare
+      // nose landmark's depth is noisy, which makes the skull tilt on real video.
+      if (key === 'headRef') {
+        const n = fp[0], l = fp[7], r = fp[8];
+        if (l && r) { const m = l.clone().add(r).multiplyScalar(0.5); return n ? m.multiplyScalar(0.7).add(n.clone().multiplyScalar(0.3)) : m; }
+        return n ? n.clone() : null;
+      }
       return fp[key] ? fp[key].clone() : null;
     };
 
@@ -270,7 +291,7 @@ export default function AnatomyModelViewer({ frames }) {
       if (mode === 'skel') { const cl = sub(cg(fp, 12), cg(fp, 11)); if (cl && J.shoulderR && J.shoulderL) qSho = alignQ(sub(J.shoulderR, J.shoulderL), cl); }
       if (J.shoulderL) wj.shoulderL = add(wj.shoCenter, app(sub(J.shoulderL, J.shoCenter), qSho));
       if (J.shoulderR) wj.shoulderR = add(wj.shoCenter, app(sub(J.shoulderR, J.shoCenter), qSho));
-      const ch = sub(cg(fp, 0), wj.shoCenter);
+      const ch = sub(cg(fp, 'headRef'), wj.shoCenter);
       const qHead = (ch && J.headTip) ? alignQ(sub(J.headTip, J.shoCenter), ch) : qSpine;
 
       if (mode === 'skel') {
