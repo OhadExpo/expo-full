@@ -160,6 +160,37 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // video/quicktime uploads on Chrome). When the <video> errors, swap to a
   // download fallback so the trainer can still access the clip.
   const [videoLoadError, setVideoLoadError] = useState(false);
+  // A video read right after upload can 404 for a few seconds while the public
+  // CDN propagates. The <video> onError used to be a one-way gate → permanent
+  // "OPEN IN NEW TAB" fallback even though the object was fine moments later.
+  // Retry a few times with backoff (cache-busted reload) before giving up.
+  const videoRetryRef = useRef(0);
+  const videoRetryTimerRef = useRef(null);
+  const MAX_VIDEO_RETRIES = 4;
+  useEffect(() => {
+    // New URL → reset the retry budget and clear the error.
+    videoRetryRef.current = 0;
+    setVideoLoadError(false);
+    return () => { if (videoRetryTimerRef.current) clearTimeout(videoRetryTimerRef.current); };
+  }, [url]);
+  const handleVideoError = () => {
+    const v = videoRef.current;
+    // MEDIA_ERR_SRC_NOT_SUPPORTED (4) is a codec problem — retrying won't help,
+    // fail straight to the fallback. Network/decode hiccups (incl. CDN 404
+    // right after upload) are worth retrying.
+    const code = v?.error?.code;
+    if (code !== 4 && videoRetryRef.current < MAX_VIDEO_RETRIES && url) {
+      const attempt = ++videoRetryRef.current;
+      videoRetryTimerRef.current = setTimeout(() => {
+        if (!videoRef.current) return;
+        const bust = (url.includes('?') ? '&' : '?') + 'r=' + attempt;
+        videoRef.current.src = url + bust;
+        videoRef.current.load();
+      }, attempt * 1500); // 1.5s, 3s, 4.5s, 6s
+      return;
+    }
+    setVideoLoadError(true);
+  };
   const drawCanvasRef = useRef(null);
   const wrapperRef = useRef(null);
   // HUD position offset (drag) + a render-bumping counter so the drawing
@@ -1118,7 +1149,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         <video ref={videoRef} src={url} controls
           controlsList={isFullscreen ? '' : 'nofullscreen'}
           playsInline crossOrigin="anonymous"
-          onError={() => setVideoLoadError(true)}
+          onError={handleVideoError}
           style={{display:'block',width:'100%',borderRadius:0,maxHeight:400,background:C.sf2}} />
         {videoLoadError && (
           <a href={url} target="_blank" rel="noopener noreferrer"

@@ -194,8 +194,19 @@ export async function drainBlobs() {
         // cap). A queued oversized blob would retry on every drain forever —
         // drop it instead of looping.
         if (entry.blob?.size > 50 * 1024 * 1024) {
+          const mb = Math.round(entry.blob.size / 1e6);
           console.warn('blobQueue: dropping oversized blob', entry.id, entry.blob.size);
           await removeBlob(entry.id);
+          // Surface it — a silent drop leaves the slot stuck on "pending upload"
+          // forever with the athlete never told their clip won't make it.
+          if (onErrorHook) {
+            try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex }, msg: `Video too large to upload (${mb}MB > 50MB limit)` }); } catch {}
+          }
+          try {
+            window.dispatchEvent(new CustomEvent('expo-blob-failed', {
+              detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, reason: 'oversize', mb },
+            }));
+          } catch {}
           continue;
         }
         const { error } = await supabase.storage

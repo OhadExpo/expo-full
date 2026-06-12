@@ -109,8 +109,51 @@ create policy form_videos_update_own on storage.objects
 -- Then re-create it with '<HEALTH_SECRET>' as the gate value.
 
 -- ---------------------------------------------------------------------------
+-- 4. form-videos INSERT scoping (applied 2026-06-12, audit follow-up)
+-- ---------------------------------------------------------------------------
+-- The old `public_upload` policy was FOR INSERT TO public WITH CHECK
+-- (bucket_id='form-videos') — i.e. ANYONE with the bundled publishable key
+-- could write to ANY folder. That produced orphan folders (t4/t5/_lib) and is
+-- a bucket-fill DoS (free-tier 1GB cap → 413s for everyone). The app now
+-- uploads with the athlete's SESSION token (not the anon key), so INSERT can
+-- be scoped to the caller's own trainee folder.
+drop policy if exists public_upload on storage.objects;
+drop policy if exists form_videos_insert_own on storage.objects;
+create policy form_videos_insert_own on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'form-videos'
+    and (
+      is_trainer()
+      or (
+        public.current_trainee_id() is not null
+        and (storage.foldername(name))[1] = public.current_trainee_id()
+      )
+    )
+  );
+
+-- ---------------------------------------------------------------------------
+-- 5. Storage cap watch (secret-gated) — canary pages at 88% of the 1GB cap
+-- ---------------------------------------------------------------------------
+create or replace function public.health_storage_usage(p_secret text)
+returns jsonb language sql stable security definer set search_path = public, storage as $$
+  select case when p_secret is distinct from '<HEALTH_SECRET>' then null else
+    (select jsonb_build_object('bucket','form-videos',
+       'bytes', coalesce(sum((metadata->>'size')::bigint),0),
+       'objects', count(*)) from storage.objects where bucket_id='form-videos')
+  end;
+$$;
+revoke all on function public.health_storage_usage(text) from public;
+grant execute on function public.health_storage_usage(text) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- Verify after applying:
 --   select public.health_rls_manifest('<HEALTH_SECRET>') is not null;       -- true
 --   select public.health_rls_manifest('wrong') is null;                     -- true
 --   select count(*) from pg_policies where policyname='form_videos_update_own'; -- 1
+--   select count(*) from pg_policies where policyname='form_videos_insert_own'; -- 1
+--   select count(*) from pg_policies where policyname='public_upload';          -- 0
+--   select public.health_storage_usage('<HEALTH_SECRET>');                       -- {bytes,objects}
+-- After ANY intentional change here: re-run scripts/regen-rls-baseline.cjs and
+-- commit scripts/rls-baseline.json in the SAME commit or the canary pages.
 -- ---------------------------------------------------------------------------

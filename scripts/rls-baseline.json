@@ -1,6 +1,6 @@
 {
- "generatedAt": "2026-06-12T12:20:25.106Z",
- "hash": "7c229c0cbeef535a9e24d5f61d0b04cc9211797120bc3fd23328eea2b0f3686e",
+ "generatedAt": "2026-06-12T12:47:59.121Z",
+ "hash": "f29ff4b7cd585a99f445c1cf416c7f80a18230800641929b232ee6b9267f3353",
  "manifest": {
   "rls": [
    {
@@ -701,6 +701,15 @@
     "w": "(bucket_id = 'coaching-contracts'::text)"
    },
    {
+    "c": "INSERT",
+    "p": "form_videos_insert_own",
+    "q": "",
+    "r": "{authenticated}",
+    "s": "storage",
+    "t": "objects",
+    "w": "((bucket_id = 'form-videos'::text) AND (is_trainer() OR ((current_trainee_id() IS NOT NULL) AND ((storage.foldername(name))[1] = current_trainee_id()))))"
+   },
+   {
     "c": "UPDATE",
     "p": "form_videos_update_own",
     "q": "((bucket_id = 'form-videos'::text) AND (is_trainer() OR ((current_trainee_id() IS NOT NULL) AND ((storage.foldername(name))[1] = current_trainee_id()))))",
@@ -717,15 +726,6 @@
     "s": "storage",
     "t": "objects",
     "w": "(bucket_id = 'meal-photos'::text)"
-   },
-   {
-    "c": "INSERT",
-    "p": "public_upload",
-    "q": "",
-    "r": "{public}",
-    "s": "storage",
-    "t": "objects",
-    "w": "(bucket_id = 'form-videos'::text)"
    },
    {
     "c": "INSERT",
@@ -806,6 +806,12 @@
    },
    {
     "f": "health_rls_manifest(p_secret text)",
+    "anon": true,
+    "authed": true,
+    "secdef": true
+   },
+   {
+    "f": "health_storage_usage(p_secret text)",
     "anon": true,
     "authed": true,
     "secdef": true

@@ -431,7 +431,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
      MediaRecorder.isTypeSupported('video/webm') ||
      MediaRecorder.isTypeSupported('video/mp4'));
 
-  const compressVideoChrome = (file, onProgress) => new Promise((resolve, reject) => {
+  const compressVideoChrome = (file, onProgress, signal) => new Promise((resolve, reject) => {
     // Target: ~40MB output — comfortably under Supabase's HARD 50MB per-object
     // cap (free plan, project-wide; uploads at/over it get 413 "Payload too
     // large" — exactly what locked Ron out on 2026-06-12). Bitrate computed
@@ -446,7 +446,31 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const vid = document.createElement('video');
     vid.muted = true; vid.playsInline = true; vid.preload = 'auto'; vid.src = src;
 
+    // Single-exit cleanup so a timeout/abort can't leave the MediaRecorder,
+    // <video>, and rAF loop running (and the object URL leaked) in the
+    // background after the caller has already given up. `settled` makes every
+    // terminal path idempotent. `_recorder`/`_vid` are filled once they exist.
+    let settled = false;
+    let _recorder = null;
+    const finish = (fn, arg) => {
+      if (settled) return;
+      settled = true;
+      try { if (_recorder && _recorder.state === 'recording') _recorder.stop(); } catch {}
+      try { vid.pause(); } catch {}
+      try { URL.revokeObjectURL(src); } catch {}
+      fn(arg);
+    };
+    const done = (v) => finish(resolve, v);
+    const fail = (e) => finish(reject, e);
+
+    // External abort (the 40s wall-clock race in the caller) → stop everything.
+    if (signal) {
+      if (signal.aborted) { fail(new Error('aborted')); return; }
+      signal.addEventListener('abort', () => fail(new Error('aborted')), { once: true });
+    }
+
     vid.onloadedmetadata = () => {
+      if (settled) return;
       const duration = Number.isFinite(vid.duration) && vid.duration > 0 ? vid.duration : 60;
       const targetBits = TARGET_MB * 1024 * 1024 * 8;
       const computed = Math.floor(targetBits / duration);
@@ -464,8 +488,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const ctx = canvas.getContext('2d');
 
       if (typeof canvas.captureStream !== 'function') {
-        URL.revokeObjectURL(src);
-        reject(new Error('canvas.captureStream unsupported'));
+        fail(new Error('canvas.captureStream unsupported'));
         return;
       }
 
@@ -485,8 +508,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       ];
       const mimeType = mimeCandidates.find(t => MediaRecorder.isTypeSupported(t));
       if (!mimeType) {
-        URL.revokeObjectURL(src);
-        reject(new Error('No supported MediaRecorder mime type'));
+        fail(new Error('No supported MediaRecorder mime type'));
         return;
       }
       const ext = mimeType.startsWith('video/mp4') ? '.mp4' : '.webm';
@@ -494,16 +516,18 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       const stream = canvas.captureStream(30);
       const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: BITRATE });
+      _recorder = recorder;
       const chunks = [];
       recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = () => {
-        URL.revokeObjectURL(src);
         const blob = new Blob(chunks, { type: baseType });
+        chunks.length = 0; // release chunk references promptly
         if (blob.size < 1024) {
-          reject(new Error('Compression produced empty output'));
+          fail(new Error('Compression produced empty output'));
           return;
         }
-        resolve({ blob, ext, originalSize: file.size, compressedSize: blob.size });
+        if (onProgress) onProgress(100); // never strand the bar below 100 (duration fallback)
+        done({ blob, ext, originalSize: file.size, compressedSize: blob.size });
       };
 
       vid.currentTime = 0;
@@ -512,45 +536,52 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       vid.playbackRate = 1;
 
       vid.play().then(() => {
+        if (settled) return; // aborted while play() was resolving
         recorder.start(100);
         const draw = () => {
+          if (settled) return;
           // Abort if the host component unmounted mid-compression — otherwise
           // the rAF loop + MediaRecorder + video element keep running in memory.
-          if (!aliveRef.current) {
-            if (recorder.state === 'recording') recorder.stop();
-            vid.pause();
-            URL.revokeObjectURL(src);
-            reject(new Error('aborted'));
-            return;
-          }
+          if (!aliveRef.current) { fail(new Error('aborted')); return; }
           if (vid.ended || vid.paused || vid.currentTime >= duration) {
             if (recorder.state === 'recording') recorder.stop();
             vid.pause(); return;
           }
           ctx.drawImage(vid, 0, 0, w, h);
-          if (onProgress) onProgress(Math.round((vid.currentTime / duration) * 100));
+          // Clamp to 99 mid-stream; onstop emits the final 100. Guards against a
+          // duration fallback (60s on a 30s clip) freezing the bar mid-range.
+          if (onProgress) onProgress(Math.min(99, Math.round((vid.currentTime / duration) * 100)));
           requestAnimationFrame(draw);
         };
         draw();
         const wallTime = (duration / vid.playbackRate) + 3;
         setTimeout(() => { if (recorder.state === 'recording') { recorder.stop(); vid.pause(); } }, wallTime * 1000);
-      }).catch(reject);
+      }).catch(fail);
     };
-    vid.onerror = () => { URL.revokeObjectURL(src); reject(new Error('Failed to load video')); };
+    vid.onerror = () => { fail(new Error('Failed to load video')); };
   });
 
   // Upload with real progress tracking via XMLHttpRequest
   // Supabase Storage REST API: POST raw body with Content-Type header.
   // URL/key sourced from src/supabase.js so there's a single
   // change-once point if/when the project is rotated.
-  const uploadWithProgress = (blob, path, contentType, onProgress) => new Promise((resolve, reject) => {
+  const uploadWithProgress = (blob, path, contentType, onProgress) => new Promise(async (resolve, reject) => {
     const url = `${SUPA_URL}/storage/v1/object/form-videos/${path}`;
-    const supaKey = SUPA_PUBLISHABLE_KEY;
+    // Authenticate as the SIGNED-IN ATHLETE, not with the bundled anon key.
+    // The anon key is public (it ships in the bundle), so an anon-authenticated
+    // upload let anyone on the internet write to any folder — the source of the
+    // orphaned t4/t5/_lib objects and a bucket-fill DoS. With the session token
+    // the INSERT policy can scope writes to the caller's own trainee folder.
+    let bearer = SUPA_PUBLISHABLE_KEY;
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session?.access_token) bearer = data.session.access_token;
+    } catch { /* fall back to anon key; tightened policy will reject if unauthed */ }
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url);
-    xhr.setRequestHeader('Authorization', `Bearer ${supaKey}`);
-    xhr.setRequestHeader('apikey', supaKey);
+    xhr.setRequestHeader('Authorization', `Bearer ${bearer}`);
+    xhr.setRequestHeader('apikey', SUPA_PUBLISHABLE_KEY);
     xhr.setRequestHeader('Content-Type', contentType);
     xhr.setRequestHeader('x-upsert', 'true');
 
@@ -562,8 +593,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const publicUrl = `${SUPA_URL}/storage/v1/object/public/form-videos/${path}`;
         resolve({ publicUrl });
       } else {
+        // Surface the server's REAL reason (e.g. "Payload too large", "new row
+        // violates row-level security") instead of a bare status code — the
+        // opaque "Upload failed: 413" is exactly what hid Ron's outage.
         console.error('Upload response:', xhr.status, xhr.responseText);
-        reject(new Error(`Upload failed: ${xhr.status}`));
+        let serverMsg = '';
+        try { serverMsg = JSON.parse(xhr.responseText)?.message || JSON.parse(xhr.responseText)?.error || ''; } catch { serverMsg = ''; }
+        const err = new Error(serverMsg ? `${serverMsg} (${xhr.status})` : `Upload failed: ${xhr.status}`);
+        err.httpStatus = xhr.status;
+        reject(err);
       }
     };
     xhr.onerror = () => reject(new Error('Upload network error'));
@@ -578,6 +616,23 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // storage. Other portal paths (handleComplete, plans-load, presence) gate
     // on demoMode already; the upload handler had been the one omission.
     if (demoMode) { toast('Demo mode — uploads disabled', 'info'); return; }
+
+    // Re-entrancy guard: the Record/Replace inputs are disabled while
+    // uploading, but a double-tap can fire two change events before React
+    // re-renders the disabled state. Without this, two uploads race on the
+    // same exercise slot. Synchronous read of the latest slot state.
+    if (fv[exIdx]?.uploading) return;
+
+    // Reject non-video and empty files BEFORE we build a preview/queue entry.
+    // accept="video/*" filters the picker but a user can still hand-pick "all
+    // files" on some Androids, or a 0-byte capture can come back from a failed
+    // recording. An empty/garbage blob otherwise sails through compression and
+    // upload and lands as an unplayable object the coach can't review.
+    const looksVideo = (file.type || '').startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg|3gp|avi|mkv)$/i.test(file.name || '');
+    if (!file.size || !looksVideo) {
+      toast(!file.size ? 'That video is empty — try recording again.' : 'That file isn\'t a video. Record a clip or pick a video from your library.', 'error', { ttl: 7000 });
+      return;
+    }
 
     // Hard cap. Above this size the source is too long to encode reliably
     // (compress time = source duration), browser memory pressure spikes, and
@@ -651,12 +706,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // through to the original blob, and the size gate below catches it
           // if it's over the 50MB server cap.
           const COMPRESS_TIMEOUT_MS = 40_000;
+          // AbortController lets the timeout actually TEAR DOWN the encoder.
+          // Without it, a timed-out compress kept the MediaRecorder + <video> +
+          // rAF loop alive in the background (a 5-min clip would churn for ~5
+          // more minutes after we'd already moved on) — a real memory leak on
+          // low-RAM phones doing back-to-back uploads.
+          const ctrl = new AbortController();
+          let timer;
           const result = await Promise.race([
             compressVideoChrome(file, pct => {
               setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
-            }),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('compression timed out')), COMPRESS_TIMEOUT_MS)),
-          ]);
+            }, ctrl.signal),
+            new Promise((_, rej) => { timer = setTimeout(() => { ctrl.abort(); rej(new Error('compression timed out')); }, COMPRESS_TIMEOUT_MS); }),
+          ]).finally(() => { clearTimeout(timer); });
+          ctrl.abort(); // success path: ensure no listeners/loops linger
           uploadBlob = result.blob;
           ext = result.ext;
           contentType = result.blob.type;
@@ -677,10 +740,24 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         return;
       }
 
+      // clientId scopes the storage path AND the RLS folder check. If it's ever
+      // missing we'd write to "undefined/..." — an orphan no RLS-scoped reader
+      // (coach review included) can ever see. Refuse rather than create one.
+      if (!clientId) {
+        URL.revokeObjectURL(previewUrl);
+        setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:'missing athlete id'}; return n; });
+        toast('Could not identify your account — sign out and back in, then retry.', 'error', { ttl: 8000 });
+        return;
+      }
+
       // Upload with progress (XHR for real-time %, falls back to Supabase client)
       setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase:'upload', compressProgress:100}; return n; });
+      // Collision-proof filename: ts alone collides if two uploads on the same
+      // slot land in the same millisecond (double-tap); a short random suffix
+      // guarantees uniqueness so neither silently overwrites the other.
       const ts = Date.now();
-      path = `${clientId}/${ts}-form${ext}`;
+      const rand = Math.floor(Math.random() * 1e6).toString(36);
+      path = `${clientId}/${ts}-${rand}-form${ext}`;
 
       let publicUrl;
       try {
@@ -689,7 +766,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         });
         publicUrl = result.publicUrl;
       } catch (xhrErr) {
-        // Fallback: use Supabase JS client (no progress but reliable)
+        // A definite client-error status (4xx) is PERMANENT — re-throw without
+        // attempting the fallback, so the outer catch surfaces it instead of
+        // burning a second upload and then queueing a doomed retry.
+        if (xhrErr?.httpStatus >= 400 && xhrErr.httpStatus < 500 && ![408, 429].includes(xhrErr.httpStatus)) throw xhrErr;
+        // Otherwise (network/5xx/unknown): fall back to the Supabase JS client
+        // (no progress bar but uses the session + its own retry semantics).
         console.warn('XHR upload failed, falling back to Supabase client:', xhrErr);
         const { error } = await supabase.storage.from('form-videos').upload(path, uploadBlob, { upsert: true, contentType });
         if (error) throw error;
@@ -709,7 +791,18 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // returns. Workout flow continues — the user doesn't have to re-record.
       const offline = (typeof navigator !== 'undefined' && navigator.onLine === false);
       const msg = err?.message || 'Upload failed';
-      const looksTransient = offline || /network|fetch|timeout|abort|offline/i.test(msg);
+      // Classify transient (worth queuing for retry) vs permanent (queuing just
+      // loops forever, then drops silently). Prefer the HTTP status when we have
+      // one: 4xx (except 408/429) is permanent — payload-too-large, RLS denial,
+      // bad request will NEVER succeed on retry. Only queue genuine network loss
+      // or server-side/transient codes. Message-regex is the last resort, and we
+      // exclude phrases that are definitely permanent even when wrapped in a
+      // fetch-shaped error (e.g. supabase-js "Failed to fetch" masking a 413).
+      const status = err?.httpStatus ?? err?.status ?? err?.statusCode;
+      const permanentByStatus = typeof status === 'number' && status >= 400 && status < 500 && ![408, 429].includes(status);
+      const permanentByMsg = /payload too large|exceeded|maximum allowed|row-level security|invalid|not allowed|mime/i.test(msg);
+      const transientByMsg = /network|fetch|timeout|abort|offline|load failed/i.test(msg);
+      const looksTransient = !permanentByStatus && !permanentByMsg && (offline || (typeof status === 'number' ? status >= 500 || status === 408 || status === 429 : transientByMsg));
       if (looksTransient) {
         try {
           const blobId = newBlobId();
