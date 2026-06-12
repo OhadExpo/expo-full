@@ -96,3 +96,6 @@ EXPO - המרכז למצויינות-פיתוח אתלטית/
 
 .canary-pw
 *.testvid.mp4
+
+# Stray desktop media parked at repo root (not project assets)
+/*.mp3
