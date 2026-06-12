@@ -420,7 +420,8 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
             invisible, so it opens the card along with the rows. */}
         {warmup.length > 0 && (() => {
           const anyOpen = warmup.some((_, i) => wuExpanded[i]);
-          return <button onClick={() => {
+          return <>
+          <button onClick={() => {
             if (!anyOpen && !open) setOpen(true);
             setWuExpanded(prev => { const next = { ...prev }; warmup.forEach((_, i) => { if (anyOpen) delete next[i]; else next[i] = true; }); return next; });
           }}
@@ -428,7 +429,15 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
             style={{ marginLeft:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, padding:'3px 0', color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.14em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
             <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}>▾</span>
             {anyOpen ? 'COLLAPSE ALL' : 'EXPAND ALL'}
-          </button>;
+          </button>
+          {/* Invisible spacer mirroring the day cards' "× delete" slot
+              (line ~1311: fontSize 17, padding '0 4px') so the warm-up
+              EXPAND ALL right-edge lands in the SAME column as the day
+              cards' EXPAND ALL (which is pushed left by their × button).
+              The warm-up card has no delete of its own. visibility:hidden
+              keeps the box, drops the paint + pointer target. */}
+          <span aria-hidden style={{ visibility:'hidden', fontSize:17, lineHeight:1, padding:'0 4px', flexShrink:0, userSelect:'none' }}>×</span>
+          </>;
         })()}
       </div>
       <div style={{ display:'grid', gridTemplateRows: open ? '1fr' : '0fr', transition:'grid-template-rows 260ms ease' }}><div style={{ overflow:'hidden', minHeight:0 }}>
