@@ -124,6 +124,22 @@ export default async function handler(req, res) {
     const bw = await fetch(`${SUPA_URL}/rest/v1/bw_logs?select=id&limit=1`, { headers: ah });
     if (!bw.ok) throw new Error(`bw_logs read HTTP ${bw.status}`);
     checks.bodyweight = 'ok';
+
+    // 6. current_trainee_id() — the identity resolver behind the form-videos
+    // storage policies. On 2026-06-12 its EXECUTE grant for anon/authenticated
+    // drifted away, killing every athlete video upload ("permission denied for
+    // function current_trainee_id") while checks 1-5 stayed green — uploads
+    // evaluate the path-scoped SELECT policy that calls it. Probing the RPC
+    // directly catches grant drift / function breakage with no storage writes.
+    const ct = await fetch(`${SUPA_URL}/rest/v1/rpc/current_trainee_id`, { method: 'POST', headers: ah, body: '{}' });
+    if (!ct.ok) {
+      let detail = '';
+      try { detail = (await ct.json())?.message || ''; } catch (_) { /* ignore */ }
+      throw new Error(`current_trainee_id HTTP ${ct.status}${detail ? ` — ${detail}` : ''} — athlete video uploads would fail`);
+    }
+    const ctId = await ct.json();
+    if (ctId !== 'tr_diego') throw new Error(`current_trainee_id resolved "${ctId}" instead of tr_diego — storage path scoping broken`);
+    checks.videoUploadPath = 'ok';
   } catch (e) {
     failure = e?.message || 'unknown failure';
   }
