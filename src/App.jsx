@@ -132,6 +132,14 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
   const [open, setOpen] = useState(false);
   const btnRef = React.useRef(null);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
+  // Hover-open with a short close delay so crossing the gap between the
+  // trigger and the menu doesn't snap it shut. The entrance itself uses the
+  // global .motion-rise (fade + 6px rise, reduced-motion safe) so it eases
+  // open instead of jumping. Click still toggles for touch.
+  const closeTimer = React.useRef(null);
+  const hoverOpen = () => { if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; } setOpen(true); };
+  const hoverClose = () => { if (closeTimer.current) clearTimeout(closeTimer.current); closeTimer.current = setTimeout(() => setOpen(false), 160); };
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
   useEffect(() => {
     if (!open || !btnRef.current) return;
     const recalc = () => {
@@ -161,7 +169,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
   const isSectionActive = items.some(it => tab === it.route);
 
   return (
-    <div data-submenu-id={id} style={{ display: 'inline-flex', position: 'relative' }}>
+    <div data-submenu-id={id} onMouseEnter={hoverOpen} onMouseLeave={hoverClose} style={{ display: 'inline-flex', position: 'relative' }}>
       <button ref={btnRef} onClick={() => setOpen(o => !o)}
         aria-expanded={open}
         className={isChosen && !isSectionActive ? 'nav-item-inactive' : undefined}
@@ -172,13 +180,13 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
         style={{ ...baseBtn, alignItems: 'center', borderRadius: 0, padding: '6px 10px', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap', ...activeStyle }}>
         <span>{label}</span>
         {count != null && <span style={{ fontSize: 10, color: countColor, fontFamily: FN }}>{count}</span>}
-        <span style={{ fontSize: 10, lineHeight: 1 }}>▾</span>
+        <span style={{ fontSize: 10, lineHeight: 1, display: 'inline-block', transition: 'transform .2s cubic-bezier(.22,.61,.36,1)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}>▾</span>
       </button>
       {open && (
-        <div style={{
+        <div className="motion-rise" onMouseEnter={hoverOpen} onMouseLeave={hoverClose} style={{
           position: 'fixed', top: coords.top, left: coords.left,
           background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`,
-          minWidth: 180, zIndex: 100000,
+          minWidth: 180, zIndex: 100000, transformOrigin: 'top center',
           boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
         }}>
           {items.map(it => {
@@ -1149,7 +1157,7 @@ function AuthedApp() {
               STAFF_TABS) and the URL guard redirects non-owners; this isOwner
               gate is belt-and-suspenders so it can never render for anyone but
               Ohad. Athletes never reach the coach app at all. */}
-          {tab==="sessions"&&isOwner&&<SessionsView trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} />}
+          {tab==="sessions"&&isOwner&&<SessionsView trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} />}
         </Suspense>
       </main>
     </div>);

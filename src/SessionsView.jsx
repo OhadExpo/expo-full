@@ -19,8 +19,13 @@ import { supabase } from './supabase';
 import { RefinedHeaderStrip, toast, confirmToast } from './ui';
 import { traineeIdsFor } from './traineeUtils';
 
-// Camera tools pull MediaPipe — lazy so the Sessions grid loads instantly and
-// the pose bundle only ships when a coach opens a tool on the floor.
+// "Single athlete" reuses the existing in-person coach logger (WorkoutsView).
+// It writes to the coach `workouts` table (NOT client_workouts), which the
+// athlete portal never reads — so it stays trial-safe. The camera/pose tools
+// live HERE, in the 1-on-1 context where a coach actually films a lift —
+// never in the group grid (that runs on a shared screen). All lazy so the
+// Sessions menu loads instantly and MediaPipe ships only when a tool opens.
+const WorkoutsView = lazy(() => import('./WorkoutsView'));
 const MovementLab = lazy(() => import('./MovementLab'));
 const ARFormOverlay = lazy(() => import('./ARFormOverlay'));
 
@@ -29,11 +34,82 @@ const LOGKEY = 'expo-gym-session-log'; // finished trial sessions (coach-only)
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const fresh = () => ({ reps: '', load: '', rpe: '', done: false });
 
-export default function SessionsView({ trainees = [], planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts }) {
+// SESSIONS = a menu with two ways to run the floor:
+//   • GROUP   — assign + log 4–7 athletes in one grid (big-screen friendly).
+//   • SINGLE  — start + log an in-person workout for one athlete (the existing
+//     coach logger). Deliberately NO camera/lab tools inside either of these —
+//     group sessions run on a shared screen/TV, so the Movement Lab / AR tools
+//     live on their own surfaces (per-athlete card, evaluation), never here.
+export default function SessionsView(props) {
+  const [view, setView] = useState(null); // null=menu | 'group' | 'single'
+
+  if (view === 'group') return <GroupSessions {...props} onBack={() => setView(null)} />;
+  if (view === 'single') {
+    return (
+      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+        <TrialBanner />
+        <BackBar label="SINGLE ATHLETE — IN-PERSON LOG" onBack={() => setView(null)} />
+        <MovementTools />
+        <Suspense fallback={<div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>}>
+          <WorkoutsView workouts={props.workouts} setWorkouts={props.setWorkouts} planIndex={props.planIndex}
+            trainees={props.trainees} exercises={props.exercises} onDecrementSession={props.onDecrementSession} />
+        </Suspense>
+      </div>
+    );
+  }
+  return (
+    <div style={{ maxWidth: 760, margin: '0 auto' }}>
+      <TrialBanner />
+      <Card title="SESSIONS">
+        <div style={{ padding: '6px 2px 14px', color: C.tm, fontSize: 13, lineHeight: 1.6 }}>
+          Run the floor. Pick how you're training right now:
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          <MenuCard glyph="👥" title="GROUP SESSION" desc="Assign a program to 4–7 athletes and log everyone in one grid. Big-screen friendly." onClick={() => setView('group')} />
+          <MenuCard glyph="🏋️" title="SINGLE ATHLETE" desc="Start and log an in-person workout for one athlete you already coach." onClick={() => setView('single')} />
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// MOVEMENT TOOLS — the camera/pose suite, in the 1-on-1 context where a coach
+// films a specific lift. NOT in group sessions (shared screen). Records →
+// Movement Lab (velocity / ROM+tempo / 3D), or live AR form overlay.
+function MovementTools() {
+  const [title, setTitle] = useState('Squat');
+  const [open, setOpen] = useState(null); // 'lab' | 'ar' | null
+  return (
+    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, marginBottom: 12, boxShadow: C.cardShadow }}>
+      <RefinedHeaderStrip padY={14} padX={14} marginBottom={0}>
+        <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF' }}>Movement Tools · 1-on-1</span>
+      </RefinedHeaderStrip>
+      <div style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 200px', minWidth: 160 }}>
+          <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 4 }}>EXERCISE</label>
+          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat" style={{ ...cell, padding: '8px 10px' }} />
+        </div>
+        <button onClick={() => setOpen('lab')} style={{ ...toolBtn, minWidth: 168 }}>📹 MOVEMENT LAB</button>
+        <button onClick={() => setOpen('ar')} style={{ ...toolBtn, minWidth: 150 }}>🪞 AR FORM</button>
+      </div>
+      <div style={{ padding: '0 12px 12px', fontFamily: FB, fontSize: 11.5, color: C.td, lineHeight: 1.5 }}>
+        Record a set → velocity (VBT), range-of-motion + tempo, and a rotatable 3D capture. Or run a live form overlay with a bar-path + depth line.
+      </div>
+      {open && (
+        <Suspense fallback={null}>
+          {open === 'lab'
+            ? <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" onClose={() => setOpen(null)} />
+            : <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={() => setOpen(null)} />}
+        </Suspense>
+      )}
+    </div>
+  );
+}
+
+function GroupSessions({ trainees = [], planIndex = [], exercises = [], onBack }) {
   const [session, setSession] = useState(null); // { id, startedAt, athletes: [...] }
   const [loaded, setLoaded] = useState(false);
   const [picking, setPicking] = useState(false);
-  const [cam, setCam] = useState(null); // { tool:'lab'|'ar', title } | null
   const saveTimer = useRef(null);
 
   const exById = useMemo(() => {
@@ -156,9 +232,10 @@ export default function SessionsView({ trainees = [], planIndex = [], exercises 
     return (
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <TrialBanner />
-        <Card title="SESSIONS">
+        <BackBar label="GROUP SESSION" onBack={onBack} />
+        <Card title="START A GROUP SESSION">
           <div style={{ padding: '8px 2px 14px', color: C.tm, fontSize: 13, lineHeight: 1.6 }}>
-            Run the floor: add the athletes training now, check them in as they arrive, and log everyone's sets in one grid. Finishing saves each athlete's work to their history.
+            Add the athletes training now, check them in as they arrive, and log everyone's sets in one grid. Built to run on a big screen on the floor.
           </div>
           <button onClick={() => setPicking(true)} style={primaryBtn}>+ START SESSION</button>
         </Card>
@@ -167,7 +244,7 @@ export default function SessionsView({ trainees = [], planIndex = [], exercises 
     );
   }
 
-  // ---- live floor ----
+  // ---- live floor (no camera tools here — group runs on a shared screen) ----
   const checkedIn = session.athletes.filter(a => a.checkedIn).length;
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -181,18 +258,10 @@ export default function SessionsView({ trainees = [], planIndex = [], exercises 
             onSet={(ei, si, patch) => mutate(d => { Object.assign(d.athletes[ai].exercises[ei].sets[si], patch); })}
             onCurEx={(ei) => mutate(d => { d.athletes[ai].curEx = ei; })}
             onRemove={() => mutate(d => { d.athletes.splice(ai, 1); })}
-            onCam={(tool) => setCam({ tool, title: a.exercises[a.curEx]?.title || 'Squat' })}
           />
         ))}
       </div>
       {picking && <AthletePicker trainees={trainees} planIndex={planIndex} existing={session.athletes.map(a => a.traineeId)} onCancel={() => setPicking(false)} onConfirm={addAthletes} />}
-      {cam && (
-        <Suspense fallback={null}>
-          {cam.tool === 'lab'
-            ? <MovementLab exerciseTitle={cam.title} initialMode="analyze" onClose={() => setCam(null)} />
-            : <ARFormOverlay exerciseTitle={cam.title} onClose={() => setCam(null)} />}
-        </Suspense>
-      )}
     </div>
   );
 }
@@ -229,7 +298,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
 }
 
 // ---- per-athlete logging card ----
-function AthleteCard({ a, name, onToggleIn, onSet, onCurEx, onRemove, onCam }) {
+function AthleteCard({ a, name, onToggleIn, onSet, onCurEx, onRemove }) {
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
@@ -241,10 +310,6 @@ function AthleteCard({ a, name, onToggleIn, onSet, onCurEx, onRemove, onCam }) {
           <button onClick={onToggleIn} style={{ ...miniBtn, background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? '✓ IN' : 'CHECK IN'}</button>
           <button onClick={onRemove} title="Remove from session" style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
         </div>
-      </div>
-      <div style={{ display: 'flex', gap: 0, borderBottom: `1px solid ${C.cardBd}` }}>
-        <button onClick={() => onCam('lab')} title="Record + analyze the current exercise (velocity, ROM, 3D)" style={{ ...miniBtn, flex: 1, padding: '7px 0', borderRight: `1px solid ${C.cardBd}`, color: C.ac }}>📹 LAB</button>
-        <button onClick={() => onCam('ar')} title="Live AR form overlay for the current exercise" style={{ ...miniBtn, flex: 1, padding: '7px 0', color: C.ac }}>🪞 AR</button>
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
         {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>No exercises on this day.</div>}
@@ -343,7 +408,7 @@ function TrialBanner() {
 }
 function Card({ title, children }) {
   return (
-    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 14 }}>
+    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 14, boxShadow: C.cardShadow }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={12}>
         <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF' }}>{title}</span>
       </RefinedHeaderStrip>
@@ -351,7 +416,33 @@ function Card({ title, children }) {
     </div>
   );
 }
+// Back row — fixed 28px-high control, cyan ghost, matches the editor/preview
+// back affordances elsewhere in the app.
+function BackBar({ label, onBack }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      <button onClick={onBack} style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, height: 28, padding: '0 14px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0, display: 'inline-flex', alignItems: 'center' }}>← SESSIONS</button>
+      <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: '0.12em', fontWeight: 700 }}>{label}</span>
+    </div>
+  );
+}
+// Big choose-your-mode card. Cyan hairline, hover-lift, glyph + title + desc —
+// the same decisive, brand-bright treatment as the EntryChooser/landing cards.
+function MenuCard({ glyph, title, desc, onClick }) {
+  return (
+    <button onClick={onClick}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = C.ac; e.currentTarget.style.background = 'rgba(57,189,255,0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = C.cardBd; e.currentTarget.style.background = 'var(--c-sf)'; e.currentTarget.style.transform = 'none'; }}
+      style={{ textAlign: 'left', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '20px 18px', cursor: 'pointer', transition: 'border-color 140ms, background 140ms, transform 140ms', display: 'flex', flexDirection: 'column', gap: 8, minHeight: 168 }}>
+      <span style={{ fontSize: 30, lineHeight: 1 }}>{glyph}</span>
+      <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.06em', color: C.tx, marginTop: 4 }}>{title}</span>
+      <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tm, lineHeight: 1.5, flex: 1 }}>{desc}</span>
+      <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, marginTop: 4 }}>ENTER →</span>
+    </button>
+  );
+}
 const primaryBtn = { width: '100%', padding: '12px', background: C.ac, border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 };
+const toolBtn = { background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, height: 38, padding: '0 16px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
 const stripBtn = { background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFF', padding: '4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' };
 const miniBtn = { background: 'transparent', padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', borderRadius: 0, borderColor: C.cardBd };
 const cell = { width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: '4px 6px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none', borderRadius: 0 };
