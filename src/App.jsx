@@ -1145,7 +1145,11 @@ function AuthedApp() {
           {tab==="challenges"&&<ChallengesView trainees={trainees} clientWorkouts={clientWorkouts} bwLog={bwLog} />}
           {tab==="calendar"&&<BookingView trainees={trainees} />}
           {tab==="billing"&&<BillingView trainees={trainees} />}
-          {tab==="sessions"&&<SessionsView trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} />}
+          {/* Sessions = owner-only TRIAL. The tab is hidden for staff (not in
+              STAFF_TABS) and the URL guard redirects non-owners; this isOwner
+              gate is belt-and-suspenders so it can never render for anyone but
+              Ohad. Athletes never reach the coach app at all. */}
+          {tab==="sessions"&&isOwner&&<SessionsView trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} />}
         </Suspense>
       </main>
     </div>);

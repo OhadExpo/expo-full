@@ -24,7 +24,8 @@ import { traineeIdsFor } from './traineeUtils';
 const MovementLab = lazy(() => import('./MovementLab'));
 const ARFormOverlay = lazy(() => import('./ARFormOverlay'));
 
-const SKEY = 'expo-gym-session';
+const SKEY = 'expo-gym-session';       // active session (coach-only)
+const LOGKEY = 'expo-gym-session-log'; // finished trial sessions (coach-only)
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const fresh = () => ({ reps: '', load: '', rpe: '', done: false });
 
@@ -130,13 +131,23 @@ export default function SessionsView({ trainees = [], planIndex = [], exercises 
       .filter(Boolean);
     if (!completed.length) {
       if (!(await confirmToast('No sets are marked done. End the session anyway (nothing will be saved)?', { okLabel: 'End', cancelLabel: 'Keep going' }))) return;
-    } else if (setClientWorkouts) {
-      setClientWorkouts(prev => [...prev, ...completed]);
+    } else {
+      // TRIAL ISOLATION: do NOT write to client_workouts — that is the table
+      // every athlete reads in their portal History, and Sessions is an
+      // owner-only trial right now (trainees must not see anything). Finished
+      // sessions append to a coach-only store log instead. Flip this to the
+      // client_workouts write (the `completed` array is already in portal
+      // shape) only when Ohad takes Sessions live for real.
+      try {
+        const { data: prev } = await supabase.from('store').select('value').eq('key', LOGKEY).maybeSingle();
+        const log = Array.isArray(prev?.value) ? prev.value : [];
+        await supabase.from('store').upsert({ key: LOGKEY, value: [...log, { at: new Date().toISOString(), sessions: completed }], updated_at: new Date().toISOString() });
+      } catch {}
     }
     try { await supabase.from('store').delete().eq('key', SKEY); } catch {}
     setSession(null);
-    if (completed.length) toast(`Session saved · ${completed.length} athlete${completed.length === 1 ? '' : 's'} logged`, 'success', { ttl: 4000 });
-  }, [session, setClientWorkouts]);
+    if (completed.length) toast(`Trial session logged (coach-only) · ${completed.length} athlete${completed.length === 1 ? '' : 's'}`, 'success', { ttl: 4000 });
+  }, [session]);
 
   if (!loaded) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
 
@@ -144,6 +155,7 @@ export default function SessionsView({ trainees = [], planIndex = [], exercises 
   if (!session) {
     return (
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        <TrialBanner />
         <Card title="SESSIONS">
           <div style={{ padding: '8px 2px 14px', color: C.tm, fontSize: 13, lineHeight: 1.6 }}>
             Run the floor: add the athletes training now, check them in as they arrive, and log everyone's sets in one grid. Finishing saves each athlete's work to their history.
@@ -159,6 +171,7 @@ export default function SessionsView({ trainees = [], planIndex = [], exercises 
   const checkedIn = session.athletes.filter(a => a.checkedIn).length;
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <TrialBanner />
       <FloorBar session={session} checkedIn={checkedIn} traineeById={traineeById}
         onAdd={() => setPicking(true)} onFinish={finishSession} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
@@ -318,6 +331,16 @@ function AthletePicker({ trainees, planIndex, existing = [], onCancel, onConfirm
 }
 
 // ---- bits ----
+function TrialBanner() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 10, background: 'rgba(57,189,255,0.08)', border: `1px solid ${C.ac}` }}>
+      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 7px' }}>TRIAL</span>
+      <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4 }}>
+        Visible only to you. Athletes and staff don't see Sessions, and finishing a trial session logs coach-only — it does <strong>not</strong> appear in any athlete's history.
+      </span>
+    </div>
+  );
+}
 function Card({ title, children }) {
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 14 }}>
