@@ -93,3 +93,6 @@ EXPO - המרכז למצויינות-פיתוח אתלטית/
 .env.canary2
 
 .ddl-batch2.sql
+
+.canary-pw
+*.testvid.mp4
