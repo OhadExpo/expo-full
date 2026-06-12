@@ -13,10 +13,10 @@
 // Memory rule honoured: measures + reports only. No load recommendations,
 // no auto weight bumps.
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, frameToPoints3D, POSE_BONES, estimateFps } from './poseLab';
+import { analyzeClip, jumpMetrics, frameToPoints3D, estimateFps } from './poseLab';
 
 const POSE_CONNECTIONS = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
@@ -44,7 +44,9 @@ export default function MovementLab({
   const [result, setResult] = useState(null);     // analyzeClip output
   const [jump, setJump] = useState(null);         // jumpMetrics output
   const [tab, setTab] = useState('velocity');     // velocity | rom | threeD
+  const [progress, setProgress] = useState(0);    // upload analysis %
   const [mode] = useState(initialMode);
+  const fileInputRef = useRef(null);
 
   // ---- bootstrap + record loop ----
   const recordLoop = useCallback(() => {
@@ -105,9 +107,62 @@ export default function MovementLab({
     }, 30);
   }, [mode, exerciseTitle]);
 
+  // ---- analyze an uploaded clip from the gallery ----
+  // Steps through the video by seeking (≈20fps sample, capped) and runs pose
+  // on each frame. Uses the 'full' model (more accurate; no real-time budget
+  // since this is offline). Reuses the same analyzeClip path as live capture.
+  const analyzeUploadedFile = useCallback(async (file) => {
+    if (!file) return;
+    setError(null); setResult(null); setJump(null); setProgress(0); setPhase('analyzing');
+    let url;
+    try {
+      if (!landmarkerRef.current) landmarkerRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full' });
+      const lm = landmarkerRef.current;
+      url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.src = url; v.muted = true; v.playsInline = true; v.preload = 'auto';
+      await new Promise((res, rej) => {
+        v.onloadedmetadata = () => res();
+        v.onerror = () => rej(new Error('Could not read that video file.'));
+      });
+      const dur = v.duration;
+      if (!isFinite(dur) || dur <= 0) throw new Error('Could not read that video (no duration).');
+      const STEP = 0.05;                 // sample ~20 fps
+      const MAX = 600;                   // cap frames (≈30s of clip)
+      const total = Math.min(MAX, Math.max(2, Math.ceil(dur / STEP)));
+      const frames = [];
+      for (let i = 0; i < total; i++) {
+        const time = Math.min(dur - 0.001, i * STEP);
+        v.currentTime = time;
+        await new Promise((res) => { v.onseeked = () => res(); });
+        let r = null;
+        try { r = lm.detectForVideo(v, Math.round(time * 1000) + i); } catch {}
+        if (r?.worldLandmarks?.[0]) {
+          frames.push({ t: time * 1000, landmarks: r.landmarks?.[0] || null, worldLandmarks: r.worldLandmarks[0] });
+        }
+        setProgress(Math.round(((i + 1) / total) * 100));
+      }
+      framesRef.current = frames;
+      if (mode === 'jump') {
+        const j = jumpMetrics(frames);
+        setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
+      } else {
+        const res = analyzeClip(frames, exerciseTitle);
+        setResult(res); setTab(res.repCount ? 'velocity' : 'threeD');
+      }
+      setPhase('results');
+    } catch (e) {
+      setPhase('idle'); setError(e?.message || 'Could not process that video.');
+    } finally {
+      if (url) try { URL.revokeObjectURL(url); } catch {}
+    }
+  }, [mode, exerciseTitle]);
+
+  const pickFile = useCallback(() => fileInputRef.current?.click(), []);
+
   const reset = useCallback(() => {
     framesRef.current = [];
-    setResult(null); setJump(null); setPhase('idle'); setElapsed(0);
+    setResult(null); setJump(null); setPhase('idle'); setElapsed(0); setProgress(0);
   }, []);
 
   useEffect(() => () => {
@@ -144,8 +199,8 @@ export default function MovementLab({
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 360, lineHeight: 1.55, marginTop: 8 }}>
                 {mode === 'jump'
-                  ? 'Side-on, full body in frame, ~2–3m back. Tap record, have them stand still for a second, then jump.'
-                  : 'Side-on, full body in frame, ~2–3m back. Record one work set — keep the whole lift in shot.'}
+                  ? 'Side-on, full body in frame, ~2–3m back. Record, or upload a clip from your gallery — stand still for a second, then jump.'
+                  : 'Side-on, full body in frame, ~2–3m back. Record a work set, or upload a clip from your gallery — keep the whole lift in shot.'}
               </div>
             </Centre>
           )}
@@ -160,7 +215,23 @@ export default function MovementLab({
       )}
 
       {/* analyzing */}
-      {phase === 'analyzing' && <Centre><div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>READING THE MOVEMENT…</div></Centre>}
+      {phase === 'analyzing' && (
+        <Centre>
+          <div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>READING THE MOVEMENT…</div>
+          {progress > 0 && (
+            <>
+              <div style={{ width: 220, height: 4, background: 'rgba(255,255,255,0.15)', marginTop: 16, borderRadius: 0 }}>
+                <div style={{ width: `${progress}%`, height: '100%', background: C.ac, transition: 'width 120ms' }} />
+              </div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 8, fontFamily: FN, letterSpacing: '0.12em' }}>{progress}%</div>
+            </>
+          )}
+        </Centre>
+      )}
+
+      {/* hidden gallery picker */}
+      <input ref={fileInputRef} type="file" accept="video/*" style={{ display: 'none' }}
+        onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) analyzeUploadedFile(f); }} />
 
       {/* results */}
       {phase === 'results' && (
@@ -173,7 +244,10 @@ export default function MovementLab({
 
       {/* control bar */}
       <div style={{ background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10 }}>
-        {phase === 'idle' && <BigBtn color={C.ac} onClick={startRecording}>{mode === 'jump' ? 'RECORD JUMP →' : 'RECORD SET →'}</BigBtn>}
+        {phase === 'idle' && <>
+          <BigBtn color={C.ac} onClick={startRecording}>{mode === 'jump' ? 'RECORD' : 'RECORD'} →</BigBtn>
+          <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ UPLOAD CLIP</button>
+        </>}
         {phase === 'loading' && <BigBtn color="#555" disabled>STARTING…</BigBtn>}
         {recording && <BigBtn color={C.rd} onClick={stopAndAnalyze}>■ STOP &amp; ANALYZE</BigBtn>}
         {(phase === 'results' || phase === 'analyzing') && <BigBtn color={C.ac} onClick={reset}>↺ RECORD AGAIN</BigBtn>}
@@ -260,70 +334,151 @@ function JumpResult({ jump, result, onSave, onClose }) {
 }
 
 // ----------------------------- 3D viewer ------------------------------------
+// Full-body skeleton from MediaPipe's 33 landmarks. Real interactive 3D:
+// orbit (drag), zoom (wheel/pinch), play the rep, scrub any frame, front/side
+// presets. Depth-shaded + painter's-sorted so near bones read in front of far.
+const SKELETON_CONNECTIONS = [
+  [0, 2], [2, 7], [0, 5], [5, 8], [9, 10],            // head
+  [11, 12], [11, 23], [12, 24], [23, 24],             // torso
+  [11, 13], [13, 15], [15, 17], [15, 19], [15, 21], [17, 19], // L arm+hand
+  [12, 14], [14, 16], [16, 18], [16, 20], [16, 22], [18, 20], // R arm+hand
+  [23, 25], [25, 27], [27, 29], [27, 31], [29, 31],   // L leg+foot
+  [24, 26], [26, 28], [28, 30], [28, 32], [30, 32],   // R leg+foot
+];
+
+function computeFit(poseFrames) {
+  let maxR = 0.5;
+  for (const f of poseFrames) {
+    const pts = frameToPoints3D(f.worldLandmarks);
+    for (const p of pts) { if (!p) continue; const r = Math.hypot(p.x, p.y, p.z); if (r > maxR) maxR = r; }
+  }
+  return maxR;
+}
+
 function Viewer3D({ frames }) {
   const canvasRef = useRef(null);
+  const poseFrames = useMemo(() => frames.filter(f => f.worldLandmarks), [frames]);
+  const maxR = useMemo(() => computeFit(poseFrames), [poseFrames]);
   const [idx, setIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const rotRef = useRef({ yaw: 0.5, pitch: -0.05 });
+  const zoomRef = useRef(1);
   const dragRef = useRef(null);
-  const rotRef = useRef({ yaw: 0.5, pitch: -0.15 });
+  const pinchRef = useRef(null);
+  const idxRef = useRef(0);
   const [, force] = useState(0);
-  const poseFrames = frames.filter(f => f.worldLandmarks);
-  const cur = poseFrames[Math.min(idx, poseFrames.length - 1)];
+
+  useEffect(() => { idxRef.current = idx; }, [idx]);
+  useEffect(() => {
+    if (!playing || poseFrames.length < 2) return;
+    let raf, last = performance.now(), acc = 0; const fps = 20;
+    const loop = (now) => {
+      acc += now - last; last = now;
+      if (acc >= 1000 / fps) { acc = 0; idxRef.current = (idxRef.current + 1) % poseFrames.length; setIdx(idxRef.current); }
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [playing, poseFrames.length]);
 
   useEffect(() => {
-    const pts = cur ? frameToPoints3D(cur.worldLandmarks) : null;
-    draw3D(canvasRef.current, pts, rotRef.current);
+    const cur = poseFrames[Math.min(idx, poseFrames.length - 1)];
+    drawSkeleton(canvasRef.current, cur?.worldLandmarks, rotRef.current, zoomRef.current, maxR);
   });
 
-  const onDown = (e) => { dragRef.current = { x: e.clientX ?? e.touches?.[0]?.clientX, y: e.clientY ?? e.touches?.[0]?.clientY }; };
+  const getXY = (e) => ({ x: e.clientX ?? e.touches?.[0]?.clientX, y: e.clientY ?? e.touches?.[0]?.clientY });
+  const pinchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const onDown = (e) => { if (e.touches?.length === 2) pinchRef.current = pinchDist(e.touches); else dragRef.current = getXY(e); };
   const onMove = (e) => {
+    if (e.touches?.length === 2 && pinchRef.current) {
+      const d = pinchDist(e.touches);
+      zoomRef.current = Math.max(0.4, Math.min(3, zoomRef.current * (d / pinchRef.current)));
+      pinchRef.current = d; force(n => n + 1); return;
+    }
     if (!dragRef.current) return;
-    const x = e.clientX ?? e.touches?.[0]?.clientX, y = e.clientY ?? e.touches?.[0]?.clientY;
+    const { x, y } = getXY(e);
     rotRef.current.yaw += (x - dragRef.current.x) * 0.01;
-    rotRef.current.pitch += (y - dragRef.current.y) * 0.01;
-    dragRef.current = { x, y };
-    force(n => n + 1);
+    rotRef.current.pitch = Math.max(-1.2, Math.min(1.2, rotRef.current.pitch + (y - dragRef.current.y) * 0.01));
+    dragRef.current = { x, y }; force(n => n + 1);
   };
-  const onUp = () => { dragRef.current = null; };
+  const onUp = () => { dragRef.current = null; pinchRef.current = null; };
+  const onWheel = (e) => { e.preventDefault(); zoomRef.current = Math.max(0.4, Math.min(3, zoomRef.current * (e.deltaY < 0 ? 1.1 : 0.9))); force(n => n + 1); };
+  const preset = (yaw, pitch) => { rotRef.current = { yaw, pitch }; zoomRef.current = 1; force(n => n + 1); };
 
   if (!poseFrames.length) return <Empty msg="No 3D pose captured in that clip." />;
+  const f = Math.min(idx, poseFrames.length - 1);
   return (
     <div>
-      <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.12em', marginBottom: 8, textAlign: 'center' }}>DRAG TO ROTATE · SCRUB BELOW</div>
-      <canvas ref={canvasRef} width={320} height={360}
+      <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+        <Pill onClick={() => setPlaying(p => !p)} active={playing}>{playing ? '❚❚ PAUSE' : '▶ PLAY'}</Pill>
+        <Pill onClick={() => preset(0, -0.05)}>FRONT</Pill>
+        <Pill onClick={() => preset(Math.PI / 2, -0.05)}>SIDE</Pill>
+        <Pill onClick={() => preset(0.5, -0.05)}>RESET</Pill>
+      </div>
+      <canvas ref={canvasRef} width={560} height={620}
         onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
-        onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp}
-        style={{ width: '100%', maxWidth: 320, height: 'auto', display: 'block', margin: '0 auto', background: '#0b0b0d', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none', cursor: 'grab' }} />
-      <input type="range" min={0} max={poseFrames.length - 1} value={Math.min(idx, poseFrames.length - 1)} onChange={e => setIdx(Number(e.target.value))}
-        style={{ width: '100%', maxWidth: 320, display: 'block', margin: '14px auto 0', accentColor: C.ac }} />
-      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>FRAME {Math.min(idx, poseFrames.length - 1) + 1} / {poseFrames.length}</div>
+        onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp} onWheel={onWheel}
+        style={{ width: '100%', maxWidth: 340, height: 'auto', display: 'block', margin: '0 auto', background: '#0b0b0d', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none', cursor: 'grab' }} />
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', textAlign: 'center', marginTop: 6 }}>DRAG ORBIT · PINCH / WHEEL ZOOM</div>
+      <input type="range" min={0} max={poseFrames.length - 1} value={f} onChange={e => { setPlaying(false); setIdx(Number(e.target.value)); }}
+        style={{ width: '100%', maxWidth: 340, display: 'block', margin: '10px auto 0', accentColor: C.ac }} />
+      <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 6 }}>FRAME {f + 1} / {poseFrames.length}</div>
     </div>
   );
 }
 
-function draw3D(canvas, pts, rot) {
+const Pill = ({ onClick, active, children }) => (
+  <button onClick={onClick} style={{ padding: '6px 12px', background: active ? C.ac : 'transparent', color: '#FFF', border: `1px solid ${active ? C.ac : 'rgba(255,255,255,0.25)'}`, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 0 }}>{children}</button>
+);
+
+function drawSkeleton(canvas, world, rot, zoom, maxR) {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
-  if (!pts) return;
+  if (!world) return;
+  const pts = frameToPoints3D(world);                 // y up, hip-centred metres
   const cy = Math.cos(rot.yaw), sy = Math.sin(rot.yaw), cp = Math.cos(rot.pitch), sp = Math.sin(rot.pitch);
-  const project = (p) => {
+  const S = (Math.min(W, H) * 0.40 / maxR) * zoom;
+  const proj = pts.map(p => {
     if (!p) return null;
-    let x = p.x * cy - p.z * sy;
-    let z = p.x * sy + p.z * cy;
-    let y = p.y * cp - z * sp;
-    const scale = 150;
-    return { sx: W / 2 + x * scale, sy: H / 2 - y * scale };
-  };
-  const proj = pts.map(project);
-  ctx.strokeStyle = '#39BDFF'; ctx.lineWidth = 3; ctx.lineCap = 'round';
-  POSE_BONES.forEach(([a, b]) => {
-    const pa = proj[a], pb = proj[b];
-    if (!pa || !pb) return;
-    ctx.beginPath(); ctx.moveTo(pa.sx, pa.sy); ctx.lineTo(pb.sx, pb.sy); ctx.stroke();
+    const xr = p.x * cy + p.z * sy;                    // yaw about vertical
+    const zr = -p.x * sy + p.z * cy;
+    const yr = p.y * cp - zr * sp;                     // pitch about horizontal
+    const zd = p.y * sp + zr * cp;                     // depth
+    return { sx: W / 2 + xr * S, sy: H / 2 - yr * S, d: zd };
   });
-  ctx.fillStyle = '#FFFFFF';
-  proj.forEach(p => { if (!p) return; ctx.beginPath(); ctx.arc(p.sx, p.sy, 3.5, 0, Math.PI * 2); ctx.fill(); });
+  let dmin = Infinity, dmax = -Infinity;
+  for (const p of proj) if (p) { if (p.d < dmin) dmin = p.d; if (p.d > dmax) dmax = p.d; }
+  const span = (dmax - dmin) || 1;
+  const bright = (d) => 0.45 + 0.55 * ((d - dmin) / span); // nearer = brighter
+  // bones, painter-sorted far→near
+  const bones = SKELETON_CONNECTIONS.map(([a, b]) => ({ pa: proj[a], pb: proj[b] })).filter(o => o.pa && o.pb);
+  bones.sort((m, n) => (m.pa.d + m.pb.d) - (n.pa.d + n.pb.d));
+  ctx.lineCap = 'round';
+  for (const o of bones) {
+    const t = bright((o.pa.d + o.pb.d) / 2);
+    ctx.strokeStyle = `rgba(57,189,255,${0.35 + 0.65 * t})`;
+    ctx.lineWidth = 3 + 4 * t;
+    ctx.beginPath(); ctx.moveTo(o.pa.sx, o.pa.sy); ctx.lineTo(o.pb.sx, o.pb.sy); ctx.stroke();
+  }
+  // joints, near→far so near sit on top
+  const joints = proj.map(p => p).filter(Boolean).sort((m, n) => m.d - n.d);
+  for (const p of joints) {
+    const t = bright(p.d);
+    ctx.fillStyle = `rgba(255,255,255,${0.5 + 0.5 * t})`;
+    ctx.beginPath(); ctx.arc(p.sx, p.sy, 2 + 2 * t, 0, Math.PI * 2); ctx.fill();
+  }
+  // head circle (skull) at the nose, sized by ear span / shoulder width
+  const nose = proj[0], e7 = proj[7], e8 = proj[8], s11 = proj[11], s12 = proj[12];
+  if (nose) {
+    let hr = 14;
+    if (e7 && e8) hr = Math.max(11, Math.hypot(e7.sx - e8.sx, e7.sy - e8.sy) * 0.95);
+    else if (s11 && s12) hr = Math.max(11, Math.hypot(s11.sx - s12.sx, s11.sy - s12.sy) * 0.35);
+    const t = bright(nose.d);
+    ctx.strokeStyle = `rgba(57,189,255,${0.4 + 0.6 * t})`; ctx.lineWidth = 2.5 + 1.5 * t;
+    ctx.beginPath(); ctx.arc(nose.sx, nose.sy, hr, 0, Math.PI * 2); ctx.stroke();
+  }
 }
 
 // ----------------------------- live draw ------------------------------------
