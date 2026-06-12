@@ -107,3 +107,7 @@ EXPO - המרכז למצויינות-פיתוח אתלטית/
 # dev-only anatomy test harness
 /anatomy-test.html
 src/anatomy-test.jsx
+# anatomy model build workspace (FBX downloads + conversions, ~122MB — never commit)
+/.anatomy-build/
+# anatomy QA screenshots
+/zanatomy-*.png

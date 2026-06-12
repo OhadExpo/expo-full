@@ -18,9 +18,9 @@ import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, frameToPoints3D, estimateFps } from './poseLab';
 
-// Real 3D layered-anatomy viewer (three.js) — lazy so the 3D engine only ships
-// when the 3D tab is opened.
-const AnatomyViewer = lazy(() => import('./AnatomyViewer'));
+// Real Z-Anatomy 3D model (three.js), posed from the captured rep — lazy so the
+// 3D engine + GLBs only ship when the 3D tab is opened.
+const AnatomyViewer = lazy(() => import('./AnatomyModelViewer'));
 
 const POSE_CONNECTIONS = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
