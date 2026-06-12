@@ -236,12 +236,16 @@ export function useSupaClientWorkouts(initial = []) {
   // the (now stale) snapshot the server returns a moment later.
   const mutatedRef = useRef(false);
 
+  // Loaded flips true after the initial fetch settles (success OR failure,
+  // same semantics as useSupaStore) so the app shell can hold its splash
+  // instead of flashing empty Review/CRM states while the table loads.
+  const [loaded, setLoaded] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
         const { data: rows } = await supabase.from('client_workouts').select('*').order('date', { ascending: false });
-        if (rows && rows.length > 0) {
-          if (mutatedRef.current) return;
+        if (rows && rows.length > 0 && !mutatedRef.current) {
           const mapped = rows.map(r => ({
             id: r.id, clientId: r.client_id, planName: r.plan_name,
             dayName: r.day_name, week: r.week, date: r.date,
@@ -254,6 +258,7 @@ export function useSupaClientWorkouts(initial = []) {
           localStorage.setItem('expo-cw', JSON.stringify(mapped));
         }
       } catch {}
+      setLoaded(true);
     })();
   }, []);
 
@@ -371,7 +376,7 @@ export function useSupaClientWorkouts(initial = []) {
     }
   }, []);
 
-  return [data, save, markReviewed, updateFormVideos, deleteWorkout];
+  return [data, save, markReviewed, updateFormVideos, deleteWorkout, loaded];
 }
 
 // BW logs hook — uses dedicated table
@@ -380,6 +385,8 @@ export function useSupaBwLog(initial = []) {
     try { const s = localStorage.getItem('expo-bw'); return s ? JSON.parse(s) : initial; } catch { return initial; }
   });
   const dataRef = useRef(data);
+  // Same loaded contract as useSupaClientWorkouts above.
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -395,6 +402,7 @@ export function useSupaBwLog(initial = []) {
           localStorage.setItem('expo-bw', JSON.stringify(mapped));
         }
       } catch {}
+      setLoaded(true);
     })();
   }, []);
 
@@ -456,7 +464,7 @@ export function useSupaBwLog(initial = []) {
     }
   }, []);
 
-  return [data, save];
+  return [data, save, loaded];
 }
 
 // Weekly focus hook — uses dedicated table.

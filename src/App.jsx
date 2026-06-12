@@ -618,8 +618,8 @@ function AuthedApp() {
   // The adapter hook shapes rows to the legacy `payments` array contract
   // so DashboardView / TraineesView / autoTasks don't change.
   const { payments, loaded: pyL, addPayment, updatePayment: updateBitPayment, removePayment } = useBitPayments();
-  const [clientWorkouts,setClientWorkouts,markWorkoutReviewed,updateFormVideos,deleteClientWorkout]=useSupaClientWorkouts([]);
-  const [bwLog,setBwLog]=useSupaBwLog([]);
+  const [clientWorkouts,setClientWorkouts,markWorkoutReviewed,updateFormVideos,deleteClientWorkout,cwL]=useSupaClientWorkouts([]);
+  const [bwLog,setBwLog,bwL]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
   const [portalVis,setPortalVis]=useSupaStore('expo-portal-vis',{});
 
@@ -1048,9 +1048,13 @@ function AuthedApp() {
       onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
   </Suspense></div>);
 
-  // Wait for small stores + plan index so trainee card counts don't flash 0
-  // while the plans table is still loading.
-  const storesReady = tL && wL && pyL && pL;
+  // Wait for small stores + plan index + workout/bodyweight tables so
+  // trainee card counts, the Review queue, and dashboard alert tiles don't
+  // flash 0/empty while their tables are still loading. Exercises (eL) is
+  // deliberately NOT gated — it's the largest store and its consumers
+  // (library, pickers) tolerate a late fill. All loaded flags flip true on
+  // failure too, so a failed read can't strand this splash.
+  const storesReady = tL && wL && pyL && pL && cwL && bwL;
   if (!storesReady) return (
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
       <img src={logo.nav} alt="EXPO" style={{height:50}} />
