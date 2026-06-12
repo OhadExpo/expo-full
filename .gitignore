@@ -111,3 +111,6 @@ src/anatomy-test.jsx
 /.anatomy-build/
 # anatomy QA screenshots
 /zanatomy-*.png
+/public/_realtest.mp4
+/real-video-test.html
+src/real-video-test.jsx
