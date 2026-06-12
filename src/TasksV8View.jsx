@@ -306,6 +306,23 @@ function StatusIconGlyph({ status, theme, size = 16 }) {
 }
 function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const [open, setOpen] = useState(false);
+  // Menu position is FIXED (viewport coords from the pill's rect), not
+  // absolute — rows live inside the sections' collapse-animation wrappers
+  // (grid-template-rows + overflow:hidden), which clip an absolute menu at
+  // the section's bottom edge so the rows below showed through it.
+  const [menuPos, setMenuPos] = useState(null);
+  useEffect(() => {
+    if (!open) return;
+    // A fixed menu doesn't track the page — close on any scroll/resize so
+    // it can't drift away from its pill.
+    const close = () => setOpen(false);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [open]);
   // Read-only (another partner's task): show the status glyph but don't let
   // the viewer open the menu / change it.
   // A labelled pill — the old 16px glyph was too small and read as
@@ -335,7 +352,12 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   return (
     <span style={{ position: 'relative', display: 'inline-flex' }}>
       <button
-        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        onClick={(e) => {
+          e.stopPropagation();
+          const r = e.currentTarget.getBoundingClientRect();
+          setMenuPos({ top: r.bottom + 2, right: window.innerWidth - r.right });
+          setOpen(o => !o);
+        }}
         onBlur={() => setTimeout(() => setOpen(false), 160)}
         title="Click to change status"
         style={{ ...pillBase, cursor: 'pointer' }}>
@@ -343,14 +365,14 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
         {opt.label}
         <span style={{ fontSize: 8, opacity: 0.8, marginLeft: 1 }}>▾</span>
       </button>
-      {open && (
+      {open && menuPos && (
         <div
           onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => e.stopPropagation()}
           style={{
-            position: 'absolute', top: '100%', right: 0, marginTop: 2,
+            position: 'fixed', top: menuPos.top, right: menuPos.right,
             background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)',
-            zIndex: 100, minWidth: 140, boxShadow: 'var(--c-cardShadow)',
+            zIndex: 1000, minWidth: 140, boxShadow: 'var(--c-cardShadow)',
           }}>
           {STATUS_OPTIONS.map(o => {
             const sc = statusColors(o.id, theme);
