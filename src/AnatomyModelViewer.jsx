@@ -21,6 +21,8 @@ const ZERO = new THREE.Vector3(0, 0, 0);
 
 function classifyBone(name, region, cx) {
   const n = name.toLowerCase(); const s = cx < 0 ? 'L' : 'R';
+  // soft tissue that spans/protrudes when posed onto a rigid bone — drop it.
+  if (/cartilage|ligament|membrane|meniscus|\bdisc|tendon|fontanelle|capsule|labrum|bursa/.test(n)) return null;
   if (/skull|crani|mandible|maxilla|occipital|parietal|frontal bone|temporal bone|sphenoid|ethmoid|zygomatic|palatine|vomer|lacrimal|nasal bone|hyoid|teeth|dent|facial|mental/.test(n)) return 'skull';
   if (/pelvi|ilium|ischium|pubis|hip bone|coxal|innominate|acetabul/.test(n)) return 'pelvis';
   if (/vertebr|cervical|thoracic|lumbar|sacr|coccyx|\brib\b|costal|sternum|thorax|atlas|\baxis\b|spinal/.test(n)) return 'spine';
@@ -36,10 +38,6 @@ function classifyBone(name, region, cx) {
   return 'spine';
 }
 // The muscle GLB has no limb hierarchy, but every mesh carries an anatomical
-// name (Deltoid_fascia, Antebrachial…, Femoral…, Crural…, Metatarsal…) with an
-// l/r side suffix. Classify by keyword (most-distal first) + x-sign for side, so
-// the body splits into posable limbs instead of one rigid blob.
-// The muscle GLB has no limb hierarchy, but every mesh carries an anatomical
 // name + an l/r side and sits in a known standing pose. Classify by name, with
 // one height guard: arm rules only apply above the hip line, so an ambiguous
 // "flexor_digitorum_longus" in the calf is read as a leg, not an arm.
@@ -47,17 +45,18 @@ function classifyMuscle(name, region, cx, cy) {
   const n = name.toLowerCase();
   const s = cx < 0 ? 'L' : 'R';
   // thin connective-tissue bands + long multi-joint tendons + scalp/ear sheets
-  // protrude as spikes/horns when posed onto one rigid bone — drop them, keep
-  // the muscle bellies that form the body surface.
+  // protrude as spikes/horns when posed onto one rigid bone — drop them.
   if (/retinaculum|aponeuros|ligament|septum|raphe|sheath|tendinous_arch|interosseous_membrane|annular|digitorum_longus|hallucis_longus|digiti_minimi|pollicis_longus|extensor_digitorum|flexor_digitorum|auricular|temporoparietal|epicranial|galea/.test(n)) return null;
+  // hands & feet are many small structures that splay when rigidly posed and add
+  // nothing to lift mechanics — the muscle layer ends at the wrist/ankle (the
+  // skeleton layer keeps them).
+  if (/hand|metacarp|palmar|thenar|hypothenar|lumbrical|interosse|finger|phalan|foot|metatars|plantar|tarsal|hallucis|pedis/.test(n)) return null;
   const armOK = cy > 0.9;                              // arms live above the hip line
-  if (armOK && /hand|metacarp|palmar|thenar|hypothenar|lumbrical|interosse|finger|phalan/.test(n)) return 'hand' + s;
-  if (armOK && /antebrach|forearm|wrist|radial|ulnar|pronator|supinator|brachioradialis|flexor_carpi|extensor_carpi|flexor_digitorum|extensor_digitorum|palmaris/.test(n)) return 'farm' + s;
+  if (armOK && /antebrach|forearm|wrist|radial|ulnar|pronator|supinator|brachioradialis|flexor_carpi|extensor_carpi|palmaris/.test(n)) return 'farm' + s;
   if (armOK && /brachial|brachii|deltoid|axilla|triceps|biceps|coracobrach|anconeus|(^|_)arm/.test(n)) return 'uarm' + s;
-  if (/foot|metatars|plantar|tarsal|hallucis|pedis/.test(n)) return 'foot' + s;
-  if (/crural|popliteal|tibial|gastrocn|soleus|peroneal|fibular|(^|_)leg|calf|plantaris|digitorum_longus/.test(n)) return 'shin' + s;
+  if (/crural|popliteal|tibial|gastrocn|soleus|peroneal|fibular|(^|_)leg|calf|plantaris/.test(n)) return 'shin' + s;
   if (/femoral|femur|fascia_lata|thigh|quadriceps|rectus_femoris|vastus|hamstring|biceps_femoris|semitendinosus|semimembranosus|adductor|sartorius|gracilis|tensor_fasciae/.test(n)) return 'thigh' + s;
-  if (/temporal|masseter|facial|cranial|occipito|scalp|galea|buccinator|orbicularis|nasal|auricular|zygomatic|frontalis|epicranial|pterygoid/.test(n)) return 'headM';
+  if (/temporal|masseter|facial|cranial|occipito|scalp|buccinator|orbicularis|nasal|zygomatic|frontalis|pterygoid/.test(n)) return 'headM';
   // neck stays with the trunk so it doesn't swing off the head bone
   return 'trunk';
 }
@@ -99,8 +98,8 @@ export default function AnatomyModelViewer({ frames }) {
     let disposed = false, raf;
 
     const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0b0d);
-    const camera = new THREE.PerspectiveCamera(38, W / H, 0.05, 100);
-    camera.position.set(1.5, 0.1, 2.8);
+    const camera = new THREE.PerspectiveCamera(36, W / H, 0.05, 100);
+    camera.position.set(0.65, -0.05, 2.55);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); renderer.setSize(W, H);
     mount.appendChild(renderer.domElement);
@@ -109,7 +108,7 @@ export default function AnatomyModelViewer({ frames }) {
     const fl = new THREE.DirectionalLight(0x88bbff, 0.4); fl.position.set(-2.5, 0.5, -1.5); scene.add(fl);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.12; controls.minDistance = 0.7; controls.maxDistance = 8;
-    controls.target.set(0, 0, 0);
+    controls.target.set(0, -0.12, 0);
 
     const boneMat = new THREE.MeshStandardMaterial({ color: 0xe8e1cf, roughness: 0.6, metalness: 0.02 });
     const muscleMat = new THREE.MeshStandardMaterial({ color: 0xb6473d, roughness: 0.72, metalness: 0.02, emissive: 0x180605, emissiveIntensity: 0.35 });
@@ -174,12 +173,11 @@ export default function AnatomyModelViewer({ frames }) {
       return buckets;
     };
 
-    // merge each bucket into one bone mesh; record its principal endpoints
+    // merge each bucket into one bone mesh; record its principal endpoints.
     const mergeBucket = (geos, mat) => {
       const g = mergeGeometries(geos, false); if (!g) return null;
       if (!g.attributes.normal) g.computeVertexNormals();
-      const mesh = new THREE.Mesh(g, mat);
-      return { mesh, ...ends(g) };
+      return { mesh: new THREE.Mesh(g, mat), ...ends(g) };
     };
 
     // derive the model-space joint table from the merged bone meshes. Each limb
