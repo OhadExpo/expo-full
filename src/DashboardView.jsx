@@ -213,16 +213,14 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
   // Storage usage probe — list the form-videos bucket and sum byte sizes.
   // form-videos is the only bucket that matters for capacity (meal-photos +
   // coach-voice + coaching-contracts are negligible). Runs once per dashboard
-  // mount. Public read works because form-videos has a `public_read` policy.
+  // mount.
   //
-  // Probe is two-pass: (1) supabase-js `list()` first, which has historically
-  // mis-returned 0 results when the storage RLS policy is permissive only to
-  // anon (the SDK attaches the user's JWT and the request gets evaluated
-  // against a per-user policy that doesn't exist). (2) Fall back to a raw
-  // REST call with just the anon key, which always works against the
-  // public_read policy. Either path that returns data short-circuits the
-  // other. Errors are surfaced to the tile (showing a small "?" + last
-  // error message in the console) instead of silently rendering as 0.
+  // The bucket's SELECT policy (`auth_read_form_videos`) is TO authenticated:
+  // is_trainer() OR own-folder. An anon listing isn't denied — it returns an
+  // empty array, which used to render here as a false "0 MB / 0 form videos".
+  // So the probe MUST send the coach's session JWT as Bearer; if there's no
+  // session token we bail and leave the tile in its loading state rather
+  // than misreport capacity.
   const STORAGE_CAP_MB = 1024;
   const [storage, setStorage] = useState(null);
   useEffect(() => {
@@ -230,23 +228,26 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
     (async () => {
       const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
       const SUPA_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
-      // Use the raw REST endpoint with just the anon key. The bucket's
-      // public_read policy explicitly allows this; the SDK path was
-      // returning 0 results under certain auth contexts. The REST endpoint
-      // is the more reliable read path for capacity probes.
-      const listRaw = async (prefix) => {
+      const listRaw = async (prefix, token) => {
         const r = await fetch(`${SUPA_URL}/storage/v1/object/list/form-videos`, {
           method: 'POST',
-          headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+          headers: {
+            'apikey': SUPA_KEY,
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({ prefix, limit: 1000 }),
         });
         if (!r.ok) throw new Error(`list failed at "${prefix}" (${r.status})`);
         return r.json();
       };
       try {
+        const { data: { session } = {} } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) throw new Error('no session token — authenticated listing required');
         let total = 0, files = 0;
         const walk = async (prefix) => {
-          const data = await listRaw(prefix);
+          const data = await listRaw(prefix, token);
           if (!Array.isArray(data)) return;
           for (const it of data) {
             // Folders come back with id===null + no metadata. Files have a
