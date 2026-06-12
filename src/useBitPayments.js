@@ -39,7 +39,9 @@ const adapt = (row) => ({
   amount: row.paid_amount != null ? Number(row.paid_amount) : Number(row.amount),
   date: (row.paid_at || row.created_at || new Date().toISOString()).slice(0, 10),
   status: STATUS_LABEL[row.status] || row.status,
-  method: 'Bit',
+  // The Bit-app integration is gone (2026-06-12); rows are plain ledger
+  // entries with no collection method recorded. Kept for shape compat.
+  method: '',
   notes: row.reference || '',
   createdAt: row.created_at,
 });

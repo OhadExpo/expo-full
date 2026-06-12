@@ -381,7 +381,7 @@ export function deriveAutoEvents(td, clientWorkouts, payments, planIndex, comple
       id: `auto-payment-${p.id}`,
       ts: p.date,
       kind: 'payment',
-      summary: `₪${p.amount} · ${p.method}${p.status && p.status !== 'Paid' ? ` · ${p.status}` : ''}`,
+      summary: `₪${p.amount}${p.method ? ` · ${p.method}` : ''}${p.status && p.status !== 'Paid' ? ` · ${p.status}` : ''}`,
       autoSource: 'payments',
     });
   }

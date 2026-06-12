@@ -124,7 +124,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
   }, [payments]);
   const maxBar = Math.max(1, ...monthBars.map(b => b.value));
 
-  // Outstanding — sum of pending Bit payment requests.
+  // Outstanding — sum of pending payment requests.
   const [outstanding, setOutstanding] = useState({ amount: 0, count: 0 });
   const [dropoutExpanded, setDropoutExpanded] = usePersistentState('dash-dropout', false);
   const [allAthletesOpen, setAllAthletesOpen] = usePersistentState('dash-all-athletes', true);
@@ -813,7 +813,7 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
             <span style={{ ...numStyle, color: outstanding.amount > 0 ? C.or : C.tx }}>
               <span style={{ color: outstanding.amount > 0 ? C.or : C.ac }}>₪</span>{Math.round(outstanding.amount).toLocaleString()}
             </span>
-            <span style={subStyle}>{outstanding.count} pending Bit request{outstanding.count === 1 ? '' : 's'}</span>
+            <span style={subStyle}>{outstanding.count} pending request{outstanding.count === 1 ? '' : 's'}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>AVG LTV</span>
