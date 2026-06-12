@@ -1636,13 +1636,18 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // Suppresses errors during polling (logs to console) so a transient
   // network failure doesn't toast-spam the user.
   const [lastSyncedAt, setLastSyncedAt] = useState(null);
+  // Latest rows live in a ref so the poll effect doesn't depend on `rows`
+  // — otherwise every task edit tore down the 60s interval and fired an
+  // immediate events.list call against Google.
+  const rowsRef = React.useRef(rows);
+  useEffect(() => { rowsRef.current = rows; }, [rows]);
   useEffect(() => {
     if (!gcalConnected) return;
     let cancelled = false;
 
     const reconcileIncoming = async (events) => {
       for (const event of events) {
-        const localRow = rows.find(r => getStoredEventId(r) === event.id);
+        const localRow = rowsRef.current.find(r => getStoredEventId(r) === event.id);
         if (!localRow) continue;
         // Cancelled remotely → close locally.
         if (event.status === 'cancelled') {
@@ -1696,7 +1701,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     poll();
     const interval = setInterval(poll, 60000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [gcalConnected, rows]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gcalConnected]);
 
   // Format a relative "Synced 30s ago" indicator.
   const lastSyncedLabel = useMemo(() => {
