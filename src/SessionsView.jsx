@@ -73,7 +73,7 @@ function MovementTools() {
         <button onClick={() => setOpen('ar')} style={{ ...toolBtn, minWidth: 150 }}>🪞 AR FORM</button>
       </div>
       <div style={{ padding: '0 12px 12px', fontFamily: FB, fontSize: 11.5, color: C.td, lineHeight: 1.5 }}>
-        Record a set → velocity (VBT), range-of-motion + tempo, and a rotatable 3D capture. Or run a live form overlay with a bar-path + depth line.
+        <b>Movement Lab</b> analyses a recorded set → bar-speed (VBT), range-of-motion + tempo, and a rotatable 3D anatomy model rebuilt from the lift (peel muscle → bone). <b>AR Form</b> runs live during the set with a real-time bar-path + depth line.
       </div>
       {open && (
         <Suspense fallback={null}>

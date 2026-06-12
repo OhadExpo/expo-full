@@ -266,7 +266,7 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab }) {
   const tabs = [
     { k: 'velocity', label: 'VELOCITY', on: result.repCount > 0 },
     { k: 'rom', label: 'ROM & TEMPO', on: result.repCount > 0 },
-    { k: 'threeD', label: '3D', on: true },
+    { k: 'threeD', label: '3D ANATOMY', on: true },
   ];
   return (
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
