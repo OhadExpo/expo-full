@@ -84,7 +84,7 @@ export default function BugsView() {
       <RefinedHeaderStrip padY={PAD} padX={PAD} marginBottom={12}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: refined ? '#FFFFFF' : C.tx }}>
-            🐞 BUG REPORTS ({counts.open || 0} open)
+            BUG REPORTS ({counts.open || 0} open)
           </span>
           <button onClick={reload}
             style={{
@@ -214,7 +214,7 @@ export default function BugsView() {
                     </span>
                   )}
                   <span style={{ flex: 1 }} />
-                  <button onClick={() => remove(r.id)} style={btn(C.td)}>🗑 DELETE</button>
+                  <button onClick={() => remove(r.id)} style={btn(C.td)}>DELETE</button>
                 </div>
               </div>
             )}
