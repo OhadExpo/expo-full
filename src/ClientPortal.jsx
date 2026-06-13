@@ -562,6 +562,104 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     vid.onerror = () => { fail(new Error('Failed to load video')); };
   });
 
+  // FAST path: WebCodecs. The <video> element decodes the source with the OS
+  // (so iOS HEVC works), then the hardware H.264 encoder re-compresses far
+  // faster than real time and we mux to MP4. Frames are pulled via
+  // requestVideoFrameCallback at an accelerated playbackRate, each tagged with
+  // its real mediaTime so the output keeps correct duration even if the decoder
+  // drops frames under speed. Falls back to compressVideoChrome when WebCodecs
+  // (or a supported H.264 config) isn't available.
+  const canWebCodecs = () => typeof window !== 'undefined' && 'VideoEncoder' in window && 'VideoFrame' in window
+    && typeof HTMLVideoElement !== 'undefined' && 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+
+  const compressVideoWebCodecs = (file, onProgress, signal, opts = {}) => new Promise((resolve, reject) => {
+    const TARGET_MB = opts.targetMb || 40;
+    const MAX_WIDTH = opts.maxWidth || 1280;
+    const MIN_BITRATE = 400_000, MAX_BITRATE = 3_000_000;
+    const PLAYBACK_RATE = 4;                            // capture faster than real time
+
+    let settled = false, encoder = null;
+    const url = URL.createObjectURL(file);
+    const vid = document.createElement('video');
+    vid.muted = true; vid.playsInline = true; vid.preload = 'auto'; vid.src = url;
+    const cleanup = () => { try { if (encoder && encoder.state !== 'closed') encoder.close(); } catch {} try { vid.pause(); } catch {} try { URL.revokeObjectURL(url); } catch {} };
+    const done = (v) => { if (settled) return; settled = true; cleanup(); resolve(v); };
+    const fail = (e) => { if (settled) return; settled = true; cleanup(); reject(e); };
+    if (signal) { if (signal.aborted) { fail(new Error('aborted')); return; } signal.addEventListener('abort', () => fail(new Error('aborted')), { once: true }); }
+
+    (async () => {
+      await new Promise((res, rej) => { vid.onloadedmetadata = res; vid.onerror = () => rej(new Error('load failed')); });
+      if (settled) return;
+      const duration = (Number.isFinite(vid.duration) && vid.duration > 0) ? vid.duration : 60;
+      const scale = vid.videoWidth > MAX_WIDTH ? MAX_WIDTH / vid.videoWidth : 1;
+      const w = Math.round(vid.videoWidth * scale / 2) * 2;
+      const h = Math.round(vid.videoHeight * scale / 2) * 2;
+      if (!w || !h) { fail(new Error('bad dimensions')); return; }
+      const estIn = file.size * 8 / duration;          // never encode above the source bitrate (don't inflate small clips)
+      const bitrate = Math.max(MIN_BITRATE, Math.min(MAX_BITRATE, Math.floor(TARGET_MB * 1024 * 1024 * 8 / duration), Math.floor(estIn * 0.85)));
+
+      // pick a hardware-supported H.264 config (baseline first — broadest).
+      let codec = null;
+      for (const c of ['avc1.42001f', 'avc1.42E01E', 'avc1.4d0028', 'avc1.640028']) {
+        try { const s = await VideoEncoder.isConfigSupported({ codec: c, width: w, height: h, bitrate, framerate: 30 }); if (s && s.supported) { codec = c; break; } } catch {}
+      }
+      if (!codec || settled) { fail(new Error('no supported H.264 config')); return; }
+
+      const { Muxer, ArrayBufferTarget } = await import('mp4-muxer');
+      const target = new ArrayBufferTarget();
+      const muxer = new Muxer({ target, fastStart: 'in-memory', video: { codec: 'avc', width: w, height: h } });
+      encoder = new VideoEncoder({
+        output: (chunk, meta) => { try { muxer.addVideoChunk(chunk, meta); } catch (e) { fail(e); } },
+        error: (e) => fail(e),
+      });
+      encoder.configure({ codec, width: w, height: h, bitrate, framerate: 30 });
+
+      const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      let frames = 0, finishing = false;
+
+      const finishEncode = async () => {
+        if (settled || finishing) return; finishing = true;
+        try {
+          await encoder.flush(); muxer.finalize();
+          const blob = new Blob([target.buffer], { type: 'video/mp4' });
+          if (blob.size < 1024) { fail(new Error('empty output')); return; }
+          if (onProgress) onProgress(100);
+          done({ blob, ext: '.mp4', originalSize: file.size, compressedSize: blob.size });
+        } catch (e) { fail(e); }
+      };
+
+      const onFrame = (now, metadata) => {
+        if (settled || finishing) return;
+        if (!aliveRef.current) { fail(new Error('aborted')); return; }
+        try {
+          ctx.drawImage(vid, 0, 0, w, h);
+          const mt = (metadata && Number.isFinite(metadata.mediaTime)) ? metadata.mediaTime : vid.currentTime;
+          const vf = new VideoFrame(canvas, { timestamp: Math.max(0, Math.round(mt * 1e6)) });
+          encoder.encode(vf, { keyFrame: frames % 60 === 0 });
+          vf.close(); frames++;
+          if (onProgress) onProgress(Math.min(99, Math.round((mt / duration) * 100)));
+        } catch (e) { fail(e); return; }
+        if (vid.ended || vid.currentTime >= duration - 0.02) { finishEncode(); return; }
+        vid.requestVideoFrameCallback(onFrame);
+      };
+
+      vid.requestVideoFrameCallback(onFrame);
+      vid.onended = () => { if (frames > 0) finishEncode(); };
+      try { vid.playbackRate = PLAYBACK_RATE; } catch {}
+      await vid.play().catch(e => fail(e));
+    })().catch(fail);
+  });
+
+  // Choose the fastest available compressor, falling back gracefully.
+  const compressVideo = async (file, onProgress, signal, opts) => {
+    if (canWebCodecs()) {
+      try { return await compressVideoWebCodecs(file, onProgress, signal, opts); }
+      catch (e) { if (signal && signal.aborted) throw e; console.warn('WebCodecs compress failed — falling back to MediaRecorder:', e); }
+    }
+    return compressVideoChrome(file, onProgress, signal, opts);
+  };
+
   // Upload with real progress tracking via XMLHttpRequest
   // Supabase Storage REST API: POST raw body with Content-Type header.
   // URL/key sourced from src/supabase.js so there's a single
@@ -714,7 +812,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           const ABS_MAX_MS = 240_000;    // absolute backstop (~120s clip + margin)
           try {
             const result = await Promise.race([
-              compressVideoChrome(file, pct => {
+              compressVideo(file, pct => {
                 lastTick = Date.now();
                 setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
               }, ctrl.signal, cOpts),
