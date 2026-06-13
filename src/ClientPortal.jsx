@@ -237,6 +237,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // unique exercise instance in the day. The counter is lazy-imported
   // because MediaPipe vision_bundle is ~140KB.
   const [liveCountForEid, setLiveCountForEid] = useState(null);
+  const [fbOpenForEid, setFbOpenForEid] = useState(null);   // last-week coach video feedback, per exercise
 
   // Group consecutive exercises sharing the same superset letter.
   // groups[i] = { exIdxs: [0,1,...], superset: 'A' | '' }
@@ -1131,6 +1132,23 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // un-scoped key is kept as a read fallback for pre-scoping notes.
     const fk = `${clientId}|${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`;
     const wf = weeklyFocus?.[fk] ?? weeklyFocus?.[`${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`];
+    // Unified coach guidance for THIS exercise THIS week: weekly-focus text +
+    // last week's annotated form video (the coach's drawings + timestamped
+    // comments, replayed via the same player) + the static program note as
+    // fallback. Composed from existing data — no migration.
+    const staticNote = (ex.n && ex.n.trim()) || (d.q && d.q.trim()) || '';
+    const lastWeekFb = (() => {
+      if (!priorWorkouts || weekNum < 1) return null;
+      const pw = priorWorkouts.find(w => w.planName === plan.name && w.dayName === day.name && w.week === weekNum);
+      if (!pw) return null;
+      const pidx = (pw.exercises || []).findIndex(pe => pe.eid === ex.eid);
+      if (pidx < 0) return null;
+      const fvid = (pw.formVideos || [])[pidx];
+      if (!fvid || !fvid.cloudUrl) return null;
+      const coachNotes = (fvid.reviewNotes || []).filter(n => (n.author || 'trainer') === 'trainer');
+      if (!coachNotes.length) return null;
+      return { url: fvid.cloudUrl, notes: fvid.reviewNotes || [], count: coachNotes.length, title: (pw.exercises[pidx].title || d.t || '') };
+    })();
 
     // Previous-week working sets for this same exercise on this same day.
     // Week 2+ only. Scoped to (planName, dayName, week=weekNum) so cross-block
@@ -1237,22 +1255,6 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           C.cardBd (thicker, gray) instead of 0.25px / C.ac. Cyan is reserved
           for genuine intent \u2014 the left accent stripe on the focus card,
           active-week pill, and key inline text. */}
-      {(() => {
-        // Notes precedence: coach's per-instance note (ex.n) wins. The library's
-        // cues (d.q) only render as a fallback when ex.n is empty. This stops
-        // the "white note from nowhere" effect where the library cues kept
-        // showing under the orange coach note. Per-instance is the only
-        // authoritative text the coach can edit; library is the seed source.
-        const note = (ex.n && ex.n.trim()) || (d.q && d.q.trim()) || '';
-        if (!note) return null;
-        const useExNote = !!(ex.n && ex.n.trim());
-        return (
-          <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:12,marginTop:12,marginBottom:12,fontSize:13,color:C.tx,lineHeight:1.6}}>
-            <div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,fontWeight:700,textAlign:'center',letterSpacing:'0.18em'}}>EXERCISE NOTES</div>
-            <div style={{color:C.tx,textAlign:'center',direction:/[\u0590-\u05FF]/.test(note)?'rtl':'ltr',fontFamily:/[\u0590-\u05FF]/.test(note)?FH:undefined}}>{note}</div>
-          </div>
-        );
-      })()}
 
       {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
@@ -1265,9 +1267,36 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       {/* WEEKLY FOCUS \u2014 outer border is always neutral now; the left accent
           stripe (3px) is the cyan-when-set indicator. Reads as a calm card
           with a focused stripe rather than a wholly cyan box. */}
-      <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${wf?C.ac:C.cardBd}`,borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
-        <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700,letterSpacing:'0.18em'}}>WEEKLY FOCUS</div>
-        <div dir="auto" style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',direction:/[֐-׿]/.test(wf||'')?'rtl':'ltr',fontFamily:/[֐-׿]/.test(wf||'')?FH:undefined}}>{wf || 'No focus set this week'}</div></div>
+      {(() => {
+        const hasText = !!(wf && wf.trim());
+        const hasFb = !!lastWeekFb;
+        const showNote = !hasText && !hasFb && !!staticNote;
+        if (!hasText && !hasFb && !showNote) return null;
+        const accent = hasText || hasFb;
+        const body = hasText ? wf : staticNote;
+        const fbOpen = fbOpenForEid === ex.eid;
+        return (
+          <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${accent?C.ac:C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
+            <div style={{fontSize:10,fontFamily:FN,color:accent?C.ac:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>COACH'S FOCUS</div>
+            {(hasText || showNote) && (
+              <div dir="auto" style={{fontSize:13,color:C.tx,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',direction:/[֐-׿]/.test(body||'')?'rtl':'ltr',fontFamily:/[֐-׿]/.test(body||'')?FH:undefined}}>{body}</div>
+            )}
+            {hasFb && (
+              <div style={{marginTop:(hasText||showNote)?10:0}}>
+                <button onClick={() => setFbOpenForEid(fbOpen ? null : ex.eid)}
+                  style={{width:'100%',padding:'10px 8px',borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',textTransform:'uppercase',cursor:'pointer'}}>
+                  {fbOpen ? '▾ ' : '▸ '}Coach's video feedback · {lastWeekFb.count} note{lastWeekFb.count===1?'':'s'}
+                </button>
+                {fbOpen && (
+                  <div style={{marginTop:8}}>
+                    <FormVideoPlayer url={lastWeekFb.url} exerciseTitle={lastWeekFb.title} role="client" reviewNotes={lastWeekFb.notes} onReviewNotesChange={null} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Last-time-at-this-exercise pill — moved here so it sits IMMEDIATELY
           above the inputs card. The trainee scrolls past prescription / notes
