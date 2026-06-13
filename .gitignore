@@ -123,3 +123,8 @@ src/anatomy-test.jsx
 /public/_realtest.mp4
 /real-video-test.html
 src/real-video-test.jsx
+
+# throwaway inspection/verify scripts
+scripts/_*.mjs
+.jv.mjs
+.t.mjs

@@ -16,7 +16,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, frameToPoints3D, estimateFps } from './poseLab';
+import { analyzeClip, jumpMetrics, jumpPower, frameToPoints3D, estimateFps } from './poseLab';
 
 // Real Z-Anatomy 3D model (three.js), posed from the captured rep — lazy so the
 // 3D engine + GLBs only ship when the 3D tab is opened.
@@ -33,6 +33,7 @@ export default function MovementLab({
   facingMode = 'environment',   // filming someone on the floor by default
   onClose,
   onSaveJump,                   // (metrics) => void — wires jump into ath eval
+  defaultBodyweightKg = null,   // prefill the jump-power bodyweight from the athlete
 }) {
   const videoRef = useRef(null);
   const liveCanvasRef = useRef(null);
@@ -42,9 +43,11 @@ export default function MovementLab({
   const framesRef = useRef([]);
   const recStartRef = useRef(0);
 
-  const [phase, setPhase] = useState('idle');     // idle | loading | recording | analyzing | results
+  const [phase, setPhase] = useState('idle');     // idle | loading | countdown | recording | analyzing | results
   const [error, setError] = useState(null);
   const [elapsed, setElapsed] = useState(0);
+  const [countdown, setCountdown] = useState(0);
+  const countdownRef = useRef(null);
   const [result, setResult] = useState(null);     // analyzeClip output
   const [jump, setJump] = useState(null);         // jumpMetrics output
   const [tab, setTab] = useState('velocity');     // velocity | rom | threeD
@@ -73,6 +76,13 @@ export default function MovementLab({
     rafRef.current = requestAnimationFrame(recordLoop);
   }, []);
 
+  const beginCapture = useCallback(() => {
+    framesRef.current = [];
+    recStartRef.current = performance.now();
+    setElapsed(0); setPhase('recording');
+    rafRef.current = requestAnimationFrame(recordLoop);
+  }, [recordLoop]);
+
   const startRecording = useCallback(async () => {
     setError(null); setResult(null); setJump(null); setPhase('loading');
     try {
@@ -83,14 +93,22 @@ export default function MovementLab({
         if (v) { v.srcObject = s; await v.play(); }
       }
       if (!landmarkerRef.current) landmarkerRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'lite' });
-      framesRef.current = [];
-      recStartRef.current = performance.now();
-      setElapsed(0); setPhase('recording');
-      rafRef.current = requestAnimationFrame(recordLoop);
+      // 3·2·1 countdown so the athlete gets set and holds STILL before capture —
+      // the first 0.6 s of frames is the standing baseline the jump math
+      // calibrates the floor against. Recording no longer fires the instant the
+      // button is tapped.
+      setPhase('countdown'); setCountdown(3);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      countdownRef.current = setInterval(() => {
+        setCountdown(c => {
+          if (c <= 1) { clearInterval(countdownRef.current); countdownRef.current = null; beginCapture(); return 0; }
+          return c - 1;
+        });
+      }, 1000);
     } catch (e) {
       setPhase('idle'); setError(e?.message || 'Could not start the camera.');
     }
-  }, [facingMode, recordLoop]);
+  }, [facingMode, beginCapture]);
 
   const stopAndAnalyze = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -165,18 +183,20 @@ export default function MovementLab({
   const pickFile = useCallback(() => fileInputRef.current?.click(), []);
 
   const reset = useCallback(() => {
+    if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
     framesRef.current = [];
-    setResult(null); setJump(null); setPhase('idle'); setElapsed(0); setProgress(0);
+    setResult(null); setJump(null); setPhase('idle'); setElapsed(0); setProgress(0); setCountdown(0);
   }, []);
 
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
     stopStream(streamRef.current);
     try { landmarkerRef.current?.close(); } catch {}
   }, []);
 
   const recording = phase === 'recording';
-  const showCamera = phase === 'idle' || phase === 'loading' || phase === 'recording';
+  const showCamera = phase === 'idle' || phase === 'loading' || phase === 'countdown' || phase === 'recording';
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column' }}>
@@ -197,7 +217,6 @@ export default function MovementLab({
           <canvas ref={liveCanvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
           {phase === 'idle' && !error && (
             <Centre>
-              <div style={{ fontSize: 56 }}>{mode === 'jump' ? '🏃' : '🎥'}</div>
               <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginTop: 12 }}>
                 {mode === 'jump' ? 'FILM A JUMP' : 'FILM THE SET'}
               </div>
@@ -209,6 +228,14 @@ export default function MovementLab({
             </Centre>
           )}
           {phase === 'loading' && <Centre><div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>STARTING CAMERA + POSE…</div></Centre>}
+          {phase === 'countdown' && (
+            <Centre>
+              <div style={{ fontFamily: FN, fontSize: 120, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{countdown}</div>
+              <div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700, marginTop: 8 }}>
+                {mode === 'jump' ? 'STAND STILL — JUMP AFTER “REC”' : 'GET SET'}
+              </div>
+            </Centre>
+          )}
           {recording && (
             <div style={{ position: 'absolute', top: 56, left: 0, right: 0, textAlign: 'center', color: '#FFFFFF', fontFamily: FN, fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>
               <span style={{ color: C.rd }}>● REC</span> · {elapsed.toFixed(1)}s · {framesRef.current.length} frames
@@ -241,7 +268,7 @@ export default function MovementLab({
       {phase === 'results' && (
         <div style={{ flex: 1, overflow: 'auto', padding: '64px 16px 16px', WebkitOverflowScrolling: 'touch' }}>
           {mode === 'jump'
-            ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} />
+            ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
             : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} />}
         </div>
       )}
@@ -253,7 +280,8 @@ export default function MovementLab({
           <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ UPLOAD CLIP</button>
         </>}
         {phase === 'loading' && <BigBtn color="#555" disabled>STARTING…</BigBtn>}
-        {recording && <BigBtn color={C.rd} onClick={stopAndAnalyze}>■ STOP &amp; ANALYZE</BigBtn>}
+        {phase === 'countdown' && <BigBtn color="#555" disabled>GET READY… {countdown}</BigBtn>}
+        {recording && <BigBtn color={C.rd} onClick={stopAndAnalyze}>STOP &amp; ANALYZE</BigBtn>}
         {(phase === 'results' || phase === 'analyzing') && <BigBtn color={C.ac} onClick={reset}>↺ RECORD AGAIN</BigBtn>}
       </div>
     </div>
@@ -319,9 +347,12 @@ function RomTable({ r }) {
 }
 
 // ----------------------------- results: jump --------------------------------
-function JumpResult({ jump, result, onSave, onClose }) {
+function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
   const [saved, setSaved] = useState(false);
-  if (!jump) return <Empty msg="Couldn't detect a clean jump. Film side-on, full body in frame, with a still second before the jump." />;
+  const [bw, setBw] = useState(defaultBodyweightKg != null ? String(defaultBodyweightKg) : '');
+  if (!jump) return <Empty msg="Couldn't read a clean jump. Film side-on, full body in frame — stand still through the countdown, then jump straight up and land in place." />;
+  const massKg = parseFloat(bw);
+  const power = jumpPower(jump.heightCm, massKg);
   return (
     <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center' }}>
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>VERTICAL JUMP</div>
@@ -330,11 +361,26 @@ function JumpResult({ jump, result, onSave, onClose }) {
         <MiniKpi label="FLIGHT TIME" value={`${jump.flightMs} ms`} />
         <MiniKpi label="PEAK RISE" value={`${jump.peakRiseCm} cm`} />
       </div>
+
+      {/* Bodyweight → peak power (Sayers). Height from flight time is mass-
+          independent, but power is the athletic number — so we ask the weight. */}
+      <div style={{ marginTop: 20, padding: 14, border: '1px solid rgba(255,255,255,0.14)', textAlign: 'left' }}>
+        <label style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.16em', fontWeight: 700 }}>BODYWEIGHT (KG)</label>
+        <input type="number" inputMode="decimal" value={bw} onChange={e => setBw(e.target.value)} placeholder="e.g. 75"
+          style={{ width: '100%', marginTop: 6, padding: '10px 12px', background: '#000', border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 16, letterSpacing: '0.04em', boxSizing: 'border-box' }} />
+        {power
+          ? <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+              <MiniKpi label="PEAK POWER" value={`${power.watts} W`} />
+              <MiniKpi label="RELATIVE" value={`${power.perKg} W/kg`} />
+            </div>
+          : <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 10, letterSpacing: '0.04em' }}>Enter bodyweight to estimate peak power.</div>}
+      </div>
+
       {onSave && (
-        <button disabled={saved} onClick={() => { onSave(jump); setSaved(true); }} style={{
-          marginTop: 24, padding: '13px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac,
+        <button disabled={saved} onClick={() => { onSave({ ...jump, bodyweightKg: power ? massKg : null, powerW: power?.watts ?? null, powerWkg: power?.perKg ?? null }); setSaved(true); }} style={{
+          marginTop: 18, padding: '13px 20px', width: '100%', background: saved ? '#2a2a2a' : C.ac,
           border: `1px solid ${saved ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: saved ? 'default' : 'pointer',
-        }}>{saved ? '✓ SAVED TO EVALUATION' : 'SAVE TO ATHLETIC EVALUATION →'}</button>
+        }}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO ATHLETIC EVALUATION →'}</button>
       )}
       {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>DONE</button>}
     </div>

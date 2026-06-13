@@ -264,14 +264,23 @@ export default function TraineeEvaluation({ trainee }) {
   // model — it's just an objective number in the same jsonb.
   const onSaveJump = async (j) => {
     const today = new Date().toISOString().slice(0, 10);
+    const powerNote = j.powerW ? ` · peak power ${j.powerW}W (${j.powerWkg}W/kg @ ${j.bodyweightKg}kg)` : '';
     await create({
       eval_date: today,
+      ...(j.bodyweightKg ? { weight_kg: j.bodyweightKg } : {}),
       scores: { svj: String(j.heightCm) },
-      notes: `Vertical jump ${j.heightCm}cm — camera (flight ${j.flightMs}ms, peak rise ${j.peakRiseCm}cm).`,
+      notes: `Vertical jump ${j.heightCm}cm — camera (flight ${j.flightMs}ms, peak rise ${j.peakRiseCm}cm)${powerNote}.`,
     });
     setCameraTest(false);
     toast(`Saved ${j.heightCm}cm vertical jump to evaluation`, 'success', { ttl: 4000 });
   };
+
+  // Prefill the jump-power bodyweight from the most recent evaluation that has one.
+  const lastBodyweight = useMemo(() => {
+    const withW = rows.filter(r => { const w = parseFloat(r?.weight_kg); return isFinite(w) && w > 0; })
+      .sort((a, b) => String(b.eval_date).localeCompare(String(a.eval_date)));
+    return withW.length ? parseFloat(withW[0].weight_kg) : null;
+  }, [rows]);
 
   if (loading) return null;
 
@@ -300,7 +309,7 @@ export default function TraineeEvaluation({ trainee }) {
                 color: refined ? '#FFFFFF' : 'var(--c-ac)',
                 padding: '3px 10px', borderRadius: 0, fontFamily: 'inherit', fontSize: 10,
                 fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-              }}>📹 CAMERA TEST</button>
+              }}>CAMERA TEST</button>
             <button onClick={() => setEditing('new')}
               style={{
                 background: 'transparent',
@@ -319,6 +328,7 @@ export default function TraineeEvaluation({ trainee }) {
             exerciseTitle="Vertical Jump"
             initialMode="jump"
             onSaveJump={onSaveJump}
+            defaultBodyweightKg={lastBodyweight}
             onClose={() => setCameraTest(false)}
           />
         </Suspense>

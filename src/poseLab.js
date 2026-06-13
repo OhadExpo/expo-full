@@ -180,40 +180,80 @@ export function romTempoMetrics(frames, angle, reps) {
 // land portions are included), giving flight time ≈ takeoff→landing. Height =
 // g·t²/8 (scale-free physics). Peak rise (metres) is a secondary cross-check.
 export function jumpMetrics(frames) {
-  if (frames.length < 8) return null;
-  const scale = frames.map(frameScaleY);
-  const up = frames.map((f, i) => {
-    const im = f.landmarks; if (!im || !isReal(scale[i])) return null;
-    const a = mid2(im[LM.L_ANKLE], im[LM.R_ANKLE]);
-    return imgUpMetres(a, scale[i]);
-  });
+  if (!frames || frames.length < 8) return null;
   const t0 = frames[0].t;
-  const baseSamples = up.filter((v, i) => isReal(v) && frames[i].t - t0 < 500);
-  if (baseSamples.length < 3) return null;
-  const baseline = median(baseSamples);
-  const THR = 0.03; // m above standing to count as airborne
-  const n = up.length;
+  // Ground-contact reference = the LOWER ankle (max image-y, y is down). Using
+  // the lower foot means "airborne" only registers once BOTH feet leave the
+  // floor — the correct flight-time gate.
+  const ankY = frames.map(f => {
+    const im = f.landmarks; if (!im) return null;
+    const a = im[LM.L_ANKLE], b = im[LM.R_ANKLE];
+    if (a && b) return Math.max(a.y, b.y);
+    return (a || b) ? (a || b).y : null;
+  });
+  // Standing window: first 600 ms. Need the athlete still here (the countdown in
+  // the UI guarantees it) so the baseline + ruler are clean.
+  const standIdx = frames.map((_, i) => i).filter(i => ankY[i] != null && frames[i].t - t0 < 600);
+  if (standIdx.length < 3) return null;
+  const baseY = median(standIdx.map(i => ankY[i]));        // standing ankle-y (normalised)
+  // ONE stable metres-per-image-unit, the median of the standing ruler. The old
+  // code recomputed this PER FRAME from shoulder→ankle, which collapses mid-air
+  // when the legs tuck → scale spikes → a false multi-second "flight". Locking
+  // it to the standing pose is the fix.
+  const scaleSamples = standIdx.map(i => frameScaleY(frames[i])).filter(isReal);
+  if (scaleSamples.length < 3) return null;
+  const scale = median(scaleSamples);
+  if (!isReal(scale) || scale <= 0) return null;
+  // rise above standing, in metres (y is down, so baseY − y is upward)
+  const rise = ankY.map(y => y == null ? null : (baseY - y) * scale);
+
+  const THR = 0.05;                  // 5 cm — confirms a window is a real jump
+  const n = rise.length;
+  // sub-frame timestamp where `rise` crosses `level` between frames k0 and k1.
+  const interpAt = (k0, k1, level) => {
+    const r0 = rise[k0], r1 = rise[k1], ta = frames[k0]?.t, tb = frames[k1]?.t;
+    if (r0 == null || r1 == null || ta == null || tb == null || r1 === r0) return (frames[k1] || frames[k0])?.t ?? 0;
+    const frac = (level - r0) / (r1 - r0);
+    return (frac >= 0 && frac <= 1) ? ta + frac * (tb - ta) : frames[k1].t;
+  };
   let best = null, i = 0;
   while (i < n) {
-    if (isReal(up[i]) && up[i] - baseline > THR) {
-      let j = i;
-      while (j + 1 < n && isReal(up[j + 1]) && up[j + 1] - baseline > THR) j++;
-      // bracket one frame each side to include the sub-threshold launch/landing
-      const a = Math.max(0, i - 1), b = Math.min(n - 1, j + 1);
-      const flightSec = (frames[b].t - frames[a].t) / 1000;
-      let peakRise = 0;
-      for (let k = i; k <= j; k++) if (isReal(up[k])) peakRise = Math.max(peakRise, up[k] - baseline);
-      if (!best || flightSec > best.flightSec) best = { flightSec, peakRise };
+    if (rise[i] != null && rise[i] > THR) {
+      let j = i; while (j + 1 < n && rise[j + 1] != null && rise[j + 1] > THR) j++;
+      // Flight time = toe-off→touchdown, timed at the ground level (rise = 0), not
+      // at the 5 cm gate — gating there would clip the launch/land arcs and shave
+      // ~15% off the height. Walk out to the 0-crossings on each side and interp.
+      let a = i; while (a - 1 >= 0 && rise[a - 1] != null && rise[a - 1] > 0) a--;
+      let b = j; while (b + 1 < n && rise[b + 1] != null && rise[b + 1] > 0) b++;
+      const takeoff = interpAt(a - 1 >= 0 ? a - 1 : a, a, 0);
+      const landing = interpAt(b, b + 1 < n ? b + 1 : b, 0);
+      const flightSec = (landing - takeoff) / 1000;
+      let peak = 0; for (let k = i; k <= j; k++) if (rise[k] != null) peak = Math.max(peak, rise[k]);
+      if (!best || flightSec > best.flightSec) best = { flightSec, peak };
       i = j + 1;
     } else i++;
   }
-  if (!best || best.flightSec < 0.12) return null; // <120ms = noise, not a jump
+  // Physical sanity: a human standing jump is ~0.15–1.0 s of flight (≈3–123 cm).
+  // Anything outside is noise/occlusion, not a jump — return null so the UI says
+  // "couldn't read a clean jump" instead of printing a 47-metre result.
+  if (!best || best.flightSec < 0.15 || best.flightSec > 1.0) return null;
   const heightCm = (9.81 * best.flightSec * best.flightSec / 8) * 100;
   return {
     heightCm: Math.round(heightCm),
     flightMs: Math.round(best.flightSec * 1000),
-    peakRiseCm: Math.round(best.peakRise * 100),
+    peakRiseCm: Math.round(best.peak * 100),
   };
+}
+
+// Peak power from a vertical jump — Sayers (1999), the validated regression for
+// CMJ peak power: P(W) = 60.7·height(cm) + 45.3·mass(kg) − 2055. Returns null
+// without a real bodyweight (height alone is bodyweight-independent physics, but
+// POWER is the athletic number Ohad wants, and it needs mass).
+export function jumpPower(heightCm, massKg) {
+  if (!isReal(heightCm) || !isReal(massKg) || massKg <= 0) return null;
+  const watts = 60.7 * heightCm + 45.3 * massKg - 2055;
+  if (watts <= 0) return null;
+  return { watts: Math.round(watts), perKg: Math.round((watts / massKg) * 10) / 10 };
 }
 
 // ---------------------------------------------------------------------------
