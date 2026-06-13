@@ -1225,15 +1225,6 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </React.Suspense>
       )}
       <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
-      {/* F-31 — Live count entry button. Lightweight pill, sits below
-          the prescription line. Always available — pose model only
-          loads on tap. */}
-      <div style={{textAlign:'center',marginTop:6}}>
-        <button onClick={() => setLiveCountForEid(ex.eid)} title="Live rep counter — camera + voice trigger"
-          style={{background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,fontFamily:FN,fontSize:10,letterSpacing:'0.12em',fontWeight:700,padding:'4px 10px',cursor:'pointer',borderRadius:0}}>
-          🎯 LIVE COUNT
-        </button>
-      </div>
       {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
 
       {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
@@ -1453,6 +1444,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             </label>
           </div>
         )}
+        <button onClick={() => setLiveCountForEid(ex.eid)} title="Live rep counter — camera + voice trigger"
+          style={{width:'100%',marginTop:8,padding:'11px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
+          Live Rep Counter
+        </button>
         <textarea dir="auto" value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8}}/>
       </div>
     </div>;
@@ -2043,13 +2038,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   if (vw === 'meal' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
     <div style={{padding:'14px 20px 28px'}}>
-      {demoMode ? (
-        <div style={{textAlign:'center',color:C.td,padding:40,fontSize:13}}>
-          Meal logging is hidden in preview mode.
-        </div>
-      ) : ci ? (
+      {ci ? (
         <React.Suspense fallback={<div style={{textAlign:'center',color:C.td,padding:40,fontFamily:FN,fontSize:11,letterSpacing:'0.18em',fontWeight:700}}>LOADING…</div>}>
-          <MealLogger clientId={ci} page />
+          <MealLogger clientId={ci} page demoMode={demoMode} />
         </React.Suspense>
       ) : null}
     </div>
@@ -2060,16 +2051,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   if (vw === 'msg' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
     <div style={{padding:'14px 20px 28px'}}>
-      {demoMode ? (
-        <div style={{textAlign:'center',color:C.td,padding:40,fontSize:13}}>
-          Messages are hidden in preview mode.
-        </div>
-      ) : ci ? (
+      {ci ? (
         <>
-          <PushToggle role="athlete" />
+          {!demoMode && <PushToggle role="athlete" />}
           <CoachMessagesAthlete
             traineeId={ci}
             role="athlete"
+            demoMode={demoMode}
             recipientEmail="ohadyproductions@gmail.com"
             senderLabel={(trainee?.name || '').split(' ')[0] || 'your athlete'} />
         </>
@@ -2103,7 +2091,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{fontSize:9,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.12em',textTransform:'uppercase'}}>View in History →</div>
           </div>
         </div>}
-        {!demoMode && ci && <AthleteChallengesWidget clientId={ci} clientWorkouts={clientWorkouts} bwLog={bwLog} traineesById={Object.fromEntries((trainees||[]).map(t=>[t.id,t]))} />}
+        {ci && <AthleteChallengesWidget clientId={ci} clientWorkouts={clientWorkouts} bwLog={bwLog} traineesById={Object.fromEntries((trainees||[]).map(t=>[t.id,t]))} />}
         {/* Messages + Meal Log used to render inline here. Both are
             now their own pages (vw='msg' / vw='meal') reached via the
             two-row nav above. Removed 2026-05-16. */}

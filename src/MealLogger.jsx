@@ -28,7 +28,7 @@ function dayLabel(iso) {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
-export default function MealLogger({ clientId, page = false }) {
+export default function MealLogger({ clientId, page = false, demoMode = false }) {
   const [photoUrl, setPhotoUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -57,6 +57,7 @@ export default function MealLogger({ clientId, page = false }) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    if (demoMode) { setError('Preview only — meal logging is disabled here.'); return; }
     if (file.size > 8 * 1024 * 1024) {
       setError('Photo is too large (max 8 MB).');
       return;
@@ -118,7 +119,7 @@ export default function MealLogger({ clientId, page = false }) {
   };
 
   const save = async () => {
-    if (!macros || !photoUrl) return;
+    if (!macros || !photoUrl || demoMode) return;
     setError(null);
     try {
       const row = {

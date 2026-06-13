@@ -225,7 +225,7 @@ function MessageBubble({ msg, viewerRole }) {
   );
 }
 
-export default function CoachMessages({ traineeId, role = 'coach', recipientEmail, senderLabel }) {
+export default function CoachMessages({ traineeId, role = 'coach', recipientEmail, senderLabel, demoMode = false }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   // Collapsible — the cyan strip is the toggle. Persisted per trainee+role.
@@ -259,6 +259,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
   useEffect(() => { reload(); }, [reload]);
 
   const send = async ({ body_text, audio_url, duration_sec }) => {
+    if (demoMode) { toast('Preview only — message not sent.', 'info', { ttl: 3000 }); return; }
     const row = { trainee_id: traineeId, sender_role: role, body_text, audio_url, duration_sec };
     const { data, error } = await supabase.from('coach_messages').insert(row).select().single();
     if (error) throw error;
@@ -328,7 +329,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       <Composer
         role={role}
         onSend={{
-          upload: (blob) => uploadVoiceNote(blob, traineeId),
+          upload: demoMode ? (async () => null) : ((blob) => uploadVoiceNote(blob, traineeId)),
           send,
         }} />
       </div>
