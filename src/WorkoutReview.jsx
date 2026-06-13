@@ -869,10 +869,13 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       const fileset = await FilesetResolver.forVisionTasks(
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
       );
-      // Lite variant is ~3x faster than full on mobile WASM with negligible
-      // accuracy loss for single-subject form-review footage. PC was already
-      // invisibly fast on full; lite makes phone usable, PC unchanged.
-      const modelUrl = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
+      // Desktop = FULL model (more accurate landmarks/angles, esp. on hard
+      // bent-over poses; PC is invisibly fast on full). Phones stay on LITE so
+      // the overlay keeps up with playback. Review is post-hoc, so the coach's
+      // desktop gets the accuracy.
+      const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk/i.test(navigator.userAgent || '');
+      const variant = isMobile ? 'lite' : 'full';
+      const modelUrl = `https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_${variant}/float16/latest/pose_landmarker_${variant}.task`;
       const opts = (delegate) => ({
         baseOptions: { modelAssetPath: modelUrl, delegate },
         runningMode: 'VIDEO',
