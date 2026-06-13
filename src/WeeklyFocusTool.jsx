@@ -8,7 +8,7 @@
 // ClientPortal's EXACT eid resolution (title → EX_BY_TITLE, else dyn_<key>) and
 // load the RAW plan row (not useFullPlan, which regenerates ids).
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { EX } from './exerciseData';
@@ -91,7 +91,17 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
 
   const keyFor = (dayName, eid) => `${traineeId}|${plan.name}|${dayName}|${eid}|W${week}`;
   const getF = (dayName, eid) => (plan ? (weeklyFocus?.[keyFor(dayName, eid)] ?? weeklyFocus?.[`${plan.name}|${dayName}|${eid}|W${week}`] ?? '') : '');
-  const setF = (dayName, eid, val) => setWeeklyFocus(prev => { const next = { ...prev }; const k = keyFor(dayName, eid); if (val.length > 0) next[k] = val; else delete next[k]; return next; });
+  // Focus autosaves (the weekly_focus store debounces the Supabase write). Show
+  // a Saving…/Saved status so the coach knows it stuck — there's no Save button.
+  const [saveState, setSaveState] = useState('idle');   // idle | saving | saved
+  const saveTimer = useRef(null);
+  const setF = (dayName, eid, val) => {
+    setWeeklyFocus(prev => { const next = { ...prev }; const k = keyFor(dayName, eid); if (val.length > 0) next[k] = val; else delete next[k]; return next; });
+    setSaveState('saving');
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => setSaveState('saved'), 800);
+  };
+  useEffect(() => () => clearTimeout(saveTimer.current), []);
 
   const sel = { background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '7px 9px', borderRadius: 0 };
   const lbl = { display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 4 };
@@ -101,8 +111,15 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
       <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
         onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', cursor: 'pointer', background: C.acD, borderBottom: open ? `1px solid ${C.cardBd}` : 'none' }}>
-        <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', color: '#FFF' }}>✎ WEEKLY FOCUS · NO UPLOAD NEEDED</span>
-        <span style={{ color: C.ac, fontFamily: FN, fontSize: 12, fontWeight: 700 }}>{open ? '▴' : '▾'}</span>
+        <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', color: '#FFF' }}>WEEKLY FOCUS · NO UPLOAD NEEDED</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {saveState !== 'idle' && (
+            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: saveState === 'saved' ? C.gn : C.tm }}>
+              {saveState === 'saved' ? '✓ SAVED' : 'SAVING…'}
+            </span>
+          )}
+          <span style={{ color: C.ac, fontFamily: FN, fontSize: 12, fontWeight: 700 }}>{open ? '▴' : '▾'}</span>
+        </span>
       </div>
       {open && (
         <div style={{ padding: 14 }}>
@@ -158,7 +175,10 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
                 const val = getF(d.nameRaw, ex.eid);
                 return (
                   <div key={xi} style={{ marginBottom: 8 }}>
-                    <div style={{ fontFamily: FB, fontSize: 13, color: C.tx, marginBottom: 3, direction: isHeb(ex.title) ? 'rtl' : 'ltr', fontWeight: 600 }}>{ex.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                      <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, direction: isHeb(ex.title) ? 'rtl' : 'ltr', fontWeight: 600 }}>{ex.title}</span>
+                      {val && <span style={{ color: C.gn, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>✓ SET</span>}
+                    </div>
                     <textarea dir="auto" value={val} onChange={e => setF(d.nameRaw, ex.eid, e.target.value)}
                       placeholder="Focus for this exercise this week…"
                       style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `1px solid ${val ? C.ac : C.cardBd}`, borderLeft: `3px solid ${val ? C.ac : C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: 8, borderRadius: 0, resize: 'vertical', minHeight: 38 }} />

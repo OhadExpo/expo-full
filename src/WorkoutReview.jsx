@@ -2157,22 +2157,20 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         const queue = (clientWorkouts || []).filter(w => !w.reviewedAt && hasReviewableVideo(w));
         if (queue.length === 0) return null;
         return (
-          // Action banner — deliberately NOT card-shaped (no cyan header
-          // strip, no count-box) so it reads as a call-to-action, not another
-          // athlete row. Dark surface + cyan left-rule + solid cyan CTA.
+          // Minimal action row — cyan left-rule + a cyan count, distinct from
+          // the (cyan-header) athlete cards below. No emoji, no count-box.
           <div onClick={jumpToPending} role="button" tabIndex={0}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToPending(); } }}
             title="Jump to the first pending review"
-            style={{display:'flex',alignItems:'center',gap:14,padding:'13px 16px',marginBottom:16,cursor:'pointer',
-              background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`4px solid ${C.ac}`,borderRadius:0,transition:'border-color .15s'}}
-            onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=C.cardBd;e.currentTarget.style.borderLeftColor=C.ac;}}>
-            <div style={{fontSize:22,lineHeight:1,flexShrink:0}}>📹</div>
+            style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',marginBottom:16,cursor:'pointer',
+              background:'var(--c-sf)',borderLeft:`3px solid ${C.ac}`,borderRadius:0,transition:'background .15s'}}
+            onMouseEnter={e=>e.currentTarget.style.background=C.acD}
+            onMouseLeave={e=>e.currentTarget.style.background='var(--c-sf)'}>
             <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:'#FFFFFF',letterSpacing:'0.04em'}}>{queue.length} FORM VIDEO{queue.length === 1 ? '' : 'S'} TO REVIEW</div>
-              <div style={{fontFamily:FB,fontSize:11,color:C.tm,marginTop:2}}>Waiting on your feedback</div>
+              <div style={{fontFamily:FN,fontSize:12.5,fontWeight:700,color:C.ac,letterSpacing:'0.08em'}}>{queue.length} TO REVIEW</div>
+              <div style={{fontFamily:FB,fontSize:11.5,color:C.tm,marginTop:3}}>Form video{queue.length === 1 ? '' : 's'} waiting on your feedback</div>
             </div>
-            <span style={{background:C.ac,color:'#0a0a0b',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',padding:'8px 14px',whiteSpace:'nowrap',flexShrink:0}}>REVIEW NOW →</span>
+            <span style={{border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'7px 13px',whiteSpace:'nowrap',flexShrink:0}}>OPEN →</span>
           </div>
         );
       })()}
