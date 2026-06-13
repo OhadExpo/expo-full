@@ -1277,7 +1277,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const fbOpen = fbOpenForEid === ex.eid;
         return (
           <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${accent?C.ac:C.cardBd}`,borderRadius:0,padding:12,marginBottom:12}}>
-            <div style={{fontSize:10,fontFamily:FN,color:accent?C.ac:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>COACH'S FOCUS</div>
+            <div style={{fontSize:10,fontFamily:FN,color:accent?C.ac:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>{accent ? "COACH'S FOCUS" : 'EXERCISE NOTE'}</div>
             {(hasText || showNote) && (
               <div dir="auto" style={{fontSize:13,color:C.tx,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',direction:/[֐-׿]/.test(body||'')?'rtl':'ltr',fontFamily:/[֐-׿]/.test(body||'')?FH:undefined}}>{body}</div>
             )}
