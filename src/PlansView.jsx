@@ -1139,8 +1139,22 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               (Ohad). This is the ONLY athlete control now (dropped the duplicate
               field from the row below). */}
           <div style={{position:'relative',display:'flex',minWidth:0,flex:'1 1 240px',maxWidth:360}}>
-            <select value={plan.traineeId||""} onChange={e=>setPlan({...plan,traineeId:e.target.value})}
-              title="Assign this program to an athlete"
+            <select value={plan.traineeId||""} onChange={async e=>{
+                const tid = e.target.value;
+                const theirs = tid ? (planIndex||[]).filter(p=>p.traineeId===tid).slice().sort(sortProgramsChrono) : [];
+                // Primary behaviour: changing the athlete navigates to THAT
+                // athlete's latest program (what the coach expects). Only when
+                // the athlete has no program yet (or switching isn't wired) do
+                // we fall back to assigning the current program to them — so the
+                // "assign a brand-new program" path still works without silently
+                // hijacking an existing program's owner.
+                if (onSwitchProgram && theirs.length) {
+                  if (theirs[0].id !== plan.id) { await flushAutosave(); onSwitchProgram(theirs[0].id); }
+                } else {
+                  setPlan({...plan,traineeId:tid});
+                }
+              }}
+              title="Switch to this athlete's program (assigns the current one if they have none yet)"
               style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',height:42,padding:'0 36px 0 18px',borderRadius:0,outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',textAlign:'center',textAlignLast:'center',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
               <option value="">Unassigned</option>
               {trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

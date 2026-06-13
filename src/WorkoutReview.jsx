@@ -10,6 +10,7 @@ import { isRefined5b, useEscClose, SectionLabel, CollapsibleSection, useDelayedU
 import { EXPOMark } from './expoMark';
 import { EX } from './exerciseData';
 import useAutosave from './hooks/useAutosave';
+import WeeklyFocusTool from './WeeklyFocusTool';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
@@ -2146,6 +2147,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         Review completed workouts, watch client form videos, and write focus notes for next week.
       </div>
 
+      <WeeklyFocusTool trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} />
+
       {/* Review queue — pending unreviewed workouts that actually have
           something to review (i.e. an uploaded form video). Days without
           videos are hidden from the list above, so the queue count must
@@ -2154,33 +2157,22 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         const queue = (clientWorkouts || []).filter(w => !w.reviewedAt && hasReviewableVideo(w));
         if (queue.length === 0) return null;
         return (
-          <div style={{
-            background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0,
-            marginBottom:14,
-          }}>
-            <div style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: '1px solid var(--c-cardBd)', padding: '0 14px', minHeight: 45, boxSizing: 'border-box', display: 'flex', alignItems: 'center' }}>
-              <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>REVIEW QUEUE</SectionLabel>
+          // Action banner — deliberately NOT card-shaped (no cyan header
+          // strip, no count-box) so it reads as a call-to-action, not another
+          // athlete row. Dark surface + cyan left-rule + solid cyan CTA.
+          <div onClick={jumpToPending} role="button" tabIndex={0}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToPending(); } }}
+            title="Jump to the first pending review"
+            style={{display:'flex',alignItems:'center',gap:14,padding:'13px 16px',marginBottom:16,cursor:'pointer',
+              background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`4px solid ${C.ac}`,borderRadius:0,transition:'border-color .15s'}}
+            onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=C.cardBd;e.currentTarget.style.borderLeftColor=C.ac;}}>
+            <div style={{fontSize:22,lineHeight:1,flexShrink:0}}>📹</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:'#FFFFFF',letterSpacing:'0.04em'}}>{queue.length} FORM VIDEO{queue.length === 1 ? '' : 'S'} TO REVIEW</div>
+              <div style={{fontFamily:FB,fontSize:11,color:C.tm,marginTop:2}}>Waiting on your feedback</div>
             </div>
-            {/* Clickable: jumps to + expands the first pending athlete's
-                section so the coach can act on the count, not just read it. */}
-            <div onClick={jumpToPending} role="button" tabIndex={0}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToPending(); } }}
-              title="Jump to the pending workout"
-              style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',cursor:'pointer'}}
-              onMouseEnter={e=>e.currentTarget.style.background=C.acD}
-              onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-              <div style={{
-                width:28,height:28,borderRadius:0,background:C.acD,
-                display:'flex',alignItems:'center',justifyContent:'center',
-                fontFamily:FN,fontSize:12,fontWeight:700,color:C.ac,flexShrink:0,
-              }}>{queue.length}</div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontFamily:FB,fontSize:11,color:C.tm}}>
-                  {queue.length} pending with form video{queue.length === 1 ? '' : 's'}
-                </div>
-              </div>
-              <span style={{color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',flexShrink:0}}>REVIEW →</span>
-            </div>
+            <span style={{background:C.ac,color:'#0a0a0b',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',padding:'8px 14px',whiteSpace:'nowrap',flexShrink:0}}>REVIEW NOW →</span>
           </div>
         );
       })()}
@@ -2189,7 +2181,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       {Object.entries(byClient).map(([cid, data]) => (
         <CollapsibleSection key={cid} bare storageKey={`review-client-${cid}`} style={{marginBottom:20}}
           domId={`review-client-${cid}`} openSignal={jumpClient === cid ? jumpSignal : 0}
-          titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.length})</span>}
+          titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.filter(w => !w.reviewedAt).length})</span>}
           right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
             <button onClick={() => onOpenTrainee(cid)}
               title="Open this athlete's page"
