@@ -13,6 +13,15 @@ backups/
 .claude/
 .icon-previews/
 .playwright-mcp/
+
+# Throwaway prototypes / harnesses (lab-trial only — never deploy)
+src/rigged-test.jsx
+rigged-test.html
+public/_rigged-sample.glb
+src/webcodecs-test.js
+webcodecs-test.html
+scripts/verify-focus-eid.mjs
+rigged-*.png
 .tmp.driveupload/
 sheets/
 expo-il/.qa/
