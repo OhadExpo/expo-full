@@ -431,14 +431,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
      MediaRecorder.isTypeSupported('video/webm') ||
      MediaRecorder.isTypeSupported('video/mp4'));
 
-  const compressVideoChrome = (file, onProgress, signal) => new Promise((resolve, reject) => {
+  const compressVideoChrome = (file, onProgress, signal, opts = {}) => new Promise((resolve, reject) => {
     // Target: ~40MB output — comfortably under Supabase's HARD 50MB per-object
     // cap (free plan, project-wide; uploads at/over it get 413 "Payload too
     // large" — exactly what locked Ron out on 2026-06-12). Bitrate computed
     // from duration so a 5-minute video gets the same budget as a 30-second
-    // one. Quality clamped to [400 Kbps, 3 Mbps].
-    const TARGET_MB = 40;
-    const MAX_WIDTH = 1280;
+    // one. Quality clamped to [400 Kbps, 3 Mbps]. opts.maxWidth / opts.targetMb
+    // let the caller retry a too-big result at a smaller frame / tighter budget.
+    const TARGET_MB = opts.targetMb || 40;
+    const MAX_WIDTH = opts.maxWidth || 1280;
     const MIN_BITRATE = 400_000;
     const MAX_BITRATE = 3_000_000;
 
@@ -698,28 +699,46 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
       if (shouldCompress) {
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], phase:'compress'}; return n; });
-        try {
-          // Hard timeout: compressVideoChrome can hang forever if the hidden
-          // <video> never fires onloadedmetadata (some mobile codecs / HEVC
-          // never load AND never error). Race it against a wall-clock cap so a
-          // stuck encode can't freeze the upload on "Compressing %" — we fall
-          // through to the original blob, and the size gate below catches it
-          // if it's over the 50MB server cap.
-          const COMPRESS_TIMEOUT_MS = 40_000;
-          // AbortController lets the timeout actually TEAR DOWN the encoder.
-          // Without it, a timed-out compress kept the MediaRecorder + <video> +
-          // rAF loop alive in the background (a 5-min clip would churn for ~5
-          // more minutes after we'd already moved on) — a real memory leak on
-          // low-RAM phones doing back-to-back uploads.
+        // Compression runs at REAL TIME (playbackRate=1 — speeding it up bakes
+        // fast-motion into the output), so a 120s clip needs ~120s to encode. A
+        // fixed 40s cap was aborting every long clip → it shipped the
+        // uncompressed original → 413 over the 50MB cap (this is exactly what
+        // locked Ron out). Use a STALL watchdog instead: abort only when the
+        // encoder makes NO progress for a while (a genuine hang — e.g. HEVC that
+        // never fires onloadedmetadata), with a generous absolute backstop. A
+        // long-but-progressing encode is allowed to finish.
+        const runCompress = async (cOpts) => {
           const ctrl = new AbortController();
-          let timer;
-          const result = await Promise.race([
-            compressVideoChrome(file, pct => {
-              setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
-            }, ctrl.signal),
-            new Promise((_, rej) => { timer = setTimeout(() => { ctrl.abort(); rej(new Error('compression timed out')); }, COMPRESS_TIMEOUT_MS); }),
-          ]).finally(() => { clearTimeout(timer); });
-          ctrl.abort(); // success path: ensure no listeners/loops linger
+          let lastTick = Date.now(); const startedAt = lastTick; let watchdog;
+          const STALL_MS = 30_000;       // no progress for 30s ⇒ encoder hung
+          const ABS_MAX_MS = 240_000;    // absolute backstop (~120s clip + margin)
+          try {
+            const result = await Promise.race([
+              compressVideoChrome(file, pct => {
+                lastTick = Date.now();
+                setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:pct}; return n; });
+              }, ctrl.signal, cOpts),
+              new Promise((_, rej) => {
+                watchdog = setInterval(() => {
+                  const now = Date.now();
+                  if (now - lastTick > STALL_MS || now - startedAt > ABS_MAX_MS) { ctrl.abort(); rej(new Error('compression stalled')); }
+                }, 3000);
+              }),
+            ]).finally(() => { clearInterval(watchdog); });
+            ctrl.abort();                  // success: ensure no listeners/loops linger
+            return result;
+          } catch (e) { ctrl.abort(); throw e; }
+        };
+        try {
+          let result = await runCompress({});
+          // If the encoder ignored the bitrate hint (some iOS builds do) and the
+          // result is still over the cap, retry once at a smaller frame + tighter
+          // budget — resolution is always respected, so this reliably fits.
+          if (result.blob.size > SUPA_MAX_BYTES) {
+            console.warn(`Compressed to ${Math.round(result.blob.size/1e6)}MB — retrying at lower resolution`);
+            setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], compressProgress:0}; return n; });
+            result = await runCompress({ maxWidth: 640, targetMb: 30 });
+          }
           uploadBlob = result.blob;
           ext = result.ext;
           contentType = result.blob.type;
@@ -736,7 +755,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const sizeMB = Math.round(uploadBlob.size / 1e6);
         URL.revokeObjectURL(previewUrl);
         setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:null, uploadError:`${sizeMB}MB > 50MB limit`}; return n; });
-        toast(`Video is ${sizeMB}MB after processing — over the 50MB upload limit.\nRecord a shorter clip (~30 seconds) or lower the camera resolution.`, 'error', { ttl: 9000 });
+        toast(`Video is ${sizeMB}MB after processing — over the 50MB upload limit.\nKeep the clip under ~2 minutes and try again.`, 'error', { ttl: 9000 });
         return;
       }
 
