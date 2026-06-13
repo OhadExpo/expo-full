@@ -19,13 +19,18 @@ import { frameToPoints3D } from './poseLab';
 const DRACO_PATH = 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/';
 const ZERO = new THREE.Vector3(0, 0, 0);
 
-function classifyBone(name, region, cx) {
-  const n = name.toLowerCase(); const s = cx < 0 ? 'L' : 'R';
-  // soft tissue that spans/protrudes when posed onto a rigid bone — drop it.
-  if (/cartilage|ligament|membrane|meniscus|\bdisc|tendon|fontanelle|capsule|labrum|bursa/.test(n)) return null;
-  if (/skull|crani|mandible|maxilla|occipital|parietal|frontal bone|temporal bone|sphenoid|ethmoid|zygomatic|palatine|vomer|lacrimal|nasal bone|hyoid|teeth|dent|facial|mental/.test(n)) return 'skull';
-  if (/pelvi|ilium|ischium|pubis|hip bone|coxal|innominate|acetabul/.test(n)) return 'pelvis';
-  if (/vertebr|cervical|thoracic|lumbar|sacr|coccyx|\brib\b|costal|sternum|thorax|atlas|\baxis\b|spinal/.test(n)) return 'spine';
+function classifyBone(name, region, cx, cy = 0) {
+  // Z-Anatomy node names use UNDERSCORES (Frontal_bone, Hip_bone, Temporal_bone)
+  // — normalise to spaces so the word matches below actually fire. Without this,
+  // every skull/hip/nasal bone missed its rule and fell through to 'spine',
+  // dragging head-to-toe geometry (and the muscle meshes that ship inside
+  // skeleton.glb) into one bucket → needle artifacts everywhere.
+  const n = name.toLowerCase().replace(/_/g, ' '); const s = cx < 0 ? 'L' : 'R';
+  // soft tissue + the muscle layer baked into skeleton.glb — drop it from bones.
+  if (/cartilage|ligament|membrane|meniscus|\bdisc|tendon|fontanelle|capsule|labrum|bursa|muscle|fascia|aponeuros|raphe/.test(n)) return null;
+  if (/skull|crani|mandible|maxilla|occipital|parietal|frontal bone|temporal bone|sphenoid|ethmoid|zygomatic|palatine|vomer|lacrimal|nasal bone|hyoid|teeth|dent|facial|mental|greater wing|lesser wing|sella|orbit|nuchal|nasal|nasion|glabella|squamous|petrous|mastoid|temporal line|frontal|tempora/.test(n)) return 'skull';
+  if (/pelvi|ilium|ischium|pubis|hip bone|coxal|innominate|acetabul|iliac/.test(n)) return 'pelvis';
+  if (/vertebr|cervical|thoracic|lumbar|sacr|coccyx|\brib\b|costal|sternum|thorax|atlas|\baxis\b|spinal|spinous|transverse process|xiphoid|manubrium/.test(n)) return 'spine';
   if (/clavicle|scapula|acromion|glenoid|coracoid/.test(n)) return 'clav' + s;
   if (/humerus|humeral/.test(n)) return 'uarm' + s;
   if (/radius|ulna|radial|ulnar/.test(n)) return 'farm' + s;
@@ -35,7 +40,10 @@ function classifyBone(name, region, cx) {
   if (/carp|metacarp/.test(n) || (region === 'upper' && /phalan|sesamoid/.test(n))) return 'hand' + s;
   if (region === 'lower') return /thigh|femur/.test(n) ? 'thigh' + s : 'shin' + s;
   if (region === 'upper') return 'farm' + s;
-  return 'spine';
+  // Unmatched leftovers are tiny stray landmark geometry — assign by HEIGHT so a
+  // skull-height stray joins the skull and a torso-height one joins the spine,
+  // rather than a blind dump that drags strays across the whole figure.
+  return cy > 1.35 ? 'skull' : 'spine';
 }
 // The muscle GLB has no limb hierarchy, but every mesh carries an anatomical
 // name + an l/r side and sits in a known standing pose. Classify by name, with
@@ -189,6 +197,11 @@ export default function AnatomyModelViewer({ frames }) {
       root.updateWorldMatrix(true, true);
       root.traverse(o => {
         if (!o.isMesh || !o.geometry?.attributes?.position) return;
+        // Z-Anatomy ships a tiny pin/marker mesh (≈24 verts) at every named
+        // landmark — hundreds of them. Posed onto a rigid bone they scatter as
+        // needle spikes. They carry no anatomical surface, so drop anything too
+        // small to be a real bone (real bone parts are 100+ verts).
+        if (o.geometry.attributes.position.count < 50) return;
         const region = regionOf(o);
         o.getWorldPosition(c);
         const key = classify(o.name || o.parent?.name || '', region, c.x, c.y);
