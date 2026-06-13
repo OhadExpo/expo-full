@@ -103,3 +103,6 @@ EXPO - המרכז למצויינות-פיתוח אתלטית/
 # Morning sandbox credentials (local only)
 .morning-sandbox.json
 .tmp-vidgen/
+/webcodecs-test.html
+src/webcodecs-test.js
+/scripts/verify-focus-eid.mjs

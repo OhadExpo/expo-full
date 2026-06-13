@@ -1276,7 +1276,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           with a focused stripe rather than a wholly cyan box. */}
       <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${wf?C.ac:C.cardBd}`,borderRadius:0,padding:12,marginBottom:12,textAlign:'center'}}>
         <div style={{fontSize:10,fontFamily:FN,color:wf?C.ac:C.td,marginBottom:4,fontWeight:700,letterSpacing:'0.18em'}}>WEEKLY FOCUS</div>
-        <div style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5}}>{wf || 'No focus set this week'}</div></div>
+        <div dir="auto" style={{fontSize:13,color:wf?C.tx:C.td,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',direction:/[֐-׿]/.test(wf||'')?'rtl':'ltr',fontFamily:/[֐-׿]/.test(wf||'')?FH:undefined}}>{wf || 'No focus set this week'}</div></div>
 
       {/* Last-time-at-this-exercise pill — moved here so it sits IMMEDIATELY
           above the inputs card. The trainee scrolls past prescription / notes

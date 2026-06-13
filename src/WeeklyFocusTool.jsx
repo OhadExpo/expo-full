@@ -41,10 +41,25 @@ function resolveDay(d, idx, exById, exByTitle) {
 export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setWeeklyFocus }) {
   const [open, setOpen] = useState(false);
   const [traineeId, setTraineeId] = useState('');
+  const [query, setQuery] = useState('');               // type-and-search box text
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [plans, setPlans] = useState(null);
   const [planId, setPlanId] = useState('');
   const [week, setWeek] = useState(1);
   const [loadErr, setLoadErr] = useState(null);
+
+  // Flatten couples into per-member options so the focus key uses the same id
+  // the member's portal reads.
+  const athleteOpts = useMemo(() => [...(trainees || [])]
+    .flatMap(t => (t.members && t.members.length === 2)
+      ? t.members.map((m, i) => ({ value: t.id + '__' + i, label: m.name || ('Member ' + (i + 1)) }))
+      : [{ value: t.id, label: t.name || 'Unnamed' }])
+    .sort((a, b) => a.label.localeCompare(b.label)), [trainees]);
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (q ? athleteOpts.filter(o => o.label.toLowerCase().includes(q)) : athleteOpts).slice(0, 8);
+  }, [athleteOpts, query]);
+  const pickAthlete = (o) => { setTraineeId(o.value); setQuery(o.label); setPickerOpen(false); };
 
   const exById = useMemo(() => { const m = new Map(); (exercises || []).forEach(e => m.set(e.id, e)); return m; }, [exercises]);
   const exByTitle = useMemo(() => { const m = new Map(); (exercises || []).forEach(e => { if (e.title) m.set(e.title.toLowerCase().trim(), e); }); return m; }, [exercises]);
@@ -95,12 +110,24 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
             Leave a focus for a day the athlete didn't log in-app (e.g. videos came via WhatsApp). It saves to the exact same place the in-app review writes to — the athlete sees it on that exercise.
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
-            <div style={{ flex: '1 1 180px', minWidth: 150 }}>
+            <div style={{ flex: '1 1 200px', minWidth: 160, position: 'relative' }}>
               <label style={lbl}>ATHLETE</label>
-              <select value={traineeId} onChange={e => setTraineeId(e.target.value)} style={{ ...sel, width: '100%' }}>
-                <option value="">Select athlete…</option>
-                {[...(trainees || [])].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
+              <input dir="auto" value={query} placeholder="Type a name…"
+                onChange={e => { setQuery(e.target.value); setPickerOpen(true); if (traineeId) setTraineeId(''); }}
+                onFocus={() => setPickerOpen(true)}
+                onBlur={() => setTimeout(() => setPickerOpen(false), 150)}
+                onKeyDown={e => { if (e.key === 'Enter' && matches.length) { e.preventDefault(); pickAthlete(matches[0]); } else if (e.key === 'Escape') setPickerOpen(false); }}
+                style={{ ...sel, width: '100%', boxSizing: 'border-box', borderColor: traineeId ? C.ac : C.cardBd }} />
+              {pickerOpen && matches.length > 0 && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderTop: 'none', maxHeight: 240, overflowY: 'auto', boxShadow: C.cardShadow }}>
+                  {matches.map(o => (
+                    <div key={o.value} onMouseDown={e => { e.preventDefault(); pickAthlete(o); }}
+                      style={{ padding: '8px 10px', cursor: 'pointer', fontFamily: FB, fontSize: 13, color: C.tx, borderBottom: `1px solid ${C.cardBd}`, background: o.value === traineeId ? C.acD : 'transparent' }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.acD}
+                      onMouseLeave={e => e.currentTarget.style.background = o.value === traineeId ? C.acD : 'transparent'}>{o.label}</div>
+                  ))}
+                </div>
+              )}
             </div>
             {plans && plans.length > 1 && (
               <div style={{ flex: '1 1 180px', minWidth: 150 }}>
