@@ -84,6 +84,13 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
 
   const plan = (plans || []).find(p => p.id === planId);
   const weeks = plan?.data?.weeks || 4;
+  // Weekly focus is written DURING week N to guide week N+1, so an N-week block
+  // has N-1 focus slots: 1→2, 2→3, … (N-1)→N. The last week has no "next week"
+  // inside the block, so there's no week-N focus box. `week` is the SOURCE week.
+  const focusSlots = Math.max(1, weeks - 1);
+  // Keep the selected source week inside the valid 1..(weeks-1) range when the
+  // block (and therefore its length) changes.
+  useEffect(() => { setWeek(w => Math.min(Math.max(1, w), focusSlots)); }, [focusSlots]);
   const days = useMemo(() => {
     if (!plan) return [];
     return (plan.data?.days || []).map((d, i) => resolveDay(d, i, exById, exByTitle));
@@ -155,10 +162,10 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
               </div>
             )}
             {plan && (
-              <div style={{ flex: '0 0 90px' }}>
-                <label style={lbl}>WEEK</label>
+              <div style={{ flex: '0 0 130px' }}>
+                <label style={lbl}>FOCUS FOR</label>
                 <select value={week} onChange={e => setWeek(Number(e.target.value))} style={{ ...sel, width: '100%' }}>
-                  {Array.from({ length: weeks }, (_, i) => i + 1).map(w => <option key={w} value={w}>W{w}</option>)}
+                  {Array.from({ length: focusSlots }, (_, i) => i + 1).map(w => <option key={w} value={w}>W{w} → W{w + 1}</option>)}
                 </select>
               </div>
             )}
@@ -180,7 +187,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
                       {val && <span style={{ color: C.gn, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>✓ SET</span>}
                     </div>
                     <textarea dir="auto" value={val} onChange={e => setF(d.nameRaw, ex.eid, e.target.value)}
-                      placeholder="Focus for this exercise this week…"
+                      placeholder={`Focus to carry into week ${week + 1}…`}
                       style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: `1px solid ${val ? C.ac : C.cardBd}`, borderLeft: `3px solid ${val ? C.ac : C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: 8, borderRadius: 0, resize: 'vertical', minHeight: 38 }} />
                   </div>
                 );
