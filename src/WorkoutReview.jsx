@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 
@@ -1464,6 +1464,68 @@ function CompareModal({ leftLabel, leftUrl, leftTitle, rightLabel, rightUrl, rig
   );
 }
 
+// ── TOOLS menu ──────────────────────────────────────────────────────────
+// The camera/pose video suite, surfaced inside Review so the coach can jump
+// straight from watching a form video into measuring it. All lazy (MediaPipe /
+// three.js stay out of the Review bundle until a tool is opened). Owner trial —
+// nothing here writes to the athlete.
+const MovementLab = lazy(() => import('./MovementLab'));
+const ARFormOverlay = lazy(() => import('./ARFormOverlay'));
+const LiveRepCounter = lazy(() => import('./LiveRepCounter'));
+
+const REVIEW_TOOLS = [
+  { key: 'lab',  label: 'MOVEMENT LAB', desc: 'Record or upload a set → bar-speed (VBT), range-of-motion + tempo, and a rotatable 3D anatomy model rebuilt from the lift.' },
+  { key: 'jump', label: 'JUMP TEST',    desc: 'Film a vertical jump → height from flight time + estimated peak power (enter bodyweight).' },
+  { key: 'ar',   label: 'AR FORM',      desc: 'Live camera overlay — real-time bar-path + depth line while the athlete lifts.' },
+  { key: 'rep',  label: 'REP COUNTER',  desc: 'Live automatic rep counting from the camera.' },
+];
+
+function ReviewTools() {
+  const [openMenu, setOpenMenu] = useState(false);
+  const [title, setTitle] = useState('Squat');
+  const [tool, setTool] = useState(null); // 'lab' | 'jump' | 'ar' | 'rep' | null
+  return (
+    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, marginBottom: 14, boxShadow: C.cardShadow }}>
+      {/* Header doubles as the menu toggle — collapsed by default so it never
+          competes with the review queue. */}
+      <div onClick={() => setOpenMenu(o => !o)} role="button" tabIndex={0} aria-expanded={openMenu}
+        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(o => !o); } }}
+        style={{ background: 'var(--c-stripBg, var(--c-sf))', borderBottom: openMenu ? '1px solid var(--c-cardBd)' : 'none', padding: '0 14px', minHeight: 45, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', userSelect: 'none' }}>
+        <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>TOOLS</SectionLabel>
+        <span aria-hidden style={{ color: '#FFFFFF', fontSize: 12, lineHeight: 1, transform: openMenu ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }}>▾</span>
+      </div>
+      {openMenu && (
+        <div style={{ padding: 14 }}>
+          <div style={{ fontFamily: FB, fontSize: 11.5, color: C.td, lineHeight: 1.5, marginBottom: 12 }}>
+            Camera &amp; pose tools — measure a lift you're reviewing. Owner trial; nothing is saved to the athlete.
+          </div>
+          <div style={{ marginBottom: 12, maxWidth: 300 }}>
+            <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 4 }}>EXERCISE · FOR LAB / AR / REPS</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat"
+              style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '8px 10px', borderRadius: 0, outline: 'none' }} />
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {REVIEW_TOOLS.map(t => (
+              <button key={t.key} onClick={() => setTool(t.key)} title={t.desc}
+                style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '9px 16px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {tool && (
+        <Suspense fallback={null}>
+          {tool === 'lab'  && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" onClose={() => setTool(null)} />}
+          {tool === 'jump' && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" onClose={() => setTool(null)} />}
+          {tool === 'ar'   && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={() => setTool(null)} />}
+          {tool === 'rep'  && <LiveRepCounter exerciseTitle={title || 'Squat'} onClose={() => setTool(null)} />}
+        </Suspense>
+      )}
+    </div>
+  );
+}
+
 export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFocus, planIndex, trainees, exercises, markReviewed, updateFormVideos, deleteWorkout, onOpenTrainee }) {
   // "Log In-Person Session" used to live as a subtab here. It moved out
   // 2026-05-28 — the in-person logging surface is now reachable directly
@@ -2145,6 +2207,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       <div style={{color:C.tm,fontSize:11,marginBottom:16,fontFamily:FB}}>
         Review completed workouts, watch client form videos, and write focus notes for next week.
       </div>
+
+      {/* TOOLS — camera/pose video suite (Movement Lab, Jump Test, AR Form,
+          Rep Counter), collapsed by default. */}
+      <ReviewTools />
 
       {/* Review queue — pending unreviewed workouts that actually have
           something to review (i.e. an uploaded form video). Days without
