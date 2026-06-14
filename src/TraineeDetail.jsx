@@ -299,9 +299,9 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         }
       `}</style>
       {/* Back + actions bar */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
         <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK TO ATHLETES</button>
-        <div style={{display:"flex",gap:6}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
           {/* Notifications on/off — per-athlete mute for the COACH side.
               When OFF, athlete→coach messages and workout-complete events
               from this athlete skip push delivery, and the dashboard
@@ -319,15 +319,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
               padding: '4px 10px', cursor: 'pointer', borderRadius: 0,
             }}>
-            {td.notifOff ? '🔕 MUTED' : '🔔 ON'}
+            {td.notifOff ? 'MUTED' : 'NOTIFY ON'}
           </button>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px"}} title="Open the in-person workout logger pre-filtered to this athlete">▶ LOG SESSION</Btn>}
+          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
           {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px"}}>✏ Edit</Btn>
+          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px"}}>EDIT</Btn>
           {td.status==="Archived" ? <>
-            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"4px 10px"}}>↩ Restore</Btn>
+            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"4px 10px"}}>RESTORE</Btn>
             <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
-          </> : <Btn variant="danger" onClick={()=>setShowArchiveConfirm(true)} style={{fontSize:11,padding:"4px 10px"}}>📦 Archive</Btn>}
+          </> : <Btn variant="danger" onClick={()=>setShowArchiveConfirm(true)} style={{fontSize:11,padding:"4px 10px"}}>ARCHIVE</Btn>}
         </div></div>
 
       {/* === COUPLE LAYOUT === */}
@@ -418,7 +418,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <div style={{display:'flex',gap:0}}>
           {/* F-27 — open the brand-rich contract composer. */}
           <button onClick={()=>setShowContract(true)}
-            style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:'pointer',borderRadius:0}}>📄 CONTRACT</button>
+            style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',color:'#FFFFFF',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:'pointer',borderRadius:0}}>CONTRACT</button>
           <button onClick={()=>setShowPayForm(true)}
             style={{background:'transparent',border:'1px solid rgba(255,255,255,0.55)',borderLeft:'none',color:'#FFFFFF',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'4px 10px',cursor:'pointer',borderRadius:0}}>+ ADD PAYMENT</button>
         </div></div>}>

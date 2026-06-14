@@ -9,7 +9,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b, useEscClose } from './ui';
+import { isRefined5b, useEscClose, useIsMobile } from './ui';
 import { EVAL_SCHEMA, romKey } from './evaluationSchema';
 
 const inputBase = {
@@ -24,6 +24,7 @@ const inputBase = {
 function TestRow({ index, test, value, onChange }) {
   const isComposite = Array.isArray(test.composite);
   const hasSides = Array.isArray(test.sides);
+  const isMobile = useIsMobile();
 
   const setSimple = (v) => onChange(v);
   const setSide = (side, v) => onChange({ ...(typeof value === 'object' ? value : {}), [side]: v });
@@ -42,8 +43,8 @@ function TestRow({ index, test, value, onChange }) {
   return (
     <div className="eval-row" style={{
       display: 'grid',
-      gridTemplateColumns: '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)',
-      gap: 10, padding: '7px 0', alignItems: 'center',
+      gridTemplateColumns: isMobile ? '16px minmax(0,1.5fr) 42px minmax(0,1.3fr)' : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)',
+      gap: isMobile ? 6 : 10, padding: '7px 0', alignItems: 'center',
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
       <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
@@ -150,6 +151,7 @@ function ScoreButtons({ value, onChange }) {
 // for sided moves) + a collapsible per-exercise note.
 function MovementRow({ index, test, value, note, onScore, onNote }) {
   const hasSides = Array.isArray(test.sides);
+  const isMobile = useIsMobile();
   const [noteOpen, setNoteOpen] = useState(!!note);
   const setSide = (side, v) => onScore({ ...(typeof value === 'object' && value ? value : {}), [side]: v });
 
@@ -157,8 +159,8 @@ function MovementRow({ index, test, value, note, onScore, onNote }) {
     <div style={{ borderBottom: `1px solid var(--c-cardBd)` }}>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px',
-        gap: 12, padding: '12px 0', alignItems: 'start',
+        gridTemplateColumns: isMobile ? '16px minmax(0,1.3fr) minmax(0,1.5fr) minmax(0,1.4fr)' : '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px',
+        gap: isMobile ? 6 : 12, padding: '12px 0', alignItems: 'start',
       }}>
         <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-td)', fontWeight: 700, paddingTop: 6 }}>{index}</div>
         <div style={{ paddingTop: 4 }}>
@@ -191,7 +193,7 @@ function MovementRow({ index, test, value, note, onScore, onNote }) {
               background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px 0',
               fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
               color: note ? 'var(--c-ac)' : 'var(--c-td)',
-            }}>📝 {note ? 'NOTE' : 'NOTE +'}</button>
+            }}>{note ? 'NOTE' : 'NOTE +'}</button>
         </div>
       </div>
       {noteOpen && (
@@ -207,6 +209,7 @@ function MovementRow({ index, test, value, note, onScore, onNote }) {
 
 function SectionBlock({ section, scores, setScore, notes, setNote }) {
   const isMovements = section.id === 'movements';
+  const isMobile = useIsMobile();
   return (
     <div style={{
       marginBottom: 22,
@@ -227,9 +230,9 @@ function SectionBlock({ section, scores, setScore, notes, setNote }) {
       <div style={{
         display: 'grid',
         gridTemplateColumns: isMovements
-          ? '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px'
-          : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)',
-        gap: isMovements ? 12 : 10, padding: '4px 0 6px',
+          ? (isMobile ? '16px minmax(0,1.3fr) minmax(0,1.5fr) minmax(0,1.4fr)' : '24px minmax(140px, 1.1fr) minmax(190px, 1.7fr) 130px')
+          : (isMobile ? '16px minmax(0,1.5fr) 42px minmax(0,1.3fr)' : '22px minmax(150px, 1.4fr) 84px minmax(150px, 1.1fr)'),
+        gap: isMovements ? (isMobile ? 6 : 12) : (isMobile ? 6 : 10), padding: '4px 0 6px',
         borderBottom: `1px solid var(--c-cardBd)`,
       }}>
         {['#', 'TEST', isMovements ? 'WATCH' : 'GOAL', 'SCORE'].map((h, i) => (
@@ -295,6 +298,7 @@ function RomBlock({ rom, setRom }) {
 }
 
 export default function EvaluationEditor({ trainee, existing, onSave, onClose }) {
+  const isMobile = useIsMobile();
   const [evalDate, setEvalDate] = useState(existing?.eval_date || new Date().toISOString().slice(0, 10));
   const [evalTime, setEvalTime] = useState(existing?.eval_time || '');
   const [age, setAge] = useState(existing?.age ?? trainee?.age ?? '');
@@ -346,13 +350,13 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   return (
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Athletic evaluation" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300,
-      display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px',
+      display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '16px 8px' : '40px 16px',
       overflowY: 'auto',
     }}>
       <div onClick={e => e.stopPropagation()} style={{
         background: isRefined5b() ? '#FFFFFF' : 'var(--c-bg)',
         border: `1px solid var(--c-ac)`, borderRadius: 0,
-        padding: 24, maxWidth: 880, width: '100%',
+        padding: isMobile ? 14 : 24, maxWidth: 880, width: '100%',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontFamily: FN, fontSize: 18, color: 'var(--c-tx)', letterSpacing: '0.04em' }}>

@@ -1311,7 +1311,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     unlimited times per block, no DONE lock, no week rotation. */}
                 <button onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { kind: 'daily' }); }}
                   title={d.kind==='daily' ? 'Daily Routine ON — unlimited logs per block, no DONE lock, no week rotation. Click for a standard week-paced day.' : 'Make this a Daily Routine day (unlimited logs, no DONE lock, no week rotation).'}
-                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,padding:"3px 0",color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>📆 {d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
+                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,padding:"3px 0",color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
                 {(() => {
                   const dayIds = (dayExs||[]).map(e=>e.id);
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);

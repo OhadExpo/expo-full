@@ -253,7 +253,7 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
                 cursor: 'pointer', fontSize: 10, padding: '2px 8px', borderRadius: 0,
                 fontFamily: FN, fontWeight: 700, letterSpacing: '0.1em', height: 22,
                 display: 'inline-flex', alignItems: 'center',
-              }}>✏️ EDIT</button>
+              }}>EDIT</button>
           ) : <span />}
           {actionButton || <span />}
         </div>

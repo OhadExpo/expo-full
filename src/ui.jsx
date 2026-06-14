@@ -32,6 +32,22 @@ export function useDelayedUnmountValue(value, delay = 200) {
   return { value: held, closing };
 }
 
+// Viewport-width hook for the inline-styles-first codebase, where CSS media
+// queries can't reach inline `style={}`. Returns true below `bp` px (default
+// 640 = phone). SSR-safe and resize-reactive. Use it to swap heavy desktop
+// grids / fixed min-widths for single-column phone layouts.
+export function useIsMobile(bp = 640) {
+  const get = () => (typeof window !== 'undefined' ? window.innerWidth <= bp : false);
+  const [mobile, setMobile] = React.useState(get);
+  React.useEffect(() => {
+    const onResize = () => setMobile(get());
+    window.addEventListener('resize', onResize);
+    onResize();
+    return () => window.removeEventListener('resize', onResize);
+  }, [bp]); // eslint-disable-line react-hooks/exhaustive-deps
+  return mobile;
+}
+
 // Per stroke ruling (`feedback_stroke_ruling.md`): default-state inputs use
 // 0.25px C.ac4D (30% alpha). Bright 1px C.ac is reserved for primary CTAs
 // (Btn primary variant). Active focus would step up to 2px C.ac, but we
@@ -315,7 +331,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
         style={{
           ...stripStyle,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: 12, cursor: 'pointer', userSelect: 'none',
+          gap: 12, cursor: 'pointer', userSelect: 'none', flexWrap: 'wrap',
         }}
       >
         {titleNode ? <span style={{ minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
@@ -325,8 +341,11 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
           }}>{title}{count != null && ` (${count})`}</span>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{right}</span>}
+        {/* flexWrap on the strip + the action cluster lets a wide button group
+            drop to its own line on a phone instead of forcing horizontal page
+            overflow. On desktop it stays on one line. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 'auto', minWidth: 0, maxWidth: '100%' }}>
+          {right && <span onClick={(e) => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0, maxWidth: '100%' }}>{right}</span>}
           <span aria-hidden style={{
             color: '#FFFFFF', fontSize: 12, lineHeight: 1, display: 'inline-block',
             transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease',

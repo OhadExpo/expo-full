@@ -140,7 +140,7 @@ export default function BillingView({ trainees }) {
                     <button onClick={() => cancelRequest(r.id)} style={btnStyle(C.rd)}>× CANCEL</button>
                   </>
                 )}
-                <button onClick={() => remove(r.id)} style={btnStyle(C.td)}>🗑 DELETE</button>
+                <button onClick={() => remove(r.id)} style={btnStyle(C.td)}>DELETE</button>
               </div>
             </div>
           );

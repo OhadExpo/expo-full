@@ -259,7 +259,7 @@ export default function OverloadChart({ workouts, exercises }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="🔍  search exercise"
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="search exercise"
           style={{ flex: '1 1 200px', minWidth: 160, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '7px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none' }} />
         <div style={{ display: 'flex', gap: 5 }}>
           {chip('all', 'ALL')}{chip('up', '↑')}{chip('flat', '→')}{chip('down', '↓')}

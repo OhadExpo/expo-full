@@ -67,7 +67,7 @@ export default function PushToggle({ role = 'athlete', compact = false }) {
           <div style={{
             fontFamily: FN, fontSize: 10, color: 'var(--c-tm)',
             letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4,
-          }}>🔔 NOTIFICATIONS</div>
+          }}>NOTIFICATIONS</div>
           <div style={{ fontSize: 12, color: 'var(--c-tx)', fontFamily: FB, lineHeight: 1.4 }}>
             {(() => {
               // Copy switches on role so the same component reads naturally
