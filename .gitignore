@@ -13,6 +13,15 @@ backups/
 .claude/
 .icon-previews/
 .playwright-mcp/
+
+# Throwaway prototypes / harnesses (lab-trial only — never deploy)
+src/rigged-test.jsx
+rigged-test.html
+public/_rigged-sample.glb
+src/webcodecs-test.js
+webcodecs-test.html
+scripts/verify-focus-eid.mjs
+rigged-*.png
 .tmp.driveupload/
 sheets/
 expo-il/.qa/
@@ -106,3 +115,19 @@ EXPO - המרכז למצויינות-פיתוח אתלטית/
 /webcodecs-test.html
 src/webcodecs-test.js
 /scripts/verify-focus-eid.mjs
+
+# dev-only anatomy test harness
+/anatomy-test.html
+src/anatomy-test.jsx
+# anatomy model build workspace (FBX downloads + conversions, ~122MB — never commit)
+/.anatomy-build/
+# anatomy QA screenshots
+/zanatomy-*.png
+/public/_realtest.mp4
+/real-video-test.html
+src/real-video-test.jsx
+
+# throwaway inspection/verify scripts
+scripts/_*.mjs
+.jv.mjs
+.t.mjs
