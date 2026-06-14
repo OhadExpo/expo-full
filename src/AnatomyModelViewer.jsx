@@ -133,11 +133,14 @@ export default function AnatomyModelViewer({ frames }) {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.4;
     mount.appendChild(renderer.domElement);
-    // studio 3-point + soft sky/ground hemisphere for anatomical depth
-    scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x2a1a18, 0.85));
-    const k = new THREE.DirectionalLight(0xffffff, 1.5); k.position.set(2.2, 3, 2.5); scene.add(k);
-    const fl = new THREE.DirectionalLight(0x9fc4ff, 0.7); fl.position.set(-2.6, 0.6, 1.2); scene.add(fl);
-    const rim = new THREE.DirectionalLight(0xffd9c2, 0.65); rim.position.set(-0.5, 1.5, -3); scene.add(rim);
+    // Near-neutral studio 3-point: a strong grazing key (reveals markings via
+    // shadow in the grooves), a soft neutral fill (lifts shadows without a blue
+    // cast), and a gentle rim for edge separation. Kept close to white so the
+    // bone reads as ONE consistent tone, not a warm/cool two-colour split.
+    scene.add(new THREE.HemisphereLight(0xeef1f5, 0x24262b, 0.7));
+    const k = new THREE.DirectionalLight(0xfffaf2, 1.7); k.position.set(2.4, 2.6, 2.2); scene.add(k);
+    const fl = new THREE.DirectionalLight(0xd7dbe2, 0.55); fl.position.set(-2.6, 0.6, 1.2); scene.add(fl);
+    const rim = new THREE.DirectionalLight(0xf2ece2, 0.5); rim.position.set(-0.5, 1.5, -3); scene.add(rim);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.12; controls.minDistance = 0.7; controls.maxDistance = 8;
     controls.target.set(0, -0.12, 0);
@@ -149,14 +152,17 @@ export default function AnatomyModelViewer({ frames }) {
     const onReset = () => { controls.reset(); controls.autoRotate = true; };
     renderer.domElement.addEventListener('dblclick', onReset);
 
-    // Premium bone: warm ivory with a faint polished sheen + a touch of warmth
-    // in the shadows (fake subsurface), FrontSide so solid bones don't show
-    // their inner-cavity backfaces (the pins are already dropped, so no needles).
+    // Neutral mid-tone bone, MATTE finish — the middle ground between warm ivory
+    // and cold white (Ohad 2026-06-14). Matte (high roughness, almost no
+    // clearcoat/sheen) is what makes the boney MARKINGS read: diffuse shading
+    // lets the grazing key light cast soft shadow into every ridge and groove
+    // instead of a glossy highlight flattening them out. FrontSide so solid
+    // bones don't show inner-cavity backfaces.
     const boneMat = new THREE.MeshPhysicalMaterial({
-      color: 0xe7ddc8, roughness: 0.6, metalness: 0.0,
-      clearcoat: 0.22, clearcoatRoughness: 0.55,
-      sheen: 0.3, sheenColor: new THREE.Color(0xc9b896),
-      emissive: 0x16110a, emissiveIntensity: 0.16,
+      color: 0xe6e0d2, roughness: 0.78, metalness: 0.0,
+      clearcoat: 0.05, clearcoatRoughness: 0.7,
+      sheen: 0.08, sheenColor: new THREE.Color(0xbdb6a6),
+      emissive: 0x121009, emissiveIntensity: 0.09,
       side: THREE.FrontSide,
     });
     // wet-muscle look: deep anatomical red with a clearcoat sheen
