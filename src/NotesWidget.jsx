@@ -17,6 +17,7 @@ import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
 import { AutoTaskExplainModal } from './components/AutoTaskExplain';
 import { normalizePhoneIL } from './whatsappButton';
+import { displayBodyOf, ownerFromBody, priorityFromBody, visibleTags, PRIORITY_TONE } from './taskFormat';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -85,6 +86,14 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
   const kindIcon = isAuto ? '⚙' : '✎';
   const targetIcon = TARGET_ICON[n.target_kind] || '·';
   const targetLabel = TARGET_LABEL[n.target_kind] || 'NOTE';
+  // The body encodes owner + priority + due inline ("Ohad: [HIGH] title · due …")
+  // and ships machine tags (gevent:/glink:/getag:/approved:) — render the clean
+  // human title + a priority chip instead of dumping the raw wire format, and
+  // drop the calendar-sync tag soup from the chip row.
+  const cleanBody = displayBodyOf(n.body);
+  const owner = ownerFromBody(n.body);
+  const priority = priorityFromBody(n.body);
+  const userTags = visibleTags(n.tags);
   const [showExplain, setShowExplain] = useState(false);
   return (
     <div style={{
@@ -161,6 +170,19 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
             color: stripeColor, border: `1px solid ${stripeColor}`,
             padding: '1px 6px', lineHeight: 1.3,
           }}>{kindIcon} {kindLabel}</span>
+        {priority !== 'normal' && (
+          <span title={`Priority: ${priority}`} style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+            color: PRIORITY_TONE[priority] || 'var(--c-tm)', border: `1px solid ${PRIORITY_TONE[priority] || 'var(--c-cardBd)'}`,
+            padding: '1px 6px', lineHeight: 1.3, textTransform: 'uppercase',
+          }}>{priority}</span>
+        )}
+        {owner === 'shared' && (
+          <span title="Shared task — needs both Ohad & Yuval" style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+            color: 'var(--c-ac)', border: '1px solid var(--c-ac)', padding: '1px 6px', lineHeight: 1.3,
+          }}>SHARED</span>
+        )}
         {isAuto && (
           <button onClick={() => setShowExplain(true)} title="Why is this task here?"
             style={{
@@ -199,15 +221,15 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
           fontSize: 12, color: 'var(--c-tx)', lineHeight: 1.4, whiteSpace: 'pre-wrap',
           marginBottom: actionButton || allowEdit ? 6 : 0,
           fontFamily: FB,
-        }}>{n.body}</div>
+        }}>{cleanBody}</div>
       )}
 
       {/* F-35 — tag chips. Read-only on the card; the composer is
           where they get added/edited. Click-through could be added if
           we expose a per-card "search by this tag" hook later. */}
-      {Array.isArray(n.tags) && n.tags.length > 0 && !isEditing && (
+      {userTags.length > 0 && !isEditing && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: actionButton || allowEdit ? 8 : 0 }}>
-          {n.tags.map(t => (
+          {userTags.map(t => (
             <span key={t} style={{
               fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.08em', fontWeight: 700,
               border: `1px solid var(--c-cardBd)`, padding: '1px 7px',
@@ -772,7 +794,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
           // as the action pills (REVIEW / NEW PROGRAM) and label strips —
           // no more Hebrew-Heebo / English-Nord mismatch inside a card.
           fontFamily: FB,
-                  }}>{n.body}</div>
+                  }}>{displayBodyOf(n.body)}</div>
                   {n.linked_plan_id && (
                     <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-ac)', letterSpacing: '0.08em', marginTop: 2, fontWeight: 700 }}>
                       ✓ COMPLETED BY PLAN
