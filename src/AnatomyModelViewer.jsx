@@ -102,11 +102,9 @@ export default function AnatomyModelViewer({ frames }) {
   const mountRef = useRef(null);
   const poseFrames = useRef(frames.filter(f => f.worldLandmarks)).current;
   const [status, setStatus] = useState('loading');   // loading | ready | error
-  const [peel, setPeel] = useState(0);                // 0 muscle · 1 bone
   const [playing, setPlaying] = useState(true);
   const [frameIdx, setFrameIdx] = useState(0);
-  const peelRef = useRef(0), playRef = useRef(true), frameRef = useRef(0);
-  useEffect(() => { peelRef.current = peel; }, [peel]);
+  const playRef = useRef(true), frameRef = useRef(0);
   useEffect(() => { playRef.current = playing; }, [playing]);
   useEffect(() => { frameRef.current = frameIdx; }, [frameIdx]);
 
@@ -116,7 +114,18 @@ export default function AnatomyModelViewer({ frames }) {
     const W = mount.clientWidth || 340, H = 460;
     let disposed = false, raf;
 
-    const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0b0d);
+    const scene = new THREE.Scene();
+    // Soft radial studio backdrop (lighter behind the figure, falling to near-
+    // black at the edges) — reads far more premium than a flat black fill.
+    {
+      const bc = document.createElement('canvas'); bc.width = bc.height = 512;
+      const g2 = bc.getContext('2d');
+      const rg = g2.createRadialGradient(256, 215, 30, 256, 256, 360);
+      rg.addColorStop(0, '#1b1f27'); rg.addColorStop(0.55, '#101216'); rg.addColorStop(1, '#060607');
+      g2.fillStyle = rg; g2.fillRect(0, 0, 512, 512);
+      const bgTex = new THREE.CanvasTexture(bc); bgTex.colorSpace = THREE.SRGBColorSpace;
+      scene.background = bgTex;
+    }
     const camera = new THREE.PerspectiveCamera(36, W / H, 0.05, 100);
     camera.position.set(0.65, -0.05, 2.55);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -140,7 +149,16 @@ export default function AnatomyModelViewer({ frames }) {
     const onReset = () => { controls.reset(); controls.autoRotate = true; };
     renderer.domElement.addEventListener('dblclick', onReset);
 
-    const boneMat = new THREE.MeshStandardMaterial({ color: 0xeae3d2, roughness: 0.52, metalness: 0.03, side: THREE.DoubleSide });
+    // Premium bone: warm ivory with a faint polished sheen + a touch of warmth
+    // in the shadows (fake subsurface), FrontSide so solid bones don't show
+    // their inner-cavity backfaces (the pins are already dropped, so no needles).
+    const boneMat = new THREE.MeshPhysicalMaterial({
+      color: 0xe7ddc8, roughness: 0.6, metalness: 0.0,
+      clearcoat: 0.22, clearcoatRoughness: 0.55,
+      sheen: 0.3, sheenColor: new THREE.Color(0xc9b896),
+      emissive: 0x16110a, emissiveIntensity: 0.16,
+      side: THREE.FrontSide,
+    });
     // wet-muscle look: deep anatomical red with a clearcoat sheen
     const muscleMat = new THREE.MeshPhysicalMaterial({ color: 0xbe4537, roughness: 0.55, metalness: 0.0, clearcoat: 0.35, clearcoatRoughness: 0.5, sheen: 0.3, sheenColor: new THREE.Color(0x6a1812), emissive: 0x220807, emissiveIntensity: 0.28, side: THREE.DoubleSide });
 
@@ -352,19 +370,19 @@ export default function AnatomyModelViewer({ frames }) {
 
     const applyPose = (fi) => { const fp = framePts[Math.min(fi, framePts.length - 1)]; if (skelRig) poseRig(fp, skelRig); if (muscRig) poseRig(fp, muscRig); };
 
-    Promise.all([
-      loader.loadAsync('/anatomy/skeleton.glb').then(g => { if (!disposed) skelRig = buildRig(bucketGeos(g.scene, classifyBone), boneMat, skelGroup, 'skel'); }),
-      loader.loadAsync('/anatomy/muscles.glb').then(g => { if (!disposed) muscRig = buildRig(bucketGeos(g.scene, classifyMuscle), muscleMat, muscGroup, 'musc'); }).catch(() => {}),
-    ]).then(() => {
+    // BONE ONLY. The muscle écorché is dropped — muscles cross joints and
+    // deform, which a rigid chunk-rig tears apart (Ohad 2026-06-14). The
+    // skeleton is rigid per bone, so the chunk rig is honest for it.
+    loader.loadAsync('/anatomy/skeleton.glb').then(g => {
       if (disposed) return;
+      skelRig = buildRig(bucketGeos(g.scene, classifyBone), boneMat, skelGroup, 'skel');
       applyPose(0); setStatus('ready');
-      muscGroup.visible = peelRef.current === 0; skelGroup.visible = peelRef.current === 1;
-      let last = performance.now(), acc = 0, lastPosed = -1, lastPeel = peelRef.current; const fps = 24;
+      skelGroup.visible = true; muscGroup.visible = false;
+      let last = performance.now(), acc = 0, lastPosed = -1; const fps = 24;
       const loop = (now) => {
         acc += now - last; last = now;
         if (playRef.current && poseFrames.length > 1 && acc >= 1000 / fps) { acc = 0; frameRef.current = (frameRef.current + 1) % poseFrames.length; setFrameIdx(frameRef.current); }
         if (frameRef.current !== lastPosed) { applyPose(frameRef.current); lastPosed = frameRef.current; }
-        if (peelRef.current !== lastPeel) { muscGroup.visible = peelRef.current === 0; skelGroup.visible = peelRef.current === 1; lastPeel = peelRef.current; }
         controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
@@ -386,9 +404,8 @@ export default function AnatomyModelViewer({ frames }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
-        <Pill active={peel === 0} onClick={() => setPeel(0)}>MUSCLE</Pill>
-        <Pill active={peel === 1} onClick={() => setPeel(1)}>BONE</Pill>
-        <Pill active={playing} onClick={() => setPlaying(p => !p)}>{playing ? '❚❚ PAUSE' : '▶ PLAY'}</Pill>
+        <Pill active={true} onClick={() => {}}>SKELETON</Pill>
+        <Pill active={playing} onClick={() => setPlaying(p => !p)}>{playing ? 'PAUSE' : 'PLAY'}</Pill>
       </div>
       <div ref={mountRef} style={{ position: 'relative', width: '100%', maxWidth: 340, height: 460, margin: '0 auto', background: '#0b0b0d', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none' }}>
         {status !== 'ready' && (
