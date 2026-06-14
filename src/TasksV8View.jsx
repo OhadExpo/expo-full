@@ -24,7 +24,7 @@
 //     cycle status. Overdue dates render red.
 //   - Done pool collapsed at the bottom.
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, toast, usePersistentState } from './ui';
@@ -311,18 +311,39 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   // (grid-template-rows + overflow:hidden), which clip an absolute menu at
   // the section's bottom edge so the rows below showed through it.
   const [menuPos, setMenuPos] = useState(null);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+  // Recompute the fixed menu's viewport coords from the pill's current rect.
+  // `right` is clamped into the viewport so a pill near/over the right edge
+  // can't push the menu off-screen.
+  const place = useCallback(() => {
+    const el = btnRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    setMenuPos({ top: r.bottom + 2, right: Math.max(8, window.innerWidth - r.right) });
+  }, []);
   useEffect(() => {
     if (!open) return;
-    // A fixed menu doesn't track the page — close on any scroll/resize so
-    // it can't drift away from its pill.
-    const close = () => setOpen(false);
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
-    return () => {
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
+    // Keep the fixed menu GLUED to its pill while the page scrolls/resizes —
+    // do NOT close on scroll. The old close-on-scroll fired on the tap's own
+    // incidental scroll on mobile, so the menu opened and vanished in the same
+    // gesture ("the menu doesn't show at all"). Dismiss only on an outside
+    // tap or Escape.
+    const reposition = () => place();
+    const onDocDown = (e) => {
+      if (!menuRef.current?.contains(e.target) && !btnRef.current?.contains(e.target)) setOpen(false);
     };
-  }, [open]);
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    document.addEventListener('pointerdown', onDocDown, true);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+      document.removeEventListener('pointerdown', onDocDown, true);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open, place]);
   // Read-only (another partner's task): show the status glyph but don't let
   // the viewer open the menu / change it.
   // A labelled pill — the old 16px glyph was too small and read as
@@ -352,13 +373,12 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   return (
     <span style={{ position: 'relative', display: 'inline-flex' }}>
       <button
+        ref={btnRef}
         onClick={(e) => {
           e.stopPropagation();
-          const r = e.currentTarget.getBoundingClientRect();
-          setMenuPos({ top: r.bottom + 2, right: window.innerWidth - r.right });
+          place();
           setOpen(o => !o);
         }}
-        onBlur={() => setTimeout(() => setOpen(false), 160)}
         title="Click to change status"
         style={{ ...pillBase, cursor: 'pointer' }}>
         <span style={{ fontSize: 12, lineHeight: 1 }}>{opt.glyph}</span>
@@ -367,6 +387,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
       </button>
       {open && menuPos && (
         <div
+          ref={menuRef}
           onMouseDown={(e) => e.preventDefault()}
           onClick={(e) => e.stopPropagation()}
           style={{
