@@ -27,7 +27,12 @@ function classifyBone(name, region, cx, cy = 0) {
   // skeleton.glb) into one bucket → needle artifacts everywhere.
   const n = name.toLowerCase().replace(/_/g, ' '); const s = cx < 0 ? 'L' : 'R';
   // soft tissue + the muscle layer baked into skeleton.glb — drop it from bones.
+  // Many muscles ship WITHOUT the word "muscle" (e.g. "Flexor_digitorum_brevis",
+  // "Abductor_digiti_minimi"), so also drop by muscle action-name + the named
+  // limb/foot/hand muscles. Otherwise they fall through to 'spine' and freeze
+  // upright while the real limbs move ("bones duplicating").
   if (/cartilage|ligament|membrane|meniscus|\bdisc|tendon|fontanelle|capsule|labrum|bursa|muscle|fascia|aponeuros|raphe/.test(n)) return null;
+  if (/flexor|extensor|abductor|adductor|opponens|lumbrical|interosse|pronator|supinator|levator|depressor|\btensor\b|digitorum|hallucis|digiti|pollicis|indicis|biceps|triceps|brachii|brachialis|brachioradialis|deltoid|anconeus|palmaris|gastrocn|soleus|plantaris|popliteus|tibialis|fibularis|peroneus|gluteus|piriformis|gemellus|quadratus|psoas|iliacus|sartorius|gracilis|pectineus|vastus|semitendinosus|semimembranosus|gracil|masseter|buccinator|orbicularis|frontalis|occipitalis|temporalis|pterygoid|scalene|sternocleido|trapezius|\brectus\b|obliquus/.test(n)) return null;
   if (/skull|crani|mandible|maxilla|occipital|parietal|frontal bone|temporal bone|sphenoid|ethmoid|zygomatic|palatine|vomer|lacrimal|nasal bone|hyoid|teeth|dent|facial|mental|greater wing|lesser wing|sella|orbit|nuchal|nasal|nasion|glabella|squamous|petrous|mastoid|temporal line|frontal|tempora/.test(n)) return 'skull';
   if (/pelvi|ilium|ischium|pubis|hip bone|coxal|innominate|acetabul|iliac/.test(n)) return 'pelvis';
   if (/vertebr|cervical|thoracic|lumbar|sacr|coccyx|\brib\b|costal|sternum|thorax|atlas|\baxis\b|spinal|spinous|transverse process|xiphoid|manubrium/.test(n)) return 'spine';
@@ -70,7 +75,11 @@ function classifyMuscle(name, region, cx, cy) {
 }
 const regionOf = (obj) => {
   let p = obj;
-  while (p) { const n = (p.name || '').toLowerCase(); if (n.includes('upper limb')) return 'upper'; if (n.includes('lower limb')) return 'lower'; p = p.parent; }
+  // Z-Anatomy ancestor nodes are "Skeleton_of_free_lower_limb" etc. — normalise
+  // underscores to spaces so 'lower limb'/'upper limb' actually match. Without
+  // this regionOf always returned 'core', so foot/hand phalanges never reached
+  // the foot/hand buckets and fell through to 'spine' (frozen upright).
+  while (p) { const n = (p.name || '').toLowerCase().replace(/_/g, ' '); if (n.includes('upper limb')) return 'upper'; if (n.includes('lower limb')) return 'lower'; p = p.parent; }
   return 'core';
 };
 
