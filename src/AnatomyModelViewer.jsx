@@ -41,14 +41,16 @@ function classifyBone(name, region, cx, cy = 0) {
   if (/radius|ulna|radial|ulnar/.test(n)) return 'farm' + s;
   if (/femur|femoral|patella/.test(n)) return 'thigh' + s;
   if (/tibia|fibula|tibial|fibular/.test(n)) return 'shin' + s;
-  if (/calcaneus|talus|tars|metatars/.test(n) || (region === 'lower' && /phalan|sesamoid/.test(n))) return 'foot' + s;
+  if (/calcaneus|talus|tars|metatars|cuboid|cuneiform|hallux/.test(n) || (region === 'lower' && /phalan|sesamoid|navicular/.test(n))) return 'foot' + s;
   if (/carp|metacarp/.test(n) || (region === 'upper' && /phalan|sesamoid/.test(n))) return 'hand' + s;
-  if (region === 'lower') return /thigh|femur/.test(n) ? 'thigh' + s : 'shin' + s;
-  if (region === 'upper') return 'farm' + s;
-  // Unmatched leftovers are tiny stray landmark geometry — assign by HEIGHT so a
-  // skull-height stray joins the skull and a torso-height one joins the spine,
-  // rather than a blind dump that drags strays across the whole figure.
-  return cy > 1.35 ? 'skull' : 'spine';
+  // EVERY real bone is matched by name above. Anything reaching here is a
+  // muscle / tendon / soft-tissue / attachment-marker that ships inside
+  // skeleton.glb (obturator, erector spinae, trochanteric insertion, the many
+  // intrinsic foot/hand muscles, …). The old code dumped these into shin /
+  // spine / skull by region+height, which dragged foot-height + hip muscles
+  // into a leg/spine bucket — inflating its geometry and throwing every derived
+  // joint and proportion off (floating shins, overlaps). Drop them.
+  return null;
 }
 // The muscle GLB has no limb hierarchy, but every mesh carries an anatomical
 // name + an l/r side and sits in a known standing pose. Classify by name, with
