@@ -60,6 +60,7 @@ const ChallengesView = lazyReload(() => import('./ChallengesView'));
 const BookingView = lazyReload(() => import('./BookingView'));
 const BillingView = lazyReload(() => import('./BillingView'));
 const SessionsView = lazyReload(() => import('./SessionsView'));
+const ReviewToolsView = lazyReload(() => import('./ReviewToolsView'));
 // Public unauthenticated try-it sandbox at /try. Lazy-loaded the same way
 // so the heavy MediaPipe-pulling code chunk doesn't bloat the auth path.
 const TrySandbox = lazyReload(() => import('./TrySandbox'));
@@ -782,7 +783,7 @@ function AuthedApp() {
         const parts = sub.split('/');
         if (parts[1]) return { mode:'coach', tab:'plans', planEditId: parts[1] };
       }
-      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
+      const tabMap = {dashboard:'dashboard',athletes:'trainees',trainees:'trainees',programs:'plans',exercises:'exercises',review:'review','review-tools':'reviewTools',workouts:'workouts',sessions:'sessions','sessions-single':'sessionsSolo',intake:'intake',waitlist:'waitlist','chat-audit':'chatAudit','smart-import':'smartImport',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
       return { mode:'coach', tab: tabMap[sub] || 'dashboard', traineeId:null };
     }
     return { mode:'portal' };
@@ -835,7 +836,7 @@ function AuthedApp() {
     if (tab === 'client' && !isCoach) return;
     // URL writes the canonical "athletes" segment now; internal tab key
     // stays "trainees" so the rest of AuthedApp doesn't have to be touched.
-    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',review:'review',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
+    const tabUrl = {dashboard:'dashboard',trainees:'athletes',plans:'programs',exercises:'exercises',review:'review',reviewTools:'review-tools',workouts:'workouts',sessions:'sessions',sessionsSolo:'sessions-single',intake:'intake',waitlist:'waitlist',chatAudit:'chat-audit',smartImport:'smart-import',tasks:'tasks',bugs:'bugs',challenges:'challenges',calendar:'calendar',billing:'billing'};
     let path = '/coach/' + (tabUrl[newTab] || 'dashboard');
     if (newTab === 'trainees' && newTrainee) path += '/' + newTrainee;
     if (window.location.pathname !== path) window.history.pushState(null, '', path);
@@ -962,7 +963,11 @@ function AuthedApp() {
         { route:'sessions',     label:'Group',  count:null },
         { route:'sessionsSolo', label:'Single', count:null },
       ] },
-    { key:'review',     label:'Review',     count:null },
+    { key:'review',     label:'Review',     count:null,
+      submenu: [
+        { route:'review',      label:'Workouts', count:null },
+        { route:'reviewTools', label:'Tools',    count:null },
+      ] },
     { key:'tasks',      label:'Tasks',      count:null },
     { key:'billing',    label:'Billing',    count:null },
     { key:'intake',     label:'Incoming',   count:null,
@@ -1149,6 +1154,7 @@ function AuthedApp() {
           {tab==="trainees"&&selectedTrainee&&previewTrainee!==selectedTrainee&&<TraineeDetail trainee={selectedTrainee} trainees={trainees} setTrainees={setTrainees} planIndex={planIndex} reloadPlanIndex={reloadPlanIndex} onOpenPlan={pid=>{setSelectedPlanId(pid);setPlanEditorOrigin({kind:'trainees',traineeId:selectedTrainee});navTo("plans")}} onPreviewPortal={()=>openPreview(selectedTrainee)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenInPersonForTrainee={tid=>{try{sessionStorage.setItem('expo-pendingInPersonTrainee',tid);}catch{} navTo("workouts");}} exercises={exercises} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} addPayment={addPayment} updatePayment={updateBitPayment} removePayment={removePayment} bwLog={bwLog} portalVis={portalVis} setPortalVis={setPortalVis} presence={presence} onBack={()=>navTo("trainees")}/>}
           {tab==="exercises"&&<MemoExercises exercises={exercises} setExercises={setExercises}/>}
           {tab==="review"&&<MemoReview clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} planIndex={planIndex} trainees={trainees} exercises={exercises} markReviewed={markWorkoutReviewed} updateFormVideos={updateFormVideos} deleteWorkout={deleteClientWorkout} onOpenTrainee={openTraineeFromReview}/>}
+          {tab==="reviewTools"&&isOwner&&<ReviewToolsView/>}
           {tab==="plans"&&previewPlan&&<CoachPreviewPortal planId={previewPlan} trainees={trainees} exercises={exercises} portalVis={portalVis} clientWorkouts={clientWorkouts} bwLog={bwLog} weeklyFocus={weeklyFocus} onBack={closePlanPreview}/>}
           {tab==="plans"&&!previewPlan&&<MemoPlans planIndex={planIndex} reloadIndex={reloadPlanIndex} trainees={trainees} exercises={exercises} setExercises={setExercises} clientWorkouts={clientWorkouts} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} openPlanId={selectedPlanId} onPlanOpened={()=>setSelectedPlanId(null)} onEditorOpen={(id)=>{ const path='/coach/programs/'+id; if(window.location.pathname!==path) window.history.pushState(null,'',path); }} onEditorClose={()=>{ const p=window.location.pathname; if(p.startsWith('/coach/programs/')&&!p.endsWith('/preview')) window.history.replaceState(null,'','/coach/programs'); }} onPreviewPlan={openPlanPreview} portalVis={portalVis} setPortalVis={setPortalVis} onCloseEditor={()=>{const o=planEditorOrigin; setPlanEditorOrigin(null); if(o?.kind==='trainees'&&o.traineeId)navTo('trainees',o.traineeId);}}/>}
           {tab==="workouts"&&<MemoWorkouts workouts={workouts} setWorkouts={setWorkouts} planIndex={planIndex} trainees={trainees} exercises={exercises} onDecrementSession={handleDecrementSession}/>}

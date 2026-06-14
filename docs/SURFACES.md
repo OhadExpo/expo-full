@@ -43,7 +43,8 @@ Last synced to code: 2026-06-09. (Known gate blind spot: `check-surfaces.mjs` on
 | `/coach/programs/<id>` | plans | `PlansView` (editor deep link) | ✅ 2026-06-09 |
 | `/coach/programs/<id>/preview` | plans | `CoachPreviewPortal` (plan) | ✅ pass2 |
 | `/coach/exercises` | exercises | `ExercisesView` | ✅ pass2 |
-| `/coach/review` | review | `WorkoutReview` | ✅ pass1 |
+| `/coach/review` | review | `WorkoutReview` | ✅ pass1 (Review▾→Workouts) |
+| `/coach/review-tools` | reviewTools | `ReviewToolsView` | 🆕 2026-06-14 (Review▾→Tools; owner-only camera suite) |
 | `/coach/workouts` | workouts | `WorkoutsView` | ✅ pass2 |
 | `/coach/sessions` | sessions | `SessionsView` (mode=group) | 🆕 2026-06-12 (lab-trial: group grid; nav Sessions▾→Group) |
 | `/coach/sessions-single` | sessionsSolo | `SessionsView` (mode=single) | 🆕 2026-06-12 (lab-trial: 1-on-1 logger + Movement tools) |
