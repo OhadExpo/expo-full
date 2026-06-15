@@ -16,7 +16,8 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, jumpPower, frameToPoints3D, estimateFps } from './poseLab';
+import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps } from './poseLab';
+import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Real Z-Anatomy 3D model (three.js), posed from the captured rep — lazy so the
 // 3D engine + GLBs only ship when the 3D tab is opened.
@@ -31,6 +32,7 @@ export default function MovementLab({
   exerciseTitle = 'Squat',
   initialMode = 'analyze',      // 'analyze' (VBT/ROM/3D) | 'jump'
   initialView = 'all',          // analyze result scope: 'all' | '3d' (skeleton) | 'metrics' (VBT/ROM)
+  jumpType = 'cmj',             // jump mode: 'cmj'|'svj'|'sl' (height) · 'drop'|'pogo' (reactive → RSI + contact)
   toolLabel = null,             // header label override (e.g. 'MOVEMENT LAB' vs 'LIFT METRICS')
   facingMode = 'environment',   // filming someone on the floor by default
   onClose,
@@ -120,6 +122,18 @@ export default function MovementLab({
     }
   }, [facingMode, beginCapture]);
 
+  // Reactive jumps (drop jump, POGO) need ground-contact + RSI; the rest are
+  // flight-time height. One helper so both capture paths branch identically.
+  const isReactive = jumpType === 'drop' || jumpType === 'pogo';
+  const computeJump = useCallback((frames) => {
+    if (isReactive) {
+      const rm = reactiveJumpMetrics(frames);
+      return rm ? { reactive: true, jumpType, ...rm.best, count: rm.count, avgRsi: rm.avgRsi, avgContactMs: rm.avgContactMs, avgHeightCm: rm.avgHeightCm } : null;
+    }
+    const j = jumpMetrics(frames);
+    return j ? { reactive: false, jumpType, ...j } : null;
+  }, [isReactive, jumpType]);
+
   const stopAndAnalyze = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
@@ -127,7 +141,7 @@ export default function MovementLab({
     const frames = framesRef.current;
     setTimeout(() => {
       if (mode === 'jump') {
-        const j = jumpMetrics(frames);
+        const j = computeJump(frames);
         setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
         setPhase('results');
       } else {
@@ -137,7 +151,7 @@ export default function MovementLab({
         setPhase('results');
       }
     }, 30);
-  }, [mode, exerciseTitle]);
+  }, [mode, exerciseTitle, computeJump]);
 
   // ---- analyze an uploaded clip from the gallery ----
   // Steps through the video by seeking (≈20fps sample, capped) and runs pose
@@ -176,7 +190,7 @@ export default function MovementLab({
       }
       framesRef.current = frames;
       if (mode === 'jump') {
-        const j = jumpMetrics(frames);
+        const j = computeJump(frames);
         setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
       } else {
         const res = analyzeClip(frames, exerciseTitle);
@@ -188,9 +202,27 @@ export default function MovementLab({
     } finally {
       if (url) try { URL.revokeObjectURL(url); } catch {}
     }
-  }, [mode, exerciseTitle]);
+  }, [mode, exerciseTitle, computeJump]);
 
   const pickFile = useCallback(() => fileInputRef.current?.click(), []);
+
+  // Built-in synthetic motion → see the 3D skeleton (and the V1/V2 twist toggle)
+  // with no camera, no upload, no pose-detection step. Squat for analyze, jump
+  // for jump mode. Lands straight on the 3D tab.
+  const loadDemo = useCallback(() => {
+    setError(null); setProgress(0); setPhase('analyzing');
+    setTimeout(() => {
+      if (mode === 'jump') {
+        const frames = demoJumpFrames(); framesRef.current = frames;
+        const j = computeJump(frames);
+        setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
+      } else {
+        const frames = demoSquatFrames(); framesRef.current = frames;
+        const r = analyzeClip(frames, 'Squat'); setResult(r); setTab('threeD');
+      }
+      setPhase('results');
+    }, 30);
+  }, [mode, computeJump]);
 
   const reset = useCallback(() => {
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
@@ -288,6 +320,7 @@ export default function MovementLab({
         {phase === 'idle' && <>
           <BigBtn color={C.ac} onClick={startRecording}>{mode === 'jump' ? 'RECORD' : 'RECORD'} →</BigBtn>
           <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ UPLOAD CLIP</button>
+          <button onClick={loadDemo} title="See the 3D skeleton with no camera/upload" style={{ flex: '0 0 auto', padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.25)', color: 'rgba(255,255,255,0.7)', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>▶ DEMO</button>
         </>}
         {phase === 'loading' && <BigBtn color="#555" disabled>STARTING…</BigBtn>}
         {phase === 'countdown' && <BigBtn color="#555" disabled>GET READY… {countdown}</BigBtn>}
@@ -426,20 +459,61 @@ const Legend = ({ color, label }) => (
 );
 
 // ----------------------------- results: jump --------------------------------
+const JUMP_TITLE = { cmj: 'COUNTERMOVEMENT JUMP', svj: 'STANDING VERTICAL JUMP', sl: 'SINGLE-LEG JUMP', drop: 'DROP JUMP · RSI', pogo: 'POGO · RSI' };
+
+// Honest accuracy badge from captured fps (per research: flight-time height
+// error ≈ ±1cm@240 · ±2cm@120 · ±5cm@60 · ±9cm@30). Green only at slow-mo.
+function FpsBadge({ fps }) {
+  const f = Math.round(fps || 0);
+  const cfg = f >= 120 ? { txt: `${f}fps slow-mo · ≈±1–2cm (lab-grade)`, tone: C.gn }
+    : f >= 50 ? { txt: `${f}fps · trend only ≈±3–5cm — film in slow-mo for precision`, tone: C.or }
+      : { txt: `${f || '?'}fps · low ≈±9cm — record in slow-mo (120–240fps)`, tone: C.rd };
+  return <div style={{ marginTop: 12, fontFamily: FN, fontSize: 10, color: cfg.tone, letterSpacing: '0.03em' }}>◷ {cfg.txt}</div>;
+}
+
 function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
   const [saved, setSaved] = useState(false);
   const [bw, setBw] = useState(defaultBodyweightKg != null ? String(defaultBodyweightKg) : '');
-  if (!jump) return <Empty msg="Couldn't read a clean jump. Film side-on, full body in frame — stand still through the countdown, then jump straight up and land in place." />;
+  if (!jump) return <Empty msg="Couldn't read a clean jump. Film side-on, full body in frame — stand still, then jump. For a drop jump / POGO, land and rebound immediately (minimise ground contact)." />;
+  const title = JUMP_TITLE[jump.jumpType] || 'VERTICAL JUMP';
+  const saveBtn = (s) => ({ marginTop: 18, padding: '13px 20px', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
+
+  // Reactive jumps (drop jump / POGO): RSI is the headline, not height.
+  if (jump.reactive) {
+    return (
+      <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
+        <div style={{ fontFamily: FN, fontSize: 80, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.rsi}<span style={{ fontSize: 22 }}> RSI</span></div>
+        <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>jump height ÷ ground-contact time (m/s)</div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18, flexWrap: 'wrap' }}>
+          <MiniKpi label="HEIGHT" value={`${jump.heightCm} cm`} />
+          <MiniKpi label="CONTACT" value={`${jump.contactMs} ms`} />
+          <MiniKpi label="FLIGHT" value={`${jump.flightMs} ms`} />
+        </div>
+        {jump.count > 1 && (
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+            <MiniKpi label={`AVG RSI · ${jump.count} HOPS`} value={String(jump.avgRsi)} />
+            <MiniKpi label="AVG CONTACT" value={`${jump.avgContactMs} ms`} />
+          </div>
+        )}
+        <FpsBadge fps={result?.fps} />
+        {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump }); setSaved(true); }} style={saveBtn(saved)}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO ATHLETIC EVALUATION →'}</button>}
+        {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>DONE</button>}
+      </div>
+    );
+  }
+
   const massKg = parseFloat(bw);
   const power = jumpPower(jump.heightCm, massKg);
   return (
     <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>VERTICAL JUMP</div>
+      <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
       <div style={{ fontFamily: FN, fontSize: 88, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.heightCm}<span style={{ fontSize: 28 }}>cm</span></div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18 }}>
         <MiniKpi label="FLIGHT TIME" value={`${jump.flightMs} ms`} />
         <MiniKpi label="PEAK RISE" value={`${jump.peakRiseCm} cm`} />
       </div>
+      <FpsBadge fps={result?.fps} />
 
       {/* Bodyweight → peak power (Sayers). Height from flight time is mass-
           independent, but power is the athletic number — so we ask the weight. */}
