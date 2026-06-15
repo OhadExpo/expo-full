@@ -106,6 +106,46 @@ function ToolLoading({ label }) {
   );
 }
 
+// One tool = one equal-height tile. Flex column with a spacer so the OPEN →
+// footer sits on a shared baseline across the row, regardless of copy length.
+function ToolTile({ t, blocked, isLast, onOpen }) {
+  const [hover, setHover] = useState(false);
+  const lift = hover && !blocked;
+  return (
+    <div
+      role="button" tabIndex={blocked ? -1 : 0} aria-disabled={blocked || undefined}
+      aria-label={`${t.label} — ${t.measures}`}
+      onClick={blocked ? undefined : onOpen}
+      onKeyDown={blocked ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box',
+        background: 'var(--c-sf)', border: `1px solid ${blocked ? C.cardBd : C.ac}`, borderLeft: `3px solid ${C.ac}`,
+        padding: '13px 14px', cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.6 : 1,
+        boxShadow: lift ? '0 8px 22px rgba(6,20,37,0.18)' : 'none',
+        transform: lift ? 'translateY(-2px)' : 'none', transition: 'box-shadow .18s, transform .18s', outline: 'none',
+      }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
+        <SectionIcon kind={t.icon} color={C.ac} size={16} />
+        <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: C.ac }}>{t.label}</span>
+        {isLast && <span style={{ fontFamily: FN, fontSize: 7.5, fontWeight: 700, letterSpacing: '0.12em', color: C.bg, background: C.ac, padding: '2px 5px' }}>LAST</span>}
+        <span style={{ marginLeft: 'auto', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? C.ac : C.tm, border: `1px solid ${C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{t.live ? 'LIVE' : 'CLIP'}</span>
+      </div>
+      <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.4, marginBottom: 7 }}>{t.measures}</div>
+      <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.4 }}>
+        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', color: C.td, marginRight: 6 }}>USE WHEN</span>{t.useWhen}
+      </div>
+      <div style={{ flex: 1, minHeight: 12 }} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 11, paddingTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
+        <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', color: blocked ? 'var(--c-rd, #FF4757)' : C.td }}>
+          {blocked ? 'NEEDS A CAMERA' : t.live ? 'LIVE CAMERA' : 'RECORD OR UPLOAD'}
+        </span>
+        {!blocked && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, transition: 'transform .18s', transform: lift ? 'translateX(3px)' : 'none' }}>OPEN →</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function ReviewToolsView() {
   const isMobile = useIsMobile();
   const [title, setTitle] = useState('Squat');
@@ -139,7 +179,7 @@ export default function ReviewToolsView() {
   const lastTool = REVIEW_TOOLS.find(t => t.key === lastKey);
 
   return (
-    <div className="motion-rise">
+    <div className="motion-rise" style={{ maxWidth: 880 }}>
       <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 4 }}>REVIEW · TOOLS</div>
       <div style={{ color: C.tm, fontSize: 11, marginBottom: 16, fontFamily: FB, maxWidth: 560, lineHeight: 1.5 }}>
         Camera &amp; pose tools to measure a lift you're reviewing — bar speed,
@@ -151,51 +191,26 @@ export default function ReviewToolsView() {
         header={<SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize, display: 'inline-flex', alignItems: 'center' }}>
           <SectionIcon kind="cube" color="#FFFFFF" /> TOOLS
         </SectionLabel>}
-        headerRight={lastTool ? <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: '#FFFFFF', opacity: 0.85 }}>LAST · {lastTool.label}</span> : null}
+        headerRight={lastTool
+          ? <button onClick={() => open(lastTool.key)} title={`Reopen ${lastTool.label}`}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', border: '1px solid #ffffff73', color: '#FFFFFF', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '4px 9px', cursor: 'pointer', borderRadius: 0 }}>
+              ↻ {lastTool.label}
+            </button>
+          : null}
       >
-        {/* Exercise name — drives the label/overlay for Lab / AR / Reps. Jump
-            auto-labels itself, so this is explicitly scoped to the other three. */}
-        <div style={{ marginBottom: 16, maxWidth: 340 }}>
+        {/* Exercise name — drives the label/overlay for Lab / Metrics / Live.
+            Jump auto-labels itself, so this is scoped to the other three. */}
+        <div style={{ marginBottom: 16, maxWidth: 360 }}>
           <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 5 }}>EXERCISE · FOR LAB / METRICS / LIVE</label>
           <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat"
             style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none' }} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))', gap: 10 }}>
-          {REVIEW_TOOLS.map(t => {
-            const blocked = t.live && !camOk.current;
-            const isLast = t.key === lastKey;
-            return (
-              <Card key={t.key}
-                onClick={blocked ? undefined : () => open(t.key)}
-                leftStripe={C.ac}
-                padding={14}
-                style={{
-                  opacity: blocked ? 0.55 : 1,
-                  cursor: blocked ? 'not-allowed' : 'pointer',
-                  outline: isLast ? `1px solid ${C.ac}` : 'none',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <SectionIcon kind={t.icon} color={C.ac} size={16} />
-                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: C.ac }}>{t.label}</span>
-                  <span style={{ marginLeft: 'auto', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', color: t.live ? C.ac : C.tm, border: `1px solid ${t.live ? C.cardBd : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>
-                    {t.live ? 'LIVE CAM' : 'UPLOAD OK'}
-                  </span>
-                </div>
-                <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.4, marginBottom: 6 }}>{t.measures}</div>
-                <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.4 }}>
-                  <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', color: C.td, marginRight: 6 }}>USE WHEN</span>
-                  {t.useWhen}
-                </div>
-                {blocked && (
-                  <div style={{ marginTop: 8, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-rd, #FF4757)' }}>
-                    NO CAMERA ON THIS DEVICE
-                  </div>
-                )}
-              </Card>
-            );
-          })}
+        {/* Clean 2×2 of equal-height tiles; one column on phones. */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+          {REVIEW_TOOLS.map(t => (
+            <ToolTile key={t.key} t={t} blocked={t.live && !camOk.current} isLast={t.key === lastKey} onOpen={() => open(t.key)} />
+          ))}
         </div>
       </Card>
 
