@@ -232,26 +232,32 @@ export default function AnatomyModelViewer({ frames }) {
     // (a full 3-axis rotation incl. twist). Forearm roll then follows wrist→hand,
     // femur roll follows the knee plane, tibia roll follows ankle→foot.
     const _X = new THREE.Vector3(), _Y = new THREE.Vector3(), _Z = new THREE.Vector3();
-    const _tmpS = new THREE.Vector3(), _up = new THREE.Vector3(0, 1, 0);
+    const _tmpS = new THREE.Vector3();
     const _mRest = new THREE.Matrix4(), _mPose = new THREE.Matrix4(), _mRot = new THREE.Matrix4();
     const _qb = new THREE.Quaternion();
+    // A bend plane is only trustworthy when the secondary is meaningfully OFF the
+    // bone's long axis. |X×S| = sin(angle); below SEC_MIN (~7°) the secondary is
+    // ~parallel (a near-straight limb) and any roll we'd derive is noise. Return
+    // false there so basisQ falls back to SWING — never fabricate a perpendicular,
+    // which would brand every neutral-pose bone with a constant spurious roll.
+    const SEC_MIN = 0.12;
     const buildFrame = (primary, secondary) => {
-      _X.copy(primary); if (_X.lengthSq() < 1e-9) return false; _X.normalize();
-      _tmpS.copy(secondary && secondary.lengthSq() > 1e-9 ? secondary : _up);
+      if (!primary || !secondary) return false;
+      _X.copy(primary); const pl = _X.length(); if (pl < 1e-6) return false; _X.divideScalar(pl);
+      _tmpS.copy(secondary); const sl = _tmpS.length(); if (sl < 1e-6) return false; _tmpS.divideScalar(sl);
       _Z.crossVectors(_X, _tmpS);
-      if (_Z.lengthSq() < 1e-10) {                       // secondary ∥ primary → pick a deterministic perpendicular
-        _tmpS.set(Math.abs(_X.y) < 0.9 ? 0 : 1, Math.abs(_X.y) < 0.9 ? 1 : 0, 0);
-        _Z.crossVectors(_X, _tmpS);
-      }
+      if (_Z.length() < SEC_MIN) return false;           // secondary ~∥ primary → roll unreliable
       _Z.normalize(); _Y.crossVectors(_Z, _X).normalize();
       return true;
     };
-    // q mapping rest-frame → pose-frame = Mpose · Mrestᵀ (orthonormal ⇒ ᵀ = ⁻¹)
+    // q mapping rest-frame → pose-frame = Mpose · Mrestᵀ (orthonormal ⇒ ᵀ = ⁻¹).
+    // Falls back to swing-only alignQ whenever EITHER bend plane is unreliable, so
+    // v2 is guaranteed never worse than v1 — it only ADDS twist where the data
+    // supports it (Ohad's "don't come out worse than this" constraint).
     const basisQ = (pRest, sRest, pPose, sPose) => {
-      if (!pRest || !pPose) return alignQ(pRest, pPose);
-      if (!buildFrame(pRest, sRest)) return new THREE.Quaternion();
-      _mRest.makeBasis(_X, _Y, _Z);
-      if (!buildFrame(pPose, sPose)) return new THREE.Quaternion();
+      if (!buildFrame(pRest, sRest)) return alignQ(pRest, pPose);
+      _mRest.makeBasis(_X, _Y, _Z);                      // capture rest frame before pose overwrites _X/_Y/_Z
+      if (!buildFrame(pPose, sPose)) return alignQ(pRest, pPose);
       _mPose.makeBasis(_X, _Y, _Z);
       _mRest.transpose();
       _mRot.multiplyMatrices(_mPose, _mRest);
