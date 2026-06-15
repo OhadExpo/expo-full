@@ -109,7 +109,7 @@ function ToolLoading({ label }) {
 export default function ReviewToolsView() {
   const isMobile = useIsMobile();
   const [title, setTitle] = useState('Squat');
-  const [tool, setTool]   = useState(null); // 'lab' | 'jump' | 'ar' | 'rep' | null
+  const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
   const [lastKey, setLastKey] = useState(null);
   const camOk = useRef(hasCameraApi());
 
