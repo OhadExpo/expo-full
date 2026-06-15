@@ -51,6 +51,11 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const [reps, setReps] = useState(0);
   const [moving, setMoving] = useState('top');  // 'top' | 'bottom' — live rep phase
   const [atDepth, setAtDepth] = useState(false);
+  // 'environment' = rear (coach films the athlete) · 'user' = front (athlete
+  // self-films and watches the HUD while lifting). Switchable live.
+  const [facing, setFacing] = useState(facingMode);
+  const facingRef = useRef(facingMode);
+  useEffect(() => { facingRef.current = facing; }, [facing]);
 
   const { kind, channels } = detectChannels(exerciseTitle);
   const thr = KIND_THRESHOLDS[kind];
@@ -97,7 +102,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     setError(null); setPhase('loading');
     try {
       if (!streamRef.current) {
-        const s = await getCamera(facingMode);
+        const s = await getCamera(facingRef.current);
         streamRef.current = s;
         const v = videoRef.current; if (v) { v.srcObject = s; await v.play(); }
       }
@@ -107,7 +112,21 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       setPhase('live');
       rafRef.current = requestAnimationFrame(loop);
     } catch (e) { setPhase('idle'); setError(e?.message || 'Could not start the camera.'); }
-  }, [facingMode, loop]);
+  }, [loop]);
+
+  // Swap front/rear without tearing down the pose engine. Re-lock the bar since
+  // the viewpoint changed. NOT mirrored — mirroring would invert left/right so
+  // the bar-drift cue would point the wrong way.
+  const flipCamera = useCallback(async () => {
+    const next = facingRef.current === 'environment' ? 'user' : 'environment';
+    setFacing(next);
+    try {
+      stopStream(streamRef.current); streamRef.current = null;
+      const s = await getCamera(next); streamRef.current = s;
+      const v = videoRef.current; if (v) { v.srcObject = s; await v.play(); }
+      anchorRef.current = null;
+    } catch (e) { setError(e?.message || 'Could not switch camera.'); }
+  }, []);
 
   const reanchor = useCallback(() => { anchorRef.current = null; }, []);
   const resetReps = useCallback(() => { setReps(0); phaseRef.current = 'top'; setMoving('top'); angleBufRef.current = []; }, []);
@@ -137,8 +156,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
             way of a side-on full-body frame. */}
         {phase === 'live' && (
           <div style={{ position: 'absolute', top: 46, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+            <style>{'@keyframes rtpop{0%{transform:scale(1)}30%{transform:scale(1.28)}100%{transform:scale(1)}}'}</style>
             <div style={{ display: 'flex', alignItems: 'stretch', gap: 1, background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(2px)' }}>
-              {countable && <HudCell label="REPS" value={String(reps)} big tone={ACCENT} />}
+              {countable && <HudCell label="REPS" value={String(reps)} big pop tone={ACCENT} />}
               {countable && <HudCell label="PHASE" value={moving === 'bottom' ? 'DOWN' : 'UP'} tone={moving === 'bottom' ? '#FFFFFF' : 'rgba(255,255,255,0.7)'} />}
               {showDepth && depthRelevant && <HudCell label="DEPTH" value={atDepth ? '✓' : '—'} tone={atDepth ? GREEN : 'rgba(255,255,255,0.5)'} />}
             </div>
@@ -158,24 +178,29 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
         {error && <Centre><div style={{ fontSize: 32 }}>⚠</div><div style={{ fontSize: 13, color: C.rd, marginTop: 10, maxWidth: 320 }}>{error}</div></Centre>}
       </div>
 
-      <div style={{ background: 'rgba(0,0,0,0.92)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10 }}>
+      <div style={{ background: 'rgba(0,0,0,0.92)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {phase !== 'live'
-          ? <Big color={C.ac} onClick={start} disabled={phase === 'loading'}>{phase === 'loading' ? 'STARTING…' : 'START →'}</Big>
+          ? <>
+              <Big color={C.ac} onClick={start} disabled={phase === 'loading'}>{phase === 'loading' ? 'STARTING…' : 'START →'}</Big>
+              <button onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')} style={{ ...ctrl, minWidth: 120 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'} CAM</button>
+            </>
           : <>
-              {countable && <button onClick={resetReps} style={{ ...ctrl, minWidth: 110 }}>⟲ RESET REPS</button>}
-              <button onClick={reanchor} style={{ ...ctrl, minWidth: 120 }}>⟲ RE-LOCK BAR</button>
-              {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 110 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
+              {countable && <button onClick={resetReps} style={{ ...ctrl, minWidth: 104 }}>⟲ RESET REPS</button>}
+              <button onClick={reanchor} style={{ ...ctrl, minWidth: 112 }}>⟲ RE-LOCK BAR</button>
+              <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'}</button>
+              {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
             </>}
       </div>
     </div>
   );
 }
 
-function HudCell({ label, value, big, tone }) {
+function HudCell({ label, value, big, tone, pop }) {
   return (
     <div style={{ minWidth: big ? 88 : 70, padding: big ? '8px 14px' : '8px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.55)', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontFamily: FN, fontWeight: 700, lineHeight: 1, fontSize: big ? 38 : 18, color: tone }}>{value}</div>
+      {/* key=value remounts the node each rep so the pop animation replays */}
+      <div key={pop ? value : undefined} style={{ fontFamily: FN, fontWeight: 700, lineHeight: 1, fontSize: big ? 38 : 18, color: tone, animation: pop ? 'rtpop .35s ease' : undefined }}>{value}</div>
     </div>
   );
 }
@@ -223,6 +248,12 @@ function draw(canvas, video, landmarks, anchorRef, { depth }) {
     ctx.beginPath(); ctx.moveTo(0, ky); ctx.lineTo(w, ky); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = atDepth ? GREEN : 'rgba(255,255,255,0.7)';
     ctx.beginPath(); ctx.arc(hipMid.x * w, hipMid.y * h, 9, 0, Math.PI * 2); ctx.fill();
+    // at-depth = a bold green frame around the whole feed, readable across the gym
+    if (atDepth) {
+      const lw = Math.max(6, w * 0.012);
+      ctx.strokeStyle = 'rgba(70,220,130,0.85)'; ctx.lineWidth = lw; ctx.setLineDash([]);
+      ctx.strokeRect(lw / 2, lw / 2, w - lw, h - lw);
+    }
   }
 }
 

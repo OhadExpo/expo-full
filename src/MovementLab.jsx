@@ -344,8 +344,36 @@ function VelocityTable({ v }) {
     <div>
       <Kpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} />
       <Kpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
+      <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined} />)}
+    </div>
+  );
+}
+
+// The VBT fatigue curve — mean concentric velocity per rep as bars, coloured by
+// velocity-loss (green <10% · orange 10–20% · red ≥20%). The whole reason to
+// measure velocity is to SEE the drop-off; a number column hides it.
+function VelocityBars({ perRep, bestMean }) {
+  const reps = (perRep || []).filter(Boolean);
+  if (reps.length < 2) return null;
+  const max = Math.max(bestMean || 0, ...reps.map(r => r.meanConcentric)) || 1;
+  return (
+    <div style={{ margin: '6px 0 16px' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VELOCITY PROFILE · m/s PER REP</div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 96 }}>
+        {reps.map((r, i) => {
+          const h = Math.max(4, Math.round((r.meanConcentric / max) * 78));
+          const tone = r.lossPct >= 20 ? C.rd : r.lossPct >= 10 ? C.or : C.gn;
+          return (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 }}>
+              <div style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.55)', marginBottom: 3 }}>{r.meanConcentric.toFixed(2)}</div>
+              <div title={`Rep ${i + 1} · ${r.meanConcentric.toFixed(2)} m/s · ${r.lossPct}% loss`} style={{ width: '100%', maxWidth: 32, height: h, background: tone }} />
+              <div style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{i + 1}</div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
