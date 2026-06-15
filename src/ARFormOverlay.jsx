@@ -42,10 +42,12 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const angleBufRef = useRef([]);      // smoothing buffer for the rep state machine
   const phaseRef = useRef('top');      // 'top' | 'bottom'
   const depthRef = useRef(false);      // last depth state (so we only setState on flips)
+  const showDepthRef = useRef(true);   // current depth-toggle, read by the running rAF loop
 
   const [phase, setPhase] = useState('idle'); // idle | loading | live
   const [error, setError] = useState(null);
   const [showDepth, setShowDepth] = useState(true);
+  useEffect(() => { showDepthRef.current = showDepth; }, [showDepth]);
   const [reps, setReps] = useState(0);
   const [moving, setMoving] = useState('top');  // 'top' | 'bottom' — live rep phase
   const [atDepth, setAtDepth] = useState(false);
@@ -79,16 +81,17 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     }
 
     // --- depth flag (image landmarks) — only setState when it flips ---
-    if (showDepth && depthRelevant && landmarks) {
+    const depthOn = showDepthRef.current && depthRelevant;
+    if (depthOn && landmarks) {
       const hip = midpt(landmarks[23], landmarks[24]);
       const knee = midpt(landmarks[25], landmarks[26]);
       const d = !!(hip && knee && hip.y >= knee.y);
       if (d !== depthRef.current) { depthRef.current = d; setAtDepth(d); }
     }
 
-    draw(canvasRef.current, v, landmarks, anchorRef, { depth: showDepth && depthRelevant });
+    draw(canvasRef.current, v, landmarks, anchorRef, { depth: depthOn });
     rafRef.current = requestAnimationFrame(loop);
-  }, [showDepth, depthRelevant, thr, channels]);
+  }, [depthRelevant, thr, channels]);
 
   const start = useCallback(async () => {
     setError(null); setPhase('loading');
