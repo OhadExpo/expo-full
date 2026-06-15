@@ -384,11 +384,46 @@ function RomTable({ r }) {
     <div>
       <Kpi label="LARGEST ROM" value={`${r.maxRom.toFixed(0)}°`} />
       {r.collapsedCount > 0 && <Kpi label="ROM-COLLAPSED REPS" value={String(r.collapsedCount)} tone={C.or} />}
+      <TempoBars perRep={r.perRep} />
       <Row head cells={['REP', 'ROM', 'ECC s', 'PAUSE', 'CON s']} />
       {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined} />)}
     </div>
   );
 }
+
+// Tempo timeline — each rep's eccentric / pause / concentric seconds as a
+// proportional stacked bar. Surfaces rushed eccentrics and skipped pauses at a
+// glance (tempo-prescription compliance), which the seconds columns bury.
+function TempoBars({ perRep }) {
+  const reps = (perRep || []).filter(Boolean);
+  if (!reps.length) return null;
+  const maxT = Math.max(...reps.map(r => r.ecc + r.pause + r.con)) || 1;
+  const seg = (val, color, key) => val > 0
+    ? <div key={key} title={`${key} ${val.toFixed(1)}s`} style={{ width: `${(val / maxT) * 100}%`, background: color }} />
+    : null;
+  return (
+    <div style={{ margin: '6px 0 16px' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>TEMPO · ECC / PAUSE / CON PER REP</div>
+      {reps.map((x, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', width: 16 }}>{i + 1}</div>
+          <div style={{ flex: 1, display: 'flex', height: 12, background: 'rgba(255,255,255,0.06)' }}>
+            {seg(x.ecc, C.ac, 'ecc')}{seg(x.pause, 'rgba(255,255,255,0.28)', 'pause')}{seg(x.con, C.gn, 'con')}
+          </div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', width: 42, textAlign: 'right' }}>{(x.ecc + x.pause + x.con).toFixed(1)}s</div>
+        </div>
+      ))}
+      <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+        <Legend color={C.ac} label="ECC" /><Legend color="rgba(255,255,255,0.28)" label="PAUSE" /><Legend color={C.gn} label="CON" />
+      </div>
+    </div>
+  );
+}
+const Legend = ({ color, label }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em' }}>
+    <span style={{ width: 9, height: 9, background: color }} />{label}
+  </span>
+);
 
 // ----------------------------- results: jump --------------------------------
 function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
