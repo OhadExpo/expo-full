@@ -30,6 +30,8 @@ const POSE_CONNECTIONS = [
 export default function MovementLab({
   exerciseTitle = 'Squat',
   initialMode = 'analyze',      // 'analyze' (VBT/ROM/3D) | 'jump'
+  initialView = 'all',          // analyze result scope: 'all' | '3d' (skeleton) | 'metrics' (VBT/ROM)
+  toolLabel = null,             // header label override (e.g. 'MOVEMENT LAB' vs 'LIFT METRICS')
   facingMode = 'environment',   // filming someone on the floor by default
   onClose,
   onSaveJump,                   // (metrics) => void — wires jump into ath eval
@@ -54,6 +56,14 @@ export default function MovementLab({
   const [progress, setProgress] = useState(0);    // upload analysis %
   const [mode] = useState(initialMode);
   const fileInputRef = useRef(null);
+  // Which result tab to land on, honouring the tool's scope: the 3D-skeleton
+  // tool (Movement Lab) opens straight to the skeleton; the metrics tool (Lift
+  // Metrics) opens to velocity; the combined view keeps the old reps→velocity,
+  // empty→3D fallback.
+  const defaultTab = (repCount) =>
+    initialView === '3d' ? 'threeD'
+      : initialView === 'metrics' ? 'velocity'
+        : (repCount ? 'velocity' : 'threeD');
 
   // ---- bootstrap + record loop ----
   const recordLoop = useCallback(() => {
@@ -123,7 +133,7 @@ export default function MovementLab({
       } else {
         const r = analyzeClip(frames, exerciseTitle);
         setResult(r);
-        setTab(r.repCount ? 'velocity' : 'threeD');
+        setTab(defaultTab(r.repCount));
         setPhase('results');
       }
     }, 30);
@@ -170,7 +180,7 @@ export default function MovementLab({
         setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
       } else {
         const res = analyzeClip(frames, exerciseTitle);
-        setResult(res); setTab(res.repCount ? 'velocity' : 'threeD');
+        setResult(res); setTab(defaultTab(res.repCount));
       }
       setPhase('results');
     } catch (e) {
@@ -204,7 +214,7 @@ export default function MovementLab({
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-            {mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'} · {String(exerciseTitle).toUpperCase()}
+            {(toolLabel || (mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'))} · {String(exerciseTitle).toUpperCase()}
           </div>
         </div>
         <button onClick={onClose} style={btn('rgba(255,255,255,0.3)', 'transparent')}>✕ CLOSE</button>
@@ -269,7 +279,7 @@ export default function MovementLab({
         <div style={{ flex: 1, overflow: 'auto', padding: '64px 16px 16px', WebkitOverflowScrolling: 'touch' }}>
           {mode === 'jump'
             ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
-            : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} />}
+            : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} view={initialView} />}
         </div>
       )}
 
@@ -289,16 +299,22 @@ export default function MovementLab({
 }
 
 // ----------------------------- results: analyze -----------------------------
-function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab }) {
+function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all' }) {
   if (!result?.ok) return <Empty msg="Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame." />;
-  const tabs = [
+  // The Movement-Lab/Lift-Metrics split: '3d' shows only the skeleton, 'metrics'
+  // shows only velocity + ROM, 'all' keeps everything (Ohad 2026-06-15 —
+  // velocity/ROM no longer live under Movement Lab).
+  const allTabs = [
     { k: 'velocity', label: 'VELOCITY', on: result.repCount > 0 },
     { k: 'rom', label: 'ROM & TEMPO', on: result.repCount > 0 },
     { k: 'threeD', label: '3D ANATOMY', on: true },
   ];
+  const tabs = view === '3d' ? allTabs.filter(t => t.k === 'threeD')
+    : view === 'metrics' ? allTabs.filter(t => t.k !== 'threeD')
+      : allTabs;
   return (
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
-      <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
+      {tabs.length > 1 && <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
         {tabs.map(t => (
           <button key={t.k} disabled={!t.on} onClick={() => setTab(t.k)} style={{
             flex: 1, padding: '9px 6px', background: tab === t.k ? C.ac : 'transparent',
@@ -307,7 +323,7 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab }) {
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: t.on ? 'pointer' : 'default',
           }}>{t.label}</button>
         ))}
-      </div>
+      </div>}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
       </div>

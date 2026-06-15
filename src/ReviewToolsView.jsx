@@ -9,27 +9,27 @@ import { Card, SectionLabel, SectionIcon, useIsMobile } from './ui';
 
 const MovementLab   = lazy(() => import('./MovementLab'));
 const ARFormOverlay = lazy(() => import('./ARFormOverlay'));
-const LiveRepCounter = lazy(() => import('./LiveRepCounter'));
 
-// Each tool declares its icon, what it measures, when to reach for it, whether
-// it consumes the exercise name, and whether it needs a LIVE camera (vs an
-// upload). `live` tools are disabled when the browser exposes no camera API.
+// Four tools, one job each. The first three run off a RECORDED clip (record or
+// upload — so no camera is mandatory); only LIVE COACH needs a live camera, and
+// it folds in what used to be the separate rep counter. `needsTitle` tools use
+// the exercise name above; `live` tools are disabled when there's no camera API.
 const REVIEW_TOOLS = [
-  { key: 'lab',  label: 'MOVEMENT LAB', icon: 'cube',
-    measures: 'Bar speed (VBT) · ROM + tempo · rotatable 3D skeleton',
-    useWhen: 'Reviewing a recorded set — record live or upload the clip.',
+  { key: 'lab',     label: 'MOVEMENT LAB', icon: 'cube',
+    measures: 'Rotatable 3D skeleton rebuilt from the lift',
+    useWhen: 'See a movement in 3D — orbit it, scrub the rep, read joint angles.',
     needsTitle: true,  live: false },
-  { key: 'jump', label: 'JUMP TEST', icon: 'zap',
+  { key: 'metrics', label: 'LIFT METRICS', icon: 'trendingUp',
+    measures: 'Bar speed (VBT) + velocity-loss · ROM + tempo + collapse flags',
+    useWhen: 'Pull the numbers off a recorded set — fatigue, depth, tempo.',
+    needsTitle: true,  live: false },
+  { key: 'jump',    label: 'JUMP TEST', icon: 'zap',
     measures: 'Jump height from flight time · estimated peak power',
-    useWhen: 'Testing lower-body power. Enter bodyweight for watts.',
-    needsTitle: false, live: true },
-  { key: 'ar',   label: 'AR FORM', icon: 'camera',
-    measures: 'Live bar-path + depth line painted over the camera',
-    useWhen: 'Coaching reps in real time on the gym floor.',
-    needsTitle: true,  live: true },
-  { key: 'rep',  label: 'REP COUNTER', icon: 'crosshair',
-    measures: 'Automatic rep counting from the live camera',
-    useWhen: 'Counting reps hands-free during a set.',
+    useWhen: 'Test lower-body power. Enter bodyweight for watts.',
+    needsTitle: false, live: false },
+  { key: 'live',    label: 'LIVE COACH', icon: 'camera',
+    measures: 'Real-time reps + depth target + bar-path drift on the live feed',
+    useWhen: 'Coach a set as it happens — feedback before the rep ends.',
     needsTitle: true,  live: true },
 ];
 
@@ -156,7 +156,7 @@ export default function ReviewToolsView() {
         {/* Exercise name — drives the label/overlay for Lab / AR / Reps. Jump
             auto-labels itself, so this is explicitly scoped to the other three. */}
         <div style={{ marginBottom: 16, maxWidth: 340 }}>
-          <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 5 }}>EXERCISE · FOR LAB / AR / REPS</label>
+          <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 5 }}>EXERCISE · FOR LAB / METRICS / LIVE</label>
           <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat"
             style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none' }} />
         </div>
@@ -202,10 +202,10 @@ export default function ReviewToolsView() {
       {tool && (
         <ToolBoundary toolKey={tool} onClose={close}>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
-            {tool === 'lab'  && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" onClose={close} />}
-            {tool === 'jump' && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" onClose={close} />}
-            {tool === 'ar'   && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
-            {tool === 'rep'  && <LiveRepCounter exerciseTitle={title || 'Squat'} onClose={close} />}
+            {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" onClose={close} />}
+            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" onClose={close} />}
+            {tool === 'jump'    && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" onClose={close} />}
+            {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
           </Suspense>
         </ToolBoundary>
       )}
