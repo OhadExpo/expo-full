@@ -7,10 +7,15 @@
 // via the hook in evaluationsData.js. eval_id is null for create, set for
 // edit-in-place.
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b, useEscClose, useIsMobile } from './ui';
+import { isRefined5b, useEscClose, useIsMobile, toast } from './ui';
 import { EVAL_SCHEMA, romKey } from './evaluationSchema';
+import { toolForTest } from './evalTestMap';
+
+// Camera tools pull MediaPipe/three — lazy so opening an eval doesn't carry them
+// until the coach actually runs a test.
+const MovementLab = lazy(() => import('./MovementLab'));
 
 const inputBase = {
   background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,
@@ -21,7 +26,34 @@ const inputBase = {
 // One test row mirrors the ATH EVAL.xlsx layout: # · NAME · GOAL · SCORE.
 // Score column adapts to test shape (simple / sided / composite / sided
 // composite) but stays inside its column — never overflows the card.
-function TestRow({ index, test, value, onChange }) {
+// A small "TEST" affordance next to a measurable row. Sided tests offer L/R;
+// not-yet-built tools show a disabled "soon" chip so the eval reveals the
+// intended camera coverage without pretending it works.
+function TestButtons({ test, onTest }) {
+  const map = toolForTest(test.id);
+  if (!map) return null;
+  const soon = map.status === 'soon';
+  const base = {
+    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+    padding: '3px 8px', borderRadius: 0, cursor: soon ? 'default' : 'pointer',
+    border: `1px solid ${soon ? 'var(--c-cardBd)' : 'var(--c-ac)'}`,
+    background: 'transparent', color: soon ? 'var(--c-td)' : 'var(--c-ac)',
+    opacity: soon ? 0.6 : 1,
+  };
+  if (soon) return <div style={{ marginTop: 5 }}><span style={base}>◉ TEST · soon</span></div>;
+  const sides = map.side ? ['L', 'R'] : [null];
+  return (
+    <div style={{ marginTop: 5, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {sides.map(s => (
+        <button key={s || 'x'} type="button" onClick={() => onTest(test, map, s)} style={base}>
+          ◉ TEST{s ? ` · ${s}` : ''}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TestRow({ index, test, value, onChange, onTest }) {
   const isComposite = Array.isArray(test.composite);
   const hasSides = Array.isArray(test.sides);
   const isMobile = useIsMobile();
@@ -48,7 +80,10 @@ function TestRow({ index, test, value, onChange }) {
       borderBottom: `1px solid var(--c-cardBd)`,
     }}>
       <div style={{ fontFamily: FN, fontSize: 11, color: 'var(--c-td)', fontWeight: 700 }}>{index}</div>
-      <div style={{ fontSize: 13, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
+      <div>
+        <div style={{ fontSize: 13, color: 'var(--c-tx)', fontWeight: 600, lineHeight: 1.3 }}>{test.label}</div>
+        <TestButtons test={test} onTest={onTest} />
+      </div>
       <div style={{ fontFamily: FN, fontSize: 10, color: 'var(--c-tm)', letterSpacing: '0.04em', lineHeight: 1.3 }}>{test.goal || '—'}</div>
       <div style={{ minWidth: 0 }}>
         {/* simple — capped width so a lone number doesn't float in a huge box */}
@@ -207,7 +242,7 @@ function MovementRow({ index, test, value, note, onScore, onNote }) {
   );
 }
 
-function SectionBlock({ section, scores, setScore, notes, setNote }) {
+function SectionBlock({ section, scores, setScore, notes, setNote, onTest }) {
   const isMovements = section.id === 'movements';
   const isMobile = useIsMobile();
   return (
@@ -246,7 +281,7 @@ function SectionBlock({ section, scores, setScore, notes, setNote }) {
           ))
         : section.tests.map((t, i) => (
             <TestRow key={t.id} index={i + 1} test={t} value={scores[t.id]}
-              onChange={v => setScore(t.id, v)} />
+              onChange={v => setScore(t.id, v)} onTest={onTest} />
           ))}
     </div>
   );
@@ -337,6 +372,25 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
     });
   };
 
+  // Embedded camera test: open the matching tool for a row, write its measured
+  // value straight into that test's field, verify-then-continue. This is the
+  // "run the protocol inside the eval" flow — no separate eval row, no retyping.
+  const [activeTest, setActiveTest] = useState(null); // { test, map, side }
+  const onTest = (test, map, side) => setActiveTest({ test, map, side });
+  const writeJump = (j) => {
+    if (!activeTest) return;
+    const { test, map, side } = activeTest;
+    const v = map.toValue(j);
+    if (side) {
+      const cur = (typeof scores[test.id] === 'object' && scores[test.id]) ? scores[test.id] : {};
+      setScore(test.id, { ...cur, [side]: v });
+    } else {
+      setScore(test.id, v);
+    }
+    toast(`Logged ${v} to ${test.label}${side ? ` · ${side}` : ''}`, 'success', { ttl: 3500 });
+    setActiveTest(null);
+  };
+
   const save = async () => {
     const scoresOut = Object.keys(exNotes).length ? { ...scores, __notes: exNotes } : scores;
     await onSave({
@@ -348,6 +402,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   };
 
   return (
+    <>
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Athletic evaluation" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '16px 8px' : '40px 16px',
@@ -392,7 +447,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
 
         {EVAL_SCHEMA.sections.map(s => (
           <SectionBlock key={s.id} section={s} scores={scores} setScore={setScore}
-            notes={exNotes} setNote={setExNote} />
+            notes={exNotes} setNote={setExNote} onTest={onTest} />
         ))}
 
         <RomBlock rom={rom} setRom={setRom} />
@@ -417,5 +472,21 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
         </div>
       </div>
     </div>
+
+    {/* Embedded camera test overlay — fullscreen, stacks over the eval modal.
+        On SAVE it writes the measured value into the row and closes. */}
+    {activeTest && activeTest.map.tool === 'jump' && (
+      <Suspense fallback={null}>
+        <MovementLab
+          initialMode="jump"
+          exerciseTitle={`${activeTest.map.label}${activeTest.side ? ` · ${activeTest.side}` : ''}`}
+          toolLabel={String(activeTest.map.label).toUpperCase()}
+          defaultBodyweightKg={parseFloat(weightKg) || null}
+          onSaveJump={writeJump}
+          onClose={() => setActiveTest(null)}
+        />
+      </Suspense>
+    )}
+    </>
   );
 }
