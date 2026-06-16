@@ -381,14 +381,32 @@ export default function AnatomyModelViewer({ frames }) {
       const { J, M, mode } = rig;
       const hipC = cg(fp, 'hipCenter'), shoC = cg(fp, 'shoCenter'); if (!hipC || !shoC) return;
       const wj = {};
-      const qSpine = alignQ(J.shoCenter, sub(shoC, hipC));
+      // v2 orients the trunk with a FULL torso basis (long axis + the L–R girdle
+      // line as the second axis), so the front/back facing is pinned. v1 aligns
+      // only the long axis (swing), which leaves rotation about it free — that's
+      // why the scapulae could face forward like the skull. The captured torso
+      // up = shoC−hipC; the model rest up ≈ J.shoCenter (hip-centred).
+      const v2 = rigVRef.current === 'v2';
+      const upPose = sub(shoC, hipC);
+      const shoLinePose = sub(cg(fp, 12), cg(fp, 11)), hipLinePose = sub(cg(fp, 24), cg(fp, 23));
+      const qSpine = v2
+        ? basisQ(J.shoCenter, sub(J.shoulderR, J.shoulderL), upPose, shoLinePose)
+        : alignQ(J.shoCenter, upPose);
       wj.shoCenter = add(hipC, app(J.shoCenter, qSpine));
       let qPel = qSpine;
-      if (mode === 'skel') { const cl = sub(cg(fp, 24), cg(fp, 23)); if (cl && J.hipR && J.hipL) qPel = alignQ(sub(J.hipR, J.hipL), cl); }
+      if (mode === 'skel' && hipLinePose && J.hipR && J.hipL) {
+        qPel = v2
+          ? basisQ(sub(J.hipR, J.hipL), J.shoCenter, hipLinePose, upPose)
+          : alignQ(sub(J.hipR, J.hipL), hipLinePose);
+      }
       if (J.hipL) wj.hipL = add(hipC, app(J.hipL, qPel));
       if (J.hipR) wj.hipR = add(hipC, app(J.hipR, qPel));
       let qSho = qSpine;
-      if (mode === 'skel') { const cl = sub(cg(fp, 12), cg(fp, 11)); if (cl && J.shoulderR && J.shoulderL) qSho = alignQ(sub(J.shoulderR, J.shoulderL), cl); }
+      if (mode === 'skel' && shoLinePose && J.shoulderR && J.shoulderL) {
+        qSho = v2
+          ? basisQ(sub(J.shoulderR, J.shoulderL), J.shoCenter, shoLinePose, upPose)
+          : alignQ(sub(J.shoulderR, J.shoulderL), shoLinePose);
+      }
       if (J.shoulderL) wj.shoulderL = add(wj.shoCenter, app(sub(J.shoulderL, J.shoCenter), qSho));
       if (J.shoulderR) wj.shoulderR = add(wj.shoCenter, app(sub(J.shoulderR, J.shoCenter), qSho));
       const ch = sub(cg(fp, 'headRef'), wj.shoCenter);
