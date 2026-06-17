@@ -1599,9 +1599,19 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const hasMore = visibleCount < filtered.length;
 
   const handleOpenPlan = async (planId) => { await loadFullPlan(planId); setEditMode(true); };
-  const handleNewPlan = (presetTraineeId = '') => {
-    setEditPlan({ id: 'pl_' + uid(), name: "", traineeId: presetTraineeId || "", phase: "", notes: "", active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: [], weeks: 4 });
+  const handleNewPlan = async (presetTraineeId = '') => {
+    // Default name "New Program" + persist on creation so the program lands in
+    // planIndex and is selectable in the top block picker immediately — before
+    // the coach types anything. Previously a fresh plan lived only in editor
+    // state (useAutosave has skipFirst, so it persisted only on the first edit,
+    // typically naming it), which is why a blank program was invisible in the
+    // picker until renamed. New plans are always new-shape (days/exercises), so
+    // no dual-shape handling is needed here.
+    const fresh = { id: 'pl_' + uid(), name: "New Program", traineeId: presetTraineeId || "", phase: "", notes: "", active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: [], weeks: 4 };
+    setEditPlan(fresh);
     setEditMode(true);
+    await savePlan(fresh);
+    await reloadIndex();
   };
   const handleSave = async (plan) => {
     await savePlan(plan);
@@ -1857,7 +1867,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           </select>
           <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.ac,fontSize:16,lineHeight:1}}>▾</span>
         </div>
-        <Btn title="Create a new, empty program — you pick the athlete inside the editor" onClick={handleNewPlan} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+ New Program</Btn>
+        <Btn title="Create a new, empty program — you pick the athlete inside the editor" onClick={() => handleNewPlan()} style={{height:42,padding:'0 18px',fontSize:13,lineHeight:'42px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>+ New Program</Btn>
       </div>
       {/* Sort controls. Click an inactive field to activate it (keeps current dir);
           click the active field to flip direction. Arrow points 'up' for asc. */}
