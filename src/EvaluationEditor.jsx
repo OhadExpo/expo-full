@@ -16,6 +16,9 @@ import { toolForTest } from './evalTestMap';
 // Camera tools pull MediaPipe/three — lazy so opening an eval doesn't carry them
 // until the coach actually runs a test.
 const MovementLab = lazy(() => import('./MovementLab'));
+// Hold timer is light (no MediaPipe) but lazy-loaded for symmetry with the
+// other embedded test tools.
+const HoldTimer = lazy(() => import('./HoldTimer'));
 
 const inputBase = {
   background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`, borderRadius: 0,
@@ -377,17 +380,22 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
   // "run the protocol inside the eval" flow — no separate eval row, no retyping.
   const [activeTest, setActiveTest] = useState(null); // { test, map, side }
   const onTest = (test, map, side) => setActiveTest({ test, map, side });
-  const writeJump = (j) => {
+  // Tool-agnostic: `raw` is whatever the active tool hands back (jump metrics
+  // object, or hold seconds). map.toValue folds it into the field shape; for a
+  // composite test that's an object keyed by part id, which slots straight into
+  // the simple / sided / composite / sided-composite storage below.
+  const writeTestResult = (raw) => {
     if (!activeTest) return;
     const { test, map, side } = activeTest;
-    const v = map.toValue(j);
+    const v = map.toValue(raw);
     if (side) {
       const cur = (typeof scores[test.id] === 'object' && scores[test.id]) ? scores[test.id] : {};
       setScore(test.id, { ...cur, [side]: v });
     } else {
       setScore(test.id, v);
     }
-    toast(`Logged ${v} to ${test.label}${side ? ` · ${side}` : ''}`, 'success', { ttl: 3500 });
+    const shown = typeof v === 'object' ? Object.entries(v).map(([k, val]) => `${k}:${val}`).join(' · ') : v;
+    toast(`Logged ${shown} to ${test.label}${side ? ` · ${side}` : ''}`, 'success', { ttl: 3500 });
     setActiveTest(null);
   };
 
@@ -483,7 +491,19 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
           exerciseTitle={`${activeTest.map.label}${activeTest.side ? ` · ${activeTest.side}` : ''}`}
           toolLabel={String(activeTest.map.label).toUpperCase()}
           defaultBodyweightKg={parseFloat(weightKg) || null}
-          onSaveJump={writeJump}
+          onSaveJump={writeTestResult}
+          onClose={() => setActiveTest(null)}
+        />
+      </Suspense>
+    )}
+    {/* Embedded hold-to-failure timer for the isometric tests. */}
+    {activeTest && activeTest.map.tool === 'hold' && (
+      <Suspense fallback={null}>
+        <HoldTimer
+          title={String(activeTest.map.label).toUpperCase()}
+          side={activeTest.side}
+          goal={activeTest.map.goal || activeTest.test.goal}
+          onSave={writeTestResult}
           onClose={() => setActiveTest(null)}
         />
       </Suspense>

@@ -31,11 +31,15 @@ export const EVAL_TEST_TOOLS = {
   sl_pogo:    { tool: 'jump', jumpType: 'pogo', side: true, label: 'POGO (RSI)',
                 toValue: j => ({ ssc_ms: String(j.contactMs), rsi: String(j.rsi) }) },
 
+  // Isometric holds — coach-operated hold-to-failure timer (no pose; a
+  // stopwatch is the right tool). Result is whole seconds; sided tests store
+  // { L, R }. unit in evaluationSchema is 'sec'.
+  iso_sl_stand: { tool: 'hold', side: true, label: 'ISO Single-Leg Stand', goal: '30 sec E', toValue: s => String(s) },
+  iso_dead_hang:{ tool: 'hold', label: 'ISO Dead Hang', goal: '30 sec', toValue: s => String(s) },
+  iso_sa_pushup:{ tool: 'hold', side: true, label: 'ISO SA Push-Up Stance', goal: '15 sec E', toValue: s => String(s) },
+
   // not yet — surfaced as disabled so the eval shows the intended coverage
   broad_jump: { tool: 'jump', status: 'soon', label: 'Broad Jump' },
-  iso_sl_stand: { tool: 'hold', status: 'soon', side: true, label: 'ISO Single-Leg Stand' },
-  iso_dead_hang:{ tool: 'hold', status: 'soon', label: 'ISO Dead Hang' },
-  iso_sa_pushup:{ tool: 'hold', status: 'soon', side: true, label: 'ISO SA Push-Up Stance' },
 };
 
 export const toolForTest = (testId) => EVAL_TEST_TOOLS[testId] || null;
