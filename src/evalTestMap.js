@@ -8,10 +8,11 @@
 // frame rate (per research: native slow-mo upload ≈ ±1cm at 240fps; live web
 // camera ≈ ±3–10cm at 30–60fps), so jumps prefer an uploaded slow-mo clip.
 //
-// Stubbed (coming): drop_jump / sl_pogo need ground-contact + RSI math;
-// broad_jump needs a horizontal scale reference; iso_* need a hold timer; the
-// ROM joints need the pose goniometer. Listed here as `status:'soon'` so the UI
-// can show a disabled "TEST · soon" affordance instead of pretending.
+// Stubbed (coming): broad_jump needs a horizontal scale reference; iso_* need a
+// hold timer; the ROM joints need the pose goniometer. Listed here as
+// `status:'soon'` so the UI can show a disabled "TEST · soon" affordance instead
+// of pretending. drop_jump / sl_pogo are now LIVE — reactiveJumpMetrics gives
+// ground-contact + RSI, and the jump tool branches to reactive mode on jumpType.
 
 // jumpType drives the on-screen cue/label inside the jump tool. side:true means
 // the test stores a per-limb { L, R } object and the button is offered per side.
@@ -21,9 +22,16 @@ export const EVAL_TEST_TOOLS = {
   cmj:        { tool: 'jump', jumpType: 'cmj', label: 'Countermovement Jump',   toValue: j => String(j.heightCm) },
   sl_jump:    { tool: 'jump', jumpType: 'sl',  label: 'Single-Leg Jump', side: true, toValue: j => String(j.heightCm) },
 
+  // Reactive jumps — ground-contact + RSI via reactiveJumpMetrics. The jump
+  // tool segments airborne windows and contacts; the result carries heightCm,
+  // contactMs (the SSC/LSC ground-contact time), and rsi. toValue folds those
+  // into the composite eval field (matching evaluationSchema composite ids).
+  drop_jump:  { tool: 'jump', jumpType: 'drop', label: 'Drop Jump (RSI)',
+                toValue: j => ({ height_cm: String(j.heightCm), ssc_ms: String(j.contactMs), rsi: String(j.rsi) }) },
+  sl_pogo:    { tool: 'jump', jumpType: 'pogo', side: true, label: 'POGO (RSI)',
+                toValue: j => ({ ssc_ms: String(j.contactMs), rsi: String(j.rsi) }) },
+
   // not yet — surfaced as disabled so the eval shows the intended coverage
-  drop_jump:  { tool: 'jump', status: 'soon', label: 'Drop Jump (RSI)' },
-  sl_pogo:    { tool: 'jump', status: 'soon', side: true, label: 'POGO (RSI)' },
   broad_jump: { tool: 'jump', status: 'soon', label: 'Broad Jump' },
   iso_sl_stand: { tool: 'hold', status: 'soon', side: true, label: 'ISO Single-Leg Stand' },
   iso_dead_hang:{ tool: 'hold', status: 'soon', label: 'ISO Dead Hang' },

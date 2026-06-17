@@ -479,6 +479,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
       <Suspense fallback={null}>
         <MovementLab
           initialMode="jump"
+          jumpType={activeTest.map.jumpType || 'cmj'}
           exerciseTitle={`${activeTest.map.label}${activeTest.side ? ` · ${activeTest.side}` : ''}`}
           toolLabel={String(activeTest.map.label).toUpperCase()}
           defaultBodyweightKg={parseFloat(weightKg) || null}
