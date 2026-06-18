@@ -361,7 +361,7 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
       </div>
       {tab === 'velocity' && <VelocityTable v={result.velocity} />}
-      {tab === 'rom' && <RomTable r={result.romTempo} />}
+      {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
           <AnatomyViewer frames={frames} />
@@ -411,15 +411,88 @@ function VelocityBars({ perRep, bestMean }) {
   );
 }
 
-function RomTable({ r }) {
-  if (!r) return <Empty msg="No reps detected to measure range of motion." />;
+function RomTable({ r, jointRom }) {
+  if (!r && !jointRom) return <Empty msg="No movement detected to measure range of motion." />;
   return (
     <div>
-      <Kpi label="LARGEST ROM" value={`${r.maxRom.toFixed(0)}°`} />
-      {r.collapsedCount > 0 && <Kpi label="ROM-COLLAPSED REPS" value={String(r.collapsedCount)} tone={C.or} />}
-      <TempoBars perRep={r.perRep} />
-      <Row head cells={['REP', 'ROM', 'ECC s', 'PAUSE', 'CON s']} />
-      {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined} />)}
+      {jointRom && <JointRomPanel joints={jointRom} />}
+      {r ? (
+        <>
+          <Kpi label="LARGEST ROM (PRIMARY JOINT)" value={`${r.maxRom.toFixed(0)}°`} />
+          {r.collapsedCount > 0 && <Kpi label="ROM-COLLAPSED REPS" value={String(r.collapsedCount)} tone={C.or} />}
+          <TempoBars perRep={r.perRep} />
+          <Row head cells={['REP', 'ROM', 'ECC s', 'PAUSE', 'CON s']} />
+          {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined} />)}
+        </>
+      ) : (
+        <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 10 }}>
+          Per-rep tempo (ecc / pause / con) needs a detected set — film a full rep cycle to add it.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Multi-joint working range across the whole clip — one toggleable row per
+// joint, drawn as a 0–180° track with the joint's min→max sweep filled in. The
+// toggle lets the coach focus the joints that matter for the lift (hip/knee/
+// ankle on a squat, shoulder/elbow on a press) without the others adding noise.
+const JOINT_LABEL = {
+  'L SHO': 'L Shoulder', 'R SHO': 'R Shoulder', 'L ELB': 'L Elbow', 'R ELB': 'R Elbow',
+  'L HIP': 'L Hip', 'R HIP': 'R Hip', 'L KNE': 'L Knee', 'R KNE': 'R Knee',
+};
+function JointRomPanel({ joints }) {
+  const [hidden, setHidden] = useState(() => new Set());
+  if (!joints || !joints.length) return null;
+  const toggle = (name) => setHidden(prev => {
+    const next = new Set(prev);
+    next.has(name) ? next.delete(name) : next.add(name);
+    return next;
+  });
+  const SCALE = 180; // degrees full-width
+  const shown = joints.filter(j => !hidden.has(j.name));
+  return (
+    <div style={{ margin: '4px 0 18px' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>
+        JOINT ROM · WORKING RANGE ACROSS CLIP (IN-PLANE °)
+      </div>
+      {/* toggle chips */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
+        {joints.map(j => {
+          const on = !hidden.has(j.name);
+          return (
+            <button key={j.name} type="button" onClick={() => toggle(j.name)}
+              style={{
+                fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
+                padding: '3px 8px', borderRadius: 0, cursor: 'pointer',
+                border: `1px solid ${on ? C.ac : 'rgba(255,255,255,0.2)'}`,
+                background: on ? `${C.ac}22` : 'transparent',
+                color: on ? C.ac : 'rgba(255,255,255,0.4)',
+              }}>
+              {JOINT_LABEL[j.name] || j.name}
+            </button>
+          );
+        })}
+      </div>
+      {/* bars */}
+      {shown.length === 0
+        ? <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em' }}>All joints hidden — tap a chip to show it.</div>
+        : shown.map(j => {
+          const left = Math.max(0, Math.min(100, (j.minDeg / SCALE) * 100));
+          const width = Math.max(1.5, Math.min(100 - left, (j.romDeg / SCALE) * 100));
+          return (
+            <div key={j.name} style={{ marginBottom: 9 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                <span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.06em' }}>{JOINT_LABEL[j.name] || j.name}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.04em' }}>{j.minDeg}°–{j.maxDeg}° · <b>{j.romDeg}°</b></span>
+              </div>
+              <div title={`${JOINT_LABEL[j.name] || j.name}: ${j.minDeg}°–${j.maxDeg}° (${j.romDeg}° travel)`}
+                style={{ position: 'relative', height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 0 }}>
+                <div style={{ position: 'absolute', left: `${left}%`, width: `${width}%`, top: 0, bottom: 0, background: C.ac }} />
+              </div>
+            </div>
+          );
+        })}
     </div>
   );
 }

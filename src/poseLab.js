@@ -170,6 +170,31 @@ export function romTempoMetrics(frames, angle, reps) {
 }
 
 // ---------------------------------------------------------------------------
+// Multi-joint ROM — angular working range per joint across the whole clip.
+// ---------------------------------------------------------------------------
+// For each requested joint angle (default: every ANGLE_DEFS entry — L/R
+// shoulder, elbow, hip, knee) build the median-smoothed angle series from
+// worldLandmarks and report max / min / travel in degrees. This is whole-clip
+// ROM (the joint's working range during the movement), distinct from the
+// per-rep romTempo above. Joints with too few clean samples are dropped.
+//
+// HONEST LIMIT: these are in-plane flexion/extension angles. 2D-markerless pose
+// can't recover axial rotation (internal/external rotation, pro/supination), so
+// rotation axes are deliberately NOT offered here — only the flexion joints.
+export function jointRomMetrics(frames, jointNames = null) {
+  if (!frames || frames.length < 4) return null;
+  const defs = jointNames ? ANGLE_DEFS.filter(d => jointNames.includes(d.name)) : ANGLE_DEFS;
+  const out = defs.map(d => {
+    const raw = frames.map(f => (f.worldLandmarks ? angleAt(f.worldLandmarks, d.a, d.b, d.c) : null));
+    const series = medianFilter(raw, 5).filter(isReal);
+    if (series.length < 4) return null;
+    const max = Math.max(...series), min = Math.min(...series);
+    return { name: d.name, maxDeg: Math.round(max), minDeg: Math.round(min), romDeg: Math.round(max - min), samples: series.length };
+  }).filter(Boolean);
+  return out.length ? out : null;
+}
+
+// ---------------------------------------------------------------------------
 // Jump test — vertical jump height from flight time (camera "combine").
 // ---------------------------------------------------------------------------
 // Track the ankles' vertical position in IMAGE space (converted to metres via
@@ -353,7 +378,8 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   const reps = channels.length ? segmentReps(angle, fps) : [];
   const velocity = reps.length ? velocityMetrics(frames, angle, reps, opts.barLandmark) : null;
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
-  return { ok: true, fps, kind, repCount: reps.length, reps, velocity, romTempo, frameCount: frames.length };
+  const jointRom = jointRomMetrics(frames);
+  return { ok: true, fps, kind, repCount: reps.length, reps, velocity, romTempo, jointRom, frameCount: frames.length };
 }
 
 // --- small helpers ---
