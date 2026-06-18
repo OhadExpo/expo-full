@@ -1959,7 +1959,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     const targetLabel = traineeId ? (traineeLabel || null) : null;
     const createdRow = await create({ body: prefixed, targetKind, targetId, targetLabel, tags });
     if (createdRow) {
-      const actor = assignee === 'yuval' ? 'yuval' : 'ohad';
+      // Actor = who CREATED the task (the signed-in viewer), NOT who it's
+      // assigned to. Using `assignee` here meant Yuval creating a task for
+      // Ohad/shared/default was logged as "Ohad created it". Mirror the
+      // status-change handler, which correctly attributes to viewerOwner.
+      const actor = viewerOwner;
       const detail = [
         priority !== 'normal' ? `priority=${priority}` : null,
         due ? `due=${due}${time ? ' ' + time : ''}` : null,
