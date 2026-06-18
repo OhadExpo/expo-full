@@ -415,8 +415,15 @@ export default function AnatomyModelViewer({ frames }) {
       if (mode === 'skel') {
         setBone(M.pelvis && M.pelvis.mesh, hipC, qPel, ZERO);
         setBone(M.spine && M.spine.mesh, hipC, qSpine, ZERO);
-        setBone(M.clavL && M.clavL.mesh, wj.shoCenter, qSho, J.shoCenter);
-        setBone(M.clavR && M.clavR.mesh, wj.shoCenter, qSho, J.shoCenter);
+        // Scapulae/clavicles ride the RIBCAGE, not the shoulder-line basis. In
+        // v2, qSho (exact shoulder-line, approx up) and qSpine (exact up, approx
+        // shoulder-line) diverge whenever the captured shoulder line isn't square
+        // to vertical (any squat with the arms reaching forward) — posing the
+        // girdle with qSho then peels the scapulae off the back and wings them
+        // toward the front. Tie them to qSpine so the shoulder blades stay flush
+        // on the ribcage; the arms still hinge from the qSho-placed shoulder joints.
+        setBone(M.clavL && M.clavL.mesh, wj.shoCenter, qSpine, J.shoCenter);
+        setBone(M.clavR && M.clavR.mesh, wj.shoCenter, qSpine, J.shoCenter);
         setBone(M.skull && M.skull.mesh, wj.shoCenter, qHead, J.shoCenter);
       } else {
         setBone(M.trunk && M.trunk.mesh, hipC, qSpine, ZERO);
