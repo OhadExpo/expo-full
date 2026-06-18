@@ -2212,10 +2212,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 role="button" tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedWo(wo.id); } }}
                 style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
-                  marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
+                  marginBottom:6,cursor:"pointer",transition:"border-color .15s, opacity .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
-                onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
-                onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=C.ac; e.currentTarget.style.opacity='1';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=C.cardBd; e.currentTarget.style.opacity=reviewed?'0.55':'1';}}>
                 <div style={{minWidth:0,flex:1}}>
                   <div style={{fontWeight:600,fontSize:14,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                     {wo.dayName}
