@@ -361,7 +361,7 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
       </div>
       {tab === 'velocity' && <VelocityTable v={result.velocity} />}
-      {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} />}
+      {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
           <AnatomyViewer frames={frames} />
@@ -411,14 +411,18 @@ function VelocityBars({ perRep, bestMean }) {
   );
 }
 
-function RomTable({ r, jointRom }) {
+// detectChannels kind → the joint the per-rep ROM/tempo is tracked on, so the
+// KPI names the actual joint ("LARGEST ROM · KNEE") instead of a vague label.
+const KIND_JOINT = { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', sho: 'Shoulder' };
+function RomTable({ r, jointRom, kind }) {
   if (!r && !jointRom) return <Empty msg="No movement detected to measure range of motion." />;
+  const primaryJoint = (KIND_JOINT[kind] || 'Primary Joint').toUpperCase();
   return (
     <div>
       {jointRom && <JointRomPanel joints={jointRom} />}
       {r ? (
         <>
-          <Kpi label="LARGEST ROM (PRIMARY JOINT)" value={`${r.maxRom.toFixed(0)}°`} />
+          <Kpi label={`LARGEST ${primaryJoint} ROM`} value={`${r.maxRom.toFixed(0)}°`} />
           {r.collapsedCount > 0 && <Kpi label="ROM-COLLAPSED REPS" value={String(r.collapsedCount)} tone={C.or} />}
           <TempoBars perRep={r.perRep} />
           <Row head cells={['REP', 'ROM', 'ECC s', 'PAUSE', 'CON s']} />
