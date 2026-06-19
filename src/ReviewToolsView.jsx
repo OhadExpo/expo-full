@@ -173,7 +173,7 @@ export default function ReviewToolsView() {
   const activeTool = REVIEW_TOOLS.find(t => t.key === tool);
 
   return (
-    <div className="motion-rise" style={{ maxWidth: 760 }}>
+    <div className="motion-rise" style={{ width: '100%' }}>
       <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>REVIEW · TOOLS</div>
       <h2 style={{ fontFamily: FB, fontSize: 26, fontWeight: 800, letterSpacing: '-0.01em', color: C.tx, margin: '0 0 8px' }}>Measure the lift</h2>
       <div style={{ color: C.tm, fontSize: 13, marginBottom: 22, fontFamily: FB, maxWidth: 560, lineHeight: 1.5 }}>
