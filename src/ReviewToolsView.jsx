@@ -176,7 +176,6 @@ export default function ReviewToolsView() {
   const close = () => setTool(null);
 
   const activeTool = REVIEW_TOOLS.find(t => t.key === tool);
-  const lastTool = REVIEW_TOOLS.find(t => t.key === lastKey);
 
   return (
     <div className="motion-rise" style={{ maxWidth: 880 }}>
@@ -191,12 +190,6 @@ export default function ReviewToolsView() {
         header={<SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize, display: 'inline-flex', alignItems: 'center' }}>
           <SectionIcon kind="cube" color="#FFFFFF" /> TOOLS
         </SectionLabel>}
-        headerRight={lastTool
-          ? <button onClick={() => open(lastTool.key)} title={`Reopen ${lastTool.label}`}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', border: '1px solid #ffffff73', color: '#FFFFFF', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '4px 9px', cursor: 'pointer', borderRadius: 0 }}>
-              ↻ {lastTool.label}
-            </button>
-          : null}
       >
         {/* Exercise name — drives the label/overlay for Lab / Metrics / Live.
             Jump auto-labels itself, so this is scoped to the other three. */}
