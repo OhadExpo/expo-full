@@ -848,12 +848,6 @@ function CalendarEmbedCard() {
           padding: '10px 14px', textAlign: 'left',
         }}>
         <span style={{
-          fontFamily: FN, fontSize: 12, fontWeight: 700,
-          color: 'var(--c-tm)',
-          transition: 'transform 120ms ease',
-          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
-        }}>▾</span>
-        <span style={{
           fontFamily: FN, fontSize: 11, fontWeight: 700,
           color: 'var(--c-tx)', letterSpacing: '0.12em',
           textTransform: 'uppercase',
@@ -868,6 +862,12 @@ function CalendarEmbedCard() {
             textTransform: 'uppercase', textDecoration: 'none',
             border: '1px solid var(--c-ac)', padding: '3px 8px',
           }}>↗ Full View</a>
+        {/* canonical collapse affordance: white chevron on the RIGHT (billing style) */}
+        <span aria-hidden style={{
+          color: '#FFFFFF', fontSize: 12, lineHeight: 1, display: 'inline-block',
+          transition: 'transform 120ms ease',
+          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)',
+        }}>▾</span>
       </button>
       {open && (
         <div style={{
@@ -907,12 +907,6 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
       }} />
       <span style={{
         fontFamily: FN, fontSize: 10, fontWeight: 700,
-        color: 'var(--c-tm)', flexShrink: 0,
-        transition: 'transform 120ms ease',
-        transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-      }}>▾</span>
-      <span style={{
-        fontFamily: FN, fontSize: 10, fontWeight: 700,
         letterSpacing: '0.18em', color: 'var(--c-tx)',
         textTransform: 'uppercase',
       }}>{label}</span>
@@ -920,6 +914,13 @@ function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
         fontFamily: FN, fontSize: 10, fontWeight: 600,
         color: 'var(--c-td)', letterSpacing: '0.04em',
       }}>{count}</span>
+      <span style={{ flex: 1 }} />
+      {/* canonical collapse affordance: white chevron on the RIGHT (billing style) */}
+      <span aria-hidden style={{
+        color: '#FFFFFF', fontSize: 12, lineHeight: 1, display: 'inline-block',
+        transition: 'transform 120ms ease',
+        transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+      }}>▾</span>
     </div>
   );
 }
