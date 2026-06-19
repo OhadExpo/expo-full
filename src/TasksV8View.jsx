@@ -447,12 +447,14 @@ function HighlightedText({ text, query, style }) {
   return <span style={style}>{parts}</span>;
 }
 
-function OwnerTab({ label, count, active, onClick, color }) {
+function OwnerTab({ label, count, active, onClick }) {
+  // Monochrome: active = white outline, not a colour fill (Ohad: the page was
+  // too colourful — only green/red status pills keep colour). Hover via .tfbtn.
   return (
-    <button onClick={onClick} style={{
-      background: active ? (color || 'var(--c-ac)') : 'transparent',
+    <button onClick={onClick} className="tfbtn" data-active={active ? '' : undefined} style={{
+      background: active ? 'rgba(255,255,255,0.10)' : 'transparent',
       color: active ? '#FFFFFF' : 'var(--c-tm)',
-      border: `1px solid ${active ? (color || 'var(--c-ac)') : 'var(--c-cardBd)'}`,
+      border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : 'var(--c-cardBd)'}`,
       fontFamily: FN, fontSize: 10, fontWeight: 700,
       letterSpacing: '0.12em', padding: '0 14px', height: 28,
       cursor: 'pointer', borderRadius: 0,
@@ -478,9 +480,9 @@ function ViewToggle({ value, onChange }) {
       borderRadius: 0, height: 28, boxSizing: 'border-box',
     }}>
       {items.map((it, i) => (
-        <button key={it.id} onClick={() => onChange(it.id)} style={{
-          background: value === it.id ? 'rgba(57,189,255,0.094)' : 'transparent',
-          color: value === it.id ? C.ac : C.tm,
+        <button key={it.id} onClick={() => onChange(it.id)} className="tfbtn" data-active={value === it.id ? '' : undefined} style={{
+          background: value === it.id ? 'rgba(255,255,255,0.08)' : 'transparent',
+          color: value === it.id ? '#FFFFFF' : C.tm,
           border: 'none',
           borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
           fontFamily: FN, fontSize: 10, fontWeight: 700,
@@ -507,9 +509,9 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
   };
   const pill = (active) => ({
     ...boxBase,
-    border: `1px solid ${active ? C.ac : C.cardBd}`,
-    background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-    color: active ? C.ac : C.tm,
+    border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : C.cardBd}`,
+    background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+    color: active ? '#FFFFFF' : C.tm,
     fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
   });
   const isFiltered = search.trim() !== '';
@@ -521,11 +523,11 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
       display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 12,
     }}>
       {SORT_MODES.map(m => (
-        <button key={m.id} onClick={() => onSortBy(m.id)} style={pill(sortBy === m.id)}>
+        <button key={m.id} onClick={() => onSortBy(m.id)} className="tfbtn" data-active={sortBy === m.id ? '' : undefined} style={pill(sortBy === m.id)}>
           {m.label}
         </button>
       ))}
-      <button onClick={onToggleDir} style={{
+      <button onClick={onToggleDir} className="tfbtn" style={{
         ...boxBase, marginLeft: 6,
         border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm,
         fontSize: 10, letterSpacing: '0.12em',
@@ -574,11 +576,11 @@ function QuickFilters({ value, onChange, counts }) {
         // Hide chips that have zero count, except 'all' which always shows.
         if (f.id !== 'all' && c === 0) return null;
         return (
-          <button key={f.id} onClick={() => onChange(f.id)} style={{
+          <button key={f.id} onClick={() => onChange(f.id)} className="tfbtn" data-active={active ? '' : undefined} style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            background: active ? 'rgba(57,189,255,0.094)' : 'transparent',
-            color: active ? 'var(--c-ac)' : 'var(--c-tm)',
-            border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+            background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
+            color: active ? '#FFFFFF' : 'var(--c-tm)',
+            border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : 'var(--c-cardBd)'}`,
             fontFamily: FN, fontSize: 10, fontWeight: 700,
             letterSpacing: '0.12em', padding: '0 12px', height: 28,
             cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
@@ -2016,6 +2018,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 14px' }}>
+      {/* Filter/sort/owner/view buttons: soft white hover highlight (Ohad).
+          Active state is handled inline; this only adds the hover affordance. */}
+      <style>{`
+        .tfbtn{ transition: background .12s, color .12s, border-color .12s; }
+        .tfbtn:hover{ color:#FFFFFF !important; background:rgba(255,255,255,0.06) !important; border-color:rgba(255,255,255,0.35) !important; }
+        .tfbtn[data-active]:hover{ background:rgba(255,255,255,0.12) !important; border-color:rgba(255,255,255,0.7) !important; }
+      `}</style>
       {/* Title + Google Calendar connect state */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
