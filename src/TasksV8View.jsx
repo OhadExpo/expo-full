@@ -868,11 +868,6 @@ function CalendarEmbedCard() {
             textTransform: 'uppercase', textDecoration: 'none',
             border: '1px solid var(--c-ac)', padding: '3px 8px',
           }}>↗ Full View</a>
-        <span style={{
-          fontFamily: FN, fontSize: 9, fontWeight: 600,
-          color: 'var(--c-td)', letterSpacing: '0.04em',
-          textTransform: 'uppercase',
-        }}>{open ? 'Collapse' : 'Expand'}</span>
       </button>
       {open && (
         <div style={{
