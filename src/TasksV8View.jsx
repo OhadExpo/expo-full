@@ -447,11 +447,15 @@ function HighlightedText({ text, query, style }) {
   return <span style={style}>{parts}</span>;
 }
 
+// Shared width for the three toolbar filter rows (owner tabs / sort / quick
+// filters) so they END at the same x — buttons flex to fill it (Ohad).
+const FILTER_GROUP_W = 460;
 function OwnerTab({ label, count, active, onClick }) {
   // Monochrome: active = white outline, not a colour fill (Ohad: the page was
   // too colourful — only green/red status pills keep colour). Hover via .tfbtn.
   return (
     <button onClick={onClick} className="tfbtn" data-active={active ? '' : undefined} style={{
+      flex: 1, minWidth: 0,
       background: active ? 'rgba(255,255,255,0.10)' : 'transparent',
       color: active ? '#FFFFFF' : 'var(--c-tm)',
       border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : 'var(--c-cardBd)'}`,
@@ -522,16 +526,19 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
     <div style={{
       display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 12,
     }}>
-      {SORT_MODES.map(m => (
-        <button key={m.id} onClick={() => onSortBy(m.id)} className="tfbtn" data-active={sortBy === m.id ? '' : undefined} style={pill(sortBy === m.id)}>
-          {m.label}
-        </button>
-      ))}
-      <button onClick={onToggleDir} className="tfbtn" style={{
-        ...boxBase, marginLeft: 6,
-        border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm,
-        fontSize: 10, letterSpacing: '0.12em',
-      }}>{sortDir === 'asc' ? '↓' : '↑'}</button>
+      {/* sort modes + dir share the same total width as the owner/quick rows */}
+      <div style={{ display: 'flex', gap: 6, width: '100%', maxWidth: FILTER_GROUP_W }}>
+        {SORT_MODES.map(m => (
+          <button key={m.id} onClick={() => onSortBy(m.id)} className="tfbtn" data-active={sortBy === m.id ? '' : undefined} style={{ ...pill(sortBy === m.id), flex: 1, minWidth: 0, padding: '0 6px' }}>
+            {m.label}
+          </button>
+        ))}
+        <button onClick={onToggleDir} className="tfbtn" style={{
+          ...boxBase, flex: '0 0 34px',
+          border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm,
+          fontSize: 10, letterSpacing: '0.12em',
+        }}>{sortDir === 'asc' ? '↓' : '↑'}</button>
+      </div>
       <span style={{ flex: 1 }} />
       {isFiltered && (
         <span style={{
@@ -568,7 +575,7 @@ const QUICK_FILTERS = [
 function QuickFilters({ value, onChange, counts }) {
   return (
     <div style={{
-      display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap',
+      display: 'flex', gap: 6, marginBottom: 12, width: '100%', maxWidth: FILTER_GROUP_W,
     }}>
       {QUICK_FILTERS.map(f => {
         const active = value === f.id;
@@ -577,6 +584,7 @@ function QuickFilters({ value, onChange, counts }) {
         if (f.id !== 'all' && c === 0) return null;
         return (
           <button key={f.id} onClick={() => onChange(f.id)} className="tfbtn" data-active={active ? '' : undefined} style={{
+            flex: 1, minWidth: 0,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
             color: active ? '#FFFFFF' : 'var(--c-tm)',
@@ -2083,13 +2091,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         display: 'flex', gap: 8, marginBottom: 12,
         flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: FILTER_GROUP_W }}>
           {/* Both partners see all three tabs so each can SEE the other's
               tasks; tasks owned solely by the other partner render read-only
               (no status change / calendar edit) — only your own + shared are
               editable. Default tab is the viewer's own (clamped on mount). */}
-          <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')}   color={C.ac} />
-          <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')}  color={YUVAL_COLOR} />
+          <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} />
+          <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')} />
           <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
         </div>
         <ViewToggle value={view} onChange={setView} />
