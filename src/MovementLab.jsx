@@ -16,7 +16,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps } from './poseLab';
+import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries } from './poseLab';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Real Z-Anatomy 3D model (three.js), posed from the captured rep — lazy so the
@@ -360,7 +360,7 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
       </div>
-      {tab === 'velocity' && <VelocityTable v={result.velocity} barSpeed={result.barSpeed} />}
+      {tab === 'velocity' && <VelocityTable v={result.velocity} barSpeed={result.barSpeed} frames={frames} />}
       {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
@@ -371,31 +371,48 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all
   );
 }
 
-function VelocityTable({ v, barSpeed }) {
+function VelocityTable({ v, barSpeed, frames }) {
   // GRAPH toggle: SPEED = continuous bar-speed-over-time trace · VELOCITY =
-  // per-rep mean-velocity profile (the VBT fatigue bars). Two ways to read the
-  // same set — instantaneous speed vs per-rep velocity.
+  // per-rep mean-velocity profile (the VBT fatigue bars).
   const [graph, setGraph] = useState('speed');
+  // TRACKED POINT for the speed trace: BAR = wrists (a loaded barbell/dumbbell
+  // rides the wrists) · BODY = hips (bodyweight work / no bar). All speeds are
+  // VERTICAL only. Recomputed live from the captured frames.
+  const [point, setPoint] = useState('wrist');
+  const trace = React.useMemo(
+    () => (point === 'wrist' ? (barSpeed || (frames && barSpeedSeries(frames, 'wrist'))) : (frames && barSpeedSeries(frames, 'hip'))),
+    [point, barSpeed, frames]
+  );
   if (!v) return <Empty msg="No reps detected to measure velocity." />;
+  const pill = (k, label, sel, on) => (
+    <button key={k} type="button" onClick={on}
+      style={{
+        fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
+        borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
+        border: `1px solid ${sel ? C.ac : 'rgba(255,255,255,0.2)'}`,
+        background: sel ? `${C.ac}22` : 'transparent',
+        color: sel ? C.ac : 'rgba(255,255,255,0.5)',
+      }}>{label}</button>
+  );
   return (
     <div>
       <Kpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} />
       <Kpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
       {/* graph picker */}
-      <div style={{ display: 'flex', gap: 6, margin: '4px 0 12px' }}>
-        {[['speed', 'SPEED · OVER TIME'], ['velocity', 'VELOCITY · PER REP']].map(([k, label]) => (
-          <button key={k} type="button" onClick={() => setGraph(k)}
-            style={{
-              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
-              borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
-              border: `1px solid ${graph === k ? C.ac : 'rgba(255,255,255,0.2)'}`,
-              background: graph === k ? `${C.ac}22` : 'transparent',
-              color: graph === k ? C.ac : 'rgba(255,255,255,0.5)',
-            }}>{label}</button>
-        ))}
+      <div style={{ display: 'flex', gap: 6, margin: '4px 0 8px', flexWrap: 'wrap' }}>
+        {pill('speed', 'SPEED · OVER TIME', graph === 'speed', () => setGraph('speed'))}
+        {pill('velocity', 'VELOCITY · PER REP', graph === 'velocity', () => setGraph('velocity'))}
       </div>
+      {/* tracked-point picker — only meaningful for the speed trace */}
+      {graph === 'speed' && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em' }}>TRACK</span>
+          {pill('wrist', 'BAR · WRISTS', point === 'wrist', () => setPoint('wrist'))}
+          {pill('hip', 'BODY · HIPS', point === 'hip', () => setPoint('hip'))}
+        </div>
+      )}
       {graph === 'speed'
-        ? <SpeedTrace barSpeed={barSpeed} />
+        ? <SpeedTrace barSpeed={trace} point={point} />
         : <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined} />)}
@@ -403,12 +420,12 @@ function VelocityTable({ v, barSpeed }) {
   );
 }
 
-// Continuous bar-speed line over the whole set. Each rep shows as a peak pair
-// (lower + lift). An SVG polyline keeps it crisp and dependency-free; the y-axis
-// is m/s (peak-scaled), the x-axis is real time across the clip.
-function SpeedTrace({ barSpeed }) {
+// Continuous VERTICAL bar/body speed over the whole set. Each rep is a peak pair
+// (lower + lift). SVG polyline; y-axis m/s (peak-scaled), x-axis real time.
+function SpeedTrace({ barSpeed, point }) {
+  const noun = point === 'hip' ? 'BODY (HIP)' : 'BAR (WRIST)';
   if (!barSpeed || !barSpeed.series || barSpeed.series.length < 3) {
-    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean bar-speed trace in this clip.</div>;
+    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean {noun.toLowerCase()} speed trace in this clip.</div>;
   }
   const { series, peak } = barSpeed;
   const W = 300, H = 110, padL = 26, padB = 16, padT = 6;
@@ -421,7 +438,7 @@ function SpeedTrace({ barSpeed }) {
   const gridY = [0, yMax / 2, yMax];
   return (
     <div style={{ margin: '6px 0 16px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>BAR SPEED · m/s OVER TIME · peak {peak.toFixed(2)}</div>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VERTICAL {noun} SPEED · m/s OVER TIME · peak {peak.toFixed(2)}</div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
         {gridY.map((g, i) => (
           <g key={i}>
@@ -488,66 +505,102 @@ function RomTable({ r, jointRom, kind }) {
   );
 }
 
-// Multi-joint working range across the whole clip — one toggleable row per
-// joint, drawn as a 0–180° track with the joint's min→max sweep filled in. The
-// toggle lets the coach focus the joints that matter for the lift (hip/knee/
-// ankle on a squat, shoulder/elbow on a press) without the others adding noise.
-const JOINT_LABEL = {
-  'L SHO': 'L Shoulder', 'R SHO': 'R Shoulder', 'L ELB': 'L Elbow', 'R ELB': 'R Elbow',
-  'L HIP': 'L Hip', 'R HIP': 'R Hip', 'L KNE': 'L Knee', 'R KNE': 'R Knee',
-};
-function JointRomPanel({ joints }) {
-  const [hidden, setHidden] = useState(() => new Set());
-  if (!joints || !joints.length) return null;
-  const toggle = (name) => setHidden(prev => {
-    const next = new Set(prev);
-    next.has(name) ? next.delete(name) : next.add(name);
-    return next;
-  });
-  const SCALE = 180; // degrees full-width
-  const shown = joints.filter(j => !hidden.has(j.name));
+// Multi-joint working range across the whole clip, with TWO display modes the
+// coach can toggle (Ohad): "L ↔ R" diverging bars (asymmetry jumps out off a
+// centre spine) and "Table" (Joint · L · R · Δ%, amber when L/R differ >10%).
+// Grouped by joint (Shoulder / Elbow / Hip / Knee), L+R together — no per-joint
+// chips, so the panel stays calm. Δ uses the jump-asymmetry rule (>10% flag).
+const JOINT_GROUPS = [
+  { key: 'SHO', label: 'Shoulder' },
+  { key: 'ELB', label: 'Elbow' },
+  { key: 'HIP', label: 'Hip' },
+  { key: 'KNE', label: 'Knee' },
+];
+const ROM_R = '#7ad0ff';   // lighter cyan for the RIGHT side
+const ROM_FLAG = '#ffb454'; // amber for an asymmetry flag
+function romRows(joints) {
+  const byName = {}; joints.forEach(j => { byName[j.name] = j; });
+  return JOINT_GROUPS.map(g => {
+    const L = byName[`L ${g.key}`], R = byName[`R ${g.key}`];
+    if (!L && !R) return null;
+    const lr = L ? L.romDeg : null, rr = R ? R.romDeg : null;
+    const delta = (lr != null && rr != null && Math.max(lr, rr) > 0)
+      ? Math.round((Math.abs(lr - rr) / Math.max(lr, rr)) * 100) : null;
+    return { ...g, L, R, lr, rr, delta };
+  }).filter(Boolean);
+}
+function RomDiverging({ rows }) {
+  const maxRom = Math.max(1, ...rows.flatMap(r => [r.lr || 0, r.rr || 0]));
   return (
-    <div style={{ margin: '4px 0 18px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>
-        JOINT ROM · WORKING RANGE ACROSS CLIP (IN-PLANE °)
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', marginBottom: 10 }}>
+        <span>◄ LEFT</span><span style={{ opacity: 0.4 }}>·</span><span>RIGHT ►</span>
       </div>
-      {/* toggle chips */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
-        {joints.map(j => {
-          const on = !hidden.has(j.name);
-          return (
-            <button key={j.name} type="button" onClick={() => toggle(j.name)}
-              style={{
-                fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em',
-                padding: '3px 8px', borderRadius: 0, cursor: 'pointer',
-                border: `1px solid ${on ? C.ac : 'rgba(255,255,255,0.2)'}`,
-                background: on ? `${C.ac}22` : 'transparent',
-                color: on ? C.ac : 'rgba(255,255,255,0.4)',
-              }}>
-              {JOINT_LABEL[j.name] || j.name}
-            </button>
-          );
-        })}
-      </div>
-      {/* bars */}
-      {shown.length === 0
-        ? <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em' }}>All joints hidden — tap a chip to show it.</div>
-        : shown.map(j => {
-          const left = Math.max(0, Math.min(100, (j.minDeg / SCALE) * 100));
-          const width = Math.max(1.5, Math.min(100 - left, (j.romDeg / SCALE) * 100));
-          return (
-            <div key={j.name} style={{ marginBottom: 9 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <span style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.06em' }}>{JOINT_LABEL[j.name] || j.name}</span>
-                <span style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.04em' }}>{j.minDeg}°–{j.maxDeg}° · <b>{j.romDeg}°</b></span>
+      {rows.map(r => (
+        <div key={r.key} style={{ marginBottom: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: C.ac, width: 34, textAlign: 'right', flexShrink: 0 }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
+              <div style={{ flex: 1, height: 14, position: 'relative', background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${(r.lr || 0) / maxRom * 100}%`, background: C.ac }} />
               </div>
-              <div title={`${JOINT_LABEL[j.name] || j.name}: ${j.minDeg}°–${j.maxDeg}° (${j.romDeg}° travel)`}
-                style={{ position: 'relative', height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 0 }}>
-                <div style={{ position: 'absolute', left: `${left}%`, width: `${width}%`, top: 0, bottom: 0, background: C.ac }} />
+              <div style={{ width: 1, alignSelf: 'stretch', background: C.ac, opacity: 0.5 }} />
+              <div style={{ flex: 1, height: 14, position: 'relative', background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(r.rr || 0) / maxRom * 100}%`, background: ROM_R }} />
               </div>
             </div>
-          );
-        })}
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ROM_R, width: 34, flexShrink: 0 }}>{r.rr != null ? `${r.rr}°` : '—'}</span>
+          </div>
+          <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.55)', marginTop: 4, textTransform: 'uppercase' }}>
+            {r.label}{r.delta != null && r.delta > 10 ? <span style={{ color: ROM_FLAG }}> · Δ{r.delta}%</span> : ''}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+function RomTableView({ rows }) {
+  const th = { fontFamily: FN, fontSize: 8, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.35)', padding: '6px 4px', borderBottom: '1px solid rgba(255,255,255,0.14)', textAlign: 'right', fontWeight: 700 };
+  const td = { fontFamily: FN, fontSize: 12, fontWeight: 700, padding: '9px 4px', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'right' };
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <thead><tr>
+        <th style={{ ...th, textAlign: 'left' }}>JOINT</th><th style={th}>L</th><th style={th}>R</th><th style={th}>Δ</th>
+      </tr></thead>
+      <tbody>
+        {rows.map(r => (
+          <tr key={r.key}>
+            <td style={{ ...td, textAlign: 'left', color: C.tx }}>{r.label}</td>
+            <td style={{ ...td, color: C.ac }}>{r.lr != null ? `${r.lr}°` : '—'}</td>
+            <td style={{ ...td, color: ROM_R }}>{r.rr != null ? `${r.rr}°` : '—'}</td>
+            <td style={{ ...td, color: r.delta != null && r.delta > 10 ? ROM_FLAG : 'rgba(255,255,255,0.4)' }}>{r.delta != null ? `${r.delta}%` : '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+function JointRomPanel({ joints }) {
+  const [mode, setMode] = useState('diverging'); // 'diverging' (B) | 'table' (C)
+  if (!joints || !joints.length) return null;
+  const rows = romRows(joints);
+  if (!rows.length) return null;
+  const tBtn = (k, label) => (
+    <button type="button" onClick={() => setMode(k)} style={{
+      fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 12px',
+      borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
+      border: `1px solid ${mode === k ? C.ac : 'rgba(255,255,255,0.18)'}`,
+      background: mode === k ? `${C.ac}22` : 'transparent',
+      color: mode === k ? C.ac : 'rgba(255,255,255,0.5)',
+    }}>{label}</button>
+  );
+  return (
+    <div style={{ margin: '4px 0 18px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em' }}>JOINT ROM · IN-PLANE °</div>
+        <div style={{ display: 'flex', gap: 6 }}>{tBtn('diverging', 'L ↔ R')}{tBtn('table', 'Table')}</div>
+      </div>
+      {mode === 'diverging' ? <RomDiverging rows={rows} /> : <RomTableView rows={rows} />}
     </div>
   );
 }
