@@ -2216,10 +2216,30 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
                 onMouseEnter={e=>{e.currentTarget.style.borderColor=C.ac; e.currentTarget.style.opacity='1';}}
                 onMouseLeave={e=>{e.currentTarget.style.borderColor=C.cardBd; e.currentTarget.style.opacity=reviewed?'0.55':'1';}}>
+                {(() => {
+                  // Week progress (B2): total weeks from the plan, current = wo.week.
+                  const planWeeks = (planIndex || []).find(p => p.name === wo.planName)?.weeks || null;
+                  const segCount = planWeeks && planWeeks <= 12 ? planWeeks : 0;
+                  return (
                 <div style={{minWidth:0,flex:1}}>
-                  <div style={{fontWeight:600,fontSize:14,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                    {wo.dayName}
-                    <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{wo.planName}</span>
+                  {/* Row 1 — DAY + WEEK together */}
+                  <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:15,color:C.tx,letterSpacing:'0.01em'}}>{wo.dayName}</span>
+                    {segCount > 0 && (
+                      <span style={{display:'inline-flex',gap:3,verticalAlign:'middle'}}>
+                        {Array.from({length:segCount},(_,i)=>(
+                          <span key={i} style={{width:13,height:5,background:i < wo.week ? C.ac : 'rgba(255,255,255,0.16)'}} />
+                        ))}
+                      </span>
+                    )}
+                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>
+                      Week {wo.week}{planWeeks?` / ${planWeeks}`:''} · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets
+                      {hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}
+                    </span>
+                  </div>
+                  {/* Row 2 — BLOCK beneath, + reviewed badge */}
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
+                    <span style={{fontFamily:FN,fontSize:12,color:C.ac,letterSpacing:'0.04em'}}>{wo.planName}</span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                         padding:"1px 5px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
@@ -2227,23 +2247,24 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       </span>
                     )}
                   </div>
-                  <div style={{fontSize:11,color:C.tm,marginTop:2}}>
-                    W{wo.week} · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets
-                    {hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}
-                  </div>
                 </div>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:8,flexShrink:0}}>
-                  <div style={{width:64,display:'flex',justifyContent:'flex-end'}}>
-                    {deleteWorkout && (
-                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
-                        title="Delete this workout"
-                        style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}40`,color:C.rd||'#ff6b6b',
-                          borderRadius:0,padding:'2px 8px',fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1.4}}>
-                        DELETE
-                      </button>
-                    )}
-                  </div>
-                  <span style={{color:reviewed?C.td:C.ac,fontSize:12,width:64,textAlign:'right',display:'inline-block',whiteSpace:'nowrap',flexShrink:0}}>{reviewed?'View →':'Review →'}</span>
+                  );
+                })()}
+                {/* Action group — Review/View + Delete together, off to the right */}
+                <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:12,flexShrink:0}}>
+                  <button onClick={(e)=>{e.stopPropagation();setSelectedWo(wo.id);}}
+                    title={reviewed?'View this workout':'Review this workout'}
+                    style={{background:'transparent',border:`1px solid ${reviewed?C.cardBd:C.ac}`,color:reviewed?C.tm:C.ac,
+                      borderRadius:0,padding:'5px 12px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',
+                      cursor:'pointer',whiteSpace:'nowrap'}}>{reviewed?'VIEW →':'REVIEW →'}</button>
+                  {deleteWorkout && (
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
+                      title="Delete this workout"
+                      style={{background:'transparent',border:`1px solid ${(C.rd||'#c94444')}40`,color:C.rd||'#ff6b6b',
+                        borderRadius:0,padding:'5px 10px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',cursor:'pointer'}}>
+                      DELETE
+                    </button>
+                  )}
                 </div>
               </div>
             );
