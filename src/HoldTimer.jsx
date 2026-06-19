@@ -62,16 +62,20 @@ export default function HoldTimer({
     setDone(false);
   };
 
-  // keyboard: space = start/stop, so the coach can run it hands-on-athlete
+  // keyboard: space = start/stop, so the coach can run it hands-on-athlete.
+  // The handler is held in a ref that's refreshed every render, so the listener
+  // (attached once on mount) always sees the current running/start/stop/onClose —
+  // no stale-closure on prop/state changes.
+  const onKeyRef = useRef(null);
+  onKeyRef.current = (e) => {
+    if (e.code === 'Space') { e.preventDefault(); running ? stop() : start(); }
+    if (e.code === 'Escape') onClose && onClose();
+  };
   useEffect(() => {
-    const onKey = (e) => {
-      if (e.code === 'Space') { e.preventDefault(); running ? stop() : start(); }
-      if (e.code === 'Escape') onClose && onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running]);
+    const handler = (e) => onKeyRef.current && onKeyRef.current(e);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
 
   useEffect(() => () => cancelAnimationFrame(rafRef.current), []);
 
