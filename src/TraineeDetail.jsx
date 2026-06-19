@@ -312,14 +312,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
-            style={{
-              background: 'transparent',
-              border: `1px solid ${td.notifOff ? C.cardBd : C.ac}`,
-              color: td.notifOff ? C.td : C.ac,
-              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-              padding: '4px 10px', cursor: 'pointer', borderRadius: 0,
-            }}>
-            {td.notifOff ? 'MUTED' : 'NOTIFY ON'}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: td.notifOff ? C.td : C.tx }}>NOTIFY</span>
+            {/* color on/off toggle — green = on, grey = muted (matches the
+                program-visibility switches below) */}
+            <span style={{ width: 36, height: 20, borderRadius: 10, background: td.notifOff ? C.sf3 : 'rgba(46,213,115,0.251)', border: `1px solid ${td.notifOff ? C.bd2 : 'rgba(46,213,115,0.376)'}`, position: 'relative', transition: 'all .15s' }}>
+              <span style={{ width: 16, height: 16, borderRadius: 8, background: td.notifOff ? C.td : C.gn, position: 'absolute', top: 1, left: td.notifOff ? 1 : 18, transition: 'all .15s' }} />
+            </span>
           </button>
           {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
           {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}

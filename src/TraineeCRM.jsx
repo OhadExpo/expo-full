@@ -50,68 +50,34 @@ const cadenceColor = (level) => ({
   'on-track': C.gn, 'slipping': C.or, 'at-risk': C.rd, 'inactive': C.td, 'unknown': C.tm,
 }[level] || C.tm);
 
-const DIM_LABEL = { session: 'TRAIN', contact: 'CONTACT', payment: 'PAY' };
-
-// Composite health pill — worst of session / contact / payment (#1), with a
-// breakdown chip per dimension so the coach sees WHICH channel went cold.
-function HealthPill({ health }) {
-  const col = cadenceColor(health.level);
-  const dims = [
-    ['session', health.session],
-    ['contact', health.contact],
-    ['payment', health.payment],
-  ];
+// One clean health strip: TRAINING / LAST CONTACT / PAYMENT / CLIENT — each a
+// labelled value with a status-coloured dot. Replaces the old composite pill +
+// cryptic TRAIN/CONTACT/PAY chips + a separate stats box that together read as
+// noise (Ohad: "I don't understand what I'm seeing").
+function HealthCell({ label, value, level }) {
+  const known = level && level !== 'unknown';
+  const col = known ? cadenceColor(level) : C.tx;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
-        padding: '6px 12px', border: `1px solid ${col}`,
-        background: 'var(--c-sf)',
-        fontFamily: FN, fontSize: 11, color: col, letterSpacing: '0.06em', fontWeight: 700,
-      }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: col, flexShrink: 0 }} />
-        {health.label}
-      </div>
-      {/* Per-dimension breakdown. 'unknown' dims are muted, not alarming. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {dims.map(([key, d]) => {
-          const c = cadenceColor(d.level);
-          const muted = d.level === 'unknown';
-          return (
-            <span key={key} title={d.label} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 5,
-              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-              color: muted ? C.td : c, padding: '2px 7px',
-              border: `1px solid ${muted ? C.cardBd : c}`,
-            }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: muted ? C.td : c }} />
-              {DIM_LABEL[key]}
-            </span>
-          );
-        })}
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 88 }}>
+      <span style={{ fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: '0.14em', fontWeight: 700 }}>{label}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        {known && <span style={{ width: 7, height: 7, borderRadius: '50%', background: col, flexShrink: 0 }} />}
+        <span style={{ fontFamily: FN, fontSize: 13, color: known ? col : C.tx, fontWeight: 700, letterSpacing: '0.02em' }}>{value}</span>
+      </span>
     </div>
   );
 }
-
-// Compact stats strip: last trained vs last talked (#2) + tenure (#5).
-function StatsStrip({ health, tenure }) {
-  const d = health.session.daysSinceLast;
-  const c = health.contact.days;
-  const Stat = ({ label, value, tone }) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <span style={{ fontFamily: FN, fontSize: 8, color: C.td, letterSpacing: '0.12em', fontWeight: 700 }}>{label}</span>
-      <span style={{ fontFamily: FN, fontSize: 12, color: tone || C.tx, letterSpacing: '0.04em', fontWeight: 700 }}>{value}</span>
-    </div>
-  );
+function HealthStrip({ health, tenure }) {
+  const titleCase = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : s);
+  const sd = health.session?.daysSinceLast;
+  const cd = health.contact?.days;
+  const pay = health.payment || {};
   return (
-    <div style={{
-      display: 'flex', gap: 18, padding: '8px 12px', flexWrap: 'wrap',
-      border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)',
-    }}>
-      <Stat label="LAST TRAINED" value={d == null ? '—' : `${d}d ago`} tone={cadenceColor(health.session.level)} />
-      <Stat label="LAST TALKED" value={c == null ? '—' : `${c}d ago`} tone={cadenceColor(health.contact.level)} />
-      {tenure && <Stat label="CLIENT" value={tenure.label} />}
+    <div style={{ display: 'flex', gap: 26, padding: '12px 16px', flexWrap: 'wrap', border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', flex: 1, minWidth: 0 }}>
+      <HealthCell label="TRAINING" value={sd == null ? 'Never' : `${sd}d ago`} level={health.session?.level} />
+      <HealthCell label="LAST CONTACT" value={cd == null ? 'Never' : `${cd}d ago`} level={health.contact?.level} />
+      <HealthCell label="PAYMENT" value={titleCase(pay.label) || '—'} level={pay.level} />
+      {tenure && <HealthCell label="CLIENT" value={tenure.label} />}
     </div>
   );
 }
@@ -499,9 +465,8 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
 
   return (
     <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-        <HealthPill health={health} />
-        <StatsStrip health={health} tenure={tenure} />
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+        <HealthStrip health={health} tenure={tenure} />
         {trainee?.status && trainee.status !== 'Active' && (
           <div style={{
             fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em',
