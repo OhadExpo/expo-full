@@ -5,7 +5,6 @@
 // Owner trial — nothing here writes to the athlete.
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { C, FN, FB } from './theme';
-import { SectionIcon } from './ui';
 
 const MovementLab   = lazy(() => import('./MovementLab'));
 const ARFormOverlay = lazy(() => import('./ARFormOverlay'));
@@ -126,9 +125,6 @@ function ToolRow({ t, blocked, isLast, onOpen }) {
         opacity: blocked ? 0.55 : 1, background: active ? 'rgba(57,189,255,0.05)' : 'transparent',
         transition: 'background .15s', outline: 'none',
       }}>
-      <div style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(57,189,255,0.1)' }}>
-        <SectionIcon kind={t.icon} color={C.ac} size={18} />
-      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', color: C.tx }}>{t.label}</div>
         <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{t.measures}</div>

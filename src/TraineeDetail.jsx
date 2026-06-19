@@ -312,8 +312,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px 6px', display: 'inline-flex', alignItems: 'center', gap: 7 }}>
-            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: td.notifOff ? C.td : C.tx }}>NOTIFY</span>
+            style={{ background: 'transparent', border: `1px solid ${C.bd2}`, borderRadius: 0, cursor: 'pointer', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: td.notifOff ? C.td : C.tx }}>NOTIFICATION</span>
             {/* color on/off toggle — green = on, grey = muted (matches the
                 program-visibility switches below) */}
             <span style={{ width: 36, height: 20, borderRadius: 10, background: td.notifOff ? C.sf3 : 'rgba(46,213,115,0.251)', border: `1px solid ${td.notifOff ? C.bd2 : 'rgba(46,213,115,0.376)'}`, position: 'relative', transition: 'all .15s' }}>

@@ -355,7 +355,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const filled = !!sc; // open/no-color renders as an outline, the rest fill
   const pillBase = {
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexShrink: 0,
-    height: 26, minWidth: 118, padding: '0 10px', borderRadius: 0,
+    boxSizing: 'border-box', height: 26, width: 146, padding: '0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
     border: `1px solid ${pillColor}`,
@@ -1232,9 +1232,15 @@ function EventTimeline({ noteId }) {
       <div style={{ direction: 'ltr' }}>
         {rows.map(ev => {
           const verb = EVENT_VERB[ev.kind] || ev.kind;
-          const change = (ev.from_value && ev.to_value)
-            ? `${ev.from_value} → ${ev.to_value}`
-            : (ev.to_value || ev.detail || '');
+          // For the "created" event, to_value is the ASSIGNEE, not a second
+          // actor. Rendering it bare ("Ohad created the task · yuval") read as
+          // if two people created it. Label it as an assignment instead.
+          const ASSIGN_LABEL = { shared: 'both', yuval: 'Yuval', ohad: 'Ohad' };
+          const change = ev.kind === 'created'
+            ? (ev.to_value ? `for ${ASSIGN_LABEL[ev.to_value] || ev.to_value}` : '')
+            : (ev.from_value && ev.to_value)
+              ? `${ev.from_value} → ${ev.to_value}`
+              : (ev.to_value || ev.detail || '');
           return (
             <div key={ev.id} style={{
               display: 'flex', alignItems: 'baseline',

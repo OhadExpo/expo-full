@@ -2135,34 +2135,14 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
       {(() => {
         const entries = Object.entries(byClient);
-        const pending = entries.filter(([, d]) => d.workouts.some(w => !w.reviewedAt));
+        const byName = ([, a], [, b]) => (a.name || '').localeCompare(b.name || '');
+        const isPending = ([, d]) => d.workouts.some(w => !w.reviewedAt);
+        const pending = entries.filter(isPending).sort(byName);
+        const reviewedOnly = entries.filter(e => !isPending(e)).sort(byName);
         const reviewedCount = entries.reduce((n, [, d]) => n + d.workouts.filter(w => w.reviewedAt).length, 0);
-        const visible = (showReviewed ? entries : pending)
-          .sort(([, a], [, b]) => {
-            const pa = a.workouts.some(w => !w.reviewedAt) ? 1 : 0;
-            const pb = b.workouts.some(w => !w.reviewedAt) ? 1 : 0;
-            if (pa !== pb) return pb - pa;
-            return (a.name || '').localeCompare(b.name || '');
-          });
-        return (
-        <>
-          {/* Queue control: the page shows only athletes still needing review;
-              this reveals the already-reviewed ones for reference. */}
-          {reviewedCount > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <button onClick={() => setShowReviewed(v => !v)}
-                style={{ background: showReviewed ? `${C.ac}1f` : 'transparent', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, borderRadius: 0, padding: '5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                {showReviewed ? '✓ SHOWING REVIEWED' : `SHOW REVIEWED (${reviewedCount})`}
-              </button>
-            </div>
-          )}
-          {pending.length === 0 && !showReviewed && (
-            <div style={{ textAlign: 'center', padding: 48, color: C.td }}>
-              <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>ALL CAUGHT UP</div>
-              <div style={{ fontFamily: FB, fontSize: 12, marginTop: 6 }}>No workouts waiting on your review.</div>
-            </div>
-          )}
-          {visible.map(([cid, data]) => (
+        // One athlete block — reused for the pending group (always shown) and
+        // the reviewed group (shown below the toggle when it's expanded).
+        const renderClient = ([cid, data]) => (
         <CollapsibleSection key={cid} bare storageKey={`review-client-${cid}`} style={{marginBottom:20}}
           domId={`review-client-${cid}`}
           titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.filter(w => !w.reviewedAt).length})</span>}
@@ -2253,7 +2233,28 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             );
           })}
         </CollapsibleSection>
-          ))}
+        );
+        return (
+        <>
+          {pending.length === 0 && !showReviewed && (
+            <div style={{ textAlign: 'center', padding: 48, color: C.td }}>
+              <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>ALL CAUGHT UP</div>
+              <div style={{ fontFamily: FB, fontSize: 12, marginTop: 6 }}>No workouts waiting on your review.</div>
+            </div>
+          )}
+          {pending.map(renderClient)}
+          {/* Queue divider: pending athletes above, the reviewed archive below.
+              Sits directly under the last pending athlete (Ohad's ask), not at
+              the top of the page. */}
+          {reviewedCount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 20px' }}>
+              <button onClick={() => setShowReviewed(v => !v)}
+                style={{ background: showReviewed ? `${C.ac}1f` : 'transparent', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, borderRadius: 0, padding: '7px 16px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                {showReviewed ? `✕ HIDE REVIEWED (${reviewedCount})` : `SHOW REVIEWED (${reviewedCount})`}
+              </button>
+            </div>
+          )}
+          {showReviewed && reviewedOnly.map(renderClient)}
         </>
         );
       })()}

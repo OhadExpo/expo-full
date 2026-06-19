@@ -22,12 +22,10 @@ import { traineeIdsFor } from './traineeUtils';
 // "Single athlete" reuses the existing in-person coach logger (WorkoutsView).
 // It writes to the coach `workouts` table (NOT client_workouts), which the
 // athlete portal never reads — so it stays trial-safe. The camera/pose tools
-// live HERE, in the 1-on-1 context where a coach actually films a lift —
-// never in the group grid (that runs on a shared screen). All lazy so the
-// Sessions menu loads instantly and MediaPipe ships only when a tool opens.
+// (Movement Lab, AR Form) do NOT live here — they're their own surface under
+// Review › Tools, where a coach reviews a recorded lift. Sessions is for
+// logging the session. Lazy so the Sessions menu loads instantly.
 const WorkoutsView = lazy(() => import('./WorkoutsView'));
-const MovementLab = lazy(() => import('./MovementLab'));
-const ARFormOverlay = lazy(() => import('./ARFormOverlay'));
 
 const SKEY = 'expo-gym-session';       // active session (coach-only)
 const LOGKEY = 'expo-gym-session-log'; // finished trial sessions (coach-only)
@@ -41,8 +39,6 @@ export default function SessionsView({ mode = 'group', ...props }) {
   if (mode === 'single') {
     return (
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <TrialBanner />
-        <MovementTools />
         <Suspense fallback={<div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>}>
           <WorkoutsView workouts={props.workouts} setWorkouts={props.setWorkouts} planIndex={props.planIndex}
             trainees={props.trainees} exercises={props.exercises} onDecrementSession={props.onDecrementSession} />
@@ -51,39 +47,6 @@ export default function SessionsView({ mode = 'group', ...props }) {
     );
   }
   return <GroupSessions trainees={props.trainees} planIndex={props.planIndex} exercises={props.exercises} />;
-}
-
-// MOVEMENT TOOLS — the camera/pose suite, in the 1-on-1 context where a coach
-// films a specific lift. NOT in group sessions (shared screen). Records →
-// Movement Lab (velocity / ROM+tempo / 3D), or live AR form overlay.
-function MovementTools() {
-  const [title, setTitle] = useState('Squat');
-  const [open, setOpen] = useState(null); // 'lab' | 'ar' | null
-  return (
-    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, marginBottom: 12, boxShadow: C.cardShadow }}>
-      <RefinedHeaderStrip padY={14} padX={14} marginBottom={0}>
-        <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF' }}>Movement Tools · 1-on-1</span>
-      </RefinedHeaderStrip>
-      <div style={{ padding: 12, display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 200px', minWidth: 160 }}>
-          <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 4 }}>EXERCISE</label>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat" style={{ ...cell, padding: '8px 10px' }} />
-        </div>
-        <button onClick={() => setOpen('lab')} style={{ ...toolBtn, minWidth: 168 }}>📹 MOVEMENT LAB</button>
-        <button onClick={() => setOpen('ar')} style={{ ...toolBtn, minWidth: 150 }}>🪞 AR FORM</button>
-      </div>
-      <div style={{ padding: '0 12px 12px', fontFamily: FB, fontSize: 11.5, color: C.td, lineHeight: 1.5 }}>
-        <b>Movement Lab</b> analyses a recorded set → bar-speed (VBT), range-of-motion + tempo, and a rotatable 3D anatomy model rebuilt from the lift (peel muscle → bone). <b>AR Form</b> runs live during the set with a real-time bar-path + depth line.
-      </div>
-      {open && (
-        <Suspense fallback={null}>
-          {open === 'lab'
-            ? <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" onClose={() => setOpen(null)} />
-            : <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={() => setOpen(null)} />}
-        </Suspense>
-      )}
-    </div>
-  );
 }
 
 function GroupSessions({ trainees = [], planIndex = [], exercises = [], onBack }) {
@@ -211,7 +174,6 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], onBack }
   if (!session) {
     return (
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <TrialBanner />
         <BackBar label="GROUP SESSION" onBack={onBack} />
         <Card title="START A GROUP SESSION">
           <div style={{ padding: '8px 2px 14px', color: C.tm, fontSize: 13, lineHeight: 1.6 }}>
@@ -228,7 +190,6 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], onBack }
   const checkedIn = session.athletes.filter(a => a.checkedIn).length;
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-      <TrialBanner />
       <FloorBar session={session} checkedIn={checkedIn} traineeById={traineeById}
         onAdd={() => setPicking(true)} onFinish={finishSession} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
@@ -376,16 +337,6 @@ function AthletePicker({ trainees, planIndex, existing = [], onCancel, onConfirm
 }
 
 // ---- bits ----
-function TrialBanner() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', marginBottom: 10, background: 'rgba(57,189,255,0.08)', border: `1px solid ${C.ac}` }}>
-      <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.ac, border: `1px solid ${C.ac}`, padding: '2px 7px' }}>TRIAL</span>
-      <span style={{ fontFamily: FB, fontSize: 12, color: C.tm, lineHeight: 1.4 }}>
-        Visible only to you. Athletes and staff do not see Sessions, and finishing a trial session logs coach-only — it does <strong>not</strong> appear in any athlete history.
-      </span>
-    </div>
-  );
-}
 function Card({ title, children }) {
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: 14, boxShadow: C.cardShadow }}>
@@ -422,7 +373,6 @@ function MenuCard({ glyph, title, desc, onClick }) {
   );
 }
 const primaryBtn = { width: '100%', padding: '12px', background: C.ac, border: `1px solid ${C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 };
-const toolBtn = { background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, height: 38, padding: '0 16px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', borderRadius: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
 const stripBtn = { background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFF', padding: '4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' };
 const miniBtn = { background: 'transparent', padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', borderRadius: 0, borderColor: C.cardBd };
 const cell = { width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: '4px 6px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none', borderRadius: 0 };
