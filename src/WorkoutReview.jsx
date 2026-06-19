@@ -1479,12 +1479,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // (and this view re-renders per focus-textarea keystroke) is the known
   // perf antipattern.
   const exById = useMemo(() => new Map((exercises || []).map(e => [e.id, e])), [exercises]);
-  // Review-queue jump: clicking the "N pending" summary scrolls to and
-  // force-expands the section of the first pending-with-video athlete.
-  // jumpSignal is a counter so re-clicking the same athlete re-fires the
-  // expand effect even when the client id is unchanged.
-  const [jumpClient, setJumpClient] = useState(null);
-  const [jumpSignal, setJumpSignal] = useState(0);
   // Dashboard task → review handoff. The TASKS widget stashes the workout
   // id in sessionStorage before routing here so the review tab opens
   // directly on the requested workout instead of the queue list.
@@ -1546,23 +1540,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     if (!byClient[key]) byClient[key] = { name: nameOf(key), workouts: [] };
     byClient[key].workouts.push(w);
   });
-
-  // Jump from the review-queue summary to the first pending athlete: expand
-  // their section and scroll it into view (after the expand animation begins).
-  const jumpToPending = () => {
-    // Oldest-first, matching findNextUnreviewed (the save-&-next order) so
-    // the jump and the review flow agree on who is "first".
-    const first = (clientWorkouts || [])
-      .filter(w => !w.reviewedAt && hasReviewableVideo(w))
-      .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
-    if (!first) return;
-    const cid = first.clientId || 'unknown';
-    setJumpClient(cid);
-    setJumpSignal(s => s + 1);
-    setTimeout(() => {
-      document.getElementById(`review-client-${cid}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 60);
-  };
 
   // Focus keys are client-scoped: `clientId|planName|dayName|eid|Wn`.
   // The legacy un-scoped key (`planName|...`) collided across athletes who
@@ -2152,36 +2129,19 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
       <WeeklyFocusTool trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} />
 
-      {/* Review queue — pending unreviewed workouts that actually have
-          something to review (i.e. an uploaded form video). Days without
-          videos are hidden from the list above, so the queue count must
-          match the same predicate or the header would lie. */}
-      {(() => {
-        const queue = (clientWorkouts || []).filter(w => !w.reviewedAt && hasReviewableVideo(w));
-        if (queue.length === 0) return null;
-        return (
-          // Minimal action row — cyan left-rule + a cyan count, distinct from
-          // the (cyan-header) athlete cards below. No emoji, no count-box.
-          <div onClick={jumpToPending} role="button" tabIndex={0}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToPending(); } }}
-            title="Jump to the first pending review"
-            style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',marginBottom:16,cursor:'pointer',
-              background:'var(--c-sf)',borderLeft:`3px solid ${C.ac}`,borderRadius:0,transition:'background .15s'}}
-            onMouseEnter={e=>e.currentTarget.style.background=C.acD}
-            onMouseLeave={e=>e.currentTarget.style.background='var(--c-sf)'}>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:FN,fontSize:12.5,fontWeight:700,color:C.ac,letterSpacing:'0.08em'}}>{queue.length} TO REVIEW</div>
-              <div style={{fontFamily:FB,fontSize:11.5,color:C.tm,marginTop:3}}>Form video{queue.length === 1 ? '' : 's'} waiting on your feedback</div>
-            </div>
-            <span style={{border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'7px 13px',whiteSpace:'nowrap',flexShrink:0}}>OPEN →</span>
-          </div>
-        );
-      })()}
-
-      {/* Group by client */}
-      {Object.entries(byClient).map(([cid, data]) => (
+      {/* Group by client — athletes with a workout still awaiting review float
+          to the top (then alphabetical), so the coach's queue is the page order
+          itself; no separate "TO REVIEW" banner needed. */}
+      {Object.entries(byClient)
+        .sort(([, a], [, b]) => {
+          const pa = a.workouts.some(w => !w.reviewedAt) ? 1 : 0;
+          const pb = b.workouts.some(w => !w.reviewedAt) ? 1 : 0;
+          if (pa !== pb) return pb - pa;
+          return (a.name || '').localeCompare(b.name || '');
+        })
+        .map(([cid, data]) => (
         <CollapsibleSection key={cid} bare storageKey={`review-client-${cid}`} style={{marginBottom:20}}
-          domId={`review-client-${cid}`} openSignal={jumpClient === cid ? jumpSignal : 0}
+          domId={`review-client-${cid}`}
           titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.filter(w => !w.reviewedAt).length})</span>}
           right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
             <button onClick={() => onOpenTrainee(cid)}
