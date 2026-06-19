@@ -360,7 +360,7 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
       </div>
-      {tab === 'velocity' && <VelocityTable v={result.velocity} />}
+      {tab === 'velocity' && <VelocityTable v={result.velocity} barSpeed={result.barSpeed} />}
       {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
@@ -371,15 +371,66 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all
   );
 }
 
-function VelocityTable({ v }) {
+function VelocityTable({ v, barSpeed }) {
+  // GRAPH toggle: SPEED = continuous bar-speed-over-time trace · VELOCITY =
+  // per-rep mean-velocity profile (the VBT fatigue bars). Two ways to read the
+  // same set — instantaneous speed vs per-rep velocity.
+  const [graph, setGraph] = useState('speed');
   if (!v) return <Empty msg="No reps detected to measure velocity." />;
   return (
     <div>
       <Kpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} />
       <Kpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
-      <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />
+      {/* graph picker */}
+      <div style={{ display: 'flex', gap: 6, margin: '4px 0 12px' }}>
+        {[['speed', 'SPEED · OVER TIME'], ['velocity', 'VELOCITY · PER REP']].map(([k, label]) => (
+          <button key={k} type="button" onClick={() => setGraph(k)}
+            style={{
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
+              borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
+              border: `1px solid ${graph === k ? C.ac : 'rgba(255,255,255,0.2)'}`,
+              background: graph === k ? `${C.ac}22` : 'transparent',
+              color: graph === k ? C.ac : 'rgba(255,255,255,0.5)',
+            }}>{label}</button>
+        ))}
+      </div>
+      {graph === 'speed'
+        ? <SpeedTrace barSpeed={barSpeed} />
+        : <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined} />)}
+    </div>
+  );
+}
+
+// Continuous bar-speed line over the whole set. Each rep shows as a peak pair
+// (lower + lift). An SVG polyline keeps it crisp and dependency-free; the y-axis
+// is m/s (peak-scaled), the x-axis is real time across the clip.
+function SpeedTrace({ barSpeed }) {
+  if (!barSpeed || !barSpeed.series || barSpeed.series.length < 3) {
+    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean bar-speed trace in this clip.</div>;
+  }
+  const { series, peak } = barSpeed;
+  const W = 300, H = 110, padL = 26, padB = 16, padT = 6;
+  const t0 = series[0].t, t1 = series[series.length - 1].t || 1;
+  const span = Math.max(1, t1 - t0);
+  const yMax = Math.max(0.3, peak);
+  const x = (t) => padL + ((t - t0) / span) * (W - padL - 4);
+  const y = (s) => padT + (1 - s / yMax) * (H - padT - padB);
+  const pts = series.map(p => `${x(p.t).toFixed(1)},${y(p.speed).toFixed(1)}`).join(' ');
+  const gridY = [0, yMax / 2, yMax];
+  return (
+    <div style={{ margin: '6px 0 16px' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>BAR SPEED · m/s OVER TIME · peak {peak.toFixed(2)}</div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        {gridY.map((g, i) => (
+          <g key={i}>
+            <line x1={padL} x2={W - 4} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
+            <text x={0} y={y(g) + 3} fill="rgba(255,255,255,0.45)" fontSize="8" fontFamily="monospace">{g.toFixed(1)}</text>
+          </g>
+        ))}
+        <polyline points={pts} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
     </div>
   );
 }

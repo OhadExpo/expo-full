@@ -140,6 +140,32 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
   };
 }
 
+// Continuous bar-speed trace — instantaneous vertical bar speed (|m/s|) per
+// frame across the WHOLE clip, for the velocity tab's "speed over time" graph.
+// Absolute value so the lowering and lifting phases both read as peaks (one
+// peak pair per rep). Lightly median-smoothed against per-frame ruler jitter.
+// t is ms-from-clip-start so the x-axis is real time.
+export function barSpeedSeries(frames, barLandmark = 'wrist') {
+  if (!frames || frames.length < 3) return null;
+  const scale = frames.map(frameScaleY);
+  const pos = frames.map((f, i) => {
+    const im = f.landmarks; if (!im) return null;
+    const p = barLandmark === 'hip' ? mid2(im[LM.L_HIP], im[LM.R_HIP]) : mid2(im[LM.L_WRIST], im[LM.R_WRIST]);
+    return imgUpMetres(p, scale[i]);
+  });
+  const raw = frames.map((f, i) => {
+    if (i === 0) return null;
+    const a = pos[i - 1], b = pos[i], ta = frames[i - 1]?.t, tb = frames[i]?.t;
+    if (!isReal(a) || !isReal(b) || ta == null || tb == null || tb <= ta) return null;
+    return Math.abs((b - a) / ((tb - ta) / 1000));
+  });
+  const sm = medianFilter(raw, 3);
+  const t0 = frames[0].t;
+  const series = frames.map((f, i) => (isReal(sm[i]) ? { t: Math.round(f.t - t0), speed: round2(sm[i]) } : null)).filter(Boolean);
+  if (series.length < 3) return null;
+  return { series, peak: round2(series.reduce((m, p) => Math.max(m, p.speed), 0)) };
+}
+
 // ---------------------------------------------------------------------------
 // ROM + tempo per rep, from the joint-angle channel.
 // ---------------------------------------------------------------------------
@@ -379,7 +405,8 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   const velocity = reps.length ? velocityMetrics(frames, angle, reps, opts.barLandmark) : null;
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
   const jointRom = jointRomMetrics(frames);
-  return { ok: true, fps, kind, repCount: reps.length, reps, velocity, romTempo, jointRom, frameCount: frames.length };
+  const barSpeed = barSpeedSeries(frames, opts.barLandmark);
+  return { ok: true, fps, kind, repCount: reps.length, reps, velocity, romTempo, jointRom, barSpeed, frameCount: frames.length };
 }
 
 // --- small helpers ---
