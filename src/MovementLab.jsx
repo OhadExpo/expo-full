@@ -16,7 +16,8 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, jumpPower, frameToPoints3D, estimateFps } from './poseLab';
+import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries } from './poseLab';
+import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Real Z-Anatomy 3D model (three.js), posed from the captured rep — lazy so the
 // 3D engine + GLBs only ship when the 3D tab is opened.
@@ -30,6 +31,9 @@ const POSE_CONNECTIONS = [
 export default function MovementLab({
   exerciseTitle = 'Squat',
   initialMode = 'analyze',      // 'analyze' (VBT/ROM/3D) | 'jump'
+  initialView = 'all',          // analyze result scope: 'all' | '3d' (skeleton) | 'metrics' (VBT/ROM)
+  jumpType = 'cmj',             // jump mode: 'cmj'|'svj'|'sl' (height) · 'drop'|'pogo' (reactive → RSI + contact)
+  toolLabel = null,             // header label override (e.g. 'MOVEMENT LAB' vs 'LIFT METRICS')
   facingMode = 'environment',   // filming someone on the floor by default
   onClose,
   onSaveJump,                   // (metrics) => void — wires jump into ath eval
@@ -54,6 +58,14 @@ export default function MovementLab({
   const [progress, setProgress] = useState(0);    // upload analysis %
   const [mode] = useState(initialMode);
   const fileInputRef = useRef(null);
+  // Which result tab to land on, honouring the tool's scope: the 3D-skeleton
+  // tool (Movement Lab) opens straight to the skeleton; the metrics tool (Lift
+  // Metrics) opens to velocity; the combined view keeps the old reps→velocity,
+  // empty→3D fallback.
+  const defaultTab = (repCount) =>
+    initialView === '3d' ? 'threeD'
+      : initialView === 'metrics' ? 'velocity'
+        : (repCount ? 'velocity' : 'threeD');
 
   // ---- bootstrap + record loop ----
   const recordLoop = useCallback(() => {
@@ -110,6 +122,18 @@ export default function MovementLab({
     }
   }, [facingMode, beginCapture]);
 
+  // Reactive jumps (drop jump, POGO) need ground-contact + RSI; the rest are
+  // flight-time height. One helper so both capture paths branch identically.
+  const isReactive = jumpType === 'drop' || jumpType === 'pogo';
+  const computeJump = useCallback((frames) => {
+    if (isReactive) {
+      const rm = reactiveJumpMetrics(frames);
+      return rm ? { reactive: true, jumpType, ...rm.best, count: rm.count, avgRsi: rm.avgRsi, avgContactMs: rm.avgContactMs, avgHeightCm: rm.avgHeightCm } : null;
+    }
+    const j = jumpMetrics(frames);
+    return j ? { reactive: false, jumpType, ...j } : null;
+  }, [isReactive, jumpType]);
+
   const stopAndAnalyze = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
@@ -117,17 +141,17 @@ export default function MovementLab({
     const frames = framesRef.current;
     setTimeout(() => {
       if (mode === 'jump') {
-        const j = jumpMetrics(frames);
+        const j = computeJump(frames);
         setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
         setPhase('results');
       } else {
         const r = analyzeClip(frames, exerciseTitle);
         setResult(r);
-        setTab(r.repCount ? 'velocity' : 'threeD');
+        setTab(defaultTab(r.repCount));
         setPhase('results');
       }
     }, 30);
-  }, [mode, exerciseTitle]);
+  }, [mode, exerciseTitle, computeJump]);
 
   // ---- analyze an uploaded clip from the gallery ----
   // Steps through the video by seeking (≈20fps sample, capped) and runs pose
@@ -166,11 +190,11 @@ export default function MovementLab({
       }
       framesRef.current = frames;
       if (mode === 'jump') {
-        const j = jumpMetrics(frames);
+        const j = computeJump(frames);
         setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
       } else {
         const res = analyzeClip(frames, exerciseTitle);
-        setResult(res); setTab(res.repCount ? 'velocity' : 'threeD');
+        setResult(res); setTab(defaultTab(res.repCount));
       }
       setPhase('results');
     } catch (e) {
@@ -178,9 +202,27 @@ export default function MovementLab({
     } finally {
       if (url) try { URL.revokeObjectURL(url); } catch {}
     }
-  }, [mode, exerciseTitle]);
+  }, [mode, exerciseTitle, computeJump]);
 
   const pickFile = useCallback(() => fileInputRef.current?.click(), []);
+
+  // Built-in synthetic motion → see the 3D skeleton (and the V1/V2 twist toggle)
+  // with no camera, no upload, no pose-detection step. Squat for analyze, jump
+  // for jump mode. Lands straight on the 3D tab.
+  const loadDemo = useCallback(() => {
+    setError(null); setProgress(0); setPhase('analyzing');
+    setTimeout(() => {
+      if (mode === 'jump') {
+        const frames = demoJumpFrames(); framesRef.current = frames;
+        const j = computeJump(frames);
+        setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
+      } else {
+        const frames = demoSquatFrames(); framesRef.current = frames;
+        const r = analyzeClip(frames, 'Squat'); setResult(r); setTab('threeD');
+      }
+      setPhase('results');
+    }, 30);
+  }, [mode, computeJump]);
 
   const reset = useCallback(() => {
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
@@ -204,7 +246,7 @@ export default function MovementLab({
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-            {mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'} · {String(exerciseTitle).toUpperCase()}
+            {(toolLabel || (mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'))} · {String(exerciseTitle).toUpperCase()}
           </div>
         </div>
         <button onClick={onClose} style={btn('rgba(255,255,255,0.3)', 'transparent')}>✕ CLOSE</button>
@@ -269,7 +311,7 @@ export default function MovementLab({
         <div style={{ flex: 1, overflow: 'auto', padding: '64px 16px 16px', WebkitOverflowScrolling: 'touch' }}>
           {mode === 'jump'
             ? <JumpResult jump={jump} result={result} onSave={onSaveJump} onClose={onClose} defaultBodyweightKg={defaultBodyweightKg} />
-            : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} />}
+            : <AnalyzeResult result={result} frames={framesRef.current} exerciseTitle={exerciseTitle} tab={tab} setTab={setTab} view={initialView} />}
         </div>
       )}
 
@@ -278,6 +320,7 @@ export default function MovementLab({
         {phase === 'idle' && <>
           <BigBtn color={C.ac} onClick={startRecording}>{mode === 'jump' ? 'RECORD' : 'RECORD'} →</BigBtn>
           <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ UPLOAD CLIP</button>
+          <button onClick={loadDemo} title="See the 3D skeleton with no camera/upload" style={{ flex: '0 0 auto', padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.25)', color: 'rgba(255,255,255,0.7)', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>▶ DEMO</button>
         </>}
         {phase === 'loading' && <BigBtn color="#555" disabled>STARTING…</BigBtn>}
         {phase === 'countdown' && <BigBtn color="#555" disabled>GET READY… {countdown}</BigBtn>}
@@ -289,16 +332,22 @@ export default function MovementLab({
 }
 
 // ----------------------------- results: analyze -----------------------------
-function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab }) {
+function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all' }) {
   if (!result?.ok) return <Empty msg="Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame." />;
-  const tabs = [
+  // The Movement-Lab/Lift-Metrics split: '3d' shows only the skeleton, 'metrics'
+  // shows only velocity + ROM, 'all' keeps everything (Ohad 2026-06-15 —
+  // velocity/ROM no longer live under Movement Lab).
+  const allTabs = [
     { k: 'velocity', label: 'VELOCITY', on: result.repCount > 0 },
     { k: 'rom', label: 'ROM & TEMPO', on: result.repCount > 0 },
     { k: 'threeD', label: '3D ANATOMY', on: true },
   ];
+  const tabs = view === '3d' ? allTabs.filter(t => t.k === 'threeD')
+    : view === 'metrics' ? allTabs.filter(t => t.k !== 'threeD')
+      : allTabs;
   return (
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
-      <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
+      {tabs.length > 1 && <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
         {tabs.map(t => (
           <button key={t.k} disabled={!t.on} onClick={() => setTab(t.k)} style={{
             flex: 1, padding: '9px 6px', background: tab === t.k ? C.ac : 'transparent',
@@ -307,12 +356,12 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab }) {
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: t.on ? 'pointer' : 'default',
           }}>{t.label}</button>
         ))}
-      </div>
+      </div>}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
       </div>
-      {tab === 'velocity' && <VelocityTable v={result.velocity} />}
-      {tab === 'rom' && <RomTable r={result.romTempo} />}
+      {tab === 'velocity' && <VelocityTable v={result.velocity} barSpeed={result.barSpeed} frames={frames} />}
+      {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
           <AnatomyViewer frames={frames} />
@@ -322,45 +371,330 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab }) {
   );
 }
 
-function VelocityTable({ v }) {
+function VelocityTable({ v, barSpeed, frames }) {
+  // GRAPH toggle: SPEED = continuous bar-speed-over-time trace · VELOCITY =
+  // per-rep mean-velocity profile (the VBT fatigue bars).
+  const [graph, setGraph] = useState('speed');
+  // TRACKED POINT for the speed trace: BAR = wrists (a loaded barbell/dumbbell
+  // rides the wrists) · BODY = hips (bodyweight work / no bar). All speeds are
+  // VERTICAL only. Recomputed live from the captured frames.
+  const [point, setPoint] = useState('wrist');
+  const trace = React.useMemo(
+    () => (point === 'wrist' ? (barSpeed || (frames && barSpeedSeries(frames, 'wrist'))) : (frames && barSpeedSeries(frames, 'hip'))),
+    [point, barSpeed, frames]
+  );
   if (!v) return <Empty msg="No reps detected to measure velocity." />;
+  const pill = (k, label, sel, on) => (
+    <button key={k} type="button" onClick={on}
+      style={{
+        fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
+        borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
+        border: `1px solid ${sel ? C.ac : 'rgba(255,255,255,0.2)'}`,
+        background: sel ? `${C.ac}22` : 'transparent',
+        color: sel ? C.ac : 'rgba(255,255,255,0.5)',
+      }}>{label}</button>
+  );
   return (
     <div>
       <Kpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} />
       <Kpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
+      {/* graph picker */}
+      <div style={{ display: 'flex', gap: 6, margin: '4px 0 8px', flexWrap: 'wrap' }}>
+        {pill('speed', 'SPEED · OVER TIME', graph === 'speed', () => setGraph('speed'))}
+        {pill('velocity', 'VELOCITY · PER REP', graph === 'velocity', () => setGraph('velocity'))}
+      </div>
+      {/* tracked-point picker — only meaningful for the speed trace */}
+      {graph === 'speed' && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em' }}>TRACK</span>
+          {pill('wrist', 'BAR · WRISTS', point === 'wrist', () => setPoint('wrist'))}
+          {pill('hip', 'BODY · HIPS', point === 'hip', () => setPoint('hip'))}
+        </div>
+      )}
+      {graph === 'speed'
+        ? <SpeedTrace barSpeed={trace} point={point} />
+        : <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined} />)}
     </div>
   );
 }
 
-function RomTable({ r }) {
-  if (!r) return <Empty msg="No reps detected to measure range of motion." />;
+// Continuous VERTICAL bar/body speed over the whole set. Each rep is a peak pair
+// (lower + lift). SVG polyline; y-axis m/s (peak-scaled), x-axis real time.
+function SpeedTrace({ barSpeed, point }) {
+  const noun = point === 'hip' ? 'BODY (HIP)' : 'BAR (WRIST)';
+  if (!barSpeed || !barSpeed.series || barSpeed.series.length < 3) {
+    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean {noun.toLowerCase()} speed trace in this clip.</div>;
+  }
+  const { series, peak } = barSpeed;
+  const W = 300, H = 110, padL = 26, padB = 16, padT = 6;
+  const t0 = series[0].t, t1 = series[series.length - 1].t || 1;
+  const span = Math.max(1, t1 - t0);
+  const yMax = Math.max(0.3, peak);
+  const x = (t) => padL + ((t - t0) / span) * (W - padL - 4);
+  const y = (s) => padT + (1 - s / yMax) * (H - padT - padB);
+  const pts = series.map(p => `${x(p.t).toFixed(1)},${y(p.speed).toFixed(1)}`).join(' ');
+  const gridY = [0, yMax / 2, yMax];
   return (
-    <div>
-      <Kpi label="LARGEST ROM" value={`${r.maxRom.toFixed(0)}°`} />
-      {r.collapsedCount > 0 && <Kpi label="ROM-COLLAPSED REPS" value={String(r.collapsedCount)} tone={C.or} />}
-      <Row head cells={['REP', 'ROM', 'ECC s', 'PAUSE', 'CON s']} />
-      {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined} />)}
+    <div style={{ margin: '6px 0 16px' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VERTICAL {noun} SPEED · m/s OVER TIME · peak {peak.toFixed(2)}</div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+        {gridY.map((g, i) => (
+          <g key={i}>
+            <line x1={padL} x2={W - 4} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
+            <text x={0} y={y(g) + 3} fill="rgba(255,255,255,0.45)" fontSize="8" fontFamily="monospace">{g.toFixed(1)}</text>
+          </g>
+        ))}
+        <polyline points={pts} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
     </div>
   );
 }
 
+// The VBT fatigue curve — mean concentric velocity per rep as bars, coloured by
+// velocity-loss (green <10% · orange 10–20% · red ≥20%). The whole reason to
+// measure velocity is to SEE the drop-off; a number column hides it.
+function VelocityBars({ perRep, bestMean }) {
+  const reps = (perRep || []).filter(Boolean);
+  if (reps.length < 2) return null;
+  const max = Math.max(bestMean || 0, ...reps.map(r => r.meanConcentric)) || 1;
+  return (
+    <div style={{ margin: '6px 0 16px' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VELOCITY PROFILE · m/s PER REP</div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 96 }}>
+        {reps.map((r, i) => {
+          const h = Math.max(4, Math.round((r.meanConcentric / max) * 78));
+          const tone = r.lossPct >= 20 ? C.rd : r.lossPct >= 10 ? C.or : C.gn;
+          return (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 }}>
+              <div style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.55)', marginBottom: 3 }}>{r.meanConcentric.toFixed(2)}</div>
+              <div title={`Rep ${i + 1} · ${r.meanConcentric.toFixed(2)} m/s · ${r.lossPct}% loss`} style={{ width: '100%', maxWidth: 32, height: h, background: tone }} />
+              <div style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{i + 1}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// detectChannels kind → the joint the per-rep ROM/tempo is tracked on, so the
+// KPI names the actual joint ("LARGEST ROM · KNEE") instead of a vague label.
+const KIND_JOINT = { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', sho: 'Shoulder' };
+function RomTable({ r, jointRom, kind }) {
+  if (!r && !jointRom) return <Empty msg="No movement detected to measure range of motion." />;
+  const primaryJoint = (KIND_JOINT[kind] || 'Primary Joint').toUpperCase();
+  return (
+    <div>
+      {jointRom && <JointRomPanel joints={jointRom} />}
+      {r ? (
+        <>
+          <Kpi label={`LARGEST ${primaryJoint} ROM`} value={`${r.maxRom.toFixed(0)}°`} />
+          {r.collapsedCount > 0 && <Kpi label="ROM-COLLAPSED REPS" value={String(r.collapsedCount)} tone={C.or} />}
+          <TempoBars perRep={r.perRep} />
+          <Row head cells={['REP', 'ROM', 'ECC s', 'PAUSE', 'CON s']} />
+          {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined} />)}
+        </>
+      ) : (
+        <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 10 }}>
+          Per-rep tempo (ecc / pause / con) needs a detected set — film a full rep cycle to add it.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Multi-joint working range across the whole clip, with TWO display modes the
+// coach can toggle (Ohad): "L ↔ R" diverging bars (asymmetry jumps out off a
+// centre spine) and "Table" (Joint · L · R · Δ%, amber when L/R differ >10%).
+// Grouped by joint (Shoulder / Elbow / Hip / Knee), L+R together — no per-joint
+// chips, so the panel stays calm. Δ uses the jump-asymmetry rule (>10% flag).
+const JOINT_GROUPS = [
+  { key: 'SHO', label: 'Shoulder' },
+  { key: 'ELB', label: 'Elbow' },
+  { key: 'HIP', label: 'Hip' },
+  { key: 'KNE', label: 'Knee' },
+];
+const ROM_R = '#7ad0ff';   // lighter cyan for the RIGHT side
+const ROM_FLAG = '#ffb454'; // amber for an asymmetry flag
+function romRows(joints) {
+  const byName = {}; joints.forEach(j => { byName[j.name] = j; });
+  return JOINT_GROUPS.map(g => {
+    const L = byName[`L ${g.key}`], R = byName[`R ${g.key}`];
+    if (!L && !R) return null;
+    const lr = L ? L.romDeg : null, rr = R ? R.romDeg : null;
+    const delta = (lr != null && rr != null && Math.max(lr, rr) > 0)
+      ? Math.round((Math.abs(lr - rr) / Math.max(lr, rr)) * 100) : null;
+    return { ...g, L, R, lr, rr, delta };
+  }).filter(Boolean);
+}
+function RomDiverging({ rows }) {
+  const maxRom = Math.max(1, ...rows.flatMap(r => [r.lr || 0, r.rr || 0]));
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', marginBottom: 10 }}>
+        <span>◄ LEFT</span><span style={{ opacity: 0.4 }}>·</span><span>RIGHT ►</span>
+      </div>
+      {rows.map(r => (
+        <div key={r.key} style={{ marginBottom: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: C.ac, width: 34, textAlign: 'right', flexShrink: 0 }}>{r.lr != null ? `${r.lr}°` : '—'}</span>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', minWidth: 0 }}>
+              <div style={{ flex: 1, height: 14, position: 'relative', background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: `${(r.lr || 0) / maxRom * 100}%`, background: C.ac }} />
+              </div>
+              <div style={{ width: 1, alignSelf: 'stretch', background: C.ac, opacity: 0.5 }} />
+              <div style={{ flex: 1, height: 14, position: 'relative', background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(r.rr || 0) / maxRom * 100}%`, background: ROM_R }} />
+              </div>
+            </div>
+            <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 800, color: ROM_R, width: 34, flexShrink: 0 }}>{r.rr != null ? `${r.rr}°` : '—'}</span>
+          </div>
+          <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.55)', marginTop: 4, textTransform: 'uppercase' }}>
+            {r.label}{r.delta != null && r.delta > 10 ? <span style={{ color: ROM_FLAG }}> · Δ{r.delta}%</span> : ''}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+function RomTableView({ rows }) {
+  const th = { fontFamily: FN, fontSize: 8, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.35)', padding: '6px 4px', borderBottom: '1px solid rgba(255,255,255,0.14)', textAlign: 'right', fontWeight: 700 };
+  const td = { fontFamily: FN, fontSize: 12, fontWeight: 700, padding: '9px 4px', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'right' };
+  return (
+    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <thead><tr>
+        <th style={{ ...th, textAlign: 'left' }}>JOINT</th><th style={th}>L</th><th style={th}>R</th><th style={th}>Δ</th>
+      </tr></thead>
+      <tbody>
+        {rows.map(r => (
+          <tr key={r.key}>
+            <td style={{ ...td, textAlign: 'left', color: C.tx }}>{r.label}</td>
+            <td style={{ ...td, color: C.ac }}>{r.lr != null ? `${r.lr}°` : '—'}</td>
+            <td style={{ ...td, color: ROM_R }}>{r.rr != null ? `${r.rr}°` : '—'}</td>
+            <td style={{ ...td, color: r.delta != null && r.delta > 10 ? ROM_FLAG : 'rgba(255,255,255,0.4)' }}>{r.delta != null ? `${r.delta}%` : '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+function JointRomPanel({ joints }) {
+  const [mode, setMode] = useState('diverging'); // 'diverging' (B) | 'table' (C)
+  if (!joints || !joints.length) return null;
+  const rows = romRows(joints);
+  if (!rows.length) return null;
+  const tBtn = (k, label) => (
+    <button type="button" onClick={() => setMode(k)} style={{
+      fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 12px',
+      borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
+      border: `1px solid ${mode === k ? C.ac : 'rgba(255,255,255,0.18)'}`,
+      background: mode === k ? `${C.ac}22` : 'transparent',
+      color: mode === k ? C.ac : 'rgba(255,255,255,0.5)',
+    }}>{label}</button>
+  );
+  return (
+    <div style={{ margin: '4px 0 18px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+        <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em' }}>JOINT ROM · IN-PLANE °</div>
+        <div style={{ display: 'flex', gap: 6 }}>{tBtn('diverging', 'L ↔ R')}{tBtn('table', 'Table')}</div>
+      </div>
+      {mode === 'diverging' ? <RomDiverging rows={rows} /> : <RomTableView rows={rows} />}
+    </div>
+  );
+}
+
+// Tempo timeline — each rep's eccentric / pause / concentric seconds as a
+// proportional stacked bar. Surfaces rushed eccentrics and skipped pauses at a
+// glance (tempo-prescription compliance), which the seconds columns bury.
+function TempoBars({ perRep }) {
+  const reps = (perRep || []).filter(Boolean);
+  if (!reps.length) return null;
+  const maxT = Math.max(...reps.map(r => r.ecc + r.pause + r.con)) || 1;
+  const seg = (val, color, key) => val > 0
+    ? <div key={key} title={`${key} ${val.toFixed(1)}s`} style={{ width: `${(val / maxT) * 100}%`, background: color }} />
+    : null;
+  return (
+    <div style={{ margin: '6px 0 16px' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>TEMPO · ECC / PAUSE / CON PER REP</div>
+      {reps.map((x, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+          <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.4)', width: 16 }}>{i + 1}</div>
+          <div style={{ flex: 1, display: 'flex', height: 12, background: 'rgba(255,255,255,0.06)' }}>
+            {seg(x.ecc, C.ac, 'ecc')}{seg(x.pause, 'rgba(255,255,255,0.28)', 'pause')}{seg(x.con, C.gn, 'con')}
+          </div>
+          <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', width: 42, textAlign: 'right' }}>{(x.ecc + x.pause + x.con).toFixed(1)}s</div>
+        </div>
+      ))}
+      <div style={{ display: 'flex', gap: 14, marginTop: 6 }}>
+        <Legend color={C.ac} label="ECC" /><Legend color="rgba(255,255,255,0.28)" label="PAUSE" /><Legend color={C.gn} label="CON" />
+      </div>
+    </div>
+  );
+}
+const Legend = ({ color, label }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em' }}>
+    <span style={{ width: 9, height: 9, background: color }} />{label}
+  </span>
+);
+
 // ----------------------------- results: jump --------------------------------
+const JUMP_TITLE = { cmj: 'COUNTERMOVEMENT JUMP', svj: 'STANDING VERTICAL JUMP', sl: 'SINGLE-LEG JUMP', drop: 'DROP JUMP · RSI', pogo: 'POGO · RSI' };
+
+// Honest accuracy badge from captured fps (per research: flight-time height
+// error ≈ ±1cm@240 · ±2cm@120 · ±5cm@60 · ±9cm@30). Green only at slow-mo.
+function FpsBadge({ fps }) {
+  const f = Math.round(fps || 0);
+  const cfg = f >= 120 ? { txt: `${f}fps slow-mo · ≈±1–2cm (lab-grade)`, tone: C.gn }
+    : f >= 50 ? { txt: `${f}fps · trend only ≈±3–5cm — film in slow-mo for precision`, tone: C.or }
+      : { txt: `${f || '?'}fps · low ≈±9cm — record in slow-mo (120–240fps)`, tone: C.rd };
+  return <div style={{ marginTop: 12, fontFamily: FN, fontSize: 10, color: cfg.tone, letterSpacing: '0.03em' }}>◷ {cfg.txt}</div>;
+}
+
 function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
   const [saved, setSaved] = useState(false);
   const [bw, setBw] = useState(defaultBodyweightKg != null ? String(defaultBodyweightKg) : '');
-  if (!jump) return <Empty msg="Couldn't read a clean jump. Film side-on, full body in frame — stand still through the countdown, then jump straight up and land in place." />;
+  if (!jump) return <Empty msg="Couldn't read a clean jump. Film side-on, full body in frame — stand still, then jump. For a drop jump / POGO, land and rebound immediately (minimise ground contact)." />;
+  const title = JUMP_TITLE[jump.jumpType] || 'VERTICAL JUMP';
+  const saveBtn = (s) => ({ marginTop: 18, padding: '13px 20px', width: '100%', background: s ? '#2a2a2a' : C.ac, border: `1px solid ${s ? '#2a2a2a' : C.ac}`, color: '#FFF', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', cursor: s ? 'default' : 'pointer' });
+
+  // Reactive jumps (drop jump / POGO): RSI is the headline, not height.
+  if (jump.reactive) {
+    return (
+      <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
+        <div style={{ fontFamily: FN, fontSize: 80, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.rsi}<span style={{ fontSize: 22 }}> RSI</span></div>
+        <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>jump height ÷ ground-contact time (m/s)</div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18, flexWrap: 'wrap' }}>
+          <MiniKpi label="HEIGHT" value={`${jump.heightCm} cm`} />
+          <MiniKpi label="CONTACT" value={`${jump.contactMs} ms`} />
+          <MiniKpi label="FLIGHT" value={`${jump.flightMs} ms`} />
+        </div>
+        {jump.count > 1 && (
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+            <MiniKpi label={`AVG RSI · ${jump.count} HOPS`} value={String(jump.avgRsi)} />
+            <MiniKpi label="AVG CONTACT" value={`${jump.avgContactMs} ms`} />
+          </div>
+        )}
+        <FpsBadge fps={result?.fps} />
+        {onSave && <button disabled={saved} onClick={() => { onSave({ ...jump }); setSaved(true); }} style={saveBtn(saved)}>{saved ? 'SAVED TO EVALUATION' : 'SAVE TO ATHLETIC EVALUATION →'}</button>}
+        {saved && <button onClick={onClose} style={{ ...btn('rgba(255,255,255,0.3)', 'transparent'), marginTop: 12, width: '100%', padding: '11px' }}>DONE</button>}
+      </div>
+    );
+  }
+
   const massKg = parseFloat(bw);
   const power = jumpPower(jump.heightCm, massKg);
   return (
     <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center' }}>
-      <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>VERTICAL JUMP</div>
+      <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
       <div style={{ fontFamily: FN, fontSize: 88, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.heightCm}<span style={{ fontSize: 28 }}>cm</span></div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18 }}>
         <MiniKpi label="FLIGHT TIME" value={`${jump.flightMs} ms`} />
         <MiniKpi label="PEAK RISE" value={`${jump.peakRiseCm} cm`} />
       </div>
+      <FpsBadge fps={result?.fps} />
 
       {/* Bodyweight → peak power (Sayers). Height from flight time is mass-
           independent, but power is the athletic number — so we ask the weight. */}

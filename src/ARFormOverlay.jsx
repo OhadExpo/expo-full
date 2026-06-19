@@ -1,24 +1,36 @@
-// ARFormOverlay.jsx — live augmented coaching overlay.
-//
-// Point the phone at a lifting athlete; MediaPipe Pose runs on the live feed
-// and the canvas ghosts two coaching references over them in real time:
-//   • BAR PATH  — a vertical plumb line anchored at the bar's start x, with
-//     live horizontal deviation (how far the bar is drifting forward/back).
-//   • DEPTH     — for squat/hinge patterns, a target line at knee height; the
-//     hip marker turns green + "DEPTH" flashes when the hips drop to depth.
-// Plus the live skeleton. This is feedback BEFORE the rep finishes — the gym
-// wow-factor. No counting, no recommendations; pure real-time reference.
+// ARFormOverlay.jsx — LIVE COACH. The single real-time camera tool: prop the
+// phone side-on at a lifting athlete and MediaPipe Pose drives a clean live HUD
+// plus on-feed coaching references. One tool, three live read-outs:
+//   • REPS   — automatic count from a joint-angle state machine (the rep-counter
+//              folded in here, so there's ONE live tool, not two).
+//   • DEPTH  — for squat/hinge, a knee-height target line; the hip dot + the HUD
+//              DEPTH chip go green the instant the hip crease hits depth.
+//   • DRIFT  — a plumb line locked to the bar's top position with live forward/
+//              back drift in cm.
+// Feedback BEFORE the rep finishes — the gym-floor wow factor. No recommendations.
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { C, FN } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { detectChannels } from './repCounter';
+import { detectChannels, ANGLE_DEFS, angleAt, isReal } from './repCounter';
 
 const SKEL = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
   [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28],
 ];
 const ACCENT = '#39BDFF';
+const GREEN = '#46DC82';
+const RED = '#FF5A5A';
+// Down = the channel angle drops below `low`; Up = back above `high`. A full
+// down-then-up cycle is one rep. Hysteresis kills jitter double-counts. Mirrors
+// LiveRepCounter's table so counting behaves identically across the two paths.
+const KIND_THRESHOLDS = {
+  knee:  { low: 110, high: 160 },
+  hip:   { low: 110, high: 165 },
+  elbow: { low: 95,  high: 155 },
+  sho:   { low: 50,  high: 130 },
+  none:  null,
+};
 
 export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'environment', onClose }) {
   const videoRef = useRef(null);
@@ -26,11 +38,27 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const streamRef = useRef(null);
   const lmRef = useRef(null);
   const rafRef = useRef(null);
-  const anchorRef = useRef(null);      // {x} normalized bar-path anchor
+  const anchorRef = useRef(null);      // {x, topY} normalized bar-path anchor
+  const angleBufRef = useRef([]);      // smoothing buffer for the rep state machine
+  const phaseRef = useRef('top');      // 'top' | 'bottom'
+  const depthRef = useRef(false);      // last depth state (so we only setState on flips)
+  const showDepthRef = useRef(true);   // current depth-toggle, read by the running rAF loop
+
   const [phase, setPhase] = useState('idle'); // idle | loading | live
   const [error, setError] = useState(null);
   const [showDepth, setShowDepth] = useState(true);
-  const kind = detectChannels(exerciseTitle).kind;
+  useEffect(() => { showDepthRef.current = showDepth; }, [showDepth]);
+  const [reps, setReps] = useState(0);
+  const [moving, setMoving] = useState('top');  // 'top' | 'bottom' — live rep phase
+  const [atDepth, setAtDepth] = useState(false);
+  // 'environment' = rear (coach films the athlete) · 'user' = front (athlete
+  // self-films and watches the HUD while lifting). Switchable live.
+  const [facing, setFacing] = useState(facingMode);
+  const facingRef = useRef(facingMode);
+  useEffect(() => { facingRef.current = facing; }, [facing]);
+
+  const { kind, channels } = detectChannels(exerciseTitle);
+  const thr = KIND_THRESHOLDS[kind];
   const depthRelevant = kind === 'knee' || kind === 'hip';
 
   const loop = useCallback(() => {
@@ -39,38 +67,83 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     let res = null;
     try { res = lm.detectForVideo(v, performance.now()); } catch { res = null; }
     const landmarks = res?.landmarks?.[0] || null;
-    draw(canvasRef.current, v, landmarks, anchorRef, { depth: showDepth && depthRelevant });
+    const world = res?.worldLandmarks?.[0] || null;
+
+    // --- live rep state machine (world landmarks → joint angle) ---
+    if (world && thr && channels.length) {
+      const angs = channels.map(name => {
+        const def = ANGLE_DEFS.find(a => a.name === name);
+        return def ? angleAt(world, def.a, def.b, def.c) : null;
+      }).filter(isReal);
+      if (angs.length) {
+        const avg = angs.reduce((a, b) => a + b, 0) / angs.length;
+        const buf = angleBufRef.current; buf.push(avg); if (buf.length > 8) buf.shift();
+        const sorted = [...buf].sort((a, b) => a - b);
+        const smooth = sorted[Math.floor(sorted.length / 2)];
+        if (phaseRef.current === 'top' && smooth < thr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
+        else if (phaseRef.current === 'bottom' && smooth > thr.high) { phaseRef.current = 'top'; setMoving('top'); setReps(r => r + 1); }
+      }
+    }
+
+    // --- depth flag (image landmarks) — only setState when it flips ---
+    const depthOn = showDepthRef.current && depthRelevant;
+    if (depthOn && landmarks) {
+      const hip = midpt(landmarks[23], landmarks[24]);
+      const knee = midpt(landmarks[25], landmarks[26]);
+      const d = !!(hip && knee && hip.y >= knee.y);
+      if (d !== depthRef.current) { depthRef.current = d; setAtDepth(d); }
+    }
+
+    draw(canvasRef.current, v, landmarks, anchorRef, { depth: depthOn });
     rafRef.current = requestAnimationFrame(loop);
-  }, [showDepth, depthRelevant]);
+  }, [depthRelevant, thr, channels]);
 
   const start = useCallback(async () => {
     setError(null); setPhase('loading');
     try {
       if (!streamRef.current) {
-        const s = await getCamera(facingMode);
+        const s = await getCamera(facingRef.current);
         streamRef.current = s;
         const v = videoRef.current; if (v) { v.srcObject = s; await v.play(); }
       }
       if (!lmRef.current) lmRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'lite' });
-      anchorRef.current = null;
+      anchorRef.current = null; angleBufRef.current = []; phaseRef.current = 'top';
+      setReps(0); setMoving('top');
       setPhase('live');
       rafRef.current = requestAnimationFrame(loop);
     } catch (e) { setPhase('idle'); setError(e?.message || 'Could not start the camera.'); }
-  }, [facingMode, loop]);
+  }, [loop]);
+
+  // Swap front/rear without tearing down the pose engine. Re-lock the bar since
+  // the viewpoint changed. NOT mirrored — mirroring would invert left/right so
+  // the bar-drift cue would point the wrong way.
+  const flipCamera = useCallback(async () => {
+    const next = facingRef.current === 'environment' ? 'user' : 'environment';
+    setFacing(next);
+    try {
+      stopStream(streamRef.current); streamRef.current = null;
+      const s = await getCamera(next); streamRef.current = s;
+      const v = videoRef.current; if (v) { v.srcObject = s; await v.play(); }
+      anchorRef.current = null;
+    } catch (e) { setError(e?.message || 'Could not switch camera.'); }
+  }, []);
 
   const reanchor = useCallback(() => { anchorRef.current = null; }, []);
+  const resetReps = useCallback(() => { setReps(0); phaseRef.current = 'top'; setMoving('top'); angleBufRef.current = []; }, []);
 
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     stopStream(streamRef.current);
-    try { lmRef.current?.close(); } catch {}
+    try { lmRef.current?.close(); } catch { /* noop */ }
   }, []);
+
+  const countable = !!thr;
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-          AR FORM · {String(exerciseTitle).toUpperCase()}
+          LIVE COACH · {String(exerciseTitle).toUpperCase()}
         </div>
         <button onClick={onClose} style={hdrBtn}>✕ CLOSE</button>
       </div>
@@ -78,27 +151,56 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
         <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+
+        {/* LIVE HUD — the read-outs, in legible mono. Sits top-centre, out of the
+            way of a side-on full-body frame. */}
+        {phase === 'live' && (
+          <div style={{ position: 'absolute', top: 46, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+            <style>{'@keyframes rtpop{0%{transform:scale(1)}30%{transform:scale(1.28)}100%{transform:scale(1)}}'}</style>
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: 1, background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(2px)' }}>
+              {countable && <HudCell label="REPS" value={String(reps)} big pop tone={ACCENT} />}
+              {countable && <HudCell label="PHASE" value={moving === 'bottom' ? 'DOWN' : 'UP'} tone={moving === 'bottom' ? '#FFFFFF' : 'rgba(255,255,255,0.7)'} />}
+              {showDepth && depthRelevant && <HudCell label="DEPTH" value={atDepth ? '✓' : '—'} tone={atDepth ? GREEN : 'rgba(255,255,255,0.5)'} />}
+            </div>
+          </div>
+        )}
+
         {phase === 'idle' && !error && (
           <Centre>
-            <div style={{ fontSize: 56 }}>🪞</div>
-            <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginTop: 12 }}>AR FORM OVERLAY</div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 360, lineHeight: 1.55, marginTop: 8 }}>
-              Point the camera side-on at the lifter, full body in frame. A plumb line locks to the bar at the top of the first rep so you can see drift{depthRelevant ? ', plus a depth target at the knees' : ''}.
+            <div style={{ fontSize: 52 }}>🎯</div>
+            <div style={{ fontSize: 14, letterSpacing: '0.18em', fontWeight: 700, marginTop: 12 }}>LIVE COACH</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', maxWidth: 380, lineHeight: 1.6, marginTop: 10 }}>
+              Prop the phone side-on, full body in frame. You get a live{countable ? ' rep count' : ' skeleton'}{depthRelevant ? ', a depth target at the knees,' : ''} and a plumb line locked to the bar so you can see drift — all in real time, before the rep ends.
             </div>
           </Centre>
         )}
-        {phase === 'loading' && <Centre><div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700 }}>STARTING CAMERA + POSE…</div></Centre>}
-        {error && <Centre><div style={{ fontSize: 32 }}>⚠</div><div style={{ fontSize: 13, color: C.rd, marginTop: 10 }}>{error}</div></Centre>}
+        {phase === 'loading' && <Centre><Spinner /><div style={{ fontSize: 13, letterSpacing: '0.18em', fontWeight: 700, marginTop: 14 }}>STARTING CAMERA + POSE…</div></Centre>}
+        {error && <Centre><div style={{ fontSize: 32 }}>⚠</div><div style={{ fontSize: 13, color: C.rd, marginTop: 10, maxWidth: 320 }}>{error}</div></Centre>}
       </div>
 
-      <div style={{ background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10 }}>
+      <div style={{ background: 'rgba(0,0,0,0.92)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         {phase !== 'live'
-          ? <Big color={C.ac} onClick={start} disabled={phase === 'loading'}>{phase === 'loading' ? 'STARTING…' : 'START OVERLAY →'}</Big>
+          ? <>
+              <Big color={C.ac} onClick={start} disabled={phase === 'loading'}>{phase === 'loading' ? 'STARTING…' : 'START →'}</Big>
+              <button onClick={() => setFacing(f => f === 'environment' ? 'user' : 'environment')} style={{ ...ctrl, minWidth: 120 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'} CAM</button>
+            </>
           : <>
-              <button onClick={reanchor} style={{ ...ctrl, minWidth: 140 }}>⟲ RE-LOCK BAR</button>
-              {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 120 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
+              {countable && <button onClick={resetReps} style={{ ...ctrl, minWidth: 104 }}>⟲ RESET REPS</button>}
+              <button onClick={reanchor} style={{ ...ctrl, minWidth: 112 }}>⟲ RE-LOCK BAR</button>
+              <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'}</button>
+              {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
             </>}
       </div>
+    </div>
+  );
+}
+
+function HudCell({ label, value, big, tone, pop }) {
+  return (
+    <div style={{ minWidth: big ? 88 : 70, padding: big ? '8px 14px' : '8px 12px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.16em', color: 'rgba(255,255,255,0.55)', marginBottom: 3 }}>{label}</div>
+      {/* key=value remounts the node each rep so the pop animation replays */}
+      <div key={pop ? value : undefined} style={{ fontFamily: FN, fontWeight: 700, lineHeight: 1, fontSize: big ? 38 : 18, color: tone, animation: pop ? 'rtpop .35s ease' : undefined }}>{value}</div>
     </div>
   );
 }
@@ -122,7 +224,7 @@ function draw(canvas, video, landmarks, anchorRef, { depth }) {
   const kneeMid = midpt(landmarks[25], landmarks[26]);
 
   // bar-path plumb line — lock the anchor to the bar's x at the highest point
-  // seen so far (the rack/standing position), then show live drift from it.
+  // seen so far (rack/standing), then show live drift from it.
   if (wristMid) {
     if (anchorRef.current == null) anchorRef.current = { x: wristMid.x, topY: wristMid.y };
     if (wristMid.y < anchorRef.current.topY) { anchorRef.current = { x: wristMid.x, topY: wristMid.y }; }
@@ -131,10 +233,10 @@ function draw(canvas, video, landmarks, anchorRef, { depth }) {
     ctx.beginPath(); ctx.moveTo(ax, 0); ctx.lineTo(ax, h); ctx.stroke(); ctx.setLineDash([]);
     const driftPx = (wristMid.x - anchorRef.current.x) * w;
     const driftCm = Math.round(Math.abs((wristMid.x - anchorRef.current.x)) * estimateBodyWidthCm(landmarks));
-    // live bar marker
-    ctx.fillStyle = Math.abs(driftPx) > 0.04 * w ? '#FF5A5A' : ACCENT;
+    const off = Math.abs(driftPx) > 0.04 * w;
+    ctx.fillStyle = off ? RED : ACCENT;
     ctx.beginPath(); ctx.arc(wristMid.x * w, wristMid.y * h, 9, 0, Math.PI * 2); ctx.fill();
-    label(ctx, `${driftCm} cm`, wristMid.x * w + 14, wristMid.y * h - 10, Math.abs(driftPx) > 0.04 * w ? '#FF5A5A' : ACCENT);
+    label(ctx, `${driftCm} cm`, wristMid.x * w + 14, wristMid.y * h - 10, off ? RED : ACCENT);
   }
 
   // depth target — horizontal line at knee height; hips green when at/below it
@@ -144,9 +246,14 @@ function draw(canvas, video, landmarks, anchorRef, { depth }) {
     ctx.strokeStyle = atDepth ? 'rgba(70,220,130,0.9)' : 'rgba(255,255,255,0.4)';
     ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
     ctx.beginPath(); ctx.moveTo(0, ky); ctx.lineTo(w, ky); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = atDepth ? '#46DC82' : 'rgba(255,255,255,0.7)';
+    ctx.fillStyle = atDepth ? GREEN : 'rgba(255,255,255,0.7)';
     ctx.beginPath(); ctx.arc(hipMid.x * w, hipMid.y * h, 9, 0, Math.PI * 2); ctx.fill();
-    if (atDepth) label(ctx, 'DEPTH ✓', w / 2 - 40, ky - 14, '#46DC82', 20);
+    // at-depth = a bold green frame around the whole feed, readable across the gym
+    if (atDepth) {
+      const lw = Math.max(6, w * 0.012);
+      ctx.strokeStyle = 'rgba(70,220,130,0.85)'; ctx.lineWidth = lw; ctx.setLineDash([]);
+      ctx.strokeRect(lw / 2, lw / 2, w - lw, h - lw);
+    }
   }
 }
 
@@ -167,6 +274,11 @@ function estimateBodyWidthCm(lms) {
 
 const Centre = ({ children }) => (
   <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontFamily: FN, textAlign: 'center', padding: 20 }}>{children}</div>
+);
+const Spinner = () => (
+  <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.16)', borderTopColor: ACCENT, animation: 'rtspin .7s linear infinite' }}>
+    <style>{'@keyframes rtspin{to{transform:rotate(360deg)}}'}</style>
+  </div>
 );
 const hdrBtn = { background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#FFF', padding: '6px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' };
 const ctrl = { padding: '12px 14px', background: 'transparent', color: '#FFF', border: '1px solid rgba(255,255,255,0.3)', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };

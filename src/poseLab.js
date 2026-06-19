@@ -140,6 +140,32 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
   };
 }
 
+// Continuous bar-speed trace — instantaneous vertical bar speed (|m/s|) per
+// frame across the WHOLE clip, for the velocity tab's "speed over time" graph.
+// Absolute value so the lowering and lifting phases both read as peaks (one
+// peak pair per rep). Lightly median-smoothed against per-frame ruler jitter.
+// t is ms-from-clip-start so the x-axis is real time.
+export function barSpeedSeries(frames, barLandmark = 'wrist') {
+  if (!frames || frames.length < 3) return null;
+  const scale = frames.map(frameScaleY);
+  const pos = frames.map((f, i) => {
+    const im = f.landmarks; if (!im) return null;
+    const p = barLandmark === 'hip' ? mid2(im[LM.L_HIP], im[LM.R_HIP]) : mid2(im[LM.L_WRIST], im[LM.R_WRIST]);
+    return imgUpMetres(p, scale[i]);
+  });
+  const raw = frames.map((f, i) => {
+    if (i === 0) return null;
+    const a = pos[i - 1], b = pos[i], ta = frames[i - 1]?.t, tb = frames[i]?.t;
+    if (!isReal(a) || !isReal(b) || ta == null || tb == null || tb <= ta) return null;
+    return Math.abs((b - a) / ((tb - ta) / 1000));
+  });
+  const sm = medianFilter(raw, 3);
+  const t0 = frames[0].t;
+  const series = frames.map((f, i) => (isReal(sm[i]) ? { t: Math.round(f.t - t0), speed: round2(sm[i]) } : null)).filter(Boolean);
+  if (series.length < 3) return null;
+  return { series, peak: round2(series.reduce((m, p) => Math.max(m, p.speed), 0)) };
+}
+
 // ---------------------------------------------------------------------------
 // ROM + tempo per rep, from the joint-angle channel.
 // ---------------------------------------------------------------------------
@@ -167,6 +193,31 @@ export function romTempoMetrics(frames, angle, reps) {
   const maxRom = valid.reduce((m, r) => Math.max(m, r.rom), 0) || 1;
   const withFlag = perRep.map(r => r && ({ ...r, romPct: Math.round((r.rom / maxRom) * 100), collapsed: r.rom < 0.85 * maxRom }));
   return { perRep: withFlag, maxRom: round1(maxRom), collapsedCount: withFlag.filter(r => r && r.collapsed).length };
+}
+
+// ---------------------------------------------------------------------------
+// Multi-joint ROM — angular working range per joint across the whole clip.
+// ---------------------------------------------------------------------------
+// For each requested joint angle (default: every ANGLE_DEFS entry — L/R
+// shoulder, elbow, hip, knee) build the median-smoothed angle series from
+// worldLandmarks and report max / min / travel in degrees. This is whole-clip
+// ROM (the joint's working range during the movement), distinct from the
+// per-rep romTempo above. Joints with too few clean samples are dropped.
+//
+// HONEST LIMIT: these are in-plane flexion/extension angles. 2D-markerless pose
+// can't recover axial rotation (internal/external rotation, pro/supination), so
+// rotation axes are deliberately NOT offered here — only the flexion joints.
+export function jointRomMetrics(frames, jointNames = null) {
+  if (!frames || frames.length < 4) return null;
+  const defs = jointNames ? ANGLE_DEFS.filter(d => jointNames.includes(d.name)) : ANGLE_DEFS;
+  const out = defs.map(d => {
+    const raw = frames.map(f => (f.worldLandmarks ? angleAt(f.worldLandmarks, d.a, d.b, d.c) : null));
+    const series = medianFilter(raw, 5).filter(isReal);
+    if (series.length < 4) return null;
+    const max = Math.max(...series), min = Math.min(...series);
+    return { name: d.name, maxDeg: Math.round(max), minDeg: Math.round(min), romDeg: Math.round(max - min), samples: series.length };
+  }).filter(Boolean);
+  return out.length ? out : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -245,6 +296,77 @@ export function jumpMetrics(frames) {
   };
 }
 
+// Reactive jumps (Drop Jump, repeated hops / POGO) — needs GROUND CONTACT time,
+// not just flight. Same ankle-rise ruler as jumpMetrics, but instead of the one
+// best airborne window we segment ALL airborne windows and the contacts between
+// them. RSI = jump height (m) / ground contact time (s)  [Balsalobre / NSCA].
+// Contact = the grounded gap between one window's landing and the next window's
+// takeoff. For a drop jump that's drop-land→rebound-takeoff; for POGO it's each
+// hop. Returns { best (max-RSI hop), hops[], avgRsi, avgContactMs, avgHeightCm }.
+export function reactiveJumpMetrics(frames) {
+  if (!frames || frames.length < 10) return null;
+  const t0 = frames[0].t;
+  const ankY = frames.map(f => {
+    const im = f.landmarks; if (!im) return null;
+    const a = im[LM.L_ANKLE], b = im[LM.R_ANKLE];
+    if (a && b) return Math.max(a.y, b.y);
+    return (a || b) ? (a || b).y : null;
+  });
+  const standIdx = frames.map((_, i) => i).filter(i => ankY[i] != null && frames[i].t - t0 < 600);
+  if (standIdx.length < 3) return null;
+  const baseY = median(standIdx.map(i => ankY[i]));
+  const scaleSamples = standIdx.map(i => frameScaleY(frames[i])).filter(isReal);
+  if (scaleSamples.length < 3) return null;
+  const scale = median(scaleSamples);
+  if (!isReal(scale) || scale <= 0) return null;
+  const rise = ankY.map(y => y == null ? null : (baseY - y) * scale);
+
+  const THR = 0.05, n = rise.length;
+  const interpAt = (k0, k1, level) => {
+    const r0 = rise[k0], r1 = rise[k1], ta = frames[k0]?.t, tb = frames[k1]?.t;
+    if (r0 == null || r1 == null || ta == null || tb == null || r1 === r0) return (frames[k1] || frames[k0])?.t ?? 0;
+    const frac = (level - r0) / (r1 - r0);
+    return (frac >= 0 && frac <= 1) ? ta + frac * (tb - ta) : frames[k1].t;
+  };
+  // every airborne window, timed at the rise=0 crossings (toe-off → touchdown)
+  const windows = []; let i = 0;
+  while (i < n) {
+    if (rise[i] != null && rise[i] > THR) {
+      let j = i; while (j + 1 < n && rise[j + 1] != null && rise[j + 1] > THR) j++;
+      let a = i; while (a - 1 >= 0 && rise[a - 1] != null && rise[a - 1] > 0) a--;
+      let b = j; while (b + 1 < n && rise[b + 1] != null && rise[b + 1] > 0) b++;
+      const takeoff = interpAt(a - 1 >= 0 ? a - 1 : a, a, 0);
+      const landing = interpAt(b, b + 1 < n ? b + 1 : b, 0);
+      const flightSec = (landing - takeoff) / 1000;
+      let peak = 0; for (let k = i; k <= j; k++) if (rise[k] != null) peak = Math.max(peak, rise[k]);
+      if (flightSec >= 0.1 && flightSec <= 1.0) windows.push({ takeoff, landing, flightSec, peak });
+      i = j + 1;
+    } else i++;
+  }
+  if (windows.length < 2) return null;     // need at least one contact + rebound
+
+  const hops = [];
+  for (let w = 1; w < windows.length; w++) {
+    const contactSec = (windows[w].takeoff - windows[w - 1].landing) / 1000;
+    if (contactSec <= 0.04 || contactSec > 1.5) continue;   // implausible ground contact
+    const heightCm = (9.81 * windows[w].flightSec * windows[w].flightSec / 8) * 100;
+    const rsi = (heightCm / 100) / contactSec;               // m / s
+    hops.push({
+      heightCm: Math.round(heightCm),
+      flightMs: Math.round(windows[w].flightSec * 1000),
+      contactMs: Math.round(contactSec * 1000),
+      rsi: Math.round(rsi * 100) / 100,
+    });
+  }
+  if (!hops.length) return null;
+  const best = hops.reduce((m, h) => h.rsi > m.rsi ? h : m, hops[0]);
+  const mean = (key, dp = 0) => {
+    const v = hops.reduce((s, h) => s + h[key], 0) / hops.length;
+    return dp ? Math.round(v * 10 ** dp) / 10 ** dp : Math.round(v);
+  };
+  return { best, hops, count: hops.length, avgRsi: mean('rsi', 2), avgContactMs: mean('contactMs'), avgHeightCm: mean('heightCm') };
+}
+
 // Peak power from a vertical jump — Sayers (1999), the validated regression for
 // CMJ peak power: P(W) = 60.7·height(cm) + 45.3·mass(kg) − 2055. Returns null
 // without a real bodyweight (height alone is bodyweight-independent physics, but
@@ -282,7 +404,9 @@ export function analyzeClip(frames, exerciseTitle, opts = {}) {
   const reps = channels.length ? segmentReps(angle, fps) : [];
   const velocity = reps.length ? velocityMetrics(frames, angle, reps, opts.barLandmark) : null;
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
-  return { ok: true, fps, kind, repCount: reps.length, reps, velocity, romTempo, frameCount: frames.length };
+  const jointRom = jointRomMetrics(frames);
+  const barSpeed = barSpeedSeries(frames, opts.barLandmark);
+  return { ok: true, fps, kind, repCount: reps.length, reps, velocity, romTempo, jointRom, barSpeed, frameCount: frames.length };
 }
 
 // --- small helpers ---

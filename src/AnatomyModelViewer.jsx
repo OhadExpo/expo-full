@@ -104,9 +104,14 @@ export default function AnatomyModelViewer({ frames }) {
   const [status, setStatus] = useState('loading');   // loading | ready | error
   const [playing, setPlaying] = useState(true);
   const [frameIdx, setFrameIdx] = useState(0);
+  const [rigV, setRigV] = useState('v2');             // 'v1' swing-only · 'v2' +twist
   const playRef = useRef(true), frameRef = useRef(0);
+  const rigVRef = useRef('v2'), forceRef = useRef(false);
   useEffect(() => { playRef.current = playing; }, [playing]);
   useEffect(() => { frameRef.current = frameIdx; }, [frameIdx]);
+  // Flip the rig version live (no GLB reload) — the render loop re-poses the
+  // current frame on the next tick so V1/V2 can be A/B'd on one figure.
+  useEffect(() => { rigVRef.current = rigV; forceRef.current = true; }, [rigV]);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -214,6 +219,49 @@ export default function AnatomyModelViewer({ frames }) {
       _va.copy(from); _vb.copy(to);
       if (_va.lengthSq() < 1e-9 || _vb.lengthSq() < 1e-9) return new THREE.Quaternion();
       return new THREE.Quaternion().setFromUnitVectors(_va.normalize(), _vb.normalize());
+    };
+    // ---- V2 twist: full basis-to-basis alignment ----------------------------
+    // alignQ above is SWING-ONLY (setFromUnitVectors gives the minimal rotation
+    // aligning two directions) — it carries zero information about roll ABOUT the
+    // bone's long axis. That's the v1 ceiling: the forearm can't pronate (thumbs
+    // point out), the femur can't internally/externally rotate, feet point wrong.
+    // v2 recovers the missing roll from the bend-plane of the joint BELOW: build
+    // an orthonormal frame per segment whose X is the bone's long axis and whose
+    // Z is perpendicular to the plane formed with the NEXT segment, in BOTH the
+    // model's rest pose and the captured pose, then rotate rest-frame → pose-frame
+    // (a full 3-axis rotation incl. twist). Forearm roll then follows wrist→hand,
+    // femur roll follows the knee plane, tibia roll follows ankle→foot.
+    const _X = new THREE.Vector3(), _Y = new THREE.Vector3(), _Z = new THREE.Vector3();
+    const _tmpS = new THREE.Vector3();
+    const _mRest = new THREE.Matrix4(), _mPose = new THREE.Matrix4(), _mRot = new THREE.Matrix4();
+    const _qb = new THREE.Quaternion();
+    // A bend plane is only trustworthy when the secondary is meaningfully OFF the
+    // bone's long axis. |X×S| = sin(angle); below SEC_MIN (~7°) the secondary is
+    // ~parallel (a near-straight limb) and any roll we'd derive is noise. Return
+    // false there so basisQ falls back to SWING — never fabricate a perpendicular,
+    // which would brand every neutral-pose bone with a constant spurious roll.
+    const SEC_MIN = 0.12;
+    const buildFrame = (primary, secondary) => {
+      if (!primary || !secondary) return false;
+      _X.copy(primary); const pl = _X.length(); if (pl < 1e-6) return false; _X.divideScalar(pl);
+      _tmpS.copy(secondary); const sl = _tmpS.length(); if (sl < 1e-6) return false; _tmpS.divideScalar(sl);
+      _Z.crossVectors(_X, _tmpS);
+      if (_Z.length() < SEC_MIN) return false;           // secondary ~∥ primary → roll unreliable
+      _Z.normalize(); _Y.crossVectors(_Z, _X).normalize();
+      return true;
+    };
+    // q mapping rest-frame → pose-frame = Mpose · Mrestᵀ (orthonormal ⇒ ᵀ = ⁻¹).
+    // Falls back to swing-only alignQ whenever EITHER bend plane is unreliable, so
+    // v2 is guaranteed never worse than v1 — it only ADDS twist where the data
+    // supports it (Ohad's "don't come out worse than this" constraint).
+    const basisQ = (pRest, sRest, pPose, sPose) => {
+      if (!buildFrame(pRest, sRest)) return alignQ(pRest, pPose);
+      _mRest.makeBasis(_X, _Y, _Z);                      // capture rest frame before pose overwrites _X/_Y/_Z
+      if (!buildFrame(pPose, sPose)) return alignQ(pRest, pPose);
+      _mPose.makeBasis(_X, _Y, _Z);
+      _mRest.transpose();
+      _mRot.multiplyMatrices(_mPose, _mRest);
+      return _qb.setFromRotationMatrix(_mRot).clone();
     };
     const _t1 = new THREE.Matrix4(), _r = new THREE.Matrix4(), _t2 = new THREE.Matrix4();
     const setBone = (mesh, prox, q, restProx) => {
@@ -333,14 +381,32 @@ export default function AnatomyModelViewer({ frames }) {
       const { J, M, mode } = rig;
       const hipC = cg(fp, 'hipCenter'), shoC = cg(fp, 'shoCenter'); if (!hipC || !shoC) return;
       const wj = {};
-      const qSpine = alignQ(J.shoCenter, sub(shoC, hipC));
+      // v2 orients the trunk with a FULL torso basis (long axis + the L–R girdle
+      // line as the second axis), so the front/back facing is pinned. v1 aligns
+      // only the long axis (swing), which leaves rotation about it free — that's
+      // why the scapulae could face forward like the skull. The captured torso
+      // up = shoC−hipC; the model rest up ≈ J.shoCenter (hip-centred).
+      const v2 = rigVRef.current === 'v2';
+      const upPose = sub(shoC, hipC);
+      const shoLinePose = sub(cg(fp, 12), cg(fp, 11)), hipLinePose = sub(cg(fp, 24), cg(fp, 23));
+      const qSpine = v2
+        ? basisQ(J.shoCenter, sub(J.shoulderR, J.shoulderL), upPose, shoLinePose)
+        : alignQ(J.shoCenter, upPose);
       wj.shoCenter = add(hipC, app(J.shoCenter, qSpine));
       let qPel = qSpine;
-      if (mode === 'skel') { const cl = sub(cg(fp, 24), cg(fp, 23)); if (cl && J.hipR && J.hipL) qPel = alignQ(sub(J.hipR, J.hipL), cl); }
+      if (mode === 'skel' && hipLinePose && J.hipR && J.hipL) {
+        qPel = v2
+          ? basisQ(sub(J.hipR, J.hipL), J.shoCenter, hipLinePose, upPose)
+          : alignQ(sub(J.hipR, J.hipL), hipLinePose);
+      }
       if (J.hipL) wj.hipL = add(hipC, app(J.hipL, qPel));
       if (J.hipR) wj.hipR = add(hipC, app(J.hipR, qPel));
       let qSho = qSpine;
-      if (mode === 'skel') { const cl = sub(cg(fp, 12), cg(fp, 11)); if (cl && J.shoulderR && J.shoulderL) qSho = alignQ(sub(J.shoulderR, J.shoulderL), cl); }
+      if (mode === 'skel' && shoLinePose && J.shoulderR && J.shoulderL) {
+        qSho = v2
+          ? basisQ(sub(J.shoulderR, J.shoulderL), J.shoCenter, shoLinePose, upPose)
+          : alignQ(sub(J.shoulderR, J.shoulderL), shoLinePose);
+      }
       if (J.shoulderL) wj.shoulderL = add(wj.shoCenter, app(sub(J.shoulderL, J.shoCenter), qSho));
       if (J.shoulderR) wj.shoulderR = add(wj.shoCenter, app(sub(J.shoulderR, J.shoCenter), qSho));
       const ch = sub(cg(fp, 'headRef'), wj.shoCenter);
@@ -349,21 +415,39 @@ export default function AnatomyModelViewer({ frames }) {
       if (mode === 'skel') {
         setBone(M.pelvis && M.pelvis.mesh, hipC, qPel, ZERO);
         setBone(M.spine && M.spine.mesh, hipC, qSpine, ZERO);
-        setBone(M.clavL && M.clavL.mesh, wj.shoCenter, qSho, J.shoCenter);
-        setBone(M.clavR && M.clavR.mesh, wj.shoCenter, qSho, J.shoCenter);
+        // Scapulae/clavicles ride the RIBCAGE, not the shoulder-line basis. In
+        // v2, qSho (exact shoulder-line, approx up) and qSpine (exact up, approx
+        // shoulder-line) diverge whenever the captured shoulder line isn't square
+        // to vertical (any squat with the arms reaching forward) — posing the
+        // girdle with qSho then peels the scapulae off the back and wings them
+        // toward the front. Tie them to qSpine so the shoulder blades stay flush
+        // on the ribcage; the arms still hinge from the qSho-placed shoulder joints.
+        setBone(M.clavL && M.clavL.mesh, wj.shoCenter, qSpine, J.shoCenter);
+        setBone(M.clavR && M.clavR.mesh, wj.shoCenter, qSpine, J.shoCenter);
         setBone(M.skull && M.skull.mesh, wj.shoCenter, qHead, J.shoCenter);
       } else {
         setBone(M.trunk && M.trunk.mesh, hipC, qSpine, ZERO);
         setBone(M.headM && M.headM.mesh, wj.shoCenter, qHead, J.shoCenter);
       }
 
+      // v2 adds axial twist: each segment's roll is taken from the bend plane it
+      // forms with the segment BELOW it (joint at idxs[i+2]). The last segment in
+      // a chain (hand / foot) has no "next" joint, so it stays swing-only.
+      const twist = rigVRef.current === 'v2';
       const chain = (prox, idxs, jk, mk) => {
         let p = prox;
         for (let i = 0; i < mk.length; i++) {
           const ca = cg(fp, idxs[i]), cb = cg(fp, idxs[i + 1]);
           const ja = J[jk[i]], jb = J[jk[i + 1]];
           if (!p || !ca || !cb || !ja || !jb) { if (p && ja && jb) p = add(p, sub(jb, ja)); continue; }
-          const q = alignQ(sub(jb, ja), sub(cb, ca));
+          let q;
+          if (twist) {
+            const jc = J[jk[i + 2]], cc = cg(fp, idxs[i + 2]);
+            const sRest = jc ? sub(jc, jb) : null, sPose = cc ? sub(cc, cb) : null;
+            q = (sRest && sPose) ? basisQ(sub(jb, ja), sRest, sub(cb, ca), sPose) : alignQ(sub(jb, ja), sub(cb, ca));
+          } else {
+            q = alignQ(sub(jb, ja), sub(cb, ca));
+          }
           setBone(M[mk[i]] && M[mk[i]].mesh, p, q, ja);
           p = add(p, app(sub(jb, ja), q));
         }
@@ -388,7 +472,7 @@ export default function AnatomyModelViewer({ frames }) {
       const loop = (now) => {
         acc += now - last; last = now;
         if (playRef.current && poseFrames.length > 1 && acc >= 1000 / fps) { acc = 0; frameRef.current = (frameRef.current + 1) % poseFrames.length; setFrameIdx(frameRef.current); }
-        if (frameRef.current !== lastPosed) { applyPose(frameRef.current); lastPosed = frameRef.current; }
+        if (frameRef.current !== lastPosed || forceRef.current) { applyPose(frameRef.current); lastPosed = frameRef.current; forceRef.current = false; }
         controls.update(); renderer.render(scene, camera); raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
@@ -412,6 +496,9 @@ export default function AnatomyModelViewer({ frames }) {
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
         <Pill active={true} onClick={() => {}}>SKELETON</Pill>
         <Pill active={playing} onClick={() => setPlaying(p => !p)}>{playing ? 'PAUSE' : 'PLAY'}</Pill>
+        {/* A/B the rig math live: V1 = swing-only (current prod), V2 = +axial twist */}
+        <Pill active={rigV === 'v1'} onClick={() => setRigV('v1')}>V1 · SWING</Pill>
+        <Pill active={rigV === 'v2'} onClick={() => setRigV('v2')}>V2 · TWIST</Pill>
       </div>
       <div ref={mountRef} style={{ position: 'relative', width: '100%', maxWidth: 340, height: 460, margin: '0 auto', background: '#0b0b0d', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none' }}>
         {status !== 'ready' && (

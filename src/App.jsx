@@ -173,7 +173,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
     <div data-submenu-id={id} onMouseEnter={hoverOpen} onMouseLeave={hoverClose} style={{ display: 'inline-flex', position: 'relative' }}>
       <button ref={btnRef} onClick={() => setOpen(o => !o)}
         aria-expanded={open}
-        className={isChosen && !isSectionActive ? 'nav-item-inactive' : undefined}
+        className={!isSectionActive ? 'nav-item-inactive' : undefined}
         // alignItems:center (was baseline) so the label, count, and
         // chevron share one optical center-line. baseline-mode let
         // the chevron drift below the cap-height of the label.
@@ -1086,7 +1086,7 @@ function AuthedApp() {
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}
           .nav-item-inactive{transition:color 120ms, background 120ms}
-          .nav-item-inactive:hover{color:#39BDFF !important;background:rgba(57,189,255,0.06) !important}
+          .nav-item-inactive:hover{color:rgba(57,189,255,0.72) !important;background:rgba(57,189,255,0.035) !important}
           .hdr-icon-btn{transition:color 120ms, background 120ms}
           .hdr-icon-btn:hover{color:#0E0F12 !important;background:rgba(57,189,255,0.08) !important}
           [data-theme="5b"] .alert-card,[data-theme="light"] .alert-card{transition:box-shadow 200ms, transform 200ms}
@@ -1125,7 +1125,7 @@ function AuthedApp() {
               // 0.06em — was 11 / 0.18em) so the 8-item row clears 1366px
               // viewport comfortably. alignItems:'center' (was 'baseline')
               // matches SubmenuTab so label + count share one center-line.
-              return(<button key={t.key} className={isChosen&&!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'center',borderRadius:0,padding:"6px 10px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
+              return(<button key={t.key} className={!isActive?'nav-item-inactive':undefined} onClick={async()=>{if(t.key==='client'){if(isBoth){pickPortal('client');}else{await signOut();window.location.href='/';}}else{navTo(t.key)}}} style={{...baseBtn,alignItems:'center',borderRadius:0,padding:"6px 10px",fontSize:10,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:"nowrap",...activeStyle}}>
                 <span>{t.label}</span>{t.count!==null&&<span style={{fontSize:10,color:countColor,fontFamily:FN}}>{t.count}</span>}</button>)})}</nav>
           {/* Right cluster: ⋯ MORE | Theme | Bug | Sign out, separated
               by cyan hairlines. Ohad 2026-05-16 — removed the left

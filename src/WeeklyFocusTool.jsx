@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { C, FN, FB } from './theme';
+import { CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 import { EX } from './exerciseData';
 import { isSafeTraineeId } from './traineeUtils';
@@ -39,7 +40,6 @@ function resolveDay(d, idx, exById, exByTitle) {
 }
 
 export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setWeeklyFocus }) {
-  const [open, setOpen] = useState(false);
   const [traineeId, setTraineeId] = useState('');
   const [query, setQuery] = useState('');               // type-and-search box text
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -113,46 +113,49 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
   const sel = { background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '7px 9px', borderRadius: 0 };
   const lbl = { display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 4 };
 
+  const saveBadge = saveState !== 'idle' ? (
+    <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: saveState === 'saved' ? C.gn : 'rgba(255,255,255,0.7)' }}>
+      {saveState === 'saved' ? '✓ SAVED' : 'SAVING…'}
+    </span>
+  ) : null;
+
   return (
-    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, marginBottom: 20, boxShadow: C.cardShadow }}>
-      <div onClick={() => setOpen(o => !o)} role="button" tabIndex={0}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(o => !o); } }}
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', cursor: 'pointer', background: C.acD, borderBottom: open ? `1px solid ${C.cardBd}` : 'none' }}>
-        <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', color: '#FFF' }}>WEEKLY FOCUS · NO UPLOAD NEEDED</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {saveState !== 'idle' && (
-            <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: saveState === 'saved' ? C.gn : C.tm }}>
-              {saveState === 'saved' ? '✓ SAVED' : 'SAVING…'}
-            </span>
-          )}
-          <span style={{ color: C.ac, fontFamily: FN, fontSize: 12, fontWeight: 700 }}>{open ? '▴' : '▾'}</span>
-        </span>
-      </div>
-      {open && (
-        <div style={{ padding: 14 }}>
+    <CollapsibleSection
+      bare
+      title="WEEKLY FOCUS · NO UPLOAD NEEDED"
+      storageKey="review-weekly-focus"
+      defaultOpen={false}
+      right={saveBadge}
+      style={{ marginBottom: 20 }}
+    >
+        <div style={{ border: `1px solid ${C.cardBd}`, borderTop: 'none', background: 'var(--c-sf)', padding: 14 }}>
           <div style={{ fontFamily: FB, fontSize: 11.5, color: C.td, lineHeight: 1.5, marginBottom: 12 }}>
             Leave a focus for a day the athlete didn't log in-app (e.g. videos came via WhatsApp). It saves to the exact same place the in-app review writes to — the athlete sees it on that exercise.
           </div>
+          {/* ATHLETE on its own row — the typeahead dropdown renders IN-FLOW
+              (not absolute), so the card grows to fit it instead of the
+              collapsible's overflow:hidden clipping it. */}
+          <div style={{ marginBottom: 12, maxWidth: 360 }}>
+            <label style={lbl}>ATHLETE</label>
+            <input dir="auto" value={query} placeholder="Type a name…"
+              onChange={e => { setQuery(e.target.value); setPickerOpen(true); if (traineeId) setTraineeId(''); }}
+              onFocus={() => setPickerOpen(true)}
+              onBlur={() => setTimeout(() => setPickerOpen(false), 150)}
+              onKeyDown={e => { if (e.key === 'Enter' && matches.length) { e.preventDefault(); pickAthlete(matches[0]); } else if (e.key === 'Escape') setPickerOpen(false); }}
+              style={{ ...sel, width: '100%', boxSizing: 'border-box', borderColor: traineeId ? C.ac : C.cardBd }} />
+            {pickerOpen && matches.length > 0 && (
+              <div style={{ marginTop: 4, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, maxHeight: 240, overflowY: 'auto', boxShadow: C.cardShadow }}>
+                {matches.map(o => (
+                  <div key={o.value} onMouseDown={e => { e.preventDefault(); pickAthlete(o); }}
+                    style={{ padding: '8px 10px', cursor: 'pointer', fontFamily: FB, fontSize: 13, color: C.tx, borderBottom: `1px solid ${C.cardBd}`, background: o.value === traineeId ? C.acD : 'transparent' }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.acD}
+                    onMouseLeave={e => e.currentTarget.style.background = o.value === traineeId ? C.acD : 'transparent'}>{o.label}</div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* BLOCK + FOCUS FOR */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 14 }}>
-            <div style={{ flex: '1 1 200px', minWidth: 160, position: 'relative' }}>
-              <label style={lbl}>ATHLETE</label>
-              <input dir="auto" value={query} placeholder="Type a name…"
-                onChange={e => { setQuery(e.target.value); setPickerOpen(true); if (traineeId) setTraineeId(''); }}
-                onFocus={() => setPickerOpen(true)}
-                onBlur={() => setTimeout(() => setPickerOpen(false), 150)}
-                onKeyDown={e => { if (e.key === 'Enter' && matches.length) { e.preventDefault(); pickAthlete(matches[0]); } else if (e.key === 'Escape') setPickerOpen(false); }}
-                style={{ ...sel, width: '100%', boxSizing: 'border-box', borderColor: traineeId ? C.ac : C.cardBd }} />
-              {pickerOpen && matches.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderTop: 'none', maxHeight: 240, overflowY: 'auto', boxShadow: C.cardShadow }}>
-                  {matches.map(o => (
-                    <div key={o.value} onMouseDown={e => { e.preventDefault(); pickAthlete(o); }}
-                      style={{ padding: '8px 10px', cursor: 'pointer', fontFamily: FB, fontSize: 13, color: C.tx, borderBottom: `1px solid ${C.cardBd}`, background: o.value === traineeId ? C.acD : 'transparent' }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.acD}
-                      onMouseLeave={e => e.currentTarget.style.background = o.value === traineeId ? C.acD : 'transparent'}>{o.label}</div>
-                  ))}
-                </div>
-              )}
-            </div>
             {plans && plans.length > 1 && (
               <div style={{ flex: '1 1 180px', minWidth: 150 }}>
                 <label style={lbl}>BLOCK</label>
@@ -195,7 +198,6 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
             </div>
           ))}
         </div>
-      )}
-    </div>
+    </CollapsibleSection>
   );
 }

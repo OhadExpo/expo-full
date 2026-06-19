@@ -1479,12 +1479,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // (and this view re-renders per focus-textarea keystroke) is the known
   // perf antipattern.
   const exById = useMemo(() => new Map((exercises || []).map(e => [e.id, e])), [exercises]);
-  // Review-queue jump: clicking the "N pending" summary scrolls to and
-  // force-expands the section of the first pending-with-video athlete.
-  // jumpSignal is a counter so re-clicking the same athlete re-fires the
-  // expand effect even when the client id is unchanged.
-  const [jumpClient, setJumpClient] = useState(null);
-  const [jumpSignal, setJumpSignal] = useState(0);
   // Dashboard task → review handoff. The TASKS widget stashes the workout
   // id in sessionStorage before routing here so the review tab opens
   // directly on the requested workout instead of the queue list.
@@ -1546,23 +1540,6 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     if (!byClient[key]) byClient[key] = { name: nameOf(key), workouts: [] };
     byClient[key].workouts.push(w);
   });
-
-  // Jump from the review-queue summary to the first pending athlete: expand
-  // their section and scroll it into view (after the expand animation begins).
-  const jumpToPending = () => {
-    // Oldest-first, matching findNextUnreviewed (the save-&-next order) so
-    // the jump and the review flow agree on who is "first".
-    const first = (clientWorkouts || [])
-      .filter(w => !w.reviewedAt && hasReviewableVideo(w))
-      .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
-    if (!first) return;
-    const cid = first.clientId || 'unknown';
-    setJumpClient(cid);
-    setJumpSignal(s => s + 1);
-    setTimeout(() => {
-      document.getElementById(`review-client-${cid}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 60);
-  };
 
   // Focus keys are client-scoped: `clientId|planName|dayName|eid|Wn`.
   // The legacy un-scoped key (`planName|...`) collided across athletes who
@@ -2152,36 +2129,19 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
       <WeeklyFocusTool trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} />
 
-      {/* Review queue — pending unreviewed workouts that actually have
-          something to review (i.e. an uploaded form video). Days without
-          videos are hidden from the list above, so the queue count must
-          match the same predicate or the header would lie. */}
-      {(() => {
-        const queue = (clientWorkouts || []).filter(w => !w.reviewedAt && hasReviewableVideo(w));
-        if (queue.length === 0) return null;
-        return (
-          // Minimal action row — cyan left-rule + a cyan count, distinct from
-          // the (cyan-header) athlete cards below. No emoji, no count-box.
-          <div onClick={jumpToPending} role="button" tabIndex={0}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToPending(); } }}
-            title="Jump to the first pending review"
-            style={{display:'flex',alignItems:'center',gap:14,padding:'12px 16px',marginBottom:16,cursor:'pointer',
-              background:'var(--c-sf)',borderLeft:`3px solid ${C.ac}`,borderRadius:0,transition:'background .15s'}}
-            onMouseEnter={e=>e.currentTarget.style.background=C.acD}
-            onMouseLeave={e=>e.currentTarget.style.background='var(--c-sf)'}>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:FN,fontSize:12.5,fontWeight:700,color:C.ac,letterSpacing:'0.08em'}}>{queue.length} TO REVIEW</div>
-              <div style={{fontFamily:FB,fontSize:11.5,color:C.tm,marginTop:3}}>Form video{queue.length === 1 ? '' : 's'} waiting on your feedback</div>
-            </div>
-            <span style={{border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:'7px 13px',whiteSpace:'nowrap',flexShrink:0}}>OPEN →</span>
-          </div>
-        );
-      })()}
-
-      {/* Group by client */}
-      {Object.entries(byClient).map(([cid, data]) => (
+      {/* Group by client — athletes with a workout still awaiting review float
+          to the top (then alphabetical), so the coach's queue is the page order
+          itself; no separate "TO REVIEW" banner needed. */}
+      {Object.entries(byClient)
+        .sort(([, a], [, b]) => {
+          const pa = a.workouts.some(w => !w.reviewedAt) ? 1 : 0;
+          const pb = b.workouts.some(w => !w.reviewedAt) ? 1 : 0;
+          if (pa !== pb) return pb - pa;
+          return (a.name || '').localeCompare(b.name || '');
+        })
+        .map(([cid, data]) => (
         <CollapsibleSection key={cid} bare storageKey={`review-client-${cid}`} style={{marginBottom:20}}
-          domId={`review-client-${cid}`} openSignal={jumpClient === cid ? jumpSignal : 0}
+          domId={`review-client-${cid}`}
           titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.filter(w => !w.reviewedAt).length})</span>}
           right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
             <button onClick={() => onOpenTrainee(cid)}
@@ -2212,14 +2172,34 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 role="button" tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedWo(wo.id); } }}
                 style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:"12px 16px",
-                  marginBottom:6,cursor:"pointer",transition:"border-color .15s",display:"flex",
+                  marginBottom:6,cursor:"pointer",transition:"border-color .15s, opacity .15s",display:"flex",
                   justifyContent:"space-between",alignItems:"center",opacity:reviewed?0.55:1}}
-                onMouseEnter={e=>e.currentTarget.style.borderColor=C.ac}
-                onMouseLeave={e=>e.currentTarget.style.borderColor=C.cardBd}>
+                onMouseEnter={e=>{e.currentTarget.style.borderColor=C.ac; e.currentTarget.style.opacity='1';}}
+                onMouseLeave={e=>{e.currentTarget.style.borderColor=C.cardBd; e.currentTarget.style.opacity=reviewed?'0.55':'1';}}>
+                {(() => {
+                  // Week progress (B2): total weeks from the plan, current = wo.week.
+                  const planWeeks = (planIndex || []).find(p => p.name === wo.planName)?.weeks || null;
+                  const segCount = planWeeks && planWeeks <= 12 ? planWeeks : 0;
+                  return (
                 <div style={{minWidth:0,flex:1}}>
-                  <div style={{fontWeight:600,fontSize:14,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                    {wo.dayName}
-                    <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{wo.planName}</span>
+                  {/* Row 1 — DAY + WEEK together */}
+                  <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:15,color:C.tx,letterSpacing:'0.01em'}}>{wo.dayName}</span>
+                    {segCount > 0 && (
+                      <span style={{display:'inline-flex',gap:3,verticalAlign:'middle'}}>
+                        {Array.from({length:segCount},(_,i)=>(
+                          <span key={i} style={{width:13,height:5,background:i < wo.week ? C.ac : 'rgba(255,255,255,0.16)'}} />
+                        ))}
+                      </span>
+                    )}
+                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>
+                      Week {wo.week}{planWeeks?` / ${planWeeks}`:''} · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets
+                      {hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}
+                    </span>
+                  </div>
+                  {/* Row 2 — BLOCK beneath, + reviewed badge */}
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
+                    <span style={{fontFamily:FN,fontSize:12,color:C.ac,letterSpacing:'0.04em'}}>{wo.planName}</span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                         padding:"1px 5px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
@@ -2227,23 +2207,24 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       </span>
                     )}
                   </div>
-                  <div style={{fontSize:11,color:C.tm,marginTop:2}}>
-                    W{wo.week} · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets
-                    {hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}
-                  </div>
                 </div>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:8,flexShrink:0}}>
-                  <div style={{width:64,display:'flex',justifyContent:'flex-end'}}>
-                    {deleteWorkout && (
-                      <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
-                        title="Delete this workout"
-                        style={{background:'var(--c-sf)',border:`1px solid ${C.rd||'#c94444'}40`,color:C.rd||'#ff6b6b',
-                          borderRadius:0,padding:'2px 8px',fontFamily:FN,fontSize:11,fontWeight:600,cursor:'pointer',lineHeight:1.4}}>
-                        DELETE
-                      </button>
-                    )}
-                  </div>
-                  <span style={{color:reviewed?C.td:C.ac,fontSize:12,width:64,textAlign:'right',display:'inline-block',whiteSpace:'nowrap',flexShrink:0}}>{reviewed?'View →':'Review →'}</span>
+                  );
+                })()}
+                {/* Action group — Review/View + Delete together, off to the right */}
+                <div style={{display:'flex',alignItems:'center',gap:8,marginLeft:12,flexShrink:0}}>
+                  <button onClick={(e)=>{e.stopPropagation();setSelectedWo(wo.id);}}
+                    title={reviewed?'View this workout':'Review this workout'}
+                    style={{background:'transparent',border:`1px solid ${reviewed?C.cardBd:C.ac}`,color:reviewed?C.tm:C.ac,
+                      borderRadius:0,padding:'5px 12px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',
+                      cursor:'pointer',whiteSpace:'nowrap'}}>{reviewed?'VIEW →':'REVIEW →'}</button>
+                  {deleteWorkout && (
+                    <button onClick={(e) => { e.stopPropagation(); setDeleteConfirmFor(wo.id); setDeleteConfirmText(''); }}
+                      title="Delete this workout"
+                      style={{background:'transparent',border:`1px solid ${(C.rd||'#c94444')}40`,color:C.rd||'#ff6b6b',
+                        borderRadius:0,padding:'5px 10px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',cursor:'pointer'}}>
+                      DELETE
+                    </button>
+                  )}
                 </div>
               </div>
             );
