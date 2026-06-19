@@ -1479,6 +1479,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   // (and this view re-renders per focus-textarea keystroke) is the known
   // perf antipattern.
   const exById = useMemo(() => new Map((exercises || []).map(e => [e.id, e])), [exercises]);
+  // The review page is a QUEUE: by default show only athletes (and cards) that
+  // still need reviewing. "Show reviewed" reveals the finished ones for
+  // reference. (Ohad: no reason to see already-reviewed athletes/cards here.)
+  const [showReviewed, setShowReviewed] = useState(false);
   // Dashboard task → review handoff. The TASKS widget stashes the workout
   // id in sessionStorage before routing here so the review tab opens
   // directly on the requested workout instead of the queue list.
@@ -2129,17 +2133,36 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
 
       <WeeklyFocusTool trainees={trainees} exercises={exercises} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} />
 
-      {/* Group by client — athletes with a workout still awaiting review float
-          to the top (then alphabetical), so the coach's queue is the page order
-          itself; no separate "TO REVIEW" banner needed. */}
-      {Object.entries(byClient)
-        .sort(([, a], [, b]) => {
-          const pa = a.workouts.some(w => !w.reviewedAt) ? 1 : 0;
-          const pb = b.workouts.some(w => !w.reviewedAt) ? 1 : 0;
-          if (pa !== pb) return pb - pa;
-          return (a.name || '').localeCompare(b.name || '');
-        })
-        .map(([cid, data]) => (
+      {(() => {
+        const entries = Object.entries(byClient);
+        const pending = entries.filter(([, d]) => d.workouts.some(w => !w.reviewedAt));
+        const reviewedCount = entries.reduce((n, [, d]) => n + d.workouts.filter(w => w.reviewedAt).length, 0);
+        const visible = (showReviewed ? entries : pending)
+          .sort(([, a], [, b]) => {
+            const pa = a.workouts.some(w => !w.reviewedAt) ? 1 : 0;
+            const pb = b.workouts.some(w => !w.reviewedAt) ? 1 : 0;
+            if (pa !== pb) return pb - pa;
+            return (a.name || '').localeCompare(b.name || '');
+          });
+        return (
+        <>
+          {/* Queue control: the page shows only athletes still needing review;
+              this reveals the already-reviewed ones for reference. */}
+          {reviewedCount > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <button onClick={() => setShowReviewed(v => !v)}
+                style={{ background: showReviewed ? `${C.ac}1f` : 'transparent', border: `1px solid ${showReviewed ? C.ac : C.cardBd}`, color: showReviewed ? C.ac : C.tm, borderRadius: 0, padding: '5px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                {showReviewed ? '✓ SHOWING REVIEWED' : `SHOW REVIEWED (${reviewedCount})`}
+              </button>
+            </div>
+          )}
+          {pending.length === 0 && !showReviewed && (
+            <div style={{ textAlign: 'center', padding: 48, color: C.td }}>
+              <div style={{ fontFamily: FN, fontSize: 13, letterSpacing: '0.08em' }}>ALL CAUGHT UP</div>
+              <div style={{ fontFamily: FB, fontSize: 12, marginTop: 6 }}>No workouts waiting on your review.</div>
+            </div>
+          )}
+          {visible.map(([cid, data]) => (
         <CollapsibleSection key={cid} bare storageKey={`review-client-${cid}`} style={{marginBottom:20}}
           domId={`review-client-${cid}`}
           titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : data.name.toUpperCase()} ({data.workouts.filter(w => !w.reviewedAt).length})</span>}
@@ -2155,6 +2178,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             </button>
           ) : null}>
           {data.workouts.slice()
+            // Hide already-reviewed cards unless the coach opted to show them.
+            .filter(w => showReviewed || !w.reviewedAt)
             // Unreviewed first (by most-recent date), then reviewed (by most-recent date)
             .sort((a, b) => {
               const ar = a.reviewedAt ? 1 : 0;
@@ -2182,7 +2207,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   const segCount = planWeeks && planWeeks <= 12 ? planWeeks : 0;
                   return (
                 <div style={{minWidth:0,flex:1}}>
-                  {/* Row 1 — DAY + WEEK together */}
+                  {/* Row 1 — DAY + WEEK (progress bar) only */}
                   <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.tx,letterSpacing:'0.01em'}}>{wo.dayName}</span>
                     {segCount > 0 && (
@@ -2192,14 +2217,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         ))}
                       </span>
                     )}
-                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>
-                      Week {wo.week}{planWeeks?` / ${planWeeks}`:''} · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets
-                      {hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}
-                    </span>
+                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>Week {wo.week}{planWeeks?` / ${planWeeks}`:''}</span>
                   </div>
-                  {/* Row 2 — BLOCK beneath, + reviewed badge */}
+                  {/* Row 2 — BLOCK + date + sets (moved here from the week row) + reviewed */}
                   <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
                     <span style={{fontFamily:FN,fontSize:12,color:C.ac,letterSpacing:'0.04em'}}>{wo.planName}</span>
+                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>· {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets{hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}</span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                         padding:"1px 5px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>
@@ -2230,7 +2253,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             );
           })}
         </CollapsibleSection>
-      ))}
+          ))}
+        </>
+        );
+      })()}
       {deleteModal}
     </div>
   );
