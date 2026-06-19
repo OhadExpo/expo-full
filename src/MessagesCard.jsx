@@ -114,7 +114,7 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
     (!seenAt || new Date(r.created_at).getTime() > new Date(seenAt).getTime());
   const unreadCount = threads.filter(unreadFor).length;
   const [showHandled, setShowHandled] = useState(false);
-  const handledThreads = useMemo(() => threads.filter(r => !unreadFor(r)), [threads, seenAt]);
+  const handledThreads = useMemo(() => threads.filter(r => !unreadFor(r)), [threads, seenAt, mutedIds]);
   const visibleThreads = showHandled ? threads : threads.filter(unreadFor);
 
   const markRead = () => {
