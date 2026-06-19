@@ -5,7 +5,7 @@
 // Owner trial — nothing here writes to the athlete.
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { C, FN, FB } from './theme';
-import { Card, SectionLabel, SectionIcon, useIsMobile } from './ui';
+import { SectionIcon } from './ui';
 
 const MovementLab   = lazy(() => import('./MovementLab'));
 const ARFormOverlay = lazy(() => import('./ARFormOverlay'));
@@ -106,11 +106,13 @@ function ToolLoading({ label }) {
   );
 }
 
-// One tool = one equal-height tile. Flex column with a spacer so the OPEN →
-// footer sits on a shared baseline across the row, regardless of copy length.
-function ToolTile({ t, blocked, isLast, onOpen }) {
+// One tool = one full-width list row (icon · name + what it measures · tags ·
+// OPEN). Editorial/linear layout — no nested card, no "use when" clutter — so
+// the launcher reads calm. Hover paints a soft cyan wash; live tools without a
+// camera are dimmed and marked.
+function ToolRow({ t, blocked, isLast, onOpen }) {
   const [hover, setHover] = useState(false);
-  const lift = hover && !blocked;
+  const active = hover && !blocked;
   return (
     <div
       role="button" tabIndex={blocked ? -1 : 0} aria-disabled={blocked || undefined}
@@ -119,35 +121,28 @@ function ToolTile({ t, blocked, isLast, onOpen }) {
       onKeyDown={blocked ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
-        display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box',
-        background: 'var(--c-sf)', border: `1px solid ${blocked ? C.cardBd : C.ac}`, borderLeft: `3px solid ${C.ac}`,
-        padding: '13px 14px', cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.6 : 1,
-        boxShadow: lift ? '0 8px 22px rgba(6,20,37,0.18)' : 'none',
-        transform: lift ? 'translateY(-2px)' : 'none', transition: 'box-shadow .18s, transform .18s', outline: 'none',
+        display: 'flex', alignItems: 'center', gap: 16, padding: '16px 12px',
+        borderTop: `1px solid ${C.cardBd}`, cursor: blocked ? 'not-allowed' : 'pointer',
+        opacity: blocked ? 0.55 : 1, background: active ? 'rgba(57,189,255,0.05)' : 'transparent',
+        transition: 'background .15s', outline: 'none',
       }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-        <SectionIcon kind={t.icon} color={C.ac} size={16} />
-        <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', color: C.ac }}>{t.label}</span>
-        {isLast && <span style={{ fontFamily: FN, fontSize: 7.5, fontWeight: 700, letterSpacing: '0.12em', color: C.bg, background: C.ac, padding: '2px 5px' }}>LAST</span>}
-        <span style={{ marginLeft: 'auto', fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? C.ac : C.tm, border: `1px solid ${C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{t.live ? 'LIVE' : 'CLIP'}</span>
+      <div style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(57,189,255,0.1)' }}>
+        <SectionIcon kind={t.icon} color={C.ac} size={18} />
       </div>
-      <div style={{ fontFamily: FB, fontSize: 12, color: C.tx, lineHeight: 1.4, marginBottom: 7 }}>{t.measures}</div>
-      <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, lineHeight: 1.4 }}>
-        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', color: C.td, marginRight: 6 }}>USE WHEN</span>{t.useWhen}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', color: C.tx }}>{t.label}</div>
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{t.measures}</div>
       </div>
-      <div style={{ flex: 1, minHeight: 12 }} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 11, paddingTop: 10, borderTop: `1px solid ${C.cardBd}` }}>
-        <span style={{ fontFamily: FN, fontSize: 8.5, fontWeight: 700, letterSpacing: '0.1em', color: blocked ? 'var(--c-rd, #FF4757)' : C.td }}>
-          {blocked ? 'NEEDS A CAMERA' : t.live ? 'LIVE CAMERA' : 'RECORD OR UPLOAD'}
-        </span>
-        {!blocked && <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, transition: 'transform .18s', transform: lift ? 'translateX(3px)' : 'none' }}>OPEN →</span>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+        {isLast && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', color: C.bg, background: C.ac, padding: '2px 6px' }}>LAST</span>}
+        <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: `1px solid ${t.live ? 'rgba(255,90,90,0.5)' : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{t.live ? 'LIVE' : 'CLIP'}</span>
+        <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: blocked ? '#FF4757' : C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>{blocked ? 'NEEDS CAMERA' : 'OPEN →'}</span>
       </div>
     </div>
   );
 }
 
 export default function ReviewToolsView() {
-  const isMobile = useIsMobile();
   const [title, setTitle] = useState('Squat');
   const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
   const [lastKey, setLastKey] = useState(null);
@@ -178,34 +173,29 @@ export default function ReviewToolsView() {
   const activeTool = REVIEW_TOOLS.find(t => t.key === tool);
 
   return (
-    <div className="motion-rise" style={{ maxWidth: 880 }}>
-      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 4 }}>REVIEW · TOOLS</div>
-      <div style={{ color: C.tm, fontSize: 11, marginBottom: 16, fontFamily: FB, maxWidth: 560, lineHeight: 1.5 }}>
-        Camera &amp; pose tools to measure a lift you're reviewing — bar speed,
-        range of motion, jump power, live rep counting. Owner trial; nothing is
-        saved to the athlete.
+    <div className="motion-rise" style={{ maxWidth: 760 }}>
+      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>REVIEW · TOOLS</div>
+      <h2 style={{ fontFamily: FB, fontSize: 26, fontWeight: 800, letterSpacing: '-0.01em', color: C.tx, margin: '0 0 8px' }}>Measure the lift</h2>
+      <div style={{ color: C.tm, fontSize: 13, marginBottom: 22, fontFamily: FB, maxWidth: 560, lineHeight: 1.5 }}>
+        Camera &amp; pose tools to read a set you're reviewing — bar speed, range
+        of motion, jump power, live coaching. Owner trial; nothing is saved to
+        the athlete.
       </div>
 
-      <Card padding={isMobile ? 16 : 20}
-        header={<SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize, display: 'inline-flex', alignItems: 'center' }}>
-          <SectionIcon kind="cube" color="#FFFFFF" /> TOOLS
-        </SectionLabel>}
-      >
-        {/* Exercise name — drives the label/overlay for Lab / Metrics / Live.
-            Jump auto-labels itself, so this is scoped to the other three. */}
-        <div style={{ marginBottom: 16, maxWidth: 360 }}>
-          <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 5 }}>EXERCISE · FOR LAB / METRICS / LIVE</label>
-          <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat"
-            style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 13, padding: '9px 11px', borderRadius: 0, outline: 'none' }} />
-        </div>
+      {/* Exercise name — drives the label/overlay for Lab / Metrics / Live.
+          Jump auto-labels itself, so this is scoped to the other three. */}
+      <div style={{ marginBottom: 22, maxWidth: 380 }}>
+        <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 7, textTransform: 'uppercase' }}>Exercise · for Lab / Metrics / Live</label>
+        <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat"
+          style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', borderRadius: 0, outline: 'none' }} />
+      </div>
 
-        {/* Clean 2×2 of equal-height tiles; one column on phones. */}
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-          {REVIEW_TOOLS.map(t => (
-            <ToolTile key={t.key} t={t} blocked={t.live && !camOk.current} isLast={t.key === lastKey} onOpen={() => open(t.key)} />
-          ))}
-        </div>
-      </Card>
+      {/* Tools as a calm linear list — hairline-divided full-width rows. */}
+      <div style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+        {REVIEW_TOOLS.map(t => (
+          <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isLast={t.key === lastKey} onOpen={() => open(t.key)} />
+        ))}
+      </div>
 
       {tool && (
         <ToolBoundary toolKey={tool} onClose={close}>
