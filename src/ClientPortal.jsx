@@ -1494,7 +1494,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{display:'flex',gap:8,marginTop:20}}>
         <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
         <button onClick={anyUploading ? undefined : goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${anyUploading?C.cardBd:C.ac}`,background:'transparent',color:anyUploading?C.tm:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:anyUploading?'wait':'pointer',opacity:anyUploading?0.6:1}}>
-          {anyUploading ? `Processing video…` : step===groupCount-1 ? 'Finish →' : (isSuperset?'Next Block →':'Next Exercise →')}</button></div>
+          {anyUploading ? `Processing video…` : step===groupCount-1 ? 'Finish →' : 'Next →'}</button></div>
     </div></div>;
 }
 
