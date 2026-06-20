@@ -125,24 +125,35 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             {exIdx+1}. {exData?.title||ex.title||"Unknown"}
           </span>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', color: fullyDone ? C.gn : C.tm, flexShrink: 0, whiteSpace: 'nowrap' }}>
-            {doneCount}/{ex.sets.length} SETS · OPEN ▾
+            {doneCount}/{ex.sets.length} SETS · EXPAND ▾
           </span>
         </div>
       );
     }
     return (
       <div key={ex.id} style={{background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
-        {/* Header: title + meta on the left (wraps freely), HIDE control fixed
-            top-right. alignItems:flex-start keeps HIDE aligned to the first
-            line even when the meta wraps to two rows. */}
-        <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:8}}>
-          <div style={{flex:1,minWidth:0,display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-            <span style={{fontWeight:700,color:C.tx}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
-            <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span>
-            {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
+        {/* Header: title row + a readable prescription stat row (only fields
+            that actually have a value — no "RPE — · Rest undefineds" noise).
+            COLLAPSE control fixed top-right. */}
+        <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:8}}>
+              <span style={{fontWeight:700,fontSize:15,color:C.tx}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
+              {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
+            </div>
+            <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
+              {[['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',ex.tempo],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']]
+                .filter(([,v])=>v!=null && v!=='' )
+                .map(([k,v])=>(
+                  <span key={k} style={{display:'inline-flex',flexDirection:'column',lineHeight:1.15}}>
+                    <span style={{fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.16em',color:C.td}}>{k}</span>
+                    <span style={{fontFamily:FB,fontSize:15,fontWeight:600,color:C.tx}}>{v}</span>
+                  </span>
+                ))}
+            </div>
           </div>
           {!groupControlled && <button onClick={() => toggleCollapse(ex, exIdx)} title="Collapse this exercise"
-            style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>HIDE ▴</button>}
+            style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>COLLAPSE ▴</button>}
         </div>
         {/* Coach cue — was tiny faded italic (unreadable). Now a readable
             accent-barred block: full-size, not italic, RTL-aware for Hebrew. */}
@@ -214,7 +225,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:allD?C.gn:C.pu,textTransform:'uppercase',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {allD && <span style={{marginRight:6}}>✓</span>}Superset {g.ss}{collapsed && <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.04em',textTransform:'none'}}> · {titles}</span>}
             </span>
-            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets} SETS · {collapsed?'OPEN ▾':'HIDE ▴'}</span>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets} SETS · {collapsed?'EXPAND ▾':'COLLAPSE ▴'}</span>
           </button>
           {!collapsed && <div style={{marginTop:4}}>{g.items.map(({ex,i},k) => renderExercise(ex, i, true, k>0, true))}</div>}
         </div>
@@ -226,8 +237,8 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
       {/* Primary Complete action at the very bottom — after every set + the
           session notes (Ohad: "complete workout … beneath session observations"). */}
       {!isCompleted
-        ? <Btn variant="success" onClick={onComplete} style={{width:'100%',marginTop:14,padding:'14px',fontSize:14,fontWeight:700}}>Complete Workout</Btn>
-        : <div style={{marginTop:14,textAlign:'center'}}><Badge color={C.gn} style={{fontSize:13,padding:"8px 16px"}}>Completed</Badge></div>}
+        ? <div style={{display:'flex',justifyContent:'center',marginTop:16}}><Btn variant="success" onClick={onComplete} style={{padding:'14px 48px',fontSize:14,fontWeight:700}}>Complete Workout</Btn></div>
+        : <div style={{marginTop:16,textAlign:'center'}}><Badge color={C.gn} style={{fontSize:13,padding:"8px 16px"}}>Completed</Badge></div>}
     </div>);
 }
 
