@@ -197,19 +197,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
           <span>{workout.dayName} {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
-          <span style={{color:C.tx,fontWeight:700}}>{doneSets}/{totalSets} · {pct}%</span></div>
-        {/* Week selector — which week this session logs into (drives the
-            athlete's History placement + the previous-week ghost). Defaults to
-            their next un-logged week; the coach can change it here. */}
-        {!isCompleted && workout.planWeeks > 1 && (
-          <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginBottom:8}}>
-            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginRight:2}}>LOG INTO</span>
-            {Array.from({length:workout.planWeeks},(_,i)=>i+1).map(wn=>(
-              <button key={wn} onClick={()=>onUpdate({week:wn})}
-                style={{minWidth:34,padding:'4px 0',borderRadius:0,border:`${workout.week===wn?'2px':'1px'} solid ${workout.week===wn?C.ac:C.cardBd}`,background:workout.week===wn?'rgba(57,189,255,0.1)':'transparent',color:workout.week===wn?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,cursor:'pointer'}}>W{wn}</button>
-            ))}
-          </div>
-        )}
+          <span style={{color:C.tx,fontWeight:700}}>W{workout.week} · {doneSets}/{totalSets} · {pct}%</span></div>
         <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
       </div>
       {groups.map((g,gi) => g.ss ? (() => {
@@ -253,9 +241,18 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   const [filterTrainee, setFilterTrainee] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [expandedTrainees, setExpandedTrainees] = useState({});
-  // Picker state — search box + which athlete row is expanded (accordion).
+  // Picker state — search box + which athlete row is expanded (accordion) +
+  // the chosen "log into" week per plan (picked before entering the logger).
   const [pickSearch, setPickSearch] = useState("");
   const [pickOpen, setPickOpen] = useState(null);
+  const [weekByPlan, setWeekByPlan] = useState({});
+  // Default week for a plan = the athlete's next un-logged week (max logged in
+  // their portal history + 1, capped at block length), else W1.
+  const defaultWeekFor = (p) => {
+    const wks = (clientWorkouts || []).filter(x => x.clientId === p.traineeId && x.planName === p.name).map(x => Number(x.week) || 1);
+    const max = wks.length ? Math.max(...wks) : 0;
+    return Math.min(Number(p.weeks) || 4, Math.max(1, max + 1));
+  };
   // Seed the trainee filter from sessionStorage — set by the "LOG SESSION"
   // button on TraineeDetail so the coach lands here pre-filtered to the
   // athlete they were just looking at. Stash is consumed on first mount.
@@ -265,7 +262,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       if (tid) { setFilterTrainee(tid); sessionStorage.removeItem('expo-pendingInPersonTrainee'); }
     } catch {}
   }, []);
-  const startWorkout = async (planSummary, dayIdx) => {
+  const startWorkout = async (planSummary, dayIdx, weekArg) => {
     // Load full plan data from Supabase
     const { data: fullPlan } = await supabase.from('plans').select('*').eq('id', planSummary.id).single();
     if (!fullPlan) return;
@@ -285,14 +282,17 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       superset: e.superset ?? '',
       notes: e.notes ?? e.n ?? '',
     })) : []);
-    // Default the week to the athlete's next un-logged week for this plan+day
-    // (max logged in their portal history + 1, capped at the block length),
-    // else week 1. The coach can change it with the week selector in the logger.
+    // Week comes from the picker (chosen before entering the logger). Fall back
+    // to the athlete's next un-logged week for this plan+day if none passed.
     const planWeeks = Number(fullPlan.data?.weeks) || 4;
-    const loggedWeeks = (clientWorkouts || [])
-      .filter(x => x.clientId === fullPlan.trainee_id && x.planName === fullPlan.name && x.dayName === day.name)
-      .map(x => Number(x.week) || 1);
-    const week = loggedWeeks.length ? Math.min(planWeeks, Math.max(...loggedWeeks) + 1) : 1;
+    let week = Number(weekArg) || 0;
+    if (week < 1) {
+      const loggedWeeks = (clientWorkouts || [])
+        .filter(x => x.clientId === fullPlan.trainee_id && x.planName === fullPlan.name && x.dayName === day.name)
+        .map(x => Number(x.week) || 1);
+      week = loggedWeeks.length ? Math.max(...loggedWeeks) + 1 : 1;
+    }
+    week = Math.min(planWeeks, Math.max(1, week));
     const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,
       date:new Date().toISOString(),status:"in-progress", week, planWeeks,
       exercises:dayExercises.map(ex=>({...ex,id:uid(),sets:Array.from({length:Number(ex.sets)||3},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))})),
@@ -425,12 +425,24 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                     </button>
                     {open && (
                       <div style={{padding:'0 14px 14px'}}>
-                        {blocks.map((p,bi)=>(
+                        {blocks.map((p,bi)=>{
+                          const pw = Number(p.weeks)||4;
+                          const selWeek = weekByPlan[p.id] ?? defaultWeekFor(p);
+                          return (
                           <div key={p.id} style={{marginTop: bi===0?2:10, paddingTop: bi===0?0:10, borderTop: bi===0?'none':`1px solid ${C.cardBd}`}}>
                             {blocks.length>1 && <div style={{fontFamily:FN,fontSize:10,color:C.td,letterSpacing:'0.08em',marginBottom:6}}>{p.name}</div>}
-                            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"5px 12px"}}>▶ {dName}</Btn>)}</div>
+                            {/* Week to log into — chosen here, before the logger opens. */}
+                            {pw>1 && <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginBottom:8}}>
+                              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginRight:2}}>LOG INTO</span>
+                              {Array.from({length:pw},(_,i)=>i+1).map(wn=>(
+                                <button key={wn} onClick={()=>setWeekByPlan(m=>({...m,[p.id]:wn}))}
+                                  style={{minWidth:32,padding:'3px 0',borderRadius:0,border:`${selWeek===wn?'2px':'1px'} solid ${selWeek===wn?C.ac:C.cardBd}`,background:selWeek===wn?'rgba(57,189,255,0.1)':'transparent',color:selWeek===wn?C.ac:C.tm,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer'}}>W{wn}</button>
+                              ))}
+                            </div>}
+                            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i,selWeek)} style={{fontSize:12,padding:"5px 12px"}}>▶ {dName}</Btn>)}</div>
                           </div>
-                        ))}
+                          );
+                        })}
                         {plans.length>1 && (
                           <button onClick={()=>toggleExpanded(tid)}
                             style={{marginTop:10,background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',padding:'4px 0'}}>
@@ -446,20 +458,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           </div>
         </div>
       )}
-      <CollapsibleSection title="Logged by you" count={completed.length} storageKey="workouts-completed" style={{marginTop:20}}
-        right={<select value={filterTrainee} onChange={e=>setFilterTrainee(e.target.value)} style={{...baseInput,width:180,padding:"4px 8px",fontSize:12}}>
-          <option value="">All Athletes</option>{trainees.filter(t=>t.status!=='Archived').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select>}>
-      {completed.length===0?<EmptyState icon="📊" message="No sessions logged yet. They'll appear in the athlete's portal History." />:
-        completed.map(w=>{const trainee=trainees.find(t=>t.id===w.clientId);const heb=isHebrew(trainee?.name||'');
-          return<Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
-            <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,color:C.tx}}>{w.dayName} {w.planName&&<span style={{fontWeight:400,color:C.td,fontSize:12}}>({w.planName}{w.week?` · W${w.week}`:''})</span>}</div>
-              <div style={{fontSize:12,color:C.tm,fontFamily:heb?FH:undefined}}>{trainee?.name||"—"} · {fmtPrettyDate(w.date)}</div>
-              {/* Session observations, shown inline. */}
-              {w.notes && w.notes.trim() && <div style={{fontSize:12,color:C.tx,marginTop:5,lineHeight:1.5,whiteSpace:'pre-wrap',direction:isHebrew(w.notes)?'rtl':'ltr',fontFamily:isHebrew(w.notes)?FH:FB}}><span style={{color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',marginInlineEnd:6}}>NOTES</span>{w.notes.trim()}</div>}</div>
-            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><Badge color={C.gn}>In portal</Badge>
-              {deleteClientWorkout&&<button onClick={()=>setConfirmDelete(w.id)} title="Delete this logged session" style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button>}</div></div></Card>})}
-      </CollapsibleSection>
-      <ConfirmDialog open={!!confirmDelete} title="Delete logged session?" message="This removes it from the athlete's portal History too. Session count is not restored."
-        onConfirm={()=>{if(deleteClientWorkout)deleteClientWorkout(confirmDelete);setConfirmDelete(null)}} onCancel={()=>setConfirmDelete(null)} />
+      {/* No "logged" list here — a completed session writes straight to the
+          athlete's portal History (and shows on their page + Review). The
+          Single page's only job is to START/log a session. */}
     </div>);
 }
