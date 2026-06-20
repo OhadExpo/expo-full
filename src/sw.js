@@ -13,7 +13,16 @@
 
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 
-self.addEventListener('install', () => self.skipWaiting());
+// PROMPT update flow (registerType:'prompt'): a new SW must NOT skip-waiting on
+// install — it has to WAIT so useRegisterSW (SwUpdateBanner) can detect it and
+// show "NEW VERSION". The previous `skipWaiting()` on install broke the cycle:
+// the new SW activated immediately, updateServiceWorker(true) had nothing to
+// message, so the banner never cleared and the page never hard-refreshed —
+// users kept running stale code. Now we skip-waiting ONLY when the page asks
+// (vite-plugin-pwa posts {type:'SKIP_WAITING'} from updateServiceWorker(true)).
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
