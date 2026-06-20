@@ -32,6 +32,28 @@ const LOGKEY = 'expo-gym-session-log'; // finished trial sessions (coach-only)
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const fresh = () => ({ reps: '', load: '', rpe: '', done: false });
 
+// Most-recent top set per exercise id from a history list — the "last time"
+// reference. Tolerates both shapes: athlete client_workouts (eid/done) and
+// coach workouts (exerciseId/completed). A logged load qualifies even if the
+// "done" box was skipped (athletes often skip it).
+function buildLastTopSetMap(history) {
+  const out = new Map();
+  const sorted = (history || []).slice().sort((a, b) => new Date(b.completedAt || b.date) - new Date(a.completedAt || a.date));
+  for (const w of sorted) {
+    for (const ex of (w.exercises || [])) {
+      const id = ex.exerciseId || ex.eid;
+      if (!id || out.has(id)) continue;
+      const sets = ex.sets || [];
+      const done = sets.filter(s => (s.completed || s.done) && parseFloat(s.load) > 0);
+      const logged = done.length ? done : sets.filter(s => parseFloat(s.load) > 0);
+      if (!logged.length) continue;
+      const top = logged.reduce((a, b) => parseFloat(b.load) > parseFloat(a.load) ? b : a);
+      out.set(id, { load: top.load, reps: top.reps });
+    }
+  }
+  return out;
+}
+
 // SESSIONS — the mode comes from the nav dropdown (Sessions ▾ → Group | Single),
 // not an in-page menu. GROUP = 4–7 grid (big-screen, no camera). SINGLE = the
 // existing coach logger + the camera/Movement tools for the 1-on-1.
@@ -41,15 +63,16 @@ export default function SessionsView({ mode = 'group', ...props }) {
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
         <Suspense fallback={<div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>}>
           <WorkoutsView workouts={props.workouts} setWorkouts={props.setWorkouts} planIndex={props.planIndex}
-            trainees={props.trainees} exercises={props.exercises} onDecrementSession={props.onDecrementSession} />
+            trainees={props.trainees} exercises={props.exercises} onDecrementSession={props.onDecrementSession}
+            clientWorkouts={props.clientWorkouts} />
         </Suspense>
       </div>
     );
   }
-  return <GroupSessions trainees={props.trainees} planIndex={props.planIndex} exercises={props.exercises} />;
+  return <GroupSessions trainees={props.trainees} planIndex={props.planIndex} exercises={props.exercises} clientWorkouts={props.clientWorkouts} workouts={props.workouts} />;
 }
 
-function GroupSessions({ trainees = [], planIndex = [], exercises = [], onBack }) {
+function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWorkouts = [], workouts = [], onBack }) {
   const [session, setSession] = useState(null); // { id, startedAt, athletes: [...] }
   const [loaded, setLoaded] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -61,6 +84,17 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], onBack }
     return m;
   }, [exercises]);
   const traineeById = useMemo(() => Object.fromEntries(trainees.map(t => [t.id, t])), [trainees]);
+  // Previous-weight reference per athlete: most-recent top set per exercise,
+  // drawn from the athlete's portal history (client_workouts) + any in-person
+  // coach log. Precomputed so per-set keystrokes don't re-scan history.
+  const lastByAthlete = useMemo(() => {
+    const hist = {};
+    for (const w of (clientWorkouts || [])) (hist[w.clientId] ||= []).push(w);
+    for (const w of (workouts || [])) if (w.status === 'completed') (hist[w.traineeId] ||= []).push(w);
+    const out = {};
+    for (const [tid, list] of Object.entries(hist)) out[tid] = buildLastTopSetMap(list);
+    return out;
+  }, [clientWorkouts, workouts]);
 
   // ---- load / persist active session ----
   useEffect(() => {
@@ -195,6 +229,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], onBack }
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
         {session.athletes.map((a, ai) => (
           <AthleteCard key={a.rowId} a={a} name={(traineeById[a.traineeId]?.name) || a.traineeId}
+            lastMap={lastByAthlete[a.traineeId]}
             onToggleIn={() => mutate(d => { d.athletes[ai].checkedIn = !d.athletes[ai].checkedIn; })}
             onSet={(ei, si, patch) => mutate(d => { Object.assign(d.athletes[ai].exercises[ei].sets[si], patch); })}
             onCurEx={(ei) => mutate(d => { d.athletes[ai].curEx = ei; })}
@@ -239,7 +274,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
 }
 
 // ---- per-athlete logging card ----
-function AthleteCard({ a, name, onToggleIn, onSet, onCurEx, onRemove }) {
+function AthleteCard({ a, name, lastMap, onToggleIn, onSet, onCurEx, onRemove }) {
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
@@ -256,9 +291,14 @@ function AthleteCard({ a, name, onToggleIn, onSet, onCurEx, onRemove }) {
         {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>No exercises on this day.</div>}
         {a.exercises.map((ex, ei) => (
           <div key={ei} onClick={() => onCurEx(ei)} style={{ border: `1px solid ${a.curEx === ei ? C.ac : C.cardBd}`, padding: 8, cursor: 'pointer', background: a.curEx === ei ? 'rgba(57,189,255,0.05)' : 'transparent' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.title}</span>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0, marginLeft: 6 }}>{ex.prescribed}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 6 }}>
+              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{ex.title}</span>
+              <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexShrink: 0 }}>
+                {(() => { const last = lastMap?.get(ex.eid); return last
+                  ? <span title="Last logged top set" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: C.gn }}>LAST · {last.load}KG × {last.reps || '—'}</span>
+                  : null; })()}
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm }}>{ex.prescribed}</span>
+              </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {ex.sets.map((s, si) => (

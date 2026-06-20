@@ -35,11 +35,17 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     const sorted = (priorWorkouts || []).slice().sort((a, b) => new Date(b.completedAt || b.date) - new Date(a.completedAt || a.date));
     for (const pw of sorted) {
       for (const pex of (pw.exercises || [])) {
-        if (!pex.exerciseId || out.has(pex.exerciseId)) continue;
-        const done = (pex.sets || []).filter(s => s.completed && parseFloat(s.load) > 0);
-        if (!done.length) continue;
-        const top = done.reduce((a, b) => parseFloat(b.load) > parseFloat(a.load) ? b : a);
-        out.set(pex.exerciseId, { load: top.load, reps: top.reps, date: pw.completedAt || pw.date });
+        // Tolerate both shapes: coach workouts use exerciseId/completed;
+        // athlete client_workouts use eid/done.
+        const id = pex.exerciseId || pex.eid;
+        if (!id || out.has(id)) continue;
+        const sets = pex.sets || [];
+        // A logged load qualifies even if the "done" box was skipped.
+        const done = sets.filter(s => (s.completed || s.done) && parseFloat(s.load) > 0);
+        const logged = done.length ? done : sets.filter(s => parseFloat(s.load) > 0);
+        if (!logged.length) continue;
+        const top = logged.reduce((a, b) => parseFloat(b.load) > parseFloat(a.load) ? b : a);
+        out.set(id, { load: top.load, reps: top.reps, date: pw.completedAt || pw.date });
       }
     }
     return out;
@@ -164,7 +170,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     </div>);
 }
 
-export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession }) {
+export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession, clientWorkouts = [] }) {
   const [activeWorkout, setActiveWorkout] = useState(null);
   const [filterTrainee, setFilterTrainee] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -264,7 +270,12 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   if (activeWorkout) {
     const w = workouts.find(x => x.id === activeWorkout);
     if (!w) return null;
-    const priorWorkouts = (workouts||[]).filter(x => x.traineeId===w.traineeId && x.id!==w.id && x.status==="completed");
+    // Previous-weight reference draws from BOTH the coach's in-person log and
+    // the athlete's own portal history (client_workouts) — so an online
+    // athlete's last session shows even though the coach never logged it here.
+    const coachPrior = (workouts||[]).filter(x => x.traineeId===w.traineeId && x.id!==w.id && x.status==="completed");
+    const clientPrior = (clientWorkouts||[]).filter(x => x.clientId===w.traineeId);
+    const priorWorkouts = [...coachPrior, ...clientPrior];
     return <WorkoutLogger workout={w} exercises={exercises} priorWorkouts={priorWorkouts} onUpdate={u=>updateWorkout(activeWorkout,u)} onComplete={()=>completeWorkout(activeWorkout)} onBack={()=>setActiveWorkout(null)} />;
   }
   const completed = workouts.filter(w=>w.status==="completed"&&(!filterTrainee||w.traineeId===filterTrainee));
