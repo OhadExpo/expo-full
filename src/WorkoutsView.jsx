@@ -55,6 +55,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
   // one-line summary so the rest of the list stays scannable. Auto-collapses
   // once every set is logged; tap the summary (or the HIDE control) to toggle.
   const [manualCollapse, setManualCollapse] = useState({}); // exIdx → explicit override
+  const [groupCollapse, setGroupCollapse] = useState({});   // superset gi → explicit override
   // Sticky progress header pins below the coach nav (position:sticky top:0).
   // Measure the nav height so it stays correct at any width / wrap.
   const [stickyTop, setStickyTop] = useState(57);
@@ -69,15 +70,24 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     manualCollapse[exIdx] !== undefined ? manualCollapse[exIdx] : allDone(ex);
   const toggleCollapse = (ex, exIdx) =>
     setManualCollapse(m => ({ ...m, [exIdx]: !isCollapsed(ex, exIdx) }));
+  // Superset-level collapse: one control for the whole group (both members),
+  // instead of a HIDE per exercise. Auto-collapses once every member is done.
+  const groupAllDone = (items) => items.length > 0 && items.every(({ ex }) => allDone(ex));
+  const isGroupCollapsed = (gi, items) =>
+    groupCollapse[gi] !== undefined ? groupCollapse[gi] : groupAllDone(items);
+  const toggleGroup = (gi, items) =>
+    setGroupCollapse(m => ({ ...m, [gi]: !isGroupCollapsed(gi, items) }));
 
-  const renderExercise = (ex, exIdx, inGroup, withDivider) => {
+  const renderExercise = (ex, exIdx, inGroup, withDivider, groupControlled = false) => {
     const exData = exById.get(ex.exerciseId);
     const videoUrl = ex.videoUrl ?? ex.vid ?? exData?.videoLink ?? '';
     const last = lastTimeFor(ex);
     const cue = ex.q || exData?.cues || ex.notes;
     const doneCount = ex.sets.filter(s => s.completed).length;
-    // Collapsed = a one-line summary the coach can tap to reopen.
-    if (isCollapsed(ex, exIdx)) {
+    // Collapsed = a one-line summary the coach can tap to reopen. Skipped when
+    // groupControlled — a superset's single header drives both members, so each
+    // member always renders full (no per-exercise collapse inside a superset).
+    if (isCollapsed(ex, exIdx) && !groupControlled) {
       const fullyDone = allDone(ex);
       return (
         <div key={ex.id} onClick={() => toggleCollapse(ex, exIdx)}
@@ -112,8 +122,8 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
             {last && <span title={`Top set on ${fmtPrettyDate(last.date)}`} style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',color:C.gn,background:'rgba(0,202,114,0.12)',padding:'3px 8px'}}>LAST · {last.load}KG × {last.reps||'—'}</span>}
           </div>
-          <button onClick={() => toggleCollapse(ex, exIdx)} title="Collapse this exercise"
-            style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>HIDE ▴</button>
+          {!groupControlled && <button onClick={() => toggleCollapse(ex, exIdx)} title="Collapse this exercise"
+            style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>HIDE ▴</button>}
         </div>
         {/* Coach cue — was tiny faded italic (unreadable). Now a readable
             accent-barred block: full-size, not italic, RTL-aware for Hebrew. */}
@@ -144,13 +154,12 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
   const isCompleted = workout.status==="completed";
   return (
     <div>
-      {/* Sticky action + progress header — pinned just below the coach nav so
-          the % progress and Complete Workout stay on screen through a long
-          scroll. Solid page-bg so set rows don't bleed through underneath. */}
+      {/* Sticky progress header — pinned just below the coach nav so the %
+          progress + Back stay on screen through a long scroll. The Complete
+          action lives at the BOTTOM, after Session Observations (Ohad). */}
       <div style={{position:'sticky',top:stickyTop,zIndex:40,background:C.bg,paddingTop:8,paddingBottom:10,marginBottom:8,borderBottom:`1px solid ${C.cardBd}`}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK</button>
-          {!isCompleted&&<Btn variant="success" onClick={onComplete}>Complete Workout</Btn>}
           {isCompleted&&<Badge color={C.gn} style={{fontSize:13,padding:"6px 14px"}}>Completed</Badge>}
         </div>
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
@@ -158,15 +167,34 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
           <span style={{color:C.tx,fontWeight:700}}>{doneSets}/{totalSets} · {pct}%</span></div>
         <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
       </div>
-      {groups.map((g,gi) => g.ss ? (
-        <div key={gi} style={{border:`1px solid ${C.pu}`, borderLeft:`3px solid ${C.pu}`, borderRadius:0, padding:'8px 12px 4px', marginBottom:10, background: 'var(--c-sf)'}}>
-          <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:C.pu,textTransform:'uppercase',marginBottom:2}}>Superset {g.ss}</div>
-          {g.items.map(({ex,i},k) => renderExercise(ex, i, true, k>0))}
+      {groups.map((g,gi) => g.ss ? (() => {
+        // One expand/collapse for the whole superset — drives both members.
+        const collapsed = isGroupCollapsed(gi, g.items);
+        const allD = groupAllDone(g.items);
+        const doneSets = g.items.reduce((a,{ex})=>a+ex.sets.filter(s=>s.completed).length,0);
+        const totalSets = g.items.reduce((a,{ex})=>a+ex.sets.length,0);
+        const titles = g.items.map(({ex})=>(exById.get(ex.exerciseId)?.title)||ex.title||'?').join(' + ');
+        return (
+        <div key={gi} style={{border:`1px solid ${C.pu}`, borderLeft:`3px solid ${allD?C.gn:C.pu}`, borderRadius:0, padding:'8px 12px', marginBottom:10, background: 'var(--c-sf)'}}>
+          <button onClick={()=>toggleGroup(gi,g.items)} title={collapsed?'Expand superset':'Collapse superset'}
+            style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,background:'transparent',border:'none',cursor:'pointer',padding:0,textAlign:'left'}}>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',color:allD?C.gn:C.pu,textTransform:'uppercase',minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              {allD && <span style={{marginRight:6}}>✓</span>}Superset {g.ss}{collapsed && <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.04em',textTransform:'none'}}> · {titles}</span>}
+            </span>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',color:allD?C.gn:C.tm,flexShrink:0,whiteSpace:'nowrap'}}>{doneSets}/{totalSets} SETS · {collapsed?'OPEN ▾':'HIDE ▴'}</span>
+          </button>
+          {!collapsed && <div style={{marginTop:4}}>{g.items.map(({ex,i},k) => renderExercise(ex, i, true, k>0, true))}</div>}
         </div>
-      ) : (
+        );
+      })() : (
         g.items.map(({ex,i}) => renderExercise(ex, i, false))
       ))}
       <TextArea label="Workout Notes" value={workout.notes||""} onChange={e=>onUpdate({notes:e.target.value})} placeholder="Session observations..." />
+      {/* Primary Complete action at the very bottom — after every set + the
+          session notes (Ohad: "complete workout … beneath session observations"). */}
+      {!isCompleted
+        ? <Btn variant="success" onClick={onComplete} style={{width:'100%',marginTop:14,padding:'14px',fontSize:14,fontWeight:700}}>Complete Workout</Btn>
+        : <div style={{marginTop:14,textAlign:'center'}}><Badge color={C.gn} style={{fontSize:13,padding:"8px 16px"}}>Completed</Badge></div>}
     </div>);
 }
 
@@ -359,10 +387,12 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           <option value="">All Athletes</option>{trainees.filter(t=>t.status!=='Archived').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select>}>
       {completed.length===0?<EmptyState icon="📊" message="No completed workouts yet." />:
         completed.slice().reverse().map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId);
-          return<Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div><div style={{fontWeight:600,color:C.tx}}>{w.dayName} {w.planName&&<span style={{fontWeight:400,color:C.td,fontSize:12}}>({w.planName})</span>}</div>
-              <div style={{fontSize:12,color:C.tm}}>{trainee?.name||"—"} · {fmtPrettyDate(w.date)}</div></div>
-            <div style={{display:"flex",alignItems:"center",gap:6}}><Badge color={C.gn}>Completed</Badge>
+          return<Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+            <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,color:C.tx}}>{w.dayName} {w.planName&&<span style={{fontWeight:400,color:C.td,fontSize:12}}>({w.planName})</span>}</div>
+              <div style={{fontSize:12,color:C.tm}}>{trainee?.name||"—"} · {fmtPrettyDate(w.date)}</div>
+              {/* Session observations, shown inline (was only visible by re-opening). */}
+              {w.notes && w.notes.trim() && <div style={{fontSize:12,color:C.tx,marginTop:5,lineHeight:1.5,whiteSpace:'pre-wrap',direction:isHebrew(w.notes)?'rtl':'ltr',fontFamily:isHebrew(w.notes)?FH:FB}}><span style={{color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',marginInlineEnd:6}}>NOTES</span>{w.notes.trim()}</div>}</div>
+            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><Badge color={C.gn}>Completed</Badge>
               <button onClick={()=>setActiveWorkout(w.id)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4}}>✏️</button>
               <button onClick={()=>setConfirmDelete(w.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button></div></div></Card>})}
       </CollapsibleSection>
