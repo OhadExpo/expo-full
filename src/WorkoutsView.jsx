@@ -169,6 +169,9 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   const [filterTrainee, setFilterTrainee] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [expandedTrainees, setExpandedTrainees] = useState({});
+  // Picker state — search box + which athlete row is expanded (accordion).
+  const [pickSearch, setPickSearch] = useState("");
+  const [pickOpen, setPickOpen] = useState(null);
   // Seed the trainee filter from sessionStorage — set by the "LOG SESSION"
   // button on TraineeDetail so the coach lands here pre-filtered to the
   // athlete they were just looking at. Stash is consumed on first mount.
@@ -269,66 +272,73 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   const toggleExpanded = (tid) => setExpandedTrainees(prev => ({ ...prev, [tid]: !prev[tid] }));
   return (
     <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,gap:8,flexWrap:'wrap'}}>
-        <h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',margin:0}}>
-          Start Workout from Plan <span style={{color:C.td,fontWeight:400}}>({visiblePlans.length})</span>
-        </h3>
-        {planIndex.length > 0 && (
-          <select value={filterTrainee} onChange={e=>setFilterTrainee(e.target.value)} style={{...baseInput,width:200,padding:"4px 8px",fontSize:12}}>
-            <option value="">All active athletes</option>
-            {trainees.filter(t=>t.status!=='Archived').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-        )}
-      </div>
-      {planIndex.length===0?<div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>:visiblePlans.length===0?
-        <div style={{color:C.td,fontSize:13,marginBottom:20,padding:'14px 0',textAlign:'center'}}>No active plans matching the filter.</div>:filterTrainee?(
-        // Single-trainee view: show that trainee's plans flat, latest
-        // first. The dropdown filter already narrowed the list, so
-        // there's no need to group by trainee.
-        <div style={{display:"grid",gap:8,marginBottom:24}}>{(plansByTrainee.get(filterTrainee)||[]).map(p=>{
-          const trainee=trainees.find(t=>t.id===p.traineeId);
-          const tName = trainee?.name || '';
-          const heb = isHebrew(tName);
-          return<Card key={p.id}><div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:8}}>
-            <span style={{fontWeight:600,color:C.tx,fontSize:14}}>{p.name}</span>
-            {trainee&&<span style={{fontWeight:400,color:C.tm,fontSize:heb?16:13,fontFamily:heb?FH:undefined}}>— {tName}</span>}
+      {/* Picker — search-first accordion. One calm row per athlete (name +
+          current block); tap to reveal that block's day buttons. Replaces the
+          old wall of full-height cards (every athlete's buttons + older-block
+          bars on screen at once = too much). */}
+      <h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',margin:'0 0 12px'}}>
+        Start a Session
+      </h3>
+      {planIndex.length===0 ? (
+        <div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>
+      ) : (
+        <div style={{marginBottom:24}}>
+          {filterTrainee ? (
+            <button onClick={()=>setFilterTrainee("")} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',padding:'0 0 10px'}}>← all athletes</button>
+          ) : (
+            <input value={pickSearch} onChange={e=>setPickSearch(e.target.value)} placeholder="Search athlete…"
+              style={{...baseInput,width:'100%',boxSizing:'border-box',padding:'10px 12px',fontSize:14,marginBottom:10}} />
+          )}
+          <div style={{border:`1px solid ${C.cardBd}`}}>
+            {(() => {
+              const rows = Array.from(plansByTrainee.entries())
+                .map(([tid,plans])=>({tid,plans,name:(trainees.find(t=>t.id===tid)?.name)||''}))
+                .filter(r => filterTrainee ? r.tid===filterTrainee : (!pickSearch || r.name.toLowerCase().includes(pickSearch.toLowerCase())))
+                .sort((a,b)=>a.name.localeCompare(b.name));
+              if (!rows.length) return <div style={{color:C.td,fontSize:13,padding:'18px',textAlign:'center'}}>No athletes match.</div>;
+              // Auto-open when the list is down to one (search hit or deep-link).
+              const forceOpen = (filterTrainee || (rows.length===1 ? rows[0].tid : null));
+              return rows.map(({tid,plans,name},ri)=>{
+                const open = pickOpen===tid || forceOpen===tid;
+                const latest = plans[0];
+                const heb = isHebrew(name);
+                const olderOpen = !!expandedTrainees[tid];
+                const blocks = olderOpen ? plans : [latest];
+                return (
+                  <div key={tid} style={{borderTop: ri===0?'none':`1px solid ${C.cardBd}`}}>
+                    <button onClick={()=>setPickOpen(open && pickOpen===tid ? null : tid)}
+                      onMouseEnter={e=>{if(!open)e.currentTarget.style.background='rgba(57,189,255,0.04)';}}
+                      onMouseLeave={e=>{if(!open)e.currentTarget.style.background='transparent';}}
+                      style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,
+                        background: open?'var(--c-sf)':'transparent',border:'none',cursor:'pointer',padding:'12px 14px',textAlign:'left',transition:'background .12s'}}>
+                      <span style={{display:'flex',alignItems:'baseline',gap:10,minWidth:0}}>
+                        <span style={{fontFamily:heb?FH:FB,fontSize:heb?16:14,fontWeight:600,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{name}</span>
+                        <span style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap'}}>{latest.name}</span>
+                      </span>
+                      <span style={{fontFamily:FN,fontSize:12,color:'#FFF',flexShrink:0,transform:open?'rotate(180deg)':'none',transition:'transform .15s'}}>▾</span>
+                    </button>
+                    {open && (
+                      <div style={{padding:'0 14px 14px'}}>
+                        {blocks.map((p,bi)=>(
+                          <div key={p.id} style={{marginTop: bi===0?2:10, paddingTop: bi===0?0:10, borderTop: bi===0?'none':`1px solid ${C.cardBd}`}}>
+                            {blocks.length>1 && <div style={{fontFamily:FN,fontSize:10,color:C.td,letterSpacing:'0.08em',marginBottom:6}}>{p.name}</div>}
+                            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"5px 12px"}}>▶ {dName}</Btn>)}</div>
+                          </div>
+                        ))}
+                        {plans.length>1 && (
+                          <button onClick={()=>toggleExpanded(tid)}
+                            style={{marginTop:10,background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',padding:'4px 0'}}>
+                            {olderOpen ? 'HIDE OLDER BLOCKS' : `+ ${plans.length-1} OLDER BLOCK${plans.length-1===1?'':'S'}`}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })()}
           </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"4px 12px"}}>▶ {dName}</Btn>)}</div></Card>})}</div>
-      ):(
-        // Multi-trainee view: one card per trainee showing their
-        // latest block. The "+ N OLDER BLOCKS" toggle per trainee
-        // reveals the rest. Coach in a session almost always needs
-        // the current block, so this keeps the list to N (trainee
-        // count) instead of N * blocks-per-trainee.
-        <div style={{display:"grid",gap:8,marginBottom:24}}>{Array.from(plansByTrainee.entries()).map(([tid, plans])=>{
-          const trainee=trainees.find(t=>t.id===tid);
-          const tName = trainee?.name || '';
-          const heb = isHebrew(tName);
-          const isOpen = !!expandedTrainees[tid];
-          const visible = isOpen ? plans : plans.slice(0, 1);
-          return <Card key={tid}>
-            {visible.map((p, idx) => (
-              <div key={p.id} style={{paddingTop: idx === 0 ? 0 : 10, marginTop: idx === 0 ? 0 : 10, borderTop: idx === 0 ? 'none' : `1px solid ${C.cardBd}`}}>
-                <div style={{display:'flex',alignItems:'baseline',gap:8,flexWrap:'wrap',marginBottom:8}}>
-                  <span style={{fontWeight:600,color:C.tx,fontSize:14}}>{p.name}</span>
-                  {idx === 0 && trainee && <span style={{fontWeight:400,color:C.tm,fontSize:heb?16:13,fontFamily:heb?FH:undefined}}>— {tName}</span>}
-                </div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i)} style={{fontSize:12,padding:"4px 12px"}}>▶ {dName}</Btn>)}</div>
-              </div>
-            ))}
-            {plans.length > 1 && (
-              <button onClick={()=>toggleExpanded(tid)}
-                style={{
-                  marginTop: 10, width: '100%', padding: '4px 0',
-                  background: 'transparent', border: `1px solid ${C.cardBd}`,
-                  color: C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700,
-                  letterSpacing: '0.12em', cursor: 'pointer',
-                }}>
-                {isOpen ? 'HIDE OLDER BLOCKS' : `+ ${plans.length - 1} OLDER BLOCK${plans.length - 1 === 1 ? '' : 'S'}`}
-              </button>
-            )}
-          </Card>;
-        })}</div>
+        </div>
       )}
       {inProgress.length>0&&<><h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.or,textTransform:"uppercase",letterSpacing:'0.18em',marginBottom:12}}>In Progress ({inProgress.length})</h3>
         {inProgress.map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId); return<Card key={w.id} onClick={()=>setActiveWorkout(w.id)} style={{marginBottom:8,borderColor:'rgba(255,165,2,0.251)'}}>
