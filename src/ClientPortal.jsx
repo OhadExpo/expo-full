@@ -1376,11 +1376,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // alignment alone tells the eye "this column = the input
           // column below." Reads as a hint, not a competing element.
           //
-          // Hidden in the light/refined theme entirely (Ohad's choice
-          // 2026-05-15) — only the dark theme uses progressive-overload
-          // glance-references.
+          // Shown in BOTH themes (2026-06-20): previous-week weight is the
+          // athlete's progressive-overload reference and must always be
+          // visible. It had been dark-theme-only (2026-05-15), so athletes on
+          // the light theme stopped seeing it — restored here. Uses theme-aware
+          // tokens (var(--c-ac)/var(--c-tx)) so it reads correctly on light too.
           const prior = prevWeekSets?.[si];
-          const showGhost = prior && !isRefined5b();
+          const showGhost = !!prior;
           return <React.Fragment key={si}>
             {showGhost && <div style={{
               display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,
