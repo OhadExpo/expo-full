@@ -64,7 +64,7 @@ export default function SessionsView({ mode = 'group', ...props }) {
         <Suspense fallback={<div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>}>
           <WorkoutsView workouts={props.workouts} setWorkouts={props.setWorkouts} planIndex={props.planIndex}
             trainees={props.trainees} exercises={props.exercises} onDecrementSession={props.onDecrementSession}
-            clientWorkouts={props.clientWorkouts} />
+            clientWorkouts={props.clientWorkouts} setClientWorkouts={props.setClientWorkouts} />
         </Suspense>
       </div>
     );

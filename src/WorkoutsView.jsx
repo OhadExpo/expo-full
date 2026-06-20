@@ -51,6 +51,25 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     return out;
   }, [priorWorkouts]);
   const lastTimeFor = (ex) => lastTimeById.get(ex.exerciseId) || null;
+  // Per-set previous-week reference (the portal's progressive-overload ghost):
+  // what the athlete logged for THIS plan + day in the immediately previous
+  // week. Keyed by exercise id → that exercise's set array. Tolerates both
+  // shapes (eid/exerciseId). Empty on week 1 (no week before it).
+  const prevWeek = useMemo(() => {
+    const tgt = (Number(workout.week) || 1) - 1;
+    const out = new Map();
+    if (tgt < 1) return out;
+    for (const pw of (priorWorkouts || [])) {
+      if (pw.planName !== workout.planName || pw.dayName !== workout.dayName) continue;
+      if ((Number(pw.week) || 0) !== tgt) continue;
+      for (const pex of (pw.exercises || [])) {
+        const id = pex.exerciseId || pex.eid;
+        if (!id || out.has(id)) continue;
+        out.set(id, pex.sets || []);
+      }
+    }
+    return out;
+  }, [priorWorkouts, workout.week, workout.planName, workout.dayName]);
   // Collapse (long in-person sessions): a finished exercise folds to a
   // one-line summary so the rest of the list stays scannable. Auto-collapses
   // once every set is logged; tap the summary (or the HIDE control) to toggle.
@@ -81,7 +100,8 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
   const renderExercise = (ex, exIdx, inGroup, withDivider, groupControlled = false) => {
     const exData = exById.get(ex.exerciseId);
     const videoUrl = ex.videoUrl ?? ex.vid ?? exData?.videoLink ?? '';
-    const last = lastTimeFor(ex);
+    const prevSets = prevWeek.get(ex.exerciseId);   // previous-week set array (or undefined)
+    const prevWeekNum = (Number(workout.week) || 1) - 1;
     const cue = ex.q || exData?.cues || ex.notes;
     const doneCount = ex.sets.filter(s => s.completed).length;
     // Collapsed = a one-line summary the coach can tap to reopen. Skipped when
@@ -120,7 +140,6 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             <span style={{fontWeight:700,color:C.tx}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
             <span style={{fontWeight:400,color:C.tm,fontSize:12}}>{ex.reps} reps · RPE {ex.rpe||"—"} · Rest {ex.rest}s</span>
             {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
-            {last && <span title={`Top set on ${fmtPrettyDate(last.date)}`} style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',color:C.gn,background:'rgba(0,202,114,0.12)',padding:'3px 8px'}}>LAST · {last.load}KG × {last.reps||'—'}</span>}
           </div>
           {!groupControlled && <button onClick={() => toggleCollapse(ex, exIdx)} title="Collapse this exercise"
             style={{flexShrink:0,display:'inline-flex',alignItems:'center',gap:5,height:24,background:'transparent',border:`1px solid ${C.cardBd}`,color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',padding:'0 9px',borderRadius:0}}>HIDE ▴</button>}
@@ -135,14 +154,28 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         )}
         <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
           {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
-        {ex.sets.map((set,sIdx)=>(
-          <div key={sIdx} style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",padding:"4px 0",opacity:set.completed?.5:1}}>
-            <span style={{fontFamily:FN,fontSize:13,color:C.tm,textAlign:"center"}}>{set.setNum}</span>
-            <input type="number" value={set.reps} onChange={e=>updateSet(exIdx,sIdx,{reps:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
-            <input type="number" value={set.load} onChange={e=>updateSet(exIdx,sIdx,{load:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
-            <input value={set.rpe} onChange={e=>updateSet(exIdx,sIdx,{rpe:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
-            <div style={{textAlign:"center"}}><input type="checkbox" checked={set.completed} onChange={e=>updateSet(exIdx,sIdx,{completed:e.target.checked})} style={{width:18,height:18,accentColor:C.gn,cursor:"pointer"}}/></div>
-          </div>))}
+        {ex.sets.map((set,sIdx)=>{
+          // Ghost row above each set: what the athlete logged for this same set
+          // index in the previous week (progressive-overload reference).
+          const prior = prevSets?.[sIdx];
+          return <React.Fragment key={sIdx}>
+            {prior && (parseFloat(prior.load)>0 || prior.reps) && (
+              <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginTop:sIdx===0?0:6,opacity:0.5}}>
+                <span style={{fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',color:C.ac,textAlign:"center"}}>W{prevWeekNum}</span>
+                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{prior.reps||'—'}</div>
+                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load)||'—'}</div>
+                <div style={{fontFamily:FB,fontSize:13,color:C.tx,textAlign:"center",fontVariantNumeric:'tabular-nums'}}>{prior.rpe||'—'}</div>
+                <div/>
+              </div>
+            )}
+            <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",padding:"4px 0",opacity:set.completed?.5:1}}>
+              <span style={{fontFamily:FN,fontSize:13,color:C.tm,textAlign:"center"}}>{set.setNum}</span>
+              <input type="number" value={set.reps} onChange={e=>updateSet(exIdx,sIdx,{reps:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
+              <input type="number" value={set.load} onChange={e=>updateSet(exIdx,sIdx,{load:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
+              <input value={set.rpe} onChange={e=>updateSet(exIdx,sIdx,{rpe:e.target.value})} style={{...baseInput,padding:"5px 8px",fontSize:13}} placeholder="—" />
+              <div style={{textAlign:"center"}}><input type="checkbox" checked={set.completed} onChange={e=>updateSet(exIdx,sIdx,{completed:e.target.checked})} style={{width:18,height:18,accentColor:C.gn,cursor:"pointer"}}/></div>
+            </div>
+          </React.Fragment>;})}
         {/* Coach's session note — separate from the prescribed cue above, so
             this field starts blank instead of echoing the plan's note. */}
         <input value={ex.coachNote||""} onChange={e=>updateEx(exIdx,{coachNote:e.target.value})} placeholder="Notes for this exercise…" style={{...baseInput,marginTop:6,padding:"6px 8px",fontSize:12,width:"100%",boxSizing:"border-box"}} />
@@ -165,6 +198,18 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         <div style={{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:FN,color:C.tm,marginBottom:4}}>
           <span>{workout.dayName} {workout.planName&&<span style={{color:C.td}}>({workout.planName})</span>}</span>
           <span style={{color:C.tx,fontWeight:700}}>{doneSets}/{totalSets} · {pct}%</span></div>
+        {/* Week selector — which week this session logs into (drives the
+            athlete's History placement + the previous-week ghost). Defaults to
+            their next un-logged week; the coach can change it here. */}
+        {!isCompleted && workout.planWeeks > 1 && (
+          <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',marginBottom:8}}>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginRight:2}}>LOG INTO</span>
+            {Array.from({length:workout.planWeeks},(_,i)=>i+1).map(wn=>(
+              <button key={wn} onClick={()=>onUpdate({week:wn})}
+                style={{minWidth:34,padding:'4px 0',borderRadius:0,border:`${workout.week===wn?'2px':'1px'} solid ${workout.week===wn?C.ac:C.cardBd}`,background:workout.week===wn?'rgba(57,189,255,0.1)':'transparent',color:workout.week===wn?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,cursor:'pointer'}}>W{wn}</button>
+            ))}
+          </div>
+        )}
         <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:6,overflow:"hidden"}}><div style={{background:C.gn,height:"100%",width:`${pct}%`,transition:"width 0.3s"}}/></div>
       </div>
       {groups.map((g,gi) => g.ss ? (() => {
@@ -198,8 +243,13 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
     </div>);
 }
 
-export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession, clientWorkouts = [] }) {
-  const [activeWorkout, setActiveWorkout] = useState(null);
+export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainees, exercises, onDecrementSession, clientWorkouts = [], setClientWorkouts, deleteClientWorkout }) {
+  const libById = useMemo(() => new Map((exercises || []).map(e => [e.id, e])), [exercises]);
+  // The active session is LOCAL (component state), never persisted as an
+  // "in-progress" record — a half-logged session shouldn't be saved unless an
+  // athlete is genuinely live in the app. On Complete it's written to
+  // client_workouts (the athlete's portal history).
+  const [active, setActive] = useState(null);
   const [filterTrainee, setFilterTrainee] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [expandedTrainees, setExpandedTrainees] = useState({});
@@ -235,28 +285,47 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       superset: e.superset ?? '',
       notes: e.notes ?? e.n ?? '',
     })) : []);
+    // Default the week to the athlete's next un-logged week for this plan+day
+    // (max logged in their portal history + 1, capped at the block length),
+    // else week 1. The coach can change it with the week selector in the logger.
+    const planWeeks = Number(fullPlan.data?.weeks) || 4;
+    const loggedWeeks = (clientWorkouts || [])
+      .filter(x => x.clientId === fullPlan.trainee_id && x.planName === fullPlan.name && x.dayName === day.name)
+      .map(x => Number(x.week) || 1);
+    const week = loggedWeeks.length ? Math.min(planWeeks, Math.max(...loggedWeeks) + 1) : 1;
     const w = {id:uid(),planId:fullPlan.id,traineeId:fullPlan.trainee_id,dayName:day.name,planName:fullPlan.name,
-      date:new Date().toISOString(),status:"in-progress",
+      date:new Date().toISOString(),status:"in-progress", week, planWeeks,
       exercises:dayExercises.map(ex=>({...ex,id:uid(),sets:Array.from({length:Number(ex.sets)||3},(_,i)=>({setNum:i+1,reps:"",load:"",rpe:"",completed:false}))})),
       notes:""};
-    setWorkouts(prev=>[...prev,w]); setActiveWorkout(w.id);
+    setActive(w);
   };
-  const updateWorkout = (wId,updates) => setWorkouts(prev=>prev.map(w=>w.id===wId?{...w,...updates}:w));
-  const completeWorkout = wId => {
-    const w = workouts.find(x=>x.id===wId);
-    updateWorkout(wId,{status:"completed",completedAt:new Date().toISOString()});
-    if(w?.traineeId) onDecrementSession(w.traineeId);
-    setActiveWorkout(null);
-  };
-  // Effect (not render-time mutation) handles the "active id points to a
-  // workout that just disappeared" case. Calling setState during render
-  // was triggering React's no-write-during-render warning and could
-  // double-fire under StrictMode.
-  useEffect(() => {
-    if (activeWorkout && !workouts.find(x => x.id === activeWorkout)) {
-      setActiveWorkout(null);
+  const updateActive = (updates) => setActive(prev => prev ? { ...prev, ...updates } : prev);
+  const completeWorkout = () => {
+    const w = active;
+    if (!w) return;
+    const finishedAt = new Date().toISOString();
+    if (w.traineeId) onDecrementSession(w.traineeId);
+    // FULL PORTAL INTEGRATION: write a client_workouts row so the in-person
+    // session shows in the athlete's portal History / PRs / previous-week
+    // ghost — the same store + shape the portal logs to. reviewedAt is set
+    // (the coach logged it, nothing to review) and source tags its origin.
+    if (setClientWorkouts) {
+      const row = {
+        id: 'cw_' + uid(), clientId: w.traineeId, planName: w.planName, dayName: w.dayName,
+        week: Number(w.week) || 1, date: finishedAt, completedAt: finishedAt,
+        notes: w.notes || '', formVideos: [], reviewedAt: finishedAt, source: 'coach-session',
+        exercises: (w.exercises || []).map(ex => ({
+          eid: ex.exerciseId || '',
+          title: libById.get(ex.exerciseId)?.title || ex.title || '',
+          prescribed: `${(ex.sets || []).length}×${ex.reps || ''}`,
+          sets: (ex.sets || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: !!s.completed })),
+          substitution: null,
+        })),
+      };
+      setClientWorkouts(prev => [...prev, row]);
     }
-  }, [activeWorkout, workouts]);
+    setActive(null);
+  };
   // Filter the plan picker. Without this, the picker dumps all 209
   // production plans into one scroll. Active-only by default and a
   // trainee filter that piggybacks the same state the Completed
@@ -295,19 +364,17 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     }
     return m;
   }, [visiblePlans]);
-  if (activeWorkout) {
-    const w = workouts.find(x => x.id === activeWorkout);
-    if (!w) return null;
-    // Previous-weight reference draws from BOTH the coach's in-person log and
-    // the athlete's own portal history (client_workouts) — so an online
-    // athlete's last session shows even though the coach never logged it here.
-    const coachPrior = (workouts||[]).filter(x => x.traineeId===w.traineeId && x.id!==w.id && x.status==="completed");
-    const clientPrior = (clientWorkouts||[]).filter(x => x.clientId===w.traineeId);
-    const priorWorkouts = [...coachPrior, ...clientPrior];
-    return <WorkoutLogger workout={w} exercises={exercises} priorWorkouts={priorWorkouts} onUpdate={u=>updateWorkout(activeWorkout,u)} onComplete={()=>completeWorkout(activeWorkout)} onBack={()=>setActiveWorkout(null)} />;
+  if (active) {
+    const w = active;
+    // Previous-week reference reads the athlete's portal history (the same
+    // store the portal logs to, which now includes coach-logged sessions).
+    const priorWorkouts = (clientWorkouts||[]).filter(x => x.clientId===w.traineeId);
+    return <WorkoutLogger workout={w} exercises={exercises} priorWorkouts={priorWorkouts} onUpdate={updateActive} onComplete={completeWorkout} onBack={()=>setActive(null)} />;
   }
-  const completed = workouts.filter(w=>w.status==="completed"&&(!filterTrainee||w.traineeId===filterTrainee));
-  const inProgress = workouts.filter(w=>w.status==="in-progress");
+  // "Completed" = coach-logged sessions in the athlete's portal history.
+  const completed = (clientWorkouts||[])
+    .filter(w => w.source==='coach-session' && (!filterTrainee || w.clientId===filterTrainee))
+    .slice().sort((a,b)=> new Date(b.date||0) - new Date(a.date||0));
   const toggleExpanded = (tid) => setExpandedTrainees(prev => ({ ...prev, [tid]: !prev[tid] }));
   return (
     <div>
@@ -379,24 +446,20 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           </div>
         </div>
       )}
-      {inProgress.length>0&&<><h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.or,textTransform:"uppercase",letterSpacing:'0.18em',marginBottom:12}}>In Progress ({inProgress.length})</h3>
-        {inProgress.map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId); return<Card key={w.id} onClick={()=>setActiveWorkout(w.id)} style={{marginBottom:8,borderColor:'rgba(255,165,2,0.251)'}}>
-          <div style={{fontWeight:600,color:C.tx}}>{w.dayName}</div><div style={{fontSize:12,color:C.tm}}>{trainee?.name||"—"} · {fmtPrettyDate(w.date)}</div></Card>})}</>}
-      <CollapsibleSection title="Completed" count={completed.length} storageKey="workouts-completed" style={{marginTop:20}}
+      <CollapsibleSection title="Logged by you" count={completed.length} storageKey="workouts-completed" style={{marginTop:20}}
         right={<select value={filterTrainee} onChange={e=>setFilterTrainee(e.target.value)} style={{...baseInput,width:180,padding:"4px 8px",fontSize:12}}>
           <option value="">All Athletes</option>{trainees.filter(t=>t.status!=='Archived').map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select>}>
-      {completed.length===0?<EmptyState icon="📊" message="No completed workouts yet." />:
-        completed.slice().reverse().map(w=>{const trainee=trainees.find(t=>t.id===w.traineeId);
+      {completed.length===0?<EmptyState icon="📊" message="No sessions logged yet. They'll appear in the athlete's portal History." />:
+        completed.map(w=>{const trainee=trainees.find(t=>t.id===w.clientId);const heb=isHebrew(trainee?.name||'');
           return<Card key={w.id} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
-            <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,color:C.tx}}>{w.dayName} {w.planName&&<span style={{fontWeight:400,color:C.td,fontSize:12}}>({w.planName})</span>}</div>
-              <div style={{fontSize:12,color:C.tm}}>{trainee?.name||"—"} · {fmtPrettyDate(w.date)}</div>
-              {/* Session observations, shown inline (was only visible by re-opening). */}
+            <div style={{flex:1,minWidth:0}}><div style={{fontWeight:600,color:C.tx}}>{w.dayName} {w.planName&&<span style={{fontWeight:400,color:C.td,fontSize:12}}>({w.planName}{w.week?` · W${w.week}`:''})</span>}</div>
+              <div style={{fontSize:12,color:C.tm,fontFamily:heb?FH:undefined}}>{trainee?.name||"—"} · {fmtPrettyDate(w.date)}</div>
+              {/* Session observations, shown inline. */}
               {w.notes && w.notes.trim() && <div style={{fontSize:12,color:C.tx,marginTop:5,lineHeight:1.5,whiteSpace:'pre-wrap',direction:isHebrew(w.notes)?'rtl':'ltr',fontFamily:isHebrew(w.notes)?FH:FB}}><span style={{color:C.tm,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em',marginInlineEnd:6}}>NOTES</span>{w.notes.trim()}</div>}</div>
-            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><Badge color={C.gn}>Completed</Badge>
-              <button onClick={()=>setActiveWorkout(w.id)} style={{background:"none",border:"none",color:C.tm,cursor:"pointer",padding:4}}>✏️</button>
-              <button onClick={()=>setConfirmDelete(w.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button></div></div></Card>})}
+            <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><Badge color={C.gn}>In portal</Badge>
+              {deleteClientWorkout&&<button onClick={()=>setConfirmDelete(w.id)} title="Delete this logged session" style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:4,opacity:0.6}}>🗑</button>}</div></div></Card>})}
       </CollapsibleSection>
-      <ConfirmDialog open={!!confirmDelete} title="Delete Workout?" message="Session count will not be restored."
-        onConfirm={()=>{setWorkouts(prev=>prev.filter(w=>w.id!==confirmDelete));setConfirmDelete(null)}} onCancel={()=>setConfirmDelete(null)} />
+      <ConfirmDialog open={!!confirmDelete} title="Delete logged session?" message="This removes it from the athlete's portal History too. Session count is not restored."
+        onConfirm={()=>{if(deleteClientWorkout)deleteClientWorkout(confirmDelete);setConfirmDelete(null)}} onCancel={()=>setConfirmDelete(null)} />
     </div>);
 }
