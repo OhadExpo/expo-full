@@ -438,6 +438,24 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
     const max = wks.length ? Math.max(...wks) : 0;
     return Math.min(Number(plan?.weeks) || 8, Math.max(1, max + 1));
   };
+  const blockNum = (name) => { const m = String(name || '').match(/#\s*(\d+)/); return m ? Number(m[1]) : -1; };
+  // The athlete's NEXT workout: latest block (newest assigned), then the first
+  // (week, day) not yet completed. New block untrained → W1 + day 0. Finished
+  // block → latest block, last week (nothing left to do).
+  const nextWorkout = (traineeId) => {
+    const plans = plansFor(traineeId);
+    if (!plans.length) return null;
+    const latest = [...plans].sort((a, b) => (blockNum(b.name) - blockNum(a.name)) || (new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)))[0];
+    const planWeeks = Number(latest.weeks) || 8;
+    const dayNames = latest.dayNames || [];
+    const done = new Set((clientWorkouts || []).filter(x => x.clientId === traineeId && x.planName === latest.name).map(x => `${Number(x.week) || 1}|${x.dayName}`));
+    for (let wk = 1; wk <= planWeeks; wk++) {
+      for (let di = 0; di < dayNames.length; di++) {
+        if (!done.has(`${wk}|${dayNames[di]}`)) return { planId: latest.id, dayIdx: di, week: wk };
+      }
+    }
+    return { planId: latest.id, dayIdx: 0, week: planWeeks }; // block fully done
+  };
   const addRow = () => setRows(r => [...r, { traineeId: '', planId: '', dayIdx: 0, week: 0 }]);
   const setRow = (i, patch) => setRows(r => r.map((x, j) => j === i ? { ...x, ...patch } : x));
   const delRow = (i) => setRows(r => r.filter((_, j) => j !== i));
@@ -465,7 +483,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
             const wkVal = Number(r.week) || (r.planId ? dfltWeek(r) : 1);
             return (
               <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 1fr 0.7fr 28px', gap: 6, alignItems: 'center' }}>
-                <select value={r.traineeId} onChange={e => setRow(i, { traineeId: e.target.value, planId: '', dayIdx: 0, week: 0 })} style={sel}>
+                <select value={r.traineeId} onChange={e => { const tid = e.target.value; const nx = tid ? nextWorkout(tid) : null; setRow(i, nx ? { traineeId: tid, planId: nx.planId, dayIdx: nx.dayIdx, week: nx.week } : { traineeId: tid, planId: '', dayIdx: 0, week: 0 }); }} style={sel}>
                   <option value="">— athlete —</option>
                   {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
