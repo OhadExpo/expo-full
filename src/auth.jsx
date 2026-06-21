@@ -268,7 +268,7 @@ export function LoginScreen() {
 // trainer header. Calls supabase.auth.updateUser({ password }) which
 // hashes and rotates the password in auth.users under the current session.
 // Closes on success; surfaces Supabase errors inline.
-export function PasswordChangeModal({ onClose }) {
+export function PasswordChangeModal({ onClose, demoMode = false }) {
   const auth = useAuth();
   const email = auth?.session?.user?.email || '';
   const [currentPw, setCurrentPw] = useState('');
@@ -281,6 +281,10 @@ export function PasswordChangeModal({ onClose }) {
 
   const handleSave = async () => {
     setError('');
+    // Preview / sandbox (coach viewing-as an athlete): NEVER touch auth. The
+    // live session here is the COACH's, so a real updateUser would rotate the
+    // COACH's password. Hard no-op with a clear notice.
+    if (demoMode) { setError('Password changes are disabled in preview.'); return; }
     if (!currentPw) { setError('Enter your current password.'); return; }
     if (pw.length < 4) { setError('New password must be at least 4 characters.'); return; }
     if (pw !== confirmPw) { setError("Passwords don't match."); return; }

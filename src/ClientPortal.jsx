@@ -1888,7 +1888,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <button onClick={()=>setShowPwModal(true)} title="Change password" style={{background:'none',border:'none',color:C.tm,cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             </button>
-            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>{demoMode ? '← EXIT PREVIEW' : 'LOG OUT →'}</button>
+            {/* Always reads like the real athlete portal ('LOG OUT →') — even in
+                preview, so the coach/prospect sees an authentic portal. The
+                outer preview banner already carries the '← BACK TO COACH' exit. */}
+            <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>LOG OUT →</button>
           </div>
         </div>
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:18}}>
@@ -2274,7 +2277,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>})}
           </div>})}</React.Fragment>)})()}
       </div>
-      {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
+      {showPwModal && <PasswordChangeModal demoMode={demoMode} onClose={()=>setShowPwModal(false)}/>}
       </div>; }
 
   // Falls through while trainees are still loading (ci set but not yet matched).
