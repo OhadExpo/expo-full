@@ -193,7 +193,7 @@ function GooglePhotosEmbed({ url }) {
       .catch(e => { if (alive) setState({ phase: 'err', error: String(e?.message || e) }); });
     return () => { alive = false; };
   }, [url]);
-  const wrap = {marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`};
+  const wrap = {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`};
   if (state.phase === 'loading') return <div style={{...wrap,display:'flex',alignItems:'center',justifyContent:'center',color:C.tm,fontFamily:FN,fontSize:11,letterSpacing:'0.18em'}}>LOADING VIDEO…</div>;
   if (state.phase === 'err' || streamFailed) return <div style={{...wrap,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.tm,fontFamily:FN,fontSize:11,padding:16,textAlign:'center'}}>
     <div>VIDEO COULD NOT BE EMBEDDED</div>
@@ -989,12 +989,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {/* Coach note for this warm-up (authored in the plan editor's
             warm-up expand panel). */}
         {wu.note && <div dir="auto" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.or}`,borderRadius:0,padding:'10px 12px',marginBottom:14,fontSize:14,lineHeight:1.55,whiteSpace:'pre-wrap',color:C.tx}}>{wu.note}</div>}
-        {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
+        {vid ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
           <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
-          : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
+          : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : wu.vid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(wu.vid) ? <GooglePhotosEmbed url={wu.vid} />
-          : wu.vid && /lh3\.googleusercontent\.com/i.test(wu.vid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
+          : wu.vid && /lh3\.googleusercontent\.com/i.test(wu.vid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
           : <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:30,marginBottom:14,textAlign:'center',color:C.tm}}>No video for this exercise</div>}
         <div style={{display:'flex',gap:8}}>
@@ -1256,12 +1256,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           for genuine intent \u2014 the left accent stripe on the focus card,
           active-week pill, and key inline text. */}
 
-      {vid ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
+      {vid ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
-        : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
+        : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
         <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
         : effectiveVid && /(photos\.app\.goo\.gl|photos\.google\.com)/i.test(effectiveVid) ? <GooglePhotosEmbed url={effectiveVid} />
-        : effectiveVid && /lh3\.googleusercontent\.com/i.test(effectiveVid) ? <div style={{marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
+        : effectiveVid && /lh3\.googleusercontent\.com/i.test(effectiveVid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
         <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div> : null}
 
       {/* WEEKLY FOCUS \u2014 outer border is always neutral now; the left accent
@@ -1303,7 +1303,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           not an all-time best. */}
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,marginBottom:4}}>
-          {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{h}</div>)}</div>
+          {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:10.5,fontFamily:FN,fontWeight:700,letterSpacing:'0.08em',color:C.tm,textAlign:'center'}}>{h}</div>)}</div>
         {(allSets[ei]||[]).map((set,si) => {
           // Ghost row above each set: REPS/KG/RPE the trainee logged for
           // this same set index last week. Aligned to the input columns
@@ -1330,7 +1330,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               // pair within one set. marginTop 8 between sets keeps
               // the visual separation between distinct set groups.
               alignItems:'center',marginBottom:0,marginTop:si===0?0:8,
-              opacity:0.5,
+              opacity:0.72,
             }}>
               <div style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
               {/* Cell dimensions mirror the live `bi` input style

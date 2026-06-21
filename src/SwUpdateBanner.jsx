@@ -29,11 +29,19 @@ export default function SwUpdateBanner() {
     const bumpActivity = () => { lastActivity = Date.now(); };
     ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, bumpActivity, { passive: true }));
 
+    // Activate the waiting SW and reload. updateServiceWorker(true) reloads on
+    // controllerchange, but if that doesn't fire (edge cases / older SW), a
+    // hard fallback reload guarantees the page actually refreshes onto the new
+    // build — so the banner can never get stuck showing forever.
+    const applyUpdate = () => {
+      try { updateServiceWorker(true); } catch { /* noop */ }
+      setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 2500);
+    };
     const tryUpdate = (reason) => {
       if (updating) return;
       setUpdating(true);
       // Tiny defer so the "UPDATING…" pill paints once before the reload.
-      setTimeout(() => updateServiceWorker(true), 400);
+      setTimeout(() => applyUpdate(), 400);
     };
 
     // Apply when tab is backgrounded — typing definitely paused.
@@ -53,7 +61,7 @@ export default function SwUpdateBanner() {
   }, [needRefresh, updating, updateServiceWorker]);
 
   if (!needRefresh) return null;
-  const onClick = () => { setUpdating(true); setTimeout(() => updateServiceWorker(true), 200); };
+  const onClick = () => { setUpdating(true); setTimeout(() => { try { updateServiceWorker(true); } catch { /* noop */ } setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 2500); }, 200); };
   return (
     <div style={{
       position: 'fixed', bottom: 'calc(14px + env(safe-area-inset-bottom))', left: '50%', transform: 'translateX(-50%)',
