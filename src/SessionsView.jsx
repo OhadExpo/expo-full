@@ -14,7 +14,7 @@
 // overlay) launch per-athlete from here but are separate surfaces.
 
 import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react';
-import { C, FN, FB } from './theme';
+import { C, FN, FB, FH } from './theme';
 import { supabase } from './supabase';
 import { RefinedHeaderStrip, toast, confirmToast } from './ui';
 import { traineeIdsFor } from './traineeUtils';
@@ -86,6 +86,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   const [session, setSession] = useState(null); // { id, startedAt, athletes: [...] }
   const [loaded, setLoaded] = useState(false);
   const [picking, setPicking] = useState(false);
+  const [planDays, setPlanDays] = useState({}); // planId → days[] (for live tempo/video/cue lookup)
   const saveTimer = useRef(null);
 
   const exById = useMemo(() => {
@@ -111,6 +112,40 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     }
     return out;
   }, [clientWorkouts]);
+
+  // Load plan day-data for everyone in the session so each card can resolve
+  // tempo / video / cue LIVE from the source of truth — not from a snapshot
+  // taken at add-time (which old sessions lack, and which goes stale). This is
+  // why video/tempo were missing.
+  useEffect(() => {
+    const ids = [...new Set((session?.athletes || []).map(a => a.planId).filter(Boolean))].filter(id => !planDays[id]);
+    if (!ids.length) return;
+    (async () => {
+      try {
+        const { data } = await supabase.from('plans').select('id,data').in('id', ids);
+        if (data?.length) setPlanDays(prev => { const n = { ...prev }; for (const p of data) n[p.id] = p.data?.days || []; return n; });
+      } catch {}
+    })();
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
+  // `${planId}|${eid}` → { tempo, videoUrl, cue } resolved from the plan + library.
+  const exDetail = useMemo(() => {
+    const out = {};
+    for (const [pid, days] of Object.entries(planDays)) {
+      for (const d of (days || [])) {
+        for (const ex of (d.exercises || d.ex || [])) {
+          const eid = ex.exerciseId || ex.eid || '';
+          if (!eid) continue;
+          const lib = exById.get(eid);
+          out[`${pid}|${eid}`] = {
+            tempo: ex.tempo ?? '',
+            videoUrl: ex.videoUrl ?? ex.vid ?? lib?.videoLink ?? '',
+            cue: ex.notes ?? ex.n ?? lib?.cues ?? '',
+          };
+        }
+      }
+    }
+    return out;
+  }, [planDays, exById]);
 
   // ---- load / persist active session ----
   useEffect(() => {
@@ -247,7 +282,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
         {session.athletes.map((a, ai) => (
           <AthleteCard key={a.rowId} a={a} name={(traineeById[a.traineeId]?.name) || a.traineeId}
-            prevMap={prevByKey[`${a.traineeId}|${a.planName}|${a.dayName}`]}
+            prevMap={prevByKey[`${a.traineeId}|${a.planName}|${a.dayName}`]} exDetail={exDetail}
             onToggleIn={() => mutate(d => { d.athletes[ai].checkedIn = !d.athletes[ai].checkedIn; })}
             onSet={(ei, si, patch) => mutate(d => { Object.assign(d.athletes[ai].exercises[ei].sets[si], patch); })}
             onCurEx={(ei) => mutate(d => { d.athletes[ai].curEx = ei; })}
@@ -292,7 +327,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
 }
 
 // ---- per-athlete logging card ----
-function AthleteCard({ a, name, prevMap, onToggleIn, onSet, onCurEx, onRemove }) {
+function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, onRemove }) {
   const COLS = '16px 1fr 1fr 0.8fr 30px';
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
@@ -310,6 +345,10 @@ function AthleteCard({ a, name, prevMap, onToggleIn, onSet, onCurEx, onRemove })
         {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>No exercises on this day.</div>}
         {a.exercises.map((ex, ei) => {
           const prevSets = prevMap?.get(ex.eid);
+          const det = exDetail?.[`${a.planId}|${ex.eid}`] || {};
+          const tempo = ex.tempo || det.tempo || '';
+          const videoUrl = ex.videoUrl || det.videoUrl || '';
+          const cue = det.cue || '';
           const open = a.curEx === ei;
           const doneCount = ex.sets.filter(s => s.done).length;
           const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
@@ -321,16 +360,17 @@ function AthleteCard({ a, name, prevMap, onToggleIn, onSet, onCurEx, onRemove })
               <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
                 {allDone && <span style={{ color: C.gn, marginRight: 4 }}>✓</span>}{ex.title}
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm }}>{ex.prescribed}</span>
-                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: allDone ? C.gn : C.td }}>{doneCount}/{ex.sets.length}</span>
-                <span style={{ color: '#FFF', fontSize: 11, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 600, color: C.tm }}>{ex.prescribed}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: allDone ? C.gn : C.td }}>{doneCount}/{ex.sets.length}</span>
+                <span style={{ color: '#FFF', fontSize: 12, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
               </span>
             </div>
             {open && (
             <div style={{ padding: '0 8px 8px' }} onClick={e => e.stopPropagation()}>
-              {ex.tempo && <div style={{ fontFamily: FN, fontSize: 10, color: C.or, letterSpacing: '0.04em', marginBottom: 2 }}>⏱ {ex.tempo}</div>}
-              {ex.videoUrl && <InlineVideo url={ex.videoUrl} />}
+              {tempo && <div style={{ fontFamily: FN, fontSize: 11, color: C.or, letterSpacing: '0.04em', marginBottom: 4 }}>⏱ {tempo}</div>}
+              {cue && <div style={{ fontSize: 11.5, color: C.tx, lineHeight: 1.45, marginBottom: 6, background: 'rgba(57,189,255,0.06)', borderInlineStart: `3px solid ${C.ac}`, padding: '6px 8px', direction: /[֐-׿]/.test(cue) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(cue) ? FH : FB, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{cue}</div>}
+              {videoUrl && <InlineVideo url={videoUrl} />}
               <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, marginTop: 8, marginBottom: 2 }}>
                 {['', 'KG', 'REPS', 'RPE', '✓'].map(h => <span key={h} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
               </div>
