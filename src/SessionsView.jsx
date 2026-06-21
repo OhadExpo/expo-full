@@ -356,15 +356,19 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
           <div key={ei} style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent' }}>
             {/* Collapsed header — tap to expand (accordion: one open at a time).
                 Title WRAPS on whole words instead of truncating. */}
-            <div onClick={() => onCurEx(open ? -1 : ei)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, padding: 8, cursor: 'pointer' }}>
-              <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
-                {allDone && <span style={{ color: C.gn, marginRight: 4 }}>✓</span>}{ex.title}
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 600, color: C.tm }}>{ex.prescribed}</span>
-                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: allDone ? C.gn : C.td }}>{doneCount}/{ex.sets.length}</span>
-                <span style={{ color: '#FFF', fontSize: 12, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
-              </span>
+            <div onClick={() => onCurEx(open ? -1 : ei)} style={{ padding: 8, cursor: 'pointer' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
+                  {allDone && <span style={{ color: C.gn, marginRight: 4 }}>✓</span>}{ex.title}
+                </span>
+                <span style={{ color: '#FFF', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+              </div>
+              {/* Prescription on its own line — clear, not crammed beside the
+                  wrapping title. SETS × REPS + a muted done-count. */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+                <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac }}>{ex.prescribed}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}>{doneCount}/{ex.sets.length} DONE</span>
+              </div>
             </div>
             {open && (
             <div style={{ padding: '0 8px 8px' }} onClick={e => e.stopPropagation()}>
