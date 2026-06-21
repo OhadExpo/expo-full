@@ -257,13 +257,35 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   const [pickSearch, setPickSearch] = useState("");
   const [pickOpen, setPickOpen] = useState(null);
   const [weekByPlan, setWeekByPlan] = useState({});
-  // Default week for a plan = the athlete's next un-logged week (max logged in
-  // their portal history + 1, capped at block length), else W1.
-  const defaultWeekFor = (p) => {
-    const wks = (clientWorkouts || []).filter(x => x.clientId === p.traineeId && x.planName === p.name).map(x => Number(x.week) || 1);
-    const max = wks.length ? Math.max(...wks) : 0;
-    return Math.min(Number(p.weeks) || 4, Math.max(1, max + 1));
+  // Next un-logged (week, dayIdx) for a plan — the autopicker rule, IDENTICAL to
+  // the group session's nextWorkout: scan weeks then days, return the first
+  // (week, day) the athlete hasn't logged in their portal history. Partially-done
+  // week stays in that week (W1 day1 done, day2 not → W1 day2, NOT W2). Fully-done
+  // block → last week, day 0 (nothing left). This is "the workout we're on".
+  const nextWorkoutFor = (p) => {
+    const dayNames = p.dayNames || [];
+    const planWeeks = Number(p.weeks) || 4;
+    if (!dayNames.length) return { week: 1, dayIdx: 0 };
+    const done = new Set((clientWorkouts || [])
+      .filter(x => x.clientId === p.traineeId && x.planName === p.name)
+      .map(x => `${Number(x.week) || 1}|${x.dayName}`));
+    for (let wk = 1; wk <= planWeeks; wk++) {
+      for (let di = 0; di < dayNames.length; di++) {
+        if (!done.has(`${wk}|${dayNames[di]}`)) return { week: wk, dayIdx: di };
+      }
+    }
+    return { week: planWeeks, dayIdx: 0 };
   };
+  // First un-logged day within a SPECIFIC week (so the day highlight follows the
+  // coach's week pick). -1 if every day that week is already done.
+  const nextDayInWeek = (p, week) => {
+    const doneDays = new Set((clientWorkouts || [])
+      .filter(x => x.clientId === p.traineeId && x.planName === p.name && (Number(x.week) || 1) === week)
+      .map(x => x.dayName));
+    return (p.dayNames || []).findIndex(d => !doneDays.has(d));
+  };
+  // Default week for a plan = the week of the next un-logged workout.
+  const defaultWeekFor = (p) => nextWorkoutFor(p).week;
   // Seed the trainee filter from sessionStorage — set by the "LOG SESSION"
   // button on TraineeDetail so the coach lands here pre-filtered to the
   // athlete they were just looking at. Stash is consumed on first mount.
@@ -450,7 +472,14 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                                   style={{minWidth:32,padding:'3px 0',borderRadius:0,border:`${selWeek===wn?'2px':'1px'} solid ${selWeek===wn?C.ac:C.cardBd}`,background:selWeek===wn?'rgba(57,189,255,0.1)':'transparent',color:selWeek===wn?C.ac:C.tm,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer'}}>W{wn}</button>
                               ))}
                             </div>}
-                            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{(p.dayNames||[]).map((dName,i)=><Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i,selWeek)} style={{fontSize:12,padding:"5px 12px"}}>▶ {dName}</Btn>)}</div>
+                            {(() => { const nextDay = nextDayInWeek(p, selWeek); return (
+                            <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>{(p.dayNames||[]).map((dName,i)=>{
+                              const isNext = i===nextDay;
+                              return <Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i,selWeek)}
+                                title={isNext?'Next workout — the one to do now':undefined}
+                                style={{fontSize:12,padding:"5px 12px",...(isNext?{border:`2px solid ${C.ac}`,background:'rgba(57,189,255,0.1)',color:C.ac,fontWeight:700}:{})}}>▶ {dName}{isNext?'  ·  NEXT':''}</Btn>;
+                            })}</div>
+                            ); })()}
                           </div>
                           );
                         })}

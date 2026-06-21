@@ -1772,9 +1772,24 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     const name = activePlan?.name;
     if (!name || lastBlockRef.current === name) return;
     lastBlockRef.current = name;
-    const wks = cw.filter(w => w.planName === name).map(w => Number(w.week) || 1);
-    const max = wks.length ? Math.max(...wks) : 0;
-    setWk(Math.max(0, Math.min(Number(activePlan.weeks) || 4, max + 1) - 1));
+    // Same autopicker rule single + group use: scan weeks then days, open on the
+    // week of the FIRST un-logged (week, day) — a partially-done week stays put
+    // (W1 day1 done, day2 not → W1, not W2). All three derive identically from
+    // the shared client_workouts, so the week shown here matches what the coach
+    // sees in single/group. Fully-done block → last week.
+    const planWeeks = Number(activePlan.weeks) || 4;
+    const dayNames = (activePlan.days || []).map(d => d.name).filter(Boolean);
+    const done = new Set(cw.filter(w => w.planName === name).map(w => `${Number(w.week) || 1}|${w.dayName}`));
+    let nextWk = planWeeks;
+    if (dayNames.length) {
+      outer: for (let w = 1; w <= planWeeks; w++) {
+        for (const dn of dayNames) { if (!done.has(`${w}|${dn}`)) { nextWk = w; break outer; } }
+      }
+    } else {
+      const wks = cw.filter(w => w.planName === name).map(w => Number(w.week) || 1);
+      nextWk = Math.min(planWeeks, (wks.length ? Math.max(...wks) : 0) + 1);
+    }
+    setWk(Math.max(0, Math.min(planWeeks, nextWk) - 1));
   }, [activePlan?.name]); // eslint-disable-line react-hooks/exhaustive-deps
   const handleComplete = w => {
     // demoMode = coach-side preview. Writes must never touch the real
