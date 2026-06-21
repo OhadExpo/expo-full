@@ -69,10 +69,10 @@ export default function SessionsView({ mode = 'group', ...props }) {
       </div>
     );
   }
-  return <GroupSessions trainees={props.trainees} planIndex={props.planIndex} exercises={props.exercises} clientWorkouts={props.clientWorkouts} workouts={props.workouts} />;
+  return <GroupSessions trainees={props.trainees} planIndex={props.planIndex} exercises={props.exercises} clientWorkouts={props.clientWorkouts} setClientWorkouts={props.setClientWorkouts} workouts={props.workouts} />;
 }
 
-function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWorkouts = [], workouts = [], onBack }) {
+function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWorkouts = [], setClientWorkouts, workouts = [], onBack }) {
   const [session, setSession] = useState(null); // { id, startedAt, athletes: [...] }
   const [loaded, setLoaded] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -161,19 +161,26 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
 
   const finishSession = useCallback(async () => {
     if (!session) return;
+    // Each athlete's next un-logged week for this plan+day (so a group session
+    // lands in the right week, not always W1).
+    const nextWeek = (tid, planName, dayName) => {
+      const wks = (clientWorkouts || []).filter(x => x.clientId === tid && x.planName === planName && x.dayName === dayName).map(x => Number(x.week) || 1);
+      return wks.length ? Math.max(...wks) + 1 : 1;
+    };
+    const finishedAt = new Date().toISOString();
     const completed = session.athletes
       .map(a => {
         const exDone = a.exercises.filter(ex => ex.sets.some(s => s.done));
         if (!exDone.length) return null;
         return {
-          id: 'w_' + uid(),
+          id: 'cw_' + uid(),
           clientId: a.traineeId,
           planName: a.planName,
           dayName: a.dayName,
-          week: 1,
-          date: new Date().toISOString(),
-          notes: 'Logged in gym session',
-          formVideos: [],
+          week: nextWeek(a.traineeId, a.planName, a.dayName),
+          date: finishedAt, completedAt: finishedAt,
+          notes: 'Logged in group session',
+          formVideos: [], reviewedAt: finishedAt, source: 'group-session',
           exercises: a.exercises.map(ex => ({
             eid: ex.eid, title: ex.title, prescribed: ex.prescribed,
             sets: ex.sets.filter(s => s.done).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: true })),
@@ -184,23 +191,16 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       .filter(Boolean);
     if (!completed.length) {
       if (!(await confirmToast('No sets are marked done. End the session anyway (nothing will be saved)?', { okLabel: 'End', cancelLabel: 'Keep going' }))) return;
-    } else {
-      // TRIAL ISOLATION: do NOT write to client_workouts — that is the table
-      // every athlete reads in their portal History, and Sessions is an
-      // owner-only trial right now (trainees must not see anything). Finished
-      // sessions append to a coach-only store log instead. Flip this to the
-      // client_workouts write (the `completed` array is already in portal
-      // shape) only when Ohad takes Sessions live for real.
-      try {
-        const { data: prev } = await supabase.from('store').select('value').eq('key', LOGKEY).maybeSingle();
-        const log = Array.isArray(prev?.value) ? prev.value : [];
-        await supabase.from('store').upsert({ key: LOGKEY, value: [...log, { at: new Date().toISOString(), sessions: completed }], updated_at: new Date().toISOString() });
-      } catch {}
+    } else if (setClientWorkouts) {
+      // Unified with Single + Portal: write to client_workouts so each athlete's
+      // group-session work shows in their portal History, coach page, and feeds
+      // the previous-week ghost — same store all three logging surfaces use.
+      setClientWorkouts(prev => [...prev, ...completed]);
     }
     try { await supabase.from('store').delete().eq('key', SKEY); } catch {}
     setSession(null);
-    if (completed.length) toast(`Trial session logged (coach-only) · ${completed.length} athlete${completed.length === 1 ? '' : 's'}`, 'success', { ttl: 4000 });
-  }, [session]);
+    if (completed.length) toast(`${completed.length} athlete${completed.length === 1 ? '' : 's'} logged to their history`, 'success', { ttl: 4000 });
+  }, [session, clientWorkouts, setClientWorkouts]);
 
   if (!loaded) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
 
