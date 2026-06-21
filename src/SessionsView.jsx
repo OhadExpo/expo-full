@@ -482,7 +482,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
             const weeks = Number(plan?.weeks) || 8;
             const wkVal = Number(r.week) || (r.planId ? dfltWeek(r) : 1);
             return (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 1fr 0.7fr 28px', gap: 6, alignItems: 'center' }}>
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 0.7fr 1fr 28px', gap: 6, alignItems: 'center' }}>
                 <select value={r.traineeId} onChange={e => { const tid = e.target.value; const nx = tid ? nextWorkout(tid) : null; setRow(i, nx ? { traineeId: tid, planId: nx.planId, dayIdx: nx.dayIdx, week: nx.week } : { traineeId: tid, planId: '', dayIdx: 0, week: 0 }); }} style={sel}>
                   <option value="">— athlete —</option>
                   {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -491,11 +491,12 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
                   <option value="">— program —</option>
                   {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
-                <select value={r.dayIdx} onChange={e => setRow(i, { dayIdx: Number(e.target.value), week: 0 })} style={sel} disabled={!r.planId}>
-                  {dayNames.length ? dayNames.map((d, di) => <option key={di} value={di}>{d || `Day ${di + 1}`}</option>) : <option value={0}>Day 1</option>}
-                </select>
+                {/* Week before day — pick the week, then the day within it. */}
                 <select value={wkVal} onChange={e => setRow(i, { week: Number(e.target.value) })} style={sel} disabled={!r.planId} title="Week to log into">
                   {Array.from({ length: weeks }, (_, wi) => wi + 1).map(wn => <option key={wn} value={wn}>W{wn}</option>)}
+                </select>
+                <select value={r.dayIdx} onChange={e => setRow(i, { dayIdx: Number(e.target.value) })} style={sel} disabled={!r.planId}>
+                  {dayNames.length ? dayNames.map((d, di) => <option key={di} value={di}>{d || `Day ${di + 1}`}</option>) : <option value={0}>Day 1</option>}
                 </select>
                 <button onClick={() => delRow(i)} style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
               </div>
