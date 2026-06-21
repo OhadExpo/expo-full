@@ -232,12 +232,12 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
         {plans.length > 1 && <button onClick={()=>bulkOnlyCurrent(plans, keyFn)}
           title="Hide all blocks except the most recent one"
-          style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:32,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>
+          style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>
           ONLY CURRENT
         </button>}
         <button onClick={()=>bulkSetVis(plans, keyFn, !showing)}
           title={showing ? "Hide all from portal" : "Show all on portal"}
-          style={{background:'var(--c-sf)',border:`1px solid ${showing?C.rd:C.gn}`,borderRadius:0,height:32,padding:"0 12px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>
+          style={{background:'var(--c-sf)',border:`1px solid ${showing?C.rd:C.gn}`,borderRadius:0,height:28,padding:"0 12px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>
           {showing ? 'HIDE ALL' : 'SHOW ALL'}
         </button>
       </div>
