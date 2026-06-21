@@ -1736,17 +1736,26 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               CoachPreviewPortal back button is the only escape there)
               AND in embedded mode (DemoEmbed iframe — the outer marketing
               page already shows the EXPO mark; doubling it looks busy). */}
-          {embedded ? (
-            <span style={{width:36}} aria-hidden="true" />
-          ) : onReturnToCoach && !demoMode ? (
-            <button onClick={onReturnToCoach}
-              title="Switch to the coach portal"
-              style={{background:'transparent',border:'none',padding:0,marginLeft:3,cursor:'pointer',display:'flex',alignItems:'center'}}>
-              <EXPOMark theme="dark" height={36} style={{marginLeft:0}} />
-            </button>
-          ) : (
-            <EXPOMark theme="dark" height={36} style={{marginLeft:3}} />
-          )}
+          <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+            {embedded ? (
+              <span style={{width:36}} aria-hidden="true" />
+            ) : onReturnToCoach && !demoMode ? (
+              <button onClick={onReturnToCoach}
+                title="Switch to the coach portal"
+                style={{background:'transparent',border:'none',padding:0,marginLeft:3,cursor:'pointer',display:'flex',alignItems:'center'}}>
+                <EXPOMark theme="dark" height={36} style={{marginLeft:0}} />
+              </button>
+            ) : (
+              <EXPOMark theme="dark" height={36} style={{marginLeft:3}} />
+            )}
+            {/* Co-brand for Bnei Herzliya athletes (trainee.branch tag). */}
+            {trainee?.branch === 'Bnei Herzliya' && (
+              <>
+                <span style={{width:1,height:26,background:C.bd2,flexShrink:0}} />
+                <img src="/bnei-herzliya-logo.png" alt="Bnei Herzliya" style={{height:34,width:'auto',objectFit:'contain',flexShrink:0}} />
+              </>
+            )}
+          </div>
           <div style={{display:'flex',alignItems:'center',gap:14}}>
             {!demoMode && (() => {
               // trainee.email is either a string or an array (up to 3 per
