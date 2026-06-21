@@ -388,6 +388,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   const filtered = [...filteredUnsorted].sort((a, b) => {
     const aHeb = hasHebrew(a.name);
     const bHeb = hasHebrew(b.name);
+    // STATUS sort takes precedence over the HE/EN language split so it reads as
+    // one clean Active → On Hold → Inactive list (name as tie-break).
+    if (sortBy === 'status') {
+      const RANK = { Active: 0, Trial: 1, 'On Hold': 2, Inactive: 3, Archived: 4 };
+      let cmp = (RANK[a.status] ?? 99) - (RANK[b.status] ?? 99);
+      if (cmp === 0) cmp = sortNameKey(a).localeCompare(sortNameKey(b), aHeb ? 'he' : 'en', { sensitivity: 'base' });
+      return sortDir === 'desc' ? -cmp : cmp;
+    }
     if (aHeb !== bHeb) {
       // HE-first: HE block sorts BEFORE EN block. EN-first: opposite.
       if (langOrder === 'he-first') return aHeb ? -1 : 1;
@@ -510,6 +518,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           }}>
             {[
               { id: 'name',        label: 'NAME' },
+              { id: 'status',      label: 'STATUS' },
               { id: 'lastTrained', label: 'LAST TRAINED' },
               { id: 'payment',     label: 'PAYMENT' },
             ].map(o => (
@@ -530,7 +539,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             ) : (
               <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
                 title={
-                  sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first')
+                  sortBy === 'status' ? (sortDir === 'asc' ? 'Active first' : 'Inactive first')
+                  : sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first')
                   : (sortDir === 'asc' ? 'Paid → Overdue' : 'Overdue → Paid')
                 }
                 style={{
@@ -538,7 +548,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                   border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac,
                   fontSize: 10, letterSpacing: '0.12em',
                 }}>{
-                  sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST')
+                  sortBy === 'status' ? (sortDir === 'asc' ? '↓ ACTIVE' : '↑ INACTIVE')
+                  : sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST')
                   : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
                 }</button>
             )}
