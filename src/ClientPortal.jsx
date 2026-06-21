@@ -1025,7 +1025,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return () => clearTimeout(t);
   }, [showResumedPill]);
   const bar = <div style={{padding:'calc(10px + env(safe-area-inset-top)) 16px 10px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
-    <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',height:32}}>
+    <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',minHeight:40}}>
       <EXPOMark theme="dark" height={36} style={{flexShrink:0}} />
       <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
       {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
@@ -1037,8 +1037,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </span>
       )}
       {showResumedPill && <span title="Restored from your last session" style={{marginLeft:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
-      {/* Bnei Herzliya team crest — top-right of the step-logger header. */}
-      {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:24,width:'auto',objectFit:'contain',marginLeft:(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error' || showResumedPill) ? 8 : 'auto',flexShrink:0}} />}
+      {/* Bnei Herzliya team crest — top-right of the step-logger header,
+          readable size, vertically centered with the EXPO mark and ← Exit. */}
+      {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',marginLeft:(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error' || showResumedPill) ? 10 : 'auto',flexShrink:0}} />}
       <button onClick={onBack} style={{marginLeft:8,background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
