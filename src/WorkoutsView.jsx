@@ -142,7 +142,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
               {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
             </div>
             <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
-              {[['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',ex.tempo],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']]
+              {[['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',(ex.tempo && String(ex.tempo)!==String(ex.reps))?ex.tempo:''],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']]
                 .filter(([,v])=>v!=null && v!=='' )
                 .map(([k,v])=>(
                   <span key={k} style={{display:'inline-flex',flexDirection:'column',lineHeight:1.15}}>

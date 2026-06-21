@@ -1243,7 +1243,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </React.Suspense>
       )}
       <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
-      {ex.tempo && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
+      {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
 
       {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>

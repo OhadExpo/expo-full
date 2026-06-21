@@ -372,7 +372,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
             </div>
             {open && (
             <div style={{ padding: '0 8px 8px' }} onClick={e => e.stopPropagation()}>
-              {tempo && <div style={{ fontFamily: FN, fontSize: 11, color: C.or, letterSpacing: '0.04em', marginBottom: 4 }}>⏱ {tempo}</div>}
+              {tempo && !String(ex.prescribed || '').includes(tempo) && <div style={{ fontFamily: FN, fontSize: 11, color: C.or, letterSpacing: '0.04em', marginBottom: 4 }}>⏱ {tempo}</div>}
               {cue && <div style={{ fontSize: 11.5, color: C.tx, lineHeight: 1.45, marginBottom: 6, background: 'rgba(57,189,255,0.06)', borderInlineStart: `3px solid ${C.ac}`, padding: '6px 8px', direction: /[֐-׿]/.test(cue) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(cue) ? FH : FB, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{cue}</div>}
               {videoUrl && <InlineVideo url={videoUrl} />}
               <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, marginTop: 8, marginBottom: 2 }}>
