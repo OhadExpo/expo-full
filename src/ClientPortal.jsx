@@ -574,11 +574,24 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // upload let anyone on the internet write to any folder — the source of the
     // orphaned t4/t5/_lib objects and a bucket-fill DoS. With the session token
     // the INSERT policy can scope writes to the caller's own trainee folder.
-    let bearer = SUPA_PUBLISHABLE_KEY;
+    // Authed uploads MUST carry the athlete's token — the INSERT policy requires
+    // auth.uid(). A long realtime compress or a backgrounded phone can expire
+    // the access token mid-flow; the old anon-key fallback then 403'd and the
+    // recording was silently DROPPED. Refresh when near expiry, fall back to the
+    // current session, and refuse (so the catch queues it + prompts re-auth)
+    // rather than fire an unauthenticated request that's guaranteed to 403.
+    let bearer;
     try {
-      const { data } = await supabase.auth.getSession();
-      if (data?.session?.access_token) bearer = data.session.access_token;
-    } catch { /* fall back to anon key; tightened policy will reject if unauthed */ }
+      const { data: cur } = await supabase.auth.getSession();
+      let tok = cur?.session?.access_token;
+      const expSoon = cur?.session?.expires_at ? (cur.session.expires_at * 1000 - Date.now() < 120000) : true;
+      if (expSoon) { try { const { data: r } = await supabase.auth.refreshSession(); if (r?.session?.access_token) tok = r.session.access_token; } catch { /* keep existing token */ } }
+      bearer = tok;
+    } catch { /* no session available */ }
+    if (!bearer) {
+      const e = new Error('Session expired — sign out and back in to upload. Your recording is saved.');
+      e.httpStatus = 401; e.authExpired = true; reject(e); return;
+    }
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', url);
@@ -600,13 +613,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         // opaque "Upload failed: 413" is exactly what hid Ron's outage.
         console.error('Upload response:', xhr.status, xhr.responseText);
         let serverMsg = '';
-        try { serverMsg = JSON.parse(xhr.responseText)?.message || JSON.parse(xhr.responseText)?.error || ''; } catch { serverMsg = ''; }
+        if (xhr.responseText) { try { const j = JSON.parse(xhr.responseText); serverMsg = j?.message || j?.error || ''; } catch { serverMsg = xhr.responseText.slice(0, 200); } }
         const err = new Error(serverMsg ? `${serverMsg} (${xhr.status})` : `Upload failed: ${xhr.status}`);
         err.httpStatus = xhr.status;
         reject(err);
       }
     };
     xhr.onerror = () => reject(new Error('Upload network error'));
+    // Flaky mobile networks can leave a request in flight forever (neither
+    // onload nor onerror fires) — the slot froze at 99% with no recovery. A
+    // timeout settles it as 408 (classified transient → offline queue), so the
+    // recording survives and retries.
+    xhr.timeout = 120000;
+    xhr.ontimeout = () => { const e = new Error('Upload timed out'); e.httpStatus = 408; reject(e); };
     xhr.send(blob); // Send raw blob, NOT FormData
   });
 
@@ -796,6 +815,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const { error } = await supabase.storage.from('form-videos').upload(path, uploadBlob, { upsert: true, contentType });
         if (error) throw error;
         const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(path);
+        // Never save a phantom success: if the URL is missing, throw into the
+        // catch (which queues/retries) instead of marking uploaded with null.
+        if (!urlData?.publicUrl) throw new Error('no public url after upload');
         publicUrl = urlData.publicUrl;
       }
 
@@ -819,14 +841,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // exclude phrases that are definitely permanent even when wrapped in a
       // fetch-shaped error (e.g. supabase-js "Failed to fetch" masking a 413).
       const status = err?.httpStatus ?? err?.status ?? err?.statusCode;
-      const permanentByStatus = typeof status === 'number' && status >= 400 && status < 500 && ![408, 429].includes(status);
-      const permanentByMsg = /payload too large|exceeded|maximum allowed|row-level security|invalid|not allowed|mime/i.test(msg);
+      // Auth-expiry is RECOVERABLE (re-sign-in) — treat it as transient so the
+      // recording is queued and survives, and prompt the athlete instead of
+      // dropping it with an opaque 403.
+      const isAuth = !!err?.authExpired || status === 401 || (status === 403 && /jwt|token|expired|signature|auth/i.test(msg));
+      const permanentByStatus = !isAuth && typeof status === 'number' && status >= 400 && status < 500 && ![408, 429].includes(status);
+      // 'invalid' alone matched transient framings ("invalid request"); scope it.
+      const permanentByMsg = /payload too large|exceeded|maximum allowed|row-level security|invalid (jwt|token|signature|mime)|not allowed|mime type/i.test(msg);
       const transientByMsg = /network|fetch|timeout|abort|offline|load failed/i.test(msg);
-      const looksTransient = !permanentByStatus && !permanentByMsg && (offline || (typeof status === 'number' ? status >= 500 || status === 408 || status === 429 : transientByMsg));
+      const looksTransient = isAuth || (!permanentByStatus && !permanentByMsg && (offline || (typeof status === 'number' ? status >= 500 || status === 408 || status === 429 : transientByMsg)));
       if (looksTransient) {
         try {
           const blobId = newBlobId();
           await enqueueBlob({ id: blobId, blob: uploadBlob, contentType, storagePath: path });
+          if (isAuth) toast('Session expired — sign back in. Your video is saved and will upload once you do.', 'warn', { ttl: 9000 });
           // Keep previewUrl alive — it's the only way to play the recording
           // until the blob queue uploads it. Browser GC reclaims it when the
           // tab closes or when we revoke after a successful drain.

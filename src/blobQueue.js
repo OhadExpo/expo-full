@@ -255,20 +255,30 @@ export async function drainBlobs() {
         await deleteEntry(entry.id);
       } catch (e) {
         const cur = await getEntry(entry.id);
-        if (cur) {
-          cur.attempts = (cur.attempts || 0) + 1;
-          cur.lastError = e?.message || String(e);
-          if (cur.attempts >= MAX_ATTEMPTS) {
-            await deleteEntry(entry.id);
-            if (onErrorHook) {
-              try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath }, msg: cur.lastError }); } catch {}
-            }
-          } else {
-            await writeEntry(cur);
-            // Stop on first failure; will retry on next trigger.
-            break;
-          }
+        if (!cur) break;
+        const msg = e?.message || String(e);
+        const st = e?.status ?? e?.statusCode ?? e?.httpStatus;
+        cur.lastError = msg;
+        // Classify like the live uploader: a permanent failure (RLS/payload/mime,
+        // or a definite 4xx) will NEVER succeed on retry — drop it now and
+        // surface the real reason instead of looping the full cap then dropping
+        // silently. Auth-expiry (401/403-auth) is RECOVERABLE via re-sign-in, so
+        // keep it queued (don't count attempts) until the next drain after login.
+        const isAuth = st === 401 || (st === 403 && /jwt|token|expired|signature|auth/i.test(msg));
+        const permanent = !isAuth && ((typeof st === 'number' && st >= 400 && st < 500 && ![408, 429].includes(st)) || /row-level security|permission denied|payload too large|exceeded|maximum allowed|mime type|not allowed/i.test(msg));
+        if (permanent) {
+          await deleteEntry(entry.id);
+          if (onErrorHook) { try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath, workoutId: entry.workoutId }, msg }); } catch {} }
+          try { window.dispatchEvent(new CustomEvent('expo-blob-failed', { detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, reason: 'permanent', msg } })); } catch {}
+          continue; // next entry — don't burn retries on a doomed upload
+        }
+        if (!isAuth) cur.attempts = (cur.attempts || 0) + 1;
+        if (cur.attempts >= MAX_ATTEMPTS) {
+          await deleteEntry(entry.id);
+          if (onErrorHook) { try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath }, msg }); } catch {} }
         } else {
+          await writeEntry(cur);
+          // Stop on first transient failure; will retry on next trigger.
           break;
         }
       }
