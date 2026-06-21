@@ -178,6 +178,46 @@ async function patchLocalCw(workoutId, exerciseIndex, cloudUrl) {
   }
 }
 
+// Mirror of patchLocalCw for the DROP path: a blob that will never upload
+// (oversize / permanent error / gave up after MAX_ATTEMPTS) must stop showing
+// as "pending upload" forever. Clear pendingBlobId and flag the slot failed so
+// the history/review UI shows a failed marker instead of a perpetual spinner,
+// then persist via the regular offlineQueue so a reload from the server doesn't
+// resurrect the stale pendingBlobId. Returns the patched formVideos (or null).
+async function markCwBlobFailed(workoutId, exerciseIndex, reason) {
+  if (!workoutId || exerciseIndex == null) return null;
+  try {
+    const raw = localStorage.getItem('expo-cw');
+    if (!raw) return null;
+    const arr = JSON.parse(raw);
+    let nextFv = null;
+    const next = arr.map(w => {
+      if (w.id !== workoutId) return w;
+      const fv = (w.formVideos || []).map((f, i) => {
+        if (i !== exerciseIndex) return f;
+        const { pendingBlobId, ...rest } = f || {};
+        return { ...rest, has: false, cloudUrl: null, uploadFailed: true, failReason: reason || 'upload failed' };
+      });
+      nextFv = fv;
+      return { ...w, formVideos: fv };
+    });
+    localStorage.setItem('expo-cw', JSON.stringify(next));
+    try { window.dispatchEvent(new CustomEvent('expo-cw-patched', { detail: { workoutId } })); } catch {}
+    if (nextFv) {
+      // Idempotent last-write-wins update; same dedupeKey as the success path so
+      // a success and a later failure for the same workout don't both linger.
+      enqueueOp({
+        type: 'client_workouts.update',
+        payload: { id: workoutId, patch: { form_videos: nextFv } },
+        dedupeKey: 'fv:' + workoutId,
+      });
+    }
+    return nextFv;
+  } catch {
+    return null;
+  }
+}
+
 export async function drainBlobs() {
   if (draining) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
@@ -207,6 +247,7 @@ export async function drainBlobs() {
               detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, reason: 'oversize', mb },
             }));
           } catch {}
+          await markCwBlobFailed(entry.workoutId, entry.exerciseIndex, `too large (${mb}MB)`);
           continue;
         }
         const { error } = await supabase.storage
@@ -277,12 +318,15 @@ export async function drainBlobs() {
           await deleteEntry(entry.id);
           if (onErrorHook) { try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath, workoutId: entry.workoutId }, msg }); } catch {} }
           try { window.dispatchEvent(new CustomEvent('expo-blob-failed', { detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, reason: 'permanent', msg } })); } catch {}
+          await markCwBlobFailed(entry.workoutId, entry.exerciseIndex, msg);
           continue; // next entry — don't burn retries on a doomed upload
         }
         if (!isAuth) cur.attempts = (cur.attempts || 0) + 1;
         if (cur.attempts >= MAX_ATTEMPTS) {
           await deleteEntry(entry.id);
           if (onErrorHook) { try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath }, msg }); } catch {} }
+          try { window.dispatchEvent(new CustomEvent('expo-blob-failed', { detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, reason: 'max-attempts', msg } })); } catch {}
+          await markCwBlobFailed(entry.workoutId, entry.exerciseIndex, msg);
         } else {
           await writeEntry(cur);
           // Stop on first transient failure; will retry on next trigger.

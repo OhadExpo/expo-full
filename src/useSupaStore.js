@@ -18,7 +18,7 @@ export function onSaveError(listener) {
   saveErrorListeners.add(listener);
   return () => saveErrorListeners.delete(listener);
 }
-function emitSaveError(err) {
+export function emitSaveError(err) {
   for (const l of saveErrorListeners) {
     try { l(err); } catch {}
   }

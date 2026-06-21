@@ -351,7 +351,10 @@ export function SaveErrorToast() {
         <div key={e.id} style={{ background: C.bg, border: `1px solid ${C.rd || '#c94444'}`, color: C.rd || '#ff6b6b', borderRadius: 0, padding: '12px 14px', fontFamily: FB, fontSize: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
           <div style={{ fontFamily: FN, fontWeight: 700, fontSize: 9, letterSpacing: '0.18em', marginBottom: 4 }}>SAVE FAILED — {e.key} · {e.op}</div>
           <div style={{ color: C.tx, fontSize: 12 }}>{e.msg}</div>
-          <div style={{ color: C.tm, fontSize: 10, marginTop: 4 }}>Your data is still in local memory. Check connection and retry.</div>
+          {/* A dropped/unstorable VIDEO is gone — don't claim it's "still in
+              local memory" (it isn't). Text writes that failed ARE retained in
+              the local cache, so keep the reassuring line only for those. */}
+          <div style={{ color: C.tm, fontSize: 10, marginTop: 4 }}>{e.key === 'form_video' ? 'This recording was not saved — record and upload it again.' : 'Your data is still in local memory. Check connection and retry.'}</div>
         </div>
       ))}
     </div>

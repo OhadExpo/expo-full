@@ -14,6 +14,7 @@ import { PasswordChangeModal } from './auth';
 import { traineeIdsFor, memberIndexFromId, sortProgramsChrono, blockNum } from './traineeUtils';
 import { FormVideoPlayer } from './WorkoutReview';
 import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscribe as subscribeBlobs } from './blobQueue';
+import { emitSaveError } from './useSupaStore';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
@@ -904,8 +905,23 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:true, videoUrl:previewUrl, cloudUrl:null, pendingBlobId:blobId, compressProgress:100, uploadProgress:0, uploadError:null}; return n; });
           return;
         } catch (e2) {
-          // IndexedDB failed (private browsing, quota) — fall through to alert.
+          // IndexedDB itself failed (private browsing, quota exhausted, IDB
+          // disabled) — we can't persist the blob for later retry. This is the
+          // one path that would otherwise SILENTLY lose the recording with a
+          // misleading "network" toast. Surface it as a STORAGE problem (not a
+          // connectivity blip), keep the in-memory preview alive so the athlete
+          // can still play it and retry this session, and route it through the
+          // persistent save-error card — never just console.error and wipe it.
           console.error('Blob queue enqueue failed:', e2);
+          emitSaveError({ key: 'form_video', op: 'storage-unavailable', msg: 'Could not save your video on this device. Free up storage (or exit private browsing) and upload again.' });
+          // Keep previewUrl + has:true so the clip stays visible/playable; mark
+          // the error so the slot offers re-upload instead of vanishing. has is
+          // false for finish() purposes via cloudUrl/pendingBlobId both null —
+          // the workout won't record a phantom video, but the athlete keeps the
+          // recording on screen to retry before leaving the page.
+          setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploading:false, uploaded:false, has:false, videoUrl:previewUrl, cloudUrl:null, pendingBlobId:null, uploadError:'Not saved — device storage full. Tap Replace to try again.'}; return n; });
+          toast('Could not save your video on this device. Free up storage and upload it again.', 'error', { ttl: 9000 });
+          return;
         }
       }
       URL.revokeObjectURL(previewUrl);
