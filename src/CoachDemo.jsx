@@ -2370,6 +2370,7 @@ const TABS = [
   { key: 'sessions',  label: 'SESSIONS',  count: null },
   { key: 'review',    label: 'REVIEW',    count: null },
   { key: 'tasks',     label: 'TASKS',     count: 8 },
+  { key: 'billing',   label: 'BILLING',   count: null },
 ];
 
 // Card style matches src/ui.jsx Card — 0.25px ac-dimmed border, 10px
@@ -2724,7 +2725,7 @@ function DemoReviewTools() {
       </div>
       {note && (
         <div style={{ marginTop: 16, background: C.acD, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.ac}`, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>The camera + pose tools run live in the full app — they're disabled in this demo. Join the waitlist to use them on your own clips.</span>
+          <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>The camera + pose tools run live in the full app — disabled in this demo. Join the waitlist to use them on your own clips.</span>
           <button onClick={() => setNote(false)} style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, flexShrink: 0 }}>DISMISS</button>
         </div>
       )}
@@ -2809,6 +2810,82 @@ function DemoTasks() {
         </div>
         <button style={{ ...baseBtn, background: 'transparent', color: C.td, border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, cursor: 'not-allowed', opacity: 0.6 }}>CONNECT</button>
       </div>
+    </section>
+  );
+}
+
+// ── BILLING — mirrors src/BillingView.jsx (bit_payment_requests ledger).
+// Israeli VAT 18% → pre-VAT multiplier 0.8475. Static mock, no writes. ───────
+const DEMO_PAYMENTS = [
+  { id: 1, name: 'Noa Levi', amount: 600, status: 'pending', date: '2026-06-20', ref: 'June coaching' },
+  { id: 2, name: 'Gal Mizrahi', amount: 800, status: 'paid', date: '2026-06-15', ref: 'June + plan' },
+  { id: 3, name: 'Idan Cohen', amount: 600, status: 'pending', date: '2026-06-10', ref: 'June coaching' },
+  { id: 4, name: 'Yael Cohen', amount: 450, status: 'canceled', date: '2026-06-08', ref: 'Drop-in pack' },
+];
+const PAY_STATUS = { pending: { label: 'PENDING', color: C.or }, paid: { label: 'PAID', color: C.gn }, canceled: { label: 'CANCELED', color: C.td } };
+const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
+function DemoBilling() {
+  const [showReq, setShowReq] = useState(false);
+  const [amount, setAmount] = useState('600');
+  const pending = DEMO_PAYMENTS.filter(p => p.status === 'pending');
+  const preVat = Math.round((Number(amount) || 0) * 0.8475);
+  const panel = (children) => <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 16 }}>{children}</div>;
+  const stripH = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` };
+  return (
+    <section>
+      {panel(<>
+        <div style={stripH}>
+          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>PAYMENT REQUESTS {pending.length > 0 && <span style={{ color: C.or }}>· {pending.length} PENDING</span>}</span>
+          <button onClick={() => setShowReq(true)} style={{ ...baseBtn, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, padding: '5px 12px', fontSize: 11 }}>+ NEW REQUEST</button>
+        </div>
+        <div>
+          {DEMO_PAYMENTS.map(p => {
+            const st = PAY_STATUS[p.status];
+            return (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 14px', borderTop: `1px solid ${C.cardBd}` }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: FB, fontSize: 13, fontWeight: 600, color: C.tx }}>{p.name} · {fmtIls(p.amount)}</div>
+                  <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginTop: 2 }}>{p.ref} · {fmtPrettyDate(p.date)}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{st.label}</span>
+                  {p.status === 'pending' && <button style={{ ...baseBtn, background: 'transparent', color: C.gn, border: `1px solid ${C.gn}55`, padding: '3px 8px', fontSize: 9 }}>MARK PAID</button>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </>)}
+      {panel(<>
+        <div style={stripH}><span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', color: C.ac }}>ROSTER STATUS</span></div>
+        <div>
+          {MOCK_TRAINEES.slice(0, 5).map((t, i) => {
+            const st = PAY_STATUS[['paid', 'pending', 'paid', 'pending', 'paid'][i] || 'paid'];
+            return (
+              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderTop: `1px solid ${C.cardBd}` }}>
+                <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>{t.name}</span>
+                <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{st.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </>)}
+      {showReq && (
+        <div onClick={() => setShowReq(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, padding: 24, maxWidth: 380, width: '100%' }}>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 14, textAlign: 'center' }}>NEW PAYMENT REQUEST</div>
+            <select style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', marginBottom: 10, outline: 'none' }}>
+              {MOCK_TRAINEES.map(t => <option key={t.id}>{t.name}</option>)}
+            </select>
+            <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="Amount (₪, VAT incl.)" style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', marginBottom: 8, outline: 'none' }} />
+            <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginBottom: 14, textAlign: 'center' }}>VAT 18% incl. · pre-VAT <span style={{ color: C.ac, fontWeight: 700 }}>{fmtIls(preVat)}</span></div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '10px 0', fontSize: 11 }}>CANCEL</button>
+              <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, padding: '10px 0', fontSize: 11 }}>CREATE</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -3023,6 +3100,7 @@ export default function CoachDemo() {
         {tab === 'workouts'  && <DemoWorkouts />}
         {tab === 'sessions'  && <DemoSessions />}
         {tab === 'tasks'     && <DemoTasks />}
+        {tab === 'billing'   && <DemoBilling />}
         {/* Review ▾ — WORKOUTS (engine review) | TOOLS (camera/pose launcher). */}
         {tab === 'review' && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
