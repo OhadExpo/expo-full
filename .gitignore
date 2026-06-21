@@ -38,7 +38,7 @@ New Programs/
 *.jpeg
 # ...but public/ holds real deployed assets (icons, og-image), not screenshots.
 !public/og-image.png
-!public/bnei-herzliya-logo.png
+!public/bnei-herzliya-logo-w.png
 amit-*.png
 chat-*.png
 coach-*.png

@@ -1846,7 +1846,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const renderTopHeader = () => (
     <>
       <div style={{background:C.bg,padding:'calc(20px + env(safe-area-inset-top)) 20px 18px',borderBottom:`1px solid ${C.bd2}`}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
               affordance — click the mark to go back to /coach/dashboard.
@@ -1870,6 +1870,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 below — the tiny header logo was removed per Ohad.) */}
           </div>
           <div style={{display:'flex',alignItems:'center',gap:14}}>
+            {/* White Bnei Herzliya crest, top-right of the header — stays visible
+                as the team mark beside the account controls. */}
+            {trainee?.branch === 'Bnei Herzliya' && (
+              <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:30,width:'auto',objectFit:'contain',flexShrink:0}} />
+            )}
             {!demoMode && (() => {
               // trainee.email is either a string or an array (up to 3 per
               // memory project_auth_state). Flatten to the first non-empty
@@ -1889,13 +1894,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>LOG OUT →</button>
           </div>
         </div>
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:10}}>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:6}}>
           {/* Team co-brand for Bnei Herzliya athletes — the team crest sits
               centered ABOVE the greeting (white-filled logo reads on the dark
               portal). Tight vertical rhythm so it fits the page. EXPO branding
               stays in the header bar above. */}
           {trainee?.branch === 'Bnei Herzliya' && (
-            <img src="/bnei-herzliya-logo.png" alt="Bnei Herzliya" style={{height:64,width:'auto',objectFit:'contain',marginBottom:8}} />
+            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:60,width:'auto',objectFit:'contain',marginBottom:4}} />
           )}
           <h1 style={{margin:0,fontFamily:FN,fontSize:18,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}>Hey {clientName.split(' ')[0]}</h1>
           <div style={{width:24,height:1,background:C.ac,marginTop:8,opacity:0.5}}/>
