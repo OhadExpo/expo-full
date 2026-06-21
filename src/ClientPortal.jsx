@@ -582,13 +582,29 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // rather than fire an unauthenticated request that's guaranteed to 403.
     let bearer;
     try {
-      const { data: cur } = await supabase.auth.getSession();
-      let tok = cur?.session?.access_token;
-      const expSoon = cur?.session?.expires_at ? (cur.session.expires_at * 1000 - Date.now() < 120000) : true;
-      if (expSoon) { try { const { data: r } = await supabase.auth.refreshSession(); if (r?.session?.access_token) tok = r.session.access_token; } catch { /* keep existing token */ } }
-      bearer = tok;
-    } catch { /* no session available */ }
-    if (!bearer) {
+      let { data } = await supabase.auth.getSession();
+      let s = data?.session;
+      const expSoon = !s?.expires_at || (s.expires_at * 1000 - Date.now() < 120000);
+      if (expSoon) {
+        // Try to refresh, then RE-READ the session — a failed refresh (e.g.
+        // offline) leaves the old token in place, so we can't trust `tok` from
+        // before. Reading getSession again gives us the actually-current token
+        // and its real expiry to validate below.
+        try { await supabase.auth.refreshSession(); } catch { /* offline / refresh failed */ }
+        ({ data } = await supabase.auth.getSession());
+        s = data?.session;
+      }
+      // Refuse if the token is missing OR already past its expiry: firing it
+      // would 403 server-side, and a generic 403 risks being misclassified
+      // permanent and the recording DROPPED. Rejecting authExpired routes it to
+      // the offline queue (recoverable on re-auth). A still-valid-but-stale
+      // token (offline, not yet expired) is fine to send — it works until exp.
+      if (!s?.access_token || (s.expires_at && s.expires_at * 1000 <= Date.now())) {
+        const e = new Error('Session expired — sign out and back in to upload. Your recording is saved.');
+        e.httpStatus = 401; e.authExpired = true; reject(e); return;
+      }
+      bearer = s.access_token;
+    } catch {
       const e = new Error('Session expired — sign out and back in to upload. Your recording is saved.');
       e.httpStatus = 401; e.authExpired = true; reject(e); return;
     }
@@ -600,10 +616,36 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     xhr.setRequestHeader('Content-Type', contentType);
     xhr.setRequestHeader('x-upsert', 'true');
 
+    // Flaky mobile networks can leave a request in flight forever (neither
+    // onload nor onerror fires) — the slot froze at 99% with no recovery. But a
+    // flat wall-clock timeout is wrong: a legit 50MB clip on ~1Mbps LTE takes
+    // ~400s of genuine progress and would be killed mid-transfer, then re-queue
+    // and 408 again until MAX_ATTEMPTS drops it. So watch for a STALL (no bytes
+    // flowing) rather than total elapsed time. Settle a stall as 408 (classified
+    // transient → offline queue) so the recording survives and retries.
+    const STALL_MS = 30000;          // abort if no upload progress for 30s
+    const ABS_MAX_MS = 10 * 60000;   // absolute backstop: 10 min even if dribbling
+    let lastTick = Date.now();
+    const startedAt = lastTick;
+    let settled = false;
+    const clearWatch = () => { if (watchdog) { clearInterval(watchdog); watchdog = null; } };
+    const fail408 = (why) => {
+      if (settled) return; settled = true; clearWatch();
+      try { xhr.upload.onprogress = null; xhr.onload = null; xhr.onerror = null; xhr.abort(); } catch { /* already settled */ }
+      const e = new Error(why); e.httpStatus = 408; reject(e);
+    };
+    let watchdog = setInterval(() => {
+      const now = Date.now();
+      if (now - lastTick > STALL_MS) fail408('Upload stalled — no progress');
+      else if (now - startedAt > ABS_MAX_MS) fail408('Upload timed out');
+    }, 3000);
+
     xhr.upload.onprogress = (e) => {
+      lastTick = Date.now();
       if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
     };
     xhr.onload = () => {
+      if (settled) return; settled = true; clearWatch();
       if (xhr.status >= 200 && xhr.status < 300) {
         const publicUrl = `${SUPA_URL}/storage/v1/object/public/form-videos/${path}`;
         resolve({ publicUrl });
@@ -619,13 +661,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         reject(err);
       }
     };
-    xhr.onerror = () => reject(new Error('Upload network error'));
-    // Flaky mobile networks can leave a request in flight forever (neither
-    // onload nor onerror fires) — the slot froze at 99% with no recovery. A
-    // timeout settles it as 408 (classified transient → offline queue), so the
-    // recording survives and retries.
-    xhr.timeout = 120000;
-    xhr.ontimeout = () => { const e = new Error('Upload timed out'); e.httpStatus = 408; reject(e); };
+    xhr.onerror = () => { if (settled) return; settled = true; clearWatch(); reject(new Error('Upload network error')); };
     xhr.send(blob); // Send raw blob, NOT FormData
   });
 
@@ -841,13 +877,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // exclude phrases that are definitely permanent even when wrapped in a
       // fetch-shaped error (e.g. supabase-js "Failed to fetch" masking a 413).
       const status = err?.httpStatus ?? err?.status ?? err?.statusCode;
+      // Decide PERMANENT-by-message first: these phrases will never succeed on
+      // retry. 'invalid' alone matched transient framings ("invalid request"),
+      // so it's scoped. 'permission denied' kept in lockstep with blobQueue.js
+      // (PERMANENT_ERROR_RE) — a divergence there let a recoverable-looking 403
+      // get queued here, then dropped on the next drain (a 2-hop silent loss).
+      const permanentByMsg = /payload too large|exceeded|maximum allowed|row-level security|permission denied|invalid (jwt|token|signature|mime)|not allowed|mime type/i.test(msg);
       // Auth-expiry is RECOVERABLE (re-sign-in) — treat it as transient so the
       // recording is queued and survives, and prompt the athlete instead of
-      // dropping it with an opaque 403.
-      const isAuth = !!err?.authExpired || status === 401 || (status === 403 && /jwt|token|expired|signature|auth/i.test(msg));
+      // dropping it with an opaque 403. A bare 403 (server-side expired token,
+      // generic "Forbidden") is auth-recoverable UNLESS the body names a
+      // permanent cause (RLS/payload/mime) — otherwise it would fall through to
+      // permanentByStatus and be DROPPED, the exact regression Round 2 caught.
+      const isAuth = !!err?.authExpired || status === 401 || (status === 403 && !permanentByMsg);
       const permanentByStatus = !isAuth && typeof status === 'number' && status >= 400 && status < 500 && ![408, 429].includes(status);
-      // 'invalid' alone matched transient framings ("invalid request"); scope it.
-      const permanentByMsg = /payload too large|exceeded|maximum allowed|row-level security|invalid (jwt|token|signature|mime)|not allowed|mime type/i.test(msg);
       const transientByMsg = /network|fetch|timeout|abort|offline|load failed/i.test(msg);
       const looksTransient = isAuth || (!permanentByStatus && !permanentByMsg && (offline || (typeof status === 'number' ? status >= 500 || status === 408 || status === 429 : transientByMsg)));
       if (looksTransient) {

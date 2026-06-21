@@ -264,8 +264,15 @@ export async function drainBlobs() {
         // surface the real reason instead of looping the full cap then dropping
         // silently. Auth-expiry (401/403-auth) is RECOVERABLE via re-sign-in, so
         // keep it queued (don't count attempts) until the next drain after login.
-        const isAuth = st === 401 || (st === 403 && /jwt|token|expired|signature|auth/i.test(msg));
-        const permanent = !isAuth && ((typeof st === 'number' && st >= 400 && st < 500 && ![408, 429].includes(st)) || /row-level security|permission denied|payload too large|exceeded|maximum allowed|mime type|not allowed/i.test(msg));
+        // Kept in lockstep with ClientPortal.jsx's uploader: decide
+        // permanent-by-message first, then treat a bare 403 (server-side expired
+        // token / generic "Forbidden") as RECOVERABLE auth — NOT permanent —
+        // unless the body names a permanent cause. Otherwise a recoverable 403
+        // would match permanent-by-status (403 is 4xx) and the blob would be
+        // dropped instead of waiting for re-auth.
+        const permanentByMsg = /row-level security|permission denied|payload too large|exceeded|maximum allowed|invalid (jwt|token|signature|mime)|mime type|not allowed/i.test(msg);
+        const isAuth = st === 401 || (st === 403 && !permanentByMsg);
+        const permanent = !isAuth && ((typeof st === 'number' && st >= 400 && st < 500 && ![408, 429].includes(st)) || permanentByMsg);
         if (permanent) {
           await deleteEntry(entry.id);
           if (onErrorHook) { try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath, workoutId: entry.workoutId }, msg }); } catch {} }
