@@ -346,7 +346,7 @@ export function deriveAutoEvents(td, clientWorkouts, payments, planIndex, comple
       id: `auto-session-${w.id}`,
       ts: w.date,
       kind: 'session',
-      summary: `${w.dayName || 'Workout'} · W${w.week || '?'} · ${setsDone}/${totalSets} sets`,
+      summary: `${w.planName ? `${w.planName} · ` : ''}${w.dayName || 'Workout'} · W${w.week || '?'} · ${setsDone}/${totalSets} sets`,
       autoSource: 'clientWorkouts',
     });
   }

@@ -439,22 +439,34 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
     return Math.min(Number(plan?.weeks) || 8, Math.max(1, max + 1));
   };
   const blockNum = (name) => { const m = String(name || '').match(/#\s*(\d+)/); return m ? Number(m[1]) : -1; };
-  // The athlete's NEXT workout: latest block (newest assigned), then the first
-  // (week, day) not yet completed. New block untrained → W1 + day 0. Finished
-  // block → latest block, last week (nothing left to do).
-  const nextWorkout = (traineeId) => {
+  // The athlete's NEXT workout. "Current block" is the plan most recently
+  // TRAINED (client_workouts activity), else most recently ASSIGNED (createdAt)
+  // — NOT the highest Block #N. Athletes have inconsistent numbering (e.g. Yuval:
+  // Block #1–3 are old, real training is "Block Alpha"), so blockNum picks the
+  // wrong block. Then continue from the LATEST trained week (don't backfill a
+  // skipped earlier day): first un-logged (week, day) at/after the max logged
+  // week. New block untrained → W1 day 0. Block fully done → last week.
+  const currentPlan = (traineeId) => {
     const plans = plansFor(traineeId);
     if (!plans.length) return null;
-    const latest = [...plans].sort((a, b) => (blockNum(b.name) - blockNum(a.name)) || (new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)))[0];
-    const planWeeks = Number(latest.weeks) || 8;
+    const lastLog = (n) => { const ds = (clientWorkouts || []).filter(x => x.clientId === traineeId && x.planName === n).map(x => new Date(x.date || 0).getTime()).filter(Boolean); return ds.length ? Math.max(...ds) : 0; };
+    const score = (p) => Math.max(lastLog(p.name), new Date(p.createdAt || 0).getTime());
+    return [...plans].sort((a, b) => (score(b) - score(a)) || (blockNum(b.name) - blockNum(a.name)) || (new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)))[0];
+  };
+  const nextWorkout = (traineeId) => {
+    const latest = currentPlan(traineeId);
+    if (!latest) return null;
+    const planWeeks = Number(latest.weeks) || 4;
     const dayNames = latest.dayNames || [];
-    const done = new Set((clientWorkouts || []).filter(x => x.clientId === traineeId && x.planName === latest.name).map(x => `${Number(x.week) || 1}|${x.dayName}`));
-    for (let wk = 1; wk <= planWeeks; wk++) {
+    const logs = (clientWorkouts || []).filter(x => x.clientId === traineeId && x.planName === latest.name);
+    const done = new Set(logs.map(x => `${Number(x.week) || 1}|${x.dayName}`));
+    const maxWk = logs.length ? Math.max(...logs.map(x => Number(x.week) || 1)) : 1;
+    for (let wk = Math.max(1, maxWk); wk <= planWeeks; wk++) {
       for (let di = 0; di < dayNames.length; di++) {
         if (!done.has(`${wk}|${dayNames[di]}`)) return { planId: latest.id, dayIdx: di, week: wk };
       }
     }
-    return { planId: latest.id, dayIdx: 0, week: planWeeks }; // block fully done
+    return { planId: latest.id, dayIdx: 0, week: Math.min(planWeeks, Math.max(1, maxWk)) }; // block fully done
   };
   const addRow = () => setRows(r => [...r, { traineeId: '', planId: '', dayIdx: 0, week: 0 }]);
   const setRow = (i, patch) => setRows(r => r.map((x, j) => j === i ? { ...x, ...patch } : x));

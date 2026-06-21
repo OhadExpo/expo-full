@@ -1779,15 +1779,18 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // sees in single/group. Fully-done block → last week.
     const planWeeks = Number(activePlan.weeks) || 4;
     const dayNames = (activePlan.days || []).map(d => d.name).filter(Boolean);
-    const done = new Set(cw.filter(w => w.planName === name).map(w => `${Number(w.week) || 1}|${w.dayName}`));
-    let nextWk = planWeeks;
+    const logs = cw.filter(w => w.planName === name);
+    const done = new Set(logs.map(w => `${Number(w.week) || 1}|${w.dayName}`));
+    const maxWk = logs.length ? Math.max(...logs.map(w => Number(w.week) || 1)) : 1;
+    let nextWk = Math.max(1, maxWk);
     if (dayNames.length) {
-      outer: for (let w = 1; w <= planWeeks; w++) {
+      // Continue from the latest trained week (don't backfill a skipped earlier
+      // day) — same rule the coach single/group surfaces use, so all three agree.
+      outer: for (let w = Math.max(1, maxWk); w <= planWeeks; w++) {
         for (const dn of dayNames) { if (!done.has(`${w}|${dn}`)) { nextWk = w; break outer; } }
       }
     } else {
-      const wks = cw.filter(w => w.planName === name).map(w => Number(w.week) || 1);
-      nextWk = Math.min(planWeeks, (wks.length ? Math.max(...wks) : 0) + 1);
+      nextWk = Math.min(planWeeks, maxWk + (logs.length ? 1 : 0) || 1);
     }
     setWk(Math.max(0, Math.min(planWeeks, nextWk) - 1));
   }, [activePlan?.name]); // eslint-disable-line react-hooks/exhaustive-deps

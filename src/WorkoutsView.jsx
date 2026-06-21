@@ -301,15 +301,17 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     const dayNames = p.dayNames || [];
     const planWeeks = Number(p.weeks) || 4;
     if (!dayNames.length) return { week: 1, dayIdx: 0 };
-    const done = new Set((clientWorkouts || [])
-      .filter(x => x.clientId === p.traineeId && x.planName === p.name)
-      .map(x => `${Number(x.week) || 1}|${x.dayName}`));
-    for (let wk = 1; wk <= planWeeks; wk++) {
+    const logs = (clientWorkouts || []).filter(x => x.clientId === p.traineeId && x.planName === p.name);
+    const done = new Set(logs.map(x => `${Number(x.week) || 1}|${x.dayName}`));
+    // Continue from the LATEST trained week (don't backfill a skipped earlier
+    // day) — sync to the athlete's actual position from their last logged workout.
+    const maxWk = logs.length ? Math.max(...logs.map(x => Number(x.week) || 1)) : 1;
+    for (let wk = Math.max(1, maxWk); wk <= planWeeks; wk++) {
       for (let di = 0; di < dayNames.length; di++) {
         if (!done.has(`${wk}|${dayNames[di]}`)) return { week: wk, dayIdx: di };
       }
     }
-    return { week: planWeeks, dayIdx: 0 };
+    return { week: Math.min(planWeeks, Math.max(1, maxWk)), dayIdx: 0 };
   };
   // First un-logged day within a SPECIFIC week (so the day highlight follows the
   // coach's week pick). -1 if every day that week is already done.
@@ -421,17 +423,24 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   // older one. So default the picker to one card per trainee. The
   // expander reveals the older blocks for the rare "they're running a
   // different program today" case.
+  // "Current block" = the plan most recently TRAINED (client_workouts activity),
+  // else most recently ASSIGNED (createdAt). NOT updatedAt (an edited-but-untrained
+  // old block wrongly won — e.g. Yuval's "Block #3" updated after he'd moved on to
+  // "Block Alpha") and NOT blockNum (inconsistent numbering). So plans[0] = the
+  // block the athlete is actually on.
   const plansByTrainee = useMemo(() => {
     const m = new Map();
     for (const p of visiblePlans) {
       if (!m.has(p.traineeId)) m.set(p.traineeId, []);
       m.get(p.traineeId).push(p);
     }
+    const lastLog = (tid, n) => { const ds = (clientWorkouts || []).filter(x => x.clientId === tid && x.planName === n).map(x => new Date(x.date || 0).getTime()).filter(Boolean); return ds.length ? Math.max(...ds) : 0; };
+    const score = (p) => Math.max(lastLog(p.traineeId, p.name), new Date(p.createdAt || 0).getTime());
     for (const arr of m.values()) {
-      arr.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+      arr.sort((a, b) => (score(b) - score(a)) || (new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)));
     }
     return m;
-  }, [visiblePlans]);
+  }, [visiblePlans, clientWorkouts]);
   if (active) {
     const w = active;
     // Previous-week reference reads the athlete's portal history (the same
