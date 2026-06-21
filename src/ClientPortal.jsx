@@ -1298,70 +1298,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         );
       })()}
 
-      {/* Last-time-at-this-exercise pill — moved here so it sits IMMEDIATELY
-          above the inputs card. The trainee scrolls past prescription / notes
-          / video, lands on the historical context (LAST all-time best plus
-          per-set PREV WK ghost rows inside the grid), then logs this week's
-          sets. Honors substitutions. */}
-      {(() => {
-        if (!priorWorkouts || priorWorkouts.length === 0) return null;
-        const stableId = sub ? (sub.id || `swap:${(sub.title||'').toLowerCase()}`) : ex.eid;
-        let bestPrior = null;
-        for (const w of priorWorkouts) {
-          for (const px of (w.exercises || [])) {
-            const pSub = px.substitution;
-            const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
-            if (pStableId !== stableId) continue;
-            for (const s of (px.sets || [])) {
-              if (!s.done) continue;
-              const load = parseFloat(s.load) || 0;
-              if (load <= 0) continue;
-              const reps = parseFloat(s.reps) || 0;
-              const rpe = s.rpe ?? null;
-              if (!bestPrior || load > bestPrior.load || (load === bestPrior.load && new Date(w.date) > new Date(bestPrior.date))) {
-                bestPrior = { load, reps, rpe, date: w.date };
-              }
-            }
-          }
-        }
-        if (!bestPrior) return null;
-        const days = Math.max(1, Math.round((Date.now() - new Date(bestPrior.date).getTime()) / 86400000));
-        return (
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
-            <div style={{
-              padding: '8px 14px',
-              background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0,
-              display: 'inline-flex', alignItems: 'center', gap: 10,
-              fontFamily: FN, fontSize: 12, lineHeight: 1, color: C.tm,
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {/* Single fontSize (12) + single lineHeight (1) across
-                  every token in the pill so the baseline is rock-locked
-                  — no glyph drift between labels, numbers, and units.
-                  Visual hierarchy is carried by weight (700 for values,
-                  400 for units, 700 + letterSpacing for labels) and
-                  color (tx for primary, tm for secondary, td for meta).
-                  Hairline dividers segment the three groups instead of
-                  the previous "·" separator which floated mid-line. */}
-              <span style={{ color: C.td, letterSpacing: '0.18em', fontWeight: 700, textTransform: 'uppercase' }}>Best ever</span>
-              <span style={{ width: 1, height: 12, background: C.cardBd }} />
-              <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.load}</span>
-              <span style={{ color: C.tm, fontWeight: 400, letterSpacing: '0.04em' }}>KG</span>
-              <span style={{ color: C.tm, fontWeight: 400 }}>×</span>
-              <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.reps || '—'}</span>
-              {bestPrior.rpe != null && bestPrior.rpe !== '' && (
-                <>
-                  <span style={{ color: C.tm, fontWeight: 400, letterSpacing: '0.18em' }}>RPE</span>
-                  <span style={{ color: C.tx, fontWeight: 700 }}>{bestPrior.rpe}</span>
-                </>
-              )}
-              <span style={{ width: 1, height: 12, background: C.cardBd }} />
-              <span style={{ color: C.td, fontWeight: 400, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{days}d ago</span>
-            </div>
-          </div>
-        );
-      })()}
-
+      {/* "Best ever" all-time pill removed (Ohad) — the reference the athlete
+          wants is the PREVIOUS-WEEK per-set ghost rows inside the grid below,
+          not an all-time best. */}
       <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,marginBottom:4}}>
           {['','REPS','KG','RPE','✓'].map(h => <div key={h} style={{fontSize:9,fontFamily:FN,color:C.td,textAlign:'center'}}>{h}</div>)}</div>
