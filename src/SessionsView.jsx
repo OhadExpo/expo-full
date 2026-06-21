@@ -32,26 +32,36 @@ const LOGKEY = 'expo-gym-session-log'; // finished trial sessions (coach-only)
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const fresh = () => ({ reps: '', load: '', rpe: '', done: false });
 
-// Most-recent top set per exercise id from a history list — the "last time"
-// reference. Tolerates both shapes: athlete client_workouts (eid/done) and
-// coach workouts (exerciseId/completed). A logged load qualifies even if the
-// "done" box was skipped (athletes often skip it).
-function buildLastTopSetMap(history) {
-  const out = new Map();
-  const sorted = (history || []).slice().sort((a, b) => new Date(b.completedAt || b.date) - new Date(a.completedAt || a.date));
-  for (const w of sorted) {
-    for (const ex of (w.exercises || [])) {
-      const id = ex.exerciseId || ex.eid;
-      if (!id || out.has(id)) continue;
-      const sets = ex.sets || [];
-      const done = sets.filter(s => (s.completed || s.done) && parseFloat(s.load) > 0);
-      const logged = done.length ? done : sets.filter(s => parseFloat(s.load) > 0);
-      if (!logged.length) continue;
-      const top = logged.reduce((a, b) => parseFloat(b.load) > parseFloat(a.load) ? b : a);
-      out.set(id, { load: top.load, reps: top.reps });
-    }
+// Inline exercise video for the group grid. Plays in place — never navigates
+// away or goes fullscreen (Ohad: "just play and pause, no clicking on the
+// youtube video at all"). YouTube: sandboxed iframe (no allow-popups /
+// allow-top-navigation → links can't navigate the page) + fs=0 (no fullscreen).
+// Direct files: <video controlsList="nofullscreen">.
+const ytId = (url) => {
+  const m = String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? m[1] : null;
+};
+function InlineVideo({ url }) {
+  const yt = ytId(url);
+  if (yt) {
+    return (
+      <div style={{ marginTop: 8, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}` }}>
+        <iframe
+          src={`https://www.youtube.com/embed/${yt}?rel=0&modestbranding=1&controls=1&fs=0&disablekb=1&playsinline=1`}
+          sandbox="allow-scripts allow-same-origin allow-presentation"
+          allow="autoplay"
+          title="exercise video"
+          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />
+      </div>
+    );
   }
-  return out;
+  if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url || '')) {
+    return (
+      <video src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
+        style={{ width: '100%', marginTop: 8, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, objectFit: 'contain' }} />
+    );
+  }
+  return null;
 }
 
 // SESSIONS — the mode comes from the nav dropdown (Sessions ▾ → Group | Single),
@@ -300,49 +310,59 @@ function AthleteCard({ a, name, prevMap, onToggleIn, onSet, onCurEx, onRemove })
         {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>No exercises on this day.</div>}
         {a.exercises.map((ex, ei) => {
           const prevSets = prevMap?.get(ex.eid);
+          const open = a.curEx === ei;
+          const doneCount = ex.sets.filter(s => s.done).length;
+          const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
           return (
-          <div key={ei} onClick={() => onCurEx(ei)} style={{ border: `1px solid ${a.curEx === ei ? C.ac : C.cardBd}`, padding: 8, cursor: 'pointer', background: a.curEx === ei ? 'rgba(57,189,255,0.05)' : 'transparent' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
-              <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{ex.title}</span>
-              <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0 }}>{ex.prescribed}</span>
+          <div key={ei} style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent' }}>
+            {/* Collapsed header — tap to expand (accordion: one open at a time).
+                Title WRAPS on whole words instead of truncating. */}
+            <div onClick={() => onCurEx(open ? -1 : ei)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, padding: 8, cursor: 'pointer' }}>
+              <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
+                {allDone && <span style={{ color: C.gn, marginRight: 4 }}>✓</span>}{ex.title}
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm }}>{ex.prescribed}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: allDone ? C.gn : C.td }}>{doneCount}/{ex.sets.length}</span>
+                <span style={{ color: '#FFF', fontSize: 11, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+              </span>
             </div>
-            {/* tempo + video — the per-1-on-1 detail the group grid was missing */}
-            {(ex.tempo || ex.videoUrl) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
-                {ex.tempo && <span style={{ fontFamily: FN, fontSize: 9, color: C.or, letterSpacing: '0.04em' }}>⏱ {ex.tempo}</span>}
-                {ex.videoUrl && <a href={ex.videoUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, textDecoration: 'none' }}>▶ VIDEO</a>}
+            {open && (
+            <div style={{ padding: '0 8px 8px' }} onClick={e => e.stopPropagation()}>
+              {ex.tempo && <div style={{ fontFamily: FN, fontSize: 10, color: C.or, letterSpacing: '0.04em', marginBottom: 2 }}>⏱ {ex.tempo}</div>}
+              {ex.videoUrl && <InlineVideo url={ex.videoUrl} />}
+              <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, marginTop: 8, marginBottom: 2 }}>
+                {['', 'KG', 'REPS', 'RPE', '✓'].map(h => <span key={h} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
               </div>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, marginTop: 6, marginBottom: 2 }}>
-              {['', 'KG', 'REPS', 'RPE', '✓'].map(h => <span key={h} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }} onClick={e => e.stopPropagation()}>
-              {ex.sets.map((s, si) => {
-                const prior = prevSets?.[si];
-                return (
-                <React.Fragment key={si}>
-                  {prior && (parseFloat(prior.load) > 0 || prior.reps) && (
-                    <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center', opacity: 0.6, marginTop: si === 0 ? 0 : 4 }} title="Previous week">
-                      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, textAlign: 'center' }}>‹</span>
-                      <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{parseFloat(prior.load) || '—'}</span>
-                      <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.reps || '—'}</span>
-                      <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.rpe || '—'}</span>
-                      <span />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {ex.sets.map((s, si) => {
+                  const prior = prevSets?.[si];
+                  return (
+                  <React.Fragment key={si}>
+                    {prior && (parseFloat(prior.load) > 0 || prior.reps) && (
+                      <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center', opacity: 0.6, marginTop: si === 0 ? 0 : 4 }} title="Previous week">
+                        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, textAlign: 'center' }}>‹</span>
+                        <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{parseFloat(prior.load) || '—'}</span>
+                        <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.reps || '—'}</span>
+                        <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.rpe || '—'}</span>
+                        <span />
+                      </div>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center' }}>
+                      <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
+                      <input value={s.load} onChange={e => onSet(ei, si, { load: e.target.value })} placeholder="kg" inputMode="decimal" style={cell} />
+                      <input value={s.reps} onChange={e => onSet(ei, si, { reps: e.target.value })} placeholder="reps" inputMode="numeric" style={cell} />
+                      <input value={s.rpe} onChange={e => onSet(ei, si, { rpe: e.target.value })} placeholder="—" inputMode="decimal" style={cell} />
+                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={!!s.done} onChange={e => onSet(ei, si, { done: e.target.checked })} style={{ width: 20, height: 20, accentColor: C.gn, cursor: 'pointer' }} />
+                      </label>
                     </div>
-                  )}
-                  <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center' }}>
-                    <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
-                    <input value={s.load} onChange={e => onSet(ei, si, { load: e.target.value })} placeholder="kg" inputMode="decimal" style={cell} />
-                    <input value={s.reps} onChange={e => onSet(ei, si, { reps: e.target.value })} placeholder="reps" inputMode="numeric" style={cell} />
-                    <input value={s.rpe} onChange={e => onSet(ei, si, { rpe: e.target.value })} placeholder="—" inputMode="decimal" style={cell} />
-                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                      <input type="checkbox" checked={!!s.done} onChange={e => onSet(ei, si, { done: e.target.checked })} style={{ width: 20, height: 20, accentColor: C.gn, cursor: 'pointer' }} />
-                    </label>
-                  </div>
-                </React.Fragment>
-                );
-              })}
+                  </React.Fragment>
+                  );
+                })}
+              </div>
             </div>
+            )}
           </div>
           );
         })}
