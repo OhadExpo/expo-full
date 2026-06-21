@@ -205,7 +205,7 @@ function GooglePhotosEmbed({ url }) {
 }
 
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
-function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false}) {
+function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = ''}) {
   // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
   // Daily-routine days skip warm-up steps entirely — Roei's "morning
   // routine" pattern doesn't tie to a warm-up block. Per-day flag set
@@ -1037,6 +1037,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </span>
       )}
       {showResumedPill && <span title="Restored from your last session" style={{marginLeft:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
+      {/* Bnei Herzliya team crest — top-right of the step-logger header. */}
+      {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:24,width:'auto',objectFit:'contain',marginLeft:(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error' || showResumedPill) ? 8 : 'auto',flexShrink:0}} />}
       <button onClick={onBack} style={{marginLeft:8,background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Exit</button></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
@@ -1837,7 +1839,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // hand-coached clients couldn't accidentally swap mid-session. With
     // proper coach insight into substitutions via workout logs, the gate
     // is no longer needed and trainees can adapt to a busy gym freely.
-    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode}/>; }
+    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={trainee?.branch}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
@@ -1845,7 +1847,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
   const renderTopHeader = () => (
     <>
-      <div style={{background:C.bg,padding:'calc(20px + env(safe-area-inset-top)) 20px 18px',borderBottom:`1px solid ${C.bd2}`}}>
+      <div style={{background:C.bg,padding:'calc(12px + env(safe-area-inset-top)) 20px 12px',borderBottom:`1px solid ${C.bd2}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
@@ -1870,11 +1872,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 below — the tiny header logo was removed per Ohad.) */}
           </div>
           <div style={{display:'flex',alignItems:'center',gap:14}}>
-            {/* White Bnei Herzliya crest, top-right of the header — stays visible
-                as the team mark beside the account controls. */}
-            {trainee?.branch === 'Bnei Herzliya' && (
-              <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:30,width:'auto',objectFit:'contain',flexShrink:0}} />
-            )}
             {!demoMode && (() => {
               // trainee.email is either a string or an array (up to 3 per
               // memory project_auth_state). Flatten to the first non-empty

@@ -13,7 +13,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { fmtPrettyDate } from './dates';
-import { C, FN, FB, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
+import { C, FN, FB, FH, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 import { EXPOMark } from './expoMark';
 
 // ─── Mock data ────────────────────────────────────────────────────────────
@@ -2367,6 +2367,7 @@ const TABS = [
   { key: 'programs',  label: 'PROGRAMS',  count: MOCK_PROGRAM_INDEX.length },
   { key: 'exercises', label: 'EXERCISES', count: MOCK_EXERCISES.length },
   { key: 'workouts',  label: 'WORKOUTS',  count: MOCK_WORKOUTS.length },
+  { key: 'sessions',  label: 'SESSIONS',  count: null },
   { key: 'review',    label: 'REVIEW',    count: null },
 ];
 
@@ -2480,6 +2481,200 @@ function DemoWorkouts() {
           </div>
         ))
       )}
+    </section>
+  );
+}
+
+// ── SESSIONS (Group + Single) — mirrors src/SessionsView.jsx +
+// src/WorkoutsView.jsx. The flagship for the EXPO Performance Center gym: live
+// 1-on-1 and group floor logging. Static mock; no writes. ──────────────────
+const DEMO_SESSION_DAY = [
+  { id: 'sx1', title: 'Back Squat', prescribed: '4 × 5', tempo: '30X1', cue: 'ברך מעל אצבעות · ירידה לעומק מלא · נשיפה בעלייה', sets: [{ kg: '100', reps: '5', rpe: '8', done: true }, { kg: '102.5', reps: '5', rpe: '8', done: true }, { kg: '102.5', reps: '5', rpe: '9', done: false }, { kg: '', reps: '', rpe: '', done: false }] },
+  { id: 'sx2', title: 'Bench Press', prescribed: '4 × 6', tempo: '', cue: 'Retract the scapulae, bar to mid-chest, drive through the floor.', sets: [{ kg: '70', reps: '6', rpe: '7', done: true }, { kg: '72.5', reps: '6', rpe: '8', done: false }, { kg: '', reps: '', rpe: '', done: false }, { kg: '', reps: '', rpe: '', done: false }] },
+  { id: 'sx3', title: 'Weighted Pull-Up', prescribed: '3 × 8', tempo: '', cue: 'Full hang, chin over the bar, controlled negative.', sets: [{ kg: 'BW+10', reps: '8', rpe: '7', done: false }, { kg: 'BW+10', reps: '8', rpe: '8', done: false }, { kg: 'BW+10', reps: '7', rpe: '9', done: false }] },
+];
+const isHeb = (s) => /[֐-׿]/.test(s || '');
+const dCell = { background: C.sf2 || C.sf, border: `1px solid ${C.bd2}`, borderRadius: 0, padding: '5px 6px', color: C.tx, fontFamily: FB, fontSize: 12, textAlign: 'center', width: '100%', boxSizing: 'border-box', outline: 'none' };
+
+function DemoInlineVideo({ title }) {
+  // Demo stand-in for the real inline player (sandboxed YT iframe / <video>
+  // nofullscreen). Avoids loading external media on the sales page; communicates
+  // the "plays in place, no click-through" behaviour.
+  return (
+    <div style={{ marginTop: 8, marginBottom: 8, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+      <div style={{ width: 44, height: 44, borderRadius: '50%', border: `2px solid ${C.ac}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.ac, fontSize: 16, paddingLeft: 3 }}>▶</div>
+      <div style={{ fontFamily: FN, fontSize: 9, letterSpacing: '0.14em', color: C.tm }}>{title} · FORM VIDEO</div>
+      <div style={{ fontFamily: FN, fontSize: 8, letterSpacing: '0.1em', color: C.td }}>PLAYS INLINE — NO CLICK-THROUGH</div>
+    </div>
+  );
+}
+
+function DemoSessionExercise({ ex, open, onToggle }) {
+  const doneCount = ex.sets.filter(s => s.done).length;
+  const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
+  const COLS = '16px 1fr 1fr 0.8fr 30px';
+  return (
+    <div style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
+      <div onClick={onToggle} style={{ padding: 8, cursor: 'pointer' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+          <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
+            {allDone && <span style={{ color: C.gn, marginRight: 4 }}>✓</span>}{ex.title}
+          </span>
+          <span style={{ color: '#FFF', fontSize: 12, flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
+          <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.02em', color: C.ac }}>{ex.prescribed}</span>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: allDone ? C.gn : C.tm }}>{doneCount}/{ex.sets.length} DONE</span>
+        </div>
+      </div>
+      {open && (
+        <div style={{ padding: '0 8px 8px' }} onClick={e => e.stopPropagation()}>
+          {ex.tempo && <div style={{ fontFamily: FN, fontSize: 11, color: C.or, letterSpacing: '0.04em', marginBottom: 4 }}>⏱ {ex.tempo}</div>}
+          {ex.cue && <div style={{ fontSize: 11.5, color: C.tx, lineHeight: 1.45, marginBottom: 6, background: 'rgba(57,189,255,0.06)', borderInlineStart: `3px solid ${C.ac}`, padding: '6px 8px', direction: isHeb(ex.cue) ? 'rtl' : 'ltr', fontFamily: isHeb(ex.cue) ? FH : FB }}>{ex.cue}</div>}
+          <DemoInlineVideo title={ex.title} />
+          <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, marginTop: 8, marginBottom: 2 }}>
+            {['', 'KG', 'REPS', 'RPE', '✓'].map((h, i) => <span key={i} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {ex.sets.map((s, si) => (
+              <div key={si} style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center' }}>
+                <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
+                <input defaultValue={s.kg} placeholder="kg" style={dCell} />
+                <input defaultValue={s.reps} placeholder="reps" style={dCell} />
+                <input defaultValue={s.rpe} placeholder="—" style={dCell} />
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <input type="checkbox" defaultChecked={s.done} style={{ width: 18, height: 18, accentColor: C.gn, cursor: 'pointer' }} />
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DemoGroupFloor() {
+  const roster = MOCK_TRAINEES.slice(0, 3);
+  const [open, setOpen] = useState({}); // `${athleteIdx}:${exId}` -> bool
+  const [checkedIn, setCheckedIn] = useState({ 0: true, 1: true });
+  return (
+    <div>
+      {/* Floor bar */}
+      <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` }}>
+          <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.ac, fontFamily: FN }}>
+            ON THE FLOOR · {Object.values(checkedIn).filter(Boolean).length}/{roster.length} CHECKED IN
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>+ ADD</button>
+            <button style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '4px 12px', fontSize: 11 }}>■ FINISH</button>
+          </div>
+        </div>
+      </div>
+      {/* Athlete cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+        {roster.map((t, ai) => {
+          const inFloor = !!checkedIn[ai];
+          return (
+            <div key={t.id} style={{ background: C.sf, border: `1px solid ${inFloor ? C.ac : C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
+                  <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>Day A · W4</div>
+                </div>
+                <button onClick={() => setCheckedIn(p => ({ ...p, [ai]: !p[ai] }))} style={{ ...baseBtn, background: inFloor ? C.gn : 'transparent', color: inFloor ? '#FFF' : C.tm, border: `1px solid ${inFloor ? C.gn : C.bd}`, padding: '4px 10px', fontSize: 10 }}>{inFloor ? '✓ IN' : 'CHECK IN'}</button>
+              </div>
+              <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {DEMO_SESSION_DAY.map(ex => {
+                  const k = `${ai}:${ex.id}`;
+                  return <DemoSessionExercise key={ex.id} ex={ex} open={!!open[k]} onToggle={() => setOpen(p => ({ ...p, [k]: !p[k] }))} />;
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DemoSingle() {
+  const [openAthlete, setOpenAthlete] = useState(null);
+  const [active, setActive] = useState(null); // {name, day}
+  const [openEx, setOpenEx] = useState({ sx1: true });
+  if (active) {
+    const doneSets = DEMO_SESSION_DAY.reduce((a, ex) => a + ex.sets.filter(s => s.done).length, 0);
+    const totalSets = DEMO_SESSION_DAY.reduce((a, ex) => a + ex.sets.length, 0);
+    const pct = Math.round((doneSets / totalSets) * 100);
+    return (
+      <div>
+        <div style={{ position: 'sticky', top: 60, zIndex: 20, background: C.bg, paddingBottom: 10, marginBottom: 8, borderBottom: `1px solid ${C.cardBd}` }}>
+          <button onClick={() => setActive(null)} style={{ background: 'none', border: 'none', color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', padding: 0, marginBottom: 8 }}>← BACK</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: FN, color: C.tm, marginBottom: 4 }}>
+            <span>{active.day} · {active.name}</span>
+            <span style={{ color: C.tx, fontWeight: 700 }}>W4 · {doneSets}/{totalSets} · {pct}%</span>
+          </div>
+          <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, height: 6, overflow: 'hidden' }}><div style={{ background: C.gn, height: '100%', width: `${pct}%` }} /></div>
+        </div>
+        {DEMO_SESSION_DAY.map(ex => (
+          <div key={ex.id} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${ex.sets.every(s => s.done) && ex.sets.length ? C.gn : C.cardBd}`, marginBottom: 10, padding: 4 }}>
+            <DemoSessionExercise ex={ex} open={!!openEx[ex.id]} onToggle={() => setOpenEx(p => ({ ...p, [ex.id]: !p[ex.id] }))} />
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+          <button style={{ ...baseBtn, background: C.gn, color: '#06251a', padding: '14px 48px', fontSize: 14, fontWeight: 700 }}>Complete Workout</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <h3 style={{ fontFamily: FN, fontSize: 12, color: C.td, textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 12px', fontWeight: 600 }}>Start a Session</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', border: `1px solid ${C.cardBd}` }}>
+        {MOCK_TRAINEES.slice(0, 6).map((t, i) => {
+          const isOpen = openAthlete === t.id;
+          const dayNames = (MOCK_PLAN_INDEX.find(p => p.traineeId === t.id)?.dayNames) || ['Day A', 'Day B', 'Day C'];
+          return (
+            <div key={t.id} style={{ borderTop: i === 0 ? 'none' : `1px solid ${C.cardBd}` }}>
+              <button onClick={() => setOpenAthlete(isOpen ? null : t.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: isOpen ? C.sf : 'transparent', border: 'none', cursor: 'pointer', padding: '12px 14px', textAlign: 'left' }}>
+                <span style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                  <span style={{ fontFamily: isHeb(t.name) ? FH : FB, fontSize: 14, fontWeight: 600, color: C.tx }}>{t.name}</span>
+                  <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>BLOCK #4</span>
+                </span>
+                <span style={{ fontFamily: FN, fontSize: 12, color: '#FFF', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+              </button>
+              {isOpen && (
+                <div style={{ padding: '0 14px 14px' }}>
+                  <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+                    <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.14em', color: C.tm, marginRight: 2 }}>LOG INTO</span>
+                    {[1, 2, 3, 4].map(wn => <span key={wn} style={{ minWidth: 32, textAlign: 'center', padding: '3px 0', border: `${wn === 4 ? '2px' : '1px'} solid ${wn === 4 ? C.ac : C.bd}`, background: wn === 4 ? 'rgba(57,189,255,0.1)' : 'transparent', color: wn === 4 ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700 }}>W{wn}</span>)}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {dayNames.map((dn, di) => (
+                      <button key={di} onClick={() => setActive({ name: t.name, day: dn })} style={{ ...baseBtn, background: di === 0 ? 'rgba(57,189,255,0.1)' : 'transparent', color: di === 0 ? C.ac : C.tm, border: `1px solid ${di === 0 ? 'rgba(57,189,255,0.45)' : C.bd}`, padding: '5px 12px', fontSize: 12 }}>▶ {dn}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DemoSessions() {
+  const [mode, setMode] = useState('group');
+  const pill = (active) => ({ ...baseBtn, background: active ? C.acD : 'transparent', color: active ? C.ac : C.tm, border: `1px solid ${active ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 });
+  return (
+    <section>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+        <button onClick={() => setMode('group')} style={pill(mode === 'group')}>GROUP FLOOR</button>
+        <button onClick={() => setMode('single')} style={pill(mode === 'single')}>1-ON-1</button>
+      </div>
+      {mode === 'group' ? <DemoGroupFloor /> : <DemoSingle />}
     </section>
   );
 }
@@ -2689,6 +2884,7 @@ export default function CoachDemo() {
         {tab === 'programs'  && <DemoPrograms />}
         {tab === 'exercises' && <DemoExercises />}
         {tab === 'workouts'  && <DemoWorkouts />}
+        {tab === 'sessions'  && <DemoSessions />}
         {/* Review is ALWAYS mounted — display:none on other tabs — so the
             /demo iframe loads its wasm + pose model in the background while
             the visitor explores. By the time they click Review, the engine
