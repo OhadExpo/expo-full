@@ -311,18 +311,7 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Change password" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
-        {demoMode ? (
-          // Preview / sandbox (coach viewing-as an athlete): NO password change
-          // here, ever — the live session is the COACH's. Passwords are changed
-          // elsewhere (the athlete's own portal / coach account settings). Show a
-          // notice with no inputs and no Save button at all.
-          <>
-            <div style={{ color: C.tm, fontSize: 13, textAlign: 'center', lineHeight: 1.5, padding: '8px 0 16px' }}>
-              Password can't be changed from preview.<br />Athletes change it from their own portal.
-            </div>
-            <button onClick={onClose} style={{ width: '100%', padding: '10px 0', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Close</button>
-          </>
-        ) : ok ? (
+        {ok ? (
           <div style={{ color: C.gn, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Password updated ✓</div>
         ) : (
           <>
@@ -335,7 +324,9 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
             {error && <div style={{ color: C.rd, fontSize: 12, marginBottom: 10, textAlign: 'center' }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={onClose} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} disabled={saving || !currentPw || !pw || !confirmPw} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${(!saving && currentPw && pw && confirmPw) ? C.ac : C.cardBd}`, background: 'transparent', color: (!saving && currentPw && pw && confirmPw) ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: (!saving && currentPw && pw && confirmPw) ? 'pointer' : 'default', minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{saving ? '...' : 'Save'}</button>
+              {(() => { const canSave = !saving && !demoMode && currentPw && pw && confirmPw; return (
+              <button onClick={handleSave} disabled={!canSave} title={demoMode ? 'Disabled in preview' : undefined} style={{ flex: 1, padding: '10px 0', borderRadius: 0, border: `1px solid ${canSave ? C.ac : C.cardBd}`, background: 'transparent', color: canSave ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: canSave ? 'pointer' : 'not-allowed', opacity: demoMode ? 0.5 : 1, minWidth: 72, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{saving ? '...' : 'Save'}</button>
+              ); })()}
             </div>
           </>
         )}
