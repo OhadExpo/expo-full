@@ -565,6 +565,16 @@ function AuthGate() {
     if (path === '/demo/sandbox') {
       return <Suspense fallback={<BootSplash />}><TrySandbox pov="trainee" /></Suspense>;
     }
+    // The coaches' demo LANDING (/demo, /demo/he) is public too — render it
+    // BEFORE the auth gate so a signed-in coach can still open the demo to show
+    // a prospect, instead of being bounced into their own dashboard.
+    if (path === '/demo' || path === '/demo/' || path.startsWith('/coaches')) {
+      return <Suspense fallback={<BootSplash />}><CoachLanding lang="en" /></Suspense>;
+    }
+    if (path === '/demo/he' || path === '/demo/he/' || path === '/he/demo' || path === '/he/demo/') {
+      if (path.startsWith('/he/demo')) window.history.replaceState(null, '', '/demo/he');
+      return <Suspense fallback={<BootSplash />}><CoachLanding lang="he" /></Suspense>;
+    }
   }
   if (!auth || auth.loading) return <BootSplash />;
   if (!auth.session) {
