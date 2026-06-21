@@ -9,6 +9,38 @@ const isHebrew = (s) => /[֐-׿]/.test(s || '');
 import { Btn, TextArea, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 
+// Inline exercise video — IDENTICAL rules to the group session (Ohad: "just play
+// and pause, no clicking on the youtube video at all"). Plays in place, never
+// navigates away or goes fullscreen. YouTube: sandboxed iframe (no allow-popups/
+// allow-top-navigation so links can't navigate the page) + fs=0. Direct files:
+// <video controlsList="nofullscreen nodownload"> + disablePictureInPicture.
+const ytId = (url) => {
+  const m = String(url || '').match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? m[1] : null;
+};
+function InlineVideo({ url }) {
+  const yt = ytId(url);
+  if (yt) {
+    return (
+      <div style={{ marginTop: 8, marginBottom: 10, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}` }}>
+        <iframe
+          src={`https://www.youtube.com/embed/${yt}?rel=0&modestbranding=1&controls=1&fs=0&disablekb=1&playsinline=1`}
+          sandbox="allow-scripts allow-same-origin allow-presentation"
+          allow="autoplay"
+          title="exercise video"
+          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />
+      </div>
+    );
+  }
+  if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url || '')) {
+    return (
+      <video src={url} controls playsInline controlsList="nofullscreen nodownload" disablePictureInPicture
+        style={{ width: '100%', marginTop: 8, marginBottom: 10, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, objectFit: 'contain' }} />
+    );
+  }
+  return null;
+}
+
 function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack }) {
   const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); };
   const updateEx = (ei,u) => { const exs=[...workout.exercises]; exs[ei]={...exs[ei],...u}; onUpdate({exercises:exs}); };
@@ -130,16 +162,18 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
         </div>
       );
     }
+    const fullyDoneOpen = allDone(ex);
     return (
-      <div key={ex.id} style={{background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
+      <div key={ex.id} style={{background: inGroup ? 'transparent' : 'var(--c-sf)', border: inGroup ? 'none' : `1px solid ${C.cardBd}`, borderLeft: inGroup ? undefined : `3px solid ${fullyDoneOpen ? C.gn : C.cardBd}`, borderTop: withDivider ? `1px solid ${C.cardBd}` : undefined, borderRadius:0, padding: inGroup ? '10px 0 4px' : 14, marginBottom: inGroup ? 0 : 10}}>
         {/* Header: title row + a readable prescription stat row (only fields
             that actually have a value — no "RPE — · Rest undefineds" noise).
-            COLLAPSE control fixed top-right. */}
+            COLLAPSE control fixed top-right. Video plays INLINE below the cue
+            (same embedded, non-clickable rules as the group session) — never a
+            link that navigates away. */}
         <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:10}}>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:8}}>
-              <span style={{fontWeight:700,fontSize:15,color:C.tx}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
-              {videoUrl && <a href={videoUrl} target="_blank" rel="noopener noreferrer" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 8px',textDecoration:'none'}}>▶ VIDEO</a>}
+              <span style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'normal',overflowWrap:'break-word',lineHeight:1.3}}>{exIdx+1}. {exData?.title||ex.title||"Unknown"}</span>
             </div>
             <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
               {[['SETS',(ex.sets||[]).length],['REPS',ex.reps],['TEMPO',(ex.tempo && String(ex.tempo)!==String(ex.reps))?ex.tempo:''],['RPE',ex.rpe],['REST',ex.rest?`${ex.rest}s`:'']]
@@ -163,6 +197,7 @@ function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete
             <div style={{minWidth:0,flex:1,fontSize:13,color:C.tx,lineHeight:1.5,direction:isHebrew(cue)?'rtl':'ltr',textAlign:isHebrew(cue)?'right':'left',fontFamily:isHebrew(cue)?FH:FB,wordBreak:'break-word'}}>{cue}</div>
           </div>
         )}
+        {videoUrl && <InlineVideo url={videoUrl} />}
         <div style={{display:"grid",gridTemplateColumns:"50px 1fr 1fr 1fr 60px",gap:6,alignItems:"center",marginBottom:4}}>
           {["SET","REPS","LOAD","RPE","DONE"].map(h=><div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:"center"}}>{h}</div>)}</div>
         {ex.sets.map((set,sIdx)=>{
@@ -475,9 +510,12 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                             {(() => { const nextDay = nextDayInWeek(p, selWeek); return (
                             <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>{(p.dayNames||[]).map((dName,i)=>{
                               const isNext = i===nextDay;
+                              // The next workout gets a FADED highlight — like hovering a
+                              // top-menu button (soft cyan wash + faint cyan edge), not a
+                              // loud bordered/labelled state.
                               return <Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i,selWeek)}
                                 title={isNext?'Next workout — the one to do now':undefined}
-                                style={{fontSize:12,padding:"5px 12px",...(isNext?{border:`2px solid ${C.ac}`,background:'rgba(57,189,255,0.1)',color:C.ac,fontWeight:700}:{})}}>▶ {dName}{isNext?'  ·  NEXT':''}</Btn>;
+                                style={{fontSize:12,padding:"5px 12px",...(isNext?{background:'rgba(57,189,255,0.12)',border:'1px solid rgba(57,189,255,0.45)',color:C.ac}:{})}}>▶ {dName}</Btn>;
                             })}</div>
                             ); })()}
                           </div>
