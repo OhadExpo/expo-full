@@ -1895,15 +1895,17 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>
         </div>
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:18}}>
+          {/* Team co-brand for Bnei Herzliya athletes — the team crest sits
+              centered ABOVE the greeting (white-filled logo reads on the dark
+              portal). Lowers the name beneath it. EXPO branding kept in the
+              header bar above. */}
+          {trainee?.branch === 'Bnei Herzliya' && (
+            <img src="/bnei-herzliya-logo.png" alt="Bnei Herzliya" style={{height:64,width:'auto',objectFit:'contain',marginBottom:14}} />
+          )}
           <h1 style={{margin:0,fontFamily:FN,fontSize:18,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}>Hey {clientName.split(' ')[0]}</h1>
           <div style={{width:24,height:1,background:C.ac,marginTop:8,opacity:0.5}}/>
-          {/* Team co-brand for Bnei Herzliya athletes — ADDS the team identity
-              alongside EXPO (logo + wordmark), without replacing EXPO branding. */}
           {trainee?.branch === 'Bnei Herzliya' && (
-            <div style={{display:'inline-flex',alignItems:'center',gap:8,marginTop:12,padding:'5px 12px',border:`1px solid ${C.ac}55`,background:'rgba(57,189,255,0.06)',borderRadius:0}}>
-              <img src="/bnei-herzliya-logo.png" alt="Bnei Herzliya" style={{height:22,width:'auto',objectFit:'contain'}} />
-              <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.ac,whiteSpace:'nowrap'}}>BNEI HERZLIYA · TEAM</span>
-            </div>
+            <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.ac,marginTop:10,textAlign:'center'}}>BNEI HERZLIYA</div>
           )}
         </div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:14}}>
