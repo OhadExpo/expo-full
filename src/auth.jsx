@@ -311,7 +311,18 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Change password" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
-        {ok ? (
+        {demoMode ? (
+          // Preview / sandbox (coach viewing-as an athlete): NO password change
+          // here, ever — the live session is the COACH's. Passwords are changed
+          // elsewhere (the athlete's own portal / coach account settings). Show a
+          // notice with no inputs and no Save button at all.
+          <>
+            <div style={{ color: C.tm, fontSize: 13, textAlign: 'center', lineHeight: 1.5, padding: '8px 0 16px' }}>
+              Password can't be changed from preview.<br />Athletes change it from their own portal.
+            </div>
+            <button onClick={onClose} style={{ width: '100%', padding: '10px 0', borderRadius: 0, border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer' }}>Close</button>
+          </>
+        ) : ok ? (
           <div style={{ color: C.gn, fontSize: 14, textAlign: 'center', padding: '20px 0' }}>Password updated ✓</div>
         ) : (
           <>
