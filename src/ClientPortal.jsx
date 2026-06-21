@@ -1676,6 +1676,19 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   }, [activePlan?.weeks, wk]);
 
   const cw = clientWorkouts.filter(w => w.clientId === ci);
+  // Sync the displayed week with reality (client_workouts): when the active
+  // block changes, open on the athlete's CURRENT week (next un-logged) — the
+  // same week single/group/coach derive. Ref-guarded so it fires only on a real
+  // block change, never overriding the athlete's manual week navigation.
+  const lastBlockRef = React.useRef(null);
+  React.useEffect(() => {
+    const name = activePlan?.name;
+    if (!name || lastBlockRef.current === name) return;
+    lastBlockRef.current = name;
+    const wks = cw.filter(w => w.planName === name).map(w => Number(w.week) || 1);
+    const max = wks.length ? Math.max(...wks) : 0;
+    setWk(Math.max(0, Math.min(Number(activePlan.weeks) || 4, max + 1) - 1));
+  }, [activePlan?.name]); // eslint-disable-line react-hooks/exhaustive-deps
   const handleComplete = w => {
     // demoMode = coach-side preview. Writes must never touch the real
     // trainee's record. Bail before any setter so a future refactor that
