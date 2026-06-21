@@ -84,17 +84,23 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     return m;
   }, [exercises]);
   const traineeById = useMemo(() => Object.fromEntries(trainees.map(t => [t.id, t])), [trainees]);
-  // Previous-weight reference per athlete: most-recent top set per exercise,
-  // drawn from the athlete's portal history (client_workouts) + any in-person
-  // coach log. Precomputed so per-set keystrokes don't re-scan history.
-  const lastByAthlete = useMemo(() => {
-    const hist = {};
-    for (const w of (clientWorkouts || [])) (hist[w.clientId] ||= []).push(w);
-    for (const w of (workouts || [])) if (w.status === 'completed') (hist[w.traineeId] ||= []).push(w);
+  // Previous-week reference per (athlete|plan|day): the most-recent logged
+  // session's sets per exercise, so the grid can show a per-set ghost like the
+  // portal/Single. Keyed by `${clientId}|${planName}|${dayName}` → Map(eid→sets).
+  const prevByKey = useMemo(() => {
+    const recent = {};
+    for (const w of (clientWorkouts || [])) {
+      const k = `${w.clientId}|${w.planName}|${w.dayName}`;
+      if (!recent[k] || new Date(w.date || 0) > new Date(recent[k].date || 0)) recent[k] = w;
+    }
     const out = {};
-    for (const [tid, list] of Object.entries(hist)) out[tid] = buildLastTopSetMap(list);
+    for (const [k, w] of Object.entries(recent)) {
+      const m = new Map();
+      for (const ex of (w.exercises || [])) { const id = ex.exerciseId || ex.eid; if (id && !m.has(id)) m.set(id, ex.sets || []); }
+      out[k] = m;
+    }
     return out;
-  }, [clientWorkouts, workouts]);
+  }, [clientWorkouts]);
 
   // ---- load / persist active session ----
   useEffect(() => {
@@ -139,7 +145,9 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         const title = ex.title || lib?.title || lib?.t || '?';
         const setCount = Number(ex.sets ?? ex.s) || 3;
         const reps = ex.reps ?? ex.r ?? '';
-        return { eid, title, prescribed: `${setCount}×${reps}`, sets: Array.from({ length: Math.max(1, setCount) }, fresh) };
+        const tempo = ex.tempo ?? '';
+        const videoUrl = ex.videoUrl ?? ex.vid ?? lib?.videoLink ?? '';
+        return { eid, title, reps, tempo, videoUrl, prescribed: `${setCount}×${reps}`, sets: Array.from({ length: Math.max(1, setCount) }, fresh) };
       });
       return {
         rowId: uid(),
@@ -229,7 +237,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
         {session.athletes.map((a, ai) => (
           <AthleteCard key={a.rowId} a={a} name={(traineeById[a.traineeId]?.name) || a.traineeId}
-            lastMap={lastByAthlete[a.traineeId]}
+            prevMap={prevByKey[`${a.traineeId}|${a.planName}|${a.dayName}`]}
             onToggleIn={() => mutate(d => { d.athletes[ai].checkedIn = !d.athletes[ai].checkedIn; })}
             onSet={(ei, si, patch) => mutate(d => { Object.assign(d.athletes[ai].exercises[ei].sets[si], patch); })}
             onCurEx={(ei) => mutate(d => { d.athletes[ai].curEx = ei; })}
@@ -274,7 +282,8 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
 }
 
 // ---- per-athlete logging card ----
-function AthleteCard({ a, name, lastMap, onToggleIn, onSet, onCurEx, onRemove }) {
+function AthleteCard({ a, name, prevMap, onToggleIn, onSet, onCurEx, onRemove }) {
+  const COLS = '16px 1fr 1fr 0.8fr 30px';
   return (
     <div style={{ background: 'var(--c-sf)', border: `1px solid ${a.checkedIn ? C.ac : C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
@@ -289,29 +298,54 @@ function AthleteCard({ a, name, lastMap, onToggleIn, onSet, onCurEx, onRemove })
       </div>
       <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
         {a.exercises.length === 0 && <div style={{ color: C.td, fontSize: 12, padding: 8, textAlign: 'center' }}>No exercises on this day.</div>}
-        {a.exercises.map((ex, ei) => (
+        {a.exercises.map((ex, ei) => {
+          const prevSets = prevMap?.get(ex.eid);
+          return (
           <div key={ei} onClick={() => onCurEx(ei)} style={{ border: `1px solid ${a.curEx === ei ? C.ac : C.cardBd}`, padding: 8, cursor: 'pointer', background: a.curEx === ei ? 'rgba(57,189,255,0.05)' : 'transparent' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
               <span style={{ fontFamily: FB, fontSize: 12, color: C.tx, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{ex.title}</span>
-              <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexShrink: 0 }}>
-                {(() => { const last = lastMap?.get(ex.eid); return last
-                  ? <span title="Last logged top set" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', color: C.gn }}>LAST · {last.load}KG × {last.reps || '—'}</span>
-                  : null; })()}
-                <span style={{ fontFamily: FN, fontSize: 10, color: C.tm }}>{ex.prescribed}</span>
-              </span>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, flexShrink: 0 }}>{ex.prescribed}</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {ex.sets.map((s, si) => (
-                <div key={si} style={{ display: 'grid', gridTemplateColumns: '18px 1fr 1fr 34px', gap: 4, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
-                  <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
-                  <input value={s.load} onChange={e => onSet(ei, si, { load: e.target.value })} placeholder="kg" inputMode="decimal" style={cell} />
-                  <input value={s.reps} onChange={e => onSet(ei, si, { reps: e.target.value })} placeholder="reps" inputMode="numeric" style={cell} />
-                  <button onClick={() => onSet(ei, si, { done: !s.done })} style={{ ...miniBtn, padding: '4px 0', background: s.done ? C.gn : 'transparent', color: s.done ? '#FFF' : C.tm, border: `1px solid ${s.done ? C.gn : C.cardBd}` }}>{s.done ? '✓' : '○'}</button>
-                </div>
-              ))}
+            {/* tempo + video — the per-1-on-1 detail the group grid was missing */}
+            {(ex.tempo || ex.videoUrl) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 3, flexWrap: 'wrap' }}>
+                {ex.tempo && <span style={{ fontFamily: FN, fontSize: 9, color: C.or, letterSpacing: '0.04em' }}>⏱ {ex.tempo}</span>}
+                {ex.videoUrl && <a href={ex.videoUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', color: C.ac, textDecoration: 'none' }}>▶ VIDEO</a>}
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, marginTop: 6, marginBottom: 2 }}>
+              {['', 'KG', 'REPS', 'RPE', '✓'].map(h => <span key={h} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }} onClick={e => e.stopPropagation()}>
+              {ex.sets.map((s, si) => {
+                const prior = prevSets?.[si];
+                return (
+                <React.Fragment key={si}>
+                  {prior && (parseFloat(prior.load) > 0 || prior.reps) && (
+                    <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center', opacity: 0.6, marginTop: si === 0 ? 0 : 4 }} title="Previous week">
+                      <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, textAlign: 'center' }}>‹</span>
+                      <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{parseFloat(prior.load) || '—'}</span>
+                      <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.reps || '—'}</span>
+                      <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.rpe || '—'}</span>
+                      <span />
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center' }}>
+                    <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
+                    <input value={s.load} onChange={e => onSet(ei, si, { load: e.target.value })} placeholder="kg" inputMode="decimal" style={cell} />
+                    <input value={s.reps} onChange={e => onSet(ei, si, { reps: e.target.value })} placeholder="reps" inputMode="numeric" style={cell} />
+                    <input value={s.rpe} onChange={e => onSet(ei, si, { rpe: e.target.value })} placeholder="—" inputMode="decimal" style={cell} />
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={!!s.done} onChange={e => onSet(ei, si, { done: e.target.checked })} style={{ width: 20, height: 20, accentColor: C.gn, cursor: 'pointer' }} />
+                    </label>
+                  </div>
+                </React.Fragment>
+                );
+              })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
