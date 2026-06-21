@@ -2679,6 +2679,58 @@ function DemoSessions() {
   );
 }
 
+// ── REVIEW · TOOLS launcher — mirrors src/ReviewToolsView.jsx. The owner-only
+// camera/pose suite. In the demo we show the real launcher but DON'T load
+// MediaPipe/three.js — clicking a tool explains it runs live in the full app. ──
+const DEMO_REVIEW_TOOLS = [
+  { key: 'lab', label: 'MOVEMENT LAB', measures: 'Rotatable 3D skeleton rebuilt from the lift', live: false },
+  { key: 'metrics', label: 'LIFT METRICS', measures: 'Bar speed (VBT) + velocity-loss · ROM + tempo + collapse flags', live: false },
+  { key: 'jump', label: 'JUMP TEST', measures: 'Jump height from flight time · estimated peak power', live: false },
+  { key: 'live', label: 'LIVE COACH', measures: 'Real-time reps + depth target + bar-path drift on the live feed', live: true },
+];
+function DemoReviewTools() {
+  const [title, setTitle] = useState('Back Squat');
+  const [note, setNote] = useState(false);
+  const [hover, setHover] = useState(null);
+  return (
+    <div>
+      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>REVIEW · TOOLS</div>
+      <h2 style={{ fontFamily: FB, fontSize: 24, fontWeight: 800, letterSpacing: '-0.01em', color: C.tx, margin: '0 0 8px' }}>Measure the lift</h2>
+      <div style={{ color: C.tm, fontSize: 13, marginBottom: 20, fontFamily: FB, maxWidth: 560, lineHeight: 1.5 }}>
+        Camera &amp; pose tools to read a set — bar speed, range of motion, jump power, live coaching. Owner trial; nothing is saved to the athlete.
+      </div>
+      <div style={{ marginBottom: 20, maxWidth: 380 }}>
+        <label style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 7, textTransform: 'uppercase' }}>Exercise · for Lab / Metrics / Live</label>
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat" style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', borderRadius: 0, outline: 'none' }} />
+      </div>
+      <div style={{ borderBottom: `1px solid ${C.cardBd}` }}>
+        {DEMO_REVIEW_TOOLS.map(t => {
+          const active = hover === t.key;
+          return (
+            <div key={t.key} role="button" tabIndex={0} onClick={() => setNote(true)} onMouseEnter={() => setHover(t.key)} onMouseLeave={() => setHover(null)}
+              style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 12px', borderTop: `1px solid ${C.cardBd}`, cursor: 'pointer', background: active ? 'rgba(57,189,255,0.05)' : 'transparent', transition: 'background .15s' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.03em', color: C.tx }}>{t.label}</div>
+                <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{t.measures}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: `1px solid ${t.live ? 'rgba(255,90,90,0.5)' : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{t.live ? 'LIVE' : 'CLIP'}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>OPEN →</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {note && (
+        <div style={{ marginTop: 16, background: C.acD, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.ac}`, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontFamily: FB, fontSize: 13, color: C.tx }}>The camera + pose tools run live in the full app — they're disabled in this demo. Join the waitlist to use them on your own clips.</span>
+          <button onClick={() => setNote(false)} style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, flexShrink: 0 }}>DISMISS</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Pull a tab key out of the URL path. Valid keys come from TABS; an unknown
 // or empty trailing segment falls back to dashboard so /demo/coach itself
 // renders the dashboard without forcing a redirect.
@@ -2695,6 +2747,9 @@ export default function CoachDemo() {
   // Track where the trainee-detail view was reached from so the back button
   // returns to the source surface instead of always landing on the Trainees tab.
   const [returnTab, setReturnTab] = useState('trainees');
+  // Review sub-view: WORKOUTS (the engine sandbox, always mounted to warm up) vs
+  // TOOLS (the camera/pose launcher) — mirrors the real Review ▾ dropdown.
+  const [reviewSub, setReviewSub] = useState('workouts');
 
   // Tab → URL: each tab gets its own path under /demo/coach/<key> so users
   // can deep-link, refresh, and use browser back/forward. Dashboard sits at
@@ -2885,13 +2940,21 @@ export default function CoachDemo() {
         {tab === 'exercises' && <DemoExercises />}
         {tab === 'workouts'  && <DemoWorkouts />}
         {tab === 'sessions'  && <DemoSessions />}
-        {/* Review is ALWAYS mounted — display:none on other tabs — so the
-            /demo iframe loads its wasm + pose model in the background while
-            the visitor explores. By the time they click Review, the engine
-            is usually warm. */}
-        <div style={{ display: tab === 'review' ? 'block' : 'none' }}>
+        {/* Review ▾ — WORKOUTS (engine review) | TOOLS (camera/pose launcher). */}
+        {tab === 'review' && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {[['workouts', 'WORKOUTS'], ['tools', 'TOOLS']].map(([k, l]) => (
+              <button key={k} onClick={() => setReviewSub(k)} style={{ ...baseBtn, background: reviewSub === k ? C.acD : 'transparent', color: reviewSub === k ? C.ac : C.tm, border: `1px solid ${reviewSub === k ? C.ac : C.bd}`, padding: '6px 18px', fontSize: 12, letterSpacing: 1.5 }}>{l}</button>
+            ))}
+          </div>
+        )}
+        {/* Review WORKOUTS is ALWAYS mounted — display:none otherwise — so the
+            /demo iframe loads its wasm + pose model in the background while the
+            visitor explores. By the time they click Review, the engine is warm. */}
+        <div style={{ display: tab === 'review' && reviewSub === 'workouts' ? 'block' : 'none' }}>
           <DemoReview />
         </div>
+        {tab === 'review' && reviewSub === 'tools' && <DemoReviewTools />}
 
         {/* End CTA — every tab funnels back to the waitlist */}
         <div style={{
