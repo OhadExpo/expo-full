@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, uid, PAYMENT_STATUSES, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES, GENDER_OPTIONS } from './theme';
 
@@ -19,6 +19,43 @@ import CoachContractComposer from './CoachContractComposer';
 import TraineeEvaluation from './TraineeEvaluation';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
+
+// Status is changed HERE (top-right of the trainee page) via this dropdown —
+// no longer inside the EDIT modal (Ohad). Click the status pill → pick a new
+// one. Flat (no shadow) per the reference.
+const STATUS_COLOR = { Active: C.gn, 'On Hold': C.or, Inactive: C.td, Trial: C.ac, Archived: C.rd };
+const STATUS_CHOICES = ['Active', 'On Hold', 'Inactive', 'Trial'];
+function StatusMenu({ status, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', onDown, true);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('pointerdown', onDown, true); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+  const color = STATUS_COLOR[status] || C.tm;
+  return (
+    <span ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+      <button onClick={() => setOpen(o => !o)} title="Change status"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '3px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+        {status}<span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+      </button>
+      {open && (
+        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 130 }}>
+          {STATUS_CHOICES.map(s => (
+            <button key={s} onClick={() => { onChange(s); setOpen(false); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', background: s === status ? 'var(--c-sf)' : 'transparent', border: 'none', borderLeft: `3px solid ${s === status ? (STATUS_COLOR[s] || C.ac) : 'transparent'}`, color: STATUS_COLOR[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
   const td = trainees.find(t=>t.id===trainee);
@@ -337,7 +374,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             const heb = isHebrew(td.name);
             return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{td.name} · {td.format}</span>;
           })()}
-          headerRight={<Badge color={statusColor[td.status]} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{td.status}</Badge>}>
+          headerRight={<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} />}>
           {!isRefined5b() && (
             <div style={{fontSize:12,color:C.tm,fontFamily:FN,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:8}}>
               {td.format} · <Badge color={statusColor[td.status]}>{td.status}</Badge>
@@ -362,7 +399,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === SOLO LAYOUT === */}
       <Card style={{marginBottom:8,position:"relative"}}
         header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{td.name}<span style={{fontSize:11,opacity:0.78,letterSpacing:'0.02em',textTransform:'none',fontWeight:500}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</span></span>}
-        headerRight={<Badge color={statusColor[td.status]} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{td.status}</Badge>}>
+        headerRight={<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} />}>
         {!isRefined5b() && (
           <>
             <div style={{textAlign:"center"}}><h2 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>{td.name}</h2>
@@ -912,7 +949,8 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <Input label="Couple Name" value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
             <Select label="Format" options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
-            <Select label="Status" options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={editForm.status || ""} onChange={v => setEditForm({ ...editForm, status: v })} />
+            {/* Status moved out of EDIT — changed via the status pill at the top
+                of the trainee page (Ohad). */}
             <Select label="Package" options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />
             <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />
             <Input label="Monthly (₪)" type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />
@@ -979,7 +1017,8 @@ const EditTraineeModal = React.memo(function EditTraineeModal({ td, couple, draf
             <Input label="Weight (kg)" type="number" value={editForm.weight || ""} onChange={e => setEditForm({ ...editForm, weight: e.target.value })} />
             <Input label="Height (cm)" type="number" value={editForm.height || ""} onChange={e => setEditForm({ ...editForm, height: e.target.value })} />
             <Select label="Format" options={TRAINING_FORMATS} value={editForm.format || ""} onChange={v => setEditForm({ ...editForm, format: v })} />
-            <Select label="Status" options={TRAINEE_STATUSES.filter(s => s !== "Archived")} value={editForm.status || ""} onChange={v => setEditForm({ ...editForm, status: v })} />
+            {/* Status moved out of EDIT — changed via the status pill at the top
+                of the trainee page (Ohad). */}
             <Select label="Package" options={PACKAGE_TYPES} value={editForm.package || ""} onChange={v => setEditForm({ ...editForm, package: v })} />
             <Input label="Sessions Remaining" type="number" value={editForm.sessionsRemaining || 0} onChange={e => setEditForm({ ...editForm, sessionsRemaining: parseInt(e.target.value) || 0 })} />
             <Input label="Monthly (₪)" type="number" value={editForm.monthly || ""} onChange={e => setEditForm({ ...editForm, monthly: parseFloat(e.target.value) || 0 })} />
