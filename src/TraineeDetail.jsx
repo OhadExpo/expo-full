@@ -375,11 +375,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             return <span style={{display:'inline-flex',alignItems:'center',gap:8,fontWeight:700,fontSize:heb?16:13,fontFamily:heb?FH:undefined,letterSpacing:heb?0:'0.04em',textTransform:heb?'none':'uppercase'}}>{td.name} · {td.format}</span>;
           })()}
           headerRight={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>{td.branch === 'Bnei Herzliya' && <span title="Bnei Herzliya branch" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 7px',whiteSpace:'nowrap'}}>BNEI HERZLIYA</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>}>
-          {!isRefined5b() && (
-            <div style={{fontSize:12,color:C.tm,fontFamily:FN,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.04em',marginBottom:8}}>
-              {td.format} · <Badge color={statusColor[td.status]}>{td.status}</Badge>
-            </div>
-          )}
+          {/* Duplicate status Badge removed — the strip header's StatusMenu is the
+              single status control (Ohad: no mirrored status in the back). */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(100px, 1fr))',gap:10}}>
             {[['Package',td.package],['Sessions Left',td.sessionsRemaining],['Monthly',td.monthly?`₪${td.monthly}`:'—'],['Per Session',td.perSession?`₪${td.perSession}`:'—'],['Last Payment',fmtPrettyDate(lastPaidDate)],['Since',fmtPrettyDate(td.startDate)],['Workouts',tAllWorkouts.length]].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
@@ -400,14 +397,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <Card style={{marginBottom:8,position:"relative"}}
         header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{td.name}<span style={{fontSize:11,opacity:0.78,letterSpacing:'0.02em',textTransform:'none',fontWeight:500}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</span></span>}
         headerRight={<span style={{display:'inline-flex',alignItems:'center',gap:8}}>{td.branch === 'Bnei Herzliya' && <span title="Bnei Herzliya branch" style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,border:`1px solid ${C.ac}`,padding:'2px 7px',whiteSpace:'nowrap'}}>BNEI HERZLIYA</span>}<StatusMenu status={td.status} onChange={s => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, status: s } : t)); }} /></span>}>
-        {!isRefined5b() && (
-          <>
-            <div style={{textAlign:"center"}}><h2 style={{margin:0,fontFamily:FN,fontSize:20,color:C.tx}}>{td.name}</h2>
-              <div style={{color:C.tm,fontSize:13,marginTop:4}}>{Array.isArray(td.email)?td.email.join(', '):(td.email||'')}{td.phone?` · ${td.phone}`:""}</div></div>
-            <div style={{display:"flex",alignItems:"center",gap:8,position:"absolute",right:16,top:16}}>
-              <Badge color={statusColor[td.status]}>{td.status}</Badge></div>
-          </>
-        )}
+        {/* The card strip header already shows the name/email + the interactive
+            StatusMenu. The old body block re-rendered the name and a NON-clickable
+            status Badge, which read as a duplicate ("mirror") and was the thing
+            being clicked instead of the real menu — removed. */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:isRefined5b()?0:16,textAlign:"center"}}>
           {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)],["Workouts",tAllWorkouts.length]].map(([l,v])=>
             <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}

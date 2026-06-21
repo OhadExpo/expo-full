@@ -510,12 +510,12 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                             {(() => { const nextDay = nextDayInWeek(p, selWeek); return (
                             <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>{(p.dayNames||[]).map((dName,i)=>{
                               const isNext = i===nextDay;
-                              // The next workout gets a FADED highlight — like hovering a
-                              // top-menu button (soft cyan wash + faint cyan edge), not a
-                              // loud bordered/labelled state.
+                              // The next workout gets a subtle tint — like the active/
+                              // hovered ATHLETES item in the top nav: faint cyan wash +
+                              // cyan text, NO loud box, NO "NEXT" label.
                               return <Btn key={i} variant="ghost" onClick={()=>startWorkout(p,i,selWeek)}
                                 title={isNext?'Next workout — the one to do now':undefined}
-                                style={{fontSize:12,padding:"5px 12px",...(isNext?{background:'rgba(57,189,255,0.12)',border:'1px solid rgba(57,189,255,0.45)',color:C.ac}:{})}}>▶ {dName}</Btn>;
+                                style={{fontSize:12,padding:"5px 12px",...(isNext?{background:'rgba(57,189,255,0.1)',color:C.ac}:{})}}>▶ {dName}</Btn>;
                             })}</div>
                             ); })()}
                           </div>
