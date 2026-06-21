@@ -99,19 +99,25 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // session's sets per exercise, so the grid can show a per-set ghost like the
   // portal/Single. Keyed by `${clientId}|${planName}|${dayName}` → Map(eid→sets).
   const prevByKey = useMemo(() => {
-    const recent = {};
+    const tmp = {}; // key includes WEEK so a W2 card shows W1, W3 shows W2, etc.
     for (const w of (clientWorkouts || [])) {
-      const k = `${w.clientId}|${w.planName}|${w.dayName}`;
-      if (!recent[k] || new Date(w.date || 0) > new Date(recent[k].date || 0)) recent[k] = w;
+      const k = `${w.clientId}|${w.planName}|${w.dayName}|${Number(w.week) || 1}`;
+      if (!tmp[k] || new Date(w.date || 0) > new Date(tmp[k].date || 0)) tmp[k] = w;
     }
     const out = {};
-    for (const [k, w] of Object.entries(recent)) {
+    for (const [k, w] of Object.entries(tmp)) {
       const m = new Map();
       for (const ex of (w.exercises || [])) { const id = ex.exerciseId || ex.eid; if (id && !m.has(id)) m.set(id, ex.sets || []); }
       out[k] = m;
     }
     return out;
   }, [clientWorkouts]);
+  // Next un-logged week for an athlete on a plan+day (finished W1 → 2), capped.
+  const nextWeekFor = (traineeId, planName, dayName, planWeeks) => {
+    const wks = (clientWorkouts || []).filter(x => x.clientId === traineeId && x.planName === planName && x.dayName === dayName).map(x => Number(x.week) || 1);
+    const max = wks.length ? Math.max(...wks) : 0;
+    return Math.min(Number(planWeeks) || 8, Math.max(1, max + 1));
+  };
 
   // Load plan day-data for everyone in the session so each card can resolve
   // tempo / video / cue LIVE from the source of truth — not from a snapshot
@@ -184,12 +190,17 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       const plan = planData[p.planId];
       const days = plan?.data?.days || [];
       const day = days[p.dayIdx] || {};
+      const week = Number(p.week) || 1;
+      const wi = week - 1; // 0-indexed into per-week arrays
       const exList = (day.exercises || day.ex || []).map((ex) => {
         const eid = ex.exerciseId || ex.eid || '';
         const lib = exById.get(eid);
         const title = ex.title || lib?.title || lib?.t || '?';
-        const setCount = Number(ex.sets ?? ex.s) || 3;
-        const reps = ex.reps ?? ex.r ?? '';
+        // Plans that vary reps/sets per week store ex.wk / ex.wkS arrays — use
+        // the chosen week's value (fixes "3x>" where the base reps is a
+        // placeholder), else the base.
+        const reps = (Array.isArray(ex.wk) && ex.wk[wi] != null && ex.wk[wi] !== '') ? ex.wk[wi] : (ex.reps ?? ex.r ?? '');
+        const setCount = Number((Array.isArray(ex.wkS) && ex.wkS[wi] != null) ? ex.wkS[wi] : (ex.sets ?? ex.s)) || 3;
         const tempo = ex.tempo ?? '';
         const videoUrl = ex.videoUrl ?? ex.vid ?? lib?.videoLink ?? '';
         return { eid, title, reps, tempo, videoUrl, prescribed: `${setCount}×${reps}`, sets: Array.from({ length: Math.max(1, setCount) }, fresh) };
@@ -200,6 +211,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         planId: p.planId,
         planName: plan?.name || '',
         dayName: day.name || p.dayName || 'Session',
+        week,
         checkedIn: false,
         curEx: 0,
         exercises: exList,
@@ -214,12 +226,6 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
 
   const finishSession = useCallback(async () => {
     if (!session) return;
-    // Each athlete's next un-logged week for this plan+day (so a group session
-    // lands in the right week, not always W1).
-    const nextWeek = (tid, planName, dayName) => {
-      const wks = (clientWorkouts || []).filter(x => x.clientId === tid && x.planName === planName && x.dayName === dayName).map(x => Number(x.week) || 1);
-      return wks.length ? Math.max(...wks) + 1 : 1;
-    };
     const finishedAt = new Date().toISOString();
     const completed = session.athletes
       .map(a => {
@@ -230,7 +236,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           clientId: a.traineeId,
           planName: a.planName,
           dayName: a.dayName,
-          week: nextWeek(a.traineeId, a.planName, a.dayName),
+          week: Number(a.week) || nextWeekFor(a.traineeId, a.planName, a.dayName),
           date: finishedAt, completedAt: finishedAt,
           notes: 'Logged in group session',
           formVideos: [], reviewedAt: finishedAt, source: 'group-session',
@@ -268,7 +274,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           </div>
           <button onClick={() => setPicking(true)} style={primaryBtn}>+ START SESSION</button>
         </Card>
-        {picking && <AthletePicker trainees={trainees} planIndex={planIndex} onCancel={() => setPicking(false)} onConfirm={addAthletes} />}
+        {picking && <AthletePicker trainees={trainees} planIndex={planIndex} clientWorkouts={clientWorkouts} onCancel={() => setPicking(false)} onConfirm={addAthletes} />}
       </div>
     );
   }
@@ -282,7 +288,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
         {session.athletes.map((a, ai) => (
           <AthleteCard key={a.rowId} a={a} name={(traineeById[a.traineeId]?.name) || a.traineeId}
-            prevMap={prevByKey[`${a.traineeId}|${a.planName}|${a.dayName}`]} exDetail={exDetail}
+            prevMap={prevByKey[`${a.traineeId}|${a.planName}|${a.dayName}|${(Number(a.week) || 1) - 1}`]} exDetail={exDetail}
             onToggleIn={() => mutate(d => { d.athletes[ai].checkedIn = !d.athletes[ai].checkedIn; })}
             onSet={(ei, si, patch) => mutate(d => { Object.assign(d.athletes[ai].exercises[ei].sets[si], patch); })}
             onCurEx={(ei) => mutate(d => { d.athletes[ai].curEx = ei; })}
@@ -290,7 +296,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           />
         ))}
       </div>
-      {picking && <AthletePicker trainees={trainees} planIndex={planIndex} existing={session.athletes.map(a => a.traineeId)} onCancel={() => setPicking(false)} onConfirm={addAthletes} />}
+      {picking && <AthletePicker trainees={trainees} planIndex={planIndex} existing={session.athletes.map(a => a.traineeId)} clientWorkouts={clientWorkouts} onCancel={() => setPicking(false)} onConfirm={addAthletes} />}
     </div>
   );
 }
@@ -334,7 +340,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: `1px solid ${C.cardBd}` }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.dayName}</div>
+          <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.04em' }}>{a.dayName}{a.week ? ` · W${a.week}` : ''}</div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
           <button onClick={onToggleIn} style={{ ...miniBtn, background: a.checkedIn ? C.gn : 'transparent', color: a.checkedIn ? '#FFF' : C.tm, border: `1px solid ${a.checkedIn ? C.gn : C.cardBd}` }}>{a.checkedIn ? '✓ IN' : 'CHECK IN'}</button>
@@ -416,14 +422,23 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
 }
 
 // ---- athlete + program + day picker ----
-function AthletePicker({ trainees, planIndex, existing = [], onCancel, onConfirm }) {
-  const [rows, setRows] = useState([]); // { traineeId, planId, dayIdx }
+function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = [], onCancel, onConfirm }) {
+  const [rows, setRows] = useState([]); // { traineeId, planId, dayIdx, week }
   const active = trainees.filter(t => t.status !== 'Archived' && !existing.includes(t.id));
   const plansFor = (traineeId) => {
     const ids = traineeIdsFor(traineeId);
     return planIndex.filter(p => ids.includes(p.traineeId));
   };
-  const addRow = () => setRows(r => [...r, { traineeId: '', planId: '', dayIdx: 0 }]);
+  // Default week = the athlete's next un-logged week for that plan+day (finished
+  // W1 → W2), capped at the block length.
+  const dfltWeek = (r) => {
+    const plan = planIndex.find(p => p.id === r.planId);
+    const dayName = plan?.dayNames?.[r.dayIdx] || '';
+    const wks = (clientWorkouts || []).filter(x => x.clientId === r.traineeId && x.planName === plan?.name && x.dayName === dayName).map(x => Number(x.week) || 1);
+    const max = wks.length ? Math.max(...wks) : 0;
+    return Math.min(Number(plan?.weeks) || 8, Math.max(1, max + 1));
+  };
+  const addRow = () => setRows(r => [...r, { traineeId: '', planId: '', dayIdx: 0, week: 0 }]);
   const setRow = (i, patch) => setRows(r => r.map((x, j) => j === i ? { ...x, ...patch } : x));
   const delRow = (i) => setRows(r => r.filter((_, j) => j !== i));
   useEffect(() => { if (rows.length === 0) addRow(); }, []); // eslint-disable-line
@@ -431,7 +446,7 @@ function AthletePicker({ trainees, planIndex, existing = [], onCancel, onConfirm
   const confirm = () => {
     const picks = rows.filter(r => r.traineeId && r.planId).map(r => {
       const plan = planIndex.find(p => p.id === r.planId);
-      return { traineeId: r.traineeId, planId: r.planId, dayIdx: Number(r.dayIdx) || 0, dayName: plan?.dayNames?.[r.dayIdx] || '' };
+      return { traineeId: r.traineeId, planId: r.planId, dayIdx: Number(r.dayIdx) || 0, dayName: plan?.dayNames?.[r.dayIdx] || '', week: Number(r.week) || dfltWeek(r) };
     });
     if (!picks.length) { toast('Pick at least one athlete + program.', 'warn'); return; }
     onConfirm(picks);
@@ -446,18 +461,23 @@ function AthletePicker({ trainees, planIndex, existing = [], onCancel, onConfirm
             const plans = r.traineeId ? plansFor(r.traineeId) : [];
             const plan = planIndex.find(p => p.id === r.planId);
             const dayNames = plan?.dayNames || [];
+            const weeks = Number(plan?.weeks) || 8;
+            const wkVal = Number(r.week) || (r.planId ? dfltWeek(r) : 1);
             return (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 28px', gap: 6, alignItems: 'center' }}>
-                <select value={r.traineeId} onChange={e => setRow(i, { traineeId: e.target.value, planId: '', dayIdx: 0 })} style={sel}>
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.1fr 1fr 0.7fr 28px', gap: 6, alignItems: 'center' }}>
+                <select value={r.traineeId} onChange={e => setRow(i, { traineeId: e.target.value, planId: '', dayIdx: 0, week: 0 })} style={sel}>
                   <option value="">— athlete —</option>
                   {active.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
-                <select value={r.planId} onChange={e => setRow(i, { planId: e.target.value, dayIdx: 0 })} style={sel} disabled={!r.traineeId}>
+                <select value={r.planId} onChange={e => setRow(i, { planId: e.target.value, dayIdx: 0, week: 0 })} style={sel} disabled={!r.traineeId}>
                   <option value="">— program —</option>
                   {plans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
-                <select value={r.dayIdx} onChange={e => setRow(i, { dayIdx: Number(e.target.value) })} style={sel} disabled={!r.planId}>
+                <select value={r.dayIdx} onChange={e => setRow(i, { dayIdx: Number(e.target.value), week: 0 })} style={sel} disabled={!r.planId}>
                   {dayNames.length ? dayNames.map((d, di) => <option key={di} value={di}>{d || `Day ${di + 1}`}</option>) : <option value={0}>Day 1</option>}
+                </select>
+                <select value={wkVal} onChange={e => setRow(i, { week: Number(e.target.value) })} style={sel} disabled={!r.planId} title="Week to log into">
+                  {Array.from({ length: weeks }, (_, wi) => wi + 1).map(wn => <option key={wn} value={wn}>W{wn}</option>)}
                 </select>
                 <button onClick={() => delRow(i)} style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
               </div>
