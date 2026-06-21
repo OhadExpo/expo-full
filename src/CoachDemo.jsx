@@ -790,6 +790,28 @@ function CoupleCard({ t, onClick }) {
   );
 }
 
+// Interactive status menu for the demo trainee detail — clicking actually
+// changes the (local) status so a prospect can demo a status change. Mirrors
+// the real TraineeDetail StatusMenu.
+function DemoStatusMenu() {
+  const [status, setStatus] = useState('Active');
+  const [open, setOpen] = useState(false);
+  const COLORS = { Active: C.gn, 'On Hold': C.or, Inactive: C.td, Trial: C.ac };
+  const color = COLORS[status] || C.tm;
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <button onClick={() => setOpen(o => !o)} title="Change status" style={{ ...baseBtn, height: 34, boxSizing: 'border-box', background: 'transparent', border: `1px solid ${color}`, color, padding: '0 12px', fontSize: 11, letterSpacing: '0.12em', display: 'inline-flex', alignItems: 'center', gap: 6 }}>{status.toUpperCase()} <span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none' }}>▾</span></button>
+      {open && (
+        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: C.bg, border: `1px solid ${C.cardBd}`, minWidth: 124 }}>
+          {['Active', 'On Hold', 'Inactive', 'Trial'].map(s => (
+            <button key={s} onClick={() => { setStatus(s); setOpen(false); }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', background: s === status ? C.acD : 'transparent', border: 'none', borderLeft: `3px solid ${s === status ? (COLORS[s] || C.ac) : 'transparent'}`, color: COLORS[s] || C.tx, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer' }}>{s}</button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES' }) {
   // Couple detail: split each member into their own card column. Real app's
   // ruling — SHARED for the household: format, package, sessions, monthly,
@@ -814,6 +836,9 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES'
           border: `1px solid ${C.bd}`,
         }}>{backLabel}</button>
         <div style={{ flex: 1 }} />
+        {/* Interactive status menu — actually changes (local) status so the
+            prospect can demo a status change, like the real TraineeDetail. */}
+        <DemoStatusMenu />
         {/* Action affordances on the trainee detail. Same set of operations
             as the real coach app's TraineeDetail (Assign Plan / Add Payment /
             Edit / Archive). Demo-only — clicks are no-ops, button.disabled
