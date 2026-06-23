@@ -219,13 +219,6 @@ export default function MovementLab({
         setProgress(Math.round(((i + 1) / total) * 100));
       }
       framesRef.current = frames;
-      // TEMP DIAGNOSTIC — expose the ankle-Y trajectory the analyzer saw so we
-      // can tell crowd-tracking failure from frame-exit / no-still-stand / slow-mo.
-      if (typeof window !== 'undefined') { try {
-        const ank = frames.map(f => { const im = f.landmarks; if (!im) return null; const a = im[27], b = im[28]; return (a && b) ? +Math.max(a.y, b.y).toFixed(3) : null; });
-        const vis = frames.map(f => { const im = f.landmarks; if (!im) return 0; let c = 0; for (const pt of im) if (pt && (pt.visibility == null || pt.visibility > 0.5)) c++; return c; });
-        window.__jumpDebug = { n: frames.length, durMs: Math.round(frames[frames.length - 1]?.t || 0), ankleY: ank, visCount: vis };
-      } catch {} }
       if (mode === 'jump') {
         const j = computeJump(frames);
         setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
