@@ -55,6 +55,11 @@ export function demoJumpFrames(fps = 24, dur = 2.4) {
     const p = i / total;
     const dip = bump(p, 0.00, 0.32) * 0.8 + bump(p, 0.62, 0.92) * 0.5;
     const ext = bump(p, 0.30, 0.62);
+    // Airborne window — the WHOLE body translates up so the ankles rise above
+    // the standing baseline. jumpMetrics times that rise as flight (height =
+    // g·t²/8); without it the demo had no flight and read "couldn't read a
+    // clean jump". ~0.46 s aloft → ≈25 cm, a believable demo vertical.
+    const fly = bump(p, 0.42, 0.61);
     let armSw;
     if (p < 0.28) armSw = -Math.sin((p / 0.28) * Math.PI * 0.5);
     else if (p < 0.52) armSw = -1 + ((p - 0.28) / 0.24) * 2;
@@ -78,6 +83,8 @@ export function demoJumpFrames(fps = 24, dur = 2.4) {
       w[wri] = { x: ex, y: s.y + 0.50 * dy, z: s.z + 0.50 * dz };
       w[han] = { x: ex, y: s.y + 0.57 * dy, z: s.z + 0.57 * dz };
     }
+    // Lift the entire body during flight (y is image-down, so up = subtract).
+    if (fly > 0) for (const pt of w) { if (pt) pt.y -= fly * 0.30; }
     frames.push({ t, landmarks: w, worldLandmarks: w }); t += dt;
   }
   return frames;
