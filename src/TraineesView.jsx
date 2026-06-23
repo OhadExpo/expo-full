@@ -553,41 +553,46 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
           <div style={{
             display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 12,
           }}>
+            {/* NAME and STATUS each carry their OWN direction toggle, shown
+                together (Ohad): NAME ↔ א→ת/ת→א · STATUS ↔ Active/Inactive. Every
+                pill + toggle shares boxBase (BOX_H) so the row is one height.
+                LAST TRAINED / PAYMENT keep a single trailing toggle when active. */}
             {[
               { id: 'name',        label: 'NAME' },
               { id: 'status',      label: 'STATUS' },
               { id: 'lastTrained', label: 'LAST TRAINED' },
               { id: 'payment',     label: 'PAYMENT' },
-            ].map(o => (
-              <button key={o.id} onClick={() => setSortBy(o.id)} style={pill(sortBy === o.id)}>
-                {o.label}
-              </button>
-            ))}
-            {/* Single direction toggle. NAME reads in the Hebrew alphabet
-                (roster is Hebrew-first); the others in their natural order. */}
-            {sortBy === 'name' ? (
+            ].map(o => {
+              const inline = o.id === 'name' || o.id === 'status';
+              const on = sortBy === o.id;
+              const flip = () => { if (on) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortBy(o.id); };
+              return (
+                <React.Fragment key={o.id}>
+                  <button onClick={() => setSortBy(o.id)} style={pill(on)}>{o.label}</button>
+                  {inline && (
+                    <button onClick={flip}
+                      title={o.id === 'name' ? (sortDir === 'asc' ? 'א → ת' : 'ת → א') : (sortDir === 'asc' ? 'Active first' : 'Inactive first')}
+                      style={{
+                        ...boxBase,
+                        border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? 'rgba(57,189,255,0.094)' : 'transparent',
+                        color: on ? C.ac : C.tm,
+                        ...(o.id === 'name'
+                          ? { fontFamily: `Heebo, ${FN}`, fontSize: 13, letterSpacing: 0, lineHeight: 1 }
+                          : { fontSize: 10, letterSpacing: '0.12em' }),
+                      }}>
+                      {o.id === 'name'
+                        ? (on && sortDir === 'desc' ? 'ת→א' : 'א→ת')
+                        : (on && sortDir === 'desc' ? '↑ INACTIVE' : '↓ ACTIVE')}
+                    </button>
+                  )}
+                </React.Fragment>
+              );
+            })}
+            {(sortBy === 'lastTrained' || sortBy === 'payment') && (
               <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-                title={sortDir === 'asc' ? 'א → ת' : 'ת → א'}
-                style={{
-                  ...boxBase, marginLeft: 6,
-                  border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac,
-                  fontFamily: `Heebo, ${FN}`, fontSize: 13, letterSpacing: 0, lineHeight: 1,
-                }}>{sortDir === 'desc' ? 'ת→א' : 'א→ת'}</button>
-            ) : (
-              <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-                title={
-                  sortBy === 'status' ? (sortDir === 'asc' ? 'Active first' : 'Inactive first')
-                  : sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first')
-                  : (sortDir === 'asc' ? 'Paid → Overdue' : 'Overdue → Paid')
-                }
-                style={{
-                  ...boxBase, marginLeft: 6,
-                  border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac,
-                  fontSize: 10, letterSpacing: '0.12em',
-                }}>{
-                  sortBy === 'status' ? (sortDir === 'asc' ? '↓ ACTIVE' : '↑ INACTIVE')
-                  : sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST')
-                  : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
+                title={sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first') : (sortDir === 'asc' ? 'Paid → Overdue' : 'Overdue → Paid')}
+                style={{ ...boxBase, border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac, fontSize: 10, letterSpacing: '0.12em' }}>{
+                  sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST') : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
                 }</button>
             )}
             <span style={{ flex: 1 }} />
@@ -599,7 +604,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
       })()}
 
       {filtered.length === 0 ? <EmptyState icon={showArchived ? "📦" : "👥"} message={showArchived ? "No archived athletes." : "No athletes yet. Add your first one."} /> : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gap: 12 }}>
+        // gridAutoRows:1fr equalises EVERY row to the tallest card so all athlete
+        // cards are the same height (the action row's marginTop:auto absorbs the
+        // slack consistently, keeping internal dividers aligned across the row).
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gridAutoRows: "1fr", gap: 12 }}>
           {filtered.map(t => {
             const couple = isCouple(t);
             const mpc = getMemberPlanCounts(t, planCounts);
