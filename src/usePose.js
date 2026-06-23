@@ -11,14 +11,17 @@ let _filesetPromise = null;
 
 // Create a PoseLandmarker. runningMode 'VIDEO' (live) or 'IMAGE'. quality
 // 'lite' (fast, live overlay) or 'full' (more accurate, post-hoc analysis).
-export async function createPoseLandmarker({ runningMode = 'VIDEO', quality = 'lite' } = {}) {
+export async function createPoseLandmarker({ runningMode = 'VIDEO', quality = 'lite', numPoses = 1 } = {}) {
   const { PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
   if (!_filesetPromise) _filesetPromise = FilesetResolver.forVisionTasks(WASM_CDN);
   const fileset = await _filesetPromise;
   const opts = (delegate) => ({
     baseOptions: { modelAssetPath: quality === 'full' ? MODEL_FULL : MODEL_LITE, delegate },
     runningMode,
-    numPoses: 1,
+    // Offline upload analysis can ask for several poses so a CROWD around the
+    // athlete (gym, spectators) doesn't make the detector lock onto a bystander —
+    // the caller then picks the central/tallest figure (the subject) per frame.
+    numPoses,
   });
   try {
     return await PoseLandmarker.createFromOptions(fileset, opts('GPU'));

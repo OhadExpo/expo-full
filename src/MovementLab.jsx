@@ -19,6 +19,33 @@ import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries } from './poseLab';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
+// Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
+// the central, tallest figure in frame (closest to the camera, framed in the
+// middle) — so a crowd of spectators around the athlete can't hijack the read.
+// Returns the index into the poses array, or -1 if none. Single-pose → 0.
+function pickSubjectIdx(poses) {
+  if (!poses || !poses.length) return -1;
+  if (poses.length === 1) return 0;
+  let best = -1, bestScore = -Infinity;
+  for (let i = 0; i < poses.length; i++) {
+    const p = poses[i];
+    if (!p || !p.length) continue;
+    let minY = 1, maxY = 0, sumX = 0, n = 0;
+    for (const pt of p) {
+      if (!pt || typeof pt.y !== 'number') continue;
+      if (pt.y < minY) minY = pt.y;
+      if (pt.y > maxY) maxY = pt.y;
+      sumX += pt.x; n++;
+    }
+    if (!n) continue;
+    const span = maxY - minY;                                  // taller in frame = closer / main subject
+    const centrality = 1 - Math.min(1, Math.abs(0.5 - sumX / n) * 2); // 1 at centre → 0 at the edges
+    const score = span + centrality * 0.5;
+    if (score > bestScore) { bestScore = score; best = i; }
+  }
+  return best;
+}
+
 // Real Z-Anatomy 3D model (three.js), posed from the captured rep — lazy so the
 // 3D engine + GLBs only ship when the 3D tab is opened.
 const AnatomyViewer = lazy(() => import('./AnatomyModelViewer'));
@@ -160,10 +187,12 @@ export default function MovementLab({
   const analyzeUploadedFile = useCallback(async (file) => {
     if (!file) return;
     setError(null); setResult(null); setJump(null); setProgress(0); setPhase('analyzing');
-    let url;
+    let url, lm;
     try {
-      if (!landmarkerRef.current) landmarkerRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full' });
-      const lm = landmarkerRef.current;
+      // Dedicated multi-pose landmarker for offline analysis — crowd-robust (the
+      // shared live ref is single-pose). pickSubjectIdx isolates the athlete each
+      // frame; closed in finally.
+      lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 });
       url = URL.createObjectURL(file);
       const v = document.createElement('video');
       v.src = url; v.muted = true; v.playsInline = true; v.preload = 'auto';
@@ -183,8 +212,9 @@ export default function MovementLab({
         await new Promise((res) => { v.onseeked = () => res(); });
         let r = null;
         try { r = lm.detectForVideo(v, Math.round(time * 1000) + i); } catch {}
-        if (r?.worldLandmarks?.[0]) {
-          frames.push({ t: time * 1000, landmarks: r.landmarks?.[0] || null, worldLandmarks: r.worldLandmarks[0] });
+        const si = pickSubjectIdx(r?.landmarks);
+        if (si >= 0 && r.worldLandmarks?.[si]) {
+          frames.push({ t: time * 1000, landmarks: r.landmarks?.[si] || null, worldLandmarks: r.worldLandmarks[si] });
         }
         setProgress(Math.round(((i + 1) / total) * 100));
       }
@@ -201,6 +231,7 @@ export default function MovementLab({
       setPhase('idle'); setError(e?.message || 'Could not process that video.');
     } finally {
       if (url) try { URL.revokeObjectURL(url); } catch {}
+      if (lm) try { lm.close(); } catch {}
     }
   }, [mode, exerciseTitle, computeJump]);
 

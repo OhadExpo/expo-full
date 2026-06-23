@@ -284,10 +284,11 @@ export function jumpMetrics(frames) {
       i = j + 1;
     } else i++;
   }
-  // Physical sanity: a human standing jump is ~0.15–1.0 s of flight (≈3–123 cm).
-  // Anything outside is noise/occlusion, not a jump — return null so the UI says
-  // "couldn't read a clean jump" instead of printing a 47-metre result.
-  if (!best || best.flightSec < 0.15 || best.flightSec > 1.0) return null;
+  // Physical sanity: a human jump is ~0.15–1.15 s of flight (≈3–162 cm). The
+  // upper bound covers elite dunkers (a ~120 cm vertical = ~0.99 s) without
+  // re-admitting multi-second noise/occlusion artefacts. Outside → null so the
+  // UI says "couldn't read a clean jump" instead of printing a 47-metre result.
+  if (!best || best.flightSec < 0.15 || best.flightSec > 1.15) return null;
   const heightCm = (9.81 * best.flightSec * best.flightSec / 8) * 100;
   return {
     heightCm: Math.round(heightCm),
