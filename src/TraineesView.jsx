@@ -582,7 +582,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 <button key={'dir-' + key} onClick={() => setSortDirs(m => ({ ...m, [key]: desc ? 'asc' : 'desc' }))}
                   title={`Flip ${key} direction`}
                   style={{
-                    ...boxBase, padding: '0 12px', borderRadius: 999,
+                    ...boxBase, padding: '0 12px', borderRadius: 0,
                     border: `1px dashed ${C.ac}`, background: 'rgba(57,189,255,0.06)', color: C.ac,
                     ...(key === 'name'
                       ? { fontFamily: `Heebo, ${FN}`, fontSize: 13, letterSpacing: 0, lineHeight: 1 }
