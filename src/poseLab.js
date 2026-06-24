@@ -297,6 +297,42 @@ export function jumpMetrics(frames) {
   };
 }
 
+// Per-frame vertical translation of the whole body (METRES, up-positive),
+// recovered from the IMAGE landmarks that the hip-centred world-space pose
+// throws away. The lower ankle's rise above the standing baseline = the feet
+// leaving the ground: a JUMP lifts the whole skeleton by the jump arc, a SQUAT
+// keeps the feet planted (≈0, the hip lowers via posture). This lets the 3D
+// viewer show real airtime instead of a hip-pinned figure "moving in water".
+// Returns an array aligned 1:1 to `frames` (all 0 if no clean standing
+// baseline/scale — i.e. it degrades to the old hip-pinned behaviour).
+export function verticalTranslations(frames) {
+  const n = frames?.length || 0;
+  const zeros = new Array(n).fill(0);
+  if (n < 8) return zeros;
+  const t0 = frames[0].t;
+  const ankY = frames.map(f => {
+    const im = f.landmarks; if (!im) return null;
+    const a = im[LM.L_ANKLE], b = im[LM.R_ANKLE];
+    if (a && b) return Math.max(a.y, b.y);           // lower foot (y is image-down)
+    return (a || b) ? (a || b).y : null;
+  });
+  const standIdx = frames.map((_, i) => i).filter(i => ankY[i] != null && frames[i].t - t0 < 600);
+  if (standIdx.length < 3) return zeros;
+  const baseY = median(standIdx.map(i => ankY[i]));
+  const scaleSamples = standIdx.map(i => frameScaleY(frames[i])).filter(isReal);
+  if (scaleSamples.length < 3) return zeros;
+  const scale = median(scaleSamples);
+  if (!isReal(scale) || scale <= 0) return zeros;
+  // rise above standing in metres; clamp negatives so the body never sinks below
+  // the floor (a deep landing crouch is posture, not downward translation).
+  const rise = ankY.map(y => { if (y == null) return 0; const r = (baseY - y) * scale; return r > 0 ? r : 0; });
+  // light 3-tap smoothing so ankle jitter doesn't make the figure twitch.
+  return rise.map((_, i) => {
+    let s = 0, c = 0; for (let k = -1; k <= 1; k++) { const j = i + k; if (j >= 0 && j < n) { s += rise[j]; c++; } }
+    return c ? s / c : 0;
+  });
+}
+
 // Reactive jumps (Drop Jump, repeated hops / POGO) — needs GROUND CONTACT time,
 // not just flight. Same ankle-rise ruler as jumpMetrics, but instead of the one
 // best airborne window we segment ALL airborne windows and the contacts between

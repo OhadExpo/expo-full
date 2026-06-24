@@ -14,7 +14,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { C, FN } from './theme';
-import { frameToPoints3D } from './poseLab';
+import { frameToPoints3D, verticalTranslations } from './poseLab';
 
 const DRACO_PATH = 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/libs/draco/';
 const ZERO = new THREE.Vector3(0, 0, 0);
@@ -182,6 +182,11 @@ export default function AnatomyModelViewer({ frames }) {
 
     // ---- capture-space joints (post frameToPoints3D = metres, Y-up) ----
     const rawPts = poseFrames.map(f => { const p = frameToPoints3D(f.worldLandmarks); return p.map(q => q ? new THREE.Vector3(q.x, q.y, q.z) : null); });
+    // Real vertical physics: the world-space pose is hip-pinned, so the body
+    // never leaves the ground ("moving in water"). Recover the whole-body
+    // vertical translation (metres, up) from the image landmarks and lift the
+    // model group by it each frame — a jump now actually rises and falls.
+    const vOffsets = verticalTranslations(poseFrames);
     // light temporal smoothing (0.25 / 0.5 / 0.25) damps MediaPipe's per-frame
     // jitter on real video; null landmarks fall back to the centre frame.
     const framePts = rawPts.map((cur, i) => {
@@ -458,7 +463,7 @@ export default function AnatomyModelViewer({ frames }) {
       if (wj.hipR) chain(wj.hipR, [24, 26, 28, 32], ['hipR', 'kneeR', 'ankleR', 'footTipR'], ['thighR', 'shinR', 'footR']);
     };
 
-    const applyPose = (fi) => { const fp = framePts[Math.min(fi, framePts.length - 1)]; if (skelRig) poseRig(fp, skelRig); if (muscRig) poseRig(fp, muscRig); };
+    const applyPose = (fi) => { const i = Math.min(fi, framePts.length - 1); const fp = framePts[i]; if (skelRig) poseRig(fp, skelRig); if (muscRig) poseRig(fp, muscRig); const dy = vOffsets[i] || 0; skelGroup.position.y = dy; muscGroup.position.y = dy; };
 
     // BONE ONLY. The muscle écorché is dropped — muscles cross joints and
     // deform, which a rigid chunk-rig tears apart (Ohad 2026-06-14). The
@@ -496,9 +501,9 @@ export default function AnatomyModelViewer({ frames }) {
       <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 8, flexWrap: 'wrap' }}>
         <Pill active={true} onClick={() => {}}>SKELETON</Pill>
         <Pill active={playing} onClick={() => setPlaying(p => !p)}>{playing ? 'PAUSE' : 'PLAY'}</Pill>
-        {/* A/B the rig math live: V1 = swing-only (current prod), V2 = +axial twist */}
-        <Pill active={rigV === 'v1'} onClick={() => setRigV('v1')}>V1 · SWING</Pill>
-        <Pill active={rigV === 'v2'} onClick={() => setRigV('v2')}>V2 · TWIST</Pill>
+        {/* One rig: V2 = swing + axial twist where the data supports it (falls back
+            to swing otherwise), i.e. the best of both — so the old V1/V2 A/B that
+            looked identical on swing-dominant moves is gone. */}
       </div>
       <div ref={mountRef} style={{ position: 'relative', width: '100%', maxWidth: 340, height: 460, margin: '0 auto', background: '#0b0b0d', border: '1px solid rgba(255,255,255,0.12)', touchAction: 'none' }}>
         {status !== 'ready' && (
