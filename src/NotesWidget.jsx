@@ -663,8 +663,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             {trainees.length > 0 ? (
               <select value={linkTraineeId} onChange={e => setLinkTraineeId(e.target.value)}
                 style={{
-                  flex: '0 1 220px', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
-                  borderRadius: 0, padding: '6px 8px', color: 'var(--c-tx)',
+                  flex: '0 1 220px', height: 32, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid var(--c-cardBd)`,
+                  borderRadius: 0, padding: '0 8px', color: 'var(--c-tx)',
                   fontFamily: FN, fontSize: 11, outline: 'none',
                 }}>
                 <option value="">— Link to trainee (optional) —</option>
@@ -675,7 +675,8 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             ) : <span />}
             <button onClick={onAdd} disabled={!body.trim()}
               style={{
-                padding: '6px 12px', borderRadius: 0,
+                height: 32, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                padding: '0 14px', borderRadius: 0,
                 border: `1px solid ${body.trim() ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
                 background: 'transparent', color: body.trim() ? 'var(--c-ac)' : 'var(--c-td)',
                 fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',

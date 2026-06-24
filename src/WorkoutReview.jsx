@@ -1253,7 +1253,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {repsOn && (
             <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
               title="Which joint pair to count peaks on"
-              style={{padding:'3px 6px',borderRadius:0,border:`1px solid ${C.bd}`,
+              style={{height:22,boxSizing:'border-box',padding:'0 6px',borderRadius:0,border:`1px solid ${C.bd}`,
                 background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
               <option value="auto">AUTO ({(autoPick.kind || 'none').toUpperCase()})</option>
               <option value="hip">HIP</option>

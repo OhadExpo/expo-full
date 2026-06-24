@@ -159,7 +159,7 @@ export default function BookingView({ trainees }) {
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }} />
             <span style={{ flex: 1 }} />
             <button onClick={() => removeRule(r.id)}
-              style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14 }}>×</button>
+              style={{ height: 23, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>
           </div>
         ))}
       </CollapsibleSection>
