@@ -381,15 +381,24 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   // Sort state — initialized from localStorage so the coach's last choice
   // sticks across sessions. Defaults: by NAME, ascending, Hebrew first
   // (matches Ohad's mostly-Hebrew roster).
+  // Multi-key sort: NAME + STATUS (and the rest) can be active at the SAME time
+  // (Ohad), applied in click-priority order, each with its own direction.
+  // Migrates from the old single sortBy/sortDir shape.
   const _initialSort = loadSortPrefs() || {};
-  const [sortBy, setSortBy] = useState(_initialSort.sortBy || 'name');
-  const [sortDir, setSortDir] = useState(_initialSort.sortDir || 'asc');
+  const [sortKeys, setSortKeys] = useState(
+    Array.isArray(_initialSort.sortKeys) && _initialSort.sortKeys.length ? _initialSort.sortKeys
+      : (_initialSort.sortBy ? [_initialSort.sortBy] : ['name'])
+  );
+  const [sortDirs, setSortDirs] = useState(
+    _initialSort.sortDirs && typeof _initialSort.sortDirs === 'object' ? _initialSort.sortDirs
+      : (_initialSort.sortBy ? { [_initialSort.sortBy]: _initialSort.sortDir || 'asc' } : { name: 'asc' })
+  );
   // Roster is mostly Hebrew → always Hebrew-first. The LANG toggle was
   // removed from the toolbar (Ohad: cleaner/aligned), so this is fixed.
   const [langOrder] = useState('he-first');
   useEffect(() => {
-    saveSortPrefs({ sortBy, sortDir, langOrder });
-  }, [sortBy, sortDir, langOrder]);
+    saveSortPrefs({ sortKeys, sortDirs, langOrder });
+  }, [sortKeys, sortDirs, langOrder]);
   useEffect(()=>{
     if(!addMenuOpen) return;
     const close = (e)=>{ if(addMenuRef.current && !addMenuRef.current.contains(e.target)) setAddMenuOpen(false); };
@@ -422,43 +431,28 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     const tokens = raw.split(/\s+/);
     return (tokens[tokens.length - 1] || raw).toLowerCase();
   };
+  // Name compare carries the HE/EN language split (HE block before/after EN per
+  // langOrder), then locale collation within a block.
+  const nameCmp = (a, b) => {
+    const aHeb = hasHebrew(a.name), bHeb = hasHebrew(b.name);
+    if (aHeb !== bHeb) return langOrder === 'he-first' ? (aHeb ? -1 : 1) : (aHeb ? 1 : -1);
+    return sortNameKey(a).localeCompare(sortNameKey(b), aHeb ? 'he' : 'en', { sensitivity: 'base' });
+  };
+  const STATUS_RANK = { Active: 0, Trial: 1, 'On Hold': 2, Inactive: 3, Archived: 4 };
+  const keyCmp = (key, a, b) => {
+    if (key === 'status') return (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99);
+    if (key === 'name') return nameCmp(a, b);
+    if (key === 'lastTrained') return getLastWorkoutMs(a, workouts, clientWorkouts) - getLastWorkoutMs(b, workouts, clientWorkouts);
+    if (key === 'payment') return paymentSeverity(a, payments) - paymentSeverity(b, payments);
+    return 0;
+  };
   const filtered = [...filteredUnsorted].sort((a, b) => {
-    const aHeb = hasHebrew(a.name);
-    const bHeb = hasHebrew(b.name);
-    // STATUS sort takes precedence over the HE/EN language split so it reads as
-    // one clean Active → On Hold → Inactive list (name as tie-break).
-    if (sortBy === 'status') {
-      const RANK = { Active: 0, Trial: 1, 'On Hold': 2, Inactive: 3, Archived: 4 };
-      let cmp = (RANK[a.status] ?? 99) - (RANK[b.status] ?? 99);
-      if (cmp === 0) cmp = sortNameKey(a).localeCompare(sortNameKey(b), aHeb ? 'he' : 'en', { sensitivity: 'base' });
-      return sortDir === 'desc' ? -cmp : cmp;
+    // Apply each active sort key in priority (click) order; first non-tie wins.
+    for (const key of sortKeys) {
+      const cmp = keyCmp(key, a, b);
+      if (cmp !== 0) return (sortDirs[key] === 'desc' ? -1 : 1) * cmp;
     }
-    if (aHeb !== bHeb) {
-      // HE-first: HE block sorts BEFORE EN block. EN-first: opposite.
-      if (langOrder === 'he-first') return aHeb ? -1 : 1;
-      return aHeb ? 1 : -1;
-    }
-    let cmp = 0;
-    if (sortBy === 'name') {
-      const ak = sortNameKey(a);
-      const bk = sortNameKey(b);
-      // localeCompare gives correct ordering for both Hebrew and Latin
-      // within each language block (Hebrew block uses Hebrew collation).
-      cmp = ak.localeCompare(bk, aHeb ? 'he' : 'en', { sensitivity: 'base' });
-    } else if (sortBy === 'lastTrained') {
-      const am = getLastWorkoutMs(a, workouts, clientWorkouts);
-      const bm = getLastWorkoutMs(b, workouts, clientWorkouts);
-      cmp = am - bm;
-    } else if (sortBy === 'payment') {
-      const as = paymentSeverity(a, payments);
-      const bs = paymentSeverity(b, payments);
-      cmp = as - bs;
-    }
-    if (cmp === 0) {
-      // Stable tie-breaker — name within the same block.
-      cmp = sortNameKey(a).localeCompare(sortNameKey(b), aHeb ? 'he' : 'en', { sensitivity: 'base' });
-    }
-    return sortDir === 'desc' ? -cmp : cmp;
+    return nameCmp(a, b);   // stable tie-break
   });
 
   const handleSave = () => {
@@ -557,44 +551,47 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 together (Ohad): NAME ↔ א→ת/ת→א · STATUS ↔ Active/Inactive. Every
                 pill + toggle shares boxBase (BOX_H) so the row is one height.
                 LAST TRAINED / PAYMENT keep a single trailing toggle when active. */}
+            {/* Sort KEYS — multi-select. NAME + STATUS (and the rest) can be
+                active together; click toggles a key in/out (always keep ≥1). */}
             {[
               { id: 'name',        label: 'NAME' },
               { id: 'status',      label: 'STATUS' },
               { id: 'lastTrained', label: 'LAST TRAINED' },
               { id: 'payment',     label: 'PAYMENT' },
             ].map(o => {
-              const inline = o.id === 'name' || o.id === 'status';
-              const on = sortBy === o.id;
-              const flip = () => { if (on) setSortDir(d => d === 'asc' ? 'desc' : 'asc'); else setSortBy(o.id); };
+              const on = sortKeys.includes(o.id);
+              const toggleKey = () => setSortKeys(ks => {
+                if (ks.includes(o.id)) return ks.length > 1 ? ks.filter(k => k !== o.id) : ks;
+                setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' }));
+                return [...ks, o.id];
+              });
+              return <button key={o.id} onClick={toggleKey} style={pill(on)}>{o.label}</button>;
+            })}
+            {/* DIRECTION togglers — moved to the END (after the keys) and given a
+                DISTINCT look (rounded + dashed, not the square solid sort pills)
+                so it's obvious they flip direction, not pick a column (Ohad).
+                One per active key, in priority order. */}
+            {sortKeys.length > 0 && <span style={{ width: 1, alignSelf: 'stretch', background: C.cardBd, margin: '0 3px' }} />}
+            {sortKeys.map(key => {
+              const desc = sortDirs[key] === 'desc';
+              const lbl = key === 'name' ? (desc ? 'ת→א' : 'א→ת')
+                : key === 'status' ? (desc ? '↑ INACTIVE' : '↓ ACTIVE')
+                : key === 'lastTrained' ? (desc ? '↓ NEWEST' : '↑ OLDEST')
+                : (desc ? '↑ OVERDUE' : '↓ PAID');
               return (
-                <React.Fragment key={o.id}>
-                  <button onClick={() => setSortBy(o.id)} style={pill(on)}>{o.label}</button>
-                  {inline && (
-                    <button onClick={flip}
-                      title={o.id === 'name' ? (sortDir === 'asc' ? 'א → ת' : 'ת → א') : (sortDir === 'asc' ? 'Active first' : 'Inactive first')}
-                      style={{
-                        ...boxBase,
-                        border: `1px solid ${on ? C.ac : C.cardBd}`, background: on ? 'rgba(57,189,255,0.094)' : 'transparent',
-                        color: on ? C.ac : C.tm,
-                        ...(o.id === 'name'
-                          ? { fontFamily: `Heebo, ${FN}`, fontSize: 13, letterSpacing: 0, lineHeight: 1 }
-                          : { fontSize: 10, letterSpacing: '0.12em' }),
-                      }}>
-                      {o.id === 'name'
-                        ? (on && sortDir === 'desc' ? 'ת→א' : 'א→ת')
-                        : (on && sortDir === 'desc' ? '↑ INACTIVE' : '↓ ACTIVE')}
-                    </button>
-                  )}
-                </React.Fragment>
+                <button key={'dir-' + key} onClick={() => setSortDirs(m => ({ ...m, [key]: desc ? 'asc' : 'desc' }))}
+                  title={`Flip ${key} direction`}
+                  style={{
+                    ...boxBase, padding: '0 12px', borderRadius: 999,
+                    border: `1px dashed ${C.ac}`, background: 'rgba(57,189,255,0.06)', color: C.ac,
+                    ...(key === 'name'
+                      ? { fontFamily: `Heebo, ${FN}`, fontSize: 13, letterSpacing: 0, lineHeight: 1 }
+                      : { fontSize: 10, letterSpacing: '0.1em' }),
+                  }}>
+                  {lbl}
+                </button>
               );
             })}
-            {(sortBy === 'lastTrained' || sortBy === 'payment') && (
-              <button onClick={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-                title={sortBy === 'lastTrained' ? (sortDir === 'asc' ? 'Oldest first' : 'Newest first') : (sortDir === 'asc' ? 'Paid → Overdue' : 'Overdue → Paid')}
-                style={{ ...boxBase, border: `1px solid ${C.ac}`, background: 'transparent', color: C.ac, fontSize: 10, letterSpacing: '0.12em' }}>{
-                  sortBy === 'lastTrained' ? (sortDir === 'asc' ? '↑ OLDEST' : '↓ NEWEST') : (sortDir === 'asc' ? '↓ PAID' : '↑ OVERDUE')
-                }</button>
-            )}
             <span style={{ flex: 1 }} />
             <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
               {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
