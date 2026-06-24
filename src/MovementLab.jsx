@@ -377,7 +377,9 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all
     : view === 'metrics' ? allTabs.filter(t => t.k !== 'threeD')
       : allTabs;
   return (
-    <div style={{ maxWidth: 560, margin: '0 auto' }}>
+    // Wide column so the results use the page (was a cramped 560px box with huge
+    // side margins on the coach screen). The 3D canvas stays centered inside.
+    <div style={{ maxWidth: 1040, margin: '0 auto' }}>
       {tabs.length > 1 && <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
         {tabs.map(t => (
           <button key={t.k} disabled={!t.on} onClick={() => setTab(t.k)} style={{
@@ -693,7 +695,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
   // Reactive jumps (drop jump / POGO): RSI is the headline, not height.
   if (jump.reactive) {
     return (
-      <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center' }}>
+      <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
         <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
         <div style={{ fontFamily: FN, fontSize: 80, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.rsi}<span style={{ fontSize: 22 }}> RSI</span></div>
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>jump height ÷ ground-contact time (m/s)</div>
@@ -718,7 +720,7 @@ function JumpResult({ jump, result, onSave, onClose, defaultBodyweightKg }) {
   const massKg = parseFloat(bw);
   const power = jumpPower(jump.heightCm, massKg);
   return (
-    <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center' }}>
+    <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.18em', marginBottom: 8 }}>{title}</div>
       <div style={{ fontFamily: FN, fontSize: 88, fontWeight: 800, color: C.ac, lineHeight: 1 }}>{jump.heightCm}<span style={{ fontSize: 28 }}>cm</span></div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 18 }}>
