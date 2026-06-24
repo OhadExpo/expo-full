@@ -510,7 +510,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
                 <select value={r.dayIdx} onChange={e => setRow(i, { dayIdx: Number(e.target.value) })} style={sel} disabled={!r.planId}>
                   {dayNames.length ? dayNames.map((d, di) => <option key={di} value={di}>{d || `Day ${di + 1}`}</option>) : <option value={0}>Day 1</option>}
                 </select>
-                <button onClick={() => delRow(i)} style={{ ...miniBtn, color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
+                <button onClick={() => delRow(i)} style={{ ...miniBtn, height: 32, boxSizing: 'border-box', padding: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.rd, border: `1px solid ${C.cardBd}` }}>✕</button>
               </div>
             );
           })}
@@ -565,6 +565,8 @@ const primaryBtn = { width: '100%', padding: '12px', background: C.ac, border: `
 const stripBtn = { background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFF', padding: '4px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer' };
 const miniBtn = { background: 'transparent', padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer', borderRadius: 0, borderColor: C.cardBd };
 const cell = { width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: '4px 6px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none', borderRadius: 0 };
-const sel = { width: '100%', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, padding: '7px 8px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none' };
+// height 32 + boxSizing border-box so every select in the add-athletes row is
+// one uniform box — and the ✕ button (same height) lines up with them.
+const sel = { width: '100%', height: 32, boxSizing: 'border-box', background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '0 8px', color: C.tx, fontFamily: FN, fontSize: 12, outline: 'none' };
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 50, backdropFilter: 'blur(4px)' };
 const modal = { background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, maxWidth: 540, width: '100%', padding: 20, maxHeight: '82vh', overflow: 'auto' };

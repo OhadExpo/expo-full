@@ -443,7 +443,10 @@ function Nav() {
               media query below 720px. */}
           <button onClick={() => setMobileOpen(o => !o)} aria-label="Menu"
             aria-expanded={mobileOpen} className="fv-burger" style={{
-              ...baseBtn, background: 'transparent', color: C.tx,
+              // display:undefined so the inline spread doesn't leak baseBtn's
+              // `inline-flex` and override .fv-burger's media-query visibility
+              // (was showing the hamburger next to the full nav on desktop).
+              ...baseBtn, display: undefined, background: 'transparent', color: C.tx,
               padding: '6px 8px', borderRadius: 0,
               alignItems: 'center', justifyContent: 'center',
               border: `1px solid ${C.bd}`, height: 32, width: 36,
