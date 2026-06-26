@@ -243,16 +243,18 @@ function LeadCapture({ context = 'hero', compact = false }) {
     );
   }
   const inputStyle = {
+    height: 42, boxSizing: 'border-box',
     background: '#0d0d10', border: `1px solid ${C.bd}`,
-    borderRadius: 0, padding: '10px 14px', color: C.tx,
+    borderRadius: 0, padding: '0 14px', color: C.tx,
     fontFamily: FB, fontSize: 14, outline: 'none',
     flex: 1, minWidth: 0, textAlign: 'center',
   };
   const btnStyle = {
+    height: 42, boxSizing: 'border-box',
     background: state === 'sending' ? C.bd : C.ac,
     color: state === 'sending' ? C.tm : '#000',
     border: 'none', borderRadius: 0,
-    padding: '10px 18px', fontFamily: FN, fontSize: 12, fontWeight: 700,
+    padding: '0 18px', fontFamily: FN, fontSize: 12, fontWeight: 700,
     letterSpacing: 1.5, cursor: state === 'sending' ? 'wait' : 'pointer',
   };
   return (

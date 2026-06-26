@@ -55,6 +55,7 @@ const AUTO_KIND_TONE = {
   new_intake_pending:        'cyan',
   payment_overdue:           'red',
   eval_due_first_session:    'cyan',
+  whatsapp_combined:         'purple',   // NEEDS OUTREACH — distinct from the cyan SHARED badge (Ohad)
 };
 
 const TONE_COLOR = {
@@ -62,6 +63,7 @@ const TONE_COLOR = {
   orange: 'var(--c-or)',
   red:    'var(--c-rd)',
   green:  'var(--c-gn)',
+  purple: 'var(--c-pu)',
 };
 
 // Single task card. Header row carries the auto-kind pill + target +

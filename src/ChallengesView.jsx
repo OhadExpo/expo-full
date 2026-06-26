@@ -227,9 +227,9 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
                 {fmtDate(c.start_at)} → {fmtDate(c.end_at)}
               </span>
               <button onClick={() => { setEditChallenge(c); setShowCreate(true); }}
-                style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 12, padding: '0 4px' }}>✏️</button>
+                style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: '0 4px', display: 'inline-flex', alignItems: 'center' }}>✏️</button>
               <button onClick={() => remove(c.id)}
-                style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 14, padding: '0 4px' }}>×</button>
+                style={{ background: 'none', border: 'none', color: C.td, cursor: 'pointer', fontSize: 13, lineHeight: 1, padding: '0 4px', display: 'inline-flex', alignItems: 'center' }}>×</button>
             </div>
             {c.description && (
               <div style={{ fontSize: 12, color: C.tm, marginBottom: 8, lineHeight: 1.4 }}>{c.description}</div>

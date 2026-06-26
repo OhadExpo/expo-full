@@ -520,7 +520,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
                               <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.14em',color:C.tm,marginRight:2}}>LOG INTO</span>
                               {Array.from({length:pw},(_,i)=>i+1).map(wn=>(
                                 <button key={wn} onClick={()=>setWeekByPlan(m=>({...m,[p.id]:wn}))}
-                                  style={{minWidth:32,padding:'3px 0',borderRadius:0,border:`${selWeek===wn?'2px':'1px'} solid ${selWeek===wn?C.ac:C.cardBd}`,background:selWeek===wn?'rgba(57,189,255,0.1)':'transparent',color:selWeek===wn?C.ac:C.tm,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer'}}>W{wn}</button>
+                                  style={{minWidth:32,height:24,boxSizing:'border-box',padding:'0',borderRadius:0,border:`${selWeek===wn?'2px':'1px'} solid ${selWeek===wn?C.ac:C.cardBd}`,background:selWeek===wn?'rgba(57,189,255,0.1)':'transparent',color:selWeek===wn?C.ac:C.tm,fontFamily:FN,fontSize:10,fontWeight:700,cursor:'pointer'}}>W{wn}</button>
                               ))}
                             </div>}
                             {(() => { const nextDay = nextDayInWeek(p, selWeek); return (

@@ -257,16 +257,18 @@ function WaitlistForm({ t }) {
           onChange={e => { setEmail(e.target.value); if (state === 'error') setState('idle'); }}
           placeholder={t('wl.placeholder')}
           style={{
+            height: 46, boxSizing: 'border-box',
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
-            borderRadius: 0, padding: '12px 14px', color: C.tx,
+            borderRadius: 0, padding: '0 14px', color: C.tx,
             fontFamily: FB, fontSize: 14, outline: 'none',
             flex: '1 1 220px', minWidth: 0,
           }} />
         <button type="submit" disabled={state === 'sending'} style={{
           ...baseBtn,
+          height: 46, boxSizing: 'border-box',
           background: state === 'sending' ? C.bd : C.ac,
           color: state === 'sending' ? C.tm : '#000',
-          padding: '12px 20px',
+          padding: '0 20px',
         }}>{state === 'sending' ? '…' : t('wl.cta')}</button>
       </div>
       {state === 'error' && (
