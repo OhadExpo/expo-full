@@ -2228,7 +2228,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{fontSize:10,fontFamily:FN,color:C.or,marginBottom:10,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase'}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
             {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
               <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
-              <div style={{display:'flex',gap:10,alignItems:'center'}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600}}>{(() => {
+              <div style={{display:'flex',gap:10,alignItems:'center',flexShrink:0}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600,whiteSpace:'nowrap'}}>{(() => {
                 if (w.sets || w.reps) {
                   const setsStr = w.sets ?? '';
                   const repsStr = w.reps ?? '';
