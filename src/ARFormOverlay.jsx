@@ -51,6 +51,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const [reps, setReps] = useState(0);
   const [moving, setMoving] = useState('top');  // 'top' | 'bottom' — live rep phase
   const [atDepth, setAtDepth] = useState(false);
+  const [depthReps, setDepthReps] = useState(0);   // count of reps that reached depth
+  const repHitDepthRef = useRef(false);            // did the current rep reach depth?
   // 'environment' = rear (coach films the athlete) · 'user' = front (athlete
   // self-films and watches the HUD while lifting). Switchable live.
   const [facing, setFacing] = useState(facingMode);
@@ -81,20 +83,26 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
         const sorted = [...buf].sort((a, b) => a - b);
         const smooth = sorted[Math.floor(sorted.length / 2)];
         if (phaseRef.current === 'top' && smooth < thr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
-        else if (phaseRef.current === 'bottom' && smooth > thr.high) { phaseRef.current = 'top'; setMoving('top'); setReps(r => r + 1); }
+        else if (phaseRef.current === 'bottom' && smooth > thr.high) {
+          phaseRef.current = 'top'; setMoving('top'); setReps(r => r + 1);
+          if (repHitDepthRef.current) setDepthReps(n => n + 1);   // this rep reached depth → count it
+          repHitDepthRef.current = false;
+        }
       }
     }
 
-    // --- depth flag (image landmarks) — only setState when it flips ---
-    const depthOn = showDepthRef.current && depthRelevant;
-    if (depthOn && landmarks) {
+    // --- depth: live at/below-parallel flag + per-rep depth-hit (for the count).
+    // Runs whenever depth is relevant (NOT gated by the show-toggle) so the count
+    // is honest even with the depth line hidden. The toggle only hides the line.
+    if (depthRelevant && landmarks) {
       const hip = midpt(landmarks[23], landmarks[24]);
       const knee = midpt(landmarks[25], landmarks[26]);
       const d = !!(hip && knee && hip.y >= knee.y);
       if (d !== depthRef.current) { depthRef.current = d; setAtDepth(d); }
+      if (d && phaseRef.current === 'bottom') repHitDepthRef.current = true;
     }
 
-    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: depthOn });
+    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant });
     rafRef.current = requestAnimationFrame(loop);
   }, [depthRelevant, thr, channels]);
 
@@ -129,7 +137,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   }, []);
 
   const reanchor = useCallback(() => { anchorRef.current = null; }, []);
-  const resetReps = useCallback(() => { setReps(0); phaseRef.current = 'top'; setMoving('top'); angleBufRef.current = []; }, []);
+  const resetReps = useCallback(() => { setReps(0); setDepthReps(0); repHitDepthRef.current = false; phaseRef.current = 'top'; setMoving('top'); angleBufRef.current = []; }, []);
 
   useEffect(() => () => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -158,9 +166,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
           <div style={{ position: 'absolute', top: 46, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
             <style>{'@keyframes rtpop{0%{transform:scale(1)}30%{transform:scale(1.28)}100%{transform:scale(1)}}'}</style>
             <div style={{ display: 'flex', alignItems: 'stretch', gap: 1, background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(2px)' }}>
-              {countable && <HudCell label="REPS" value={String(reps)} big pop tone={ACCENT} />}
+              {countable && <HudCell label="REPS" value={String(reps)} pop tone={ACCENT} />}
               {countable && <HudCell label="PHASE" value={moving === 'bottom' ? 'DOWN' : 'UP'} tone={moving === 'bottom' ? '#FFFFFF' : 'rgba(255,255,255,0.7)'} />}
-              {showDepth && depthRelevant && <HudCell label="DEPTH" value={atDepth ? '✓' : '—'} tone={atDepth ? GREEN : 'rgba(255,255,255,0.5)'} />}
+              {depthRelevant && <HudCell label="DEPTH" value={`${depthReps}/${reps}`} tone={atDepth ? GREEN : 'rgba(255,255,255,0.7)'} />}
             </div>
           </div>
         )}
@@ -179,6 +187,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       </div>
 
       <div style={{ background: 'rgba(0,0,0,0.92)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <button onClick={onClose} style={{ ...ctrl, minWidth: 96 }}>← EXIT</button>
         {phase !== 'live'
           ? <>
               <Big color={C.ac} onClick={start} disabled={phase === 'loading'}>{phase === 'loading' ? 'STARTING…' : 'START →'}</Big>
