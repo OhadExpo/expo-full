@@ -1656,15 +1656,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
       return queue[0]?.id || null;
     };
     const saveAndNext = () => {
+      // Mark reviewed and ALWAYS return to the list — never auto-advance to the
+      // next pending workout (Ohad: "don't ever move me to the next program").
       markReviewed && markReviewed(wo.id, true);
-      const nextId = findNextUnreviewed();
-      if (nextId) {
-        setSelectedWo(nextId);
-        setExpandedEx(null);
-        window.scrollTo(0, 0);
-      } else {
-        setSelectedWo(null); setExpandedEx(null); window.scrollTo(0, 0);
-      }
+      setSelectedWo(null); setExpandedEx(null); window.scrollTo(0, 0);
     };
     // Jump-without-marking: skip the current workout and move to the next
     // pending one. Used when the trainer wants to defer a clip (waiting on
@@ -2043,7 +2038,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             without a tour. Sits above the action bar, FN caps, low-contrast
             so it doesn't compete with the primary CTA. */}
         <div style={{fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.18em',fontWeight:700,textAlign:'center',marginTop:14,marginBottom:-6}}>
-          M · MARK + NEXT · &nbsp; J · SKIP · &nbsp; C · COMMENT AT PLAYHEAD
+          M · MARK REVIEWED · &nbsp; J · SKIP · &nbsp; C · COMMENT AT PLAYHEAD
         </div>
         <div style={{display:"flex",gap:8,marginTop:20,marginBottom:8}}>
           {deleteWorkout && (
@@ -2093,11 +2088,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             )
           ) : (
             <button onClick={saveAndNext}
-              title="Mark reviewed and jump to the next pending workout (⌘/Ctrl + Enter)"
+              title="Mark reviewed and return to the list (⌘/Ctrl + Enter)"
               style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                 background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                 letterSpacing:0.5,cursor:"pointer"}}>
-              ✓ MARK REVIEWED {remainingAfter > 0 ? `& NEXT (${remainingAfter} LEFT)` : '— BACK TO LIST'}
+              ✓ MARK REVIEWED — BACK TO LIST
             </button>
           )}
         </div>
