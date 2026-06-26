@@ -18,6 +18,9 @@ const SKEL = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
   [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28],
 ];
+// Depth gate tolerance (normalized frame height) — counts depth a touch above
+// full parallel; the strict hip==knee gate read as "way too strict" (Ohad).
+const DEPTH_TOL = 0.06;
 const ACCENT = '#39BDFF';
 const GREEN = '#46DC82';
 const RED = '#FF5A5A';
@@ -48,11 +51,15 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const [error, setError] = useState(null);
   const [showDepth, setShowDepth] = useState(true);
   useEffect(() => { showDepthRef.current = showDepth; }, [showDepth]);
+  const [showReps, setShowReps] = useState(true);   // toggle the REPS/PHASE read-out
   const [reps, setReps] = useState(0);
   const [moving, setMoving] = useState('top');  // 'top' | 'bottom' — live rep phase
   const [atDepth, setAtDepth] = useState(false);
   const [depthReps, setDepthReps] = useState(0);   // count of reps that reached depth
   const repHitDepthRef = useRef(false);            // did the current rep reach depth?
+  const [dir, setDir] = useState('iso');           // live movement direction: up | down | iso
+  const dirRef = useRef('iso');
+  const prevSmoothRef = useRef(null);              // last smoothed angle (for direction)
   // 'environment' = rear (coach films the athlete) · 'user' = front (athlete
   // self-films and watches the HUD while lifting). Switchable live.
   const [facing, setFacing] = useState(facingMode);
@@ -82,6 +89,15 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
         const buf = angleBufRef.current; buf.push(avg); if (buf.length > 8) buf.shift();
         const sorted = [...buf].sort((a, b) => a - b);
         const smooth = sorted[Math.floor(sorted.length / 2)];
+        // PHASE chip = live direction: angle flexing (decreasing) = DOWN,
+        // extending (increasing) = UP, ~stable = ISO (a hold/pause).
+        const prevS = prevSmoothRef.current;
+        if (prevS != null) {
+          const dv = smooth - prevS;
+          const nd = Math.abs(dv) < 1.2 ? 'iso' : (dv < 0 ? 'down' : 'up');
+          if (nd !== dirRef.current) { dirRef.current = nd; setDir(nd); }
+        }
+        prevSmoothRef.current = smooth;
         if (phaseRef.current === 'top' && smooth < thr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
         else if (phaseRef.current === 'bottom' && smooth > thr.high) {
           phaseRef.current = 'top'; setMoving('top'); setReps(r => r + 1);
@@ -92,12 +108,13 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     }
 
     // --- depth: live at/below-parallel flag + per-rep depth-hit (for the count).
-    // Runs whenever depth is relevant (NOT gated by the show-toggle) so the count
-    // is honest even with the depth line hidden. The toggle only hides the line.
+    // DEPTH_TOL loosens the "full parallel" gate (was too strict — counts depth a
+    // touch above parallel). Detection runs whenever depth is relevant; the toggle
+    // only hides the display, not the count.
     if (depthRelevant && landmarks) {
       const hip = midpt(landmarks[23], landmarks[24]);
       const knee = midpt(landmarks[25], landmarks[26]);
-      const d = !!(hip && knee && hip.y >= knee.y);
+      const d = !!(hip && knee && hip.y >= knee.y - DEPTH_TOL);
       if (d !== depthRef.current) { depthRef.current = d; setAtDepth(d); }
       if (d && phaseRef.current === 'bottom') repHitDepthRef.current = true;
     }
@@ -166,9 +183,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
           <div style={{ position: 'absolute', top: 46, left: 0, right: 0, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
             <style>{'@keyframes rtpop{0%{transform:scale(1)}30%{transform:scale(1.28)}100%{transform:scale(1)}}'}</style>
             <div style={{ display: 'flex', alignItems: 'stretch', gap: 1, background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(2px)' }}>
-              {countable && <HudCell label="REPS" value={String(reps)} pop tone={ACCENT} />}
-              {countable && <HudCell label="PHASE" value={moving === 'bottom' ? 'DOWN' : 'UP'} tone={moving === 'bottom' ? '#FFFFFF' : 'rgba(255,255,255,0.7)'} />}
-              {depthRelevant && <HudCell label="DEPTH" value={`${depthReps}/${reps}`} tone={atDepth ? GREEN : 'rgba(255,255,255,0.7)'} />}
+              {countable && showReps && <HudCell label="REPS" value={String(reps)} pop tone={ACCENT} />}
+              {countable && showReps && <HudCell label="PHASE" value={dir === 'down' ? 'DOWN' : dir === 'up' ? 'UP' : 'ISO'} tone={dir === 'down' ? '#FFFFFF' : dir === 'up' ? ACCENT : 'rgba(255,255,255,0.6)'} />}
+              {depthRelevant && showDepth && <HudCell label="DEPTH" value={`${depthReps}/${reps}`} tone={atDepth ? GREEN : 'rgba(255,255,255,0.7)'} />}
             </div>
           </div>
         )}
@@ -197,6 +214,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
               {countable && <button onClick={resetReps} style={{ ...ctrl, minWidth: 104 }}>⟲ RESET REPS</button>}
               <button onClick={reanchor} style={{ ...ctrl, minWidth: 112 }}>⟲ RE-LOCK BAR</button>
               <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'}</button>
+              {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>REPS {showReps ? 'ON' : 'OFF'}</button>}
               {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
             </>}
       </div>
@@ -225,8 +243,19 @@ function draw(canvas, video, landmarks, world, anchorRef, { depth }) {
   if (!landmarks) return;
 
   // skeleton
-  ctx.strokeStyle = 'rgba(57,189,255,0.85)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  // Stroke scaled to the canvas — a fixed 3px line on a 1280px-wide native canvas
+  // renders sub-pixel when the feed is shown small, so the skeleton "vanished"
+  // while the scaled angle labels stayed visible (Ohad: "I see angles, no skeleton").
+  const skW = Math.max(4, Math.round(w * 0.006));
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // dark underlay for contrast on bright/busy backgrounds
+  ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = skW + 3;
   SKEL.forEach(([a, b]) => { const la = landmarks[a], lb = landmarks[b]; if (!la || !lb) return; ctx.beginPath(); ctx.moveTo(la.x * w, la.y * h); ctx.lineTo(lb.x * w, lb.y * h); ctx.stroke(); });
+  ctx.strokeStyle = 'rgba(57,189,255,0.95)'; ctx.lineWidth = skW;
+  SKEL.forEach(([a, b]) => { const la = landmarks[a], lb = landmarks[b]; if (!la || !lb) return; ctx.beginPath(); ctx.moveTo(la.x * w, la.y * h); ctx.lineTo(lb.x * w, lb.y * h); ctx.stroke(); });
+  // joint dots so the joints read clearly
+  ctx.fillStyle = '#FFFFFF';
+  for (const j of [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]) { const p = landmarks[j]; if (!p) continue; ctx.beginPath(); ctx.arc(p.x * w, p.y * h, skW * 0.85, 0, Math.PI * 2); ctx.fill(); }
 
   const wristMid = midpt(landmarks[15], landmarks[16]);
   const hipMid = midpt(landmarks[23], landmarks[24]);
