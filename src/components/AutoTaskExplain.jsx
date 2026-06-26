@@ -70,7 +70,7 @@ export function AutoTaskExplainModal({ note, trainee, accent = 'var(--c-ac)', on
               padding: '6px 14px', borderRadius: 0, border: `1px solid ${accent}`,
               background: 'transparent', color: accent, fontFamily: FN, fontSize: 11,
               fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer',
-            }}>CLOSE</button>
+            }}>← BACK</button>
         </div>
       </div>
     </div>

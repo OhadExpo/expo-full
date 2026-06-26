@@ -320,7 +320,7 @@ const STRINGS = {
     en: "The link you followed points at a program that was renamed or hasn't been published yet. Head back to the catalog to see what's available right now.",
     he: 'הקישור שלחצת מוביל לתוכנית ששינתה שם או שעוד לא פורסמה. תחזור לקטלוג ותראה מה זמין עכשיו.',
   },
-  'notfound.cta':        { en: '← BACK TO CATALOG',  he: 'חזרה לקטלוג →' },
+  'notfound.cta':        { en: '← BACK',  he: 'חזרה →' },
 
   // ─── Buy on WhatsApp prefill (program-specific) ───────────────────
   'wa.buy.tmpl': {

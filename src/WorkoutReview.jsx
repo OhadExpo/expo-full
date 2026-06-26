@@ -1742,7 +1742,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         )}
         <button onClick={() => { setSelectedWo(null); setExpandedEx(null); }}
           style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,marginBottom:12}}>
-          ← BACK TO WORKOUTS
+          ← BACK
         </button>
 
         {/* Workout header */}
@@ -2067,7 +2067,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
             style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.cardBd}`,
               background:"transparent",color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,
               letterSpacing:0.5,cursor:"pointer"}}>
-            ← BACK TO REVIEW
+            ← BACK
           </button>
           {wo.reviewedAt ? (
             findNextUnreviewed() ? (
@@ -2083,7 +2083,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.gn}`,
                   background:C.gn,color:"#FFFFFF",fontFamily:FN,fontSize:13,fontWeight:700,
                   letterSpacing:0.5,cursor:"pointer"}}>
-                ✓ REVIEWED — BACK TO LIST
+                ✓ REVIEWED — BACK
               </button>
             )
           ) : (
@@ -2092,7 +2092,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               style={{flex:1,padding:"12px 0",borderRadius:0,border:`1px solid ${C.ac}`,
                 background:C.ac,color:C.acOnSurface,fontFamily:FN,fontSize:13,fontWeight:700,
                 letterSpacing:0.5,cursor:"pointer"}}>
-              ✓ MARK REVIEWED — BACK TO LIST
+              ✓ MARK REVIEWED — BACK
             </button>
           )}
         </div>

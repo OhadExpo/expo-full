@@ -280,7 +280,7 @@ export default function MovementLab({
             {(toolLabel || (mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'))} · {String(exerciseTitle).toUpperCase()}
           </div>
         </div>
-        <button onClick={onClose} style={btn('rgba(255,255,255,0.3)', 'transparent')}>✕ CLOSE</button>
+        <button onClick={onClose} style={btn('rgba(255,255,255,0.3)', 'transparent')}>← BACK</button>
       </div>
 
       {/* camera + live skeleton (capture phases) */}

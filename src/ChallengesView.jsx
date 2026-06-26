@@ -393,7 +393,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
           background: 'transparent', border: 'none', color: C.tm,
           fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
           padding: 0, cursor: 'pointer', marginBottom: 10,
-        }}>← BACK TO TEMPLATES</button>
+        }}>← BACK</button>
       )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
         <Input label="Name" value={name} onChange={e => setName(e.target.value)} />

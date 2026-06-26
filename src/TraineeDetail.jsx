@@ -337,7 +337,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       `}</style>
       {/* Back + actions bar */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
-        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK TO ATHLETES</button>
+        <button onClick={onBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0}}>← BACK</button>
         <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"flex-end"}}>
           {/* Notifications on/off — per-athlete mute for the COACH side.
               When OFF, athlete→coach messages and workout-complete events
@@ -602,7 +602,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 <Btn key={mi} onClick={()=>assignPlan(pendingAssignPlan, subMemberId(trainee, mi))} style={{fontSize:13,padding:'8px 20px'}}>{m.name || `Member ${mi+1}`}</Btn>
               ))}
             </div>
-            <button onClick={()=>setPendingAssignPlan(null)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back to list</button>
+            <button onClick={()=>setPendingAssignPlan(null)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back</button>
           </div>
         ) : pendingBlankCouple && couple ? (
           <div style={{textAlign:'center',padding:12}}>
@@ -624,7 +624,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                 }} style={{fontSize:13,padding:'8px 20px'}}>{m.name || `Member ${mi+1}`}</Btn>
               ))}
             </div>
-            <button onClick={()=>setPendingBlankCouple(false)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back to list</button>
+            <button onClick={()=>setPendingBlankCouple(false)} style={{background:'none',border:'none',color:C.td,cursor:'pointer',fontSize:11,marginTop:12}}>← Back</button>
           </div>
         ) : (
         (()=>{const unassigned=(planIndex||[]).filter(p=>!p.traineeId);const others=(planIndex||[]).filter(p=>p.traineeId&&!traineeIds.includes(p.traineeId));const assignedNames=new Set(tp.map(p=>p.name));

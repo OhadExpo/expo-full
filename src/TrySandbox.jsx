@@ -1632,7 +1632,7 @@ function CompareStep({ pov, exercise, primaryUrl, secondUrl, onUploadSecond, onB
           ...baseBtn, background:'transparent', color: C.tm,
           border:`1px solid ${C.bd}`, padding:'10px 18px', fontWeight:700,
           letterSpacing: 1.2, borderRadius: 0, fontSize: 12,
-        }}>← BACK TO SINGLE-CLIP VIEW</button>
+        }}>← BACK</button>
       </div>
       {!hideEndCTA && <BuyCallToAction pov={pov} />}
     </section>

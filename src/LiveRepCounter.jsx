@@ -241,7 +241,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
           background: 'rgba(0,0,0,0.5)', border: `1px solid rgba(255,255,255,0.3)`,
           color: '#FFFFFF', padding: '6px 12px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.18em',
           cursor: 'pointer',
-        }}>✕ CLOSE</button>
+        }}>← BACK</button>
       </div>
 
       {/* Camera + skeleton overlay */}

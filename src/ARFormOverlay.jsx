@@ -177,7 +177,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
           LIVE COACH · {String(exerciseTitle).toUpperCase()}
         </div>
-        <button onClick={onClose} style={hdrBtn}>✕ CLOSE</button>
+        <button onClick={onClose} style={hdrBtn}>← BACK</button>
       </div>
 
       <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
@@ -211,7 +211,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       </div>
 
       <div style={{ background: 'rgba(0,0,0,0.92)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <button onClick={onClose} style={{ ...ctrl, minWidth: 96 }}>← EXIT</button>
+        <button onClick={onClose} style={{ ...ctrl, minWidth: 96 }}>← BACK</button>
         {phase !== 'live'
           ? <>
               <Big color={C.ac} onClick={start} disabled={phase === 'loading'}>{phase === 'loading' ? 'STARTING…' : 'START →'}</Big>

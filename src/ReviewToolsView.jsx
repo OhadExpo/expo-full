@@ -76,7 +76,7 @@ class ToolBoundary extends React.Component {
               offline or the browser blocked access, that's the cause. Close and
               try again, or pick another tool.
             </div>
-            <button onClick={this.props.onClose} style={ghostBtn}>✕ CLOSE</button>
+            <button onClick={this.props.onClose} style={ghostBtn}>← BACK</button>
           </div>
         </div>
       );

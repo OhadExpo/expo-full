@@ -423,7 +423,7 @@ function DemoTrainees({ selected, onSelect, onClear, returnTab }) {
   if (selected) {
     const t = MOCK_TRAINEES.find(x => x.id === selected);
     if (!t) return null;
-    return <DemoTraineeDetail trainee={t} onBack={onClear} backLabel={returnTab && returnTab !== 'trainees' ? `← BACK TO ${returnTab.toUpperCase()}` : '← BACK TO ATHLETES'} />;
+    return <DemoTraineeDetail trainee={t} onBack={onClear} backLabel="← BACK" />;
   }
   const q = search.trim().toLowerCase();
   const filtered = MOCK_TRAINEES.filter(t => {
@@ -817,7 +817,7 @@ function DemoStatusMenu() {
   );
 }
 
-function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK TO ATHLETES' }) {
+function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
   // Couple detail: split each member into their own card column. Real app's
   // ruling — SHARED for the household: format, package, sessions, monthly,
   // per-session, last payment, since, payments ledger, programs (assigned
@@ -2205,7 +2205,7 @@ function DemoReview() {
         <button onClick={() => setSelectedId(null)} style={{
           background: 'none', border: 'none', color: C.ac,
           cursor: 'pointer', fontFamily: FB, fontSize: 13, padding: 0, marginBottom: 12,
-        }}>← Back to queue</button>
+        }}>← Back</button>
 
         <div style={{
           background: C.sf, border: `1px solid rgba(57,189,255,0.251)`, borderRadius: 0,
@@ -2277,7 +2277,7 @@ function DemoReview() {
             flex: 1, padding: '12px 0', borderRadius: 0, border: `1px solid ${C.bd2}`,
             background: 'transparent', color: C.tx,
             fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: 0.5, cursor: 'pointer',
-          }}>← BACK TO REVIEW</button>
+          }}>← BACK</button>
           <button onClick={() => {
             const idx = queue.findIndex(w => w.id === selected.id);
             const next = queue[(idx + 1) % queue.length];
@@ -3187,7 +3187,7 @@ export default function CoachDemo() {
           <span>· COACH DEMO · MOCK DATA · NOTHING WRITES BACK</span>
         </span>
         <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: 1 }}>
-          <a href="/demo" style={{ color: C.td, textDecoration: 'none' }}>BACK TO PITCH</a>
+          <a href="/demo" style={{ color: C.td, textDecoration: 'none' }}>← BACK</a>
         </span>
       </footer>
     </div>
