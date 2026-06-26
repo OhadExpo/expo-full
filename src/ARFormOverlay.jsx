@@ -52,6 +52,12 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const [showDepth, setShowDepth] = useState(true);
   useEffect(() => { showDepthRef.current = showDepth; }, [showDepth]);
   const [showReps, setShowReps] = useState(true);   // toggle the REPS/PHASE read-out
+  const [showSkeleton, setShowSkeleton] = useState(true);
+  const showSkeletonRef = useRef(true);
+  useEffect(() => { showSkeletonRef.current = showSkeleton; }, [showSkeleton]);
+  const [showAngles, setShowAngles] = useState(true);
+  const showAnglesRef = useRef(true);
+  useEffect(() => { showAnglesRef.current = showAngles; }, [showAngles]);
   const [reps, setReps] = useState(0);
   const [moving, setMoving] = useState('top');  // 'top' | 'bottom' — live rep phase
   const [atDepth, setAtDepth] = useState(false);
@@ -59,7 +65,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const repHitDepthRef = useRef(false);            // did the current rep reach depth?
   const [dir, setDir] = useState('iso');           // live movement direction: up | down | iso
   const dirRef = useRef('iso');
-  const prevSmoothRef = useRef(null);              // last smoothed angle (for direction)
+  const smoothHistRef = useRef([]);                // recent smoothed angles (for direction)
   // 'environment' = rear (coach films the athlete) · 'user' = front (athlete
   // self-films and watches the HUD while lifting). Switchable live.
   const [facing, setFacing] = useState(facingMode);
@@ -91,13 +97,14 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
         const smooth = sorted[Math.floor(sorted.length / 2)];
         // PHASE chip = live direction: angle flexing (decreasing) = DOWN,
         // extending (increasing) = UP, ~stable = ISO (a hold/pause).
-        const prevS = prevSmoothRef.current;
-        if (prevS != null) {
-          const dv = smooth - prevS;
-          const nd = Math.abs(dv) < 1.2 ? 'iso' : (dv < 0 ? 'down' : 'up');
+        // Direction over a short window (not frame-to-frame) so the chip doesn't
+        // flicker up/down/iso on noise — the change must clear ISO_DEG over ~6 frames.
+        const sh = smoothHistRef.current; sh.push(smooth); if (sh.length > 6) sh.shift();
+        if (sh.length >= 4) {
+          const vel = smooth - sh[0];
+          const nd = Math.abs(vel) < 5 ? 'iso' : (vel < 0 ? 'down' : 'up');
           if (nd !== dirRef.current) { dirRef.current = nd; setDir(nd); }
         }
-        prevSmoothRef.current = smooth;
         if (phaseRef.current === 'top' && smooth < thr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
         else if (phaseRef.current === 'bottom' && smooth > thr.high) {
           phaseRef.current = 'top'; setMoving('top'); setReps(r => r + 1);
@@ -119,7 +126,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       if (d && phaseRef.current === 'bottom') repHitDepthRef.current = true;
     }
 
-    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant });
+    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: showSkeletonRef.current, angles: showAnglesRef.current });
     rafRef.current = requestAnimationFrame(loop);
   }, [depthRelevant, thr, channels]);
 
@@ -216,6 +223,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
               <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'}</button>
               {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>REPS {showReps ? 'ON' : 'OFF'}</button>}
               {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
+              <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 116 }}>SKELETON {showSkeleton ? 'ON' : 'OFF'}</button>
+              <button onClick={() => setShowAngles(s => !s)} style={{ ...ctrl, background: showAngles ? C.ac : 'transparent', minWidth: 104 }}>JOINTS {showAngles ? 'ON' : 'OFF'}</button>
             </>}
       </div>
     </div>
@@ -232,7 +241,7 @@ function HudCell({ label, value, big, tone, pop }) {
   );
 }
 
-function draw(canvas, video, landmarks, world, anchorRef, { depth }) {
+function draw(canvas, video, landmarks, world, anchorRef, { depth, skeleton, angles }) {
   if (!canvas || !video) return;
   const ctx = canvas.getContext('2d');
   const w = video.videoWidth, h = video.videoHeight;
@@ -247,15 +256,17 @@ function draw(canvas, video, landmarks, world, anchorRef, { depth }) {
   // renders sub-pixel when the feed is shown small, so the skeleton "vanished"
   // while the scaled angle labels stayed visible (Ohad: "I see angles, no skeleton").
   const skW = Math.max(4, Math.round(w * 0.006));
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  // dark underlay for contrast on bright/busy backgrounds
-  ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = skW + 3;
-  SKEL.forEach(([a, b]) => { const la = landmarks[a], lb = landmarks[b]; if (!la || !lb) return; ctx.beginPath(); ctx.moveTo(la.x * w, la.y * h); ctx.lineTo(lb.x * w, lb.y * h); ctx.stroke(); });
-  ctx.strokeStyle = 'rgba(57,189,255,0.95)'; ctx.lineWidth = skW;
-  SKEL.forEach(([a, b]) => { const la = landmarks[a], lb = landmarks[b]; if (!la || !lb) return; ctx.beginPath(); ctx.moveTo(la.x * w, la.y * h); ctx.lineTo(lb.x * w, lb.y * h); ctx.stroke(); });
-  // joint dots so the joints read clearly
-  ctx.fillStyle = '#FFFFFF';
-  for (const j of [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]) { const p = landmarks[j]; if (!p) continue; ctx.beginPath(); ctx.arc(p.x * w, p.y * h, skW * 0.85, 0, Math.PI * 2); ctx.fill(); }
+  if (skeleton) {
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // dark underlay for contrast on bright/busy backgrounds
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = skW + 3;
+    SKEL.forEach(([a, b]) => { const la = landmarks[a], lb = landmarks[b]; if (!la || !lb) return; ctx.beginPath(); ctx.moveTo(la.x * w, la.y * h); ctx.lineTo(lb.x * w, lb.y * h); ctx.stroke(); });
+    ctx.strokeStyle = 'rgba(57,189,255,0.95)'; ctx.lineWidth = skW;
+    SKEL.forEach(([a, b]) => { const la = landmarks[a], lb = landmarks[b]; if (!la || !lb) return; ctx.beginPath(); ctx.moveTo(la.x * w, la.y * h); ctx.lineTo(lb.x * w, lb.y * h); ctx.stroke(); });
+    // joint dots so the joints read clearly
+    ctx.fillStyle = '#FFFFFF';
+    for (const j of [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]) { const p = landmarks[j]; if (!p) continue; ctx.beginPath(); ctx.arc(p.x * w, p.y * h, skW * 0.85, 0, Math.PI * 2); ctx.fill(); }
+  }
 
   const wristMid = midpt(landmarks[15], landmarks[16]);
   const hipMid = midpt(landmarks[23], landmarks[24]);
@@ -265,7 +276,7 @@ function draw(canvas, video, landmarks, world, anchorRef, { depth }) {
   // and drawn at each joint's screen position (Ohad: live angles under Live
   // Coach). The tool is side-on, so L/R overlap → one label per joint group at
   // the mid point, averaging the two sides.
-  if (world) {
+  if (world && angles) {
     const fs = Math.max(16, Math.round(w * 0.022));
     const groups = [
       ['L SHO', 'R SHO', midpt(landmarks[11], landmarks[12])],
@@ -308,12 +319,7 @@ function draw(canvas, video, landmarks, world, anchorRef, { depth }) {
     ctx.beginPath(); ctx.moveTo(0, ky); ctx.lineTo(w, ky); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = atDepth ? GREEN : 'rgba(255,255,255,0.7)';
     ctx.beginPath(); ctx.arc(hipMid.x * w, hipMid.y * h, 9, 0, Math.PI * 2); ctx.fill();
-    // at-depth = a bold green frame around the whole feed, readable across the gym
-    if (atDepth) {
-      const lw = Math.max(6, w * 0.012);
-      ctx.strokeStyle = 'rgba(70,220,130,0.85)'; ctx.lineWidth = lw; ctx.setLineDash([]);
-      ctx.strokeRect(lw / 2, lw / 2, w - lw, h - lw);
-    }
+    // (removed the full-feed green frame at depth — Ohad found it distracting)
   }
 }
 
