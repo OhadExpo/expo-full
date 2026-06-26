@@ -204,6 +204,24 @@ function GooglePhotosEmbed({ url }) {
   return <div style={wrap}><video src={state.src} poster={state.poster||undefined} controls playsInline onError={handleBadStream} onLoadedMetadata={handleMeta} style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>;
 }
 
+// Overview focus note — clamps to 2 lines so the card stays compact, with a
+// MORE/LESS toggle that reveals the full text on tap (Ohad: don't balloon the
+// cards, don't let any length of text size them).
+function OverviewFocus({ text }) {
+  const [open, setOpen] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => { const el = ref.current; if (el) setOverflows(el.scrollHeight > el.clientHeight + 1); }, [text, open]);
+  return (
+    <div style={{marginInlineStart:30,marginTop:4}}>
+      <div ref={ref} style={{fontSize:11,color:C.ac,opacity:0.85,lineHeight:1.4,...(open?null:{display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'})}}>
+        <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>FOCUS</span>{text}
+      </div>
+      {(overflows || open) && <span onClick={(e)=>{e.stopPropagation();setOpen(o=>!o);}} style={{display:'inline-block',marginTop:3,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,cursor:'pointer',opacity:0.85}}>{open?'▲ LESS':'▼ MORE'}</span>}
+    </div>
+  );
+}
+
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = ''}) {
   // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
@@ -1416,33 +1434,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // the light theme stopped seeing it — restored here. Uses theme-aware
           // tokens (var(--c-ac)/var(--c-tx)) so it reads correctly on light too.
           const prior = prevWeekSets?.[si];
-          const showGhost = !!prior;
           return <React.Fragment key={si}>
-            {showGhost && <div style={{
-              display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,
-              // marginBottom 0 — ghost W1 row sits flush against its
-              // live W2 row directly below, reading as a stacked
-              // pair within one set. marginTop 8 between sets keeps
-              // the visual separation between distinct set groups.
-              alignItems:'center',marginBottom:0,marginTop:si===0?0:8,
-              opacity:0.72,
-            }}>
-              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
-              {/* Cell dimensions mirror the live `bi` input style
-                  (padding 8px 10px, fontSize 14, FB body font, center)
-                  so the ghost row sits in the exact same row-height as
-                  the W2 input row below — visually identical scale,
-                  carried by opacity 0.5 to mark it as reference. */}
-              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.reps || '—'}</div>
-              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load) || '—'}</div>
-              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.rpe || '—'}</div>
-              <div />
-            </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
-              <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
-              <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder="kg" style={seti}/>
-              <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder="—" style={seti}/>
+              {/* Last week's per-set numbers ride in as the placeholder (ghosted)
+                  so the athlete sees the target without a separate reference row
+                  and without scrolling up. Replaced by their own input on type. */}
+              <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder={prior?.reps ? String(prior.reps) : '—'} style={seti}/>
+              <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={prior && parseFloat(prior.load) ? String(parseFloat(prior.load)) : 'kg'} style={seti}/>
+              <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder={prior?.rpe ? String(prior.rpe) : '—'} style={seti}/>
               {/* Whole cell is the tap target (not just the 18px box) so a
                   sweaty mid-set tap lands. 24px box, centered. */}
               <label style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:44,cursor:'pointer'}}>
@@ -1911,15 +1911,44 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.ac,marginTop:6,textAlign:'center'}}>BNEI HERZLIYA</div>
           )}
         </div>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:14}}>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{display:'flex',flexDirection:'column',gap:4}}>{visPlans.map(p=><span key={p.name} style={{display:'inline-block',padding:'2px 0 2px 10px',borderLeft:`2px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase'}}>{p.name}</span>)}</div>
-          </div>
-          <div style={{textAlign:'center',flexShrink:0}}>
-            <div style={{fontSize:24,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.ac,lineHeight:1,letterSpacing:'-0.02em'}}>{sl}</div>
-            <div style={{fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.18em',fontWeight:700,marginTop:5}}>SESSIONS</div>
-          </div>
-        </div>
+        {/* Three across: BLOCK (left) · THIS WEEK completion blocks (centred) ·
+            SESSIONS-LEFT-IN-BLOCK (right). All computed once from the primary
+            plan. 1fr auto 1fr centres the middle regardless of side widths.
+            SESSIONS now counts workouts remaining until the block is finished
+            (total block sessions − distinct logged (week,day)), not billing. */}
+        {(() => {
+          const primaryPlan = visPlans[0];
+          const weekDays = (primaryPlan?.days || []).filter(d => d.kind !== 'daily');
+          const weeks = Number(primaryPlan?.weeks) || Number(primaryPlan?.data?.weeks) || 4;
+          const dayNames = new Set(weekDays.map(d => d.name));
+          const loggedWeeks = cw.map(w => w.week).filter(n => Number.isFinite(n));
+          const curWeek = loggedWeeks.length ? Math.max(...loggedWeeks) : 1;
+          const isDayDone = (d) => cw.some(w => w.dayName === d.name && w.week === curWeek);
+          const doneThisWeek = weekDays.filter(isDayDone).length;
+          const total = weeks * weekDays.length;
+          const completed = new Set(cw.filter(w => dayNames.has(w.dayName) && w.week >= 1 && w.week <= weeks).map(w => w.week + '|' + w.dayName)).size;
+          const blockLeft = Math.max(0, total - completed);
+          return (
+            <div style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:14}}>
+              <div style={{minWidth:0,justifySelf:'start'}}>
+                <div style={{display:'flex',flexDirection:'column',gap:4}}>{visPlans.map(p=><span key={p.name} style={{display:'inline-block',padding:'2px 0 2px 10px',borderLeft:`2px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase'}}>{p.name}</span>)}</div>
+              </div>
+              {weekDays.length > 0 ? (
+                <div style={{justifySelf:'center',display:'flex',alignItems:'center',gap:8,whiteSpace:'nowrap'}}>
+                  <span style={{fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.14em',fontWeight:700}}>THIS WEEK</span>
+                  <div style={{display:'flex',gap:4}}>
+                    {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:18,height:8,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
+                  </div>
+                  <span style={{fontSize:9,color:C.ac,fontFamily:FN,letterSpacing:'0.06em',fontWeight:700}}>{doneThisWeek}/{weekDays.length}</span>
+                </div>
+              ) : <div/>}
+              <div style={{justifySelf:'end',display:'flex',alignItems:'baseline',gap:6,whiteSpace:'nowrap'}}>
+                <span style={{fontSize:24,fontWeight:700,fontFamily:FN,color:C.ac,lineHeight:1,letterSpacing:'-0.02em'}}>{blockLeft}</span>
+                <span style={{fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.18em',fontWeight:700}}>SESSIONS</span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
       {/* Two-row nav (Ohad spec 2026-05-16):
             Row 1 → PROGRAM · BW · MEAL LOG  (active work)
@@ -2226,8 +2255,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               the warm-up is still relevant and stays visible. */}
           {vp.warmup?.length > 0 && !(vp.kind === 'daily' || (Array.isArray(vp.days) && vp.days.length > 0 && vp.days.every(d => d.kind === 'daily'))) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
             <div style={{fontSize:10,fontFamily:FN,color:C.or,marginBottom:10,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase'}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
-            {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
-              <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
+            {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:20,padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid rgba(127,127,131,0.22)`:'none'}}>
+              <span style={{fontSize:13,color:C.tx,minWidth:0}}>{w.t}</span>
               <div style={{display:'flex',gap:10,alignItems:'center',flexShrink:0}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600,whiteSpace:'nowrap'}}>{(() => {
                 if (w.sets || w.reps) {
                   const setsStr = w.sets ?? '';
@@ -2237,7 +2266,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 }
                 return w.rx || '';
               })()}</span>
-                {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em'}}>VIDEO →</a>}</div></div>)}</div>}
+                </div></div>)}</div>}
           {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++;
           // Daily-routine: PER-DAY flag (`day.kind === 'daily'`) lets the
@@ -2254,12 +2283,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // inside nested ${ … } expressions (it's how the original bare
           // rgba(...) crash slipped past CI), so we keep the template
           // expression to a plain identifier.
-          const doneBorderColor = done ? 'rgba(46,213,115,0.251)' : C.ac;
-          return <div key={vp.name+'-'+di} style={{background:'var(--c-sf)',border:`${done?'0.25px':'1px'} solid ${doneBorderColor}`,borderRadius:0,marginBottom:12,padding:'14px 18px'}}>
+          // Done days: neutral border (no green box) + a green ✓ next to the name
+          // (Ohad: "don't like the green around the cyan DONE — green check instead").
+          const doneBorderColor = done ? C.cardBd : C.ac;
+          return <div key={vp.name+'-'+di} style={{background:'var(--c-sf)',border:`1px solid ${doneBorderColor}`,borderRadius:0,marginBottom:12,padding:'14px 18px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'stretch',marginBottom:8,gap:12}}>
-              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{day.name}</span>{done && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,marginLeft:10,padding:'3px 7px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'middle'}}>DONE</span>}{isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,marginLeft:10,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'middle'}}>{dailyCount} LOGGED</span>}
+              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{day.name}</span>{done && <span title="Completed this week" style={{marginLeft:10,color:C.gn,fontSize:15,fontWeight:700,verticalAlign:'middle',lineHeight:1}}>✓</span>}{isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,marginLeft:10,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'middle'}}>{dailyCount} LOGGED</span>}
                 <div style={{fontSize:10,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase'}}>{day.ex.length} exercises</div></div>
-              <button onClick={() => setLg(dayIdx)} style={{padding:'6px 16px',minWidth:78,borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{done?'AGAIN':'LOG'}</button></div>
+              <button onClick={() => setLg(dayIdx)} style={{padding:'6px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
               const focus = weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${wk}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk}`];
               const v = 'vid' in ex ? ex.vid : d.vid;
@@ -2275,10 +2306,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{hw?(wr||''):((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+ex.r}</span>
                     {ex.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{ex.tempo}</span>}
                   </div>
-                  {v ? <a href={v} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em',flexShrink:0}}>VIDEO →</a> : null}
+                  {/* No video in the overview — the athlete watches it inside the
+                      logging session, so showing it here just clutters (Ohad). */}
                 </div>
                 <div style={{marginInlineStart:30,marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{d.t}</div>
-                {focus && <div style={{marginInlineStart:30,fontSize:11,color:C.ac,marginTop:4,opacity:0.85,lineHeight:1.4,display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'}}><span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>FOCUS</span>{focus}</div>}
+                {focus && <OverviewFocus text={focus} />}
               </div>})}
           </div>})}</React.Fragment>)})()}
       </div>
