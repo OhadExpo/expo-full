@@ -135,8 +135,8 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
           {/* ATHLETE on its own row — the typeahead dropdown renders IN-FLOW
               (not absolute), so the card grows to fit it instead of the
               collapsible's overflow:hidden clipping it. */}
-          <div style={{ marginBottom: 12, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
-            <label style={lbl}>ATHLETE</label>
+          <div style={{ marginBottom: 12, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto', textAlign: 'center' }}>
+            <label style={{ ...lbl, textAlign: 'center' }}>ATHLETE</label>
             <input dir="auto" value={query} placeholder="Type a name…"
               onChange={e => { setQuery(e.target.value); setPickerOpen(true); if (traineeId) setTraineeId(''); }}
               onFocus={() => setPickerOpen(true)}
