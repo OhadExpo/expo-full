@@ -94,7 +94,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       if (d !== depthRef.current) { depthRef.current = d; setAtDepth(d); }
     }
 
-    draw(canvasRef.current, v, landmarks, anchorRef, { depth: depthOn });
+    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: depthOn });
     rafRef.current = requestAnimationFrame(loop);
   }, [depthRelevant, thr, channels]);
 
@@ -205,7 +205,7 @@ function HudCell({ label, value, big, tone, pop }) {
   );
 }
 
-function draw(canvas, video, landmarks, anchorRef, { depth }) {
+function draw(canvas, video, landmarks, world, anchorRef, { depth }) {
   if (!canvas || !video) return;
   const ctx = canvas.getContext('2d');
   const w = video.videoWidth, h = video.videoHeight;
@@ -222,6 +222,28 @@ function draw(canvas, video, landmarks, anchorRef, { depth }) {
   const wristMid = midpt(landmarks[15], landmarks[16]);
   const hipMid = midpt(landmarks[23], landmarks[24]);
   const kneeMid = midpt(landmarks[25], landmarks[26]);
+
+  // Live joint angles — computed from the 3D world landmarks (perspective-free)
+  // and drawn at each joint's screen position (Ohad: live angles under Live
+  // Coach). The tool is side-on, so L/R overlap → one label per joint group at
+  // the mid point, averaging the two sides.
+  if (world) {
+    const fs = Math.max(16, Math.round(w * 0.022));
+    const groups = [
+      ['L SHO', 'R SHO', midpt(landmarks[11], landmarks[12])],
+      ['L ELB', 'R ELB', midpt(landmarks[13], landmarks[14])],
+      ['L HIP', 'R HIP', hipMid],
+      ['L KNE', 'R KNE', kneeMid],
+    ];
+    for (const [ln, rn, mid] of groups) {
+      if (!mid) continue;
+      const dl = ANGLE_DEFS.find(d => d.name === ln), dr = ANGLE_DEFS.find(d => d.name === rn);
+      const vals = [dl && angleAt(world, dl.a, dl.b, dl.c), dr && angleAt(world, dr.a, dr.b, dr.c)].filter(isReal);
+      if (!vals.length) continue;
+      const deg = Math.round(vals.reduce((s, x) => s + x, 0) / vals.length);
+      label(ctx, `${deg}°`, mid.x * w + fs * 0.6, mid.y * h, ACCENT, fs);
+    }
+  }
 
   // bar-path plumb line — lock the anchor to the bar's x at the highest point
   // seen so far (rack/standing), then show live drift from it.

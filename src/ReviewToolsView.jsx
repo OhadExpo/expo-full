@@ -130,7 +130,6 @@ function ToolRow({ t, blocked, isLast, onOpen }) {
         <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3, lineHeight: 1.4 }}>{t.measures}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        {isLast && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.12em', color: C.bg, background: C.ac, padding: '2px 6px' }}>LAST</span>}
         <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: t.live ? '#FF7A7A' : C.tm, border: `1px solid ${t.live ? 'rgba(255,90,90,0.5)' : C.cardBd}`, padding: '2px 6px', whiteSpace: 'nowrap' }}>{t.live ? 'LIVE' : 'CLIP'}</span>
         <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: blocked ? '#FF4757' : C.ac, transform: active ? 'translateX(3px)' : 'none', transition: 'transform .15s', whiteSpace: 'nowrap' }}>{blocked ? 'NEEDS CAMERA' : 'OPEN →'}</span>
       </div>
