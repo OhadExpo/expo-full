@@ -1434,15 +1434,24 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // the light theme stopped seeing it — restored here. Uses theme-aware
           // tokens (var(--c-ac)/var(--c-tx)) so it reads correctly on light too.
           const prior = prevWeekSets?.[si];
+          const showGhost = !!prior;
           return <React.Fragment key={si}>
+            {showGhost && <div style={{
+              display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,
+              alignItems:'center',marginBottom:0,marginTop:si===0?0:8,
+              opacity:0.72,
+            }}>
+              <div style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
+              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.reps || '—'}</div>
+              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load) || '—'}</div>
+              <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.rpe || '—'}</div>
+              <div />
+            </div>}
             <div style={{display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,alignItems:'center',marginBottom:4,opacity:set.done?.5:1}}>
               <div style={{fontFamily:FN,fontSize:13,color:C.td,textAlign:'center'}}>{si+1}</div>
-              {/* Last week's per-set numbers ride in as the placeholder (ghosted)
-                  so the athlete sees the target without a separate reference row
-                  and without scrolling up. Replaced by their own input on type. */}
-              <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder={prior?.reps ? String(prior.reps) : '—'} style={seti}/>
-              <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder={prior && parseFloat(prior.load) ? String(parseFloat(prior.load)) : 'kg'} style={seti}/>
-              <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder={prior?.rpe ? String(prior.rpe) : '—'} style={seti}/>
+              <input value={set.reps} onChange={e => uSet(ei,si,'reps',e.target.value)} onFocus={selectOnFocus} inputMode="numeric" enterKeyHint="next" placeholder="—" style={seti}/>
+              <input value={set.load} onChange={e => uSet(ei,si,'load',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="next" placeholder="kg" style={seti}/>
+              <input value={set.rpe} onChange={e => uSet(ei,si,'rpe',e.target.value)} onFocus={selectOnFocus} inputMode="decimal" enterKeyHint="done" placeholder="—" style={seti}/>
               {/* Whole cell is the tap target (not just the 18px box) so a
                   sweaty mid-set tap lands. 24px box, centered. */}
               <label style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:44,cursor:'pointer'}}>
@@ -2288,7 +2297,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           const doneBorderColor = done ? C.cardBd : C.ac;
           return <div key={vp.name+'-'+di} style={{background:'var(--c-sf)',border:`1px solid ${doneBorderColor}`,borderRadius:0,marginBottom:12,padding:'14px 18px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'stretch',marginBottom:8,gap:12}}>
-              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{day.name}</span>{done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:20,height:20,borderRadius:'50%',background:C.gn,color:'#FFFFFF',fontSize:12,fontWeight:800,marginLeft:10,verticalAlign:'middle',lineHeight:1,flexShrink:0}}>✓</span>}{isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,marginLeft:10,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'middle'}}>{dailyCount} LOGGED</span>}
+              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{day.name}</span>{done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:20,height:20,borderRadius:0,background:C.gn,color:'#FFFFFF',fontSize:13,fontWeight:800,marginLeft:10,verticalAlign:'middle',lineHeight:1,flexShrink:0}}>✓</span>}{isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,marginLeft:10,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'middle'}}>{dailyCount} LOGGED</span>}
                 <div style={{fontSize:10,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase'}}>{day.ex.length} exercises</div></div>
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
