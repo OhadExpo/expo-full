@@ -1220,8 +1220,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const f = fv[ei];
     // Focus keys are client-scoped (`clientId|plan|day|eid|Wn`); the legacy
     // un-scoped key is kept as a read fallback for pre-scoping notes.
-    const fk = `${clientId}|${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`;
-    const wf = weeklyFocus?.[fk] ?? weeklyFocus?.[`${plan.name}|${day.name}|${ex.eid}|W${weekNum+1}`];
+    // Focus is keyed by its SOURCE week N (written during week N to guide week
+    // N+1), so the guidance shown on display week D lives under W(D-1). weekNum
+    // is 0-based (human week = weekNum+1), so W(D-1) = W${weekNum}. Reading
+    // W${weekNum+1} surfaced next-week's focus a week early (Ohad 2026-06-26).
+    const fwk = weekNum;                                   // = human week − 1 = the source week
+    const fk = `${clientId}|${plan.name}|${day.name}|${ex.eid}|W${fwk}`;
+    const wf = weeklyFocus?.[fk] ?? weeklyFocus?.[`${plan.name}|${day.name}|${ex.eid}|W${fwk}`];
     // Unified coach guidance for THIS exercise THIS week: weekly-focus text +
     // last week's annotated form video (the coach's drawings + timestamped
     // comments, replayed via the same player) + the static program note as
@@ -2256,7 +2261,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 <div style={{fontSize:10,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase'}}>{day.ex.length} exercises</div></div>
               <button onClick={() => setLg(dayIdx)} style={{padding:'6px 16px',minWidth:78,borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{done?'AGAIN':'LOG'}</button></div>
             {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
-              const focus = weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${wk+1}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk+1}`];
+              const focus = weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${wk}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk}`];
               const v = 'vid' in ex ? ex.vid : d.vid;
               // Two-row layout: meta row (index + reps + tempo + VIDEO) is
               // always single-line so the eye never has to track a long

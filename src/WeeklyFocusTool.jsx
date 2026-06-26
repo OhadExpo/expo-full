@@ -135,7 +135,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
           {/* ATHLETE on its own row — the typeahead dropdown renders IN-FLOW
               (not absolute), so the card grows to fit it instead of the
               collapsible's overflow:hidden clipping it. */}
-          <div style={{ marginBottom: 12, maxWidth: 360 }}>
+          <div style={{ marginBottom: 12, maxWidth: 360, marginLeft: 'auto', marginRight: 'auto' }}>
             <label style={lbl}>ATHLETE</label>
             <input dir="auto" value={query} placeholder="Type a name…"
               onChange={e => { setQuery(e.target.value); setPickerOpen(true); if (traineeId) setTraineeId(''); }}
@@ -187,7 +187,7 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
                   <div key={xi} style={{ marginBottom: 8 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                       <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, direction: isHeb(ex.title) ? 'rtl' : 'ltr', fontWeight: 600 }}>{ex.title}</span>
-                      {val && <span style={{ color: C.gn, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>✓ SET</span>}
+                      {val && <span style={{ color: C.gn, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em' }}>✓ SAVED</span>}
                     </div>
                     <textarea dir="auto" value={val} onChange={e => setF(d.nameRaw, ex.eid, e.target.value)}
                       placeholder={`Focus to carry into week ${week + 1}…`}
