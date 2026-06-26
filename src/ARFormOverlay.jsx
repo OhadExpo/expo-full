@@ -13,6 +13,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { C, FN } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { detectChannels, ANGLE_DEFS, angleAt, isReal } from './repCounter';
+import { createLiveSkeleton } from './LiveSkeleton3D';
 
 const SKEL = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
@@ -38,6 +39,8 @@ const KIND_THRESHOLDS = {
 export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'environment', onClose }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const glCanvasRef = useRef(null);     // three.js 3D-skeleton overlay canvas
+  const glSkelRef = useRef(null);       // createLiveSkeleton() handle
   const streamRef = useRef(null);
   const lmRef = useRef(null);
   const rafRef = useRef(null);
@@ -74,6 +77,16 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const { kind, channels } = detectChannels(exerciseTitle);
   const thr = KIND_THRESHOLDS[kind];
   const depthRelevant = kind === 'knee' || kind === 'hip';
+
+  // Set up / tear down the three.js 3D-skeleton overlay once its canvas mounts.
+  useEffect(() => {
+    if (glCanvasRef.current && !glSkelRef.current) {
+      try { glSkelRef.current = createLiveSkeleton(glCanvasRef.current); } catch (e) { console.warn('3D skeleton init failed', e); }
+    }
+    const onResize = () => glSkelRef.current?.resize();
+    window.addEventListener('resize', onResize);
+    return () => { window.removeEventListener('resize', onResize); try { glSkelRef.current?.dispose(); } catch { /* noop */ } glSkelRef.current = null; };
+  }, []);
 
   const loop = useCallback(() => {
     const v = videoRef.current, lm = lmRef.current;
@@ -125,7 +138,10 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       if (d && phaseRef.current === 'bottom') repHitDepthRef.current = true;
     }
 
-    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: showSkeletonRef.current, angles: showSkeletonRef.current });
+    // 3D skeleton (three.js overlay) when SKELETON is on; the 2D layer keeps the
+    // angle labels + depth/bar-path, so its flat skeleton lines are turned off.
+    if (glSkelRef.current) glSkelRef.current.update(showSkeletonRef.current ? landmarks : null, world, false);
+    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: false, angles: showSkeletonRef.current });
     rafRef.current = requestAnimationFrame(loop);
   }, [depthRelevant, thr, channels]);
 
@@ -141,6 +157,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       anchorRef.current = null; angleBufRef.current = []; phaseRef.current = 'top';
       setReps(0); setMoving('top');
       setPhase('live');
+      requestAnimationFrame(() => glSkelRef.current?.resize());   // canvas is laid out now
       rafRef.current = requestAnimationFrame(loop);
     } catch (e) { setPhase('idle'); setError(e?.message || 'Could not start the camera.'); }
   }, [loop]);
@@ -181,6 +198,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
 
       <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
         <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {/* 3D skeleton (three.js) sits ABOVE the video, BELOW the 2D HUD canvas so
+            the angle labels stay readable on top of the bones. */}
+        <canvas ref={glCanvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
         <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
 
         {/* LIVE HUD — the read-outs, in legible mono. Sits top-centre, out of the
