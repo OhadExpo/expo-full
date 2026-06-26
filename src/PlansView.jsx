@@ -406,7 +406,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
   const remove = idx => setPlan(p => ({ ...p, warmup: (p.warmup || []).filter((_, i) => i !== idx) }));
   // Same compact input the day-exercise grid uses, so warm-up rows read as
   // the same table family as the day cards below.
-  const tinyInput = { ...baseInput, background: 'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding: '3px 6px', fontSize: 11, minWidth: 0, width: '100%', boxSizing: 'border-box' };
+  const tinyInput = { ...baseInput, background: 'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding: '3px 6px', fontSize: 11, minWidth: 0, width: '100%', height: 24, boxSizing: 'border-box' };
   return (
     <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 12, marginBottom: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: open ? 8 : 0 }}>
@@ -492,7 +492,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
                 <input value={w.reps ?? ''} onChange={e => update(i, { reps: e.target.value })} placeholder="10 / 30s" style={tinyInput} />
                 <input value={w.tempo ?? ''} onChange={e => update(i, { tempo: e.target.value })} placeholder="3010" style={tinyInput} />
                 <button onClick={() => remove(i)} title="Remove warm-up" aria-label="Remove warm-up"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><TrashIcon size={15} /></button>
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, height: 24, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><TrashIcon size={15} /></button>
                 {/* Legacy free-text rx, only when the new fields are empty AND a
                     pre-split rx exists. Lets the coach see what the athlete is
                     currently being shown, then dismiss it once they've migrated. */}
@@ -1249,7 +1249,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           const dayExs = d.exercises || [];
           const weeks = plan.weeks || 4;
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
-          const tinyInput = {...baseInput, background:'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", boxSizing:"border-box"};
+          const tinyInput = {...baseInput, background:'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", height:24, boxSizing:"border-box"};
           const dayCollapsed = !!collapsedDays[d.id];
           // Drag-reorder. The whole day grid is the drop zone (not just the
           // narrow drag-handle column it used to be — that made the indicator
@@ -1392,7 +1392,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                         <span style={{overflowWrap: compareActive ? 'break-word' : 'anywhere', wordBreak: compareActive ? 'normal' : 'break-word'}}>{title}</span>
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
-                        style={{...tinyInput, color:sc, fontFamily:FN, fontWeight:600, height:20, minHeight:20, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
+                        style={{...tinyInput, color:sc, fontFamily:FN, fontWeight:600, height:24, minHeight:24, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
                         {SUPERSET_LABELS.map(s => <option key={s} value={s}>{s||"—"}</option>)}
                       </select>
                       {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
@@ -1419,7 +1419,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       <input value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" style={tinyInput} />
                       <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
                       <button onClick={()=>removeExFromDay(dayIdx, exIdx)} title="Remove exercise from this day" aria-label="Remove exercise"
-                        style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
+                        style={{background:"none",border:"none",cursor:"pointer",padding:0,height:24,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
                           REPS (col 5), shown only when the row is expanded. */}
                       {exOpen && <label style={{gridColumn:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,cursor:'pointer',fontFamily:FN,fontSize:9,color:C.tm,letterSpacing:'0.02em',padding:'5px 0',whiteSpace:'nowrap'}}>

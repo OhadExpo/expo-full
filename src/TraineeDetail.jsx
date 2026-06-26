@@ -349,7 +349,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
-            style={{ background: 'transparent', border: `1px solid ${C.bd2}`, borderRadius: 0, cursor: 'pointer', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+            style={{ background: 'transparent', border: `1px solid ${C.bd2}`, borderRadius: 0, cursor: 'pointer', padding: '4px 10px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: td.notifOff ? C.td : C.tx }}>NOTIFICATION</span>
             {/* color on/off toggle — green = on, grey = muted (matches the
                 program-visibility switches below) */}
@@ -357,13 +357,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <span style={{ width: 16, height: 16, borderRadius: 8, background: td.notifOff ? C.td : C.gn, position: 'absolute', top: 1, left: td.notifOff ? 1 : 18, transition: 'all .15s' }} />
             </span>
           </button>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px"}}>EDIT</Btn>
+          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
+          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
+          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>EDIT</Btn>
           {td.status==="Archived" ? <>
-            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"4px 10px"}}>RESTORE</Btn>
-            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
-          </> : <Btn variant="danger" onClick={()=>setShowArchiveConfirm(true)} style={{fontSize:11,padding:"4px 10px"}}>ARCHIVE</Btn>}
+            <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>RESTORE</Btn>
+            <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>Permanently Delete</Btn>
+          </> : <Btn variant="danger" onClick={()=>setShowArchiveConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>ARCHIVE</Btn>}
         </div></div>
 
       {/* === COUPLE LAYOUT === */}

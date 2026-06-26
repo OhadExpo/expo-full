@@ -823,7 +823,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 {arr.length > 1 && <button onClick={() => {
                   const next = [...arr]; next.splice(i, 1);
                   setForm({...form, _emails: next});
-                }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '0 8px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
+                }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '0 8px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
               </div>
             ))}
             {(form._emails || emailsToArr(form.email)).length < 3 && (

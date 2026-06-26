@@ -104,7 +104,7 @@ export const EmailsInput = ({ label = "Email(s)", value, onChange, max = 3, plac
       {arr.map((em, i) => (
         <div key={i} style={{ display: 'flex', gap: 4 }}>
           <input aria-label={arr.length > 1 ? `${label} ${i + 1}` : label} value={em} onChange={e => { const next = [...arr]; next[i] = e.target.value; onChange(next); }} placeholder={placeholder} style={{ ...baseInput, flex: 1 }} />
-          {arr.length > 1 && <button onClick={() => { const next = [...arr]; next.splice(i, 1); onChange(next); }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '0 10px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>×</button>}
+          {arr.length > 1 && <button onClick={() => { const next = [...arr]; next.splice(i, 1); onChange(next); }} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, padding: '0 10px', color: C.rd, cursor: 'pointer', fontSize: 14, lineHeight: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>×</button>}
         </div>
       ))}
       {arr.length < max && (

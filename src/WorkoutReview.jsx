@@ -1279,13 +1279,13 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           )}
           {onReviewNotesChange && role === 'trainer' && (
             <button onClick={addComment} title="Comment & draw at this timestamp — color swatches appear once a comment is open"
-              style={{padding:'3px 10px',borderRadius:0,border:`1px solid rgba(57,189,255,0.251)`,
+              style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid rgba(57,189,255,0.251)`,
                 background:C.acD,color:C.ac,fontFamily:FN,fontSize:10,cursor:'pointer'}}>COMMENT</button>
           )}
         </div>
         <div style={{flex:1,display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end'}}>
           <button onClick={fullscreen}
-            style={{padding:'3px 10px',borderRadius:0,border:`1px solid ${C.bd}`,
+            style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
               background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
         </div>
       </div>
@@ -1300,13 +1300,13 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               fontFamily:FN,fontSize:10,cursor:'pointer'}}>{s}x</button>
         ))}
         <button onClick={() => stepFrame(-1)} title="Previous frame"
-          style={{padding:'3px 6px',borderRadius:0,border:`1px solid ${C.bd}`,
-            background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>◀</button>
+          style={{padding:'3px 6px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
+            background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>◀</button>
         <button onClick={() => stepFrame(1)} title="Next frame"
-          style={{padding:'3px 6px',borderRadius:0,border:`1px solid ${C.bd}`,
-            background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,cursor:'pointer'}}>▶</button>
+          style={{padding:'3px 6px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
+            background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>▶</button>
         <button onClick={() => setLoop(v => !v)} title="Loop the video"
-          style={{padding:'3px 10px',borderRadius:0,border:`1px solid ${loop?C.ac:C.bd}`,
+          style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${loop?C.ac:C.bd}`,
             background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
       </div>
       {/* Drawing toolbar — only visible when the trainer is in a drawing
@@ -1329,15 +1329,15 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             );
           })}
           <button onClick={() => setRulerMode(v => !v)} title={rulerMode ? 'Straight-line mode ON' : 'Freehand mode — click for straight-line'}
-            style={{padding:'3px 8px',borderRadius:0,border:`1px solid ${rulerMode?C.ac:C.bd}`,
+            style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${rulerMode?C.ac:C.bd}`,
               background:rulerMode?C.acD:'transparent',color:rulerMode?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
             📏 {rulerMode ? 'LINE' : 'FREE'}
           </button>
           <button onClick={undoLastStroke} disabled={currentStrokes.length === 0} title="Undo last stroke"
-            style={{padding:'3px 8px',borderRadius:0,border:`1px solid ${C.bd}`,
+            style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
               background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>↶ UNDO</button>
           <button onClick={clearDrawings} disabled={currentStrokes.length === 0} title="Clear all drawings on this comment"
-            style={{padding:'3px 8px',borderRadius:0,border:`1px solid ${C.bd}`,
+            style={{padding:'3px 8px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${C.bd}`,
               background:'transparent',color:currentStrokes.length?C.tm:C.td,fontFamily:FN,fontSize:10,cursor:currentStrokes.length?'pointer':'default',opacity:currentStrokes.length?1:0.5}}>✕ CLEAR</button>
         </div>
       )}
