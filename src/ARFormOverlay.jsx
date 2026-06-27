@@ -55,11 +55,14 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const [showDepth, setShowDepth] = useState(true);
   useEffect(() => { showDepthRef.current = showDepth; }, [showDepth]);
   const [showReps, setShowReps] = useState(true);   // toggle the REPS/PHASE read-out
-  // One toggle drives BOTH the skeleton and the joint-angle numbers (Ohad: "both
-  // together as one button").
+  // Two toggles (Ohad): SKELETON = the 3D skeleton; JOINTS = the joint-angle
+  // numbers (the pose detector + joint meter, one button).
   const [showSkeleton, setShowSkeleton] = useState(true);
   const showSkeletonRef = useRef(true);
   useEffect(() => { showSkeletonRef.current = showSkeleton; }, [showSkeleton]);
+  const [showAngles, setShowAngles] = useState(true);
+  const showAnglesRef = useRef(true);
+  useEffect(() => { showAnglesRef.current = showAngles; }, [showAngles]);
   const [reps, setReps] = useState(0);
   const [moving, setMoving] = useState('top');  // 'top' | 'bottom' — live rep phase
   const [atDepth, setAtDepth] = useState(false);
@@ -141,7 +144,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     // 3D skeleton (three.js overlay) when SKELETON is on; the 2D layer keeps the
     // angle labels + depth/bar-path, so its flat skeleton lines are turned off.
     if (glSkelRef.current) glSkelRef.current.update(showSkeletonRef.current ? landmarks : null, world, false);
-    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: false, angles: showSkeletonRef.current });
+    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: false, angles: showAnglesRef.current });
     rafRef.current = requestAnimationFrame(loop);
   }, [depthRelevant, thr, channels]);
 
@@ -243,6 +246,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
               {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>REPS {showReps ? 'ON' : 'OFF'}</button>}
               {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
               <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 116 }}>SKELETON {showSkeleton ? 'ON' : 'OFF'}</button>
+              <button onClick={() => setShowAngles(s => !s)} style={{ ...ctrl, background: showAngles ? C.ac : 'transparent', minWidth: 104 }}>JOINTS {showAngles ? 'ON' : 'OFF'}</button>
             </>}
       </div>
     </div>

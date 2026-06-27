@@ -20,8 +20,9 @@ const BONES = [
   [11, 13], [13, 15], [12, 14], [14, 16],     // arms
   [11, 12], [11, 23], [12, 24], [23, 24],      // shoulders + torso
   [23, 25], [25, 27], [24, 26], [26, 28],      // legs
+  [11, 0], [12, 0],                            // neck → head
 ];
-const JOINTS = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+const JOINTS = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28]; // 0 = head (bigger sphere)
 
 export function createLiveSkeleton(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
@@ -99,7 +100,7 @@ export function createLiveSkeleton(canvas) {
       if (!lj) { mesh.visible = false; return; }
       toVec(_a, lj, world?.[j]?.z, mirrored);
       mesh.position.copy(_a);
-      mesh.scale.setScalar(jointR);
+      mesh.scale.setScalar(j === 0 ? jointR * 2.6 : jointR);   // 0 = head skull
       mesh.visible = true;
     });
     renderer.render(scene, camera);
