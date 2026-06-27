@@ -162,6 +162,15 @@ function stripDueSuffix(body) {
 function stripPriorityPrefix(body) {
   return (body || '').replace(PRIORITY_RE, '');
 }
+// Rewrite the [PRIORITY] bracket in a body, keeping the owner prefix in place
+// (normal → no bracket). Lets urgency be changed AFTER a task is created.
+function setPriorityInBody(body, newPriority) {
+  const stripped = (body || '').replace(PRIORITY_RE, '');
+  if (!newPriority || newPriority === 'normal') return stripped;
+  const m = stripped.match(/^((?:ohad\s*\+\s*yuval|yuval\s*\+\s*ohad|ohad|yuval)\s*:\s*)/i);
+  const tag = `[${newPriority.toUpperCase()}] `;
+  return m ? m[1] + tag + stripped.slice(m[0].length) : tag + stripped;
+}
 // Composite: strip owner + priority + due → just the actual title
 function displayBodyOf(body) {
   return stripDueSuffix(stripPriorityPrefix(stripOwnerPrefix(body || ''))).trim();
@@ -246,6 +255,7 @@ function applySort(rows, mode, dir, now) {
   if (mode === 'smart')       cmp = (x, y) => smartSortScore(x, now) - smartSortScore(y, now);
   else if (mode === 'newest') cmp = (x, y) => new Date(y.created_at) - new Date(x.created_at);
   else if (mode === 'status') cmp = (x, y) => (STATUS_RANK[x.status] ?? 9) - (STATUS_RANK[y.status] ?? 9);
+  else if (mode === 'priority') cmp = (x, y) => (PRIORITY_RANK[x._priority] ?? 2) - (PRIORITY_RANK[y._priority] ?? 2);
   else if (mode === 'name')   cmp = (x, y) => (x.body || '').localeCompare(y.body || '');
   else                        cmp = (x, y) => new Date(x.created_at) - new Date(y.created_at);
   a.sort(cmp);
@@ -304,123 +314,48 @@ function StatusIconGlyph({ status, theme, size = 16 }) {
     }}>{opt.glyph}</span>
   );
 }
+// One height for every in-row pill/tag (status, urgency, date, athlete, shared)
+// so a row of tags lines up — no asymmetry (Ohad).
+const TASK_PILL_H = 24;
 function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
-  const [open, setOpen] = useState(false);
-  // Menu position is FIXED (viewport coords from the pill's rect), not
-  // absolute — rows live inside the sections' collapse-animation wrappers
-  // (grid-template-rows + overflow:hidden), which clip an absolute menu at
-  // the section's bottom edge so the rows below showed through it.
-  const [menuPos, setMenuPos] = useState(null);
-  const btnRef = useRef(null);
-  const menuRef = useRef(null);
-  // Recompute the fixed menu's viewport coords from the pill's current rect.
-  // `right` is clamped into the viewport so a pill near/over the right edge
-  // can't push the menu off-screen.
-  const place = useCallback(() => {
-    const el = btnRef.current; if (!el) return;
-    const r = el.getBoundingClientRect();
-    setMenuPos({ top: r.bottom + 2, right: Math.max(8, window.innerWidth - r.right) });
-  }, []);
-  useEffect(() => {
-    if (!open) return;
-    // Keep the fixed menu GLUED to its pill while the page scrolls/resizes —
-    // do NOT close on scroll. The old close-on-scroll fired on the tap's own
-    // incidental scroll on mobile, so the menu opened and vanished in the same
-    // gesture ("the menu doesn't show at all"). Dismiss only on an outside
-    // tap or Escape.
-    const reposition = () => place();
-    const onDocDown = (e) => {
-      if (!menuRef.current?.contains(e.target) && !btnRef.current?.contains(e.target)) setOpen(false);
-    };
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('scroll', reposition, true);
-    window.addEventListener('resize', reposition);
-    document.addEventListener('pointerdown', onDocDown, true);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('scroll', reposition, true);
-      window.removeEventListener('resize', reposition);
-      document.removeEventListener('pointerdown', onDocDown, true);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, place]);
-  // Read-only (another partner's task): show the status glyph but don't let
-  // the viewer open the menu / change it.
-  // A labelled pill — the old 16px glyph was too small and read as
-  // decoration, not a control. Now: status color + word + caret, sized to
-  // tap. Colors come from statusColors (null for 'open' → neutral outline).
+  // Native <select> — bulletproof vs the old custom popover (which jumped, jammed,
+  // and sometimes swallowed the click so the status never changed). onChange
+  // always fires; the browser handles positioning, so no lag/pop/hover bugs.
   const opt = STATUS_OPTIONS.find(o => o.id === status) || STATUS_OPTIONS[0];
   const sc = statusColors(status, theme);
   const pillColor = sc ? sc.bg : 'var(--c-tm)';
-  const filled = !!sc; // open/no-color renders as an outline, the rest fill
-  const pillBase = {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexShrink: 0,
-    boxSizing: 'border-box', height: 26, width: 146, padding: '0 10px', borderRadius: 0,
+  const filled = !!sc;
+  const base = {
+    boxSizing: 'border-box', height: TASK_PILL_H, width: 128, padding: '0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+    textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
     border: `1px solid ${pillColor}`,
     background: filled ? pillColor : 'transparent',
     color: filled ? (sc.fg || '#FFFFFF') : pillColor,
+    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
   if (readOnly) {
     return (
-      <span title="Read-only — this is the other partner's task"
-        style={{ ...pillBase, opacity: 0.65 }}>
-        <span style={{ fontSize: 12, lineHeight: 1 }}>{opt.glyph}</span>{opt.label}
+      <span title="Read-only" style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px', opacity: 0.65 }}>
+        {opt.label}
       </span>
     );
   }
   return (
-    <span style={{ position: 'relative', display: 'inline-flex' }}>
-      <button
-        ref={btnRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          place();
-          setOpen(o => !o);
-        }}
-        title="Click to change status"
-        style={{ ...pillBase, cursor: 'pointer' }}>
-        <span style={{ fontSize: 12, lineHeight: 1 }}>{opt.glyph}</span>
-        {opt.label}
-        <span style={{ fontSize: 8, opacity: 0.8, marginLeft: 1 }}>▾</span>
-      </button>
-      {open && menuPos && (
-        <div
-          ref={menuRef}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'fixed', top: menuPos.top, right: menuPos.right,
-            background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)',
-            zIndex: 1000, minWidth: 140, boxShadow: 'var(--c-cardShadow)',
-          }}>
-          {STATUS_OPTIONS.map(o => {
-            const sc = statusColors(o.id, theme);
-            const glyphColor = sc ? sc.bg : 'var(--c-tm)';
-            const isCurrent = o.id === status;
-            return (
-              <button key={o.id}
-                onMouseDown={(e) => { e.preventDefault(); onSetStatus(o.id); setOpen(false); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                  background: isCurrent ? 'var(--c-sf2, transparent)' : 'transparent',
-                  border: 'none', textAlign: 'left', padding: '7px 12px',
-                  fontFamily: FN, fontSize: 11, fontWeight: 600,
-                  color: isCurrent ? 'var(--c-ac)' : 'var(--c-tx)',
-                  cursor: 'pointer',
-                }}>
-                <span style={{
-                  display: 'inline-flex', width: 16, justifyContent: 'center',
-                  color: glyphColor, fontSize: 14, fontWeight: 700,
-                }}>{o.glyph}</span>
-                <span style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10 }}>{o.label}</span>
-                {isCurrent && <span style={{ marginLeft: 'auto', color: 'var(--c-ac)' }}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      )}
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+      <select
+        className="task-select"
+        value={status}
+        onChange={(e) => onSetStatus(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        title="Change status"
+        style={{ ...base, cursor: 'pointer' }}>
+        {STATUS_OPTIONS.map(o => (
+          <option key={o.id} value={o.id} style={{ background: '#fff', color: '#111' }}>{o.label}</option>
+        ))}
+      </select>
     </span>
   );
 }
@@ -447,6 +382,37 @@ function HighlightedText({ text, query, style }) {
   return <span style={style}>{parts}</span>;
 }
 
+// Editable urgency picker — mirrors StatusPill so priority can be changed AFTER
+// a task is created (Ohad). Rewrites the body's [PRIORITY] bracket via onSet.
+const PRIORITY_PICK = [
+  { id: 'urgent', label: 'Urgent', color: 'var(--c-rd)' },
+  { id: 'high',   label: 'High',   color: YUVAL_COLOR },
+  { id: 'normal', label: 'Normal', color: 'var(--c-tm)' },
+  { id: 'low',    label: 'Low',    color: 'var(--c-td)' },
+];
+function PriorityPill({ priority, onSetPriority, readOnly = false }) {
+  // Native <select> — same reliability fix as StatusPill.
+  const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
+  const base = {
+    boxSizing: 'border-box', height: TASK_PILL_H, minWidth: 96, padding: '0 8px', borderRadius: 0,
+    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+    textAlign: 'center', textAlignLast: 'center',
+    textTransform: 'uppercase', whiteSpace: 'nowrap',
+    border: `1px solid ${cur.color}`, background: 'transparent', color: cur.color,
+    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
+  };
+  if (readOnly) return <span title={`Priority: ${cur.label}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{cur.label.toUpperCase()}</span>;
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+      <select className="task-select" value={priority} onChange={(e) => onSetPriority(e.target.value)}
+        onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
+        title="Change urgency" style={{ ...base, cursor: 'pointer' }}>
+        {PRIORITY_PICK.map(p => <option key={p.id} value={p.id} style={{ background: '#fff', color: '#111' }}>{p.label}</option>)}
+      </select>
+    </span>
+  );
+}
+
 // Shared width for the three toolbar filter rows (owner tabs / sort / quick
 // filters) so they END at the same x — buttons flex to fill it (Ohad).
 const FILTER_GROUP_W = 460;
@@ -456,9 +422,9 @@ function OwnerTab({ label, count, active, onClick }) {
   return (
     <button onClick={onClick} className="tfbtn" data-active={active ? '' : undefined} style={{
       flex: 1, minWidth: 0,
-      background: active ? 'rgba(255,255,255,0.10)' : 'transparent',
-      color: active ? '#FFFFFF' : 'var(--c-tm)',
-      border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : 'var(--c-cardBd)'}`,
+      background: active ? 'var(--c-sf2)' : 'transparent',
+      color: active ? 'var(--c-tx)' : 'var(--c-tm)',
+      border: `1px solid ${active ? 'var(--c-tx)' : 'var(--c-cardBd)'}`,
       fontFamily: FN, fontSize: 10, fontWeight: 700,
       letterSpacing: '0.12em', padding: '0 14px', height: 28,
       cursor: 'pointer', borderRadius: 0,
@@ -485,8 +451,8 @@ function ViewToggle({ value, onChange }) {
     }}>
       {items.map((it, i) => (
         <button key={it.id} onClick={() => onChange(it.id)} className="tfbtn" data-active={value === it.id ? '' : undefined} style={{
-          background: value === it.id ? 'rgba(255,255,255,0.08)' : 'transparent',
-          color: value === it.id ? '#FFFFFF' : C.tm,
+          background: value === it.id ? 'var(--c-sf2)' : 'transparent',
+          color: value === it.id ? 'var(--c-tx)' : 'var(--c-tm)',
           border: 'none',
           borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
           fontFamily: FN, fontSize: 10, fontWeight: 700,
@@ -499,10 +465,11 @@ function ViewToggle({ value, onChange }) {
 }
 
 const SORT_MODES = [
-  { id: 'date',   label: 'Due' },
-  { id: 'newest', label: 'Newest' },
-  { id: 'status', label: 'Status' },
-  { id: 'name',   label: 'A→Z' },
+  { id: 'date',     label: 'Due' },
+  { id: 'newest',   label: 'Newest' },
+  { id: 'priority', label: 'Urgency' },
+  { id: 'status',   label: 'Status' },
+  { id: 'name',     label: 'A→Z' },
 ];
 function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, resultCount, totalCount }) {
   const BOX_H = 28;
@@ -513,9 +480,9 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
   };
   const pill = (active) => ({
     ...boxBase,
-    border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : C.cardBd}`,
-    background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-    color: active ? '#FFFFFF' : C.tm,
+    border: `1px solid ${active ? 'var(--c-tx)' : C.cardBd}`,
+    background: active ? 'var(--c-sf2)' : 'transparent',
+    color: active ? 'var(--c-tx)' : C.tm,
     fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
   });
   const isFiltered = search.trim() !== '';
@@ -586,9 +553,9 @@ function QuickFilters({ value, onChange, counts }) {
           <button key={f.id} onClick={() => onChange(f.id)} className="tfbtn" data-active={active ? '' : undefined} style={{
             flex: 1, minWidth: 0,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-            color: active ? '#FFFFFF' : 'var(--c-tm)',
-            border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : 'var(--c-cardBd)'}`,
+            background: active ? 'var(--c-sf2)' : 'transparent',
+            color: active ? 'var(--c-tx)' : 'var(--c-tm)',
+            border: `1px solid ${active ? 'var(--c-tx)' : 'var(--c-cardBd)'}`,
             fontFamily: FN, fontSize: 10, fontWeight: 700,
             letterSpacing: '0.12em', padding: '0 12px', height: 28,
             cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
@@ -605,6 +572,14 @@ function QuickFilters({ value, onChange, counts }) {
 
 // Smart composer — expands on focus to show assignee picker + due-date
 // input + section selector inline. Collapses back when empty + blurred.
+// yyyy-mm-dd → dd/mm/yyyy for display (Chromium's native date format is locale-
+// bound + lang= is unreliable, so we paint our own dd/mm/yyyy over the native
+// input and keep the native picker for input).
+const fmtDMY = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
+// Composer control grouping — a small uppercase label + its controls, so the
+// expanded "add task" row reads as labelled sections instead of a button soup.
+const cmpGroup = { display: 'inline-flex', alignItems: 'center', gap: 6 };
+const cmpLabel = { fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase', marginRight: 2 };
 function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
   const [body, setBody] = useState('');
   const [assignee, setAssignee] = useState(defaultAssignee);
@@ -686,124 +661,89 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
       </div>
       {expanded && (
         <div style={{
-          display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
-          padding: '0 12px 8px 24px',
+          padding: '2px 12px 10px 24px',
           animation: 'tasks-v8-fade-in 180ms ease-out',
+          display: 'flex', flexDirection: 'column', gap: 9,
         }}>
-          {/* Assignee picker — 3 buttons */}
-          {[['ohad','O',C.ac],['yuval','Y',YUVAL_COLOR],['shared','·','linear-gradient(135deg,'+C.ac+' 0% 50%,'+YUVAL_COLOR+' 50% 100%)']].map(([id,initial,color]) => (
-            <button key={id}
-              onMouseDown={(e) => { e.preventDefault(); setAssignee(id); }}
-              title={id === 'shared' ? 'Shared (Ohad + Yuval)' : id === 'yuval' ? 'Yuval' : 'Ohad'}
-              style={{
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                width: 22, height: 22, borderRadius: '50%',
-                background: assignee === id ? color : 'transparent',
-                color: assignee === id ? '#FFFFFF' : 'var(--c-tm)',
-                border: assignee === id ? 'none' : `1px solid var(--c-cardBd)`,
-                fontFamily: FN, fontSize: 10, fontWeight: 700,
-                cursor: 'pointer',
-              }}>{initial}</button>
-          ))}
-          {/* Due date input */}
-          <input
-            type="date"
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-            onMouseDown={(e) => e.stopPropagation()}
-            style={{
-              background: 'transparent', color: 'var(--c-tm)',
-              border: `1px solid var(--c-cardBd)`,
-              fontFamily: FN, fontSize: 10, fontWeight: 600,
-              padding: '3px 6px', height: 22, borderRadius: 0,
-              outline: 'none',
-            }} />
-          {/* Time input — blank = 9:00 default. Only meaningful with a date. */}
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            onMouseDown={(e) => e.stopPropagation()}
-            disabled={!due}
-            title={due ? 'Calendar time (default 09:00)' : 'Pick a date first'}
-            style={{
-              background: 'transparent',
-              color: due ? 'var(--c-tm)' : 'var(--c-td)',
-              border: `1px solid var(--c-cardBd)`,
-              fontFamily: FN, fontSize: 10, fontWeight: 600,
-              padding: '3px 6px', height: 22, borderRadius: 0,
-              outline: 'none',
-              opacity: due ? 1 : 0.5,
-            }} />
-          {/* Priority — 4 button row, NORMAL is default (transparent) */}
-          {[
-            ['low',    'LOW',    'var(--c-td)'],
-            ['normal', 'NORMAL', 'var(--c-tm)'],
-            ['high',   'HIGH',   YUVAL_COLOR],
-            ['urgent', 'URGENT', C.rd],
-          ].map(([id, label, color]) => (
-            <button key={id}
-              onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
-              title={`Priority: ${label}`}
-              style={{
-                background: priority === id ? color : 'transparent',
-                color: priority === id ? '#FFFFFF' : color,
-                border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`,
-                fontFamily: FN, fontSize: 9, fontWeight: 700,
-                letterSpacing: '0.12em', padding: '3px 8px', height: 22,
-                cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
-              }}>{label}</button>
-          ))}
-          {/* Trainee link — picker that sets target_kind:'trainee' so the
-              task appears under the athlete's source section AND on their
-              TraineeDetail page. Blank = unlinked. */}
-          {(trainees || []).length > 0 && (
-            <select
-              value={traineeId}
-              onChange={(e) => setTraineeId(e.target.value)}
-              onMouseDown={(e) => e.stopPropagation()}
-              title="Link this task to an athlete"
-              style={{
-                background: 'transparent',
-                color: traineeId ? C.ac : 'var(--c-tm)',
-                border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`,
-                fontFamily: FN, fontSize: 10, fontWeight: 600,
-                padding: '3px 6px', height: 22, borderRadius: 0,
-                outline: 'none', maxWidth: 160,
-                textOverflow: 'ellipsis',
-              }}
-            >
-              <option value="">— no athlete —</option>
-              {[...trainees].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(t => (
-                <option key={t.id} value={t.id}>{t.name || t.id}</option>
+          {/* Row 1 — Assign + Due (grouped + labelled so it's not a button soup) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <span style={cmpGroup}>
+              <span style={cmpLabel}>Assign</span>
+              {[['ohad','O',C.ac],['yuval','Y',YUVAL_COLOR],['shared','·','linear-gradient(135deg,'+C.ac+' 0% 50%,'+YUVAL_COLOR+' 50% 100%)']].map(([id,initial,color]) => (
+                <button key={id}
+                  onMouseDown={(e) => { e.preventDefault(); setAssignee(id); }}
+                  title={id === 'shared' ? 'Shared (Ohad + Yuval)' : id === 'yuval' ? 'Yuval' : 'Ohad'}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: assignee === id ? color : 'transparent',
+                    color: assignee === id ? '#FFFFFF' : 'var(--c-tm)',
+                    border: assignee === id ? 'none' : `1px solid var(--c-cardBd)`,
+                    fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                  }}>{initial}</button>
               ))}
-            </select>
-          )}
-          {/* Source selector — General / Performance Center. Wrapped in a
-              non-wrapping group so the two tabs never split across lines
-              ("Performance Center" is long enough to push the second tab
-              onto its own row otherwise). */}
-          <div style={{ display: 'inline-flex', gap: 8, flexShrink: 0 }}>
-            {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => (
-              <button key={id}
-                onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
-                style={{
-                  background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent',
-                  color: source === id ? 'var(--c-ac)' : 'var(--c-tm)',
-                  border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
-                  fontFamily: FN, fontSize: 9, fontWeight: 700,
-                  letterSpacing: '0.12em', padding: '3px 8px', height: 22,
-                  cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
-                }}>{label}</button>
-            ))}
+            </span>
+            <span style={cmpGroup}>
+              <span style={cmpLabel}>Due</span>
+              {/* lang=en-GB → dd/mm/yyyy display; onClick showPicker → the WHOLE
+                  field opens the picker, not just the calendar glyph. */}
+              <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                <input
+                  type="date" value={due}
+                  onChange={(e) => setDue(e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
+                  style={{ background: 'transparent', color: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 22, width: 120, borderRadius: 0, outline: 'none', cursor: 'pointer' }} />
+                {/* dd/mm/yyyy overlay (native text is transparent; calendar icon stays) */}
+                <span style={{ position: 'absolute', left: 7, fontFamily: FN, fontSize: 10, fontWeight: 600, color: due ? 'var(--c-tm)' : 'var(--c-td)', pointerEvents: 'none', letterSpacing: '0.02em' }}>{due ? fmtDMY(due) : 'DD/MM/YYYY'}</span>
+              </span>
+              <input
+                type="time" value={time}
+                onChange={(e) => setTime(e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); if (due) { try { e.currentTarget.showPicker(); } catch { /* noop */ } } }}
+                disabled={!due}
+                title={due ? 'Time (default 09:00)' : 'Pick a date first'}
+                style={{ background: 'transparent', color: due ? 'var(--c-tm)' : 'var(--c-td)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 22, borderRadius: 0, outline: 'none', opacity: due ? 1 : 0.5, cursor: due ? 'pointer' : 'default' }} />
+            </span>
           </div>
-          <span style={{ flex: 1 }} />
-          <span style={{
-            fontFamily: FN, fontSize: 9, fontWeight: 600,
-            color: 'var(--c-td)', letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-          }}>Enter to add</span>
+          {/* Row 2 — Urgency */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <span style={cmpGroup}>
+              <span style={cmpLabel}>Urgency</span>
+              {[['low','LOW','var(--c-td)'],['normal','NORMAL','var(--c-tm)'],['high','HIGH',YUVAL_COLOR],['urgent','URGENT',C.rd]].map(([id, label, color]) => (
+                <button key={id}
+                  onMouseDown={(e) => { e.preventDefault(); setPriority(id); }}
+                  title={`Priority: ${label}`}
+                  style={{ background: priority === id ? color : 'transparent', color: priority === id ? '#FFFFFF' : color, border: `1px solid ${priority === id ? color : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 22, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{label}</button>
+              ))}
+            </span>
+          </div>
+          {/* Row 3 — List + Athlete */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <span style={cmpGroup}>
+              <span style={cmpLabel}>List</span>
+              {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => (
+                <button key={id}
+                  onMouseDown={(e) => { e.preventDefault(); setSource(id); }}
+                  style={{ background: source === id ? 'rgba(57,189,255,0.094)' : 'transparent', color: source === id ? 'var(--c-ac)' : 'var(--c-tm)', border: `1px solid ${source === id ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', height: 22, cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>
+              ))}
+            </span>
+            {(trainees || []).length > 0 && (
+              <span style={cmpGroup}>
+                <span style={cmpLabel}>Athlete</span>
+                <select value={traineeId} onChange={(e) => setTraineeId(e.target.value)} onMouseDown={(e) => e.stopPropagation()} title="Link this task to an athlete"
+                  style={{ background: 'transparent', color: traineeId ? C.ac : 'var(--c-tm)', border: `1px solid ${traineeId ? C.ac : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 22, borderRadius: 0, outline: 'none', maxWidth: 160, textOverflow: 'ellipsis' }}>
+                  <option value="">— no athlete —</option>
+                  {[...trainees].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(t => (
+                    <option key={t.id} value={t.id}>{t.name || t.id}</option>
+                  ))}
+                </select>
+              </span>
+            )}
+            <span style={{ flex: 1 }} />
+            <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Enter to add</span>
+          </div>
         </div>
       )}
     </div>
@@ -1100,9 +1040,16 @@ function MigrationPendingHint() {
   );
 }
 
+const cmtActionBtn = {
+  background: 'transparent', border: '1px solid var(--c-cardBd)', color: 'var(--c-tm)',
+  fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+  padding: '2px 7px', cursor: 'pointer', borderRadius: 0,
+};
 function CommentsThread({ noteId, viewer }) {
-  const { rows, loading, available, add } = useCoachNoteComments(noteId);
+  const { rows, loading, available, add, update, remove } = useCoachNoteComments(noteId);
   const [draft, setDraft] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [editDraft, setEditDraft] = useState('');
   // Author is LOCKED to the signed-in viewer — you can only ever comment as
   // yourself. The old O/Y toggle let Ohad post as Yuval (and vice versa),
   // which misattributes every action. Identity comes from auth, not a button.
@@ -1134,6 +1081,9 @@ function CommentsThread({ noteId, viewer }) {
       }}>Comments {rows.length > 0 ? `· ${rows.length}` : ''}</div>
       {rows.map(c => {
         const heb = isHebrew(c.body || '');
+        const mine = c.author === author;          // only your own comments are editable
+        const editing = editingId === c.id;
+        const saveEdit = () => { update(c.id, editDraft); setEditingId(null); };
         return (
           <div key={c.id} style={{
             padding: '8px 10px', marginBottom: 6,
@@ -1142,22 +1092,39 @@ function CommentsThread({ noteId, viewer }) {
           }}>
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: 4, direction: 'ltr',
+              marginBottom: 4, direction: 'ltr', gap: 8,
             }}>
               <AuthorChip author={c.author} />
-              <span style={{
-                fontFamily: FN, fontSize: 9, fontWeight: 600,
-                color: 'var(--c-td)', letterSpacing: '0.04em',
-              }}>{relativeTime(c.created_at, now)}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                {mine && !editing && (
+                  <>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingId(c.id); setEditDraft(c.body || ''); }} style={cmtActionBtn}>Edit</button>
+                    <button onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this comment?')) remove(c.id); }} style={{ ...cmtActionBtn, color: 'var(--c-rd)', borderColor: 'var(--c-rd)' }}>Delete</button>
+                  </>
+                )}
+                <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em' }}>{relativeTime(c.created_at, now)}</span>
+              </span>
             </div>
-            <div style={{
-              fontFamily: heb ? FH : FB, fontSize: 13,
-              color: 'var(--c-tx)', lineHeight: 1.5,
-              direction: heb ? 'rtl' : 'ltr',
-              textAlign: heb ? 'right' : 'left',
-              whiteSpace: 'pre-wrap',
-            }}>{c.body}</div>
-            {Array.isArray(c.mentions) && c.mentions.length > 0 && (
+            {editing ? (
+              <div style={{ display: 'flex', gap: 6, marginTop: 4, direction: 'ltr' }}>
+                <input type="text" value={editDraft} autoFocus
+                  onChange={(e) => setEditDraft(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') setEditingId(null); }}
+                  style={{ flex: 1, background: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FB, fontSize: 12, color: 'var(--c-tx)', padding: '6px 10px', borderRadius: 0, outline: 'none' }} />
+                <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: '#fff', border: 'none' }}>Save</button>
+                <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} style={cmtActionBtn}>Cancel</button>
+              </div>
+            ) : (
+              <div style={{
+                fontFamily: heb ? FH : FB, fontSize: 13,
+                color: 'var(--c-tx)', lineHeight: 1.5,
+                direction: heb ? 'rtl' : 'ltr',
+                textAlign: heb ? 'right' : 'left',
+                whiteSpace: 'pre-wrap',
+              }}>{c.body}</div>
+            )}
+            {Array.isArray(c.mentions) && c.mentions.length > 0 && !editing && (
               <div style={{ marginTop: 4, direction: 'ltr' }}>
                 {c.mentions.map(m => (
                   <span key={m} style={{
@@ -1235,7 +1202,7 @@ function EventTimeline({ noteId }) {
           // For the "created" event, to_value is the ASSIGNEE, not a second
           // actor. Rendering it bare ("Ohad created the task · yuval") read as
           // if two people created it. Label it as an assignment instead.
-          const ASSIGN_LABEL = { shared: 'both', yuval: 'Yuval', ohad: 'Ohad' };
+          const ASSIGN_LABEL = { shared: 'Shared', yuval: 'Yuval', ohad: 'Ohad' };
           const change = ev.kind === 'created'
             ? (ev.to_value ? `for ${ASSIGN_LABEL[ev.to_value] || ev.to_value}` : '')
             : (ev.from_value && ev.to_value)
@@ -1269,7 +1236,7 @@ function EventTimeline({ noteId }) {
   );
 }
 
-function ExpandedDetail({ row, displayBody, viewer, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, readOnly = false }) {
+function ExpandedDetail({ row, displayBody, viewer, onSetCategory, readOnly = false }) {
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag/glink/approved) out of the
   // visible tag list. (Dual-approval removed 2026-06-06 — any legacy
@@ -1283,8 +1250,7 @@ function ExpandedDetail({ row, displayBody, viewer, gcalConnected, onSyncToCalen
   const tags = rawTags.filter(t => !(namespaces.has(t) && !t.includes(':')));
   // 'center:property' → 'Center · Property' — no hashtag noise, no raw colon.
   const labelTag = (t) => t.split(':').map(p => p.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())).join(' · ');
-  const syncedEventId = getStoredEventId(row);
-  const syncedHtmlLink = getStoredHtmlLink(row);
+  const cat = sourceKey(row);
 
   return (
     <div style={{
@@ -1308,68 +1274,24 @@ function ExpandedDetail({ row, displayBody, viewer, gcalConnected, onSyncToCalen
           ))}
         </div>
       )}
-      <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {readOnly ? (
-          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Read-only — this is the other partner's task</span>
-        ) : gcalConnected ? (
-          syncedEventId ? (
-            <>
-              <button onClick={(e) => { e.stopPropagation(); onSyncToCalendar(row); }}
-                title="Update this event in Google Calendar"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'transparent', color: 'var(--c-gn)',
-                  border: '1px solid var(--c-gn)',
-                  fontFamily: FN, fontSize: 9, fontWeight: 700,
-                  letterSpacing: '0.12em', padding: '4px 10px',
-                  cursor: 'pointer', borderRadius: 0,
-                  textTransform: 'uppercase',
-                }}>↻ Update in Calendar</button>
-              <button onClick={(e) => { e.stopPropagation(); onDeleteFromCalendar(row); }}
-                title="Remove this event from Google Calendar"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'transparent', color: 'var(--c-rd)',
-                  border: '1px solid var(--c-rd)',
-                  fontFamily: FN, fontSize: 9, fontWeight: 700,
-                  letterSpacing: '0.12em', padding: '4px 10px',
-                  cursor: 'pointer', borderRadius: 0,
-                  textTransform: 'uppercase',
-                }}>✕ Remove from Calendar</button>
-              <a href={syncedHtmlLink || `https://calendar.google.com/calendar/u/0/r/search?q=${encodeURIComponent('Task ID: ' + row.id)}`}
-                target="_blank" rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'transparent', color: 'var(--c-ac)',
-                  border: '1px solid var(--c-ac)',
-                  fontFamily: FN, fontSize: 9, fontWeight: 700,
-                  letterSpacing: '0.12em', padding: '4px 10px',
-                  textDecoration: 'none', borderRadius: 0,
-                  textTransform: 'uppercase',
-                }}>↗ Open in Calendar</a>
-            </>
-          ) : (
-            <button onClick={(e) => { e.stopPropagation(); onSyncToCalendar(row); }}
-              title="Add this task to Google Calendar"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'var(--c-ac)', color: '#FFFFFF',
-                border: 'none',
-                fontFamily: FN, fontSize: 9, fontWeight: 700,
-                letterSpacing: '0.12em', padding: '4px 10px',
-                cursor: 'pointer', borderRadius: 0,
-                textTransform: 'uppercase',
-              }}>Add to Calendar</button>
-          )
-        ) : (
-          <span style={{
-            fontFamily: FN, fontSize: 9, fontWeight: 600,
-            color: 'var(--c-td)', letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-          }}>Connect Google Calendar at the top to sync this task</span>
-        )}
-      </div>
+      {readOnly && (
+        <div style={{ marginTop: 10, direction: 'ltr' }}>
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Read-only — belongs to the other coach</span>
+        </div>
+      )}
+      {/* Move the task between General and Performance Center (Ohad). */}
+      {!readOnly && onSetCategory && (cat === 'manual' || cat === 'center') && (
+        <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={cmpLabel}>List</span>
+          {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => {
+            const active = cat === id;
+            return (
+              <button key={id} onClick={(e) => { e.stopPropagation(); if (!active) onSetCategory(row, id); }}
+                style={{ background: active ? 'rgba(57,189,255,0.094)' : 'transparent', color: active ? 'var(--c-ac)' : 'var(--c-tm)', border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', cursor: active ? 'default' : 'pointer', borderRadius: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>
+            );
+          })}
+        </div>
+      )}
       {/* Comments + audit timeline (Phase 2). Both gracefully no-op
           when their migrations haven't been applied — Comments shows
           a hint, EventTimeline silently absents itself. */}
@@ -1379,7 +1301,7 @@ function ExpandedDetail({ row, displayBody, viewer, gcalConnected, onSyncToCalen
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, viewer, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, readOnly = false }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, now, search, viewer, readOnly = false, board = false }) {
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1399,16 +1321,8 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
                   : isStuck   ? 'var(--c-rd)'
                               : 'transparent';
 
-  // Priority is shown for ALL four levels (Ohad: "each row should show
-  // low/normal/high/urgent"), as a colored dot + label sitting to the
-  // right of the date+time.
-  const PRIORITY_META = {
-    urgent: { label: 'URGENT', color: 'var(--c-rd)' },
-    high:   { label: 'HIGH',   color: YUVAL_COLOR },
-    normal: { label: 'NORMAL', color: 'var(--c-tm)' },
-    low:    { label: 'LOW',    color: 'var(--c-td)' },
-  };
-  const pmeta = PRIORITY_META[priority] || PRIORITY_META.normal;
+  // Priority is shown for ALL four levels as an editable colored dot + label
+  // (PriorityPill) sitting to the right of the date+time — click to change.
 
   // Athlete name when the task is linked to a trainee; nothing otherwise
   // (Ohad: "what athlete, or if none attached, don't show it").
@@ -1438,6 +1352,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         onMouseLeave={() => setHover(false)}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
+          // Board columns are narrow — wrap so the title gets its own full line
+          // (via order:-1 below) instead of being crushed by the status pill.
+          flexWrap: board ? 'wrap' : 'nowrap', rowGap: board ? 7 : 0,
           padding: '7px 12px 7px 9px', cursor: 'pointer', minHeight: 32,
           borderBottom: `1px solid var(--c-cardBd)`,
           borderLeft: `3px solid ${edgeColor}`,
@@ -1453,35 +1370,38 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, direction: 'ltr' }}>
           {dateStr && (
             <span style={{
+              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
               fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
               color: isOverdue ? 'var(--c-rd)' : isToday ? 'var(--c-ac)' : dm.color,
-              whiteSpace: 'nowrap', padding: '2px 7px',
+              whiteSpace: 'nowrap', padding: '0 8px',
               border: `1px solid ${dateBorder}`, background: dateBg,
             }}>{dateStr}</span>
           )}
-          <span title={`Priority: ${pmeta.label}`} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-            color: pmeta.color, whiteSpace: 'nowrap',
-          }}>
-            <span style={{
-              width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-              background: priority === 'low' ? 'transparent' : pmeta.color,
-              border: priority === 'low' ? `1.5px solid ${pmeta.color}` : 'none',
-            }} />
-            {pmeta.label}
-          </span>
+          <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
           {athleteName && (
             <span title={`Athlete: ${athleteName}`} style={{
+              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
               color: 'var(--c-ac)', whiteSpace: 'nowrap', maxWidth: 130,
               overflow: 'hidden', textOverflow: 'ellipsis',
-              border: `1px solid var(--c-ac)`, padding: '2px 7px',
+              border: `1px solid var(--c-ac)`, padding: '0 8px',
             }}>{athleteName}</span>
+          )}
+          {/* SHARED tag on the collapsed row so shared tasks are identifiable
+              at a glance from any tab (Ohad). */}
+          {row._owner === 'shared' && (
+            <span title="Shared — Ohad + Yuval" style={{
+              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+              color: 'var(--c-gn)', whiteSpace: 'nowrap',
+              border: `1px solid var(--c-gn)`, padding: '0 8px', textTransform: 'uppercase',
+            }}>Shared</span>
           )}
         </div>
         {showAvatar && <AssigneeDot owner={row._owner} />}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start',
+          // Board: title takes its own full line above the controls (order:-1).
+          ...(board ? { order: -1, flexBasis: '100%' } : null) }}>
           <div style={{
             maxWidth: '100%',
             fontFamily: heb ? FH : FB,
@@ -1490,9 +1410,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             color: 'var(--c-tx)',
             direction: heb ? 'rtl' : 'ltr',
             textAlign: heb ? 'right' : 'left',
-            // Truncate when collapsed; show the FULL title when expanded so
-            // it isn't repeated in the detail body below (that dup was removed).
-            ...(expanded
+            // Truncate when collapsed in LIST; in board/expanded show the FULL
+            // title (wrapped) so it's actually readable in the narrow column.
+            ...((expanded || board)
               ? { whiteSpace: 'normal', wordBreak: 'break-word' }
               : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
           }}>
@@ -1507,7 +1427,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           width: 14, textAlign: 'center', cursor: 'pointer',
           flexShrink: 0,
         }} title="More actions (Phase 1)">⋯</span>
-        <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
+        {/* Board: title takes line 1, so push the status pill to the card's right
+            edge on line 2 (in LIST the title's flex already does this). */}
+        <span style={{ display: 'inline-flex', marginLeft: board ? 'auto' : undefined }}>
+          <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
+        </span>
       </div>
       {expanded && (
         <div style={{
@@ -1515,9 +1439,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         }}>
           <ExpandedDetail row={row} displayBody={row._display}
             viewer={viewer}
-            gcalConnected={gcalConnected}
-            onSyncToCalendar={onSyncToCalendar}
-            onDeleteFromCalendar={onDeleteFromCalendar}
+            onSetCategory={onSetCategory}
             readOnly={readOnly}
           />
         </div>
@@ -1835,11 +1757,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   //  2. A SHARED task is editable ONLY on the Shared tab — never from an
   //     individual (Ohad/Yuval) tab, even though it shows there. Editing a
   //     shared task should happen in the shared context, not "as" one partner.
-  const isReadOnly = (r) => {
-    if (r._owner !== viewerOwner && r._owner !== 'shared') return true;
-    if (r._owner === 'shared' && owner !== 'shared') return true;
-    return false;
-  };
+  // Ohad + Yuval run the business together — both can edit EVERY task's status
+  // and urgency (General/business tasks are shared work). No read-only guard.
+  const isReadOnly = () => false;
 
   // Owner + open filter is the base. Search narrows further.
   // Terminal states (done, cancelled) drop to the bottom pool.
@@ -1919,6 +1839,20 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     if (n.has(id)) n.delete(id); else n.add(id);
     return n;
   });
+  const setPriority = async (row, p) => {
+    const cur = row._priority || 'normal';
+    if (cur === p) return;
+    // Priority is encoded in the body bracket (no DB column yet) — rewrite it.
+    await update(row.id, { body: setPriorityInBody(row.body, p) });
+    recordNoteEvent({ noteId: row.id, actor: viewerOwner, kind: 'priority_changed', fromValue: cur, toValue: p });
+  };
+  // Move a task between General and Performance Center. Category = the 'center'
+  // tag (sourceKey reads it); toggle it, preserving any other tags.
+  const setCategory = async (row, cat) => {
+    const others = Array.isArray(row.tags) ? row.tags.filter(t => t !== 'center') : [];
+    const newTags = cat === 'center' ? [...others, 'center'] : others;
+    await update(row.id, { tags: newTags.length ? newTags : null });
+  };
   const setStatus = async (row, target) => {
     // No dual-approval / half-approved state (removed 2026-06-06). A shared
     // task is a single row with a single status — either partner changes it
@@ -2028,12 +1962,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 14px' }}>
-      {/* Filter/sort/owner/view buttons: soft white hover highlight (Ohad).
-          Active state is handled inline; this only adds the hover affordance. */}
+      {/* Filter/sort/owner/view buttons: soft hover highlight (Ohad). Theme-aware
+          — the old hardcoded white text/bg/border made every button vanish in
+          light theme (white-on-white). Active state is handled inline. */}
       <style>{`
         .tfbtn{ transition: background .12s, color .12s, border-color .12s; }
-        .tfbtn:hover{ color:#FFFFFF !important; background:rgba(255,255,255,0.06) !important; border-color:rgba(255,255,255,0.35) !important; }
-        .tfbtn[data-active]:hover{ background:rgba(255,255,255,0.12) !important; border-color:rgba(255,255,255,0.7) !important; }
+        .tfbtn:hover{ color:var(--c-tx) !important; background:var(--c-sf2) !important; border-color:var(--c-tm) !important; }
+        .tfbtn[data-active]:hover{ background:var(--c-sf2) !important; border-color:var(--c-tx) !important; }
       `}</style>
       {/* Title + Google Calendar connect state */}
       <div style={{
@@ -2045,48 +1980,17 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           letterSpacing: '0.18em', textTransform: 'uppercase',
           color: 'var(--c-tx)',
         }}>Tasks</h2>
-        {viewerOwner !== 'yuval' && (gcalConnected ? (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <button
-              onClick={handleDisconnectGcal}
-              title="Disconnect Google Calendar"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'transparent', color: 'var(--c-gn)',
-                border: '1px solid var(--c-gn)',
-                fontFamily: FN, fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.12em', padding: '5px 11px',
-                cursor: 'pointer', borderRadius: 0,
-                textTransform: 'uppercase',
-              }}>Calendar Synced ✓</button>
-            {lastSyncedLabel && (
-              <span style={{
-                fontFamily: FN, fontSize: 9, fontWeight: 600,
-                color: 'var(--c-td)', letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-              }}>↻ {lastSyncedLabel}</span>
-            )}
-          </div>
-        ) : (
-          <button
-            onClick={handleConnectGcal}
-            disabled={gcalBusy}
-            title="Connect Google Calendar — tasks will sync automatically"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: 'var(--c-ac)', color: '#FFFFFF',
-              border: 'none', fontFamily: FN, fontSize: 10, fontWeight: 700,
-              letterSpacing: '0.12em', padding: '6px 12px',
-              cursor: gcalBusy ? 'wait' : 'pointer', borderRadius: 0,
-              textTransform: 'uppercase', opacity: gcalBusy ? 0.6 : 1,
-            }}>Connect Google Calendar</button>
-        ))}
+        {/* Live-sync indicator: Ohad + Yuval see each other's changes in real
+            time (Supabase realtime on coach_notes) — no refresh needed. */}
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+          color: 'var(--c-tm)', textTransform: 'uppercase',
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-gn)' }} />
+          Live
+        </span>
       </div>
-
-      {/* Yuval (staff/masseur) gets EXPO CRM + tasks only — no Google Calendar
-          integration (the embed never renders for him anyway since it needs the
-          viewer's browser signed in as the calendar owner). */}
-      {viewerOwner !== 'yuval' && <CalendarEmbedCard />}
 
       {/* Owner tabs + view toggle */}
       <div style={{
@@ -2169,7 +2073,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     theme={theme} showAvatar={owner === 'shared'}
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
-                    onSetStatus={setStatus}
+                    onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
                     now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
@@ -2207,7 +2111,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onSetStatus={setStatus}
+                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
                   now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
@@ -2251,14 +2155,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                 {section.rows.map(row => (
                   <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
-                    theme={theme} showAvatar={owner === 'shared'}
+                    theme={theme} showAvatar={owner === 'shared'} board
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
-                    onSetStatus={setStatus}
-                    search={search}
-                    gcalConnected={gcalConnected}
-                    onSyncToCalendar={handleSyncToCalendar}
-                    onDeleteFromCalendar={handleDeleteFromCalendar}
+                    onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
+                    search={search} viewer={viewerOwner}
                     now={now} />
                 ))}
               </div>
@@ -2317,7 +2218,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onSetStatus={setStatus}
+                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
                   now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
