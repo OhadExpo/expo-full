@@ -2811,17 +2811,19 @@ function DemoReviewTools() {
 // ── TASKS — mirrors src/TasksV8View.jsx. Owner tabs + source-grouped board +
 // status pills + GCal embed + composer. Static mock, no writes. ──────────────
 const DEMO_TASKS = [
-  { id: 1, src: 'center', title: 'Renew gym insurance policy', due: 'Today', status: 'doing', who: 'OHAD' },
-  { id: 2, src: 'center', title: 'Order bumper plates (20kg × 4)', due: 'Tomorrow', status: 'todo', who: 'OHAD' },
-  { id: 3, src: 'athlete', title: 'Noa — deload week, cut volume 30%', due: 'Today', status: 'todo', who: 'OHAD' },
-  { id: 4, src: 'athlete', title: 'Gal — check knee after last squat session', due: 'Overdue 2d', status: 'doing', who: 'YUVAL' },
-  { id: 5, src: 'manual', title: 'Film 3 exercise demos for the library', due: 'This week', status: 'todo', who: 'SHARED' },
-  { id: 6, src: 'auto', title: 'Amit — no workout logged in 6 days', due: 'Auto', status: 'todo', who: 'OHAD' },
-  { id: 7, src: 'auto', title: 'Roey — payment overdue 12 days', due: 'Auto', status: 'doing', who: 'OHAD' },
-  { id: 8, src: 'manual', title: 'Plan Q3 athlete testing day', due: 'Aug 1', status: 'done', who: 'SHARED' },
+  { id: 1, src: 'center', title: 'Renew gym insurance policy', due: 'Today', status: 'doing', who: 'OHAD', prio: 'high' },
+  { id: 2, src: 'center', title: 'Order bumper plates (20kg × 4)', due: 'Tomorrow', status: 'todo', who: 'OHAD', prio: 'normal' },
+  { id: 3, src: 'athlete', title: 'Noa — deload week, cut volume 30%', due: 'Today', status: 'todo', who: 'OHAD', prio: 'urgent' },
+  { id: 4, src: 'athlete', title: 'Gal — check knee after last squat session', due: 'Overdue 2d', status: 'doing', who: 'YUVAL', prio: 'high' },
+  { id: 5, src: 'manual', title: 'Film 3 exercise demos for the library', due: 'This week', status: 'todo', who: 'SHARED', prio: 'normal' },
+  { id: 6, src: 'auto', title: 'Amit — no workout logged in 6 days', due: 'Auto', status: 'todo', who: 'OHAD', prio: 'normal' },
+  { id: 7, src: 'auto', title: 'Roey — payment overdue 12 days', due: 'Auto', status: 'doing', who: 'OHAD', prio: 'high' },
+  { id: 8, src: 'manual', title: 'Plan Q3 athlete testing day', due: 'Aug 1', status: 'done', who: 'SHARED', prio: 'normal' },
 ];
 const TASK_SRC = { center: { label: 'PERFORMANCE CENTER', color: C.ac }, athlete: { label: 'ATHLETE FLAGS', color: C.or }, manual: { label: 'MANUAL', color: C.rd }, auto: { label: 'AUTO-TASKS', color: '#2DD4BF' } };
-const TASK_STATUS = { todo: { label: 'TO DO', color: C.tm, glyph: '○' }, doing: { label: 'DOING', color: C.ac, glyph: '◐' }, done: { label: 'DONE', color: C.gn, glyph: '✓' } };
+// Matches the real TasksV8View status pills (no emoji glyphs, colour-coded).
+const TASK_STATUS = { todo: { label: 'TO DO', color: C.tm }, doing: { label: 'IN PROGRESS', color: C.or }, done: { label: 'DONE', color: C.gn } };
+const TASK_PRIO = { low: { label: 'LOW', color: C.td }, normal: { label: 'NORMAL', color: C.tm }, high: { label: 'HIGH', color: C.or }, urgent: { label: 'URGENT', color: C.rd } };
 function DemoTasks() {
   const [owner, setOwner] = useState('OHAD');
   const [view, setView] = useState('list');
@@ -2829,6 +2831,8 @@ function DemoTasks() {
   const counts = { OHAD: DEMO_TASKS.filter(t => t.who === 'OHAD').length, YUVAL: DEMO_TASKS.filter(t => t.who === 'YUVAL').length, SHARED: DEMO_TASKS.filter(t => t.who === 'SHARED').length };
   const pill = (active) => ({ ...baseBtn, background: active ? C.acD : 'transparent', color: active ? C.ac : C.tm, border: `1px solid ${active ? C.ac : C.bd}`, padding: '5px 14px', fontSize: 11, letterSpacing: 1 });
   const bySrc = (s) => visible.filter(t => t.src === s);
+  // Uniform-height coloured pill — mirrors the real TasksV8View status/urgency pills.
+  const pillBox = (color) => ({ boxSizing: 'border-box', height: 24, display: 'inline-flex', alignItems: 'center', padding: '0 8px', border: `1px solid ${color}`, color, background: 'transparent', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', flexShrink: 0 });
   return (
     <section>
       {/* Owner tabs + view toggle */}
@@ -2861,30 +2865,20 @@ function DemoTasks() {
             </div>
             {rows.map(t => {
               const st = TASK_STATUS[t.status];
+              const pr = TASK_PRIO[t.prio] || TASK_PRIO.normal;
               return (
-                <div key={t.id} style={demoCardStyle({ marginBottom: 6, borderLeft: `3px solid ${meta.color}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: 12 })}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <span style={{ color: st.color, fontSize: 14, flexShrink: 0 }}>{st.glyph}</span>
-                    <span style={{ fontFamily: FB, fontSize: 13, color: C.tx, textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{t.title}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                    <span style={{ fontFamily: FN, fontSize: 10, color: /Overdue/.test(t.due) ? C.rd : C.tm }}>{t.due}</span>
-                    <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: st.color, border: `1px solid ${st.color}55`, padding: '2px 6px' }}>{st.label}</span>
-                  </div>
+                <div key={t.id} style={demoCardStyle({ marginBottom: 6, borderLeft: `3px solid ${meta.color}`, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' })}>
+                  <span style={pillBox(pr.color)}>{pr.label}</span>
+                  {t.who === 'SHARED' && <span style={pillBox(C.gn)}>Shared</span>}
+                  <span style={{ flex: 1, minWidth: 0, fontFamily: FB, fontSize: 13, color: C.tx, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: t.status === 'done' ? 'line-through' : 'none', opacity: t.status === 'done' ? 0.6 : 1 }}>{t.title}</span>
+                  <span style={{ fontFamily: FN, fontSize: 10, color: /Overdue/.test(t.due) ? C.rd : C.tm, flexShrink: 0 }}>{t.due}</span>
+                  <span style={{ ...pillBox(st.color), width: 112, justifyContent: 'center' }}>{st.label}</span>
                 </div>
               );
             })}
           </div>
         );
       })}
-      {/* Google Calendar embed strip (collapsed, demo-disabled connect) */}
-      <div style={{ ...demoCardStyle({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 8 }) }}>
-        <div>
-          <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: C.tx }}>📅 GOOGLE CALENDAR</div>
-          <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 3 }}>Your appointments alongside tasks.</div>
-        </div>
-        <button style={{ ...baseBtn, background: 'transparent', color: C.td, border: `1px solid ${C.bd}`, padding: '5px 12px', fontSize: 10, cursor: 'not-allowed', opacity: 0.6 }}>CONNECT</button>
-      </div>
     </section>
   );
 }
