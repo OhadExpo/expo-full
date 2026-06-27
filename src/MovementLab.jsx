@@ -249,7 +249,7 @@ export default function MovementLab({
         setJump(j); setResult({ ok: !!j, frameCount: frames.length, fps: estimateFps(frames) });
       } else {
         const frames = demoSquatFrames(); framesRef.current = frames;
-        const r = analyzeClip(frames, 'Squat'); setResult(r); setTab('threeD');
+        const r = analyzeClip(frames, 'Squat'); setResult(r); setTab(defaultTab(r.repCount));
       }
       setPhase('results');
     }, 30);
