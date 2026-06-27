@@ -1427,7 +1427,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           width: 14, textAlign: 'center', cursor: 'pointer',
           flexShrink: 0,
         }} title="More actions (Phase 1)">⋯</span>
-        <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
+        {/* Board: title takes line 1, so push the status pill to the card's right
+            edge on line 2 (in LIST the title's flex already does this). */}
+        <span style={{ display: 'inline-flex', marginLeft: board ? 'auto' : undefined }}>
+          <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
+        </span>
       </div>
       {expanded && (
         <div style={{
