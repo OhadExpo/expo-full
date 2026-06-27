@@ -13,7 +13,10 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { C, FN } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { detectChannels, ANGLE_DEFS, angleAt, isReal } from './repCounter';
+import { GROUP_DEFS, groupAngleAt, titleLocksKind } from './poseLab';
 import { createLiveSkeleton } from './LiveSkeleton3D';
+
+const KIND_LABEL = { knee: 'KNEE', hip: 'HIP', elbow: 'ELBOW', sho: 'SHOULDER', none: 'HOLD' };
 
 const SKEL = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
@@ -77,9 +80,18 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const facingRef = useRef(facingMode);
   useEffect(() => { facingRef.current = facing; }, [facing]);
 
-  const { kind, channels } = detectChannels(exerciseTitle);
-  const thr = KIND_THRESHOLDS[kind];
-  const depthRelevant = kind === 'knee' || kind === 'hip';
+  // Auto-detect the working joint. Unless the exercise NAME pins a movement, the
+  // rep machine locks onto whichever joint group is actually moving the most over
+  // a rolling ROM window — so the coach doesn't have to type anything. A typed
+  // name is the override.
+  const titleLocked = titleLocksKind(exerciseTitle);
+  const lockedKind = detectChannels(exerciseTitle).kind;
+  const [activeKind, setActiveKind] = useState(titleLocked ? lockedKind : 'knee');
+  const activeKindRef = useRef(activeKind);
+  useEffect(() => { activeKindRef.current = activeKind; }, [activeKind]);
+  const romBufRef = useRef({ knee: [], hip: [], elbow: [], sho: [] });
+  const thr = KIND_THRESHOLDS[activeKind];
+  const depthRelevant = activeKind === 'knee' || activeKind === 'hip';
 
   // Set up / tear down the three.js 3D-skeleton overlay once its canvas mounts.
   useEffect(() => {
@@ -99,29 +111,46 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     const landmarks = res?.landmarks?.[0] || null;
     const world = res?.worldLandmarks?.[0] || null;
 
-    // --- live rep state machine (world landmarks → joint angle) ---
-    if (world && thr && channels.length) {
-      const angs = channels.map(name => {
-        const def = ANGLE_DEFS.find(a => a.name === name);
-        return def ? angleAt(world, def.a, def.b, def.c) : null;
-      }).filter(isReal);
-      if (angs.length) {
-        const avg = angs.reduce((a, b) => a + b, 0) / angs.length;
-        const buf = angleBufRef.current; buf.push(avg); if (buf.length > 8) buf.shift();
+    // --- auto-detect the working joint, then run the rep machine on it ---
+    if (world) {
+      // active group = locked by the typed name, or the biggest-ROM group over a
+      // rolling window (settles onto the real mover a few frames into the set).
+      let active = activeKindRef.current;
+      if (titleLocked) {
+        active = lockedKind;
+      } else {
+        let bestRange = 22, best = null;
+        for (const g of GROUP_DEFS) {
+          const a = groupAngleAt(world, g.channels);
+          if (a == null) continue;
+          const rb = romBufRef.current[g.kind]; rb.push(a); if (rb.length > 45) rb.shift();
+          if (rb.length >= 12) { const range = Math.max(...rb) - Math.min(...rb); if (range > bestRange) { bestRange = range; best = g.kind; } }
+        }
+        if (best) active = best;
+      }
+      if (active !== activeKindRef.current) {
+        // switched movement → reset the rep state so a half-cycle doesn't miscount
+        activeKindRef.current = active; setActiveKind(active);
+        angleBufRef.current = []; smoothHistRef.current = []; phaseRef.current = 'top';
+      }
+      const aThr = KIND_THRESHOLDS[active];
+      const grp = GROUP_DEFS.find(g => g.kind === active);
+      const cur = grp ? groupAngleAt(world, grp.channels) : null;
+      if (aThr && cur != null) {
+        const buf = angleBufRef.current; buf.push(cur); if (buf.length > 8) buf.shift();
         const sorted = [...buf].sort((a, b) => a - b);
         const smooth = sorted[Math.floor(sorted.length / 2)];
         // PHASE chip = live direction: angle flexing (decreasing) = DOWN,
-        // extending (increasing) = UP, ~stable = ISO (a hold/pause).
-        // Direction over a short window (not frame-to-frame) so the chip doesn't
-        // flicker up/down/iso on noise — the change must clear ISO_DEG over ~6 frames.
+        // extending (increasing) = UP, ~stable = ISO. Windowed (not frame-to-frame)
+        // so it doesn't flicker on noise — must clear ~5° over ~6 frames.
         const sh = smoothHistRef.current; sh.push(smooth); if (sh.length > 6) sh.shift();
         if (sh.length >= 4) {
           const vel = smooth - sh[0];
           const nd = Math.abs(vel) < 5 ? 'iso' : (vel < 0 ? 'down' : 'up');
           if (nd !== dirRef.current) { dirRef.current = nd; setDir(nd); }
         }
-        if (phaseRef.current === 'top' && smooth < thr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
-        else if (phaseRef.current === 'bottom' && smooth > thr.high) {
+        if (phaseRef.current === 'top' && smooth < aThr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
+        else if (phaseRef.current === 'bottom' && smooth > aThr.high) {
           phaseRef.current = 'top'; setMoving('top'); setReps(r => r + 1);
           if (repHitDepthRef.current) setDepthReps(n => n + 1);   // this rep reached depth → count it
           repHitDepthRef.current = false;
@@ -133,7 +162,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     // DEPTH_TOL loosens the "full parallel" gate (was too strict — counts depth a
     // touch above parallel). Detection runs whenever depth is relevant; the toggle
     // only hides the display, not the count.
-    if (depthRelevant && landmarks) {
+    const depthRel = activeKindRef.current === 'knee' || activeKindRef.current === 'hip';
+    if (depthRel && landmarks) {
       const hip = midpt(landmarks[23], landmarks[24]);
       const knee = midpt(landmarks[25], landmarks[26]);
       const d = !!(hip && knee && hip.y >= knee.y - DEPTH_TOL);
@@ -144,9 +174,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     // 3D skeleton (three.js overlay) when SKELETON is on; the 2D layer keeps the
     // angle labels + depth/bar-path, so its flat skeleton lines are turned off.
     if (glSkelRef.current) glSkelRef.current.update(showSkeletonRef.current ? landmarks : null, world, false);
-    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: false, angles: showAnglesRef.current });
+    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRel, skeleton: false, angles: showAnglesRef.current });
     rafRef.current = requestAnimationFrame(loop);
-  }, [depthRelevant, thr, channels]);
+  }, [titleLocked, lockedKind]);
 
   const start = useCallback(async () => {
     setError(null); setPhase('loading');
@@ -194,7 +224,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column' }}>
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-          LIVE COACH · {String(exerciseTitle).toUpperCase()}
+          LIVE COACH · {titleLocked ? String(exerciseTitle).toUpperCase() : `AUTO · ${KIND_LABEL[activeKind] || ''}`}
         </div>
         <button onClick={onClose} style={hdrBtn}>← BACK</button>
       </div>
