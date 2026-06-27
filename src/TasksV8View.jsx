@@ -314,6 +314,9 @@ function StatusIconGlyph({ status, theme, size = 16 }) {
     }}>{opt.glyph}</span>
   );
 }
+// One height for every in-row pill/tag (status, urgency, date, athlete, shared)
+// so a row of tags lines up — no asymmetry (Ohad).
+const TASK_PILL_H = 24;
 function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   // Native <select> — bulletproof vs the old custom popover (which jumped, jammed,
   // and sometimes swallowed the click so the status never changed). onChange
@@ -323,7 +326,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const pillColor = sc ? sc.bg : 'var(--c-tm)';
   const filled = !!sc;
   const base = {
-    boxSizing: 'border-box', height: 26, width: 146, padding: '0 10px', borderRadius: 0,
+    boxSizing: 'border-box', height: TASK_PILL_H, width: 128, padding: '0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
@@ -391,7 +394,7 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
   // Native <select> — same reliability fix as StatusPill.
   const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
   const base = {
-    boxSizing: 'border-box', height: 22, padding: '0 8px', borderRadius: 0,
+    boxSizing: 'border-box', height: TASK_PILL_H, minWidth: 96, padding: '0 8px', borderRadius: 0,
     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
@@ -1367,28 +1370,31 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, direction: 'ltr' }}>
           {dateStr && (
             <span style={{
+              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
               fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
               color: isOverdue ? 'var(--c-rd)' : isToday ? 'var(--c-ac)' : dm.color,
-              whiteSpace: 'nowrap', padding: '2px 7px',
+              whiteSpace: 'nowrap', padding: '0 8px',
               border: `1px solid ${dateBorder}`, background: dateBg,
             }}>{dateStr}</span>
           )}
           <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
           {athleteName && (
             <span title={`Athlete: ${athleteName}`} style={{
+              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
               color: 'var(--c-ac)', whiteSpace: 'nowrap', maxWidth: 130,
               overflow: 'hidden', textOverflow: 'ellipsis',
-              border: `1px solid var(--c-ac)`, padding: '2px 7px',
+              border: `1px solid var(--c-ac)`, padding: '0 8px',
             }}>{athleteName}</span>
           )}
           {/* SHARED tag on the collapsed row so shared tasks are identifiable
               at a glance from any tab (Ohad). */}
           {row._owner === 'shared' && (
             <span title="Shared — Ohad + Yuval" style={{
+              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
               color: 'var(--c-gn)', whiteSpace: 'nowrap',
-              border: `1px solid var(--c-gn)`, padding: '2px 7px', textTransform: 'uppercase',
+              border: `1px solid var(--c-gn)`, padding: '0 8px', textTransform: 'uppercase',
             }}>Shared</span>
           )}
         </div>
