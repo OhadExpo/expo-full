@@ -358,8 +358,12 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
           const open = a.curEx === ei;
           const doneCount = ex.sets.filter(s => s.done).length;
           const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
+          // Longhand borders (not `border` shorthand + `borderLeft`) — these change
+          // on open/allDone, so mixing the two makes React re-apply them in a
+          // non-deterministic order each rerender (styling bug + console warning).
+          const edge = `1px solid ${open ? C.ac : C.cardBd}`;
           return (
-          <div key={ei} style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent' }}>
+          <div key={ei} style={{ borderTop: edge, borderRight: edge, borderBottom: edge, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent' }}>
             {/* Collapsed header — tap to expand (accordion: one open at a time).
                 Title WRAPS on whole words instead of truncating. */}
             <div onClick={() => onCurEx(open ? -1 : ei)} style={{ padding: 8, cursor: 'pointer' }}>

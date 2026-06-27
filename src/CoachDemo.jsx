@@ -2741,8 +2741,11 @@ function DemoSessionExercise({ ex, open, onToggle }) {
   const doneCount = ex.sets.filter(s => s.done).length;
   const allDone = doneCount === ex.sets.length && ex.sets.length > 0;
   const COLS = '16px 1fr 1fr 0.8fr 30px';
+  // Longhand borders — the edge color changes on open, so `border` shorthand +
+  // `borderLeft` would make React re-apply them out of order each rerender.
+  const edge = `1px solid ${open ? C.ac : C.cardBd}`;
   return (
-    <div style={{ border: `1px solid ${open ? C.ac : C.cardBd}`, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
+    <div style={{ borderTop: edge, borderRight: edge, borderBottom: edge, borderLeft: `3px solid ${allDone ? C.gn : open ? C.ac : C.cardBd}`, background: open ? 'rgba(57,189,255,0.04)' : 'transparent', marginBottom: 6 }}>
       <div onClick={onToggle} style={{ padding: 8, cursor: 'pointer' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
           <span style={{ fontFamily: FB, fontSize: 12.5, color: C.tx, fontWeight: 600, minWidth: 0, whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
