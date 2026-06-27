@@ -162,6 +162,15 @@ function stripDueSuffix(body) {
 function stripPriorityPrefix(body) {
   return (body || '').replace(PRIORITY_RE, '');
 }
+// Rewrite the [PRIORITY] bracket in a body, keeping the owner prefix in place
+// (normal → no bracket). Lets urgency be changed AFTER a task is created.
+function setPriorityInBody(body, newPriority) {
+  const stripped = (body || '').replace(PRIORITY_RE, '');
+  if (!newPriority || newPriority === 'normal') return stripped;
+  const m = stripped.match(/^((?:ohad\s*\+\s*yuval|yuval\s*\+\s*ohad|ohad|yuval)\s*:\s*)/i);
+  const tag = `[${newPriority.toUpperCase()}] `;
+  return m ? m[1] + tag + stripped.slice(m[0].length) : tag + stripped;
+}
 // Composite: strip owner + priority + due → just the actual title
 function displayBodyOf(body) {
   return stripDueSuffix(stripPriorityPrefix(stripOwnerPrefix(body || ''))).trim();
@@ -246,6 +255,7 @@ function applySort(rows, mode, dir, now) {
   if (mode === 'smart')       cmp = (x, y) => smartSortScore(x, now) - smartSortScore(y, now);
   else if (mode === 'newest') cmp = (x, y) => new Date(y.created_at) - new Date(x.created_at);
   else if (mode === 'status') cmp = (x, y) => (STATUS_RANK[x.status] ?? 9) - (STATUS_RANK[y.status] ?? 9);
+  else if (mode === 'priority') cmp = (x, y) => (PRIORITY_RANK[x._priority] ?? 2) - (PRIORITY_RANK[y._priority] ?? 2);
   else if (mode === 'name')   cmp = (x, y) => (x.body || '').localeCompare(y.body || '');
   else                        cmp = (x, y) => new Date(x.created_at) - new Date(y.created_at);
   a.sort(cmp);
@@ -447,6 +457,71 @@ function HighlightedText({ text, query, style }) {
   return <span style={style}>{parts}</span>;
 }
 
+// Editable urgency picker — mirrors StatusPill so priority can be changed AFTER
+// a task is created (Ohad). Rewrites the body's [PRIORITY] bracket via onSet.
+const PRIORITY_PICK = [
+  { id: 'urgent', label: 'Urgent', color: 'var(--c-rd)' },
+  { id: 'high',   label: 'High',   color: YUVAL_COLOR },
+  { id: 'normal', label: 'Normal', color: 'var(--c-tm)' },
+  { id: 'low',    label: 'Low',    color: 'var(--c-td)' },
+];
+function PriorityPill({ priority, onSetPriority, readOnly = false }) {
+  const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
+  const btnRef = useRef(null), menuRef = useRef(null);
+  const place = useCallback(() => {
+    const el = btnRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    setMenuPos({ top: r.bottom + 2, left: Math.min(r.left, window.innerWidth - 150) });
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => place();
+    const onDocDown = (e) => { if (!menuRef.current?.contains(e.target) && !btnRef.current?.contains(e.target)) setOpen(false); };
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+    document.addEventListener('pointerdown', onDocDown, true);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('scroll', reposition, true);
+      window.removeEventListener('resize', reposition);
+      document.removeEventListener('pointerdown', onDocDown, true);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open, place]);
+  const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
+  const badge = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: cur.color, whiteSpace: 'nowrap' }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: cur.id === 'low' ? 'transparent' : cur.color, border: cur.id === 'low' ? `1.5px solid ${cur.color}` : 'none' }} />
+      {cur.label.toUpperCase()}
+    </span>
+  );
+  if (readOnly) return <span title={`Priority: ${cur.label}`}>{badge}</span>;
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex' }}>
+      <button ref={btnRef} title="Click to change urgency"
+        onClick={(e) => { e.stopPropagation(); place(); setOpen(o => !o); }}
+        style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+        {badge}<span style={{ fontSize: 8, opacity: 0.7, color: 'var(--c-tm)' }}>▾</span>
+      </button>
+      {open && menuPos && (
+        <div ref={menuRef} onMouseDown={(e) => e.preventDefault()} onClick={(e) => e.stopPropagation()}
+          style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)', zIndex: 1000, minWidth: 130, boxShadow: 'var(--c-cardShadow)' }}>
+          {PRIORITY_PICK.map(p => (
+            <button key={p.id}
+              onMouseDown={(e) => { e.preventDefault(); onSetPriority(p.id); setOpen(false); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: p.id === priority ? 'var(--c-sf2, transparent)' : 'transparent', border: 'none', textAlign: 'left', padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 600, color: p.id === priority ? 'var(--c-ac)' : 'var(--c-tx)', cursor: 'pointer' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: p.id === 'low' ? 'transparent' : p.color, border: p.id === 'low' ? `1.5px solid ${p.color}` : 'none' }} />
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 // Shared width for the three toolbar filter rows (owner tabs / sort / quick
 // filters) so they END at the same x — buttons flex to fill it (Ohad).
 const FILTER_GROUP_W = 460;
@@ -499,10 +574,11 @@ function ViewToggle({ value, onChange }) {
 }
 
 const SORT_MODES = [
-  { id: 'date',   label: 'Due' },
-  { id: 'newest', label: 'Newest' },
-  { id: 'status', label: 'Status' },
-  { id: 'name',   label: 'A→Z' },
+  { id: 'date',     label: 'Due' },
+  { id: 'newest',   label: 'Newest' },
+  { id: 'priority', label: 'Urgency' },
+  { id: 'status',   label: 'Status' },
+  { id: 'name',     label: 'A→Z' },
 ];
 function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, resultCount, totalCount }) {
   const BOX_H = 28;
@@ -1379,7 +1455,7 @@ function ExpandedDetail({ row, displayBody, viewer, gcalConnected, onSyncToCalen
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, now, search, viewer, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, readOnly = false }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, now, search, viewer, gcalConnected, onSyncToCalendar, onDeleteFromCalendar, readOnly = false }) {
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1399,16 +1475,8 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
                   : isStuck   ? 'var(--c-rd)'
                               : 'transparent';
 
-  // Priority is shown for ALL four levels (Ohad: "each row should show
-  // low/normal/high/urgent"), as a colored dot + label sitting to the
-  // right of the date+time.
-  const PRIORITY_META = {
-    urgent: { label: 'URGENT', color: 'var(--c-rd)' },
-    high:   { label: 'HIGH',   color: YUVAL_COLOR },
-    normal: { label: 'NORMAL', color: 'var(--c-tm)' },
-    low:    { label: 'LOW',    color: 'var(--c-td)' },
-  };
-  const pmeta = PRIORITY_META[priority] || PRIORITY_META.normal;
+  // Priority is shown for ALL four levels as an editable colored dot + label
+  // (PriorityPill) sitting to the right of the date+time — click to change.
 
   // Athlete name when the task is linked to a trainee; nothing otherwise
   // (Ohad: "what athlete, or if none attached, don't show it").
@@ -1459,18 +1527,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
               border: `1px solid ${dateBorder}`, background: dateBg,
             }}>{dateStr}</span>
           )}
-          <span title={`Priority: ${pmeta.label}`} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-            color: pmeta.color, whiteSpace: 'nowrap',
-          }}>
-            <span style={{
-              width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-              background: priority === 'low' ? 'transparent' : pmeta.color,
-              border: priority === 'low' ? `1.5px solid ${pmeta.color}` : 'none',
-            }} />
-            {pmeta.label}
-          </span>
+          <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
           {athleteName && (
             <span title={`Athlete: ${athleteName}`} style={{
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
@@ -1836,6 +1893,10 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   //     individual (Ohad/Yuval) tab, even though it shows there. Editing a
   //     shared task should happen in the shared context, not "as" one partner.
   const isReadOnly = (r) => {
+    // The business OWNER (Ohad) oversees every task — never read-only for him,
+    // so he can change status / urgency on the other partner's tasks too. Staff
+    // (Yuval) still can't edit the owner's private queue.
+    if (viewerOwner === 'ohad') return false;
     if (r._owner !== viewerOwner && r._owner !== 'shared') return true;
     if (r._owner === 'shared' && owner !== 'shared') return true;
     return false;
@@ -1919,6 +1980,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     if (n.has(id)) n.delete(id); else n.add(id);
     return n;
   });
+  const setPriority = async (row, p) => {
+    const cur = row._priority || 'normal';
+    if (cur === p) return;
+    // Priority is encoded in the body bracket (no DB column yet) — rewrite it.
+    await update(row.id, { body: setPriorityInBody(row.body, p) });
+    recordNoteEvent({ noteId: row.id, actor: viewerOwner, kind: 'priority_changed', fromValue: cur, toValue: p });
+  };
   const setStatus = async (row, target) => {
     // No dual-approval / half-approved state (removed 2026-06-06). A shared
     // task is a single row with a single status — either partner changes it
@@ -2170,7 +2238,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     theme={theme} showAvatar={owner === 'shared'}
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
-                    onSetStatus={setStatus}
+                    onSetStatus={setStatus} onSetPriority={setPriority}
                     now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
@@ -2208,7 +2276,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onSetStatus={setStatus}
+                  onSetStatus={setStatus} onSetPriority={setPriority}
                   now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
@@ -2255,7 +2323,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     theme={theme} showAvatar={owner === 'shared'}
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
-                    onSetStatus={setStatus}
+                    onSetStatus={setStatus} onSetPriority={setPriority}
                     search={search}
                     gcalConnected={gcalConnected}
                     onSyncToCalendar={handleSyncToCalendar}
@@ -2318,7 +2386,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onSetStatus={setStatus}
+                  onSetStatus={setStatus} onSetPriority={setPriority}
                   now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
