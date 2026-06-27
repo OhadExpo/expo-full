@@ -66,6 +66,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const [showAngles, setShowAngles] = useState(true);
   const showAnglesRef = useRef(true);
   useEffect(() => { showAnglesRef.current = showAngles; }, [showAngles]);
+  const [skelMode, setSkelMode] = useState('lines'); // 'lines' fallback → 'model' once the GLB rig builds
+  const skelModeRef = useRef('lines');
   const [reps, setReps] = useState(0);
   const [moving, setMoving] = useState('top');  // 'top' | 'bottom' — live rep phase
   const [atDepth, setAtDepth] = useState(false);
@@ -173,7 +175,10 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
 
     // 3D skeleton (three.js overlay) when SKELETON is on; the 2D layer keeps the
     // angle labels + depth/bar-path, so its flat skeleton lines are turned off.
-    if (glSkelRef.current) glSkelRef.current.update(showSkeletonRef.current ? landmarks : null, world, false);
+    if (glSkelRef.current) {
+      glSkelRef.current.update(showSkeletonRef.current ? landmarks : null, world, false);
+      if (skelModeRef.current !== 'model' && glSkelRef.current.usingGlb) { skelModeRef.current = 'model'; setSkelMode('model'); }
+    }
     draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRel, skeleton: false, angles: showAnglesRef.current });
     rafRef.current = requestAnimationFrame(loop);
   }, [titleLocked, lockedKind]);
@@ -275,7 +280,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
               <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'}</button>
               {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>REPS {showReps ? 'ON' : 'OFF'}</button>}
               {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
-              <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 116 }}>SKELETON {showSkeleton ? 'ON' : 'OFF'}</button>
+              <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 150 }}>SKELETON {showSkeleton ? 'ON' : 'OFF'}{showSkeleton ? ` · ${skelMode === 'model' ? '3D MODEL' : 'LINES'}` : ''}</button>
               <button onClick={() => setShowAngles(s => !s)} style={{ ...ctrl, background: showAngles ? C.ac : 'transparent', minWidth: 104 }}>JOINTS {showAngles ? 'ON' : 'OFF'}</button>
             </>}
       </div>
