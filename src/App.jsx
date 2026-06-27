@@ -460,6 +460,15 @@ function AuthGate() {
   const auth = useAuth();
   const path = typeof window !== 'undefined' ? window.location.pathname : '/';
   const inPwa = isStandalonePwa();
+  // Deliberate marketing escape from the installed PWA: clicking the EXPO logo on
+  // the LoginScreen sets this flag so the OWNER can reach the EntryChooser + demo
+  // from inside the app (Ohad: "clicking expo should take me back to sign in / for
+  // coaches"). Default PWA users never set it, so their installed app stays clean.
+  const marketingEscape = inPwa && (() => { try { return sessionStorage.getItem('expo-marketing') === '1'; } catch { return false; } })();
+  // Once signed in, drop the flag so the product surface stays clean afterwards.
+  useEffect(() => {
+    if (auth?.session) { try { sessionStorage.removeItem('expo-marketing'); } catch { /* noop */ } }
+  }, [auth?.session]);
 
   // PWA-mode: marketing surfaces are off-limits. Anyone who lands on /demo*
   // or /coaches* (legacy) or the EntryChooser inside the installed app gets
@@ -473,12 +482,12 @@ function AuthGate() {
     || path.startsWith('/coaches')
     || path === '/try';
   useEffect(() => {
-    if (!inPwa) return;
+    if (!inPwa || marketingEscape) return;   // owner asked to see marketing → don't bounce
     if (!isMarketingPath) return;
     if (window.location.pathname !== '/login' && window.location.pathname !== '/portal') {
       window.history.replaceState(null, '', '/');
     }
-  }, [inPwa, isMarketingPath]);
+  }, [inPwa, marketingEscape, isMarketingPath]);
 
   // Backward-compat: legacy /coaches, /coaches/try, /coaches/demo,
   // /coaches/demo/* URLs redirect to /demo* canonical homes. External links
@@ -551,7 +560,7 @@ function AuthGate() {
     return <Suspense fallback={<BootSplash />}><ContractSign /></Suspense>;
   }
 
-  if (!inPwa) {
+  if (!inPwa || marketingEscape) {
     // /try short-circuits BEFORE the auth check so the route stays public.
     if (path === '/try' || path.startsWith('/try/')) {
       return <Suspense fallback={<BootSplash />}><TrySandbox /></Suspense>;
@@ -580,8 +589,10 @@ function AuthGate() {
   if (!auth.session) {
     // PWA mode: every path that isn't already /login renders the LoginScreen
     // directly so the user can authenticate without seeing the marketing
-    // chooser or landing page.
-    if (inPwa) return <LoginScreen />;
+    // chooser or landing page — UNLESS the owner deliberately tapped the logo
+    // to escape into the chooser/demo (marketingEscape), which falls through to
+    // the browser-mode routing below.
+    if (inPwa && !marketingEscape) return <LoginScreen />;
     // Browser mode: front door at / is the EntryChooser; /demo is the
     // coach-marketing landing (legacy /coaches still resolves); everything
     // else falls through to LoginScreen.
