@@ -50,6 +50,27 @@ export function useCoachNotes(filter = {}) {
 
   useEffect(() => { setLoading(true); refetch(); }, [refetch]);
 
+  // Live sync between coaches (Ohad + Yuval): when ANY client changes
+  // coach_notes, refetch — so a status / urgency / new task by one shows on the
+  // other's screen with no refresh. Supabase realtime pushes the change the
+  // instant it lands (if the table is in the realtime publication); a focus +
+  // interval poll is the always-on fallback so it stays in sync regardless.
+  useEffect(() => {
+    const chName = 'coach_notes_live_' + Math.random().toString(36).slice(2, 9);
+    const channel = supabase
+      .channel(chName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'coach_notes' }, () => { refetch(); })
+      .subscribe();
+    const onFocus = () => refetch();
+    window.addEventListener('focus', onFocus);
+    const poll = setInterval(refetch, 20000);
+    return () => {
+      try { supabase.removeChannel(channel); } catch { /* noop */ }
+      window.removeEventListener('focus', onFocus);
+      clearInterval(poll);
+    };
+  }, [refetch]);
+
   const create = useCallback(async (input) => {
     const body = (input.body || '').trim();
     if (!body) return null;

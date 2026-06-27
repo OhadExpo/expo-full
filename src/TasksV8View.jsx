@@ -315,122 +315,43 @@ function StatusIconGlyph({ status, theme, size = 16 }) {
   );
 }
 function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
-  const [open, setOpen] = useState(false);
-  // Menu position is FIXED (viewport coords from the pill's rect), not
-  // absolute — rows live inside the sections' collapse-animation wrappers
-  // (grid-template-rows + overflow:hidden), which clip an absolute menu at
-  // the section's bottom edge so the rows below showed through it.
-  const [menuPos, setMenuPos] = useState(null);
-  const btnRef = useRef(null);
-  const menuRef = useRef(null);
-  // Recompute the fixed menu's viewport coords from the pill's current rect.
-  // `right` is clamped into the viewport so a pill near/over the right edge
-  // can't push the menu off-screen.
-  const place = useCallback(() => {
-    const el = btnRef.current; if (!el) return;
-    const r = el.getBoundingClientRect();
-    setMenuPos({ top: r.bottom + 2, right: Math.max(8, window.innerWidth - r.right) });
-  }, []);
-  useEffect(() => {
-    if (!open) return;
-    // Keep the fixed menu GLUED to its pill while the page scrolls/resizes —
-    // do NOT close on scroll. The old close-on-scroll fired on the tap's own
-    // incidental scroll on mobile, so the menu opened and vanished in the same
-    // gesture ("the menu doesn't show at all"). Dismiss only on an outside
-    // tap or Escape.
-    const reposition = () => place();
-    const onDocDown = (e) => {
-      if (!menuRef.current?.contains(e.target) && !btnRef.current?.contains(e.target)) setOpen(false);
-    };
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('scroll', reposition, true);
-    window.addEventListener('resize', reposition);
-    document.addEventListener('pointerdown', onDocDown, true);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('scroll', reposition, true);
-      window.removeEventListener('resize', reposition);
-      document.removeEventListener('pointerdown', onDocDown, true);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, place]);
-  // Read-only (another partner's task): show the status glyph but don't let
-  // the viewer open the menu / change it.
-  // A labelled pill — the old 16px glyph was too small and read as
-  // decoration, not a control. Now: status color + word + caret, sized to
-  // tap. Colors come from statusColors (null for 'open' → neutral outline).
+  // Native <select> — bulletproof vs the old custom popover (which jumped, jammed,
+  // and sometimes swallowed the click so the status never changed). onChange
+  // always fires; the browser handles positioning, so no lag/pop/hover bugs.
   const opt = STATUS_OPTIONS.find(o => o.id === status) || STATUS_OPTIONS[0];
   const sc = statusColors(status, theme);
   const pillColor = sc ? sc.bg : 'var(--c-tm)';
-  const filled = !!sc; // open/no-color renders as an outline, the rest fill
-  const pillBase = {
-    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexShrink: 0,
-    boxSizing: 'border-box', height: 26, width: 146, padding: '0 10px', borderRadius: 0,
+  const filled = !!sc;
+  const base = {
+    boxSizing: 'border-box', height: 26, width: 146, padding: '0 22px 0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
     border: `1px solid ${pillColor}`,
     background: filled ? pillColor : 'transparent',
     color: filled ? (sc.fg || '#FFFFFF') : pillColor,
+    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
   };
   if (readOnly) {
     return (
-      <span title="Read-only — this is the other partner's task"
-        style={{ ...pillBase, opacity: 0.65 }}>
+      <span title="Read-only" style={{ ...base, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 10px', opacity: 0.65 }}>
         <span style={{ fontSize: 12, lineHeight: 1 }}>{opt.glyph}</span>{opt.label}
       </span>
     );
   }
   return (
-    <span style={{ position: 'relative', display: 'inline-flex' }}>
-      <button
-        ref={btnRef}
-        onClick={(e) => {
-          e.stopPropagation();
-          place();
-          setOpen(o => !o);
-        }}
-        title="Click to change status"
-        style={{ ...pillBase, cursor: 'pointer' }}>
-        <span style={{ fontSize: 12, lineHeight: 1 }}>{opt.glyph}</span>
-        {opt.label}
-        <span style={{ fontSize: 8, opacity: 0.8, marginLeft: 1 }}>▾</span>
-      </button>
-      {open && menuPos && (
-        <div
-          ref={menuRef}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            position: 'fixed', top: menuPos.top, right: menuPos.right,
-            background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)',
-            zIndex: 1000, minWidth: 140, boxShadow: 'var(--c-cardShadow)',
-          }}>
-          {STATUS_OPTIONS.map(o => {
-            const sc = statusColors(o.id, theme);
-            const glyphColor = sc ? sc.bg : 'var(--c-tm)';
-            const isCurrent = o.id === status;
-            return (
-              <button key={o.id}
-                onMouseDown={(e) => { e.preventDefault(); onSetStatus(o.id); setOpen(false); }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                  background: isCurrent ? 'var(--c-sf2, transparent)' : 'transparent',
-                  border: 'none', textAlign: 'left', padding: '7px 12px',
-                  fontFamily: FN, fontSize: 11, fontWeight: 600,
-                  color: isCurrent ? 'var(--c-ac)' : 'var(--c-tx)',
-                  cursor: 'pointer',
-                }}>
-                <span style={{
-                  display: 'inline-flex', width: 16, justifyContent: 'center',
-                  color: glyphColor, fontSize: 14, fontWeight: 700,
-                }}>{o.glyph}</span>
-                <span style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10 }}>{o.label}</span>
-                {isCurrent && <span style={{ marginLeft: 'auto', color: 'var(--c-ac)' }}>✓</span>}
-              </button>
-            );
-          })}
-        </div>
-      )}
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+      <select
+        value={status}
+        onChange={(e) => onSetStatus(e.target.value)}
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        title="Change status"
+        style={{ ...base, cursor: 'pointer' }}>
+        {STATUS_OPTIONS.map(o => (
+          <option key={o.id} value={o.id} style={{ background: '#fff', color: '#111' }}>{o.glyph}  {o.label}</option>
+        ))}
+      </select>
+      <span style={{ position: 'absolute', right: 8, fontSize: 8, opacity: 0.85, color: filled ? (sc.fg || '#FFFFFF') : pillColor, pointerEvents: 'none' }}>▾</span>
     </span>
   );
 }
@@ -466,58 +387,24 @@ const PRIORITY_PICK = [
   { id: 'low',    label: 'Low',    color: 'var(--c-td)' },
 ];
 function PriorityPill({ priority, onSetPriority, readOnly = false }) {
-  const [open, setOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState(null);
-  const btnRef = useRef(null), menuRef = useRef(null);
-  const place = useCallback(() => {
-    const el = btnRef.current; if (!el) return;
-    const r = el.getBoundingClientRect();
-    setMenuPos({ top: r.bottom + 2, left: Math.min(r.left, window.innerWidth - 150) });
-  }, []);
-  useEffect(() => {
-    if (!open) return;
-    const reposition = () => place();
-    const onDocDown = (e) => { if (!menuRef.current?.contains(e.target) && !btnRef.current?.contains(e.target)) setOpen(false); };
-    const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
-    window.addEventListener('scroll', reposition, true);
-    window.addEventListener('resize', reposition);
-    document.addEventListener('pointerdown', onDocDown, true);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('scroll', reposition, true);
-      window.removeEventListener('resize', reposition);
-      document.removeEventListener('pointerdown', onDocDown, true);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open, place]);
+  // Native <select> — same reliability fix as StatusPill.
   const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
-  const badge = (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: cur.color, whiteSpace: 'nowrap' }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: cur.id === 'low' ? 'transparent' : cur.color, border: cur.id === 'low' ? `1.5px solid ${cur.color}` : 'none' }} />
-      {cur.label.toUpperCase()}
-    </span>
-  );
-  if (readOnly) return <span title={`Priority: ${cur.label}`}>{badge}</span>;
+  const base = {
+    boxSizing: 'border-box', height: 22, padding: '0 18px 0 8px', borderRadius: 0,
+    fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+    textTransform: 'uppercase', whiteSpace: 'nowrap',
+    border: `1px solid ${cur.color}`, background: 'transparent', color: cur.color,
+    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+  };
+  if (readOnly) return <span title={`Priority: ${cur.label}`} style={{ ...base, display: 'inline-flex', alignItems: 'center', padding: '0 8px' }}>{cur.label.toUpperCase()}</span>;
   return (
-    <span style={{ position: 'relative', display: 'inline-flex' }}>
-      <button ref={btnRef} title="Click to change urgency"
-        onClick={(e) => { e.stopPropagation(); place(); setOpen(o => !o); }}
-        style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-        {badge}<span style={{ fontSize: 8, opacity: 0.7, color: 'var(--c-tm)' }}>▾</span>
-      </button>
-      {open && menuPos && (
-        <div ref={menuRef} onMouseDown={(e) => e.preventDefault()} onClick={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)', zIndex: 1000, minWidth: 130, boxShadow: 'var(--c-cardShadow)' }}>
-          {PRIORITY_PICK.map(p => (
-            <button key={p.id}
-              onMouseDown={(e) => { e.preventDefault(); onSetPriority(p.id); setOpen(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', background: p.id === priority ? 'var(--c-sf2, transparent)' : 'transparent', border: 'none', textAlign: 'left', padding: '7px 12px', fontFamily: FN, fontSize: 11, fontWeight: 600, color: p.id === priority ? 'var(--c-ac)' : 'var(--c-tx)', cursor: 'pointer' }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: p.id === 'low' ? 'transparent' : p.color, border: p.id === 'low' ? `1.5px solid ${p.color}` : 'none' }} />
-              {p.label}
-            </button>
-          ))}
-        </div>
-      )}
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+      <select value={priority} onChange={(e) => onSetPriority(e.target.value)}
+        onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
+        title="Change urgency" style={{ ...base, cursor: 'pointer' }}>
+        {PRIORITY_PICK.map(p => <option key={p.id} value={p.id} style={{ background: '#fff', color: '#111' }}>{p.label}</option>)}
+      </select>
+      <span style={{ position: 'absolute', right: 6, fontSize: 7, opacity: 0.8, color: cur.color, pointerEvents: 'none' }}>▾</span>
     </span>
   );
 }
@@ -1384,68 +1271,11 @@ function ExpandedDetail({ row, displayBody, viewer, gcalConnected, onSyncToCalen
           ))}
         </div>
       )}
-      <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {readOnly ? (
+      {readOnly && (
+        <div style={{ marginTop: 10, direction: 'ltr' }}>
           <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Read-only — this is the other partner's task</span>
-        ) : gcalConnected ? (
-          syncedEventId ? (
-            <>
-              <button onClick={(e) => { e.stopPropagation(); onSyncToCalendar(row); }}
-                title="Update this event in Google Calendar"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'transparent', color: 'var(--c-gn)',
-                  border: '1px solid var(--c-gn)',
-                  fontFamily: FN, fontSize: 9, fontWeight: 700,
-                  letterSpacing: '0.12em', padding: '4px 10px',
-                  cursor: 'pointer', borderRadius: 0,
-                  textTransform: 'uppercase',
-                }}>↻ Update in Calendar</button>
-              <button onClick={(e) => { e.stopPropagation(); onDeleteFromCalendar(row); }}
-                title="Remove this event from Google Calendar"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'transparent', color: 'var(--c-rd)',
-                  border: '1px solid var(--c-rd)',
-                  fontFamily: FN, fontSize: 9, fontWeight: 700,
-                  letterSpacing: '0.12em', padding: '4px 10px',
-                  cursor: 'pointer', borderRadius: 0,
-                  textTransform: 'uppercase',
-                }}>✕ Remove from Calendar</button>
-              <a href={syncedHtmlLink || `https://calendar.google.com/calendar/u/0/r/search?q=${encodeURIComponent('Task ID: ' + row.id)}`}
-                target="_blank" rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 6,
-                  background: 'transparent', color: 'var(--c-ac)',
-                  border: '1px solid var(--c-ac)',
-                  fontFamily: FN, fontSize: 9, fontWeight: 700,
-                  letterSpacing: '0.12em', padding: '4px 10px',
-                  textDecoration: 'none', borderRadius: 0,
-                  textTransform: 'uppercase',
-                }}>↗ Open in Calendar</a>
-            </>
-          ) : (
-            <button onClick={(e) => { e.stopPropagation(); onSyncToCalendar(row); }}
-              title="Add this task to Google Calendar"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'var(--c-ac)', color: '#FFFFFF',
-                border: 'none',
-                fontFamily: FN, fontSize: 9, fontWeight: 700,
-                letterSpacing: '0.12em', padding: '4px 10px',
-                cursor: 'pointer', borderRadius: 0,
-                textTransform: 'uppercase',
-              }}>Add to Calendar</button>
-          )
-        ) : (
-          <span style={{
-            fontFamily: FN, fontSize: 9, fontWeight: 600,
-            color: 'var(--c-td)', letterSpacing: '0.04em',
-            textTransform: 'uppercase',
-          }}>Connect Google Calendar at the top to sync this task</span>
-        )}
-      </div>
+        </div>
+      )}
       {/* Comments + audit timeline (Phase 2). Both gracefully no-op
           when their migrations haven't been applied — Comments shows
           a hint, EventTimeline silently absents itself. */}
@@ -2114,48 +1944,17 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           letterSpacing: '0.18em', textTransform: 'uppercase',
           color: 'var(--c-tx)',
         }}>Tasks</h2>
-        {viewerOwner !== 'yuval' && (gcalConnected ? (
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <button
-              onClick={handleDisconnectGcal}
-              title="Disconnect Google Calendar"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'transparent', color: 'var(--c-gn)',
-                border: '1px solid var(--c-gn)',
-                fontFamily: FN, fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.12em', padding: '5px 11px',
-                cursor: 'pointer', borderRadius: 0,
-                textTransform: 'uppercase',
-              }}>Calendar Synced ✓</button>
-            {lastSyncedLabel && (
-              <span style={{
-                fontFamily: FN, fontSize: 9, fontWeight: 600,
-                color: 'var(--c-td)', letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-              }}>↻ {lastSyncedLabel}</span>
-            )}
-          </div>
-        ) : (
-          <button
-            onClick={handleConnectGcal}
-            disabled={gcalBusy}
-            title="Connect Google Calendar — tasks will sync automatically"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: 'var(--c-ac)', color: '#FFFFFF',
-              border: 'none', fontFamily: FN, fontSize: 10, fontWeight: 700,
-              letterSpacing: '0.12em', padding: '6px 12px',
-              cursor: gcalBusy ? 'wait' : 'pointer', borderRadius: 0,
-              textTransform: 'uppercase', opacity: gcalBusy ? 0.6 : 1,
-            }}>Connect Google Calendar</button>
-        ))}
+        {/* Live-sync indicator: Ohad + Yuval see each other's changes in real
+            time (Supabase realtime on coach_notes) — no refresh needed. */}
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+          color: 'var(--c-tm)', textTransform: 'uppercase',
+        }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-gn)' }} />
+          Live · synced
+        </span>
       </div>
-
-      {/* Yuval (staff/masseur) gets EXPO CRM + tasks only — no Google Calendar
-          integration (the embed never renders for him anyway since it needs the
-          viewer's browser signed in as the calendar owner). */}
-      {viewerOwner !== 'yuval' && <CalendarEmbedCard />}
 
       {/* Owner tabs + view toggle */}
       <div style={{
