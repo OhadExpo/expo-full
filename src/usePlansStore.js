@@ -47,6 +47,12 @@ function normalizeDays(days) {
   });
 }
 
+// Once we learn the plan_index view doesn't exist (pre-migration), remember it
+// module-wide so every usePlanIndex caller stops re-attempting it — otherwise it
+// 404s on every load/navigation (console noise + a wasted round-trip before the
+// `plans` fallback). Cleared naturally on a full page reload.
+let _planIndexMissing = false;
+
 // Plan index: lightweight list for PlansView, Dashboard counts, etc.
 export function usePlanIndex() {
   const [index, setIndex] = useState([]);
@@ -59,10 +65,17 @@ export function usePlanIndex() {
       // day names in SQL, so the index payload is a few KB instead of
       // every plan's full data JSONB (~290KB at 210 plans). The view is
       // security_invoker, so row visibility matches the direct table read.
-      const { data: idx, error: idxErr } = await supabase
-        .from('plan_index')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data: idx, error: idxErr } = _planIndexMissing
+        ? { data: null, error: null }
+        : await supabase
+            .from('plan_index')
+            .select('*')
+            .order('created_at', { ascending: false });
+      // The view 404s until its migration runs — remember it so we skip the
+      // failing call next time (the `plans` fallback below still serves the data).
+      if (idxErr && /does not exist|could not find|PGRST205|42P01/i.test(`${idxErr.message || ''} ${idxErr.code || ''}`)) {
+        _planIndexMissing = true;
+      }
       if (!idxErr && idx) {
         setIndex(idx.map(p => ({
           id: p.id,
