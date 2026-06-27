@@ -14,6 +14,7 @@
 // no auto weight bumps.
 
 import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries } from './poseLab';
@@ -271,7 +272,11 @@ export default function MovementLab({
   const recording = phase === 'recording';
   const showCamera = phase === 'idle' || phase === 'loading' || phase === 'countdown' || phase === 'recording';
 
-  return (
+  // Portal to <body> — same transform-trap as the Live Coach: this full-screen
+  // overlay is rendered inside Review-Tools' .motion-rise wrapper, whose CSS
+  // transform would otherwise pin position:fixed to that box (≈1176×503) instead
+  // of the viewport. Covers Movement Lab / Lift Metrics / Jump Test.
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column' }}>
       {/* header */}
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -358,7 +363,8 @@ export default function MovementLab({
         {recording && <BigBtn color={C.rd} onClick={stopAndAnalyze}>STOP &amp; ANALYZE</BigBtn>}
         {(phase === 'results' || phase === 'analyzing') && <BigBtn color={C.ac} onClick={reset}>↺ RECORD AGAIN</BigBtn>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
