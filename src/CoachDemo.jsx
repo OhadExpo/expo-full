@@ -1022,6 +1022,27 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
               </Row>
             ))}
           </Panel>
+
+          <div style={{ height: 14 }} />
+
+          {/* CRM activity feed — the real TraineeDetail derives a timeline of
+              auto-events (workouts / plans / payments / tasks). Demo mock mirrors
+              that mixed feed with a colour-dot per event type. */}
+          <Panel title="CRM · ACTIVITY" tint={C.ac}>
+            {[
+              { c: C.ac, label: 'Workout logged · Day A · Push', when: trainee.lastWorkout || '2 days ago' },
+              { c: C.gn, label: `Payment received · ₪${trainee.monthly || 800}`, when: '2026-04-01' },
+              { c: C.tm, label: `Bodyweight logged · ${trainee.weight || 70}kg`, when: '3 days ago' },
+              { c: C.or, label: `Plan assigned · ${(trainee.plans && trainee.plans[0]) || 'New Block'}`, when: '1 week ago' },
+              { c: C.gn, label: 'Task completed · Monthly check-in', when: '1 week ago' },
+            ].map((e, i) => (
+              <Row key={i}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: e.c, flexShrink: 0 }} />
+                <span style={{ flex: 1, color: C.tx, fontWeight: 600, fontSize: 13 }}>{e.label}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, whiteSpace: 'nowrap' }}>{e.when}</span>
+              </Row>
+            ))}
+          </Panel>
         </div>
 
         <div>
@@ -1060,6 +1081,30 @@ function DemoTraineeDetail({ trainee, onBack, backLabel = '← BACK' }) {
                 {trainee.injuries}
               </div>
             </div>
+          </Panel>
+
+          <div style={{ height: 14 }} />
+
+          {/* Athletic Evaluation summary — the real TraineeDetail surfaces the
+              latest eval scores. Demo mock shows a few measurables with a mini
+              progress bar so the camera-tested numbers have a home to land in. */}
+          <Panel title={<span>ATHLETIC EVALUATION <span style={{ color: C.tm, marginLeft: 8, fontSize: 9, letterSpacing: 1 }}>LAST · 2026-03-15</span></span>} tint={C.ac}>
+            {[
+              { label: 'Countermovement Jump', val: '38 cm', pct: 0.70 },
+              { label: 'Dead Hang', val: '72 s', pct: 0.85 },
+              { label: 'Overhead Squat', val: 'Good', pct: 0.80 },
+              { label: 'Single-Leg Balance', val: '41 s', pct: 0.60 },
+            ].map((m, i) => (
+              <div key={i} style={{ padding: '9px 12px', borderTop: i ? `1px solid ${C.bd}` : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                  <span style={{ color: C.tx, fontWeight: 600, fontSize: 13 }}>{m.label}</span>
+                  <span style={{ fontFamily: FN, fontSize: 12, color: C.ac, fontWeight: 700 }}>{m.val}</span>
+                </div>
+                <div style={{ height: 4, background: C.bd }}>
+                  <div style={{ width: `${Math.round(m.pct * 100)}%`, height: '100%', background: C.ac }} />
+                </div>
+              </div>
+            ))}
           </Panel>
         </div>
       </div>
