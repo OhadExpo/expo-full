@@ -91,8 +91,15 @@ export function createLiveSkeleton(canvas) {
     for (let i = 0; i < 33; i++) {
       const im = landmarks[i];
       if (!im) { fpArr[i] = null; continue; }
-      const v = fpArr[i] || (fpArr[i] = new THREE.Vector3());
-      v.set(ox(im, mir), oy(im), oz(world?.[i]?.z));
+      const nx = ox(im, mir), ny = oy(im), nz = oz(world?.[i]?.z);
+      const had = fpArr[i];
+      const v = fpArr[i] || (fpArr[i] = new THREE.Vector3(nx, ny, nz));
+      if (!had) continue;   // first sample for this point — nothing to blend against
+      // Velocity-adaptive smoothing (1€-style): when the joint is nearly still we
+      // blend slowly so jitter is killed; on fast motion the blend opens up to ~raw
+      // so the skeleton snaps to the body instead of dragging behind it.
+      const a = Math.min(1, 0.32 + Math.hypot(nx - v.x, ny - v.y) * 7);
+      v.set(v.x + (nx - v.x) * a, v.y + (ny - v.y) * a, v.z + (nz - v.z) * a);
     }
     return fpArr;
   }
