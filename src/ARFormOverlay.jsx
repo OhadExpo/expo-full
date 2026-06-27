@@ -58,13 +58,15 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const [showDepth, setShowDepth] = useState(true);
   useEffect(() => { showDepthRef.current = showDepth; }, [showDepth]);
   const [showReps, setShowReps] = useState(true);   // toggle the REPS/PHASE read-out
-  // Two toggles (Ohad): SKELETON = the 3D skeleton; JOINTS = the joint-angle
-  // numbers (the pose detector + joint meter, one button).
+  // Two MUTUALLY-EXCLUSIVE modes (Ohad: "view joints and skeleton separately,
+  // only one on"): SKELETON = the 3D skeleton overlay; JOINTS = the flat 2D pose
+  // (blue skeleton lines + joint-angle numbers, "like before the skeleton").
+  // Turning one on turns the other off; both can be off. SKELETON is the default.
   const [showSkeleton, setShowSkeleton] = useState(true);
   const showSkeletonRef = useRef(true);
   useEffect(() => { showSkeletonRef.current = showSkeleton; }, [showSkeleton]);
-  const [showAngles, setShowAngles] = useState(true);
-  const showAnglesRef = useRef(true);
+  const [showAngles, setShowAngles] = useState(false);
+  const showAnglesRef = useRef(false);
   useEffect(() => { showAnglesRef.current = showAngles; }, [showAngles]);
   const [skelMode, setSkelMode] = useState('lines'); // 'lines' fallback → 'model' once the GLB rig builds
   const skelModeRef = useRef('lines');
@@ -185,7 +187,9 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       glSkelRef.current.update(showSkeletonRef.current ? landmarks : null, world, false);
       if (skelModeRef.current !== 'model' && glSkelRef.current.usingGlb) { skelModeRef.current = 'model'; setSkelMode('model'); }
     }
-    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRel, skeleton: false, angles: showAnglesRef.current });
+    // JOINTS mode draws the full 2D pose (blue skeleton lines + angle numbers);
+    // SKELETON mode leaves the 2D layer clean and shows only the 3D overlay above.
+    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRel, skeleton: showAnglesRef.current, angles: showAnglesRef.current });
     rafRef.current = requestAnimationFrame(loop);
   }, [titleLocked, lockedKind]);
 
@@ -286,8 +290,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
               <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'}</button>
               {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>REPS {showReps ? 'ON' : 'OFF'}</button>}
               {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
-              <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 150 }}>SKELETON {showSkeleton ? 'ON' : 'OFF'}{showSkeleton ? ` · ${skelMode === 'model' ? '3D MODEL' : 'LINES'}` : ''}</button>
-              <button onClick={() => setShowAngles(s => !s)} style={{ ...ctrl, background: showAngles ? C.ac : 'transparent', minWidth: 104 }}>JOINTS {showAngles ? 'ON' : 'OFF'}</button>
+              <button onClick={() => setShowSkeleton(s => { const n = !s; if (n) setShowAngles(false); return n; })} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 150 }}>SKELETON {showSkeleton ? 'ON' : 'OFF'}{showSkeleton ? ` · ${skelMode === 'model' ? '3D MODEL' : 'LINES'}` : ''}</button>
+              <button onClick={() => setShowAngles(s => { const n = !s; if (n) setShowSkeleton(false); return n; })} style={{ ...ctrl, background: showAngles ? C.ac : 'transparent', minWidth: 104 }}>JOINTS {showAngles ? 'ON' : 'OFF'}</button>
             </>}
       </div>
     </div>
