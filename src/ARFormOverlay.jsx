@@ -75,6 +75,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const repHitDepthRef = useRef(false);            // did the current rep reach depth?
   const [dir, setDir] = useState('iso');           // live movement direction: up | down | iso
   const dirRef = useRef('iso');
+  const dirPendingRef = useRef({ dir: 'iso', count: 0 }); // debounce: a new dir must persist before the chip flips
   const smoothHistRef = useRef([]);                // recent smoothed angles (for direction)
   // 'environment' = rear (coach films the athlete) · 'user' = front (athlete
   // self-films and watches the HUD while lifting). Switchable live.
@@ -142,14 +143,19 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
         const buf = angleBufRef.current; buf.push(cur); if (buf.length > 8) buf.shift();
         const sorted = [...buf].sort((a, b) => a - b);
         const smooth = sorted[Math.floor(sorted.length / 2)];
-        // PHASE chip = live direction: angle flexing (decreasing) = DOWN,
-        // extending (increasing) = UP, ~stable = ISO. Windowed (not frame-to-frame)
-        // so it doesn't flicker on noise — must clear ~5° over ~6 frames.
-        const sh = smoothHistRef.current; sh.push(smooth); if (sh.length > 6) sh.shift();
-        if (sh.length >= 4) {
+        // PHASE chip = live direction (flex=DOWN, extend=UP, stable=ISO). Heavily
+        // debounced so it reads clean, not flickery (Ohad: "too messy, lag it a
+        // quarter second"): velocity over a ~10-frame window with a wider ISO
+        // deadband, AND the candidate direction must PERSIST ~6 frames (~0.25s)
+        // before the chip actually flips.
+        const sh = smoothHistRef.current; sh.push(smooth); if (sh.length > 10) sh.shift();
+        if (sh.length >= 6) {
           const vel = smooth - sh[0];
-          const nd = Math.abs(vel) < 5 ? 'iso' : (vel < 0 ? 'down' : 'up');
-          if (nd !== dirRef.current) { dirRef.current = nd; setDir(nd); }
+          const cand = Math.abs(vel) < 7 ? 'iso' : (vel < 0 ? 'down' : 'up');
+          const pd = dirPendingRef.current;
+          if (cand === dirRef.current) { pd.dir = cand; pd.count = 0; }
+          else if (cand === pd.dir) { if (++pd.count >= 6) { dirRef.current = cand; setDir(cand); pd.count = 0; } }
+          else { pd.dir = cand; pd.count = 1; }
         }
         if (phaseRef.current === 'top' && smooth < aThr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
         else if (phaseRef.current === 'bottom' && smooth > aThr.high) {
