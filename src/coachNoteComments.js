@@ -95,6 +95,19 @@ export function useCoachNoteComments(noteId) {
     return row;
   }, [noteId]);
 
+  const update = useCallback(async (id, body) => {
+    const trimmed = (body || '').trim();
+    if (!trimmed) return;
+    const patch = { body: trimmed, mentions: extractMentions(trimmed) };
+    const { error } = await supabase.from('coach_note_comments').update(patch).eq('id', id);
+    if (error) {
+      if (TABLE_MISSING_RE.test(error.message)) { setAvailable(false); return; }
+      console.warn('Editing comment failed:', error.message);
+      return;
+    }
+    setRows(prev => prev.map(r => r.id === id ? { ...r, ...patch } : r));
+  }, []);
+
   const remove = useCallback(async (id) => {
     const { error } = await supabase.from('coach_note_comments').delete().eq('id', id);
     if (error) {
@@ -105,7 +118,7 @@ export function useCoachNoteComments(noteId) {
     setRows(prev => prev.filter(r => r.id !== id));
   }, []);
 
-  return { rows, loading, available, add, remove, refetch };
+  return { rows, loading, available, add, update, remove, refetch };
 }
 
 // ────────────────────────────────────────────────────────────────────
