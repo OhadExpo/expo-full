@@ -2437,15 +2437,19 @@ const MOCK_WORKOUTS = [
 ];
 
 const TABS = [
-  { key: 'dashboard', label: 'DASHBOARD', count: null },
-  { key: 'trainees',  label: 'ATHLETES',  count: MOCK_TRAINEES.length },
-  { key: 'programs',  label: 'PROGRAMS',  count: MOCK_PROGRAM_INDEX.length },
-  { key: 'exercises', label: 'EXERCISES', count: MOCK_EXERCISES.length },
-  { key: 'workouts',  label: 'WORKOUTS',  count: MOCK_WORKOUTS.length },
-  { key: 'sessions',  label: 'SESSIONS',  count: null },
-  { key: 'review',    label: 'REVIEW',    count: null },
-  { key: 'tasks',     label: 'TASKS',     count: 8 },
-  { key: 'billing',   label: 'BILLING',   count: null },
+  { key: 'dashboard',  label: 'DASHBOARD',    count: null },
+  { key: 'trainees',   label: 'ATHLETES',     count: MOCK_TRAINEES.length },
+  { key: 'intake',     label: 'INTAKE',       count: null },
+  { key: 'programs',   label: 'PROGRAMS',     count: MOCK_PROGRAM_INDEX.length },
+  { key: 'exercises',  label: 'EXERCISES',    count: MOCK_EXERCISES.length },
+  { key: 'import',     label: 'SMART IMPORT', count: null },
+  { key: 'workouts',   label: 'WORKOUTS',     count: MOCK_WORKOUTS.length },
+  { key: 'sessions',   label: 'SESSIONS',     count: null },
+  { key: 'calendar',   label: 'CALENDAR',     count: null },
+  { key: 'review',     label: 'REVIEW',       count: null },
+  { key: 'tasks',      label: 'TASKS',        count: 8 },
+  { key: 'challenges', label: 'CHALLENGES',   count: null },
+  { key: 'billing',    label: 'BILLING',      count: null },
 ];
 
 // Card style matches src/ui.jsx Card — 0.25px ac-dimmed border, 10px
@@ -2455,6 +2459,153 @@ const demoCardStyle = (extra = {}) => ({
   background: C.sf, border: `1px solid ${C.cardBd}`, borderRadius: 0,
   padding: 18, transition: 'all 0.2s', ...extra,
 });
+
+// Shared section intro styles for the demo surfaces below.
+const demoEyebrow = { fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 };
+const demoH2 = { fontFamily: FB, fontSize: 26, fontWeight: 700, letterSpacing: -0.3, color: C.tx, margin: '0 0 8px' };
+const demoLede = { color: C.tm, fontSize: 13, lineHeight: 1.5, fontFamily: FB, maxWidth: 580, margin: '0 0 22px' };
+
+// ── SMART IMPORT — mirrors src/SmartImportView.jsx (the AI-import flagship:
+// drop any file → AI maps it into the EXPO schema → preview before commit). A
+// major product that was missing from the demo (Ohad: "all our products").
+function DemoSmartImport() {
+  const rows = [
+    { t: 'Back Squat',        c: 'Legs', r: 'Barbell',  p: 'Squat' },
+    { t: 'Romanian Deadlift', c: 'Legs', r: 'Barbell',  p: 'Hip Hinge' },
+    { t: 'Walking Lunge',     c: 'Legs', r: 'Dumbbell', p: 'Lunge' },
+    { t: 'Standing Calf Raise', c: 'Legs', r: 'Machine', p: 'Isolation' },
+  ];
+  return (
+    <section>
+      <div style={demoEyebrow}>COACH · SMART IMPORT</div>
+      <h2 style={demoH2}>Drop a file. AI does the typing.</h2>
+      <p style={demoLede}>XLSX · CSV · PDF · photo · screenshot · pasted text. Smart Import reads it, maps every exercise, athlete and program into the EXPO schema, and previews it before anything is saved. The spreadsheet-to-app migration that used to take a day is a drag-and-drop.</p>
+      <div style={demoCardStyle({ border: `1.5px dashed ${C.ac}`, background: 'rgba(57,189,255,0.05)', textAlign: 'center', padding: '32px 18px', marginBottom: 16 })}>
+        <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.ac, letterSpacing: 1 }}>⤓ DROP A FILE HERE</div>
+        <div style={{ fontFamily: FB, fontSize: 12, color: C.tm, marginTop: 6 }}>or click to browse — XLSX · CSV · PDF · PNG · screenshot · text</div>
+      </div>
+      <div style={demoCardStyle({ padding: 0 })}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, letterSpacing: 1 }}>PREVIEW · "Leg Day.xlsx" → 4 EXERCISES</span>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, letterSpacing: 1 }}>✓ MAPPED TO SCHEMA</span>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: FB, fontSize: 13 }}>
+            <thead><tr>{['Title', 'Category', 'Resistance', 'Pattern'].map(h => <th key={h} style={{ textAlign: 'left', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: 1.2, color: C.tm, padding: '8px 14px', borderBottom: `1px solid ${C.cardBd}` }}>{h.toUpperCase()}</th>)}</tr></thead>
+            <tbody>{rows.map((e, i) => (
+              <tr key={i}>
+                <td style={{ padding: '8px 14px', color: C.tx, fontWeight: 600 }}>{e.t}</td>
+                <td style={{ padding: '8px 14px', color: C.tm }}>{e.c}</td>
+                <td style={{ padding: '8px 14px', color: C.tm }}>{e.r}</td>
+                <td style={{ padding: '8px 14px', color: C.ac, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>{e.p.toUpperCase()}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <div style={{ display: 'flex', gap: 8, padding: 14, justifyContent: 'flex-end' }}>
+          <button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.tm, border: `1px solid ${C.bd}`, padding: '8px 14px', fontSize: 11 }}>DISCARD</button>
+          <button title="Demo only" style={{ ...baseBtn, background: C.ac, color: C.acOnSurface, padding: '8px 14px', fontSize: 11 }}>✓ COMMIT TO LIBRARY</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── INTAKE — mirrors src/IntakeView.jsx (tokenised onboarding → structured profile).
+function DemoIntake() {
+  const fields = [
+    ['Primary goal', 'Build strength + fix overhead mobility'],
+    ['Training age', '3 years, mostly self-programmed'],
+    ['Injuries / pain', 'L4-L5 disc bulge (2023) — manages with hinge work'],
+    ['Equipment', 'Full commercial gym · 5 days/week'],
+    ['Sessions / week', '4'],
+    ['Notes', 'Travels monthly — needs hotel-gym fallbacks'],
+  ];
+  return (
+    <section>
+      <div style={demoEyebrow}>COACH · INTAKE</div>
+      <h2 style={demoH2}>Onboarding, on autopilot.</h2>
+      <p style={demoLede}>Send a tokenised link; the athlete fills goals, history, injuries, equipment and availability on their phone. It lands here as a structured profile — no copy-paste, no lost WhatsApp threads.</p>
+      <div style={demoCardStyle({ padding: 0 })}>
+        <div style={{ padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, letterSpacing: 1 }}>INTAKE · NEW ATHLETE</span>
+          <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, letterSpacing: 1 }}>✓ SUBMITTED · 2H AGO</span>
+        </div>
+        {fields.map(([k, v], i) => (
+          <div key={i} style={{ display: 'flex', gap: 12, padding: '11px 14px', borderBottom: i < fields.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <span style={{ flex: '0 0 140px', fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1, textTransform: 'uppercase' }}>{k}</span>
+            <span style={{ flex: 1, fontFamily: FB, fontSize: 13, color: C.tx }}>{v}</span>
+          </div>
+        ))}
+        <div style={{ padding: 14, display: 'flex', justifyContent: 'flex-end' }}>
+          <button title="Demo only" style={{ ...baseBtn, background: C.ac, color: C.acOnSurface, padding: '8px 14px', fontSize: 11 }}>+ ASSIGN FIRST PROGRAM</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── CHALLENGES — mirrors src/ChallengesView.jsx (team challenges + leaderboard).
+function DemoChallenges() {
+  const board = [
+    { name: 'גל מזרחי',   pts: 1840, days: 22 },
+    { name: 'עומר דגן',   pts: 1610, days: 19 },
+    { name: 'נועה לוי',   pts: 1450, days: 24 },
+    { name: 'דניאל אבני', pts: 1320, days: 17 },
+  ];
+  return (
+    <section>
+      <div style={demoEyebrow}>COACH · CHALLENGES</div>
+      <h2 style={demoH2}>Keep the roster pulling together.</h2>
+      <p style={demoLede}>Run streak, volume or attendance challenges across your athletes. Auto-scored from logged workouts — a live leaderboard that drives retention without you chasing anyone.</p>
+      <div style={demoCardStyle({ marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 })}>
+        <div>
+          <div style={{ fontFamily: FB, fontSize: 16, fontWeight: 700, color: C.tx }}>June Consistency Challenge</div>
+          <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1, marginTop: 3 }}>21 DAYS LEFT · 8 ATHLETES · +10 PTS / LOGGED SESSION</div>
+        </div>
+        <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.gn, border: `1px solid ${C.gn}`, padding: '4px 10px', letterSpacing: 1 }}>ACTIVE</span>
+      </div>
+      <div style={demoCardStyle({ padding: 0 })}>
+        {board.map((r, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderBottom: i < board.length - 1 ? `1px solid ${C.cardBd}` : 'none' }}>
+            <span style={{ fontFamily: FN, fontSize: 14, fontWeight: 800, color: i === 0 ? C.ac : C.tm, width: 24 }}>{i + 1}</span>
+            <span style={{ flex: 1, fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600 }}>{r.name}</span>
+            <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, letterSpacing: 1 }}>{r.days} DAYS</span>
+            <span style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, color: C.ac, letterSpacing: 0.5 }}>{r.pts.toLocaleString()} PTS</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ── CALENDAR — mirrors src/BookingView.jsx (booking link + appointments).
+function DemoCalendar() {
+  const appts = [
+    { when: 'Today · 17:00',    who: 'נועה לוי',       type: 'Gym · 1-on-1' },
+    { when: 'Today · 18:30',    who: 'דניאל אבני',     type: 'Gym · 1-on-1' },
+    { when: 'Tomorrow · 09:00', who: 'יעל ועידן כהן',  type: 'Gym · Couple' },
+    { when: 'Tomorrow · 11:00', who: 'Open slot',       type: '— available —', open: true },
+    { when: 'Thu · 17:00',      who: 'עומר דגן',        type: 'Gym · 1-on-1' },
+  ];
+  return (
+    <section>
+      <div style={demoEyebrow}>COACH · CALENDAR</div>
+      <h2 style={demoH2}>Bookings without the back-and-forth.</h2>
+      <p style={demoLede}>Share a booking link; athletes self-book open slots and get an instant email confirmation. Your week fills itself, and every appointment sits right alongside your tasks.</p>
+      <div style={demoCardStyle({ padding: 0 })}>
+        <div style={{ padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}`, fontFamily: FN, fontSize: 11, fontWeight: 700, color: C.tx, letterSpacing: 1 }}>THIS WEEK · 5 APPOINTMENTS</div>
+        {appts.map((a, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderBottom: i < appts.length - 1 ? `1px solid ${C.cardBd}` : 'none', opacity: a.open ? 0.6 : 1 }}>
+            <span style={{ flex: '0 0 130px', fontFamily: FN, fontSize: 11, fontWeight: 700, color: a.open ? C.tm : C.ac, letterSpacing: 0.5 }}>{a.when}</span>
+            <span style={{ flex: 1, fontFamily: FB, fontSize: 14, color: C.tx, fontWeight: 600 }}>{a.who}</span>
+            <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: 1, textTransform: 'uppercase' }}>{a.type}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 // Mock plans the trainer can start workouts from — same shape as the real
 // app's planIndex (id, name, traineeId, dayNames). Ties to MOCK_TRAINEES.
@@ -3168,6 +3319,10 @@ export default function CoachDemo() {
         {tab === 'exercises' && <DemoExercises />}
         {tab === 'workouts'  && <DemoWorkouts />}
         {tab === 'sessions'  && <DemoSessions />}
+        {tab === 'intake'     && <DemoIntake />}
+        {tab === 'import'     && <DemoSmartImport />}
+        {tab === 'calendar'   && <DemoCalendar />}
+        {tab === 'challenges' && <DemoChallenges />}
         {tab === 'tasks'     && <DemoTasks />}
         {tab === 'billing'   && <DemoBilling />}
         {/* Review ▾ — WORKOUTS (engine review) | TOOLS (camera/pose launcher). */}
