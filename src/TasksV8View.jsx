@@ -569,6 +569,10 @@ function QuickFilters({ value, onChange, counts }) {
 
 // Smart composer — expands on focus to show assignee picker + due-date
 // input + section selector inline. Collapses back when empty + blurred.
+// yyyy-mm-dd → dd/mm/yyyy for display (Chromium's native date format is locale-
+// bound + lang= is unreliable, so we paint our own dd/mm/yyyy over the native
+// input and keep the native picker for input).
+const fmtDMY = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
 // Composer control grouping — a small uppercase label + its controls, so the
 // expanded "add task" row reads as labelled sections instead of a button soup.
 const cmpGroup = { display: 'inline-flex', alignItems: 'center', gap: 6 };
@@ -680,12 +684,16 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
               <span style={cmpLabel}>Due</span>
               {/* lang=en-GB → dd/mm/yyyy display; onClick showPicker → the WHOLE
                   field opens the picker, not just the calendar glyph. */}
-              <input
-                type="date" lang="en-GB" value={due}
-                onChange={(e) => setDue(e.target.value)}
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
-                style={{ background: 'transparent', color: 'var(--c-tm)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 22, borderRadius: 0, outline: 'none', cursor: 'pointer' }} />
+              <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                <input
+                  type="date" value={due}
+                  onChange={(e) => setDue(e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
+                  style={{ background: 'transparent', color: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 10, fontWeight: 600, padding: '3px 6px', height: 22, width: 120, borderRadius: 0, outline: 'none', cursor: 'pointer' }} />
+                {/* dd/mm/yyyy overlay (native text is transparent; calendar icon stays) */}
+                <span style={{ position: 'absolute', left: 7, fontFamily: FN, fontSize: 10, fontWeight: 600, color: due ? 'var(--c-tm)' : 'var(--c-td)', pointerEvents: 'none', letterSpacing: '0.02em' }}>{due ? fmtDMY(due) : 'DD/MM/YYYY'}</span>
+              </span>
               <input
                 type="time" value={time}
                 onChange={(e) => setTime(e.target.value)}
