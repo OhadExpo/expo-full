@@ -10,6 +10,7 @@
 // Feedback BEFORE the rep finishes — the gym-floor wow factor. No recommendations.
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { detectChannels, ANGLE_DEFS, angleAt, isReal } from './repCounter';
@@ -235,7 +236,12 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
 
   const countable = !!thr;
 
-  return (
+  // Portal to <body>: this overlay is position:fixed, but the Review-Tools host
+  // wraps its content in a `.motion-rise` entrance animation whose CSS transform
+  // makes a fixed child resolve against THAT box (≈1176×503) instead of the
+  // viewport — so the feed rendered letterboxed inside the page. Rendering through
+  // a body portal escapes the transform and gives a true full-screen overlay.
+  return createPortal(
     <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column' }}>
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
@@ -294,7 +300,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
               <button onClick={() => setShowAngles(s => { const n = !s; if (n) setShowSkeleton(false); return n; })} style={{ ...ctrl, background: showAngles ? C.ac : 'transparent', minWidth: 104 }}>JOINTS {showAngles ? 'ON' : 'OFF'}</button>
             </>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
