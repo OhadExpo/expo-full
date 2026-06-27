@@ -381,14 +381,21 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all
     // side margins on the coach screen). The 3D canvas stays centered inside.
     <div style={{ maxWidth: 1040, margin: '0 auto' }}>
       {tabs.length > 1 && <div style={{ display: 'flex', gap: 0, marginBottom: 14 }}>
-        {tabs.map(t => (
+        {tabs.map(t => {
+          // Longhand borders (not `border` shorthand + `borderLeft`) — mixing the
+          // two makes React re-apply them in a non-deterministic order on rerender
+          // (a styling bug + a console warning). Same visual: edge on 3 sides, the
+          // shared seam open on the left so adjacent tabs merge.
+          const bc = `1px solid ${tab === t.k ? C.ac : 'rgba(255,255,255,0.18)'}`;
+          return (
           <button key={t.k} disabled={!t.on} onClick={() => setTab(t.k)} style={{
             flex: 1, padding: '9px 6px', background: tab === t.k ? C.ac : 'transparent',
             color: t.on ? '#FFF' : 'rgba(255,255,255,0.35)',
-            border: `1px solid ${tab === t.k ? C.ac : 'rgba(255,255,255,0.18)'}`, borderLeft: 'none',
+            borderTop: bc, borderRight: bc, borderBottom: bc, borderLeft: 'none',
             fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: t.on ? 'pointer' : 'default',
           }}>{t.label}</button>
-        ))}
+          );
+        })}
       </div>}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
