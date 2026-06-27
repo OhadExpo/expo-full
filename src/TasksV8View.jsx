@@ -1839,6 +1839,15 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     if (n.has(id)) n.delete(id); else n.add(id);
     return n;
   });
+  // Board-view column collapse — auto-tasks collapsed by default (Ohad: "auto
+  // tasks should be collapsable"); persisted so it sticks across reloads.
+  const [boardCollapsed, setBoardCollapsed] = usePersistentState('tasks-board-collapsed', ['auto']);
+  const collapsedSet = new Set(boardCollapsed);
+  const toggleBoardSection = (key) => setBoardCollapsed(prev => {
+    const s = new Set(prev);
+    if (s.has(key)) s.delete(key); else s.add(key);
+    return [...s];
+  });
   const setPriority = async (row, p) => {
     const cur = row._priority || 'normal';
     if (cur === p) return;
@@ -2137,32 +2146,38 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               borderRadius: 0,
               display: 'flex', flexDirection: 'column',
             }}>
-              <div style={{
+              <div onClick={() => toggleBoardSection(section.key)} style={{
                 background: sourceColor(section.key), color: '#FFFFFF',
-                padding: '10px 12px',
+                padding: '10px 12px', cursor: 'pointer', gap: 8,
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
-                <span style={{
-                  fontFamily: FN, fontSize: 11, fontWeight: 700,
-                  letterSpacing: '0.12em', textTransform: 'uppercase',
-                }}>{sourceLabel(section.key, section.rows[0])}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                  <span style={{ fontSize: 10, opacity: 0.9 }}>{collapsedSet.has(section.key) ? '▸' : '▾'}</span>
+                  <span style={{
+                    fontFamily: FN, fontSize: 11, fontWeight: 700,
+                    letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                    overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{sourceLabel(section.key, section.rows[0])}</span>
+                </span>
                 <span style={{
                   fontFamily: FN, fontSize: 10, fontWeight: 700,
-                  letterSpacing: '0.06em', opacity: 0.85,
+                  letterSpacing: '0.06em', opacity: 0.85, flexShrink: 0,
                 }}>{section.rows.length}</span>
               </div>
-              <div style={{ maxHeight: 360, overflowY: 'auto' }}>
-                {section.rows.map(row => (
-                  <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
-                    theme={theme} showAvatar={owner === 'shared'} board
-                    expanded={expandedRows.has(row.id)}
-                    onToggleExpand={() => toggleRow(row.id)}
-                    onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
-                    search={search} viewer={viewerOwner}
-                    now={now} />
-                ))}
-              </div>
+              {!collapsedSet.has(section.key) && (
+                <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+                  {section.rows.map(row => (
+                    <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
+                      theme={theme} showAvatar={owner === 'shared'} board
+                      expanded={expandedRows.has(row.id)}
+                      onToggleExpand={() => toggleRow(row.id)}
+                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
+                      search={search} viewer={viewerOwner}
+                      now={now} />
+                  ))}
+                </div>
+              )}
             </div>
           ))}
           {sections.length === 0 && (
