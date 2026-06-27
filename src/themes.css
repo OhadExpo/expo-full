@@ -561,3 +561,9 @@ select {
   background-position: right 12px center !important;
   padding-right: 30px !important;
 }
+/* Task status/urgency pills want NO chevron (Ohad: "remove the little arrows") —
+   they read as coloured pills, not dropdowns. Override the global chevron. */
+select.task-select {
+  background-image: none !important;
+  padding-right: 8px !important;
+}

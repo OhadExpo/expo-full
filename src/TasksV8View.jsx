@@ -323,13 +323,14 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   const pillColor = sc ? sc.bg : 'var(--c-tm)';
   const filled = !!sc;
   const base = {
-    boxSizing: 'border-box', height: 26, width: 146, padding: '0 22px 0 10px', borderRadius: 0,
+    boxSizing: 'border-box', height: 26, width: 146, padding: '0 10px', borderRadius: 0,
     fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+    textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
     border: `1px solid ${pillColor}`,
     background: filled ? pillColor : 'transparent',
     color: filled ? (sc.fg || '#FFFFFF') : pillColor,
-    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
   if (readOnly) {
     return (
@@ -341,6 +342,7 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
   return (
     <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
       <select
+        className="task-select"
         value={status}
         onChange={(e) => onSetStatus(e.target.value)}
         onClick={(e) => e.stopPropagation()}
@@ -351,7 +353,6 @@ function StatusPill({ status, theme, onSetStatus, readOnly = false }) {
           <option key={o.id} value={o.id} style={{ background: '#fff', color: '#111' }}>{o.label}</option>
         ))}
       </select>
-      <span style={{ position: 'absolute', right: 8, fontSize: 8, opacity: 0.85, color: filled ? (sc.fg || '#FFFFFF') : pillColor, pointerEvents: 'none' }}>▾</span>
     </span>
   );
 }
@@ -390,21 +391,21 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
   // Native <select> — same reliability fix as StatusPill.
   const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
   const base = {
-    boxSizing: 'border-box', height: 22, padding: '0 18px 0 8px', borderRadius: 0,
+    boxSizing: 'border-box', height: 22, padding: '0 8px', borderRadius: 0,
     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+    textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
     border: `1px solid ${cur.color}`, background: 'transparent', color: cur.color,
-    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none',
+    appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: 'none',
   };
-  if (readOnly) return <span title={`Priority: ${cur.label}`} style={{ ...base, display: 'inline-flex', alignItems: 'center', padding: '0 8px' }}>{cur.label.toUpperCase()}</span>;
+  if (readOnly) return <span title={`Priority: ${cur.label}`} style={{ ...base, display: 'inline-flex', alignItems: 'center' }}>{cur.label.toUpperCase()}</span>;
   return (
     <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
-      <select value={priority} onChange={(e) => onSetPriority(e.target.value)}
+      <select className="task-select" value={priority} onChange={(e) => onSetPriority(e.target.value)}
         onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}
         title="Change urgency" style={{ ...base, cursor: 'pointer' }}>
         {PRIORITY_PICK.map(p => <option key={p.id} value={p.id} style={{ background: '#fff', color: '#111' }}>{p.label}</option>)}
       </select>
-      <span style={{ position: 'absolute', right: 6, fontSize: 7, opacity: 0.8, color: cur.color, pointerEvents: 'none' }}>▾</span>
     </span>
   );
 }
@@ -1289,7 +1290,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, readOnly = fa
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, now, search, viewer, readOnly = false }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, now, search, viewer, readOnly = false, board = false }) {
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1340,6 +1341,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         onMouseLeave={() => setHover(false)}
         style={{
           display: 'flex', alignItems: 'center', gap: 10,
+          // Board columns are narrow — wrap so the title gets its own full line
+          // (via order:-1 below) instead of being crushed by the status pill.
+          flexWrap: board ? 'wrap' : 'nowrap', rowGap: board ? 7 : 0,
           padding: '7px 12px 7px 9px', cursor: 'pointer', minHeight: 32,
           borderBottom: `1px solid var(--c-cardBd)`,
           borderLeft: `3px solid ${edgeColor}`,
@@ -1381,7 +1385,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           )}
         </div>
         {showAvatar && <AssigneeDot owner={row._owner} />}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start',
+          // Board: title takes its own full line above the controls (order:-1).
+          ...(board ? { order: -1, flexBasis: '100%' } : null) }}>
           <div style={{
             maxWidth: '100%',
             fontFamily: heb ? FH : FB,
@@ -1390,9 +1396,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             color: 'var(--c-tx)',
             direction: heb ? 'rtl' : 'ltr',
             textAlign: heb ? 'right' : 'left',
-            // Truncate when collapsed; show the FULL title when expanded so
-            // it isn't repeated in the detail body below (that dup was removed).
-            ...(expanded
+            // Truncate when collapsed in LIST; in board/expanded show the FULL
+            // title (wrapped) so it's actually readable in the narrow column.
+            ...((expanded || board)
               ? { whiteSpace: 'normal', wordBreak: 'break-word' }
               : { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }),
           }}>
@@ -1733,17 +1739,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   //  2. A SHARED task is editable ONLY on the Shared tab — never from an
   //     individual (Ohad/Yuval) tab, even though it shows there. Editing a
   //     shared task should happen in the shared context, not "as" one partner.
-  const isReadOnly = (r) => {
-    // The business OWNER (Ohad) oversees every task — never read-only for him,
-    // so he can change status / urgency on the other partner's tasks too. Staff
-    // (Yuval) still can't edit the owner's private queue.
-    if (viewerOwner === 'ohad') return false;
-    // Yuval (staff) cannot edit General (Ohad's business) tasks — status OR urgency.
-    if (viewerOwner === 'yuval' && sourceKey(r) === 'manual') return true;
-    if (r._owner !== viewerOwner && r._owner !== 'shared') return true;
-    if (r._owner === 'shared' && owner !== 'shared') return true;
-    return false;
-  };
+  // Ohad + Yuval run the business together — both can edit EVERY task's status
+  // and urgency (General/business tasks are shared work). No read-only guard.
+  const isReadOnly = () => false;
 
   // Owner + open filter is the base. Search narrows further.
   // Terminal states (done, cancelled) drop to the bottom pool.
@@ -2139,14 +2137,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                 {section.rows.map(row => (
                   <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
-                    theme={theme} showAvatar={owner === 'shared'}
+                    theme={theme} showAvatar={owner === 'shared'} board
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
                     onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
-                    search={search}
-                    gcalConnected={gcalConnected}
-                    onSyncToCalendar={handleSyncToCalendar}
-                    onDeleteFromCalendar={handleDeleteFromCalendar}
+                    search={search} viewer={viewerOwner}
                     now={now} />
                 ))}
               </div>
