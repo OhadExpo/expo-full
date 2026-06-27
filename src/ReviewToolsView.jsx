@@ -138,7 +138,7 @@ function ToolRow({ t, blocked, isLast, onOpen }) {
 }
 
 export default function ReviewToolsView() {
-  const [title, setTitle] = useState('Squat');
+  const [title, setTitle] = useState('');
   const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
   const [lastKey, setLastKey] = useState(null);
   const camOk = useRef(hasCameraApi());
@@ -180,8 +180,8 @@ export default function ReviewToolsView() {
       {/* Exercise name — drives the label/overlay for Lab / Metrics / Live.
           Jump auto-labels itself, so this is scoped to the other three. */}
       <div style={{ marginBottom: 22, maxWidth: 380 }}>
-        <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 7, textTransform: 'uppercase' }}>Exercise · for Lab / Metrics / Live</label>
-        <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat"
+        <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 7, textTransform: 'uppercase' }}>Exercise · optional — blank = auto-detect</label>
+        <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="Auto-detects the moving joint — or type e.g. Back Squat"
           style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', borderRadius: 0, outline: 'none' }} />
       </div>
 
@@ -195,10 +195,10 @@ export default function ReviewToolsView() {
       {tool && (
         <ToolBoundary toolKey={tool} onClose={close}>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
-            {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" onClose={close} />}
-            {tool === 'metrics' && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" onClose={close} />}
+            {tool === 'lab'     && <MovementLab exerciseTitle={title} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" onClose={close} />}
+            {tool === 'metrics' && <MovementLab exerciseTitle={title} initialMode="analyze" initialView="metrics" toolLabel="LIFT METRICS" onClose={close} />}
             {tool === 'jump'    && <MovementLab exerciseTitle="Vertical Jump" initialMode="jump" onClose={close} />}
-            {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
+            {tool === 'live'    && <ARFormOverlay exerciseTitle={title} onClose={close} />}
           </Suspense>
         </ToolBoundary>
       )}

@@ -277,7 +277,7 @@ export default function MovementLab({
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-            {(toolLabel || (mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'))} · {String(exerciseTitle).toUpperCase()}
+            {(toolLabel || (mode === 'jump' ? 'JUMP TEST' : 'MOVEMENT LAB'))} · {String(exerciseTitle || 'AUTO-DETECT').toUpperCase()}
           </div>
         </div>
         <button onClick={onClose} style={btn('rgba(255,255,255,0.3)', 'transparent')}>← BACK</button>
@@ -392,6 +392,7 @@ function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all
       </div>}
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
+        {result.auto && result.kind && result.kind !== 'none' && <span style={{ color: C.ac }}> · AUTO: {({ knee: 'KNEE', hip: 'HIP', elbow: 'ELBOW', sho: 'SHOULDER' })[result.kind] || result.kind.toUpperCase()}</span>}
       </div>
       {tab === 'velocity' && <VelocityTable v={result.velocity} barSpeed={result.barSpeed} frames={frames} />}
       {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} />}

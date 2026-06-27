@@ -13,6 +13,10 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { C, FN } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
 import { detectChannels, ANGLE_DEFS, angleAt, isReal } from './repCounter';
+import { GROUP_DEFS, groupAngleAt, titleLocksKind } from './poseLab';
+import { createLiveSkeleton } from './LiveSkeleton3D';
+
+const KIND_LABEL = { knee: 'KNEE', hip: 'HIP', elbow: 'ELBOW', sho: 'SHOULDER', none: 'HOLD' };
 
 const SKEL = [
   [11, 13], [13, 15], [12, 14], [14, 16], [11, 12],
@@ -38,6 +42,8 @@ const KIND_THRESHOLDS = {
 export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'environment', onClose }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const glCanvasRef = useRef(null);     // three.js 3D-skeleton overlay canvas
+  const glSkelRef = useRef(null);       // createLiveSkeleton() handle
   const streamRef = useRef(null);
   const lmRef = useRef(null);
   const rafRef = useRef(null);
@@ -52,11 +58,16 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const [showDepth, setShowDepth] = useState(true);
   useEffect(() => { showDepthRef.current = showDepth; }, [showDepth]);
   const [showReps, setShowReps] = useState(true);   // toggle the REPS/PHASE read-out
-  // One toggle drives BOTH the skeleton and the joint-angle numbers (Ohad: "both
-  // together as one button").
+  // Two toggles (Ohad): SKELETON = the 3D skeleton; JOINTS = the joint-angle
+  // numbers (the pose detector + joint meter, one button).
   const [showSkeleton, setShowSkeleton] = useState(true);
   const showSkeletonRef = useRef(true);
   useEffect(() => { showSkeletonRef.current = showSkeleton; }, [showSkeleton]);
+  const [showAngles, setShowAngles] = useState(true);
+  const showAnglesRef = useRef(true);
+  useEffect(() => { showAnglesRef.current = showAngles; }, [showAngles]);
+  const [skelMode, setSkelMode] = useState('lines'); // 'lines' fallback → 'model' once the GLB rig builds
+  const skelModeRef = useRef('lines');
   const [reps, setReps] = useState(0);
   const [moving, setMoving] = useState('top');  // 'top' | 'bottom' — live rep phase
   const [atDepth, setAtDepth] = useState(false);
@@ -71,9 +82,28 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
   const facingRef = useRef(facingMode);
   useEffect(() => { facingRef.current = facing; }, [facing]);
 
-  const { kind, channels } = detectChannels(exerciseTitle);
-  const thr = KIND_THRESHOLDS[kind];
-  const depthRelevant = kind === 'knee' || kind === 'hip';
+  // Auto-detect the working joint. Unless the exercise NAME pins a movement, the
+  // rep machine locks onto whichever joint group is actually moving the most over
+  // a rolling ROM window — so the coach doesn't have to type anything. A typed
+  // name is the override.
+  const titleLocked = titleLocksKind(exerciseTitle);
+  const lockedKind = detectChannels(exerciseTitle).kind;
+  const [activeKind, setActiveKind] = useState(titleLocked ? lockedKind : 'knee');
+  const activeKindRef = useRef(activeKind);
+  useEffect(() => { activeKindRef.current = activeKind; }, [activeKind]);
+  const romBufRef = useRef({ knee: [], hip: [], elbow: [], sho: [] });
+  const thr = KIND_THRESHOLDS[activeKind];
+  const depthRelevant = activeKind === 'knee' || activeKind === 'hip';
+
+  // Set up / tear down the three.js 3D-skeleton overlay once its canvas mounts.
+  useEffect(() => {
+    if (glCanvasRef.current && !glSkelRef.current) {
+      try { glSkelRef.current = createLiveSkeleton(glCanvasRef.current); } catch (e) { console.warn('3D skeleton init failed', e); }
+    }
+    const onResize = () => glSkelRef.current?.resize();
+    window.addEventListener('resize', onResize);
+    return () => { window.removeEventListener('resize', onResize); try { glSkelRef.current?.dispose(); } catch { /* noop */ } glSkelRef.current = null; };
+  }, []);
 
   const loop = useCallback(() => {
     const v = videoRef.current, lm = lmRef.current;
@@ -83,29 +113,46 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     const landmarks = res?.landmarks?.[0] || null;
     const world = res?.worldLandmarks?.[0] || null;
 
-    // --- live rep state machine (world landmarks → joint angle) ---
-    if (world && thr && channels.length) {
-      const angs = channels.map(name => {
-        const def = ANGLE_DEFS.find(a => a.name === name);
-        return def ? angleAt(world, def.a, def.b, def.c) : null;
-      }).filter(isReal);
-      if (angs.length) {
-        const avg = angs.reduce((a, b) => a + b, 0) / angs.length;
-        const buf = angleBufRef.current; buf.push(avg); if (buf.length > 8) buf.shift();
+    // --- auto-detect the working joint, then run the rep machine on it ---
+    if (world) {
+      // active group = locked by the typed name, or the biggest-ROM group over a
+      // rolling window (settles onto the real mover a few frames into the set).
+      let active = activeKindRef.current;
+      if (titleLocked) {
+        active = lockedKind;
+      } else {
+        let bestRange = 22, best = null;
+        for (const g of GROUP_DEFS) {
+          const a = groupAngleAt(world, g.channels);
+          if (a == null) continue;
+          const rb = romBufRef.current[g.kind]; rb.push(a); if (rb.length > 45) rb.shift();
+          if (rb.length >= 12) { const range = Math.max(...rb) - Math.min(...rb); if (range > bestRange) { bestRange = range; best = g.kind; } }
+        }
+        if (best) active = best;
+      }
+      if (active !== activeKindRef.current) {
+        // switched movement → reset the rep state so a half-cycle doesn't miscount
+        activeKindRef.current = active; setActiveKind(active);
+        angleBufRef.current = []; smoothHistRef.current = []; phaseRef.current = 'top';
+      }
+      const aThr = KIND_THRESHOLDS[active];
+      const grp = GROUP_DEFS.find(g => g.kind === active);
+      const cur = grp ? groupAngleAt(world, grp.channels) : null;
+      if (aThr && cur != null) {
+        const buf = angleBufRef.current; buf.push(cur); if (buf.length > 8) buf.shift();
         const sorted = [...buf].sort((a, b) => a - b);
         const smooth = sorted[Math.floor(sorted.length / 2)];
         // PHASE chip = live direction: angle flexing (decreasing) = DOWN,
-        // extending (increasing) = UP, ~stable = ISO (a hold/pause).
-        // Direction over a short window (not frame-to-frame) so the chip doesn't
-        // flicker up/down/iso on noise — the change must clear ISO_DEG over ~6 frames.
+        // extending (increasing) = UP, ~stable = ISO. Windowed (not frame-to-frame)
+        // so it doesn't flicker on noise — must clear ~5° over ~6 frames.
         const sh = smoothHistRef.current; sh.push(smooth); if (sh.length > 6) sh.shift();
         if (sh.length >= 4) {
           const vel = smooth - sh[0];
           const nd = Math.abs(vel) < 5 ? 'iso' : (vel < 0 ? 'down' : 'up');
           if (nd !== dirRef.current) { dirRef.current = nd; setDir(nd); }
         }
-        if (phaseRef.current === 'top' && smooth < thr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
-        else if (phaseRef.current === 'bottom' && smooth > thr.high) {
+        if (phaseRef.current === 'top' && smooth < aThr.low) { phaseRef.current = 'bottom'; setMoving('bottom'); }
+        else if (phaseRef.current === 'bottom' && smooth > aThr.high) {
           phaseRef.current = 'top'; setMoving('top'); setReps(r => r + 1);
           if (repHitDepthRef.current) setDepthReps(n => n + 1);   // this rep reached depth → count it
           repHitDepthRef.current = false;
@@ -117,7 +164,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     // DEPTH_TOL loosens the "full parallel" gate (was too strict — counts depth a
     // touch above parallel). Detection runs whenever depth is relevant; the toggle
     // only hides the display, not the count.
-    if (depthRelevant && landmarks) {
+    const depthRel = activeKindRef.current === 'knee' || activeKindRef.current === 'hip';
+    if (depthRel && landmarks) {
       const hip = midpt(landmarks[23], landmarks[24]);
       const knee = midpt(landmarks[25], landmarks[26]);
       const d = !!(hip && knee && hip.y >= knee.y - DEPTH_TOL);
@@ -125,9 +173,15 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       if (d && phaseRef.current === 'bottom') repHitDepthRef.current = true;
     }
 
-    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRelevant, skeleton: showSkeletonRef.current, angles: showSkeletonRef.current });
+    // 3D skeleton (three.js overlay) when SKELETON is on; the 2D layer keeps the
+    // angle labels + depth/bar-path, so its flat skeleton lines are turned off.
+    if (glSkelRef.current) {
+      glSkelRef.current.update(showSkeletonRef.current ? landmarks : null, world, false);
+      if (skelModeRef.current !== 'model' && glSkelRef.current.usingGlb) { skelModeRef.current = 'model'; setSkelMode('model'); }
+    }
+    draw(canvasRef.current, v, landmarks, world, anchorRef, { depth: showDepthRef.current && depthRel, skeleton: false, angles: showAnglesRef.current });
     rafRef.current = requestAnimationFrame(loop);
-  }, [depthRelevant, thr, channels]);
+  }, [titleLocked, lockedKind]);
 
   const start = useCallback(async () => {
     setError(null); setPhase('loading');
@@ -141,6 +195,7 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       anchorRef.current = null; angleBufRef.current = []; phaseRef.current = 'top';
       setReps(0); setMoving('top');
       setPhase('live');
+      requestAnimationFrame(() => glSkelRef.current?.resize());   // canvas is laid out now
       rafRef.current = requestAnimationFrame(loop);
     } catch (e) { setPhase('idle'); setError(e?.message || 'Could not start the camera.'); }
   }, [loop]);
@@ -174,13 +229,16 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
     <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1500, display: 'flex', flexDirection: 'column' }}>
       <div style={{ position: 'absolute', top: 14, left: 14, right: 14, zIndex: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.18em', fontWeight: 700 }}>
-          LIVE COACH · {String(exerciseTitle).toUpperCase()}
+          LIVE COACH · {titleLocked ? String(exerciseTitle).toUpperCase() : `AUTO · ${KIND_LABEL[activeKind] || ''}`}
         </div>
         <button onClick={onClose} style={hdrBtn}>← BACK</button>
       </div>
 
       <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
         <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {/* 3D skeleton (three.js) sits ABOVE the video, BELOW the 2D HUD canvas so
+            the angle labels stay readable on top of the bones. */}
+        <canvas ref={glCanvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
         <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
 
         {/* LIVE HUD — the read-outs, in legible mono. Sits top-centre, out of the
@@ -222,7 +280,8 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
               <button onClick={flipCamera} style={{ ...ctrl, minWidth: 104 }}>⟲ {facing === 'user' ? 'FRONT' : 'REAR'}</button>
               {countable && <button onClick={() => setShowReps(s => !s)} style={{ ...ctrl, background: showReps ? C.ac : 'transparent', minWidth: 100 }}>REPS {showReps ? 'ON' : 'OFF'}</button>}
               {depthRelevant && <button onClick={() => setShowDepth(s => !s)} style={{ ...ctrl, background: showDepth ? C.ac : 'transparent', minWidth: 104 }}>DEPTH {showDepth ? 'ON' : 'OFF'}</button>}
-              <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 116 }}>SKELETON {showSkeleton ? 'ON' : 'OFF'}</button>
+              <button onClick={() => setShowSkeleton(s => !s)} style={{ ...ctrl, background: showSkeleton ? C.ac : 'transparent', minWidth: 150 }}>SKELETON {showSkeleton ? 'ON' : 'OFF'}{showSkeleton ? ` · ${skelMode === 'model' ? '3D MODEL' : 'LINES'}` : ''}</button>
+              <button onClick={() => setShowAngles(s => !s)} style={{ ...ctrl, background: showAngles ? C.ac : 'transparent', minWidth: 104 }}>JOINTS {showAngles ? 'ON' : 'OFF'}</button>
             </>}
       </div>
     </div>

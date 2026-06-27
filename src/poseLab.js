@@ -20,7 +20,45 @@
 // image-unit per frame (a mostly-vertical ruler keeps aspect-ratio error low).
 // A "frame" captured by the loop is { t (ms), landmarks, worldLandmarks }.
 
-import { ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, isReal } from './repCounter';
+import { ANGLE_DEFS, angleAt, detectChannels, CHANNEL_RULES, medianFilter, findPeaks, isReal } from './repCounter';
+
+// The four joint-angle groups auto-detect chooses between when the exercise name
+// doesn't pin one. Each is a kind + its L/R channel pair (averaged like the live
+// counter). depthRelevant kinds (knee/hip) drive the depth read-out.
+export const GROUP_DEFS = [
+  { kind: 'knee',  channels: ['L KNE', 'R KNE'] },
+  { kind: 'hip',   channels: ['L HIP', 'R HIP'] },
+  { kind: 'elbow', channels: ['L ELB', 'R ELB'] },
+  { kind: 'sho',   channels: ['L SHO', 'R SHO'] },
+];
+
+// Average a channel pair's 3D angle at one frame's worldLandmarks → one number.
+export function groupAngleAt(lms, channels) {
+  if (!lms) return null;
+  const vals = channels.map(name => {
+    const d = ANGLE_DEFS.find(a => a.name === name);
+    return d ? angleAt(lms, d.a, d.b, d.c) : null;
+  }).filter(isReal);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+
+// True when the exercise name explicitly pins a movement (any CHANNEL_RULE hit),
+// so auto-detect should NOT override it. A blank/unknown name is NOT locked.
+export const titleLocksKind = (title) => CHANNEL_RULES.some(r => r.rx.test(String(title || '')));
+
+// Pick the joint group with the biggest range of motion across the clip — the
+// primary mover. Falls back to null when nothing moved enough (caller keeps its
+// default). minRange guards against noise picking a jittery-but-static joint.
+export function autoDetectGroup(frames, minRange = 22) {
+  let best = null, bestRange = minRange;
+  for (const g of GROUP_DEFS) {
+    const series = frames.map(f => groupAngleAt(f.worldLandmarks, g.channels)).filter(isReal);
+    if (series.length < 4) continue;
+    const range = Math.max(...series) - Math.min(...series);
+    if (range > bestRange) { bestRange = range; best = g; }
+  }
+  return best;
+}
 
 // MediaPipe Pose landmark indices we lean on.
 export const LM = {
@@ -54,18 +92,17 @@ function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? -lm2.y * scale 
 // aligned to the frame timestamps. Mirrors the live counter's averaging of the
 // L+R channel pair so asymmetry doesn't drop a rep.
 export function channelSignal(frames, exerciseTitle) {
-  const { kind, channels } = detectChannels(exerciseTitle);
+  let { kind, channels } = detectChannels(exerciseTitle);
+  // Auto-detect: when the name didn't pin a movement, let the lift speak for
+  // itself — use the joint group that actually moved the most across the clip.
+  let auto = false;
+  if (!titleLocksKind(exerciseTitle)) {
+    const g = autoDetectGroup(frames);
+    if (g) { kind = g.kind; channels = g.channels; auto = true; }
+  }
   const t = frames.map(f => f.t);
-  const raw = frames.map(f => {
-    const lms = f.worldLandmarks;
-    if (!lms || channels.length === 0) return null;
-    const vals = channels.map(name => {
-      const d = ANGLE_DEFS.find(a => a.name === name);
-      return d ? angleAt(lms, d.a, d.b, d.c) : null;
-    }).filter(isReal);
-    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-  });
-  return { t, angle: medianFilter(raw, 5), kind, channels };
+  const raw = frames.map(f => (channels.length === 0 ? null : groupAngleAt(f.worldLandmarks, channels)));
+  return { t, angle: medianFilter(raw, 5), kind, channels, auto };
 }
 
 // ---------------------------------------------------------------------------
@@ -437,13 +474,13 @@ export function frameToPoints3D(worldLandmarks) {
 export function analyzeClip(frames, exerciseTitle, opts = {}) {
   if (!frames || frames.length < 4) return { ok: false, reason: 'too-few-frames' };
   const fps = estimateFps(frames);
-  const { angle, kind, channels } = channelSignal(frames, exerciseTitle);
+  const { angle, kind, channels, auto } = channelSignal(frames, exerciseTitle);
   const reps = channels.length ? segmentReps(angle, fps) : [];
   const velocity = reps.length ? velocityMetrics(frames, angle, reps, opts.barLandmark) : null;
   const romTempo = reps.length ? romTempoMetrics(frames, angle, reps) : null;
   const jointRom = jointRomMetrics(frames);
   const barSpeed = barSpeedSeries(frames, opts.barLandmark);
-  return { ok: true, fps, kind, repCount: reps.length, reps, velocity, romTempo, jointRom, barSpeed, frameCount: frames.length };
+  return { ok: true, fps, kind, auto, repCount: reps.length, reps, velocity, romTempo, jointRom, barSpeed, frameCount: frames.length };
 }
 
 // --- small helpers ---
