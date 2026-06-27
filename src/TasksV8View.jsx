@@ -456,9 +456,9 @@ function OwnerTab({ label, count, active, onClick }) {
   return (
     <button onClick={onClick} className="tfbtn" data-active={active ? '' : undefined} style={{
       flex: 1, minWidth: 0,
-      background: active ? 'rgba(255,255,255,0.10)' : 'transparent',
-      color: active ? '#FFFFFF' : 'var(--c-tm)',
-      border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : 'var(--c-cardBd)'}`,
+      background: active ? 'var(--c-sf2)' : 'transparent',
+      color: active ? 'var(--c-tx)' : 'var(--c-tm)',
+      border: `1px solid ${active ? 'var(--c-tx)' : 'var(--c-cardBd)'}`,
       fontFamily: FN, fontSize: 10, fontWeight: 700,
       letterSpacing: '0.12em', padding: '0 14px', height: 28,
       cursor: 'pointer', borderRadius: 0,
@@ -485,8 +485,8 @@ function ViewToggle({ value, onChange }) {
     }}>
       {items.map((it, i) => (
         <button key={it.id} onClick={() => onChange(it.id)} className="tfbtn" data-active={value === it.id ? '' : undefined} style={{
-          background: value === it.id ? 'rgba(255,255,255,0.08)' : 'transparent',
-          color: value === it.id ? '#FFFFFF' : C.tm,
+          background: value === it.id ? 'var(--c-sf2)' : 'transparent',
+          color: value === it.id ? 'var(--c-tx)' : 'var(--c-tm)',
           border: 'none',
           borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
           fontFamily: FN, fontSize: 10, fontWeight: 700,
@@ -513,9 +513,9 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
   };
   const pill = (active) => ({
     ...boxBase,
-    border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : C.cardBd}`,
-    background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-    color: active ? '#FFFFFF' : C.tm,
+    border: `1px solid ${active ? 'var(--c-tx)' : C.cardBd}`,
+    background: active ? 'var(--c-sf2)' : 'transparent',
+    color: active ? 'var(--c-tx)' : C.tm,
     fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
   });
   const isFiltered = search.trim() !== '';
@@ -586,9 +586,9 @@ function QuickFilters({ value, onChange, counts }) {
           <button key={f.id} onClick={() => onChange(f.id)} className="tfbtn" data-active={active ? '' : undefined} style={{
             flex: 1, minWidth: 0,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-            color: active ? '#FFFFFF' : 'var(--c-tm)',
-            border: `1px solid ${active ? 'rgba(255,255,255,0.6)' : 'var(--c-cardBd)'}`,
+            background: active ? 'var(--c-sf2)' : 'transparent',
+            color: active ? 'var(--c-tx)' : 'var(--c-tm)',
+            border: `1px solid ${active ? 'var(--c-tx)' : 'var(--c-cardBd)'}`,
             fontFamily: FN, fontSize: 10, fontWeight: 700,
             letterSpacing: '0.12em', padding: '0 12px', height: 28,
             cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
@@ -2028,12 +2028,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 14px' }}>
-      {/* Filter/sort/owner/view buttons: soft white hover highlight (Ohad).
-          Active state is handled inline; this only adds the hover affordance. */}
+      {/* Filter/sort/owner/view buttons: soft hover highlight (Ohad). Theme-aware
+          — the old hardcoded white text/bg/border made every button vanish in
+          light theme (white-on-white). Active state is handled inline. */}
       <style>{`
         .tfbtn{ transition: background .12s, color .12s, border-color .12s; }
-        .tfbtn:hover{ color:#FFFFFF !important; background:rgba(255,255,255,0.06) !important; border-color:rgba(255,255,255,0.35) !important; }
-        .tfbtn[data-active]:hover{ background:rgba(255,255,255,0.12) !important; border-color:rgba(255,255,255,0.7) !important; }
+        .tfbtn:hover{ color:var(--c-tx) !important; background:var(--c-sf2) !important; border-color:var(--c-tm) !important; }
+        .tfbtn[data-active]:hover{ background:var(--c-sf2) !important; border-color:var(--c-tx) !important; }
       `}</style>
       {/* Title + Google Calendar connect state */}
       <div style={{
