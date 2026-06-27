@@ -185,55 +185,64 @@ const basisQ = (pRest, sRest, pPose, sPose) => {
   _mRot.multiplyMatrices(_mPose, _mRest);
   return _qb.setFromRotationMatrix(_mRot).clone();
 };
-const _t1 = new THREE.Matrix4(), _r = new THREE.Matrix4(), _t2 = new THREE.Matrix4();
-const setBone = (mesh, prox, q, restProx) => {
+const _t1 = new THREE.Matrix4(), _r = new THREE.Matrix4(), _t2 = new THREE.Matrix4(), _mScale = new THREE.Matrix4();
+// scale (default 1 → identity, so offline callers are byte-for-byte unchanged) grows
+// the bone about its proximal joint so the live overlay can resize the whole skeleton
+// with the athlete's distance (paired with the same scale on the joint advances below).
+const setBone = (mesh, prox, q, restProx, scale = 1) => {
   if (!mesh || !prox || !q) return;
   const rp = restProx || ZERO;
   _t1.makeTranslation(prox.x, prox.y, prox.z);
   _r.makeRotationFromQuaternion(q);
   _t2.makeTranslation(-rp.x, -rp.y, -rp.z);
-  mesh.matrix.copy(_t1).multiply(_r).multiply(_t2);
+  mesh.matrix.copy(_t1).multiply(_r);
+  if (scale !== 1) mesh.matrix.multiply(_mScale.makeScale(scale, scale, scale));
+  mesh.matrix.multiply(_t2);
   mesh.matrixAutoUpdate = false; mesh.visible = true;
 };
 
 // CONNECTED FK pose: anchor each bone at its parent's posed joint, rotate to the
 // captured segment direction, advance, recurse. `twist` adds axial roll from the
 // bend-plane with the segment below; falls back to swing where unreliable.
-export function poseRig(fp, rig, twist = true) {
+export function poseRig(fp, rig, twist = true, scale = 1) {
   const { J, M, mode } = rig;
   const hipC = cg(fp, 'hipCenter'), shoC = cg(fp, 'shoCenter'); if (!hipC || !shoC) return;
   const wj = {};
+  // Each rig segment is laid out at the model's BUILD size; multiplying every
+  // joint advance (and the bone mesh in setBone) by `scale` resizes the whole
+  // skeleton about the hip so the live overlay tracks the athlete's distance.
+  // scale === 1 leaves every value identical to before (offline Lab path).
   const upPose = sub(shoC, hipC);
   const shoLinePose = sub(cg(fp, 12), cg(fp, 11)), hipLinePose = sub(cg(fp, 24), cg(fp, 23));
   const qSpine = twist
     ? basisQ(J.shoCenter, sub(J.shoulderR, J.shoulderL), upPose, shoLinePose)
     : alignQ(J.shoCenter, upPose);
-  wj.shoCenter = add(hipC, app(J.shoCenter, qSpine));
+  wj.shoCenter = add(hipC, app(J.shoCenter, qSpine).multiplyScalar(scale));
   let qPel = qSpine;
   if (mode === 'skel' && hipLinePose && J.hipR && J.hipL) {
     qPel = twist
       ? basisQ(sub(J.hipR, J.hipL), J.shoCenter, hipLinePose, upPose)
       : alignQ(sub(J.hipR, J.hipL), hipLinePose);
   }
-  if (J.hipL) wj.hipL = add(hipC, app(J.hipL, qPel));
-  if (J.hipR) wj.hipR = add(hipC, app(J.hipR, qPel));
+  if (J.hipL) wj.hipL = add(hipC, app(J.hipL, qPel).multiplyScalar(scale));
+  if (J.hipR) wj.hipR = add(hipC, app(J.hipR, qPel).multiplyScalar(scale));
   let qSho = qSpine;
   if (mode === 'skel' && shoLinePose && J.shoulderR && J.shoulderL) {
     qSho = twist
       ? basisQ(sub(J.shoulderR, J.shoulderL), J.shoCenter, shoLinePose, upPose)
       : alignQ(sub(J.shoulderR, J.shoulderL), shoLinePose);
   }
-  if (J.shoulderL) wj.shoulderL = add(wj.shoCenter, app(sub(J.shoulderL, J.shoCenter), qSho));
-  if (J.shoulderR) wj.shoulderR = add(wj.shoCenter, app(sub(J.shoulderR, J.shoCenter), qSho));
+  if (J.shoulderL) wj.shoulderL = add(wj.shoCenter, app(sub(J.shoulderL, J.shoCenter), qSho).multiplyScalar(scale));
+  if (J.shoulderR) wj.shoulderR = add(wj.shoCenter, app(sub(J.shoulderR, J.shoCenter), qSho).multiplyScalar(scale));
   const ch = sub(cg(fp, 'headRef'), wj.shoCenter);
   const qHead = (ch && J.headTip) ? alignQ(sub(J.headTip, J.shoCenter), ch) : qSpine;
 
   if (mode === 'skel') {
-    setBone(M.pelvis && M.pelvis.mesh, hipC, qPel, ZERO);
-    setBone(M.spine && M.spine.mesh, hipC, qSpine, ZERO);
-    setBone(M.clavL && M.clavL.mesh, wj.shoCenter, qSpine, J.shoCenter);
-    setBone(M.clavR && M.clavR.mesh, wj.shoCenter, qSpine, J.shoCenter);
-    setBone(M.skull && M.skull.mesh, wj.shoCenter, qHead, J.shoCenter);
+    setBone(M.pelvis && M.pelvis.mesh, hipC, qPel, ZERO, scale);
+    setBone(M.spine && M.spine.mesh, hipC, qSpine, ZERO, scale);
+    setBone(M.clavL && M.clavL.mesh, wj.shoCenter, qSpine, J.shoCenter, scale);
+    setBone(M.clavR && M.clavR.mesh, wj.shoCenter, qSpine, J.shoCenter, scale);
+    setBone(M.skull && M.skull.mesh, wj.shoCenter, qHead, J.shoCenter, scale);
   }
 
   const chain = (prox, idxs, jk, mk) => {
@@ -241,7 +250,7 @@ export function poseRig(fp, rig, twist = true) {
     for (let i = 0; i < mk.length; i++) {
       const ca = cg(fp, idxs[i]), cb = cg(fp, idxs[i + 1]);
       const ja = J[jk[i]], jb = J[jk[i + 1]];
-      if (!p || !ca || !cb || !ja || !jb) { if (p && ja && jb) p = add(p, sub(jb, ja)); continue; }
+      if (!p || !ca || !cb || !ja || !jb) { if (p && ja && jb) p = add(p, sub(jb, ja).multiplyScalar(scale)); continue; }
       let q;
       if (twist) {
         const jc = J[jk[i + 2]], cc = cg(fp, idxs[i + 2]);
@@ -250,8 +259,8 @@ export function poseRig(fp, rig, twist = true) {
       } else {
         q = alignQ(sub(jb, ja), sub(cb, ca));
       }
-      setBone(M[mk[i]] && M[mk[i]].mesh, p, q, ja);
-      p = add(p, app(sub(jb, ja), q));
+      setBone(M[mk[i]] && M[mk[i]].mesh, p, q, ja, scale);
+      p = add(p, app(sub(jb, ja), q).multiplyScalar(scale));
     }
   };
   if (wj.shoulderL) chain(wj.shoulderL, [11, 13, 15, 19], ['shoulderL', 'elbowL', 'wristL', 'handTipL'], ['uarmL', 'farmL', 'handL']);

@@ -57,7 +57,7 @@ export function createLiveSkeleton(canvas) {
   // Bone tone that reads on a live (variable) video background: warm ivory with a
   // lift of emissive so it doesn't vanish against a bright wall.
   const glbMat = new THREE.MeshStandardMaterial({ color: 0xede6d6, roughness: 0.7, metalness: 0.0, emissive: 0x14110a, emissiveIntensity: 0.4, side: THREE.FrontSide });
-  let glbScene = null, rig = null, glbFailed = false;
+  let glbScene = null, rig = null, glbFailed = false, buildSpan = 0;
   const draco = new DRACOLoader(); draco.setDecoderPath(DRACO_PATH);
   const loader = new GLTFLoader(); loader.setDRACOLoader(draco);
   loader.loadAsync('/anatomy/skeleton.glb')
@@ -129,18 +129,28 @@ export function createLiveSkeleton(canvas) {
   }
   const hideCylinders = () => { bones.forEach(m => (m.visible = false)); joints.forEach(m => (m.visible = false)); };
 
+  // shoulder-centre → hip-centre distance in the overlay plane: a stable proxy for
+  // the athlete's apparent size, so the rig (built once) can be re-scaled to it.
+  const spanOf = (fp) => {
+    const a = fp[11], b = fp[12], c = fp[23], d = fp[24];
+    if (!a || !b || !c || !d) return 0;
+    return Math.hypot((a.x + b.x) / 2 - (c.x + d.x) / 2, (a.y + b.y) / 2 - (c.y + d.y) / 2);
+  };
+
   function update(landmarks, world, mirrored = false) {
     if (!landmarks) { hideCylinders(); skelGroup.visible = false; renderer.render(scene, camera); return; }
     const fp = toFp(landmarks, world, mirrored);
     // build the GLB rig once, off the first frame that has the core joints.
     if (!rig && glbScene && fp[23] && fp[24] && fp[11] && fp[12] && fp[25] && fp[26]) {
-      try { rig = buildRig(bucketGeos(glbScene, classifyBone), glbMat, skelGroup, 'skel', fp); }
+      try { rig = buildRig(bucketGeos(glbScene, classifyBone), glbMat, skelGroup, 'skel', fp); buildSpan = spanOf(fp); }
       catch (e) { glbFailed = true; console.warn('live skeleton rig build failed — keeping fallback', e); }
       if (!rig) glbFailed = true;
     }
     if (rig) {
       hideCylinders(); skelGroup.visible = true;
-      try { poseRig(fp, rig, true); } catch { /* keep last good pose */ }
+      // resize to current distance: clamp so a bad frame can't blow the rig up.
+      const s = buildSpan > 1e-4 ? Math.max(0.55, Math.min(1.9, spanOf(fp) / buildSpan)) : 1;
+      try { poseRig(fp, rig, true, s); } catch { /* keep last good pose */ }
     } else {
       skelGroup.visible = false; poseCylinders(landmarks, world, mirrored);
     }
