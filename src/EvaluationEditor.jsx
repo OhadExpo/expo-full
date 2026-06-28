@@ -433,7 +433,14 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 8, marginBottom: 18 }}>
           <div>
             <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>DATE</div>
-            <input type="date" value={evalDate} onChange={e => setEvalDate(e.target.value)} style={{ ...inputBase, width: '100%' }} />
+            {/* dd/mm/yyyy overlay (native date renders the browser locale = MM/DD/YYYY
+                on Ohad's en-US machine). Transparent native input + centered span. */}
+            <div style={{ position: 'relative', display: 'flex' }}>
+              <input type="date" value={evalDate} onChange={e => setEvalDate(e.target.value)}
+                onClick={e => { try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
+                style={{ ...inputBase, width: '100%', color: 'transparent', cursor: 'pointer' }} />
+              <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', fontFamily: FN, fontSize: 12, color: 'var(--c-tx)', opacity: evalDate ? 1 : 0.45 }}>{evalDate ? evalDate.split('-').reverse().join('/') : 'DD/MM/YYYY'}</span>
+            </div>
           </div>
           <div>
             <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-tm)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>TIME</div>
