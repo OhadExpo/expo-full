@@ -1995,18 +1995,26 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         if (e.key === 'Escape') e.target.blur();
         return;
       }
+      if (e.metaKey || e.ctrlKey || e.altKey) return; // never hijack browser combos
+      const k = e.key.toLowerCase();
       if (e.key === '/') {
         e.preventDefault();
-        const inp = document.querySelector('input[placeholder="Search…"]');
-        inp?.focus();
+        document.querySelector('input[placeholder="Search…"]')?.focus();
+      } else if (k === 'n' || k === 'c') {            // N / C = new task (focus composer)
+        e.preventDefault();
+        document.querySelector('input[placeholder="Add task…"]')?.focus();
+      } else if (k === 'b') {                          // B = toggle Board / List
+        e.preventDefault();
+        setView(v => (v === 'board' ? 'list' : 'board'));
       } else if (e.key === 'Escape') {
         if (search) setSearch('');
         if (expandedRows.size) setExpandedRows(new Set());
+        if (quickAddKey) { setQuickAddKey(null); setQuickAddText(''); }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [search, expandedRows]);
+  }, [search, expandedRows, quickAddKey]);
 
   if (loading) return <div style={{ padding: 24, color: 'var(--c-tm)' }}>Loading…</div>;
 
