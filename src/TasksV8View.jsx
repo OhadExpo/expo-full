@@ -1479,6 +1479,12 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     if (viewerOwner === 'ohad'  && owner === 'yuval') setOwner('ohad');
   }, [viewerOwner]); // eslint-disable-line react-hooks/exhaustive-deps
   const [view, setView] = useState('list'); // 'list' | 'board'
+  // Board grouping (Monday-style): 'status' = a To Do→In Progress→Done kanban,
+  // 'list' = the by-category columns. Drag a card between columns to change that
+  // dimension. Persisted so the chosen board sticks.
+  const [boardGroup, setBoardGroup] = usePersistentState('tasks-board-group', 'status');
+  const draggedRowRef = useRef(null);            // row being dragged (ref → no dragstart re-render abort)
+  const [dropKey, setDropKey] = useState(null);  // column currently highlighted as drop target
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [sortBy, setSortBy] = useState('date');
   const [sortDir, setSortDir] = useState('asc');
@@ -1828,6 +1834,35 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     return result;
   }, [quickFiltered, sortBy, sortDir, now]);
 
+  // Status-kanban columns (board "Group: Status"): the 5 active statuses as
+  // columns, owner-matched + searched, INCLUDING done so its column fills.
+  // Cancelled is excluded (it stays in the bottom Done/Cancelled pool). Empty
+  // columns are KEPT so a card can be dragged into an empty status.
+  const statusSections = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const src = decorated.filter(r => ownerMatches(r) && r.status !== 'cancelled'
+      && (!q || (r._display || r.body || '').toLowerCase().includes(q)));
+    const order = ['open', 'working', 'waiting', 'stuck', 'done'];
+    const byStatus = new Map(order.map(s => [s, []]));
+    for (const r of src) { const s = byStatus.has(r.status) ? r.status : 'open'; byStatus.get(s).push(r); }
+    return order.map(s => ({ key: 'status:' + s, statusId: s, rows: applySort(byStatus.get(s), sortBy, sortDir, now) }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [decorated, owner, search, sortBy, sortDir, now]);
+
+  const boardSections = (view === 'board' && boardGroup === 'status') ? statusSections : sections;
+
+  // Drop a dragged card onto a column → change that column's dimension.
+  const onDropToColumn = async (section) => {
+    const row = draggedRowRef.current; draggedRowRef.current = null; setDropKey(null);
+    if (!row) return;
+    if (boardGroup === 'status' && section.statusId && section.statusId !== row.status) {
+      await setStatus(row, section.statusId);
+    } else if (boardGroup === 'list') {
+      if (section.key === 'center' && sourceKey(row) !== 'center') await setCategory(row, 'center');
+      else if (section.key === 'manual' && sourceKey(row) === 'center') await setCategory(row, '');
+    }
+  };
+
   // Terminal pool — done AND cancelled live together at the bottom.
   const done = useMemo(
     () => decorated.filter(r => ownerMatches(r) && (r.status === 'done' || r.status === 'cancelled')),
@@ -2007,6 +2042,19 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
         </div>
         <ViewToggle value={view} onChange={setView} />
+        {view === 'board' && (
+          <div style={{ display: 'inline-flex', border: `1px solid var(--c-cardBd)`, borderRadius: 0, height: 28, boxSizing: 'border-box' }}>
+            {[{ id: 'status', label: 'Status' }, { id: 'list', label: 'List' }].map((g, i) => (
+              <button key={g.id} onClick={() => setBoardGroup(g.id)} className="tfbtn" data-active={boardGroup === g.id ? '' : undefined} style={{
+                background: boardGroup === g.id ? 'var(--c-sf2)' : 'transparent',
+                color: boardGroup === g.id ? 'var(--c-tx)' : 'var(--c-tm)',
+                border: 'none', borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', padding: '0 12px', height: 26,
+                cursor: 'pointer', textTransform: 'uppercase',
+              }}>{g.label}</button>
+            ))}
+          </div>
+        )}
       </div>
 
       <SortBar
@@ -2125,47 +2173,64 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       ) : (
         // BOARD view — same data as cards. Uses auto-fill (not auto-fit) so
         // a single matching card doesn't stretch the full width on search.
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))',
-          gap: 14,
-        }}>
-          {sections.map(section => (
-            <div key={section.key} style={{
-              border: `1px solid var(--c-cardBd)`,
-              background: 'var(--c-sf)',
-              borderRadius: 0,
-              display: 'flex', flexDirection: 'column',
-            }}>
+        <div style={boardGroup === 'status'
+          // Status kanban = horizontal column row (Monday/Trello style), scroll-x.
+          ? { display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8, alignItems: 'flex-start' }
+          // List grouping keeps the responsive wrapping grid.
+          : { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 14 }
+        }>
+          {boardSections.map(section => {
+            const isStatus = !!section.statusId;
+            // Saturated, white-text-safe header colours per status (To Do→Done).
+            const STATUS_HEAD = { open: '#5B6B7A', working: '#2C82C9', waiting: '#C9851E', stuck: '#C0392B', done: '#2E9E5B' };
+            const headBg = isStatus ? (STATUS_HEAD[section.statusId] || '#5B6B7A') : sourceColor(section.key);
+            const headLabel = isStatus
+              ? (STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId)
+              : sourceLabel(section.key, section.rows[0]);
+            const isDropTarget = dropKey === section.key;
+            return (
+            <div key={section.key}
+              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (dropKey !== section.key) setDropKey(section.key); }}
+              onDragLeave={e => { if (e.currentTarget === e.target && dropKey === section.key) setDropKey(null); }}
+              onDrop={e => { e.preventDefault(); onDropToColumn(section); }}
+              style={{
+                border: `1px solid ${isDropTarget ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
+                background: isDropTarget ? 'var(--c-sf2)' : 'var(--c-sf)',
+                borderRadius: 0, display: 'flex', flexDirection: 'column', transition: 'background 0.12s, border-color 0.12s',
+                ...(isStatus ? { flex: '0 0 300px', minWidth: 300 } : {}),
+              }}>
               <div style={{
-                background: sourceColor(section.key), color: '#FFFFFF',
-                padding: '10px 12px',
+                background: headBg, color: '#FFFFFF', padding: '10px 12px',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 borderBottom: `1px solid var(--c-cardBd)`,
               }}>
-                <span style={{
-                  fontFamily: FN, fontSize: 11, fontWeight: 700,
-                  letterSpacing: '0.12em', textTransform: 'uppercase',
-                }}>{sourceLabel(section.key, section.rows[0])}</span>
-                <span style={{
-                  fontFamily: FN, fontSize: 10, fontWeight: 700,
-                  letterSpacing: '0.06em', opacity: 0.85,
-                }}>{section.rows.length}</span>
+                <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{headLabel}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', opacity: 0.85 }}>{section.rows.length}</span>
               </div>
-              <div style={{ maxHeight: 360, overflowY: 'auto' }}>
+              <div style={{ maxHeight: 360, minHeight: isStatus ? 52 : undefined, overflowY: 'auto' }}>
                 {section.rows.map(row => (
-                  <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
-                    theme={theme} showAvatar={owner === 'shared'} board
-                    expanded={expandedRows.has(row.id)}
-                    onToggleExpand={() => toggleRow(row.id)}
-                    onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
-                    search={search} viewer={viewerOwner}
-                    now={now} />
+                  <div key={row.id}
+                    draggable={!isReadOnly(row)}
+                    onDragStart={e => { draggedRowRef.current = row; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', row.id); } catch { /* noop */ } }}
+                    onDragEnd={() => { draggedRowRef.current = null; setDropKey(null); }}
+                    style={{ cursor: isReadOnly(row) ? 'default' : 'grab' }}>
+                    <TaskRow row={row} readOnly={isReadOnly(row)}
+                      theme={theme} showAvatar={owner === 'shared'} board
+                      expanded={expandedRows.has(row.id)}
+                      onToggleExpand={() => toggleRow(row.id)}
+                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
+                      search={search} viewer={viewerOwner}
+                      now={now} />
+                  </div>
                 ))}
+                {isStatus && section.rows.length === 0 && (
+                  <div style={{ padding: '16px 12px', textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', color: 'var(--c-td)', textTransform: 'uppercase' }}>Drop here</div>
+                )}
               </div>
             </div>
-          ))}
-          {sections.length === 0 && (
+            );
+          })}
+          {boardSections.length === 0 && (
             <div style={{
               gridColumn: '1 / -1',
               padding: '36px 14px', textAlign: 'center',
