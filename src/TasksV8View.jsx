@@ -1453,7 +1453,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 // ────────────────────────────────────────────────────────────────────
 
 export default function TasksV8View({ trainees = [], onSelectTrainee }) {
-  const { rows, loading, update, create } = useCoachNotes({ limit: 200 });
+  const { rows, loading, update, create, remove } = useCoachNotes({ limit: 200 });
   // Subscribe to theme changes so StatusPill colors update live on a dark/light
   // toggle (was read once via getAttribute → went stale until next re-render).
   const { theme: liveTheme } = useTheme();
@@ -1883,6 +1883,23 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     setQuickAddText('');
   };
 
+  // Multi-select + bulk actions: click a card's checkbox to (de)select; a bulk
+  // bar then offers set-status / delete applied to all selected at once.
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const toggleSelect = (id) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const clearSelect = () => setSelectedIds(new Set());
+  const bulkStatus = async (target) => {
+    const rows2 = decorated.filter(r => selectedIds.has(r.id));
+    for (const r of rows2) { if (r.status !== target) await setStatus(r, target); }
+    clearSelect();
+  };
+  const bulkDelete = async () => {
+    const n = selectedIds.size;
+    if (!n || !window.confirm(`Delete ${n} task${n === 1 ? '' : 's'}? This can't be undone.`)) return;
+    for (const id of [...selectedIds]) { await remove(id); }
+    clearSelect();
+  };
+
   // Terminal pool — done AND cancelled live together at the bottom.
   const done = useMemo(
     () => decorated.filter(r => ownerMatches(r) && (r.status === 'done' || r.status === 'cancelled')),
@@ -2241,7 +2258,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     draggable={!isReadOnly(row)}
                     onDragStart={e => { draggedRowRef.current = row; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', row.id); } catch { /* noop */ } }}
                     onDragEnd={() => { draggedRowRef.current = null; setDropKey(null); }}
-                    style={{ cursor: isReadOnly(row) ? 'default' : 'grab' }}>
+                    style={{ position: 'relative', cursor: isReadOnly(row) ? 'default' : 'grab', outline: selectedIds.has(row.id) ? '2px solid var(--c-ac)' : 'none', outlineOffset: -2 }}>
+                    <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title="Select"
+                      style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
                     <TaskRow row={row} readOnly={isReadOnly(row)}
                       theme={theme} showAvatar={owner === 'shared'} board
                       expanded={expandedRows.has(row.id)}
@@ -2357,6 +2376,21 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       }}>
         v8 · list-first (Linear/Things 3 pattern) · view toggle to board · auto-tasks collapsed
       </div>
+
+      {selectedIds.size > 0 && (
+        <div style={{ position: 'fixed', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 1400, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100vw - 24px)', background: 'var(--c-sf2)', border: `1px solid var(--c-ac)`, borderRadius: 0, padding: '10px 14px', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
+          <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--c-tx)' }}>{selectedIds.size} SELECTED</span>
+          <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
+          <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-tm)' }}>SET</span>
+          {STATUS_OPTIONS.filter(o => o.id !== 'cancelled').map(o => (
+            <button key={o.id} onClick={() => bulkStatus(o.id)} title={`Set ${o.label}`}
+              style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 8px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tx)', borderRadius: 0 }}>{o.label}</button>
+          ))}
+          <span style={{ width: 1, height: 18, background: 'var(--c-cardBd)' }} />
+          <button onClick={bulkDelete} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', borderRadius: 0 }}>Delete</button>
+          <button onClick={clearSelect} style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 10px', cursor: 'pointer', background: 'transparent', border: 'none', color: 'var(--c-tm)', borderRadius: 0 }}>Clear</button>
+        </div>
+      )}
     </div>
   );
 }
