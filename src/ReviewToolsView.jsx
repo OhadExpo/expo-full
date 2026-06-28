@@ -4,6 +4,7 @@
 // pose + 3D code stays out of the main bundle until a coach actually opens one.
 // Owner trial — nothing here writes to the athlete.
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 
 const MovementLab   = lazy(() => import('./MovementLab'));
@@ -192,7 +193,7 @@ export default function ReviewToolsView() {
         ))}
       </div>
 
-      {tool && (
+      {tool && createPortal((
         <ToolBoundary toolKey={tool} onClose={close}>
           <Suspense fallback={<ToolLoading label={activeTool ? activeTool.label : 'TOOL'} />}>
             {tool === 'lab'     && <MovementLab exerciseTitle={title || 'Squat'} initialMode="analyze" initialView="3d" toolLabel="MOVEMENT LAB" onClose={close} />}
@@ -201,7 +202,7 @@ export default function ReviewToolsView() {
             {tool === 'live'    && <ARFormOverlay exerciseTitle={title || 'Squat'} onClose={close} />}
           </Suspense>
         </ToolBoundary>
-      )}
+      ), document.body)}
     </div>
   );
 }
