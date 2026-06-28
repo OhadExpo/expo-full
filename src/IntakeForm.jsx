@@ -121,7 +121,15 @@ function Field({ q, value, onChange, dir }) {
     return (
       <div style={{ marginBottom: 16 }}>
         <label style={labelStyle}>{q.label}{required}</label>
-        <input type="date" value={value || ''} onChange={e => onChange(e.target.value)} style={inputBase} />
+        {/* dd/mm/yyyy overlay — native date shows the visitor's browser locale; this
+            keeps the Israeli convention. Centered + dir=ltr so the digits stay LTR
+            even on the Hebrew (RTL) form. */}
+        <div style={{ position: 'relative' }}>
+          <input type="date" value={value || ''} onChange={e => onChange(e.target.value)}
+            onClick={e => { try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
+            style={{ ...inputBase, width: '100%', boxSizing: 'border-box', color: 'transparent', cursor: 'pointer' }} />
+          <span dir="ltr" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', fontFamily: FB, fontSize: 14, color: C.tx, opacity: value ? 1 : 0.45 }}>{value ? value.split('-').reverse().join('/') : 'DD/MM/YYYY'}</span>
+        </div>
       </div>
     );
   }
