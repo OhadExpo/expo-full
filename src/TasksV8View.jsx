@@ -1485,6 +1485,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const [boardGroup, setBoardGroup] = usePersistentState('tasks-board-group', 'status');
   const draggedRowRef = useRef(null);            // row being dragged (ref → no dragstart re-render abort)
   const [dropKey, setDropKey] = useState(null);  // column currently highlighted as drop target
+  const [quickAddKey, setQuickAddKey] = useState(null); // column whose inline "+ add" input is open
+  const [quickAddText, setQuickAddText] = useState('');
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [sortBy, setSortBy] = useState('date');
   const [sortDir, setSortDir] = useState('asc');
@@ -1863,6 +1865,24 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     }
   };
 
+  // Inline quick-add at a column footer (Monday "+ Add"): create a task pre-set
+  // to that column's status (status mode) or category (list mode), owned by the
+  // current tab. The input stays open for rapid multi-add; clears on each commit.
+  const quickAdd = async (section) => {
+    const title = quickAddText.trim();
+    if (!title) return;
+    const ownerPrefix = owner === 'yuval' ? 'Yuval: ' : owner === 'shared' ? 'Ohad + Yuval: ' : 'Ohad: ';
+    const inCenter = boardGroup === 'list' && section.key === 'center';
+    const row = await create({ body: ownerPrefix + title, targetKind: 'general', targetId: null, targetLabel: null, tags: inCenter ? ['center'] : [] });
+    if (row) {
+      recordNoteEvent({ noteId: row.id, actor: viewerOwner, kind: 'created', toValue: owner });
+      if (boardGroup === 'status' && section.statusId && section.statusId !== 'open') {
+        await setStatus({ ...row, status: 'open' }, section.statusId);
+      }
+    }
+    setQuickAddText('');
+  };
+
   // Terminal pool — done AND cancelled live together at the bottom.
   const done = useMemo(
     () => decorated.filter(r => ownerMatches(r) && (r.status === 'done' || r.status === 'cancelled')),
@@ -2227,6 +2247,24 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   <div style={{ padding: '16px 12px', textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', color: 'var(--c-td)', textTransform: 'uppercase' }}>Drop here</div>
                 )}
               </div>
+              {(isStatus || section.key === 'center' || section.key === 'manual') && (
+                <div style={{ borderTop: `1px solid var(--c-cardBd)`, padding: 6 }}>
+                  {quickAddKey === section.key ? (
+                    <input autoFocus value={quickAddText}
+                      onChange={e => setQuickAddText(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') { e.preventDefault(); quickAdd(section); }
+                        else if (e.key === 'Escape') { setQuickAddKey(null); setQuickAddText(''); }
+                      }}
+                      onBlur={() => { if (!quickAddText.trim()) setQuickAddKey(null); }}
+                      placeholder="Task title — Enter to add, Esc to close"
+                      style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf2)', border: `1px solid var(--c-ac)`, color: 'var(--c-tx)', fontFamily: FB, fontSize: 12, padding: '7px 9px', borderRadius: 0, outline: 'none' }} />
+                  ) : (
+                    <button onClick={() => { setQuickAddKey(section.key); setQuickAddText(''); }}
+                      style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--c-tm)', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', padding: '7px 6px', cursor: 'pointer', textAlign: 'left', textTransform: 'uppercase' }}>+ Add a task</button>
+                  )}
+                </div>
+              )}
             </div>
             );
           })}
