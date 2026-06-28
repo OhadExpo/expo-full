@@ -83,13 +83,30 @@ const variants = {
 export const Btn = ({ children, variant = "primary", onClick, style, ...rest }) =>
   <button onClick={onClick} style={{ ...baseBtn, ...variants[variant], ...style }} {...rest}>{children}</button>;
 
+// ISO (YYYY-MM-DD) → Israeli dd/mm/yyyy, or the placeholder when empty.
+const fmtDMY = (iso) => { if (!iso) return 'DD/MM/YYYY'; const [y, m, d] = String(iso).split('-'); return (d && m && y) ? `${d}/${m}/${y}` : 'DD/MM/YYYY'; };
+
 export const Input = ({ label, style: s, id, ...props }) => {
   const autoId = React.useId();
   const inputId = id || autoId;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {label && <label htmlFor={inputId} style={{ fontSize: 9, fontWeight: 700, color: C.tm, textTransform: "uppercase", letterSpacing: "0.18em", fontFamily: FN, textAlign: "center" }}>{label}</label>}
-      <input id={inputId} style={{ ...baseInput, ...s }} {...props} />
+      {props.type === 'date' ? (
+        // Native <input type=date> renders the BROWSER-LOCALE format (MM/DD/YYYY on
+        // en-US machines, which is what Ohad's browser is). Overlay a dd/mm/yyyy span
+        // over a transparent native input so the displayed format is always Israeli
+        // dd/mm/yyyy, and clicking the field opens the picker. The ISO value still
+        // flows through value/onChange untouched, so callers are unchanged.
+        <div style={{ position: 'relative', display: 'flex' }}>
+          <input id={inputId} {...props}
+            onClick={(e) => { try { e.currentTarget.showPicker(); } catch { /* noop */ } }}
+            style={{ ...baseInput, ...s, color: 'transparent', cursor: 'pointer' }} />
+          <span style={{ position: 'absolute', left: 14, top: 0, bottom: 0, display: 'flex', alignItems: 'center', pointerEvents: 'none', fontFamily: FB, fontSize: 13, color: C.tx, opacity: props.value ? 1 : 0.45 }}>{fmtDMY(props.value)}</span>
+        </div>
+      ) : (
+        <input id={inputId} style={{ ...baseInput, ...s }} {...props} />
+      )}
     </div>
   );
 };
