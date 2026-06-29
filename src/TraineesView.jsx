@@ -399,6 +399,13 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   useEffect(() => {
     saveSortPrefs({ sortKeys, sortDirs, langOrder });
   }, [sortKeys, sortDirs, langOrder]);
+  // Manual drag order — Ohad drags athlete cards to arrange them (first/second/…).
+  // When ON, the grid sorts by this id list; clicking any sort button exits it.
+  const [athleteOrder, setAthleteOrder] = useState(() => { try { return JSON.parse(localStorage.getItem('expo-athlete-order') || '[]'); } catch { return []; } });
+  const persistOrder = (o) => { setAthleteOrder(o); try { localStorage.setItem('expo-athlete-order', JSON.stringify(o)); } catch { /* noop */ } };
+  const [manualSort, setManualSort] = useState(false);
+  const draggedAthleteRef = React.useRef(null);
+  const [dropOnAthlete, setDropOnAthlete] = useState(null);
   useEffect(()=>{
     if(!addMenuOpen) return;
     const close = (e)=>{ if(addMenuRef.current && !addMenuRef.current.contains(e.target)) setAddMenuOpen(false); };
@@ -447,12 +454,37 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     return 0;
   };
   const filtered = [...filteredUnsorted].sort((a, b) => {
+    // Manual drag order wins when active (Ohad arranged them by hand).
+    if (manualSort) {
+      const ia = athleteOrder.indexOf(a.id), ib = athleteOrder.indexOf(b.id);
+      const ra = ia < 0 ? Infinity : ia, rb = ib < 0 ? Infinity : ib;
+      return ra !== rb ? ra - rb : nameCmp(a, b);
+    }
     // Apply each active sort key in priority (click) order; first non-tie wins.
     for (const key of sortKeys) {
       const cmp = keyCmp(key, a, b);
       if (cmp !== 0) return (sortDirs[key] === 'desc' ? -1 : 1) * cmp;
     }
     return nameCmp(a, b);   // stable tie-break
+  });
+  const reorderAthlete = (targetId) => {
+    const d = draggedAthleteRef.current; draggedAthleteRef.current = null; setDropOnAthlete(null);
+    if (!d || d === targetId) return;
+    const allIds = filtered.map(t => t.id);
+    let order = (athleteOrder || []).filter(id => allIds.includes(id));
+    for (const id of allIds) if (!order.includes(id)) order.push(id);
+    order = order.filter(id => id !== d);
+    const ti = order.indexOf(targetId);
+    if (ti < 0) order.push(d); else order.splice(ti, 0, d);
+    persistOrder(order);
+    setManualSort(true);
+  };
+  const dragProps = (t) => ({
+    draggable: !showArchived,
+    onDragStart: (e) => { draggedAthleteRef.current = t.id; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', t.id); } catch { /* noop */ } },
+    onDragEnd: () => { draggedAthleteRef.current = null; setDropOnAthlete(null); },
+    onDragOver: (e) => { if (draggedAthleteRef.current && draggedAthleteRef.current !== t.id) { e.preventDefault(); if (dropOnAthlete !== t.id) setDropOnAthlete(t.id); } },
+    onDrop: (e) => { e.preventDefault(); reorderAthlete(t.id); },
   });
 
   const handleSave = () => {
@@ -560,11 +592,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               { id: 'payment',     label: 'PAYMENT' },
             ].map(o => {
               const on = sortKeys.includes(o.id);
-              const toggleKey = () => setSortKeys(ks => {
+              const toggleKey = () => { setManualSort(false); setSortKeys(ks => {
                 if (ks.includes(o.id)) return ks.length > 1 ? ks.filter(k => k !== o.id) : ks;
                 setSortDirs(m => (m[o.id] ? m : { ...m, [o.id]: 'asc' }));
                 return [...ks, o.id];
-              });
+              }); };
               return <button key={o.id} onClick={toggleKey} style={pill(on)}>{o.label}</button>;
             })}
             {/* DIRECTION togglers — moved to the END (after the keys) and given a
@@ -634,7 +666,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               // don't double-count the shared programs.
               const sharedProgramsCount = Math.max(mpc[0] || 0, mpc[1] || 0);
               return (
-                <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)}
+                <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
                   header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
                   headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
                   style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
@@ -727,7 +759,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             const bwEntries = getBwEntries(t, bwLog);
             const programs = planCounts?.[t.id] || 0;
             return (
-            <Card key={t.id} onClick={() => showArchived ? null : onSelect(t.id)}
+            <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
               header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
               headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
               style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
