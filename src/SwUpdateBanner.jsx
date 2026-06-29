@@ -77,7 +77,7 @@ export default function SwUpdateBanner() {
       {!updating && (
         <button onClick={onClick} style={{
           background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`,
-          borderRadius: 0, padding: '4px 10px', fontFamily: FN, fontSize: 10, fontWeight: 700,
+          borderRadius: 0, padding: '8px 18px', fontFamily: FN, fontSize: 12, fontWeight: 700,
           letterSpacing: '0.18em', cursor: 'pointer',
         }}>UPDATE NOW</button>
       )}

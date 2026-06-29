@@ -1301,7 +1301,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, readOnly = fa
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, now, search, viewer, readOnly = false, board = false }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, now, search, viewer, readOnly = false, board = false, compact = false }) {
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1316,10 +1316,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   // Urgency edge — 3px coloured left bar pulled from the date metadata.
   // Drives "scan from across the room" recognition without restructuring
   // the list (vs. lifting items into a separate "Today" section).
-  const edgeColor = isOverdue ? 'var(--c-rd)'
-                  : isToday   ? 'var(--c-ac)'
-                  : isStuck   ? 'var(--c-rd)'
-                              : 'transparent';
+  // No left-edge strip for overdue (Ohad: "remove it") — overdue is signalled by
+  // the date chip itself. Today keeps the cyan edge; stuck keeps its accent.
+  const edgeColor = isToday ? 'var(--c-ac)'
+                  : isStuck ? 'var(--c-rd)'
+                            : 'transparent';
 
   // Priority is shown for ALL four levels as an editable colored dot + label
   // (PriorityPill) sitting to the right of the date+time — click to change.
@@ -1341,10 +1342,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
       if (row._dueTime) dateStr += ` ${row._dueTime}`;
     }
   }
-  // Overdue is NOT coloured red — red is reserved for the URGENT pill (Ohad). The
-  // "YESTERDAY" / "28 JUN" text carries the lateness; the chip stays neutral.
-  const dateBorder = isToday ? 'var(--c-ac)' : 'var(--c-cardBd)';
-  const dateBg = isToday ? 'rgba(57,189,255,0.12)' : 'transparent';
+  // Overdue is NOT coloured red (red = URGENT pill only). Instead it's highlighted
+  // NON-colourfully: a FILLED chip (vs the outline of normal dates) + brighter,
+  // bolder text — so "YESTERDAY" reads as a notification without adding a colour.
+  const dateBorder = isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tm)' : 'var(--c-cardBd)';
+  const dateBg = isToday ? 'rgba(57,189,255,0.12)' : isOverdue ? 'var(--c-sf2)' : 'transparent';
 
   return (
     <React.Fragment>
@@ -1353,11 +1355,11 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         style={{
-          display: 'flex', alignItems: 'center', gap: 10,
+          display: 'flex', alignItems: 'center', gap: compact ? 6 : 10,
           // Board columns are narrow — wrap so the title gets its own full line
           // (via order:-1 below) instead of being crushed by the status pill.
-          flexWrap: board ? 'wrap' : 'nowrap', rowGap: board ? 7 : 0,
-          padding: '7px 12px 7px 9px', cursor: 'pointer', minHeight: 32,
+          flexWrap: board ? 'wrap' : 'nowrap', rowGap: board ? (compact ? 5 : 7) : 0,
+          padding: compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
           borderBottom: `1px solid var(--c-cardBd)`,
           borderLeft: `3px solid ${edgeColor}`,
           background: expanded ? 'var(--c-sf2, transparent)'
@@ -1371,15 +1373,6 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             Hebrew (RTL) and English rows. Each chip is no-wrap. */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, direction: 'ltr' }}>
           <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
-          {dateStr && (
-            <span style={{
-              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
-              fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
-              color: isToday ? 'var(--c-ac)' : dm.color,
-              whiteSpace: 'nowrap', padding: '0 8px',
-              border: `1px solid ${dateBorder}`, background: dateBg,
-            }}>{dateStr}</span>
-          )}
           {athleteName && (
             <span title={`Athlete: ${athleteName}`} style={{
               boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
@@ -1389,16 +1382,33 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
               border: `1px solid var(--c-ac)`, padding: '0 8px',
             }}>{athleteName}</span>
           )}
-          {/* SHARED tag on the collapsed row so shared tasks are identifiable
-              at a glance from any tab (Ohad). */}
-          {row._owner === 'shared' && (
-            <span title="Shared — Ohad + Yuval" style={{
-              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
-              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-              // Faded — the saturated green read as too loud on the page (Ohad).
-              color: 'var(--c-gn)', opacity: 0.55, whiteSpace: 'nowrap',
-              border: `1px solid var(--c-gn)`, padding: '0 8px', textTransform: 'uppercase',
-            }}>Shared</span>
+          {/* SHARED as a fixed COLUMN — the slot is reserved on EVERY row (even
+              non-shared) so shared tags line up vertically (Ohad: "shared a column").
+              The date sits to the RIGHT of this column. */}
+          <span style={{ flexShrink: 0, width: 62, display: 'inline-flex', alignItems: 'center' }}>
+            {row._owner === 'shared' && (
+              <span title="Shared — Ohad + Yuval" style={{
+                boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
+                fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+                color: 'var(--c-gn)', opacity: 0.55, whiteSpace: 'nowrap',
+                border: `1px solid var(--c-gn)`, padding: '0 8px', textTransform: 'uppercase',
+              }}>Shared</span>
+            )}
+          </span>
+          {dateStr && (
+            <span style={{
+              boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontFamily: FN, fontSize: 11, fontWeight: isOverdue ? 800 : 700, letterSpacing: '0.02em',
+              color: isToday ? 'var(--c-ac)' : isOverdue ? 'var(--c-tx)' : dm.color,
+              whiteSpace: 'nowrap', padding: '0 8px',
+              border: `1px solid ${dateBorder}`, background: dateBg,
+            }}>
+              {isOverdue ? (
+                // "OVERDUE · YESTERDAY" — OVERDUE solid white, the day faded white
+                // (same opacity as the SHARED tag). Ohad's spec.
+                <>OVERDUE<span style={{ opacity: 0.4 }}>·</span><span style={{ opacity: 0.55 }}>{dm.label}</span></>
+              ) : dateStr}
+            </span>
           )}
         </div>
         {showAvatar && <AssigneeDot owner={row._owner} />}
@@ -1408,7 +1418,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           <div style={{
             maxWidth: '100%',
             fontFamily: heb ? FH : FB,
-            fontSize: heb ? 14 : 13,
+            fontSize: compact ? (heb ? 13 : 12) : (heb ? 14 : 13),
             fontWeight: 500,
             color: 'var(--c-tx)',
             direction: heb ? 'rtl' : 'ltr',
@@ -1490,6 +1500,14 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const [dropKey, setDropKey] = useState(null);  // column currently highlighted as drop target
   const [quickAddKey, setQuickAddKey] = useState(null); // column whose inline "+ add" input is open
   const [quickAddText, setQuickAddText] = useState('');
+  // Compact density for narrow / split-screen windows (Ohad runs the browser at
+  // half-width next to his terminal). ≤1000px → tighter rows, chips, board columns.
+  const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1000);
+  React.useEffect(() => {
+    const onResize = () => setCompact(window.innerWidth <= 1000);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
   const [expandedRows, setExpandedRows] = useState(new Set());
   const [sortBy, setSortBy] = useState('date');
   const [sortDir, setSortDir] = useState('asc');
@@ -2165,7 +2183,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 />
                 <div style={{ display: 'grid', gridTemplateRows: isCollapsed ? '0fr' : '1fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
                 {section.rows.map(row => (
-                  <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
+                  <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)} compact={compact}
                     theme={theme} showAvatar={owner === 'shared'}
                     expanded={expandedRows.has(row.id)}
                     onToggleExpand={() => toggleRow(row.id)}
@@ -2203,7 +2221,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               </div>
               <div style={{ display: 'grid', gridTemplateRows: autoOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
               {autoSection.rows.map(row => (
-                <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)}
+                <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)} compact={compact}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
@@ -2245,7 +2263,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 border: `1px solid ${isDropTarget ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
                 background: isDropTarget ? 'var(--c-sf2)' : 'var(--c-sf)',
                 borderRadius: 0, display: 'flex', flexDirection: 'column', transition: 'background 0.12s, border-color 0.12s',
-                ...(isStatus ? { flex: '0 0 300px', minWidth: 300 } : {}),
+                ...(isStatus ? { flex: compact ? '0 0 248px' : '0 0 300px', minWidth: compact ? 248 : 300 } : {}),
               }}>
               <div style={{
                 background: headBg, color: '#FFFFFF', padding: '10px 12px',
@@ -2264,7 +2282,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     style={{ position: 'relative', cursor: isReadOnly(row) ? 'default' : 'grab', outline: selectedIds.has(row.id) ? '2px solid var(--c-ac)' : 'none', outlineOffset: -2 }}>
                     <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title="Select"
                       style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
-                    <TaskRow row={row} readOnly={isReadOnly(row)}
+                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact}
                       theme={theme} showAvatar={owner === 'shared'} board
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
@@ -2347,7 +2365,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 _display: displayBodyOf(row.body),
               };
               return (
-                <TaskRow key={row.id} row={decoratedDone} readOnly={isReadOnly(decoratedDone)}
+                <TaskRow key={row.id} row={decoratedDone} readOnly={isReadOnly(decoratedDone)} compact={compact}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
