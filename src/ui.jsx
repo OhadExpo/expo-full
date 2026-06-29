@@ -62,7 +62,7 @@ export const baseInput = {
   outline: "none", width: "100%", boxSizing: "border-box",
   transition: "border-color 0.2s, background-color 0.2s",
   fontWeight: 400, letterSpacing: "0.01em",
-  textAlign: "center",
+  textAlign: "center", fontVariantNumeric: "tabular-nums",  // numbers don't jitter as digit count changes
 };
 export const baseBtn = {
   display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 18px",
@@ -80,8 +80,8 @@ const variants = {
   danger: { background: 'transparent', color: C.rd, border: `1px solid ${C.rd}` },
   success: { background: 'transparent', color: C.gn, border: `1px solid ${C.gn}` },
 };
-export const Btn = ({ children, variant = "primary", onClick, style, ...rest }) =>
-  <button onClick={onClick} style={{ ...baseBtn, ...variants[variant], ...style }} {...rest}>{children}</button>;
+export const Btn = ({ children, variant = "primary", onClick, style, className, ...rest }) =>
+  <button onClick={onClick} className={"expo-btn" + (className ? " " + className : "")} style={{ ...baseBtn, ...variants[variant], ...style }} {...rest}>{children}</button>;
 
 // ISO (YYYY-MM-DD) → Israeli dd/mm/yyyy, or the placeholder when empty.
 const fmtDMY = (iso) => { if (!iso) return 'DD/MM/YYYY'; const [y, m, d] = String(iso).split('-'); return (d && m && y) ? `${d}/${m}/${y}` : 'DD/MM/YYYY'; };
@@ -447,7 +447,7 @@ export function RefinedTable({ columns, rows, sort, onSort, empty }) {
               onMouseEnter={r.onClick ? (e => e.currentTarget.style.background = refined ? 'rgba(0,0,0,0.04)' : C.sf2) : undefined}
               onMouseLeave={r.onClick ? (e => e.currentTarget.style.background = 'transparent') : undefined}>
               {r.cells.map((cell, i) => (
-                <td key={i} style={{ padding: '12px', textAlign: columns[i].align || 'left', verticalAlign: 'middle' }}>{cell}</td>
+                <td key={i} style={{ padding: '12px', textAlign: columns[i].align || 'left', verticalAlign: 'middle', fontVariantNumeric: 'tabular-nums' }}>{cell}</td>
               ))}
             </tr>
           ))}
