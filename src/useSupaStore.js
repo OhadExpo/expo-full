@@ -546,6 +546,14 @@ export function useSupaWeeklyFocus(initial = {}) {
     for (const [k, v] of Object.entries(val)) {
       if (prev[k] !== v) pendingRef.current[k] = v;
     }
+    // Sync CLEARS too: a focus key present before but now removed from `val`
+    // means the coach cleared that week's focus. Without this the delete never
+    // reached Supabase (save only diffed keys present in val), so a reload
+    // restored the "cleared" focus and the athlete kept seeing it. Push '' so
+    // flush upserts an empty value (= no focus). (deep-logic audit)
+    for (const k of Object.keys(prev)) {
+      if (!(k in val) && prev[k] !== '') pendingRef.current[k] = '';
+    }
 
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(flush, 500);
