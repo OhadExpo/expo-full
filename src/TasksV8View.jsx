@@ -498,6 +498,19 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
     fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
   });
   const isFiltered = search.trim() !== '';
+  // Directional label for the active sort — Athletes-style toggle: an arrow + a
+  // word that flips on click (↓ Newest ⇄ ↑ Oldest). Manual order has none.
+  const dirLabel = () => {
+    const d = sortDir === 'desc';
+    switch (sortBy) {
+      case 'date':     return d ? '↑ Latest'  : '↓ Soonest';
+      case 'newest':   return d ? '↓ Newest'  : '↑ Oldest';
+      case 'priority': return d ? '↑ Low'     : '↓ High';
+      case 'status':   return d ? '↑ Done'    : '↓ To-Do';
+      case 'name':     return d ? 'Z → A'     : 'A → Z';
+      default:         return d ? '↑' : '↓';
+    }
+  };
   // Bare left-aligned row (no bordered container, no "SORT" prefix label) so
   // the first pill lines up exactly under the OWNER tabs above and the QUICK
   // filters below — all three toolbar rows share one left edge.
@@ -512,11 +525,13 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
             {m.label}
           </button>
         ))}
-        <button onClick={onToggleDir} className="tfbtn" style={{
-          ...boxBase, flex: '0 0 34px',
-          border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm,
-          fontSize: 10, letterSpacing: '0.12em',
-        }}>{sortDir === 'asc' ? '↓' : '↑'}</button>
+        {sortBy !== 'manual' && (
+          <button onClick={onToggleDir} className="tfbtn" title="Toggle sort direction" style={{
+            ...boxBase, flex: '0 0 98px', whiteSpace: 'nowrap',  // fixed width so the flipping label never resizes
+            border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm,
+            fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase',
+          }}>{dirLabel()}</button>
+        )}
       </div>
       <span style={{ flex: 1 }} />
       {isFiltered && (
@@ -1911,21 +1926,26 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const reorderOnto = async (targetRow, section) => {
     const d = draggedRowRef.current; draggedRowRef.current = null; setDropKey(null); setDropOnId(null);
     if (!d || d.id === targetRow.id) return;
+    // Cross-section drop = a MOVE (change the dragged task's status/category to
+    // the target section's). Same-section drop = a REORDER.
+    let crossed = false;
     if (boardGroup === 'status' && section.statusId && d.status !== section.statusId) {
-      await setStatus(d, section.statusId);
+      await setStatus(d, section.statusId); crossed = true;
     } else if (boardGroup === 'list') {
-      if (section.key === 'center' && sourceKey(d) !== 'center') await setCategory(d, 'center');
-      else if (section.key === 'manual' && sourceKey(d) === 'center') await setCategory(d, '');
+      if (section.key === 'center' && sourceKey(d) !== 'center') { await setCategory(d, 'center'); crossed = true; }
+      else if (section.key === 'manual' && sourceKey(d) === 'center') { await setCategory(d, ''); crossed = true; }
     }
-    if (sortBy === 'manual') {
-      const allIds = decorated.map(r => r.id);
-      let order = (taskOrder || []).filter(id => allIds.includes(id));   // prune deleted
-      for (const id of allIds) if (!order.includes(id)) order.push(id);  // append any new
-      order = order.filter(id => id !== d.id);
-      const ti = order.indexOf(targetRow.id);
-      if (ti < 0) order.push(d.id); else order.splice(ti, 0, d.id);
-      setTaskOrder(order);
-    }
+    if (crossed) return; // moved sections — don't also reorder / switch sort
+    // Reorder within the section, then switch to Manual so the hand-arrangement
+    // sticks (a custom order can't survive Due/Newest/etc.).
+    const allIds = decorated.map(r => r.id);
+    let order = (taskOrder || []).filter(id => allIds.includes(id));   // prune deleted
+    for (const id of allIds) if (!order.includes(id)) order.push(id);  // append any new
+    order = order.filter(id => id !== d.id);
+    const ti = order.indexOf(targetRow.id);
+    if (ti < 0) order.push(d.id); else order.splice(ti, 0, d.id);
+    setTaskOrder(order);
+    if (sortBy !== 'manual') setSortBy('manual');
   };
 
   // Inline quick-add at a column footer (Monday "+ Add"): create a task pre-set
@@ -2240,16 +2260,25 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 />
                 <div style={{ display: 'grid', gridTemplateRows: isCollapsed ? '0fr' : '1fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
                 {section.rows.map(row => (
-                  <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)} compact={compact}
-                    theme={theme} showAvatar={owner === 'shared'}
-                    expanded={expandedRows.has(row.id)}
-                    onToggleExpand={() => toggleRow(row.id)}
-                    onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
-                    now={now} search={search} viewer={viewerOwner}
-                  gcalConnected={gcalConnected}
-                  onSyncToCalendar={handleSyncToCalendar}
-                  onDeleteFromCalendar={handleDeleteFromCalendar}
-                  />
+                  <div key={row.id}
+                    draggable={!isReadOnly(row)}
+                    onDragStart={e => { draggedRowRef.current = row; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', row.id); } catch { /* noop */ } }}
+                    onDragEnd={() => { draggedRowRef.current = null; setDropOnId(null); }}
+                    onDragOver={e => { if (draggedRowRef.current && draggedRowRef.current.id !== row.id) { e.preventDefault(); if (dropOnId !== row.id) setDropOnId(row.id); } }}
+                    onDragLeave={() => { if (dropOnId === row.id) setDropOnId(null); }}
+                    onDrop={e => { e.preventDefault(); reorderOnto(row, section); }}
+                    style={{ cursor: isReadOnly(row) ? 'default' : 'grab', boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
+                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact}
+                      theme={theme} showAvatar={owner === 'shared'}
+                      expanded={expandedRows.has(row.id)}
+                      onToggleExpand={() => toggleRow(row.id)}
+                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
+                      now={now} search={search} viewer={viewerOwner}
+                      gcalConnected={gcalConnected}
+                      onSyncToCalendar={handleSyncToCalendar}
+                      onDeleteFromCalendar={handleDeleteFromCalendar}
+                    />
+                  </div>
                 ))}
                 </div></div>
               </React.Fragment>
