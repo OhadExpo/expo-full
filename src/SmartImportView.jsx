@@ -17,7 +17,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { C, FN, FB, uid } from './theme';
-import { Btn, Input, Select, Badge, SectionLabel, isRefined5b } from './ui';
+import { Btn, Input, Select, Badge, SectionLabel, isRefined5b, toast } from './ui';
 
 // Drop target rendered below the header when no file has been picked
 // yet. The header copy ("Drop any document — XLSX, CSV, PDF, image,
@@ -127,6 +127,9 @@ async function pdfToImages(file, { maxPages = 8, scale = 2 } = {}) {
   const buf = await fileToArrayBuffer(file);
   const doc = await pdfjs.getDocument({ data: buf }).promise;
   const n = Math.min(doc.numPages, maxPages);
+  // Don't let a long PDF truncate silently — the coach needs to know pages 9+
+  // weren't read so they can split the file. (deep-logic audit)
+  if (doc.numPages > maxPages) toast(`PDF has ${doc.numPages} pages — only the first ${maxPages} were imported. Split it to import the rest.`, 'info', { ttl: 7000 });
   const out = [];
   for (let i = 1; i <= n; i++) {
     const page = await doc.getPage(i);
