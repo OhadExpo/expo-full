@@ -485,6 +485,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     onDragEnd: () => { draggedAthleteRef.current = null; setDropOnAthlete(null); },
     onDragOver: (e) => { if (draggedAthleteRef.current && draggedAthleteRef.current !== t.id) { e.preventDefault(); if (dropOnAthlete !== t.id) setDropOnAthlete(t.id); } },
     onDrop: (e) => { e.preventDefault(); reorderAthlete(t.id); },
+    dropActive: dropOnAthlete === t.id,
   });
 
   const handleSave = () => {

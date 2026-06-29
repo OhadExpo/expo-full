@@ -506,7 +506,7 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
 // On hover (clickable cards only), the shadow grows + the card lifts
 // 1px. This is the Linear / Vercel / Notion pattern — strokes are
 // noise, shadows are signal.
-export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 20, draggable, onDragStart, onDragEnd, onDragOver, onDrop }) => {
+export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 20, draggable, onDragStart, onDragEnd, onDragOver, onDrop, dropActive }) => {
   // Refined light variant: in refined mode every card flips to a white body.
   // When `header` is also passed, the cyan strip is rendered above the body.
   // In dark / non-refined modes the card stays single-zone cyan.
@@ -535,6 +535,7 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
       boxShadow: C.cardShadow,
       transition: "box-shadow 0.2s, transform 0.2s",
       ...style,
+      ...(dropActive ? { outline: '2px solid var(--c-ac)', outlineOffset: -2 } : null),
     }}
       onMouseEnter={e => {
         if (onClick) {
