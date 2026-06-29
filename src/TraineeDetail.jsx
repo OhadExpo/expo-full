@@ -294,7 +294,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>{plur(p.dayCount||0, 'day', 'days')} · {plur(p.exerciseCount||0, 'ex', 'ex')}</div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:6}}>
-                  <button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button>
+                  <button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} aria-label="Remove program from athlete" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button>
                   <button onClick={e=>{e.stopPropagation();onlyThisMember(visKey)}} title="Show only this program on the athlete portal — hide all others" style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.08em',padding:'2px 6px',borderRadius:0,cursor:'pointer',textTransform:'uppercase'}}>Only</button>
                   <button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
                     <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
@@ -473,8 +473,8 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                   <button onClick={()=>handleCancelReq(p.id)} title="Cancel this payment request"
                     style={{background:'transparent',border:`1px solid ${C.rd}`,color:C.rd,padding:'2px 8px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',marginRight:6}}>× CANCEL</button>
                 </>)}
-              <button onClick={()=>handleEditPay(p)} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
-              <button onClick={()=>handleDeletePay(p.id)} style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginLeft:6,opacity:0.6}}>✕</button>
+              <button onClick={()=>handleEditPay(p)} aria-label="Edit payment" style={{background:"none",border:"none",color:C.ac,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN}}>✏</button>
+              <button onClick={()=>handleDeletePay(p.id)} aria-label="Delete payment" style={{background:"none",border:"none",color:C.rd,cursor:"pointer",padding:2,fontSize:11,fontFamily:FN,marginLeft:6,opacity:0.6}}>✕</button>
             </td></tr>))}</tbody></table></div>)}
       </CollapsibleSection>
       {showContract && (
@@ -561,7 +561,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                             <div style={{fontSize:11,color:C.tm,marginTop:2}}>{plur(p.dayCount||0, 'day', 'days')} · {plur(p.exerciseCount||0, 'ex', 'ex')}</div>
                           </div>
                           <div style={{display:'flex',alignItems:'center',gap:6}}>
-                            <button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button>
+                            <button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} aria-label="Remove program from athlete" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button>
                             <button onClick={e=>{e.stopPropagation();onlyThisCouple(visKey)}} title="Show only this program on the athlete portal — hide all others" style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.08em',padding:'2px 6px',borderRadius:0,cursor:'pointer',textTransform:'uppercase'}}>Only</button>
                             <button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
                               <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
