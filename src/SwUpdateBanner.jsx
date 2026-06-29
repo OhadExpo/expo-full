@@ -44,13 +44,23 @@ export default function SwUpdateBanner() {
       setTimeout(() => applyUpdate(), 400);
     };
 
+    // Don't reload while a camera tool is actively capturing — a recording
+    // emits no input events, so the idle timer would otherwise treat filming a
+    // set as "stepped away" and reload, discarding the in-progress clip + rep
+    // count + pose frames. Self-detects any <video> bound to a live MediaStream.
+    // (camera audit)
+    const cameraActive = () => {
+      try { return [...document.querySelectorAll('video')].some(v => v.srcObject instanceof MediaStream && !v.paused); }
+      catch { return false; }
+    };
+
     // Apply when tab is backgrounded — typing definitely paused.
-    const onVis = () => { if (document.visibilityState === 'hidden') tryUpdate('hidden'); };
+    const onVis = () => { if (document.visibilityState === 'hidden' && !cameraActive()) tryUpdate('hidden'); };
     document.addEventListener('visibilitychange', onVis);
 
     // Idle timer: poll once per second; if no input for IDLE_MS, apply.
     const idle = setInterval(() => {
-      if (Date.now() - lastActivity >= IDLE_MS) tryUpdate('idle');
+      if (Date.now() - lastActivity >= IDLE_MS && !cameraActive()) tryUpdate('idle');
     }, 1000);
 
     return () => {

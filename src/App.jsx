@@ -982,11 +982,11 @@ function AuthedApp() {
     { key:'challenges', label:'Challenges', count:null },
     { key:'client',     label:'Portal',     count:null },
   ];
-  // Staff see only their whitelisted top-level tabs (the Athletes submenu's
-  // Roster/Programs/Exercises are all in STAFF_TABS, so the dropdown stays
-  // intact). The Portal tab stays for dual-role staff (e.g. Yuval, who is
-  // also an athlete) so they can switch to their own training portal. Owner
-  // sees the full row.
+  // Staff see only their whitelisted top-level tabs (STAFF_TABS = dashboard +
+  // tasks only — they do NOT get Athletes/Programs/Exercises/Billing/etc; the
+  // visibleTabs filter below + the URL guard enforce it). The Portal tab stays
+  // for dual-role staff (e.g. Yuval, who is also an athlete) so they can switch
+  // to their own training portal. Owner sees the full row.
   const visibleTabs = isOwner
     ? tabs
     : tabs.filter(t => STAFF_TABS.includes(t.key) || (t.key === 'client' && isBoth));
