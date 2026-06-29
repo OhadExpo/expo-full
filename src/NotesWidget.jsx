@@ -703,8 +703,49 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
         // the viewport on phones (414px portrait used to scroll horizontally
         // because a bare `minmax(520px, 1fr)` forced the single column to
         // stay 520px wide).
+        <>
+        {/* Dashboard mini-board (compact) — a condensed status kanban so the
+            dashboard Tasks widget mirrors the /coach/tasks board (Ohad). The full
+            view keeps the card grid below (hidden in compact). */}
+        {compact && (() => {
+          const COLS = [
+            { id:'open',    label:'To Do',       color:'#5B6B7A' },
+            { id:'working', label:'In Progress', color:'#2C82C9' },
+            { id:'waiting', label:'Waiting',     color:'#C9851E' },
+            { id:'stuck',   label:'Stuck',       color:'#C0392B' },
+          ];
+          return (
+            <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
+              {COLS.map(col => {
+                const rows = col.id==='open'
+                  ? openRows.filter(r => !['working','waiting','stuck'].includes(r.status))
+                  : openRows.filter(r => r.status === col.id);
+                return (
+                  <div key={col.id} style={{ flex:'1 1 150px', minWidth:140, border:`1px solid var(--c-cardBd)`, display:'flex', flexDirection:'column' }}>
+                    <div style={{ background:col.color, color:'#FFFFFF', padding:'5px 8px', fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                      <span>{col.label}</span><span style={{ opacity:0.85 }}>{rows.length}</span>
+                    </div>
+                    <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, minHeight:40, maxHeight:260, overflowY:'auto' }}>
+                      {rows.slice(0,10).map(n => {
+                        const body = displayBodyOf(n.body); const heb = isHebrew(body);
+                        const tone = TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-cardBd)';
+                        return (
+                          <div key={n.id} onClick={()=>handleClick(n)} title={body}
+                            style={{ border:`1px solid var(--c-cardBd)`, borderLeft:`3px solid ${tone}`, padding:'5px 7px', fontFamily:heb?FH:FB, fontSize:11, lineHeight:1.3, color:'var(--c-tx)', cursor:'pointer', direction:heb?'rtl':'ltr', textAlign:heb?'right':'left', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                            {body}
+                          </div>
+                        );
+                      })}
+                      {rows.length===0 && <div style={{ padding:'6px 4px', textAlign:'center', color:'var(--c-td)', fontSize:9, fontFamily:FN }}>—</div>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
         <div style={{
-          display: 'grid',
+          display: compact ? 'none' : 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(min(520px, 100%), 1fr))',
           gap: 8,
         }}>
@@ -753,6 +794,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             );
           })}
         </div>
+        </>
       )}
 
       {/* DONE pool */}
