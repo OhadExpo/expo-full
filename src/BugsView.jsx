@@ -20,7 +20,7 @@ const STATUS_PILLS = [
 ];
 
 function fmtTs(s) {
-  try { return new Date(s).toLocaleString(); } catch { return s; }
+  try { return new Date(s).toLocaleString('en-GB'); } catch { return s; }
 }
 
 export default function BugsView() {

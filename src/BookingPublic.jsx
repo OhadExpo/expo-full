@@ -198,7 +198,7 @@ export default function BookingPublic() {
         <div style={{ padding: 30, textAlign: 'center' }}>
           <div style={{ fontFamily: FN, fontSize: 10, color: C.gn, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 16 }}>✓ BOOKED</div>
           <div style={{ fontSize: 16, color: C.tx, marginBottom: 8 }}>
-            {confirmation.when.toLocaleDateString()} · {pad(confirmation.when.getHours())}:{pad(confirmation.when.getMinutes())}
+            {confirmation.when.toLocaleDateString('en-GB')} · {pad(confirmation.when.getHours())}:{pad(confirmation.when.getMinutes())}
           </div>
           <div style={{ fontSize: 13, color: C.tm, marginBottom: 16 }}>
             with {settings.display_name || 'your coach'}
@@ -262,7 +262,7 @@ export default function BookingPublic() {
         {selectedSlot && (
           <div style={{ marginTop: 20, padding: 14, background: 'var(--c-sf)', border: `1px solid ${C.ac}` }}>
             <div style={{ fontFamily: FN, fontSize: 10, color: C.ac, letterSpacing: '0.12em', fontWeight: 700, marginBottom: 8 }}>
-              CONFIRM · {selectedSlot.toLocaleDateString()} at {pad(selectedSlot.getHours())}:{pad(selectedSlot.getMinutes())}
+              CONFIRM · {selectedSlot.toLocaleDateString('en-GB')} at {pad(selectedSlot.getHours())}:{pad(selectedSlot.getMinutes())}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
               <input placeholder="Your name *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
