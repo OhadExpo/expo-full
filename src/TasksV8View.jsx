@@ -27,7 +27,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, toast, usePersistentState } from './ui';
+import { isRefined5b, toast, confirmToast, usePersistentState } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
@@ -1126,7 +1126,7 @@ function CommentsThread({ noteId, viewer }) {
                 {mine && !editing && (
                   <>
                     <button onClick={(e) => { e.stopPropagation(); setEditingId(c.id); setEditDraft(c.body || ''); }} style={cmtActionBtn}>Edit</button>
-                    <button onClick={(e) => { e.stopPropagation(); if (window.confirm('Delete this comment?')) remove(c.id); }} style={{ ...cmtActionBtn, color: 'var(--c-rd)', borderColor: 'var(--c-rd)' }}>Delete</button>
+                    <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this comment?', { okLabel: 'Delete', cancelLabel: 'Keep' })) remove(c.id); }} style={{ ...cmtActionBtn, color: 'var(--c-rd)', borderColor: 'var(--c-rd)' }}>Delete</button>
                   </>
                 )}
                 <span style={{ fontFamily: FN, fontSize: 9, fontWeight: 600, color: 'var(--c-td)', letterSpacing: '0.04em' }}>{relativeTime(c.created_at, now)}</span>
@@ -1982,7 +1982,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   };
   const bulkDelete = async () => {
     const n = selectedIds.size;
-    if (!n || !window.confirm(`Delete ${n} task${n === 1 ? '' : 's'}? This can't be undone.`)) return;
+    if (!n) return;
+    if (!(await confirmToast(`Delete ${n} task${n === 1 ? '' : 's'}? This can't be undone.`, { okLabel: 'Delete', cancelLabel: 'Keep' }))) return;
     for (const id of [...selectedIds]) { await remove(id); }
     clearSelect();
   };

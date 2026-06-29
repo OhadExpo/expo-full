@@ -8,7 +8,7 @@ import { useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus }
 import useBitPayments from './useBitPayments';
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
-import { Btn, baseBtn, ToastHost } from './ui';
+import { Btn, baseBtn, ToastHost, toast } from './ui';
 import BugReportButton from './BugReportButton';
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS } from './auth';
@@ -249,7 +249,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
     } catch (e) {
       // Surface a minimal alert — full error UI lives in PushToggle.jsx
       // (mounted elsewhere); the menu just confirms it didn't work.
-      try { window.alert(e?.message || 'Could not toggle notifications.'); } catch {}
+      try { toast(e?.message || 'Could not toggle notifications.', 'error'); } catch {}
     } finally {
       setPushBusy(false);
     }
@@ -929,7 +929,7 @@ function AuthedApp() {
     const { data: allPlans, error: plansErr } = await supabase.from('plans').select('*');
     if (plansErr) {
       // A backup with silently-empty plans is worse than no backup.
-      alert('Export aborted — plans could not be read: ' + plansErr.message);
+      toast('Export aborted — plans could not be read: ' + plansErr.message, 'error');
       return;
     }
     const data=JSON.stringify({trainees,exercises,plans:allPlans||[],workouts,payments,clientWorkouts,bwLog,exportDate:new Date().toISOString(),version:"1.0"},null,2);

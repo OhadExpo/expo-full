@@ -110,7 +110,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       setPurging(true);
       const { error } = await supabase.rpc('purge_trainee_data', { p_trainee_id: trainee });
       setPurging(false);
-      if (error) { alert('History purge failed — nothing was deleted: ' + error.message); return; }
+      if (error) { toast('History purge failed — nothing was deleted: ' + error.message, 'error'); return; }
     }
     if(setTrainees) setTrainees(prev=>prev.filter(t=>t.id!==trainee));
     setShowDeleteConfirm(false); setDeleteTyped(""); setPurgeHistory(false); onBack();
@@ -182,13 +182,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const assignPlan=async(planId, targetId)=>{
     const tid = targetId || trainee; // default to parent ID (shared)
     const{data:src,error:readErr}=await supabase.from('plans').select('*').eq('id',planId).single();
-    if(readErr||!src){ alert('Could not assign — the program could not be read'+(readErr?`: ${readErr.message}`:'.')); return; }
+    if(readErr||!src){ toast('Could not assign — the program could not be read'+(readErr?`: ${readErr.message}`:'.'), 'error'); return; }
     if(!src.trainee_id){
       const{error}=await supabase.from('plans').update({trainee_id:tid,updated_at:new Date().toISOString()}).eq('id',planId);
-      if(error){ alert('Assign failed: '+error.message); return; }
+      if(error){ toast('Assign failed: '+error.message, 'error'); return; }
     } else {
       const dup={id:'pl_'+uid(),name:src.name,traineeId:tid,phase:src.phase||'',notes:src.notes||'',active:true,createdAt:new Date().toISOString(),days:src.data?.days||[],warmup:src.data?.warmup||[]};
-      if(!(await savePlan(dup))){ alert('Assign failed — the duplicated program could not be saved.'); return; }
+      if(!(await savePlan(dup))){ toast('Assign failed — the duplicated program could not be saved.', 'error'); return; }
     }
     setShowAssign(false);
     setPendingAssignPlan(null);
@@ -204,7 +204,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   };
   const unassignPlan=async(planId)=>{
     const{error}=await supabase.from('plans').update({trainee_id:'',updated_at:new Date().toISOString()}).eq('id',planId);
-    if(error){ alert('Unassign failed: '+error.message); return; }
+    if(error){ toast('Unassign failed: '+error.message, 'error'); return; }
     if(reloadPlanIndex) await reloadPlanIndex();
   };
   // Toggle all visibility keys in one setState. visible=false hides everything; true shows.

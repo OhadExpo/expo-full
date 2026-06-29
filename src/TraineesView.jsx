@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, uid, TRAINING_FORMATS, TRAINEE_STATUSES, PACKAGE_TYPES } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Card, Modal, ConfirmDialog, EmptyState, EmailsInput, baseInput, isRefined5b, useEscClose, toast } from './ui';
 import { emailsToArr, emailsToStore, subMemberId, traineeIdsFor } from './traineeUtils';
 import { WhatsAppCheckInButton } from './whatsappButton';
 
@@ -519,7 +519,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
       setPurging(true);
       const { error } = await supabase.rpc('purge_trainee_data', { p_trainee_id: id });
       setPurging(false);
-      if (error) { alert('History purge failed — nothing was deleted: ' + error.message); return; }
+      if (error) { toast('History purge failed — nothing was deleted: ' + error.message, 'error'); return; }
     }
     setTrainees(prev => prev.filter(t => t.id !== id));
     setDeleteConfirm(null); setDeleteTyped(""); setPurgeHistory(false);
