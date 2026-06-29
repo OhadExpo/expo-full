@@ -1839,7 +1839,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   if (lg !== null && trainee) {
     let dayCount = 0; let targetPlan = null; let targetDayIdx = 0;
     for (const p of visPlans) { if (lg < dayCount + p.days.length) { targetPlan = p; targetDayIdx = lg - dayCount; break; } dayCount += p.days.length; }
-    if (!targetPlan) { setLg(null); return null; }
+    if (!targetPlan) { toast('This program is no longer available.', 'info'); setLg(null); return null; }
     // F-25 — substitution is available on EVERY plan (full version).
     // Earlier the swap UI was gated to isTemplatePlan(plan) so Ohad's
     // hand-coached clients couldn't accidentally swap mid-session. With
