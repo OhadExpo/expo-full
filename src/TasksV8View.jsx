@@ -498,17 +498,19 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
     fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
   });
   const isFiltered = search.trim() !== '';
-  // Directional label for the active sort — Athletes-style toggle: an arrow + a
-  // word that flips on click (↓ Newest ⇄ ↑ Oldest). Manual order has none.
-  const dirLabel = () => {
+  // When a mode is ACTIVE its button shows the direction as a word that flips on
+  // click (↓ Newest ⇄ ↑ Oldest); inactive buttons show the plain mode name. No
+  // separate direction button, so nothing appears/disappears + reflows (Ohad).
+  const activeDirLabel = (mode) => {
     const d = sortDir === 'desc';
-    switch (sortBy) {
+    switch (mode) {
       case 'date':     return d ? '↑ Latest'  : '↓ Soonest';
       case 'newest':   return d ? '↓ Newest'  : '↑ Oldest';
       case 'priority': return d ? '↑ Low'     : '↓ High';
       case 'status':   return d ? '↑ Done'    : '↓ To-Do';
       case 'name':     return d ? 'Z → A'     : 'A → Z';
-      default:         return d ? '↑' : '↓';
+      case 'manual':   return 'Manual';
+      default:         return mode;
     }
   };
   // Bare left-aligned row (no bordered container, no "SORT" prefix label) so
@@ -520,18 +522,16 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
     }}>
       {/* sort modes + dir share the same total width as the owner/quick rows */}
       <div style={{ display: 'flex', gap: 6, width: '100%', maxWidth: FILTER_GROUP_W }}>
-        {SORT_MODES.map(m => (
-          <button key={m.id} onClick={() => onSortBy(m.id)} className="tfbtn" data-active={sortBy === m.id ? '' : undefined} style={{ ...pill(sortBy === m.id), flex: 1, minWidth: 0, padding: '0 6px' }}>
-            {m.label}
-          </button>
-        ))}
-        {sortBy !== 'manual' && (
-          <button onClick={onToggleDir} className="tfbtn" title="Toggle sort direction" style={{
-            ...boxBase, flex: '0 0 98px', whiteSpace: 'nowrap',  // fixed width so the flipping label never resizes
-            border: `1px solid ${C.cardBd}`, background: 'transparent', color: C.tm,
-            fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase',
-          }}>{dirLabel()}</button>
-        )}
+        {SORT_MODES.map(m => {
+          const active = sortBy === m.id;
+          return (
+            <button key={m.id} onClick={() => active ? onToggleDir() : onSortBy(m.id)} className="tfbtn" data-active={active ? '' : undefined}
+              title={active ? (m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : `Sort by ${m.label}`}
+              style={{ ...pill(active), flex: 1, minWidth: 0, padding: '0 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {active ? activeDirLabel(m.id) : m.label}
+            </button>
+          );
+        })}
       </div>
       <span style={{ flex: 1 }} />
       {isFiltered && (
@@ -1926,16 +1926,20 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   const reorderOnto = async (targetRow, section) => {
     const d = draggedRowRef.current; draggedRowRef.current = null; setDropKey(null); setDropOnId(null);
     if (!d || d.id === targetRow.id) return;
-    // Cross-section drop = a MOVE (change the dragged task's status/category to
-    // the target section's). Same-section drop = a REORDER.
-    let crossed = false;
-    if (boardGroup === 'status' && section.statusId && d.status !== section.statusId) {
-      await setStatus(d, section.statusId); crossed = true;
-    } else if (boardGroup === 'list') {
-      if (section.key === 'center' && sourceKey(d) !== 'center') { await setCategory(d, 'center'); crossed = true; }
-      else if (section.key === 'manual' && sourceKey(d) === 'center') { await setCategory(d, ''); crossed = true; }
+    // Same section iff the dragged task is one of the target section's rows.
+    const sameSection = section.rows.some(r => r.id === d.id);
+    if (!sameSection) {
+      // Only the BOARD lets a drag cross sections (changes status/category); the
+      // LIST restricts drag to reordering WITHIN a section (Ohad — change status
+      // via the row's status pill, not by dragging between titles).
+      if (view !== 'board') return;
+      if (boardGroup === 'status' && section.statusId) await setStatus(d, section.statusId);
+      else if (boardGroup === 'list') {
+        if (section.key === 'center' && sourceKey(d) !== 'center') await setCategory(d, 'center');
+        else if (section.key === 'manual' && sourceKey(d) === 'center') await setCategory(d, '');
+      }
+      return; // moved sections — don't also reorder / switch sort
     }
-    if (crossed) return; // moved sections — don't also reorder / switch sort
     // Reorder within the section, then switch to Manual so the hand-arrangement
     // sticks (a custom order can't survive Due/Newest/etc.).
     const allIds = decorated.map(r => r.id);

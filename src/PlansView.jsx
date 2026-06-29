@@ -1530,6 +1530,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const [editMode, setEditMode] = useState(false);
   const [search, setSearch] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [shareTarget, setShareTarget] = useState(null);   // planId being shared → opens the athlete picker
+  const [shareSearch, setShareSearch] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterTrainee, setFilterTrainee] = useState("");
   const [hoverPos, setHoverPos] = useState(null);
@@ -1688,6 +1690,19 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     if (!window.confirm(`Delete "${editPlanData.name || 'this program'}"? Any logged workouts stay; the program itself is removed. This can't be undone.`)) return;
     await deletePlan(editPlanData.id);
     handleCancel(); // closes the editor + reloads the index
+  };
+  // SHARE → athlete picker → create a DUPLICATE of the program assigned to the
+  // picked athlete (Ohad). They then have their own independent copy.
+  const handleShareToAthlete = async (athlete) => {
+    if (!shareTarget) return;
+    const { supabase: sb } = await import('./supabase');
+    const { data } = await sb.from('plans').select('*').eq('id', shareTarget).single();
+    if (data) {
+      await duplicatePlan({ id: data.id, name: data.name, traineeId: athlete.id, phase: data.phase, notes: data.notes, active: true, createdAt: data.created_at, days: data.data?.days || [], warmup: data.data?.warmup || [], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase });
+      await reloadIndex();
+      try { toast(`Program copied to ${athlete.name}`, 'success', { ttl: 3000 }); } catch { /* noop */ }
+    }
+    setShareTarget(null); setShareSearch('');
   };
 
   // F-18 — Public program share. Creates a program_shares row with a
@@ -1989,7 +2004,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     })() : <div style={{width:108,flexShrink:0}} />}
                     {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />}
                     <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />
-                    <LabeledBtn onClick={e=>{e.stopPropagation();handleShare(cur.id);}} title="Public share — copies a /p/<token> URL anyone can open" label="SHARE" />
+                    <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
@@ -2094,5 +2109,38 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         );
       })()}
       <ConfirmDialog open={!!confirmDelete} title="Delete Program?" message="Existing workouts will remain." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)} />
+      {shareTarget && (() => {
+        // Build the athlete list EXACTLY like the editor's assignment dropdown so
+        // the trainee_id matches: couples expand to per-member ids (t.id__0/__1),
+        // singles use t.id. Assigning to the parent couple id would be wrong.
+        const q = shareSearch.toLowerCase();
+        const list = (trainees || [])
+          .filter(t => t.status !== 'Archived')
+          .flatMap(t => (t.members && t.members.length === 2)
+            ? t.members.map((m, i) => ({ id: t.id + '__' + i, name: m.name || ('Member ' + (i + 1)) }))
+            : [{ id: t.id, name: t.name }])
+          .filter(o => (o.name || '').toLowerCase().includes(q));
+        const close = () => { setShareTarget(null); setShareSearch(''); };
+        return (
+          <div onClick={close} style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+            <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(440px, 94vw)', maxHeight:'80vh', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
+              <div style={{ padding:'14px 18px', borderBottom:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>Share program to…</span>
+                <button onClick={close} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>
+              </div>
+              <input value={shareSearch} onChange={e=>setShareSearch(e.target.value)} placeholder="Search athletes…" autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'10px 18px', background:'transparent', color:C.tx, border:'none', borderBottom:`1px solid ${C.cardBd}`, fontFamily:FN, fontSize:13, outline:'none' }} />
+              <div style={{ overflowY:'auto' }}>
+                {list.map(t => (
+                  <button key={t.id} onClick={()=>handleShareToAthlete(t)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%', padding:'11px 18px', background:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, color:C.tx, fontFamily:FN, fontSize:13, cursor:'pointer', textAlign:'left' }}>
+                    <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.name}</span>
+                    <span style={{ color:C.ac, fontSize:10, fontWeight:700, letterSpacing:'0.1em', flexShrink:0, marginLeft:10 }}>DUPLICATE →</span>
+                  </button>
+                ))}
+                {list.length === 0 && <div style={{ padding:'18px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No athletes match.</div>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>);
 }
