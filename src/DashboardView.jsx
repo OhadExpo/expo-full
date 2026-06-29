@@ -684,13 +684,13 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
                       <span style={{ fontFamily: FN, fontWeight: 700, fontSize: 14, color: t.sessionsRemaining <= 2 ? C.rd : C.gn }}>{t.sessionsRemaining}</span>
                     ) : <span style={{ color: C.td, fontSize: 12 }}>—</span>}
                   </td>
-                  {isOwner && <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: parseFloat(t.monthly) > 0 ? C.gn : C.td, textAlign: 'center' }}>
+                  {isOwner && <td style={{ padding: '12px', fontFamily: FN, fontWeight: 600, color: parseFloat(t.monthly) > 0 ? C.gn : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {parseFloat(t.monthly) > 0 ? `₪${parseInt(t.monthly).toLocaleString()}/MO` : '—'}
                   </td>}
-                  {isOwner && <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center' }}>
-                    {t.lastPayment ? new Date(t.lastPayment).toLocaleDateString('he-IL') : '—'}
+                  {isOwner && <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+                    {t.lastPayment ? new Date(t.lastPayment).toLocaleDateString('en-GB') : '—'}
                   </td>}
-                  <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.ac : C.td, textAlign: 'center' }}>
+                  <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.ac : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.workoutCount || '—'}
                   </td>
                   <td style={{ padding: '12px', fontFamily: FN, color: t.planCount > 0 ? C.ac : C.td, textAlign: 'center' }}>
