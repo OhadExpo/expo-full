@@ -984,7 +984,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete }) {
+function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -1150,14 +1150,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 // hijacking an existing program's owner.
                 if (onSwitchProgram && theirs.length) {
                   if (theirs[0].id !== plan.id) { await flushAutosave(); onSwitchProgram(theirs[0].id); }
-                } else if (tid) {
-                  // The athlete has no programs yet — switching here would SILENTLY
-                  // re-assign THIS program to them (footgun when just browsing, Ohad).
-                  // Confirm first; on cancel the select snaps back (value=plan.traineeId).
-                  const label = e.target.options[e.target.selectedIndex]?.text || 'this athlete';
-                  if (window.confirm(`${label} has no programs yet — assign THIS program to them?\n\n(Cancel keeps it where it is.)`)) {
-                    setPlan({...plan,traineeId:tid});
-                  }
+                } else if (tid && onNewProgramFor) {
+                  // The athlete has no programs yet → open a NEW blank program for
+                  // them (a "new program navigation", not a Chrome confirm, and no
+                  // silent re-assignment of the current one — Ohad).
+                  await flushAutosave();
+                  onNewProgramFor(tid);
                 } else {
                   setPlan({...plan,traineeId:tid}); // explicit "Unassigned"
                 }
@@ -1540,6 +1538,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [shareTarget, setShareTarget] = useState(null);   // planId being shared → opens the athlete picker
   const [shareSearch, setShareSearch] = useState('');
+  const [pendingDelete, setPendingDelete] = useState(null); // {id,name,fromEditor} → styled type-"delete" modal
+  const [deleteTyped, setDeleteTyped] = useState('');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterTrainee, setFilterTrainee] = useState("");
   const [hoverPos, setHoverPos] = useState(null);
@@ -1693,17 +1693,20 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   };
   const handleDelete = async (planId) => { await deletePlan(planId); setConfirmDelete(null); await reloadIndex(); };
   // Delete from inside the editor (the DELETE button between PORTAL + Save).
-  // Second-verification delete: the coach must TYPE "delete" to confirm (Ohad),
-  // so a stray click can't wipe a program.
-  const confirmTypeDelete = (name) => {
-    const typed = window.prompt(`Delete "${name || 'this program'}"?\n\nType   delete   to confirm. (Logged workouts stay; this can't be undone.)`);
-    return (typed || '').trim().toLowerCase() === 'delete';
-  };
-  const handleEditorDelete = async () => {
+  // Delete = a styled WEBSITE modal (not a Chrome dialog, Ohad) that needs the
+  // coach to TYPE "delete" — second verification so a stray click can't wipe a
+  // program. Both the editor DELETE and the list-row DELETE open it.
+  const handleEditorDelete = () => {
     if (!editPlanData?.id) return;
-    if (!confirmTypeDelete(editPlanData.name)) return;
-    await deletePlan(editPlanData.id);
-    handleCancel(); // closes the editor + reloads the index
+    setPendingDelete({ id: editPlanData.id, name: editPlanData.name, fromEditor: true });
+    setDeleteTyped('');
+  };
+  const doDelete = async () => {
+    if (!pendingDelete || deleteTyped.trim().toLowerCase() !== 'delete') return;
+    const { id, fromEditor } = pendingDelete;
+    setPendingDelete(null); setDeleteTyped('');
+    await deletePlan(id);
+    if (fromEditor) handleCancel(); else await reloadIndex();
   };
   // SHARE → athlete picker → create a DUPLICATE of the program assigned to the
   // picked athlete (Ohad). They then have their own independent copy.
@@ -1755,11 +1758,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     <button onClick={onClick} title={title}
       style={{
         display:'inline-flex', alignItems:'center', justifyContent:'center',
-        height:30, width:92, padding:0, lineHeight:1, flexShrink:0,
+        height:30, width:76, padding:0, lineHeight:1, flexShrink:0,
         background: isRefined5b() ? 'transparent' : 'var(--c-sf)',
         border:`1px solid ${danger ? 'rgba(255,71,87,0.5)' : C.ac}`, borderRadius:0,
         color: danger ? C.rd : C.ac, cursor:'pointer',
-        fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', whiteSpace:'nowrap',
+        fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.05em', whiteSpace:'nowrap',
       }}>{label}</button>
   );
 
@@ -1894,7 +1897,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // programs via the new in-editor dropdown — PlanEditor's internal `plan`
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
-    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} />;
+    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={handleNewPlan} />;
   }
 
   return (
@@ -1996,10 +1999,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {row.earlier.length > 0 ? (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                        style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:30,width:44,background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>
-                        {expanded?`▴ ${row.earlier.length}`:`▾ +${row.earlier.length}`}
+                        style={{display:'inline-flex',alignItems:'center',justifyContent:'space-between',height:30,width:48,padding:'0 8px',background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums'}}>
+                        <span style={{flexShrink:0}}>{expanded?'▴':'▾'}</span>
+                        <span>{expanded?row.earlier.length:`+${row.earlier.length}`}</span>
                       </button>
-                    ) : <div style={{width:44,flexShrink:0}} />}
+                    ) : <div style={{width:48,flexShrink:0}} />}
                     {setPortalVis ? (() => {
                       const vk = visKeyForPlan(cur, trainees);
                       if (!vk) return <div style={{width:108,flexShrink:0}} />;
@@ -2010,7 +2014,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />}
                     <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />
                     <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
-                    <LabeledBtn onClick={e=>{e.stopPropagation(); if (confirmTypeDelete(cur.name)) handleDelete(cur.id);}} title="Delete program" label="DELETE" />
+                    <LabeledBtn onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" label="DELETE" />
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
@@ -2115,6 +2119,27 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         );
       })()}
       <ConfirmDialog open={!!confirmDelete} title="Delete Program?" message="Existing workouts will remain." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)} />
+      {pendingDelete && (() => {
+        const ok = deleteTyped.trim().toLowerCase() === 'delete';
+        const close = () => { setPendingDelete(null); setDeleteTyped(''); };
+        return (
+          <div onClick={close} style={{ position:'fixed', inset:0, zIndex:10001, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+            <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.rd}`, borderRadius:0, width:'min(420px, 94vw)', boxShadow:C.cardShadow }}>
+              <div style={{ padding:'16px 18px 6px', fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.08em', color:C.tx, textTransform:'uppercase' }}>Delete program?</div>
+              <div style={{ padding:'0 18px 12px', fontFamily:FN, fontSize:12, color:C.tm, lineHeight:1.6 }}>
+                “{pendingDelete.name || 'this program'}” — logged workouts stay; this can’t be undone. Type <b style={{color:C.tx}}>delete</b> to confirm.
+              </div>
+              <input value={deleteTyped} onChange={e=>setDeleteTyped(e.target.value)} autoFocus placeholder="type delete"
+                onKeyDown={e=>{ if (e.key==='Enter' && ok) doDelete(); if (e.key==='Escape') close(); }}
+                style={{ margin:'0 18px', width:'calc(100% - 36px)', boxSizing:'border-box', padding:'9px 12px', background:'transparent', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:13, outline:'none' }} />
+              <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'14px 18px' }}>
+                <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>Cancel</button>
+                <button onClick={doDelete} disabled={!ok} style={{ background: ok ? C.rd : 'transparent', border:`1px solid ${C.rd}`, color: ok ? '#FFFFFF' : C.rd, opacity: ok ? 1 : 0.5, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor: ok ? 'pointer' : 'not-allowed', textTransform:'uppercase' }}>Delete</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       {shareTarget && (() => {
         // Build the athlete list EXACTLY like the editor's assignment dropdown so
         // the trainee_id matches: couples expand to per-member ids (t.id__0/__1),
