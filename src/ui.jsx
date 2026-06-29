@@ -83,6 +83,16 @@ const variants = {
 export const Btn = ({ children, variant = "primary", onClick, style, className, ...rest }) =>
   <button onClick={onClick} className={"expo-btn" + (className ? " " + className : "")} style={{ ...baseBtn, ...variants[variant], ...style }} {...rest}>{children}</button>;
 
+/** Spread onto a non-<button> click target (a div/span row, an expander) to make
+ *  it keyboard-operable: asButton(handler) → { role, tabIndex, onClick, onKeyDown }
+ *  firing the handler on Enter/Space. Replaces a bare `onClick={fn}` so the many
+ *  div-based rows/toggles work for keyboard + screen-reader users, without
+ *  changing mouse behaviour or visuals. (a11y audit) */
+export const asButton = (handler) => ({
+  role: 'button', tabIndex: 0, onClick: handler,
+  onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(e); } },
+});
+
 // ISO (YYYY-MM-DD) → Israeli dd/mm/yyyy, or the placeholder when empty.
 const fmtDMY = (iso) => { if (!iso) return 'DD/MM/YYYY'; const [y, m, d] = String(iso).split('-'); return (d && m && y) ? `${d}/${m}/${y}` : 'DD/MM/YYYY'; };
 

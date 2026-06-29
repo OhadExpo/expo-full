@@ -27,7 +27,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useCoachNotes } from './coachNotes';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, toast, confirmToast, usePersistentState } from './ui';
+import { isRefined5b, toast, confirmToast, usePersistentState, asButton } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { useCoachNoteComments, useCoachNoteEvents, recordNoteEvent } from './coachNoteComments';
 import { supabase } from './supabase';
@@ -862,7 +862,9 @@ function CalendarEmbedCard() {
 function SectionHeader({ label, count, color, collapsed, onToggleCollapse }) {
   return (
     <div
-      onClick={onToggleCollapse}
+      {...asButton(onToggleCollapse)}
+      aria-expanded={!collapsed}
+      aria-label={`Toggle ${label} section`}
       style={{
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '8px 12px', cursor: 'pointer',
@@ -1378,7 +1380,8 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   return (
     <React.Fragment>
       <div
-        onClick={onToggleExpand}
+        {...asButton(onToggleExpand)}
+        aria-label="Expand task for comments + detail"
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         style={{
@@ -2296,7 +2299,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           {autoSection && (
             <React.Fragment>
               <div
-                onClick={() => setAutoOpen(o => !o)}
+                {...asButton(() => setAutoOpen(o => !o))}
+                aria-expanded={autoOpen}
+                aria-label="Toggle auto-alerts"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '8px 12px',
@@ -2430,7 +2435,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           background: 'var(--c-sf)',
         }}>
           <div
-            onClick={() => setDoneOpen(o => !o)}
+            {...asButton(() => setDoneOpen(o => !o))}
+            aria-expanded={doneOpen}
+            aria-label="Toggle done history"
             style={{
               padding: '10px 14px',
               fontFamily: FN, fontSize: 10, fontWeight: 700,
