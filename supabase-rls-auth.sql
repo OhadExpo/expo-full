@@ -1,6 +1,16 @@
 -- ============================================================
+-- ⛔ OBSOLETE — DO NOT RUN / DO NOT USE AS A ROLLBACK TARGET.
+-- (flagged by the 2026-06-29 security audit)
+-- These policies are STALE and weaker than what is live in production:
+-- client_workouts/bw_logs use `auth.uid() IS NOT NULL` (ANY authenticated
+-- trainee could read/write EVERY trainee's logs), and store/weekly_focus lack
+-- the presence / exercise / portal-vis carve-outs prod now has. Re-applying
+-- this (or the rollback note in 2026-05-07-form-videos) would DOWNGRADE prod
+-- security. The authoritative live set is scripts/rls-baseline.json
+-- (trainer_or_own = is_staff() OR client_id = current_client_id()). Historical only.
+-- ============================================================
 -- EXPO RLS Migration: Replace public_all with role-based policies
--- Run this in Supabase SQL Editor (Dashboard → SQL Editor)
+-- (historical — superseded by the live prod policies in rls-baseline.json)
 -- ============================================================
 
 -- Step 1: Drop all existing public_all policies

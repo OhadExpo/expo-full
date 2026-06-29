@@ -16,6 +16,8 @@
 // cold-start with FUNCTION_INVOCATION_FAILED. Mirrors api/chat.js +
 // api/capture.js which already proxy Anthropic this way.
 
+import { clientIp } from './_ip.js';
+
 export const config = {
   maxDuration: 30,
 };
@@ -91,7 +93,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  const ip = clientIp(req);
   if (!allowRate(ip)) {
     res.status(429).json({ error: 'Rate limit — try again later.' });
     return;

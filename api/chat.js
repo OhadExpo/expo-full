@@ -8,6 +8,7 @@
 // in Vercel env vars (production + preview).
 
 import crypto from 'crypto';
+import { clientIp } from './_ip.js';
 
 // Hobby's default 10s function timeout truncates Sonnet 4.6 streams mid-reply
 // at ~500 tokens. Lift to 60s + cap body to 256KB. Pro plan honors the
@@ -190,7 +191,7 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' }); return;
   }
 
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  const ip = clientIp(req);
   if (!checkRate(ip)) {
     res.status(429).json({ error: 'Slow down — try again in a bit, or email Ohad directly.' }); return;
   }

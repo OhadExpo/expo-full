@@ -1,5 +1,15 @@
+-- ============================================================
+-- ⛔ OBSOLETE — DO NOT RUN. (flagged by the 2026-06-29 security audit)
+-- This file predates the production RLS hardening. It still creates
+-- `public_all ... USING(true) WITH CHECK(true)` policies (see below) that give
+-- ANON full read+write to all client PII / plans / workouts / bodyweight.
+-- Running it on a fresh DB, a Supabase branch, or as a "reset" would RE-OPEN
+-- the database. The RLS-drift canary protects PRODUCTION only, not a rebuild.
+-- The authoritative live policy set is scripts/rls-baseline.json — regenerate
+-- any rebuild from there, NOT from this file. Kept for historical reference.
+-- ============================================================
 -- EXPO Database Schema for Supabase
--- Run this in the Supabase SQL Editor after creating the project
+-- (historical) Was: "Run this in the Supabase SQL Editor after creating the project"
 
 -- Client workout logs (from the client portal)
 create table client_workouts (

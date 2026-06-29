@@ -8,8 +8,24 @@
 // so no service-role secret needed. If summary generation fails the lead
 // still saves — funnel capture is more important than annotation.
 
+import { clientIp } from './_ip.js';
+
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
+
+// Per-IP rate limit — this endpoint makes TWO Haiku calls + a leads insert per
+// request, so an unthrottled loop burns Anthropic credits and spams the leads
+// table. In-memory (per-lambda) cap; resets on cold start, fine for solo scale.
+const RATE_WINDOW_MS = 60_000;
+const RATE_LIMIT = 6;
+const rateBuckets = new Map();
+function checkRate(ip) {
+  const now = Date.now();
+  const arr = (rateBuckets.get(ip) || []).filter(t => now - t < RATE_WINDOW_MS);
+  if (arr.length >= RATE_LIMIT) { rateBuckets.set(ip, arr); return false; }
+  arr.push(now); rateBuckets.set(ip, arr);
+  return true;
+}
 
 const SUMMARY_SYSTEM = `You will be given a transcript of a chat between a website visitor and an EXPO marketing assistant. Output ONE line (max 140 chars, plain text, no quotes, no markdown) summarizing what the VISITOR was asking about. Focus on their interests, pain points, and questions — not the assistant's answers. If the visitor asked nothing meaningful, output: "no specific questions asked".
 
@@ -161,6 +177,11 @@ export default async function handler(req, res) {
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     res.status(400).json({ error: 'Invalid email' }); return;
+  }
+
+  const ip = clientIp(req);
+  if (!checkRate(ip)) {
+    res.status(429).json({ error: 'Too many requests — try again shortly.' }); return;
   }
 
   // Run summary + intent extraction in parallel — independent calls.

@@ -1,0 +1,38 @@
+-- 2026-06-29 — Fix plans RLS prefix-collision (security audit, MEDIUM).
+--
+-- ⚠️  REVIEW BEFORE APPLYING — this touches a PRODUCTION RLS policy.
+--
+-- The authoritative `client_read_own_plans` policy lives ONLY in production
+-- (captured in scripts/rls-baseline.json, ~line 516) — it is NOT in any
+-- committed migration. So FIRST capture the exact current definition so the
+-- recreate below matches it byte-for-byte except for the dropped clause:
+--
+--   SELECT polname,
+--          pg_get_expr(polqual, polrelid)      AS using_clause,
+--          (SELECT array_agg(rolname) FROM pg_roles WHERE oid = ANY(polroles)) AS roles
+--   FROM   pg_policy
+--   WHERE  polrelid = 'plans'::regclass
+--     AND  polname  = 'client_read_own_plans';
+--
+-- PROBLEM: the live USING has THREE disjuncts. The third —
+--   current_client_id() LIKE (split_part(trainee_id,'__','1') || '%')
+-- lets a client whose id is a PREFIX of another trainee's base id read that
+-- trainee's plans (e.g. tr_dan ⊂ tr_daniel; couple sub-members tr_x__0 / __1).
+-- Real ids are mostly random tr_<rand> so blast radius is small, but named ids
+-- (tr_amit, tr_omer, tr_moshe_dana__0, …) can collide.
+--
+-- Clauses 1 + 2 already cover self + own couple sub-members, so drop ONLY the
+-- third. Recreate (adjust the USING to whatever the SELECT above returned, minus
+-- clause 3; keep the same TO role):
+--
+--   DROP POLICY IF EXISTS client_read_own_plans ON plans;
+--   CREATE POLICY client_read_own_plans ON plans
+--     FOR SELECT TO authenticated
+--     USING (
+--       trainee_id = current_client_id()
+--       OR trainee_id LIKE (current_client_id() || '__%')
+--     );
+--
+-- AFTER APPLYING: re-run the RLS-drift canary, then sign in AS a real athlete
+-- (email / 1234) and confirm the portal still loads their own plans — and that a
+-- prefix-colliding pair (if any exist) can no longer see each other's.

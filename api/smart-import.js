@@ -29,6 +29,8 @@
 // reference. This is what pushes the agent past prompt-only IQ — it has
 // real ground truth about what the coach already has.
 
+import { clientIp } from './_ip.js';
+
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
 
@@ -459,7 +461,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' }); return;
   }
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  const ip = clientIp(req);
   if (!checkImportRate(ip)) {
     res.status(429).json({ error: 'Smart-import rate limit reached — try again in a bit.' }); return;
   }
@@ -490,6 +492,15 @@ export default async function handler(req, res) {
     res.status(401).json({ error: 'Authentication required.' });
     return;
   }
+  // VALIDATE the token — not just its presence. A bogus Bearer would otherwise
+  // still burn Opus dollars on the vision-extract / plan paths (which make no
+  // Supabase call to fail on). Mirrors api/meal-macros.js + api/push/*.
+  try {
+    const userR = await fetch(`${SUPA_URL}/auth/v1/user`, {
+      headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${authToken}` },
+    });
+    if (!userR.ok) { res.status(401).json({ error: 'Invalid or expired session.' }); return; }
+  } catch { res.status(500).json({ error: 'Auth lookup failed.' }); return; }
 
   try {
     if (kind === 'vision-extract') {
