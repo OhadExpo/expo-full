@@ -126,7 +126,6 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
 
   // Outstanding — sum of pending payment requests.
   const [outstanding, setOutstanding] = useState({ amount: 0, count: 0 });
-  const [dropoutExpanded, setDropoutExpanded] = usePersistentState('dash-dropout', false);
   const [allAthletesOpen, setAllAthletesOpen] = usePersistentState('dash-all-athletes', true);
   useEffect(() => {
     let cancelled = false;
@@ -707,48 +706,9 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
         );
       })()}
 
-      {/* Dropout risk — fully collapsed by default. Header is the only
-          visible row when closed (shows count + chevron); click to expand. */}
-      {dropoutRisk.length > 0 && (
-        <div className="alert-card" style={{ marginTop: 20, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '0 18px', boxShadow: C.cardShadow }}>
-          {/* Keep card padding + header strip static (always the collapsed
-              geometry) so the strip's -18px bleed always lands on the card
-              edge. All expand/collapse motion lives in the height-animating
-              list wrapper below — no padding/margin toggle to fight the
-              animation. The strip's -18px bleed needs the 18px h-padding. */}
-          <RefinedHeaderStrip padY={0} marginBottom={0}>
-            <div onClick={() => setDropoutExpanded(o => !o)}
-              role="button" tabIndex={0} aria-expanded={dropoutExpanded}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setDropoutExpanded(o => !o); } }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }}
-              title={dropoutExpanded ? 'Click to collapse' : 'Click to expand'}>
-              <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="trendingDown" color="#FFFFFF"/>Dropout Risk — 14+ days ({dropoutRisk.length})</SectionLabel>
-              <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, color: '#FFFFFF', letterSpacing: '0.08em',
-                transition: 'transform 280ms ease',
-                transform: dropoutExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}>▾</span>
-            </div>
-          </RefinedHeaderStrip>
-          {/* grid 0fr→1fr animates to the list's natural height without a
-              hardcoded max-height; inner overflow:hidden clips during motion. */}
-          <div style={{ display: 'grid', gridTemplateRows: dropoutExpanded ? '1fr' : '0fr', transition: 'grid-template-rows 280ms ease' }}>
-            <div style={{ overflow: 'hidden', minHeight: 0 }}>
-              <div style={{ paddingTop: 12, paddingBottom: 14 }}>
-                {dropoutRisk.map(t => {
-                  const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
-                  const daysLabel = days == null ? 'Never trained' : `${days}d ago`;
-                  return (
-                    <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
-                      <span onClick={() => onSelectTrainee(t.id)} style={{ color: C.tx, cursor: 'pointer', flex: 1 }}>{t.name}</span>
-                      <span style={{ fontFamily: FN, color: C.rd, fontSize: 11, marginRight: 8 }}>{daysLabel}</span>
-                      <DormantWhatsAppButton trainee={t} days={days} />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* (Removed the standalone "Dropout Risk — 14+ days" collapsible — it
+          rendered the exact same dropoutRisk list as the "Dormant" rail card
+          above, just in red. One list, one place. — OCD audit) */}
 
       {/* Payment summary */}
       {isOwner && totalAllPaid>0&&(()=>{
