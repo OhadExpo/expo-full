@@ -40,7 +40,7 @@ function StatusMenu({ status, onChange }) {
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
       <button onClick={() => setOpen(o => !o)} title="Change status"
-        style={{ display: 'inline-flex', alignItems: 'center', height: 24, boxSizing: 'border-box', gap: 6, background: 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 100, height: 24, boxSizing: 'border-box', gap: 6, background: 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
         {status}<span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
       </button>
       {open && (

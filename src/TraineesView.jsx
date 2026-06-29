@@ -25,7 +25,7 @@ function CardStatusMenu({ status, onChange }) {
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
       <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }} title="Change status"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 5, minWidth: 92, background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
         {status}<span style={{ fontSize: 8, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
       </button>
       {open && (
