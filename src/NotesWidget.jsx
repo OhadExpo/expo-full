@@ -275,14 +275,15 @@ function TaskCard({ note, heb, trainee, allowEdit, isEditing, editBody, onEditBo
 // → INTAKE, → ATHLETE all render as one button shape and align column-wise
 // in the Tasks pool. 124px comfortably fits "→ NEW PROGRAM" (the longest
 // label) at fontSize 10 + 0.1em tracking, with a hair of side gutter.
-function ActionPill({ label, onClick, color, title }) {
+function ActionPill({ label, onClick, color, title, disabled }) {
   const c = color || 'var(--c-ac)';
   return (
-    <button onClick={onClick} title={title}
+    <button onClick={disabled ? undefined : onClick} title={title} disabled={disabled}
       style={{
         background: 'transparent', border: `1px solid ${c}`, color: c,
         fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
-        padding: '2px 9px', borderRadius: 0, cursor: 'pointer',
+        padding: '2px 9px', borderRadius: 0, cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
         whiteSpace: 'nowrap', height: 22, width: 124,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       }}>{label}</button>
@@ -312,7 +313,7 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
     }
     case 'WHATSAPP': {
       const phone = normalizePhoneIL(trainee?.phone);
-      if (!phone) return <ActionPill color="var(--c-td)" label="→ WHATSAPP" title="No phone on file" onClick={() => {}} />;
+      if (!phone) return <ActionPill color="var(--c-td)" label="→ WHATSAPP" title="No phone on file" disabled />;
       const msg = whatsappMessageForTask(note, trainee);
       return <ActionPill color="#128C7E"
         label="→ WHATSAPP"
@@ -459,7 +460,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   // unchecked list reads correctly. The earlier counter included done
   // rows, inflating the badge against what the eye sees.
   const counts = useMemo(() => {
-    const open = rows.filter(r => r.status !== 'done' && belongsToViewer(r.body));
+    const open = rows.filter(r => r.status !== 'done' && r.status !== 'cancelled' && belongsToViewer(r.body));
     const c = { all: open.length, trainee: 0, intake: 0, review: 0, general: 0 };
     for (const r of open) {
       if (!r.target_kind || r.target_kind === 'general') c.general++;
@@ -560,6 +561,7 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
               background: 'transparent', border: `1px solid var(--c-ac)`, color: 'var(--c-ac)',
               padding: '3px 8px', borderRadius: 0, fontFamily: FN, fontSize: 9,
               fontWeight: 700, letterSpacing: '0.08em', cursor: 'pointer',
+              minWidth: 58, textAlign: 'center', display: 'inline-flex', justifyContent: 'center',
             }}>{adding ? 'CLOSE' : '+ TASK'}</button>
         </div>
       )}

@@ -187,7 +187,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       const{error}=await supabase.from('plans').update({trainee_id:tid,updated_at:new Date().toISOString()}).eq('id',planId);
       if(error){ toast('Assign failed: '+error.message, 'error'); return; }
     } else {
-      const dup={id:'pl_'+uid(),name:src.name,traineeId:tid,phase:src.phase||'',notes:src.notes||'',active:true,createdAt:new Date().toISOString(),days:src.data?.days||[],warmup:src.data?.warmup||[]};
+      // Carry weeks/kind/isTemplatePurchase through — savePlan defaults weeks→4
+      // and drops kind otherwise, which silently rewrote an 8-week block to 4
+      // (or turned a daily routine standard) on assign. Mirrors PlansView's
+      // duplicatePlan. (functional/logic audit)
+      const dup={id:'pl_'+uid(),name:src.name,traineeId:tid,phase:src.phase||'',notes:src.notes||'',active:true,createdAt:new Date().toISOString(),days:src.data?.days||[],warmup:src.data?.warmup||[],weeks:src.data?.weeks,kind:src.data?.kind,isTemplatePurchase:src.data?.isTemplatePurchase};
       if(!(await savePlan(dup))){ toast('Assign failed — the duplicated program could not be saved.', 'error'); return; }
     }
     setShowAssign(false);
@@ -524,7 +528,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === ASSIGNED PROGRAMS — slot #8 */}
       {couple ? <>
         <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
           </>}>
         <div className="td-couple-row" style={{display:'flex',gap:12}}>
@@ -574,7 +578,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       </> : <>
         <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
           </>}>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
