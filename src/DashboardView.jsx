@@ -92,8 +92,12 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
 
   // Last month's income for comparison
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const lastMonthPaid = payments.filter(p => { const d=new Date(p.date); return d.getMonth()===lastMonth.getMonth() && d.getFullYear()===lastMonth.getFullYear() && p.status==='Paid'; }).reduce((a,p) => a + (parseFloat(p.amount)||0), 0);
-  const revDelta = lastMonthPaid > 0 ? Math.round(((thisMonthPaid - lastMonthPaid) / lastMonthPaid) * 100) : null;
+  // Compare like-for-like: this-month-to-date vs the SAME slice of last month
+  // (up to today's day-of-month). Comparing partial MTD against a full prior
+  // month read hugely negative early in every month even when pace was fine,
+  // and was shown as "% vs last month". (logic audit)
+  const lastMonthToDatePaid = payments.filter(p => { const d=new Date(p.date); return d.getMonth()===lastMonth.getMonth() && d.getFullYear()===lastMonth.getFullYear() && d.getDate() <= now.getDate() && p.status==='Paid'; }).reduce((a,p) => a + (parseFloat(p.amount)||0), 0);
+  const revDelta = lastMonthToDatePaid > 0 ? Math.round(((thisMonthPaid - lastMonthToDatePaid) / lastMonthToDatePaid) * 100) : null;
 
   // F-36 — Revenue dashboard card. Trailing 30/90d collected + outstanding
   // (pending Bit payment requests) + average client LTV + 6-month bar
