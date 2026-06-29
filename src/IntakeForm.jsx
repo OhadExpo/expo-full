@@ -208,7 +208,7 @@ export default function IntakeForm() {
     for (const q of form.questions) {
       const v = answers[q.id];
       if (q.required) {
-        if (v == null || v === '') return `Missing: ${q.label}`;
+        if (v == null || v === '') return locale === 'he' ? `חסר: ${q.label}` : `Missing: ${q.label}`;
       }
       // Email fields with content (required or optional) must look like an
       // email — the input has type="email" but the submit handler is
