@@ -1380,6 +1380,10 @@ function DemoPrograms() {
                             style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>👁</button>
                           <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)"
                             style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>⎘</button>
+                          <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)"
+                            style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>⤴</button>
+                          <button onClick={e => e.stopPropagation()} title="Delete program (demo only)"
+                            style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, color: C.rd, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>✕</button>
                         </div>
                       </div>
                       {/* Expanded earlier blocks — slightly compressed look. */}
@@ -1401,6 +1405,10 @@ function DemoPrograms() {
                                 style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>👁</button>
                               <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)"
                                 style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>⎘</button>
+                              <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)"
+                                style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>⤴</button>
+                              <button onClick={e => e.stopPropagation()} title="Delete program (demo only)"
+                                style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, color: C.rd, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>✕</button>
                             </div>
                           ))}
                         </div>
