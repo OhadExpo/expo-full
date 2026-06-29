@@ -1389,7 +1389,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             <span title={`Athlete: ${athleteName}`} style={{
               boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
-              color: 'var(--c-ac)', whiteSpace: 'nowrap', maxWidth: 130,
+              // Fixed width so every athlete-name chip is the same size (Ohad),
+              // regardless of name length; longer names ellipsize.
+              color: 'var(--c-ac)', whiteSpace: 'nowrap', width: 104, justifyContent: 'center',
               overflow: 'hidden', textOverflow: 'ellipsis',
               border: `1px solid var(--c-ac)`, padding: '0 8px',
             }}>{athleteName}</span>
@@ -2102,10 +2104,19 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // mode the list groups into To Do / In Progress / … sections (empty + Done
   // hidden — Done stays in the bottom pool) instead of by category.
   const listGroupedByStatus = boardGroup === 'status';
+  const autoCat = sections.find(s => s.key === 'auto');
   const visibleSections = listGroupedByStatus
-    ? statusSections.filter(s => s.statusId !== 'done' && s.rows.length > 0)
+    // Status sections hold only MANUAL tasks; the auto-alerts get their own
+    // titled section appended at the end (Ohad). (statusSections itself keeps
+    // auto-tasks for the board's status columns — only the list splits them.)
+    ? [
+        ...statusSections
+            .map(s => ({ ...s, rows: s.rows.filter(r => sourceKey(r) !== 'auto') }))
+            .filter(s => s.statusId !== 'done' && s.rows.length > 0),
+        ...(autoCat && autoCat.rows.length ? [autoCat] : []),
+      ]
     : sections.filter(s => s.key !== 'auto');
-  const autoSection = listGroupedByStatus ? null : sections.find(s => s.key === 'auto');
+  const autoSection = listGroupedByStatus ? null : autoCat;
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 14px' }}>
@@ -2221,7 +2232,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             return (
               <React.Fragment key={section.key}>
                 <SectionHeader
-                  label={section.statusId ? (STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId) : sourceLabel(section.key, section.rows[0])}
+                  label={section.statusId ? (STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId) : section.key === 'auto' ? 'Auto-Alerts' : sourceLabel(section.key, section.rows[0])}
                   count={section.rows.length}
                   color={section.statusId ? ({ open: '#5B6B7A', working: '#2C82C9', waiting: '#C9851E', stuck: '#C0392B', done: '#2E9E5B' }[section.statusId] || 'var(--c-ac)') : sourceColor(section.key)}
                   collapsed={isCollapsed}
