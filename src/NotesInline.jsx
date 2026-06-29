@@ -320,7 +320,7 @@ export default function NotesInline({
                     update(n.id, { status: 'cancelled', completed_at: new Date().toISOString() });
                   }
                 }} title="Cancel (archive to history)"
-                style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
+                style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }} aria-label="Cancel task">×</button>
             </div>
 
             {/* Body */}
@@ -412,7 +412,7 @@ export default function NotesInline({
                   )}
                 </div>
                 <button onClick={() => remove(n.id)} title="Remove"
-                  style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
+                  style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }} aria-label="Cancel task">×</button>
               </div>
             );
           })}
