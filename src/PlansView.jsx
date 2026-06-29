@@ -1151,11 +1151,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 if (onSwitchProgram && theirs.length) {
                   if (theirs[0].id !== plan.id) { await flushAutosave(); onSwitchProgram(theirs[0].id); }
                 } else if (tid && onNewProgramFor) {
-                  // The athlete has no programs yet → open a NEW blank program for
-                  // them (a "new program navigation", not a Chrome confirm, and no
-                  // silent re-assignment of the current one — Ohad).
+                  // The athlete has no programs yet → ASK (styled menu) whether to
+                  // start a new blank program for them. Don't auto-create one (that
+                  // left Ohad with junk to delete) and don't silently re-assign.
                   await flushAutosave();
-                  onNewProgramFor(tid);
+                  onNewProgramFor(tid, e.target.options[e.target.selectedIndex]?.text);
                 } else {
                   setPlan({...plan,traineeId:tid}); // explicit "Unassigned"
                 }
@@ -1540,6 +1540,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const [shareSearch, setShareSearch] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null); // {id,name,fromEditor} → styled type-"delete" modal
   const [deleteTyped, setDeleteTyped] = useState('');
+  const [newProgramPrompt, setNewProgramPrompt] = useState(null); // {id,name} → "create a new program?" menu
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [filterTrainee, setFilterTrainee] = useState("");
   const [hoverPos, setHoverPos] = useState(null);
@@ -1897,7 +1898,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // programs via the new in-editor dropdown — PlanEditor's internal `plan`
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
-    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={handleNewPlan} />;
+    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} />;
   }
 
   return (
@@ -2135,6 +2136,24 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
               <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'14px 18px' }}>
                 <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>Cancel</button>
                 <button onClick={doDelete} disabled={!ok} style={{ background: ok ? C.rd : 'transparent', border:`1px solid ${C.rd}`, color: ok ? '#FFFFFF' : C.rd, opacity: ok ? 1 : 0.5, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor: ok ? 'pointer' : 'not-allowed', textTransform:'uppercase' }}>Delete</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+      {newProgramPrompt && (() => {
+        const close = () => setNewProgramPrompt(null);
+        const create = () => { const id = newProgramPrompt.id; close(); handleNewPlan(id); };
+        return (
+          <div onClick={close} style={{ position:'fixed', inset:0, zIndex:10001, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+            <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, width:'min(420px, 94vw)', boxShadow:C.cardShadow }}>
+              <div style={{ padding:'16px 18px 6px', fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.08em', color:C.tx, textTransform:'uppercase' }}>No programs yet</div>
+              <div style={{ padding:'0 18px 14px', fontFamily:FN, fontSize:12, color:C.tm, lineHeight:1.6 }}>
+                {newProgramPrompt.name} has no programs. Start a new one for them?
+              </div>
+              <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'4px 18px 16px' }}>
+                <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>Cancel</button>
+                <button onClick={create} style={{ background:C.ac, border:`1px solid ${C.ac}`, color:'#FFFFFF', borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>+ New Program</button>
               </div>
             </div>
           </div>
