@@ -531,7 +531,7 @@ export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, hea
       borderLeft: leftStripe ? `3px solid ${leftStripe}` : `1px solid ${C.cardBd}`,
       borderRadius: 0,
       padding: padNum,
-      cursor: onClick ? "pointer" : "default",
+      cursor: draggable ? "grab" : (onClick ? "pointer" : "default"),
       boxShadow: C.cardShadow,
       transition: "box-shadow 0.2s, transform 0.2s",
       ...style,
