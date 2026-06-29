@@ -820,12 +820,16 @@ export function ToastHost() {
       {items.map(it => {
         const p = palette[it.kind] || palette.info;
         return (
-          <div key={it.id} style={{ pointerEvents: 'auto', background: C.sf, color: p.fg, border: `1px solid ${p.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
+          <div key={it.id}
+            role={it.actions ? 'alertdialog' : undefined}
+            aria-modal={it.actions ? 'true' : undefined}
+            onKeyDown={it.actions ? (e => { if (e.key === 'Escape') { if (it.onAction) it.onAction(false); dismissToast(it.id); } }) : undefined}
+            style={{ pointerEvents: 'auto', background: C.sf, color: p.fg, border: `1px solid ${p.bd}`, borderRadius: 0, padding: '12px 16px', fontFamily: FB, fontSize: 13, fontWeight: 500, boxShadow: `0 8px 24px ${C.shadow}`, minWidth: 240, maxWidth: 480, display: 'flex', flexDirection: 'column', gap: 10, textAlign: 'center' }}>
             <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{it.message}</div>
             {it.actions && (
               <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
                 {it.actions.map((a, i) => (
-                  <Btn key={i} variant={a.variant || 'ghost'} onClick={() => { if (it.onAction) it.onAction(a.value); dismissToast(it.id); }}>{a.label}</Btn>
+                  <Btn key={i} variant={a.variant || 'ghost'} autoFocus={i === 0} onClick={() => { if (it.onAction) it.onAction(a.value); dismissToast(it.id); }}>{a.label}</Btn>
                 ))}
               </div>
             )}
