@@ -249,8 +249,19 @@ function smartSortScore(row, now) {
   return 10 + t / 1e10; // monotonic, smaller = earlier
 }
 
-function applySort(rows, mode, dir, now) {
+function applySort(rows, mode, dir, now, orderArr) {
   const a = [...rows];
+  // Manual: order by the hand-arranged id list (drag-to-reorder). Ids not yet in
+  // the list fall to the end by recency. Direction toggle doesn't apply.
+  if (mode === 'manual') {
+    const idx = new Map((orderArr || []).map((id, i) => [id, i]));
+    a.sort((x, y) => {
+      const ix = idx.has(x.id) ? idx.get(x.id) : Infinity;
+      const iy = idx.has(y.id) ? idx.get(y.id) : Infinity;
+      return ix !== iy ? ix - iy : (new Date(y.created_at) - new Date(x.created_at));
+    });
+    return a;
+  }
   let cmp;
   if (mode === 'smart')       cmp = (x, y) => smartSortScore(x, now) - smartSortScore(y, now);
   else if (mode === 'newest') cmp = (x, y) => new Date(y.created_at) - new Date(x.created_at);
@@ -470,6 +481,7 @@ const SORT_MODES = [
   { id: 'priority', label: 'Urgency' },
   { id: 'status',   label: 'Status' },
   { id: 'name',     label: 'A→Z' },
+  { id: 'manual',   label: 'Manual' },   // hand-ordered; drag a card onto another to reorder
 ];
 function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, resultCount, totalCount }) {
   const BOX_H = 28;
@@ -1497,6 +1509,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // dimension. Persisted so the chosen board sticks.
   const [boardGroup, setBoardGroup] = usePersistentState('tasks-board-group', 'status');
   const draggedRowRef = useRef(null);            // row being dragged (ref → no dragstart re-render abort)
+  // Manual order — hand-arranged id list for the 'Manual' sort (drag a card onto
+  // another to reorder). Per-device (localStorage) for v1; can move to a synced
+  // store key later. dropOnId highlights the card being dropped-before.
+  const [taskOrder, setTaskOrder] = usePersistentState('tasks-manual-order', []);
+  const [dropOnId, setDropOnId] = useState(null);
   const [dropKey, setDropKey] = useState(null);  // column currently highlighted as drop target
   const [quickAddKey, setQuickAddKey] = useState(null); // column whose inline "+ add" input is open
   const [quickAddText, setQuickAddText] = useState('');
@@ -1845,7 +1862,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
       byKey.get(k).push(r);
     }
     for (const [k, list] of byKey.entries()) {
-      byKey.set(k, applySort(list, sortBy, sortDir, now));
+      byKey.set(k, applySort(list, sortBy, sortDir, now, taskOrder));
     }
     const result = [];
     if (byKey.has('center'))  result.push({ key: 'center',  rows: byKey.get('center')  });
@@ -1868,7 +1885,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     const order = ['open', 'working', 'waiting', 'stuck', 'done'];
     const byStatus = new Map(order.map(s => [s, []]));
     for (const r of src) { const s = byStatus.has(r.status) ? r.status : 'open'; byStatus.get(s).push(r); }
-    return order.map(s => ({ key: 'status:' + s, statusId: s, rows: applySort(byStatus.get(s), sortBy, sortDir, now) }));
+    return order.map(s => ({ key: 'status:' + s, statusId: s, rows: applySort(byStatus.get(s), sortBy, sortDir, now, taskOrder) }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [decorated, owner, search, sortBy, sortDir, now]);
 
@@ -1883,6 +1900,29 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     } else if (boardGroup === 'list') {
       if (section.key === 'center' && sourceKey(row) !== 'center') await setCategory(row, 'center');
       else if (section.key === 'manual' && sourceKey(row) === 'center') await setCategory(row, '');
+    }
+  };
+
+  // Drag a card ONTO another card → reorder it to just before that card. Only
+  // changes the visible order under the 'Manual' sort; a cross-column drop in the
+  // status board also moves the card to the target column's status first.
+  const reorderOnto = async (targetRow, section) => {
+    const d = draggedRowRef.current; draggedRowRef.current = null; setDropKey(null); setDropOnId(null);
+    if (!d || d.id === targetRow.id) return;
+    if (boardGroup === 'status' && section.statusId && d.status !== section.statusId) {
+      await setStatus(d, section.statusId);
+    } else if (boardGroup === 'list') {
+      if (section.key === 'center' && sourceKey(d) !== 'center') await setCategory(d, 'center');
+      else if (section.key === 'manual' && sourceKey(d) === 'center') await setCategory(d, '');
+    }
+    if (sortBy === 'manual') {
+      const allIds = decorated.map(r => r.id);
+      let order = (taskOrder || []).filter(id => allIds.includes(id));   // prune deleted
+      for (const id of allIds) if (!order.includes(id)) order.push(id);  // append any new
+      order = order.filter(id => id !== d.id);
+      const ti = order.indexOf(targetRow.id);
+      if (ti < 0) order.push(d.id); else order.splice(ti, 0, d.id);
+      setTaskOrder(order);
     }
   };
 
@@ -2278,8 +2318,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   <div key={row.id}
                     draggable={!isReadOnly(row)}
                     onDragStart={e => { draggedRowRef.current = row; e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', row.id); } catch { /* noop */ } }}
-                    onDragEnd={() => { draggedRowRef.current = null; setDropKey(null); }}
-                    style={{ position: 'relative', cursor: isReadOnly(row) ? 'default' : 'grab', outline: selectedIds.has(row.id) ? '2px solid var(--c-ac)' : 'none', outlineOffset: -2 }}>
+                    onDragEnd={() => { draggedRowRef.current = null; setDropKey(null); setDropOnId(null); }}
+                    onDragOver={e => { if (draggedRowRef.current && draggedRowRef.current.id !== row.id) { e.preventDefault(); e.stopPropagation(); if (dropOnId !== row.id) setDropOnId(row.id); } }}
+                    onDragLeave={e => { e.stopPropagation(); if (dropOnId === row.id) setDropOnId(null); }}
+                    onDrop={e => { e.preventDefault(); e.stopPropagation(); reorderOnto(row, section); }}
+                    style={{ position: 'relative', cursor: isReadOnly(row) ? 'default' : 'grab', outline: selectedIds.has(row.id) ? '2px solid var(--c-ac)' : 'none', outlineOffset: -2, boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
                     <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title="Select"
                       style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
                     <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact}
