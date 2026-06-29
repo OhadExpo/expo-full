@@ -7,8 +7,10 @@
 /* Shared <Btn> hover — the primitive declared transition:all but had no hover
    state, so every button animated nothing. Tint the bg with the button's own
    colour (cyan/red/green per variant) on hover. (Ohad OCD audit.) */
-.expo-btn:hover { background: rgba(127,127,127,0.10); }
-.expo-btn:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+/* !important: every <Btn> carries an inline background (baseBtn/variants) that
+   would otherwise outrank this rule and leave the hover inert. */
+.expo-btn:hover { background: rgba(127,127,127,0.10) !important; }
+.expo-btn:hover { background: color-mix(in srgb, currentColor 12%, transparent) !important; }
 
 .alert-rail > * { flex: 1 1 280px; min-width: 280px; }
 .alert-rail { scrollbar-width: thin; }
