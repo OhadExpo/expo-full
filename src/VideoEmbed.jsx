@@ -6,6 +6,11 @@
 import React, { useState, useEffect } from 'react';
 import { C, FN, ytId } from './theme';
 
+// Reject anything that isn't an http(s) URL (javascript:/data:/vbscript: etc.)
+// before it ever reaches an href/src. Video/link fields are coach-controlled
+// today, so this is defence-in-depth, not a live hole. (security audit) Shared.
+export const safeUrl = (u) => (typeof u === 'string' && /^https?:\/\//i.test(u)) ? u : null;
+
 const _gphCache = new Map();
 
 function GooglePhotos({ url }) {
@@ -42,7 +47,7 @@ function GooglePhotos({ url }) {
 }
 
 export default function VideoEmbed({ url }) {
-  if (!url) return null;
+  if (!safeUrl(url)) return null;   // drop non-http(s) before any href/src render
   const wrap = { borderRadius: 0, overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}` };
   const yid = ytId(url);
   if (yid) return <div style={{ ...wrap, background: 'transparent' }}><iframe src={`https://www.youtube.com/embed/${yid}`} style={{ width: '100%', height: '100%', border: 'none' }} allowFullScreen /></div>;
