@@ -2280,8 +2280,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         // BOARD view — same data as cards. Uses auto-fill (not auto-fit) so
         // a single matching card doesn't stretch the full width on search.
         <div style={boardGroup === 'status'
-          // Status kanban = horizontal column row (Monday/Trello style), scroll-x.
-          ? { display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8, alignItems: 'flex-start' }
+          // Status kanban = columns that flex to fill the width and WRAP to a new
+          // row on narrow screens — no horizontal scroll (Ohad).
+          ? { display: 'flex', flexWrap: 'wrap', gap: 12, paddingBottom: 8, alignItems: 'flex-start' }
           // List grouping keeps the responsive wrapping grid.
           : { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 14 }
         }>
@@ -2303,7 +2304,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 border: `1px solid ${isDropTarget ? 'var(--c-ac)' : 'var(--c-cardBd)'}`,
                 background: isDropTarget ? 'var(--c-sf2)' : 'var(--c-sf)',
                 borderRadius: 0, display: 'flex', flexDirection: 'column', transition: 'background 0.12s, border-color 0.12s',
-                ...(isStatus ? { flex: compact ? '0 0 248px' : '0 0 300px', minWidth: compact ? 248 : 300 } : {}),
+                ...(isStatus ? { flex: '1 1 175px', minWidth: 175 } : {}),
               }}>
               <div style={{
                 background: headBg, color: '#FFFFFF', padding: '10px 12px',
