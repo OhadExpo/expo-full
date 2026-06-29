@@ -231,6 +231,36 @@ function DemoDashboard({ onJumpToTrainee }) {
         <StatCard label="Collected This Month" value="₪1,800" sub="+12% vs last month" accent={C.gn} />
       </div>
 
+      {/* Tasks mini-board — mirrors the real DashboardView's NotesWidget status
+          columns (To Do / In Progress / Waiting / Stuck) so the demo dashboard
+          shows the tasks-at-a-glance feature. */}
+      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
+        <div style={{ background: C.ac, color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em' }}>
+          TASKS ({DEMO_TASKS.filter(t => t.status !== 'done').length})
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 10 }}>
+          {STATUS_COLS.slice(0, 4).map(col => {
+            const rows = DEMO_TASKS.filter(t => t.status === col.id);
+            return (
+              <div key={col.id} style={{ flex: '1 1 150px', minWidth: 140, border: `1px solid ${C.cardBd}`, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ background: col.color, color: '#FFFFFF', padding: '5px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{col.label}</span><span style={{ opacity: 0.85 }}>{rows.length}</span>
+                </div>
+                <div style={{ padding: 4, display: 'flex', flexDirection: 'column', gap: 4, minHeight: 40 }}>
+                  {rows.map(t => {
+                    const meta = TASK_SRC[t.src];
+                    return (
+                      <div key={t.id} style={{ border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${meta.color}`, padding: '5px 7px', fontFamily: FB, fontSize: 11, lineHeight: 1.3, color: C.tx }}>{t.title}</div>
+                    );
+                  })}
+                  {rows.length === 0 && <div style={{ padding: '6px 4px', textAlign: 'center', color: C.td, fontSize: 9, fontFamily: FN }}>—</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Alert grid — same shape as the real DashboardView. Overdue + Leads
           are stacked vertically as one cell so leads sits directly beneath
           overdue; dormant + online + expiring fill the remaining tracks. */}
