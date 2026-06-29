@@ -1,6 +1,14 @@
 /* src/themes.css — single source of truth for theme tokens.
    Consumed by all inline styles via var(--c-*) values exported from theme.js. */
 
+/* Dashboard alert blocks — a drag-to-pan horizontal rail (Ohad). Each block is a
+   fixed-width column so the row scrolls instead of squashing; on narrow screens
+   a block is ~viewport-wide so the next one peeks, inviting the drag. */
+.alert-rail > * { flex: 1 1 280px; min-width: 280px; }
+.alert-rail { scrollbar-width: thin; }
+.alert-rail::-webkit-scrollbar { height: 6px; }
+.alert-rail::-webkit-scrollbar-thumb { background: var(--c-cardBd); border-radius: 0; }
+
 :root, [data-theme="dark"] {
   --c-bg: #000000;
   --c-sf: #0a0a0c;

@@ -1693,9 +1693,15 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   };
   const handleDelete = async (planId) => { await deletePlan(planId); setConfirmDelete(null); await reloadIndex(); };
   // Delete from inside the editor (the DELETE button between PORTAL + Save).
+  // Second-verification delete: the coach must TYPE "delete" to confirm (Ohad),
+  // so a stray click can't wipe a program.
+  const confirmTypeDelete = (name) => {
+    const typed = window.prompt(`Delete "${name || 'this program'}"?\n\nType   delete   to confirm. (Logged workouts stay; this can't be undone.)`);
+    return (typed || '').trim().toLowerCase() === 'delete';
+  };
   const handleEditorDelete = async () => {
     if (!editPlanData?.id) return;
-    if (!window.confirm(`Delete "${editPlanData.name || 'this program'}"? Any logged workouts stay; the program itself is removed. This can't be undone.`)) return;
+    if (!confirmTypeDelete(editPlanData.name)) return;
     await deletePlan(editPlanData.id);
     handleCancel(); // closes the editor + reloads the index
   };
@@ -2004,7 +2010,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />}
                     <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />
                     <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
-                    <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(cur.id);}} title="Delete program" label="DELETE" />
+                    <LabeledBtn onClick={e=>{e.stopPropagation(); if (confirmTypeDelete(cur.name)) handleDelete(cur.id);}} title="Delete program" label="DELETE" />
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed

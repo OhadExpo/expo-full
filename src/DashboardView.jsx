@@ -282,6 +282,16 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
   // Analytics; the dashboard tile shows the absolute funnel-stage counts.
   // Renders gracefully if chat_logs migration hasn't been applied yet.
   const [funnel, setFunnel] = useState(null); // null = loading; {sessions, messages, captures, waitlist}
+
+  // Drag-to-pan for the alert-blocks rail (Ohad: "drag-able left and right").
+  // Click-vs-drag: if the pointer moved >4px it was a pan, so the trailing click
+  // (which would open an athlete) is swallowed in the capture phase.
+  const alertRailRef = React.useRef(null);
+  const alertDrag = React.useRef({ down: false, moved: false, startX: 0, startScroll: 0 });
+  const onAlertDown = (e) => { const el = alertRailRef.current; if (!el) return; alertDrag.current = { down: true, moved: false, startX: e.pageX, startScroll: el.scrollLeft }; };
+  const onAlertMove = (e) => { const st = alertDrag.current; if (!st.down || !alertRailRef.current) return; const dx = e.pageX - st.startX; if (Math.abs(dx) > 4) st.moved = true; alertRailRef.current.scrollLeft = st.startScroll - dx; };
+  const onAlertUp = () => { alertDrag.current.down = false; };
+  const onAlertClickCapture = (e) => { if (alertDrag.current.moved) { e.preventDefault(); e.stopPropagation(); alertDrag.current.moved = false; } };
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -516,7 +526,8 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
           the inbound funnel). Dormant + online + expiring fill remaining
           tracks via auto-fit so the dashboard stays a single visual scan. */}
       {(onlineNow.length > 0 || expiring.length > 0 || overduePayment.length > 0 || dropoutRisk.length > 0 || (leads && leads.length > 0)) && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 20, alignItems: 'start' }}>
+        <div ref={alertRailRef} className="alert-rail" onMouseDown={onAlertDown} onMouseMove={onAlertMove} onMouseUp={onAlertUp} onMouseLeave={onAlertUp} onClickCapture={onAlertClickCapture}
+          style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'stretch', overflowX: 'auto', cursor: 'grab', paddingBottom: 4 }}>
           {onlineNow.length > 0 && (
             <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.gn}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
               <RefinedHeaderStrip>
