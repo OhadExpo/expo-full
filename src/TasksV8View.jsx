@@ -94,11 +94,11 @@ function dateMeta(iso, now) {
   const diffDays = Math.round((startOfDay - startOfToday) / 86400000);
   if (diffDays === 0)  return { label: 'TODAY', color: 'var(--c-ac)', isOverdue: false };
   if (diffDays === 1)  return { label: 'TMRW',  color: 'var(--c-tm)', isOverdue: false };
-  if (diffDays === -1) return { label: 'YDAY',  color: 'var(--c-rd)', isOverdue: true };
+  if (diffDays === -1) return { label: 'YESTERDAY', color: 'var(--c-tm)', isOverdue: true };
   if (diffDays < -1) {
     const day = d.getDate();
     const mon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][d.getMonth()];
-    return { label: `${day} ${mon}`, color: 'var(--c-rd)', isOverdue: true };
+    return { label: `${day} ${mon}`, color: 'var(--c-tm)', isOverdue: true };
   }
   if (diffDays > 1 && diffDays <= 6) return { label: ['SUN','MON','TUE','WED','THU','FRI','SAT'][d.getDay()], color: 'var(--c-tm)', isOverdue: false };
   const day = d.getDate();
@@ -1331,7 +1331,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   // Due shown as relative word + real date + time on ONE row (his spec:
   // "relative + date + time"), e.g. "TMRW · 7 Jun 09:00".
   const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const RELATIVE_WORDS = new Set(['TODAY','TMRW','YDAY','SUN','MON','TUE','WED','THU','FRI','SAT']);
+  const RELATIVE_WORDS = new Set(['TODAY','TMRW','YESTERDAY','SUN','MON','TUE','WED','THU','FRI','SAT']);
   let dateStr = null;
   if (hasDue) {
     const dd = new Date(row._dueAt);
@@ -1341,8 +1341,10 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
       if (row._dueTime) dateStr += ` ${row._dueTime}`;
     }
   }
-  const dateBorder = isOverdue ? 'var(--c-rd)' : isToday ? 'var(--c-ac)' : 'var(--c-cardBd)';
-  const dateBg = isOverdue ? 'rgba(229,72,77,0.10)' : isToday ? 'rgba(57,189,255,0.12)' : 'transparent';
+  // Overdue is NOT coloured red — red is reserved for the URGENT pill (Ohad). The
+  // "YESTERDAY" / "28 JUN" text carries the lateness; the chip stays neutral.
+  const dateBorder = isToday ? 'var(--c-ac)' : 'var(--c-cardBd)';
+  const dateBg = isToday ? 'rgba(57,189,255,0.12)' : 'transparent';
 
   return (
     <React.Fragment>
@@ -1368,16 +1370,16 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             athlete. Forced LTR internally so the order reads the same on
             Hebrew (RTL) and English rows. Each chip is no-wrap. */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, direction: 'ltr' }}>
+          <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
           {dateStr && (
             <span style={{
               boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
               fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.02em',
-              color: isOverdue ? 'var(--c-rd)' : isToday ? 'var(--c-ac)' : dm.color,
+              color: isToday ? 'var(--c-ac)' : dm.color,
               whiteSpace: 'nowrap', padding: '0 8px',
               border: `1px solid ${dateBorder}`, background: dateBg,
             }}>{dateStr}</span>
           )}
-          <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
           {athleteName && (
             <span title={`Athlete: ${athleteName}`} style={{
               boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
@@ -1393,7 +1395,8 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             <span title="Shared — Ohad + Yuval" style={{
               boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
-              color: 'var(--c-gn)', whiteSpace: 'nowrap',
+              // Faded — the saturated green read as too loud on the page (Ohad).
+              color: 'var(--c-gn)', opacity: 0.55, whiteSpace: 'nowrap',
               border: `1px solid var(--c-gn)`, padding: '0 8px', textTransform: 'uppercase',
             }}>Shared</span>
           )}
