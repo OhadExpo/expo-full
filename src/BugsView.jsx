@@ -28,6 +28,10 @@ export default function BugsView() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('open');
   const [expandedId, setExpandedId] = useState(null);
+  // Inline "fixed in commit SHA" capture — replaces a native window.prompt.
+  const [shaFor, setShaFor] = useState(null);
+  const [shaVal, setShaVal] = useState('');
+  const markFixed = (id) => { const c = shaVal.trim(); if (c) setFixedIn(id, c.slice(0, 40)); else setStatus(id, 'fixed'); setShaFor(null); setShaVal(''); };
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -202,11 +206,17 @@ export default function BugsView() {
                       style={btn(C.or)}>→ TRIAGED</button>
                   )}
                   {r.status !== 'fixed' && (
-                    <button onClick={async () => {
-                      const commit = window.prompt('Fixed in commit SHA (leave blank to skip):', '') || '';
-                      if (commit.trim()) setFixedIn(r.id, commit.trim().slice(0, 40));
-                      else setStatus(r.id, 'fixed');
-                    }} style={btn(C.gn)}>✓ MARK FIXED</button>
+                    shaFor === r.id ? (
+                      <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                        <input autoFocus value={shaVal} onChange={e => setShaVal(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') markFixed(r.id); if (e.key === 'Escape') { setShaFor(null); setShaVal(''); } }}
+                          placeholder="commit SHA — blank to skip"
+                          style={{ background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FN, fontSize: 11, padding: '4px 8px', width: 190 }} />
+                        <button onClick={() => markFixed(r.id)} style={btn(C.gn)}>✓ FIXED</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => { setShaFor(r.id); setShaVal(''); }} style={btn(C.gn)}>✓ MARK FIXED</button>
+                    )
                   )}
                   {r.fixed_in_commit && (
                     <span style={{ fontFamily: 'monospace', fontSize: 11, color: C.gn, marginLeft: 4 }}>
