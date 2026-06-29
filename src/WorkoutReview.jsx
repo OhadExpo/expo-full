@@ -2188,7 +2188,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                     {segCount > 0 && (
                       <span style={{display:'inline-flex',gap:3,verticalAlign:'middle'}}>
                         {Array.from({length:segCount},(_,i)=>(
-                          <span key={i} style={{width:13,height:5,background:i < Math.min(wo.week, segCount) ? 'var(--c-ac)' : 'var(--c-cardBd)'}} />
+                          <span key={i} style={{width:13,height:5,background:i < Math.min(wo.week, segCount) ? 'var(--c-ac)' : 'var(--c-tm)', opacity:i < Math.min(wo.week, segCount) ? 1 : 0.35}} />
                         ))}
                       </span>
                     )}
