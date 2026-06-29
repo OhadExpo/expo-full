@@ -63,7 +63,10 @@ export function useCoachNotes(filter = {}) {
       .subscribe();
     const onFocus = () => refetch();
     window.addEventListener('focus', onFocus);
-    const poll = setInterval(refetch, 20000);
+    // 90s fallback poll — realtime + the focus listener already cover liveness;
+    // the old 20s poll re-fetched + re-rendered the whole task list every 20s
+    // even when idle and even though realtime had already delivered. (perf audit)
+    const poll = setInterval(refetch, 90000);
     return () => {
       try { supabase.removeChannel(channel); } catch { /* noop */ }
       window.removeEventListener('focus', onFocus);

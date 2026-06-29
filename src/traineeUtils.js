@@ -29,8 +29,17 @@ export const emailsDisplay = (email) => {
 
 // --- Couple member IDs ------------------------------------------------------
 
-/** All trainee IDs that own plans for a given trainee: parent + both sub-IDs. */
-export const traineeIdsFor = (id) => [id, id + '__0', id + '__1'];
+/** All trainee IDs that own plans for a given trainee: parent + both sub-IDs.
+ *  Memoized: it's a pure function of the id STRING, but the autoTasks rules call
+ *  it per-array-element inside per-trainee filters (~147K calls/sync at scale),
+ *  so caching the array kills that allocation churn. The cache never goes stale
+ *  (same id → same ids) and is bounded by the trainee count. (perf audit) */
+const _traineeIdsCache = new Map();
+export const traineeIdsFor = (id) => {
+  let v = _traineeIdsCache.get(id);
+  if (!v) { v = [id, id + '__0', id + '__1']; _traineeIdsCache.set(id, v); }
+  return v;
+};
 
 /** `${parentId}__${idx}` */
 export const subMemberId = (parentId, idx) => parentId + '__' + idx;
