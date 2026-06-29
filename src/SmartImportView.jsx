@@ -379,7 +379,15 @@ export default function SmartImportView() {
       } else if (target === 'athletes') {
         const { data: row } = await supabase.from('store').select('value').eq('key', 'expo-trainees').maybeSingle();
         const arr = row?.value || [];
-        const keyOf = t => `${(t.name || '').toLowerCase().trim()}|${(t.phone || '').replace(/\D/g, '').slice(-9)}`;
+        const keyOf = t => {
+          const n = (t.name || '').toLowerCase().trim();
+          const p = (t.phone || '').replace(/\D/g, '').slice(-9);
+          // When BOTH name+phone are blank, fall back to email so two distinct
+          // anonymous rows don't collapse into one (one Object.assign-overwriting
+          // the other). Normal name|phone dedup is unchanged. (deep-logic audit)
+          if (!n && !p) return `anon|${(t.email || '').toLowerCase().trim()}`;
+          return `${n}|${p}`;
+        };
         const existing = new Map(arr.map(t => [keyOf(t), t]));
         let added = 0; let updated = 0; let skippedNameless = 0;
         for (const item of transform.items) {
