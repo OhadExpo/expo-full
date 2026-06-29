@@ -1117,7 +1117,7 @@ function AuthedApp() {
               const BLACK='#0E0F12';
               const activeStyle=isChosen
                 ?{background:isActive?CYAN:'transparent',border:'0.25px solid transparent',color:isActive?'#FFFFFF':BLACK,boxShadow:isActive?'0 1px 2px rgba(0,0,0,0.10), 0 4px 12px rgba(57,189,255,0.28)':'none'}
-                :{background:'transparent',border:`${isActive?'1px':'0.25px'} solid ${isActive?C.ac:'transparent'}`,color:isActive?C.ac:C.tm};
+                :{background:'transparent',border:`1px solid ${isActive?C.ac:'transparent'}`,color:isActive?C.ac:C.tm};
               const countColor=isChosen?(isActive?'rgba(255,255,255,0.78)':BLACK):(isActive?C.ac:C.td);
               if (t.submenu) {
                 return (<SubmenuTab key={t.key} id={t.key}
