@@ -96,7 +96,7 @@ export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLo
               <span style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.08em' }}>
                 YOU · RANK #{myRank + 1} of {board.length}
               </span>
-              <span style={{ fontFamily: FN, fontSize: 16, color: C.ac, fontWeight: 700 }}>
+              <span style={{ fontFamily: FN, fontSize: 16, color: C.ac, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                 {me?.progress ?? 0}{unit ? ` ${unit}` : ''}
               </span>
             </div>
@@ -109,7 +109,7 @@ export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLo
                 }}>
                   <span style={{ fontFamily: FN, fontSize: 10, color: i === 0 ? C.ac : C.tm, width: 16, fontWeight: 700 }}>{i + 1}.</span>
                   <span style={{ flex: 1, color: C.tx, fontSize: 12, fontFamily: FB }}>{r.name}</span>
-                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: i === 0 ? C.ac : C.tx }}>
+                  <span style={{ fontFamily: FN, fontSize: 12, fontWeight: 700, color: i === 0 ? C.ac : C.tx, fontVariantNumeric: 'tabular-nums' }}>
                     {r.progress}{unit ? ` ${unit}` : ''}
                   </span>
                 </div>

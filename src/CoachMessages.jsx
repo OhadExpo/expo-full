@@ -17,7 +17,8 @@ import { sendPush, isCoachMutedForAthlete } from './push';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 const fmt = (iso) => {
-  try { return new Date(iso).toLocaleString(); } catch { return iso; }
+  // dd/mm/yyyy HH:mm, locale-independent (en-GB) — not the browser's MM/DD/YYYY.
+  try { const d = new Date(iso); return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); } catch { return iso; }
 };
 
 // Recorder hook — owns the MediaRecorder lifecycle. Returns { recording,
