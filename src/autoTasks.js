@@ -83,11 +83,11 @@ const ruleNextBlockDue = {
       if (t.status !== 'Active' && t.status !== 'Trial') continue;
       if (isGhostTrainee(t, ctx)) continue;
       // Active plans for this trainee (current block — most recent)
-      const tPlans = plans.filter(p => p.traineeId === t.id);
+      const tPlans = plans.filter(p => traineeIdsFor(t.id).includes(p.traineeId));
       if (tPlans.length === 0) continue;
       // Pick the plan that has the most-recent workout — that's the
       // current block. If no workout, the most-recently-created plan.
-      const tWorkouts = workouts.filter(w => w.clientId === t.id);
+      const tWorkouts = workouts.filter(w => traineeIdsFor(t.id).includes(w.clientId));
       let current = null;
       if (tWorkouts.length > 0) {
         const latestWk = tWorkouts.reduce((a, b) =>
@@ -148,7 +148,7 @@ const ruleWeekMissed = {
     for (const t of trainees) {
       if (t.status !== 'Active') continue;
       if (isGhostTrainee(t, ctx)) continue;
-      const tWorkouts = workouts.filter(w => w.clientId === t.id);
+      const tWorkouts = workouts.filter(w => traineeIdsFor(t.id).includes(w.clientId));
       if (tWorkouts.length === 0) continue;
       const latest = tWorkouts.reduce((a, b) =>
         new Date(b.date) > new Date(a.date) ? b : a);
@@ -158,7 +158,7 @@ const ruleWeekMissed = {
       const expectedGap = 7 / sessionsPerWeek(t.format);
       if (since < expectedGap + 7) continue;
       const currentBlock = plans.find(p =>
-        p.traineeId === t.id && p.name === latest.planName);
+        traineeIdsFor(t.id).includes(p.traineeId) && p.name === latest.planName);
       if (!currentBlock) continue;
       const weeks = currentBlock.weeks || 4;
       const nextWeek = (latest.week || 1) + 1;
@@ -219,7 +219,7 @@ const ruleAtRiskSilent = {
       // ghosts — coach already knows they're inert; don't generate a
       // re-engage task that adds nothing.
       if (isGhostTrainee(t, ctx)) continue;
-      const tWorkouts = workouts.filter(w => w.clientId === t.id);
+      const tWorkouts = workouts.filter(w => traineeIdsFor(t.id).includes(w.clientId));
       const tActivity = (activityRows || []).filter(a => a.trainee_id === t.id);
       const latestWorkoutAgo = tWorkouts.length
         ? Math.min(...tWorkouts.map(w => daysAgo(w.date)))
@@ -361,7 +361,7 @@ const rulePaymentOverdue = {
     for (const t of trainees) {
       if (t.status !== 'Active') continue;
       if (isGhostTrainee(t, ctx)) continue;
-      const tPay = (payments || []).filter(p => p.traineeId === t.id && p.status === 'Paid');
+      const tPay = (payments || []).filter(p => traineeIdsFor(t.id).includes(p.traineeId) && p.status === 'Paid');
       const monthly = parseFloat(t.monthly) || 0;
       if (tPay.length === 0) {
         // "Never paid" after 21d since start
@@ -402,7 +402,7 @@ const rulePaymentOverdue = {
       // They match today (auto_ref === t.id) but the sync layer compares
       // against auto_ref; future rule changes mustn't drift the two apart.
       if (!t) { closing.add(row.auto_ref); continue; }
-      const tPay = (payments || []).filter(p => p.traineeId === t.id && p.status === 'Paid');
+      const tPay = (payments || []).filter(p => traineeIdsFor(t.id).includes(p.traineeId) && p.status === 'Paid');
       if (tPay.length === 0) continue;
       const latest = tPay.reduce((a, b) =>
         new Date(b.date) > new Date(a.date) ? b : a);
@@ -510,7 +510,7 @@ const rulePlanDueAfterEval = {
       if (t.status === 'Archived' || t.status === 'Inactive') continue;
       const hasEval = evaluations.some(e => e.trainee_id === t.id);
       if (!hasEval) continue;
-      const hasPlan = plans.some(p => p.traineeId === t.id);
+      const hasPlan = plans.some(p => traineeIdsFor(t.id).includes(p.traineeId));
       if (hasPlan) continue;
       out.push({
         ref: t.id,
