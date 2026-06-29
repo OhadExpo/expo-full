@@ -444,7 +444,13 @@ export default function SmartImportView() {
         }
         summary = `+${created} program${created === 1 ? '' : 's'} (${newLibEntries.length} new library entries).`;
       }
-      setCommitMsg('✓ ' + summary + ' Reload to see changes.');
+      // Auto-reload after a successful import. The commit upserted plans/store
+      // DIRECTLY to Supabase, so the running app's in-memory useSupaStore arrays
+      // are now stale — the next in-app edit (ExercisesView add, TraineeDetail
+      // autosave) would upsert the OLD list and silently overwrite this import
+      // (data-loss race). A reload re-fetches everything fresh and closes it.
+      setCommitMsg('✓ ' + summary + ' Reloading…');
+      setTimeout(() => { try { window.location.reload(); } catch { /* noop */ } }, 1500);
     } catch (e) { setErr('Commit failed: ' + e.message); }
     setCommitting(false);
   };
