@@ -58,7 +58,7 @@ function Leaderboard({ challenge, participants, traineesById, workouts, bwLog, m
           <div style={{ flex: 1, color: C.tx, fontSize: 13, fontFamily: FB }}>{r.name}</div>
           <div style={{
             fontFamily: FN, fontWeight: 700, color: i === 0 ? C.ac : C.tx,
-            fontSize: 13,
+            fontSize: 13, fontVariantNumeric: 'tabular-nums',
           }}>{r.progress}{unit ? ` ${unit}` : ''}</div>
         </div>
       ))}

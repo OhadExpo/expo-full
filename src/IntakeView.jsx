@@ -9,7 +9,7 @@
 // sends a link to can submit. There is no public /intake landing page.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { Btn, Modal, Card, Badge, isRefined5b, confirmToast, SectionLabel, CollapsibleSection } from './ui';
+import { Btn, Modal, Card, Badge, isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
 
@@ -142,17 +142,17 @@ export default function IntakeView({ trainees }) {
 
   const markReviewed = async (id) => {
     setSubmissions(curr => (curr || []).map(s => s.id === id ? { ...s, reviewed_at: new Date().toISOString() } : s));
-    try { await supabase.from('intake_submissions').update({ reviewed_at: new Date().toISOString() }).eq('id', id); } catch {}
+    try { const { error } = await supabase.from('intake_submissions').update({ reviewed_at: new Date().toISOString() }).eq('id', id); if (error) throw error; } catch (e) { toast('Could not mark reviewed — reload to check: ' + (e.message || e), 'error'); }
   };
   const undoReviewed = async (id) => {
     setSubmissions(curr => (curr || []).map(s => s.id === id ? { ...s, reviewed_at: null } : s));
-    try { await supabase.from('intake_submissions').update({ reviewed_at: null }).eq('id', id); } catch {}
+    try { const { error } = await supabase.from('intake_submissions').update({ reviewed_at: null }).eq('id', id); if (error) throw error; } catch (e) { toast('Could not undo — reload to check: ' + (e.message || e), 'error'); }
   };
   const deleteSubmission = async (id) => {
     // confirmToast — iOS PWA blocks the native confirm() dialog.
     if (!(await confirmToast('Delete this submission permanently?', { okLabel: 'Delete', cancelLabel: 'Cancel' }))) return;
     setSubmissions(curr => (curr || []).filter(s => s.id !== id));
-    try { await supabase.from('intake_submissions').delete().eq('id', id); } catch {}
+    try { const { error } = await supabase.from('intake_submissions').delete().eq('id', id); if (error) throw error; } catch (e) { toast('Delete failed — reload to check: ' + (e.message || e), 'error'); }
   };
 
   const generateLink = async () => {
@@ -169,9 +169,8 @@ export default function IntakeView({ trainees }) {
       const { error } = await supabase.from('intake_tokens').insert(row);
       if (error) throw error;
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const path = genForm.formType === 'progress'
-        ? `/intake/${genForm.locale}` // progress shares the same /intake path; form picks by token's form_type
-        : `/intake/${genForm.locale}`;
+      // progress + standard share the /intake path; the token's form_type picks the form
+      const path = `/intake/${genForm.locale}`;
       const url = `${origin}${path}?t=${token}`;
       try { await navigator.clipboard.writeText(url); } catch {}
       setGenResult({ url, label: row.label || `${genForm.formType} · ${genForm.locale}` });
