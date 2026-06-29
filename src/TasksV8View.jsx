@@ -2098,8 +2098,14 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
 
   // For non-auto sections, render directly. Auto section collapses by default
   // because it's the engine noise (88+ rows) that drowns out real delegation.
-  const visibleSections = sections.filter(s => s.key !== 'auto');
-  const autoSection = sections.find(s => s.key === 'auto');
+  // The board's STATUS/LIST group toggle now drives the LIST view too: in Status
+  // mode the list groups into To Do / In Progress / … sections (empty + Done
+  // hidden — Done stays in the bottom pool) instead of by category.
+  const listGroupedByStatus = boardGroup === 'status';
+  const visibleSections = listGroupedByStatus
+    ? statusSections.filter(s => s.statusId !== 'done' && s.rows.length > 0)
+    : sections.filter(s => s.key !== 'auto');
+  const autoSection = listGroupedByStatus ? null : sections.find(s => s.key === 'auto');
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: '0 14px' }}>
@@ -2148,7 +2154,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
         </div>
         <ViewToggle value={view} onChange={setView} />
-        {view === 'board' && (
+        {(
           <div style={{ display: 'inline-flex', border: `1px solid var(--c-cardBd)`, borderRadius: 0, height: 28, boxSizing: 'border-box' }}>
             {[{ id: 'status', label: 'Status' }, { id: 'list', label: 'List' }].map((g, i) => (
               <button key={g.id} onClick={() => setBoardGroup(g.id)} className="tfbtn" data-active={boardGroup === g.id ? '' : undefined} style={{
@@ -2215,9 +2221,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             return (
               <React.Fragment key={section.key}>
                 <SectionHeader
-                  label={sourceLabel(section.key, section.rows[0])}
+                  label={section.statusId ? (STATUS_OPTIONS.find(o => o.id === section.statusId)?.label || section.statusId) : sourceLabel(section.key, section.rows[0])}
                   count={section.rows.length}
-                  color={sourceColor(section.key)}
+                  color={section.statusId ? ({ open: '#5B6B7A', working: '#2C82C9', waiting: '#C9851E', stuck: '#C0392B', done: '#2E9E5B' }[section.statusId] || 'var(--c-ac)') : sourceColor(section.key)}
                   collapsed={isCollapsed}
                   onToggleCollapse={() => toggleSectionCollapse(section.key)}
                 />
