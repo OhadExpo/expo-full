@@ -122,16 +122,16 @@ export default function BillingView({ trainees }) {
               padding: '10px 12px', marginBottom: 8, background: 'var(--c-sf)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                <span style={{ fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px' }}>
+                <span style={{ fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 84, textAlign: 'center' }}>
                   {r.status.toUpperCase()}
                 </span>
                 <span style={{ fontWeight: 700, fontSize: 14, color: C.tx }}>{t?.name || r.trainee_id}</span>
                 <span style={{ flex: 1 }} />
-                <span style={{ fontFamily: FN, fontSize: 16, color: C.ac, fontWeight: 700 }}>{fmtCurrency(r.amount, r.currency)}</span>
+                <span style={{ fontFamily: FN, fontSize: 16, color: C.ac, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{fmtCurrency(r.amount, r.currency)}</span>
               </div>
               {r.reference && <div style={{ fontSize: 12, color: C.tm, marginBottom: 6 }}>{r.reference}</div>}
               <div style={{ fontFamily: FN, fontSize: 10, color: C.td, marginBottom: 6 }}>
-                Created {new Date(r.created_at).toLocaleString()}{r.paid_at ? ` · paid ${new Date(r.paid_at).toLocaleString()}` : ''}
+                Created {fmtPrettyDate(r.created_at)}{r.paid_at ? ` · paid ${fmtPrettyDate(r.paid_at)}` : ''}
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 {r.status === 'pending' && (
@@ -164,7 +164,7 @@ export default function BillingView({ trainees }) {
                 {labelTxt}
               </span>
               <span style={{ flex: 1, fontSize: 13, color: C.tx }}>{t.name}</span>
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.tm }}>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tm, fontVariantNumeric: 'tabular-nums' }}>
                 {r ? `${fmtCurrency(r.amount, r.currency)} · ${fmtPrettyDate(r.created_at)}` : '—'}
               </span>
             </div>

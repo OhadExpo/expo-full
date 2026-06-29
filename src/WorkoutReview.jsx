@@ -1882,9 +1882,9 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                           <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"3px 0",
                             opacity:set.done?1:0.4,borderBottom:si<ex.sets.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
                             <div style={{fontFamily:FN,fontSize:12,color:set.done?C.gn:C.td,textAlign:"center"}}>{set.done?'✓':si+1}</div>
-                            <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.reps||'—'}</div>
-                            <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.load?set.load+'kg':'—'}</div>
-                            <div style={{fontSize:12,color:C.tx,textAlign:'center'}}>{set.rpe||'—'}</div>
+                            <div style={{fontSize:12,color:C.tx,textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{set.reps||'—'}</div>
+                            <div style={{fontSize:12,color:C.tx,textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{set.load?set.load+'kg':'—'}</div>
+                            <div style={{fontSize:12,color:C.tx,textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{set.rpe||'—'}</div>
                           </div>
                         </React.Fragment>
                       );
