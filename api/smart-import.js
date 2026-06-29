@@ -500,6 +500,15 @@ export default async function handler(req, res) {
       headers: { apikey: SUPA_PUBLISHABLE_KEY, Authorization: `Bearer ${authToken}` },
     });
     if (!userR.ok) { res.status(401).json({ error: 'Invalid or expired session.' }); return; }
+    // ROLE-GATE: smart-import runs expensive multi-hop Opus loops. A trainee has
+    // a valid Supabase session too (universal pw), so without this any trainee
+    // could lift their JWT and burn the Anthropic key — cost-DoS. Restrict to
+    // coaches (owner + staff). Mirror src/auth.jsx TRAINER_EMAILS. (security)
+    const TRAINER_EMAILS = ['ohadyproductions@gmail.com', 'yuvalberkovitch@gmail.com'];
+    const u = await userR.json().catch(() => null);
+    if (!TRAINER_EMAILS.includes((u?.email || '').toLowerCase())) {
+      res.status(403).json({ error: 'Not authorized.' }); return;
+    }
   } catch { res.status(500).json({ error: 'Auth lookup failed.' }); return; }
 
   try {
