@@ -405,7 +405,7 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
   // Native <select> — same reliability fix as StatusPill.
   const cur = PRIORITY_PICK.find(p => p.id === priority) || PRIORITY_PICK[2];
   const base = {
-    boxSizing: 'border-box', height: TASK_PILL_H, minWidth: 96, padding: '0 8px', borderRadius: 0,
+    boxSizing: 'border-box', height: TASK_PILL_H, width: 96, padding: '0 8px', borderRadius: 0,
     fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
     textAlign: 'center', textAlignLast: 'center',
     textTransform: 'uppercase', whiteSpace: 'nowrap',
@@ -2192,7 +2192,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         <ViewToggle value={view} onChange={setView} />
         {(
           <div style={{ display: 'inline-flex', border: `1px solid var(--c-cardBd)`, borderRadius: 0, height: 28, boxSizing: 'border-box' }}>
-            {[{ id: 'status', label: 'Status' }, { id: 'list', label: 'List' }].map((g, i) => (
+            {[{ id: 'status', label: 'Status' }, { id: 'list', label: 'Category' }].map((g, i) => (
               <button key={g.id} onClick={() => setBoardGroup(g.id)} className="tfbtn" data-active={boardGroup === g.id ? '' : undefined} style={{
                 background: boardGroup === g.id ? 'var(--c-sf2)' : 'transparent',
                 color: boardGroup === g.id ? 'var(--c-tx)' : 'var(--c-tm)',
