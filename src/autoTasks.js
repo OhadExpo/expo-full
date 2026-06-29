@@ -815,11 +815,10 @@ export function explainAutoTask(note, trainee) {
 
   switch (kind) {
     case 'next_block_due': {
-      const m = body.match(/W(\d+)\/(\d+)/);
       return {
         ...base,
-        rule: 'Current block is at ≥75% completion. New block needs to ship before the runway runs out.',
-        inputs: m ? [`Active block is at W${m[1]}/${m[2]} completed`, 'Threshold: 75% block completion'] : ['Active block ≥75% complete'],
+        rule: 'Current block is near completion. A new block should ship before the runway runs out.',
+        inputs: ['Active block is near complete (most weeks logged)'],
         closes: 'Auto-closes when a newer plan is published for this trainee.',
       };
     }
@@ -827,8 +826,8 @@ export function explainAutoTask(note, trainee) {
       const m = body.match(/W(\d+)/);
       return {
         ...base,
-        rule: 'A week was missed inside the current block (no session logged within 14 days of the prior week).',
-        inputs: m ? [`Missed week: W${m[1]}`, 'Gap from last logged session: ≥14 days'] : ['Week skipped'],
+        rule: 'A week looks skipped inside the current block — the gap since the last logged session exceeded the expected training cadence.',
+        inputs: m ? [`Missed week: W${m[1]}`, 'Gap exceeded the expected session cadence'] : ['Week skipped'],
         closes: 'Auto-closes when the missed week gets a logged session.',
         confidence: 'medium',
       };
