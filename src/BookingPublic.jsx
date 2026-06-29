@@ -11,6 +11,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { EXPOMark } from './expoMark';
+import { toast } from './ui';
 
 function pad(n) { return String(n).padStart(2, '0'); }
 function ymd(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
@@ -157,8 +158,8 @@ export default function BookingPublic() {
 
   const submit = async () => {
     if (!selectedSlot) return;
-    if (!form.name.trim()) { alert('Name is required.'); return; }
-    if (!form.email.trim() && !form.phone.trim()) { alert('Please give us an email or phone so we can confirm.'); return; }
+    if (!form.name.trim()) { toast('Name is required.', 'error'); return; }
+    if (!form.email.trim() && !form.phone.trim()) { toast('Please give us an email or phone so we can confirm.', 'error'); return; }
     setSubmitting(true);
     try {
       const row = {
@@ -179,7 +180,7 @@ export default function BookingPublic() {
         zoom: settings.zoom_url,
       });
     } catch (e) {
-      alert(`Booking failed: ${e?.message || e}`);
+      toast(`Booking failed: ${e?.message || e}`, 'error');
     } finally {
       setSubmitting(false);
     }

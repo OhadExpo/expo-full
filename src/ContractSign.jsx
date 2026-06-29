@@ -13,6 +13,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { C, FN, FB, FH, EXPO_LOGO_NAV } from './theme';
 import { supabase } from './supabase';
+import { toast } from './ui';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 
@@ -60,7 +61,7 @@ export default function ContractSign() {
       if (!ok) throw new Error('This contract was already signed or the link is invalid.');
       setSigned(true);
     } catch (e) {
-      alert(`Signing failed: ${e.message}`);
+      toast(`Signing failed: ${e.message}`, 'error');
     } finally {
       setSubmitting(false);
     }

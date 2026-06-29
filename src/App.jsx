@@ -531,7 +531,7 @@ function AuthGate() {
   // coach_booking_settings RLS public-read policy. Anon writes a booking
   // via the bookings_public_insert WITH CHECK policy.
   if (path.startsWith('/book/')) {
-    return <Suspense fallback={<BootSplash />}><BookingPublic /></Suspense>;
+    return <><Suspense fallback={<BootSplash />}><BookingPublic /></Suspense><ToastHost /></>;
   }
   // F-18 — public program share. /p/<token> renders a read-only program
   // preview for a coach-shared link. No auth required; the server
@@ -542,7 +542,7 @@ function AuthGate() {
   // F-27 — public contract signing page. Brand-rich layout + signature
   // pad; anon UPDATE writes athlete_signature + athlete_signed_at.
   if (path.startsWith('/sign/')) {
-    return <Suspense fallback={<BootSplash />}><ContractSign /></Suspense>;
+    return <><Suspense fallback={<BootSplash />}><ContractSign /></Suspense><ToastHost /></>;
   }
 
   if (!inPwa) {

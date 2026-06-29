@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { C, FN, FB } from './theme';
-import { isRefined5b, confirmToast, SectionLabel, CollapsibleSection } from './ui';
+import { isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection } from './ui';
 import { supabase } from './supabase';
 
 const COACH_GATE = 5;
@@ -169,25 +169,25 @@ export default function WaitlistView({ trainees }) {
     // On failure, resync from the server so the optimistic change doesn't
     // silently diverge (and "resurrect" on next load).
     const { error } = await supabase.from('leads').update(patch).eq('id', id);
-    if (error) { alert('Update failed: ' + error.message); reload(); }
+    if (error) { toast('Update failed: ' + error.message, 'error'); reload(); }
   };
 
   const markContacted = async (id) => {
     setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, consumed_at: new Date().toISOString(), stage: 'contacted' } : l));
     const { error } = await supabase.from('leads').update({ consumed_at: new Date().toISOString(), stage: 'contacted' }).eq('id', id);
-    if (error) { alert('Update failed: ' + error.message); reload(); }
+    if (error) { toast('Update failed: ' + error.message, 'error'); reload(); }
   };
   const undoContacted = async (id) => {
     setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, consumed_at: null } : l));
     const { error } = await supabase.from('leads').update({ consumed_at: null }).eq('id', id);
-    if (error) { alert('Update failed: ' + error.message); reload(); }
+    if (error) { toast('Update failed: ' + error.message, 'error'); reload(); }
   };
   const removeLead = async (id) => {
     // confirmToast — iOS PWA blocks the native confirm() dialog.
     if (!(await confirmToast('Delete this lead permanently?', { okLabel: 'Delete', cancelLabel: 'Cancel' }))) return;
     setLeads(curr => (curr || []).filter(l => l.id !== id));
     const { error } = await supabase.from('leads').delete().eq('id', id);
-    if (error) { alert('Delete failed: ' + error.message); reload(); }
+    if (error) { toast('Delete failed: ' + error.message, 'error'); reload(); }
   };
 
   const enriched = useMemo(() => (leads || []).map(l => ({
