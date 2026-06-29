@@ -231,7 +231,11 @@ export function derivePaymentRisk(td, payments) {
   const mine = (payments || []).filter(p => ids.has(p.traineeId) && p.date)
     .slice().sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const lastPaid = mine.filter(p => p.status === 'Paid').map(p => p.date).sort().pop()
+  // `mine` is already sorted ascending by real date (line above), so the last
+  // Paid entry is the latest. The old `.sort()` here was lexicographic on the
+  // date STRING — correct only for ISO yyyy-mm-dd, wrong for dd/mm/yyyy (picked
+  // the wrong "last paid" and corrupted the UNPAID/DUE day-counts). (logic audit)
+  const lastPaid = mine.filter(p => p.status === 'Paid').map(p => p.date).pop()
     || td?.lastPayment || null;
 
   // An explicit non-Paid status on the most recent charge = outstanding.

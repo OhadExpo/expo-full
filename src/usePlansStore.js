@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { supabase } from './supabase';
 import { uid } from './theme';
+import { toast } from './ui';
 
 // Drive-imported plans store exercises as d.ex = [{eid, s, r, tempo, superset, n, wk}]
 // to save space. The trainer PlanEditor expects d.exercises = [{id, exerciseId, sets,
@@ -115,7 +116,7 @@ export function usePlanIndex() {
               || /^(\[expo\]|expo · |expo - )/i.test(p.name || ''),
             dayCount: days.length,
             exerciseCount: days.reduce((a, d) => a + ((d.exercises || d.ex || []).length), 0),
-            dayNames: days.map(d => d.name),
+            dayNames: days.map(d => d.name || d.n),
           };
         });
         setIndex(enriched);
@@ -227,7 +228,7 @@ export async function savePlan(plan) {
       const msg = `Refusing to save plan ${plan.id}: incoming state is empty AND read-back failed (${readBackError.message || readBackError}). Cannot prove existing data is safe to overwrite. Retry once network recovers.`;
       console.error('[savePlan blank-overwrite guard]', msg);
       if (typeof window !== 'undefined') {
-        try { window.alert('Save blocked — network read-back failed and incoming state is empty. Retry in a moment. See console.'); } catch {}
+        try { toast('Save blocked — network read-back failed and incoming state is empty. Retry in a moment. See console.', 'error'); } catch {}
       }
       return false;
     }
@@ -235,7 +236,7 @@ export async function savePlan(plan) {
       const msg = `Refusing to save plan ${plan.id}: would overwrite ${existingExTotal} existing exercises with an empty days[] array. This usually means the editor opened the plan with a stale or broken adapter. Reload the page and try again — if the editor still shows the plan as empty, file a bug instead of saving.`;
       console.error('[savePlan blank-overwrite guard]', msg);
       if (typeof window !== 'undefined') {
-        try { window.alert('Save blocked — see console for details. The plan you are saving would wipe ' + existingExTotal + ' existing exercises. Reload the page first.'); } catch {}
+        try { toast('Save blocked — see console for details. The plan you are saving would wipe ' + existingExTotal + ' existing exercises. Reload the page first.', 'error'); } catch {}
       }
       return false;
     }
