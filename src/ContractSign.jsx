@@ -61,7 +61,12 @@ export default function ContractSign() {
       if (!ok) throw new Error('This contract was already signed or the link is invalid.');
       setSigned(true);
     } catch (e) {
-      toast(`Signing failed: ${e.message}`, 'error');
+      // Show the friendly "already signed / invalid link" message; for any raw
+      // Supabase/network error fall back to generic so internal detail never
+      // reaches the anon signer. (security)
+      console.error('signing failed', e);
+      const friendly = /already signed|invalid/i.test(e?.message || '');
+      toast(friendly ? e.message : 'Signing failed — please try again.', 'error');
     } finally {
       setSubmitting(false);
     }

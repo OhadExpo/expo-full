@@ -180,7 +180,10 @@ export default function BookingPublic() {
         zoom: settings.zoom_url,
       });
     } catch (e) {
-      toast(`Booking failed: ${e?.message || e}`, 'error');
+      // Public page — keep the detail in the console, show the anon visitor a
+      // generic message so a raw Supabase/schema error never leaks. (security)
+      console.error('booking failed', e);
+      toast('Booking failed — please try again, or contact us directly.', 'error');
     } finally {
       setSubmitting(false);
     }
