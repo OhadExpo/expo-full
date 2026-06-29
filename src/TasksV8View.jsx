@@ -1282,14 +1282,14 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, readOnly = fa
       {/* Move the task between General and Performance Center (Ohad). */}
       {!readOnly && onSetCategory && (cat === 'manual' || cat === 'center') && (
         <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={cmpLabel}>List</span>
-          {[['manual', 'General'], ['center', 'Performance Center']].map(([id, label]) => {
-            const active = cat === id;
-            return (
-              <button key={id} onClick={(e) => { e.stopPropagation(); if (!active) onSetCategory(row, id); }}
-                style={{ background: active ? 'rgba(57,189,255,0.094)' : 'transparent', color: active ? 'var(--c-ac)' : 'var(--c-tm)', border: `1px solid ${active ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', padding: '3px 8px', cursor: active ? 'default' : 'pointer', borderRadius: 0, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{label}</button>
-            );
-          })}
+          {/* Compact picker — was a "List" label + two buttons, too wide (Ohad). */}
+          <select value={cat} onClick={(e) => e.stopPropagation()}
+            onChange={(e) => { e.stopPropagation(); if (e.target.value !== cat) onSetCategory(row, e.target.value); }}
+            title="Move this task to another list"
+            style={{ background: 'var(--c-sf)', color: 'var(--c-tx)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 22px 4px 8px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            <option value="manual">General</option>
+            <option value="center">Performance Center</option>
+          </select>
         </div>
       )}
       {/* Comments + audit timeline (Phase 2). Both gracefully no-op

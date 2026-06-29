@@ -193,7 +193,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
           {items.map(it => {
             const isItemActive = tab === it.route;
             return (
-              <button key={it.route} onClick={() => { setOpen(false); navTo(it.route); }}
+              <button key={it.route} className={!isItemActive ? 'nav-item-inactive' : undefined} onClick={() => { setOpen(false); navTo(it.route); }}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14,
                   width: '100%', padding: '10px 14px',
@@ -202,9 +202,7 @@ function SubmenuTab({ id, label, count, items, tab, navTo, activeStyle, isChosen
                   border: 'none', borderBottom: `1px solid ${C.cardBd}`,
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
                   textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
-                }}
-                onMouseEnter={e => { if (!isItemActive) e.currentTarget.style.background = 'var(--c-sf2)'; }}
-                onMouseLeave={e => { if (!isItemActive) e.currentTarget.style.background = 'transparent'; }}>
+                }}>
                 <span>{it.label}</span>
                 {it.count != null && <span style={{ fontSize: 10, color: isItemActive ? C.ac : C.td, fontFamily: FN }}>{it.count}</span>}
               </button>
@@ -342,7 +340,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
           {items.slice(0, -1).map(it => {
             const isItemActive = tab === it.key;
             return (
-              <button key={it.key} onClick={() => { setOpen(false); it.onClick(); }}
+              <button key={it.key} className={!isItemActive ? 'nav-item-inactive' : undefined} onClick={() => { setOpen(false); it.onClick(); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   width: '100%', padding: '10px 14px',
@@ -351,9 +349,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   border: 'none', borderBottom: `1px solid ${C.cardBd}`,
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
                   textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
-                }}
-                onMouseEnter={e => { if (!isItemActive) e.currentTarget.style.background = 'var(--c-sf2)'; }}
-                onMouseLeave={e => { if (!isItemActive) e.currentTarget.style.background = 'transparent'; }}>
+                }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
                 <span>{it.label}</span>
               </button>
@@ -403,7 +399,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
           {items.slice(-1).map(it => {
             const isItemActive = tab === it.key;
             return (
-              <button key={it.key} onClick={() => { setOpen(false); it.onClick(); }}
+              <button key={it.key} className={!isItemActive ? 'nav-item-inactive' : undefined} onClick={() => { setOpen(false); it.onClick(); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   width: '100%', padding: '10px 14px',
@@ -412,9 +408,7 @@ function MoreMenu({ tab, navTo, onExport, onChangePassword, isOwner = true }) {
                   border: 'none', borderBottom: `1px solid ${C.cardBd}`,
                   fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
                   textTransform: 'uppercase', textAlign: 'left', cursor: 'pointer',
-                }}
-                onMouseEnter={e => { if (!isItemActive) e.currentTarget.style.background = 'var(--c-sf2)'; }}
-                onMouseLeave={e => { if (!isItemActive) e.currentTarget.style.background = 'transparent'; }}>
+                }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', color: isItemActive ? C.ac : C.tm, flexShrink: 0 }}>{it.icon}</span>
                 <span>{it.label}</span>
               </button>

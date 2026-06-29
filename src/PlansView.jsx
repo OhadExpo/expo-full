@@ -1122,7 +1122,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // Centered via margin, NOT transform: a transformed ancestor becomes the
     // containing block for position:fixed, which would anchor every modal
     // (exercise browser, confirm dialog) to this wrapper instead of the viewport.
-    <div style={compareActive ? { width: 'min(96vw, 2400px)', marginLeft: 'calc(50% - min(48vw, 1200px))' } : undefined}>
+    <div data-allow-copy style={compareActive ? { width: 'min(96vw, 2400px)', marginLeft: 'calc(50% - min(48vw, 1200px))' } : undefined}>
       <style>{`
         /* Editor field row: 3 across on wide, 1 on narrow, so Phase/Block
            always has room (no label wrap / misalignment). */
