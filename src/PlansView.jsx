@@ -1150,8 +1150,16 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 // hijacking an existing program's owner.
                 if (onSwitchProgram && theirs.length) {
                   if (theirs[0].id !== plan.id) { await flushAutosave(); onSwitchProgram(theirs[0].id); }
+                } else if (tid) {
+                  // The athlete has no programs yet — switching here would SILENTLY
+                  // re-assign THIS program to them (footgun when just browsing, Ohad).
+                  // Confirm first; on cancel the select snaps back (value=plan.traineeId).
+                  const label = e.target.options[e.target.selectedIndex]?.text || 'this athlete';
+                  if (window.confirm(`${label} has no programs yet — assign THIS program to them?\n\n(Cancel keeps it where it is.)`)) {
+                    setPlan({...plan,traineeId:tid});
+                  }
                 } else {
-                  setPlan({...plan,traineeId:tid});
+                  setPlan({...plan,traineeId:tid}); // explicit "Unassigned"
                 }
               }}
               title="Switch to this athlete's program (assigns the current one if they have none yet)"
@@ -1992,19 +2000,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       const isVis = portalVis?.[vk] !== false;
                       return <PortalPill on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
                     })() : <div style={{width:108,flexShrink:0}} />}
-                    {setPortalVis && row.earlier.length > 0 ? (() => {
-                      const curKey = visKeyForPlan(cur, trainees);
-                      if (!curKey) return <div style={{width:108,flexShrink:0}} />;
-                      const earlierKeys = row.earlier.map(p => visKeyForPlan(p, trainees)).filter(Boolean);
-                      const latestOnly = (portalVis?.[curKey] !== false) && earlierKeys.every(k => portalVis?.[k] === false);
-                      return <PortalPill on={latestOnly}
-                        onLabel="LATEST ONLY" offLabel="ALL BLOCKS"
-                        title={latestOnly ? 'Only the latest block shows on the portal — click to show all' : 'Show only the latest block on the portal (hide older)'}
-                        onClick={e => { e.stopPropagation(); const next = { ...portalVis, [curKey]: true }; earlierKeys.forEach(k => { next[k] = latestOnly ? true : false; }); setPortalVis(next); }} />;
-                    })() : <div style={{width:108,flexShrink:0}} />}
+                    {/* LATEST ONLY / ALL BLOCKS pill removed (Ohad: "i don't need all blocks"). */}
                     {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />}
                     <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />
                     <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
+                    <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(cur.id);}} title="Delete program" label="DELETE" />
                   </div>
                 </div>
                 {/* Expanded earlier blocks — same hover preview, slightly compressed
