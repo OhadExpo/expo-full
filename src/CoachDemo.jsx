@@ -228,7 +228,7 @@ function DemoDashboard({ onJumpToTrainee }) {
         <StatCard label="Active Athletes" value="3" total="4" accent={C.gn} />
         <StatCard label="Low Sessions" value="1" sub="≤ 2 LEFT" accent={C.or} />
         <StatCard label="Estimated Monthly" value="₪2,800" accent={C.ac} />
-        <StatCard label="Collected This Month" value="₪1,800" sub="+12% vs last month" accent={C.gn} />
+        <StatCard label="Collected MTD" value="₪1,800" sub="+12% vs last month" accent={C.gn} />
       </div>
 
       {/* Tasks mini-board — mirrors the real DashboardView's NotesWidget status
@@ -1138,7 +1138,7 @@ function DemoPrograms() {
   // Mirrors src/PlansView.jsx PlanEditor exactly.
   const [overview, setOverview] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
-  const compareActive = compareOpen && overview;
+  const compareActive = compareOpen;   // real COMPARE is always available (no Overview mode)
   // Compare panel = dual-dropdown (athlete + program), mirroring the real
   // PlansView CompareSidebar so visitors can pivot between athletes' prior
   // programs the same way the live coach app does.
@@ -1157,7 +1157,7 @@ function DemoPrograms() {
   });
   // Default-visible: every program shown unless explicitly toggled off.
   const [portalVis, setPortalVis] = useState({});
-  React.useEffect(() => { if (!overview && compareOpen) setCompareOpen(false); }, [overview, compareOpen]);
+  // (Overview mode removed — the real editor has no Overview toggle.)
   const block = BLOCK_DATA[activeBlock];
 
   const traineeName = (id) => MOCK_TRAINEES.find(t => t.id === id)?.name || 'Unassigned';
@@ -1332,8 +1332,10 @@ function DemoPrograms() {
           const rows = [];
           for (const [tid, plans] of buckets.entries()) {
             const sorted = plans.slice().sort((a, b) => blockNumOf(b.name) - blockNumOf(a.name));
-            const current = sorted[0];
-            const earlier = sorted.slice(1);
+            // Headline prefers the on-portal block (matches the real app) — a
+            // hidden block shouldn't be the athlete's "current".
+            const current = sorted.find(p => portalVis['pv_' + p.id] !== false) || sorted[0];
+            const earlier = sorted.filter(p => p.id !== current.id);
             const daysSince = MOCK_LAST_SESSION_DAYS[tid] ?? null;
             rows.push({
               tid,
@@ -1399,21 +1401,19 @@ function DemoPrograms() {
                               {expanded ? `▴ ${row.earlier.length}` : `▾ +${row.earlier.length}`}
                             </button>
                           )}
-                          <button onClick={e => { e.stopPropagation(); togglePortal(cur.id); }}
-                            title={isVis(cur.id) ? 'Visible on athlete portal — click to hide' : 'Hidden from athlete portal — click to show'}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                            <div style={{ width: 28, height: 16, borderRadius: 8, background: isVis(cur.id) ? 'rgba(46,213,115,0.251)' : C.sf3, border: `1px solid ${isVis(cur.id) ? 'rgba(46,213,115,0.376)' : C.bd2}`, position: 'relative', transition: 'all .15s' }}>
-                              <div style={{ width: 12, height: 12, borderRadius: 6, background: isVis(cur.id) ? C.gn : C.td, position: 'absolute', top: 1, left: isVis(cur.id) ? 14 : 1, transition: 'all .15s' }} />
-                            </div>
-                          </button>
-                          <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)"
-                            style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>👁</button>
-                          <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)"
-                            style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>⎘</button>
-                          <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)"
-                            style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>⤴</button>
-                          <button onClick={e => e.stopPropagation()} title="Delete program (demo only)"
-                            style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, color: C.rd, cursor: 'pointer', padding: '3px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1 }}>✕</button>
+                          {(() => {
+                            const lbl = (color) => ({ height: 30, minWidth: 76, padding: '0 8px', background: 'transparent', border: `1px solid ${color}`, borderRadius: 0, color, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' });
+                            const on = isVis(cur.id);
+                            return <>
+                              <button onClick={e => { e.stopPropagation(); togglePortal(cur.id); }}
+                                title={on ? 'On the athlete portal — click to hide' : 'Hidden — click to show'}
+                                style={{ height: 30, minWidth: 108, padding: '0 10px', background: 'transparent', border: `1px solid ${on ? C.gn : C.cardBd}`, borderRadius: 0, color: on ? C.gn : C.td, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: on ? C.gn : C.td }} />{on ? 'ON PORTAL' : 'HIDDEN'}</button>
+                              <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)" style={lbl(C.ac)}>PREVIEW</button>
+                              <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)" style={lbl(C.ac)}>DUPLICATE</button>
+                              <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)" style={lbl(C.ac)}>SHARE</button>
+                              <button onClick={e => e.stopPropagation()} title="Delete program (demo only)" style={lbl(C.rd)}>DELETE</button>
+                            </>;
+                          })()}
                         </div>
                       </div>
                       {/* Expanded earlier blocks — slightly compressed look. */}
@@ -1424,21 +1424,19 @@ function DemoPrograms() {
                               style={{ cursor: 'pointer', padding: '7px 14px 7px 32px', display: 'flex', alignItems: 'center', gap: 8, opacity: 0.78, borderTop: `1px solid rgba(57,189,255,0.102)` }}>
                               <div style={{ flex: 1, minWidth: 0, fontSize: 13, color: C.tm, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.04em', fontFamily: FN }}>{p.name || 'Untitled'}</div>
                               <div style={{ fontSize: 11, color: C.td, fontFamily: FN, letterSpacing: '0.04em', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>{p.dayCount}d · {p.exerciseCount}ex</div>
-                              <button onClick={e => { e.stopPropagation(); togglePortal(p.id); }}
-                                title={isVis(p.id) ? 'Visible on athlete portal — click to hide' : 'Hidden from athlete portal — click to show'}
-                                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-                                <div style={{ width: 28, height: 16, borderRadius: 8, background: isVis(p.id) ? 'rgba(46,213,115,0.251)' : C.sf3, border: `1px solid ${isVis(p.id) ? 'rgba(46,213,115,0.376)' : C.bd2}`, position: 'relative', transition: 'all .15s' }}>
-                                  <div style={{ width: 12, height: 12, borderRadius: 6, background: isVis(p.id) ? C.gn : C.td, position: 'absolute', top: 1, left: isVis(p.id) ? 14 : 1, transition: 'all .15s' }} />
-                                </div>
-                              </button>
-                              <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)"
-                                style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>👁</button>
-                              <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)"
-                                style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>⎘</button>
-                              <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)"
-                                style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.ac, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>⤴</button>
-                              <button onClick={e => e.stopPropagation()} title="Delete program (demo only)"
-                                style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, borderRadius: 0, color: C.rd, cursor: 'pointer', padding: '2px 7px', fontFamily: FN, fontSize: 13, lineHeight: 1, flexShrink: 0 }}>✕</button>
+                              {(() => {
+                                const lbl = (color) => ({ height: 28, minWidth: 70, padding: '0 8px', background: 'transparent', border: `1px solid ${color}`, borderRadius: 0, color, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 });
+                                const on = isVis(p.id);
+                                return <>
+                                  <button onClick={e => { e.stopPropagation(); togglePortal(p.id); }}
+                                    title={on ? 'On the athlete portal — click to hide' : 'Hidden — click to show'}
+                                    style={{ height: 28, minWidth: 100, padding: '0 10px', background: 'transparent', border: `1px solid ${on ? C.gn : C.cardBd}`, borderRadius: 0, color: on ? C.gn : C.td, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexShrink: 0 }}><span style={{ width: 6, height: 6, borderRadius: '50%', background: on ? C.gn : C.td }} />{on ? 'ON PORTAL' : 'HIDDEN'}</button>
+                                  <button onClick={e => e.stopPropagation()} title="Preview as trainee (demo only)" style={lbl(C.ac)}>PREVIEW</button>
+                                  <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)" style={lbl(C.ac)}>DUPLICATE</button>
+                                  <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)" style={lbl(C.ac)}>SHARE</button>
+                                  <button onClick={e => e.stopPropagation()} title="Delete program (demo only)" style={lbl(C.rd)}>DELETE</button>
+                                </>;
+                              })()}
                             </div>
                           ))}
                         </div>
@@ -1524,13 +1522,19 @@ function DemoPrograms() {
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-          <button onClick={() => { if (!overview) return; setCompareOpen(v => !v); }}
-            disabled={!overview}
-            title={!overview ? 'Switch to Overview to use Compare' : 'Compare with a previous program (read-only)'}
-            style={{ background: 'var(--c-sf)', border: `1px solid ${compareActive ? C.ac : C.cardBd}`, borderRadius: 0, height: 42, minWidth: 140, padding: '0 18px', color: !overview ? C.td : (compareActive ? C.ac : C.tm), cursor: !overview ? 'not-allowed' : 'pointer', opacity: !overview ? 0.5 : 1, fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
-          <button onClick={() => setOverview(v => !v)}
-            style={{ background: 'var(--c-sf)', border: `1px solid ${overview ? C.ac : C.cardBd}`, borderRadius: 0, height: 42, minWidth: 148, padding: '0 18px', color: overview ? C.ac : C.tm, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }}>{overview ? '✓ OVERVIEW' : 'OVERVIEW'}</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {(() => {
+            const tbBtn = (color = C.ac) => ({ background: 'var(--c-sf)', border: `1px solid ${color}`, borderRadius: 0, height: 42, padding: '0 16px', color, cursor: 'pointer', fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', whiteSpace: 'nowrap' });
+            return <>
+              <button onClick={() => setCompareOpen(v => !v)} title="Compare with a previous program (read-only)"
+                style={{ ...tbBtn(), background: compareActive ? `${C.ac}1f` : 'var(--c-sf)' }}>{compareActive ? '✓ COMPARE' : '↔ COMPARE'}</button>
+              <button onClick={e => e.stopPropagation()} title="Open in the athlete portal view (demo only)" style={tbBtn()}>◉ PORTAL</button>
+              <button onClick={e => e.stopPropagation()} title="Share to another athlete (demo only)" style={tbBtn()}>⤴ SHARE</button>
+              <button onClick={e => e.stopPropagation()} title="Duplicate program (demo only)" style={tbBtn()}>⎘ DUPLICATE</button>
+              <button onClick={e => e.stopPropagation()} title="Show only this program on the athlete portal (demo only)" style={tbBtn()}>SHOW ONLY</button>
+              <button onClick={e => e.stopPropagation()} title="Delete program (demo only)" style={tbBtn(C.rd)}>🗑 DELETE</button>
+            </>;
+          })()}
           <button onClick={e => e.stopPropagation()} title="Demo only"
             style={{ ...baseBtn, background: C.ac, color: '#0a0a0b', height: 42, padding: '0 18px', lineHeight: '42px', fontSize: 13, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>Save Program</button>
         </div>
