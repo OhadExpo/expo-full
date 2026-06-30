@@ -148,15 +148,13 @@ const VERIFIED_TTL_MS = 5 * 60 * 1000;
 export async function isCalendarConnected() {
   if (localStorage.getItem(CONNECTED_KEY) !== '1') return false;
   let token = getCachedAccessToken();
-  // The GIS access token only lives ~1h, so after a browser restart or any
-  // gap it reads as expired. Rather than forcing a manual "Connect" again,
-  // silently refresh using the consent the user already granted (prompt:''
-  // shows no UI). Only fall back to disconnected if the silent grant fails
-  // (e.g. not signed into Google in this browser, or consent revoked).
-  if (!token) {
-    token = await requestSilentToken();
-    if (!token) return false;
-  }
+  // Passive check only — do NOT silently re-request a token here. The silent
+  // GIS grant (requestSilentToken) can surface a Google "verify it's you"
+  // popup, which fired every time the coach merely opened the Tasks tab (this
+  // runs on mount). Calendar sync is no longer a default feature, so a missing/
+  // expired token simply reads as disconnected; the explicit Connect button is
+  // the only thing that may talk to Google. (Ohad: stop the Tasks Google prompt)
+  if (!token) return false;
   const verifiedAt = parseInt(localStorage.getItem(VERIFIED_CACHE_KEY) || '0', 10);
   if (verifiedAt && Date.now() - verifiedAt < VERIFIED_TTL_MS) return true;
   const testUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1';
