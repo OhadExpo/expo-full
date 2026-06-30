@@ -984,7 +984,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor }) {
+function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, portalVis, setPortalVis }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -1210,6 +1210,27 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             PORTAL
           </button>}
+          {onShare && plan?.id && <button onClick={onShare}
+            title="Share this program to another athlete (duplicates it for them)" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>⤴ SHARE</button>}
+          {onDuplicate && plan?.id && <button onClick={onDuplicate}
+            title="Duplicate this program for the same athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>⎘ DUPLICATE</button>}
+          {setPortalVis && plan?.id && plan?.traineeId && (() => {
+            // "Show only this program" on the athlete's portal — makes THIS the
+            // only visible program (hides the athlete's other blocks); toggling
+            // off restores them all to visible. (Ohad)
+            const siblings = (planIndex || []).filter(p => p.traineeId === plan.traineeId);
+            const myVk = visKeyForPlan(plan, trainees);
+            const isOnly = !!myVk && portalVis?.[myVk] !== false && siblings.every(p => p.id === plan.id || portalVis?.[visKeyForPlan(p, trainees)] === false);
+            const toggle = () => {
+              const next = { ...(portalVis || {}) };
+              siblings.forEach(p => { const vk = visKeyForPlan(p, trainees); if (vk) next[vk] = isOnly ? true : (p.id === plan.id); });
+              if (myVk) next[myVk] = true;
+              setPortalVis(next);
+            };
+            return <button onClick={toggle}
+              title={isOnly ? 'This is the only program shown on the portal — click to show all again' : 'Show ONLY this program on the athlete portal (hide the others)'}
+              style={{background: isOnly ? `${C.gn}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${isOnly ? C.gn : C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:isOnly ? C.gn : C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>{isOnly ? '✓ ONLY THIS' : 'SHOW ONLY'}</button>;
+          })()}
           {onDelete && plan?.id && <button onClick={onDelete}
             title="Delete this program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.rd,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -1898,7 +1919,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // programs via the new in-editor dropdown — PlanEditor's internal `plan`
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
-    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} />;
+    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} portalVis={portalVis} setPortalVis={setPortalVis} />;
   }
 
   return (
