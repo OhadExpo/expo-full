@@ -231,6 +231,45 @@ function DemoDashboard({ onJumpToTrainee }) {
         <StatCard label="Collected MTD" value="₪1,800" sub="+12% vs last month" accent={C.gn} />
       </div>
 
+      {/* Revenue panel — mirrors the real DashboardView RevenueCard (F-36):
+          six metric tiles + a 6-month collected bar chart. Static demo data. */}
+      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
+        <div style={{ background: C.ac, color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>REVENUE</span><span style={{ opacity: 0.85, fontSize: 10 }}>INCL. VAT · 6 MO TREND</span>
+        </div>
+        <div style={{ padding: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
+            {[
+              ['MRR (ACTIVE)', '2,800', 'recurring committed', C.ac],
+              ['30D COLLECTED', '1,800', '+12% vs prev month', C.gn],
+              ['90D COLLECTED', '6,400', 'trailing 3 months', C.gn],
+              ['OUTSTANDING', '0', '0 pending requests', C.ac],
+              ['AVG LTV', '4,200', 'per paying client', C.ac],
+              ['AVG TICKET', '450', 'per payment row', C.ac],
+            ].map(([lab, val, sub, col], i) => (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{lab}</span>
+                <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: C.tx, letterSpacing: '-0.01em', fontVariantNumeric: 'tabular-nums' }}><span style={{ color: col }}>₪</span>{val}</span>
+                <span style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>{sub}</span>
+              </div>
+            ))}
+          </div>
+          <div>
+            <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>LAST 6 MONTHS · COLLECTED</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'end', height: 90 }}>
+              {[['Jan', 1200], ['Feb', 1500], ['Mar', 900], ['Apr', 2100], ['May', 1700], ['Jun', 1800]].map(([m, v], i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4, height: '100%' }}>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
+                    <div style={{ width: '100%', height: `${Math.round(v / 2100 * 100)}%`, background: C.ac }} title={`${m} · ₪${v}`} />
+                  </div>
+                  <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.08em', fontWeight: 700 }}>{m}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Tasks mini-board — mirrors the real DashboardView's NotesWidget status
           columns (To Do / In Progress / Waiting / Stuck) so the demo dashboard
           shows the tasks-at-a-glance feature. */}
