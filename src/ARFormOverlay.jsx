@@ -317,7 +317,11 @@ function draw(canvas, video, landmarks, world, anchorRef, { depth, skeleton, ang
   // depth target — horizontal line at knee height; hips green when at/below it
   if (depth && kneeMid && hipMid) {
     const ky = kneeMid.y * h;
-    const atDepth = hipMid.y >= kneeMid.y; // hip crease at/below knee (lower in image = larger y)
+    // Use the SAME DEPTH_TOL gate as the rep counter (line ~124) so the on-feed
+    // green depth cue agrees with the counted depth — they were inconsistent
+    // (drawn line strict-parallel, counter tolerant), so a rep could count while
+    // the line stayed white, and vice-versa. (camera audit)
+    const atDepth = hipMid.y >= kneeMid.y - DEPTH_TOL; // hip crease at/below knee (lower in image = larger y)
     ctx.strokeStyle = atDepth ? 'rgba(70,220,130,0.9)' : 'rgba(255,255,255,0.4)';
     ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
     ctx.beginPath(); ctx.moveTo(0, ky); ctx.lineTo(w, ky); ctx.stroke(); ctx.setLineDash([]);

@@ -204,6 +204,11 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
     setStatus('stopped');
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
+    // Release the camera on STOP — was only released on unmount, so the
+    // selfie-cam LED stayed on after the athlete pressed stop. Cleared so a
+    // resume re-acquires a fresh stream. (camera audit)
+    try { streamRef.current?.getTracks().forEach(t => t.stop()); } catch {}
+    streamRef.current = null;
   }, []);
 
   // Full cleanup on unmount — camera tracks, RAF, voice rec, landmarker

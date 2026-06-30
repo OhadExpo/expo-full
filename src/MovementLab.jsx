@@ -126,12 +126,16 @@ export default function MovementLab({
   const startRecording = useCallback(async () => {
     setError(null); setResult(null); setJump(null); setPhase('loading');
     try {
+      // Get a fresh camera if we don't have one, then ALWAYS (re)attach it to the
+      // current <video> node. On "Record again" the video element was unmounted
+      // during results and remounts as a NEW node with no srcObject — the old
+      // `if (!streamRef.current)` guard skipped re-attaching, leaving a dead black
+      // feed. Re-attaching is idempotent (skips if already the same stream).
       if (!streamRef.current) {
-        const s = await getCamera(facingMode);
-        streamRef.current = s;
-        const v = videoRef.current;
-        if (v) { v.srcObject = s; await v.play(); }
+        streamRef.current = await getCamera(facingMode);
       }
+      const v = videoRef.current;
+      if (v && v.srcObject !== streamRef.current) { v.srcObject = streamRef.current; await v.play(); }
       if (!landmarkerRef.current) landmarkerRef.current = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'lite' });
       // 3·2·1 countdown so the athlete gets set and holds STILL before capture —
       // the first 0.6 s of frames is the standing baseline the jump math
@@ -165,6 +169,10 @@ export default function MovementLab({
   const stopAndAnalyze = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
+    // Frames are captured — release the camera so the LED/sensor isn't left on
+    // while the coach reviews results (battery/privacy). Cleared so "Record
+    // again" gets a fresh stream. (camera audit)
+    stopStream(streamRef.current); streamRef.current = null;
     setPhase('analyzing');
     const frames = framesRef.current;
     setTimeout(() => {
@@ -258,6 +266,7 @@ export default function MovementLab({
 
   const reset = useCallback(() => {
     if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
+    stopStream(streamRef.current); streamRef.current = null;   // ensure the camera is released
     framesRef.current = [];
     setResult(null); setJump(null); setPhase('idle'); setElapsed(0); setProgress(0); setCountdown(0);
   }, []);
