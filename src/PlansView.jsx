@@ -5,7 +5,7 @@ import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RES
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
-import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast } from './ui';
+import { Btn, Input, Select, Badge, Card, ConfirmDialog, EmptyState, baseInput, isRefined5b, usePersistentState, useDelayedUnmount, toast, asButton } from './ui';
 
 // Memoized id->exercise lookup. The library is ~1,500 exercises; a per-row
 // `exercises.find(...)` in the PlanEditor render loop re-scanned the whole
@@ -2041,6 +2041,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         })()}
                         {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" label="PREVIEW" />}
                         <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE" />
+                        <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
                         <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" label="DELETE" danger />
                       </div>
                     ))}
@@ -2084,6 +2085,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 })()}
                 {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id)}} title="Preview as trainee" label="PREVIEW" />}
                 <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id)}} title="Duplicate program" label="DUPLICATE" />
+                <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(p.id)}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
                 <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id)}} title="Delete program" label="DELETE" danger />
               </div></div></Card>})}
           {hasMore && <Btn variant="ghost" onClick={()=>setVisibleCount(c=>c+PAGE_SIZE)} style={{width:"100%",justifyContent:"center",marginTop:8}}>Load more ({filtered.length - visibleCount} remaining)</Btn>}
