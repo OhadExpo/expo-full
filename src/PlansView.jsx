@@ -2005,18 +2005,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 <div onClick={()=>handleOpenPlan(cur.id)}
                   role="button" tabIndex={0}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleOpenPlan(cur.id); } }}
+                  onMouseEnter={e => {
+                    const x = e.clientX, y = e.clientY;
+                    clearTimeout(hoverTimerRef.current);
+                    hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 220);
+                  }}
+                  onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
                   style={{cursor:'pointer',padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                  {/* Hover-preview triggers ONLY on this left content zone (name →
-                      day/ex count), not the whole row — so hovering the action
-                      buttons on the right never pops the preview. (Ohad) */}
-                  <div
-                    onMouseEnter={e => {
-                      const x = e.clientX, y = e.clientY;
-                      clearTimeout(hoverTimerRef.current);
-                      hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 220);
-                    }}
-                    onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                    className="prog-main"
+                  <div className="prog-main"
                     style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{cur.name||"Untitled"}</div>
@@ -2027,7 +2023,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       blocks) so every box sits in the same column down the
                       list. Order: tag · +N · ON PORTAL · LATEST ONLY · PREVIEW
                       · DUPLICATE · SHARE. */}
-                  <div className="prog-actions" style={{display:'flex',gap:8,alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
+                  <div className="prog-actions"
+                    onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
+                    style={{display:'flex',gap:8,alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
                     <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:30,width:112,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
                     {row.earlier.length > 0 ? (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
@@ -2056,19 +2054,19 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div style={{borderTop:`1px solid ${C.cardBd}`,padding:'4px 0'}}>
                     {row.earlier.map(p => (
                       <div key={p.id} onClick={()=>handleOpenPlan(p.id)}
+                        onMouseEnter={e => {
+                          const x = e.clientX, y = e.clientY;
+                          clearTimeout(hoverTimerRef.current);
+                          hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 220);
+                        }}
+                        onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
                         style={{cursor:'pointer',padding:'7px 14px 7px 32px',display:'flex',alignItems:'center',gap:8,opacity:0.78,borderTop:`1px solid rgba(57,189,255,0.102)`}}>
-                        {/* hover-preview only on the left name+count zone (Ohad) */}
-                        <div
-                          onMouseEnter={e => {
-                            const x = e.clientX, y = e.clientY;
-                            clearTimeout(hoverTimerRef.current);
-                            hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 220);
-                          }}
-                          onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                          style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:8}}>
+                        <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:8}}>
                           <div style={{flex:1,minWidth:0,fontSize:13,color:C.tm,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN}}>{p.name||"Untitled"}</div>
                           <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex</div>
                         </div>
+                        {/* hovering the actions cancels the preview (Ohad) */}
+                        <div onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
                         {setPortalVis && (() => {
                           const vk = visKeyForPlan(p, trainees);
                           if (!vk) return null;
@@ -2079,6 +2077,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE" />
                         <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
                         <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" label="DELETE" danger />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -2092,21 +2091,20 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       {!grouped && (filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
         <div style={{display:"grid",gap:6}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
-          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: 'var(--c-sf)', borderLeft:`3px solid ${C.ac}`}}>
+          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: 'var(--c-sf)', borderLeft:`3px solid ${C.ac}`}}
+            onMouseEnter={e => {
+              const x = e.clientX, y = e.clientY;
+              clearTimeout(hoverTimerRef.current);
+              hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 220);
+            }}
+            onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
-              {/* hover-preview only on the left name+count zone (Ohad) */}
-              <div style={{minWidth:0,flex:1,direction:'ltr',unicodeBidi:'isolate',display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}
-                onMouseEnter={e => {
-                  const x = e.clientX, y = e.clientY;
-                  clearTimeout(hoverTimerRef.current);
-                  hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 220);
-                }}
-                onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}>
+              <div style={{minWidth:0,flex:1,direction:'ltr',unicodeBidi:'isolate',display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                 <div style={{fontWeight:700,fontSize:isHebrew(tName)?18:15,fontFamily:isHebrew(tName)?FH:undefined,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.01em',flexShrink:0}}><bdi>{tName}</bdi></div>
                 <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{p.name||"Untitled"}</div>
                 <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex{p.phase?` · ${p.phase}`:''}</div>
               </div>
-              <div style={{display:"flex",gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end'}}>
+              <div onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }} style={{display:"flex",gap:8,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end'}}>
                 {setPortalVis && (() => {
                   const vk = visKeyForPlan(p, trainees);
                   if (!vk) return null;
