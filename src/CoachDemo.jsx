@@ -231,6 +231,20 @@ function DemoDashboard({ onJumpToTrainee }) {
         <StatCard label="Collected MTD" value="₪1,800" sub="+12% vs last month" accent={C.gn} />
       </div>
 
+      {/* Incoming · 30D — funnel summary, mirrors the real dashboard section. */}
+      <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
+        <div style={{ background: C.ac, color: '#FFFFFF', padding: '8px 14px', fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em' }}>INCOMING · 30D</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, padding: 14 }}>
+          {[['NEW LEADS', '12', C.ac, 'last 30 days'], ['INTAKE FORMS', '7', C.ac, 'submitted'], ['TRIALS STARTED', '3', C.gn, 'this month'], ['CONVERTED', '2', C.gn, 'to paying']].map(([l, v, c, sub], i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
+              <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{l}</span>
+              <span style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: c, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+              <span style={{ fontFamily: FN, fontSize: 9, color: C.td, marginTop: 2 }}>{sub}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Revenue panel — mirrors the real DashboardView RevenueCard (F-36):
           six metric tiles + a 6-month collected bar chart. Static demo data. */}
       <div style={{ border: `1px solid ${C.cardBd}`, marginBottom: 20 }}>
@@ -2734,6 +2748,12 @@ function DemoSingle() {
             <span style={{ color: C.tx, fontWeight: 700 }}>W4 · {doneSets}/{totalSets} · {pct}%</span>
           </div>
           <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, height: 6, overflow: 'hidden' }}><div style={{ background: C.gn, height: '100%', width: `${pct}%` }} /></div>
+        </div>
+        {/* Camera/Movement tools — real 1-on-1 mode pairs the logger with these. */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+          {['◉ MOVEMENT LAB', '◉ AR FORM', '◉ JUMP TEST'].map((t, i) => (
+            <button key={i} onClick={e => e.stopPropagation()} title="Camera tool (demo only)" style={{ flex: '1 1 auto', background: 'var(--c-sf)', border: `1px solid ${C.ac}`, color: C.ac, borderRadius: 0, padding: '8px 12px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', cursor: 'pointer', whiteSpace: 'nowrap' }}>{t}</button>
+          ))}
         </div>
         {DEMO_SESSION_DAY.map(ex => (
           <div key={ex.id} style={{ background: C.sf, border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${ex.sets.every(s => s.done) && ex.sets.length ? C.gn : C.cardBd}`, marginBottom: 10, padding: 4 }}>
