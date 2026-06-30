@@ -363,16 +363,21 @@ function DemoDashboard({ onJumpToTrainee }) {
             tint={C.ac}
           >
             {[
-              { email: 'avi.shahar@example.co.il',  source: 'expo-il',  context: 'hero',         when: '32 min ago' },
+              { email: 'avi.shahar@example.co.il',  source: 'coaches',  context: 'pricing CTA',   when: '32 min ago', coach: true },
               { email: 'maor.k@example.co.il',      source: 'expo-il',  context: 'exit-intent',  when: '4 hr ago' },
               { email: 'tomer.ben@example.co.il',   source: 'expo-il',  context: 'quiz-finish',  when: 'Yesterday' },
             ].map((l, i) => (
               <Row key={i}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                    {l.coach && <span style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: '#A855F7', border: '1px solid #A855F7', padding: '1px 5px', flexShrink: 0 }}>COACH</span>}
+                    <div style={{ fontWeight: 600, color: C.tx, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.email}</div>
+                  </div>
                   <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.tm, letterSpacing: 1 }}>{l.source.toUpperCase()} · {l.context.toUpperCase()}</div>
                 </div>
-                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: 1 }}>{l.when}</span>
+                <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.td, letterSpacing: 1, marginRight: 8 }}>{l.when}</span>
+                <button onClick={e => e.stopPropagation()} title="Mark contacted (demo only)" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>✓</button>
+                <button onClick={e => e.stopPropagation()} title="Delete lead (demo only)" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '2px 7px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', marginLeft: 4, flexShrink: 0 }}>✕</button>
               </Row>
             ))}
           </Panel>
@@ -2972,8 +2977,9 @@ const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
 function DemoBilling() {
   const [showReq, setShowReq] = useState(false);
   const [amount, setAmount] = useState('600');
+  const [vatPct, setVatPct] = useState('18');   // editable VAT %, like the real Billing
   const pending = DEMO_PAYMENTS.filter(p => p.status === 'pending');
-  const preVat = Math.round((Number(amount) || 0) * 0.8475);
+  const preVat = Math.round((Number(amount) || 0) / (1 + (Number(vatPct) || 0) / 100));
   const panel = (children) => <div style={{ background: C.sf, border: `1px solid ${C.cardBd}`, marginBottom: 16 }}>{children}</div>;
   const stripH = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: `1px solid ${C.cardBd}` };
   return (
@@ -3022,8 +3028,11 @@ function DemoBilling() {
             <select style={{ width: '100%', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', marginBottom: 10, outline: 'none' }}>
               {MOCK_TRAINEES.map(t => <option key={t.id}>{t.name}</option>)}
             </select>
-            <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="Amount (₪, VAT incl.)" style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', marginBottom: 8, outline: 'none' }} />
-            <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginBottom: 14, textAlign: 'center' }}>VAT 18% incl. · pre-VAT <span style={{ color: C.ac, fontWeight: 700 }}>{fmtIls(preVat)}</span></div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <input value={amount} onChange={e => setAmount(e.target.value)} type="number" placeholder="Amount (₪, VAT incl.)" style={{ flex: 2, minWidth: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', outline: 'none' }} />
+              <input value={vatPct} onChange={e => setVatPct(e.target.value)} type="number" placeholder="VAT %" title="VAT %" style={{ width: 80, flexShrink: 0, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', outline: 'none', textAlign: 'center' }} />
+            </div>
+            <div style={{ fontFamily: FN, fontSize: 11, color: C.tm, marginBottom: 14, textAlign: 'center' }}>VAT {vatPct || 0}% incl. · pre-VAT <span style={{ color: C.ac, fontWeight: 700 }}>{fmtIls(preVat)}</span></div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.tm, border: `1px solid ${C.cardBd}`, padding: '10px 0', fontSize: 11 }}>CANCEL</button>
               <button onClick={() => setShowReq(false)} style={{ ...baseBtn, flex: 1, background: 'transparent', color: C.ac, border: `1px solid ${C.ac}`, padding: '10px 0', fontSize: 11 }}>CREATE</button>
