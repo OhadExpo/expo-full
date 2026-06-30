@@ -1847,8 +1847,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     const rows = [];
     for (const [tid, plans] of buckets.entries()) {
       const sorted = plans.slice().sort(sortByRecency);
-      const current = sorted[0];
-      const earlier = sorted.slice(1);
+      // Headline = the block the athlete actually trains: prefer the top-ranked
+      // block that's VISIBLE on the portal. A hidden block (e.g. an old Comeback
+      // block that floats to the top by sort but isn't on the portal) shouldn't
+      // be shown as "current" when a visible one exists. Falls back to sorted[0]
+      // if every block is hidden. (Ohad: "show the active plan, not a hidden one")
+      const isOnPortal = (p) => { const vk = visKeyForPlan(p, trainees); return !vk || portalVis?.[vk] !== false; };
+      const current = sorted.find(isOnPortal) || sorted[0];
+      const earlier = sorted.filter(p => p.id !== current.id);
       const lastTs = lastByTid.get(tid) || 0;
       const daysSince = lastTs ? Math.floor((now - lastTs) / 86400000) : null;
       rows.push({
@@ -1911,7 +1917,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       return a.name.localeCompare(b.name);
     });
     return rows;
-  }, [planIndex, clientWorkouts, trainees, search, filterTrainee, traineeMap, sortField, sortDir]);
+  }, [planIndex, clientWorkouts, trainees, search, filterTrainee, traineeMap, sortField, sortDir, portalVis]);
 
   if (editMode) {
     if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
