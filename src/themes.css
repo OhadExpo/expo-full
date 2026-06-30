@@ -12,6 +12,16 @@
 .expo-btn:hover { background: rgba(127,127,127,0.10) !important; }
 .expo-btn:hover { background: color-mix(in srgb, currentColor 12%, transparent) !important; }
 
+/* Program-list rows in split-screen / narrow windows: stack the action cluster
+   (date · +N · portal · preview/duplicate/share/delete) BELOW the name instead
+   of squeezing them on one line, which truncated the block name to "BL…". The
+   name takes the full first line (no truncation); actions wrap onto line 2.
+   (Ohad: split-screen looked bad.) */
+@media (max-width: 1100px) {
+  .prog-main { flex-basis: 100% !important; }
+  .prog-actions { flex-basis: 100% !important; justify-content: flex-start !important; flex-wrap: wrap !important; margin-top: 6px; }
+}
+
 .alert-rail > * { flex: 1 1 280px; min-width: 280px; }
 .alert-rail { scrollbar-width: thin; }
 .alert-rail::-webkit-scrollbar { height: 6px; }

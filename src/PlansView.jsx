@@ -2016,6 +2016,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 220);
                     }}
                     onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
+                    className="prog-main"
                     style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{cur.name||"Untitled"}</div>
@@ -2026,7 +2027,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       blocks) so every box sits in the same column down the
                       list. Order: tag · +N · ON PORTAL · LATEST ONLY · PREVIEW
                       · DUPLICATE · SHARE. */}
-                  <div style={{display:'flex',gap:8,alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
+                  <div className="prog-actions" style={{display:'flex',gap:8,alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
                     <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:30,width:112,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
                     {row.earlier.length > 0 ? (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
