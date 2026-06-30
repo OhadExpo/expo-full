@@ -130,7 +130,12 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
     return { meanConcentric: round2(mean), peak: round2(peak), rom: round2(Math.abs(disp)), durSec: round2(dt) };
   });
   const valid = perRep.filter(Boolean);
-  const best = valid.reduce((m, r) => Math.max(m, r.meanConcentric), 0) || 1;
+  const best = valid.reduce((m, r) => Math.max(m, r.meanConcentric), 0);
+  // If no rep produced a positive concentric velocity (occlusion / noisy ruler),
+  // don't fabricate a 1.0 m/s baseline (the old `|| 1`) — that emitted plausible-
+  // but-wrong VBT loss %. Return null so the UI says it couldn't read velocity.
+  // (camera audit)
+  if (!(best > 0)) return null;
   const withLoss = perRep.map(r => r && ({ ...r, lossPct: Math.round((1 - r.meanConcentric / best) * 100) }));
   const lastValid = [...withLoss].reverse().find(Boolean);
   return {
