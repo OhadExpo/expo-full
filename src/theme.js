@@ -55,7 +55,20 @@ export const C = {
 };
 
 export const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
-export const ytId = u => { if(!u) return null; const m = u.match(/(?:v=|shorts\/)([^&?/]+)/); return m ? m[1] : null; };
+// Extract the 11-char video id from any YouTube URL shape a coach might paste:
+// watch?v=, youtu.be/, /embed/, /v/, /live/ and — importantly — /shorts/ (the
+// mobile Shorts share sheet gives both youtube.com/shorts/ID and youtu.be/ID).
+export const ytId = u => {
+  if (!u) return null;
+  const s = String(u);
+  const m = s.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([\w-]{11})/i);
+  if (m) return m[1];
+  const m2 = s.match(/[?&]v=([\w-]{11})/);   // bare ?v= / &v= fallback
+  return m2 ? m2[1] : null;
+};
+// True when the URL is a YouTube Short — vertical (9:16), so the embed frame
+// must be portrait or the video shows pillarboxed inside a 16:9 box.
+export const ytIsShort = u => /youtube\.com\/shorts\//i.test(String(u || ''));
 
 // Cropped logos (black background removed)
 export const EXPO_LOGO = "/logos/expo-logo.png";

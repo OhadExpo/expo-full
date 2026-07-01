@@ -44,8 +44,9 @@ const ytId = (url) => {
 function InlineVideo({ url }) {
   const yt = ytId(url);
   if (yt) {
+    const short = /youtube\.com\/shorts\//i.test(String(url || ''));  // vertical → portrait frame
     return (
-      <div style={{ marginTop: 8, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}` }}>
+      <div style={{ marginTop: 8, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, ...(short ? { maxWidth: 260, marginLeft: 'auto', marginRight: 'auto' } : {}) }}>
         <iframe
           src={`https://www.youtube.com/embed/${yt}?rel=0&modestbranding=1&controls=1&fs=0&disablekb=1&playsinline=1`}
           sandbox="allow-scripts allow-same-origin allow-presentation"

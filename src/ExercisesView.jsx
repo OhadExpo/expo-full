@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { C, FN, FB, uid, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
-import { Btn, Input, Select, TextArea, Badge, Modal, ConfirmDialog, EmptyState, baseInput, isRefined5b } from './ui';
+import { Btn, Input, Select, TextArea, Badge, Modal, ConfirmDialog, EmptyState, baseInput, isRefined5b, RefinedHeaderStrip } from './ui';
 const defaultExercise = () => ({ id: uid(), title: "", category: "", resistanceType: "", bodyPosition: "", movementType: "", laterality: "", movementPattern: "", primaryMuscles: "", secondaryMuscles: "", primaryJoints: "", jointMovements: "", videoLink: "", cues: "", notes: "" });
 export default function ExercisesView({ exercises, setExercises }) {
   const [showForm, setShowForm] = useState(false);
@@ -41,7 +41,10 @@ export default function ExercisesView({ exercises, setExercises }) {
     setForm(defaultExercise()); setEditId(null); setShowForm(false);
   };
   return (
-    <div>
+    // data-allow-copy: same opt-out from the site-wide copyGuard as the program
+    // editor (see copyGuard.js / PlansView) — Ohad wants to select/copy/right-click
+    // exercise data while managing the library.
+    <div data-allow-copy>
       <style>{`
         @media (max-width: 720px) { .ex-filters { grid-template-columns: repeat(2, 1fr) !important; } }
       `}</style>
@@ -49,23 +52,20 @@ export default function ExercisesView({ exercises, setExercises }) {
         <div style={{ flex: 1, minWidth: 200, display: 'flex' }}><input placeholder="Search exercises (title, muscle, pattern...)" value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, height: 42, padding: '0 14px', fontSize: 13, lineHeight: '42px', border: `1px solid ${C.ac}` }} /></div>
         <Btn onClick={() => { setForm(defaultExercise()); setEditId(null); setShowForm(true); }} style={{ height: 42, padding: '0 18px', fontSize: 13, lineHeight: '42px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>+ Add Exercise</Btn>
       </div>
-      <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: isRefined5b() ? 0 : 10, marginBottom: 12, overflow: 'hidden' }}>
-        {isRefined5b() ? (
-          <div style={{ background: 'var(--c-sf)', padding: '8px 14px', borderBottom: '1px solid rgba(0,0,0,0.10)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Filters card — single theme-independent structure (was a strip header +
+          0 outer padding in light vs a plain label + 10 outer padding in dark,
+          with a font-size 11-vs-9 header, i.e. different height per theme). Now
+          the canonical RefinedHeaderStrip carries the header in both themes
+          (only its BG color flips via --c-stripBg) with constant padding. */}
+      <div style={{ background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius: 0, padding: 10, marginBottom: 12, overflow: 'hidden' }}>
+        <RefinedHeaderStrip padY={10} padX={10} marginBottom={10}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
               Filters {activeFilterCount > 0 && <span style={{ marginLeft: 6, opacity: 0.85 }}>· {activeFilterCount} active</span>}
             </div>
             {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.55)', color: '#FFFFFF', cursor: 'pointer', fontSize: 9, fontFamily: FN, fontWeight: 700, letterSpacing: '0.10em', padding: '2px 8px', borderRadius: 0 }}>CLEAR ALL</button>}
           </div>
-        ) : (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div style={{ fontSize: 9, fontFamily: FN, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.18em' }}>
-              Filters {activeFilterCount > 0 && <span style={{ color: C.ac, marginLeft: 6 }}>({activeFilterCount} active)</span>}
-            </div>
-            {activeFilterCount > 0 && <button onClick={clearFilters} style={{ background: 'none', border: 'none', color: C.tm, cursor: 'pointer', fontSize: 11, fontFamily: FN, textDecoration: 'underline' }}>Clear all</button>}
-          </div>
-        )}
-        <div style={{ padding: isRefined5b() ? 10 : 0 }}>
+        </RefinedHeaderStrip>
         <div className="ex-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {[
             ['category', 'Category', CATEGORIES],
@@ -82,7 +82,6 @@ export default function ExercisesView({ exercises, setExercises }) {
               <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
             </div>
           ))}
-        </div>
         </div>
       </div>
       <div style={{ fontSize: 11, color: C.tm, marginBottom: 12, fontFamily: FN }}>{filtered.length} exercise{filtered.length !== 1 ? "s" : ""}</div>

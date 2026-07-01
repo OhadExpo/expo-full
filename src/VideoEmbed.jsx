@@ -4,7 +4,7 @@
 // Google Photos shares (server-resolved), and lh3.googleusercontent.com.
 
 import React, { useState, useEffect } from 'react';
-import { C, FN, ytId } from './theme';
+import { C, FN, ytId, ytIsShort } from './theme';
 
 // Reject anything that isn't an http(s) URL (javascript:/data:/vbscript: etc.)
 // before it ever reaches an href/src. Video/link fields are coach-controlled
@@ -50,7 +50,14 @@ export default function VideoEmbed({ url }) {
   if (!safeUrl(url)) return null;   // drop non-http(s) before any href/src render
   const wrap = { borderRadius: 0, overflow: 'hidden', aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}` };
   const yid = ytId(url);
-  if (yid) return <div style={{ ...wrap, background: 'transparent' }}><iframe src={`https://www.youtube.com/embed/${yid}`} style={{ width: '100%', height: '100%', border: 'none' }} allowFullScreen /></div>;
+  if (yid) {
+    // Shorts are vertical — give them a portrait 9:16 frame (capped width, centered)
+    // so they fill it instead of sitting pillarboxed inside a 16:9 box.
+    const frame = ytIsShort(url)
+      ? { aspectRatio: '9/16', maxWidth: 300, marginLeft: 'auto', marginRight: 'auto', borderRadius: 0, overflow: 'hidden', background: '#000', border: `1px solid ${C.cardBd}` }
+      : { ...wrap, background: 'transparent' };
+    return <div style={frame}><iframe src={`https://www.youtube.com/embed/${yid}`} style={{ width: '100%', height: '100%', border: 'none' }} allowFullScreen /></div>;
+  }
   if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)) return <div style={wrap}><video src={url} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;
   if (/(photos\.app\.goo\.gl|photos\.google\.com)/i.test(url)) return <GooglePhotos url={url} />;
   if (/lh3\.googleusercontent\.com/i.test(url)) return <div style={wrap}><video src={url} controls playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }} /></div>;

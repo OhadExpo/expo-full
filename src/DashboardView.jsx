@@ -714,29 +714,21 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
           rendered the exact same dropoutRisk list as the "Dormant" rail card
           above, just in red. One list, one place. — OCD audit) */}
 
-      {/* Payment summary */}
-      {isOwner && totalAllPaid>0&&(()=>{
-        const refined = isRefined5b();
-        return <div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
-          <div style={{background: 'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding: refined ? 0 : '14px 20px', maxWidth:300, textAlign:'center', overflow:'hidden'}}>
-            {refined ? (
-              <>
-                <div style={{background:'var(--c-sf)', padding:'8px 20px', borderBottom:'1px solid rgba(0,0,0,0.10)'}}>
-                  <div style={{fontSize:10, fontFamily:FN, color:'#FFFFFF', textTransform:'uppercase', letterSpacing:'0.10em', fontWeight:700}}>Total Collected · All Time</div>
-                </div>
-                <div style={{padding:'14px 20px'}}>
-                  <div style={{fontSize:22, fontWeight:800, fontFamily:FN, color:C.tx, letterSpacing:'-0.01em'}}><span style={{color:C.ac}}>₪</span>{totalAllPaid.toLocaleString()}</div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{fontSize:9, fontFamily:FN, color:C.tm, textTransform:"uppercase", letterSpacing:'0.18em', fontWeight:700, marginBottom:4}}>Total Collected (All Time)</div>
-                <div style={{fontSize:18, fontWeight:700, fontFamily:FN, color:C.ac}}>₪{totalAllPaid.toLocaleString()}</div>
-              </>
-            )}
+      {/* Payment summary — single theme-independent structure (was a refined?…:…
+          split rendering a strip+22px card in light vs a plain 18px card in dark,
+          i.e. different height/font/padding per theme). Now uses the canonical
+          RefinedHeaderStrip (geometry constant across themes; only the strip BG
+          color flips via --c-stripBg), so the card is identical in light & dark. */}
+      {isOwner && totalAllPaid>0 && (
+        <div style={{marginTop:24,display:'flex',justifyContent:'center'}}>
+          <div style={{background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:'14px 20px', maxWidth:300, textAlign:'center', overflow:'hidden'}}>
+            <RefinedHeaderStrip padY={14} padX={20} marginBottom={12}>
+              <div style={{fontSize:10, fontFamily:FN, color:'#FFFFFF', textTransform:'uppercase', letterSpacing:'0.10em', fontWeight:700}}>Total Collected · All Time</div>
+            </RefinedHeaderStrip>
+            <div style={{fontSize:22, fontWeight:800, fontFamily:FN, color:C.tx, letterSpacing:'-0.01em'}}><span style={{color:C.ac}}>₪</span>{totalAllPaid.toLocaleString()}</div>
           </div>
-        </div>;
-      })()}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { fmtPrettyDate } from './dates';
 import useAutosave from './hooks/useAutosave';
-import { C, FN, FB, FH, uid, ytId, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
+import { C, FN, FB, FH, uid, ytId, ytIsShort, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
 import BugReportButton from './BugReportButton';
 import CoachMessagesAthlete from './CoachMessages';
@@ -1059,6 +1059,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const wi = parseInt(step.slice(2));
     const wu = warmup[wi];
     const vid = ytId(wu.vid);
+    const vidShort = ytIsShort(wu.vid);
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12}}>
@@ -1079,7 +1080,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {/* Coach note for this warm-up (authored in the plan editor's
             warm-up expand panel). */}
         {wu.note && <div dir="auto" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.or}`,borderRadius:0,padding:'10px 12px',marginBottom:14,fontSize:14,lineHeight:1.55,whiteSpace:'pre-wrap',color:C.tx}}>{wu.note}</div>}
-        {vid ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
+        {vid ? <div style={vidShort
+          ? {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'9/16',maxWidth:300,marginLeft:'auto',marginRight:'auto',background:'#000',border:`1px solid ${C.cardBd}`}
+          : {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
           <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
           : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
           <video src={wu.vid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>
@@ -1209,6 +1212,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // picked it.
     const effectiveVid = sub ? d.vid : ('vid' in ex ? ex.vid : d.vid);
     const vid = ytId(effectiveVid);
+    const vidShort = ytIsShort(effectiveVid);
     const hw = ex.wk?.length > 0;
     const wr = hw ? (ex.wk[weekNum] ?? ex.r) : null;
     // Per-week sets array (ex.wkS) mirrors per-week reps (ex.wk). When the
@@ -1351,7 +1355,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           for genuine intent \u2014 the left accent stripe on the focus card,
           active-week pill, and key inline text. */}
 
-      {vid ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
+      {vid ? <div style={vidShort
+        ? {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'9/16',maxWidth:300,marginLeft:'auto',marginRight:'auto',background:'#000',border:`1px solid ${C.cardBd}`}
+        : {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
         <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
         : effectiveVid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(effectiveVid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
         <video src={effectiveVid} controls playsInline style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>

@@ -262,7 +262,6 @@ export function SectionIcon({ kind, color, size = 14 }) {
 //   className     — passthrough (used for hover styles via .alert-card etc.)
 //   style         — outer card style override
 export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX = 18, className, style, children }) {
-  const refined = isRefined5b();
   const baseBorder = `1px solid ${C.cardBd}`;
   return (
     <div className={className} style={{
@@ -274,21 +273,20 @@ export function RefinedCard({ header, headerRight, leftStripe, padY = 14, padX =
       boxShadow: C.cardShadow,
       ...style,
     }}>
-      {refined && header && (
+      {/* Strip header renders in BOTH themes (keyed on !!header, not `refined`)
+          so card sizing/layout is identical across light/dark — same fix the
+          twin `Card` component got (Ohad spec: identical layout across themes).
+          Only the strip BG color flips, via the --c-stripBg token. White header
+          text in both themes so the dark strip reads as crisply as the cyan one. */}
+      {header && (
         <RefinedHeaderStrip padY={padY} padX={padX} marginBottom={12}>
           {headerRight ? (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-              <div style={{ minWidth: 0, flex: '1 1 auto' }}>{header}</div>
-              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>{headerRight}</div>
+              <div style={{ minWidth: 0, flex: '1 1 auto', color: '#FFFFFF' }}>{header}</div>
+              <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8, color: '#FFFFFF' }}>{headerRight}</div>
             </div>
-          ) : header}
+          ) : <div style={{ color: '#FFFFFF' }}>{header}</div>}
         </RefinedHeaderStrip>
-      )}
-      {!refined && header && (
-        <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-          <div style={{ minWidth: 0 }}>{header}</div>
-          {headerRight && <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>{headerRight}</div>}
-        </div>
       )}
       {children}
     </div>

@@ -27,8 +27,9 @@ const ssColor = (ss) => ss ? SS_PALETTE[(ss.toUpperCase().charCodeAt(0) - 65) % 
 function InlineVideo({ url }) {
   const yt = ytId(url);
   if (yt) {
+    const short = /youtube\.com\/shorts\//i.test(String(url || ''));  // vertical → portrait frame
     return (
-      <div style={{ marginTop: 8, marginBottom: 10, aspectRatio: '16/9', background: '#000', border: `1px solid ${C.cardBd}`, maxWidth: 400, marginLeft: 'auto', marginRight: 'auto' }}>
+      <div style={{ marginTop: 8, marginBottom: 10, aspectRatio: short ? '9/16' : '16/9', background: '#000', border: `1px solid ${C.cardBd}`, maxWidth: short ? 260 : 400, marginLeft: 'auto', marginRight: 'auto' }}>
         <iframe
           src={`https://www.youtube.com/embed/${yt}?rel=0&modestbranding=1&controls=1&fs=0&disablekb=1&playsinline=1`}
           sandbox="allow-scripts allow-same-origin allow-presentation"

@@ -919,11 +919,22 @@ function TrashIcon({ size = 14, color = C.rd }) {
   );
 }
 
+// Build a full-shape exercise-library row (every field the ExercisesView form
+// knows about) from a name/video/cues triple, so a "Save new exercise" from the
+// plan editor produces a library entry indistinguishable from one added in the
+// Exercise Database screen. Only name/video/cues carry over — taxonomy is left
+// blank for the coach to fill in later in the library.
+function newLibExercise({ title, videoLink, cues }) {
+  return { id: uid(), title: title || '', category: '', resistanceType: '', bodyPosition: '', movementType: '', laterality: '', movementPattern: '', primaryMuscles: '', secondaryMuscles: '', primaryJoints: '', jointMovements: '', videoLink: videoLink || '', cues: cues || '', notes: '' };
+}
+
 // Full per-exercise detail editor (badges + 3-state library-cues notes +
 // 3-state video override). Shared by the unified overview's inline-expand
 // panel so it has EVERY feature the old detail card had. `update(patch)`
 // abstracts the day/exercise write so either view can drive it.
-function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker = null }) {
+// `exercises`/`setExercises` (when passed) enable the two library-write buttons
+// so the coach can push this row's edits back to the Exercise Database.
+function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker = null, exercises = null, setExercises = null }) {
   const libCues = exData?.cues || '';
   const hasNoteOverride = !!ex.notesEdited || !!(ex.notes && ex.notes.length > 0);
   const noteValue = hasNoteOverride ? (ex.notes || '') : libCues;
@@ -931,13 +942,45 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
   const libUrl = exData?.videoLink || '';
   const hasVidOverride = ex.videoUrl !== undefined;
   const vidValue = hasVidOverride ? (ex.videoUrl || '') : libUrl;
+
+  // ── Push-to-library controls ─────────────────────────────────────────────
+  // Only render when the parent wired the library setter (the plan editor does).
+  const libEnabled = typeof setExercises === 'function' && Array.isArray(exercises);
+  // "Update" needs a target: the exercise this row is linked to (exData), or —
+  // for a free-text row — an exact (case-insensitive) title match in the library.
+  const libTarget = libEnabled
+    ? (exData || (exTitle ? exercises.find(e => (e.title || '').trim().toLowerCase() === exTitle.trim().toLowerCase()) : null))
+    : null;
+  const [libConfirm, setLibConfirm] = useState(null); // 'update' | 'new' | null
+
+  // Overwrite the target library exercise with this card's name/video/cues, link
+  // the row to it, and drop the per-program overrides so the row now inherits the
+  // (freshly-updated) library values — one source of truth again.
+  const doUpdateLib = () => {
+    if (!libTarget) return;
+    setExercises(prev => prev.map(e => e.id === libTarget.id
+      ? { ...e, title: exTitle || e.title, videoLink: vidValue, cues: noteValue } : e));
+    update({ exerciseId: libTarget.id, videoUrl: undefined, notes: '', notesEdited: false });
+    toast('Exercise database updated');
+    setLibConfirm(null);
+  };
+  // Create a brand-new library exercise from this card and link the row to it.
+  const doSaveNew = () => {
+    const created = newLibExercise({ title: exTitle, videoLink: vidValue, cues: noteValue });
+    setExercises(prev => [...prev, created]);
+    update({ exerciseId: created.id, title: exTitle, videoUrl: undefined, notes: '', notesEdited: false });
+    toast('Saved as a new exercise');
+    setLibConfirm(null);
+  };
+
   return (
     <>
       {(exData && (exData.movementPattern || exData.laterality || exData.primaryMuscles)) ? <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap",alignItems:"center"}}>
         {exData.movementPattern && <Badge color={C.gn}>{exData.movementPattern}</Badge>}
         {exData.laterality && <Badge color={C.tm}>{exData.laterality}</Badge>}
         {exData.primaryMuscles && <span style={{fontSize:11,color:C.td}}>{exData.primaryMuscles}</span>}
-      </div> : (!exData && exTitle ? <div style={{fontSize:11,color:C.or,marginBottom:6}}>📝 {exTitle}</div> : null)}
+      </div> : null}{/* the redundant orange "📝 {title}" line was removed — the
+          name already shows in the row header and the EXERCISE picker below */}
       {/* Video URL spans the top; NOTES (left) + thumbnail (right) sit in an
           aligned row below — the spacer on the right matches the NOTES label
           row, so the notes box and the thumbnail are the exact same height
@@ -980,6 +1023,32 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
           </div>
         </div>
       </div>
+      {/* Push-to-library controls — commit this card's name/video/notes back to
+          the Exercise Database. Both actions require an explicit confirm so an
+          edit made for one program can't silently rewrite the shared library. */}
+      {libEnabled && (exTitle || vidValue || noteValue) ? (
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center',paddingTop:12,marginTop:2,borderTop:`1px solid ${C.cardBd}`}}>
+          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.14em',marginRight:'auto'}}>EXERCISE DATABASE</span>
+          <button onClick={()=>setLibConfirm('update')} disabled={!libTarget}
+            title={libTarget?`Overwrite "${libTarget.title}" in the exercise database with this card's name, video and notes.`:'No matching library exercise to update — use “Save new exercise”.'}
+            style={{background:'transparent',border:`1px solid ${libTarget?C.ac:C.cardBd}`,color:libTarget?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:libTarget?'pointer':'not-allowed',opacity:libTarget?1:0.5,borderRadius:0,textTransform:'uppercase'}}>↑ Update the exercise database</button>
+          <button onClick={()=>setLibConfirm('new')}
+            title="Create a brand-new exercise in the database from this card, and link this row to it."
+            style={{background:'transparent',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:'pointer',borderRadius:0,textTransform:'uppercase'}}>+ Save new exercise</button>
+        </div>
+      ) : null}
+      <ConfirmDialog
+        open={libConfirm === 'update'}
+        onCancel={()=>setLibConfirm(null)}
+        onConfirm={doUpdateLib}
+        title="Update the exercise database?"
+        message={libTarget ? `This overwrites "${libTarget.title}" in the exercise library — its video and notes change for EVERY program that uses it, not just this one. Continue?` : ''} />
+      <ConfirmDialog
+        open={libConfirm === 'new'}
+        onCancel={()=>setLibConfirm(null)}
+        onConfirm={doSaveNew}
+        title="Save a new exercise?"
+        message={`This adds "${exTitle || 'Untitled'}" to the exercise database as a new entry and links this row to it. Continue?`} />
     </>
   );
 }
@@ -1470,6 +1539,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                               picker renders INSIDE extras, on one row with the
                               video URL (50/50, aligned with notes/thumb below). */}
                           <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} showEmbed={exOpen}
+                            exercises={exercises} setExercises={setExercises}
                             picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />} />
                         </div>
                        </div>
