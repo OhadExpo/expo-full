@@ -1953,13 +1953,21 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                         ? `END-OF-BLOCK NOTE — W${currentWeek}/${planWeeks}`
                         : `W${currentWeek} → W${nextWeek} FOCUS`}
                     </div>
+                    {/* OFF-BY-ONE FIX (option C): focus is stored under the SOURCE
+                        week being reviewed (currentWeek = wo.week), which is the
+                        key the athlete portal + WeeklyFocusTool both use — so it
+                        surfaces on the athlete's NEXT week, not a week late. The
+                        editor reads the correct key first, falling back to the old
+                        target-week key so pre-fix notes still show; re-saving moves
+                        them to the right key. Label unchanged. Last week is
+                        identical (nextWeek === currentWeek). */}
                     <textarea dir="auto"
-                      value={nextFocus}
-                      onChange={e => setFocus(wo.clientId, wo.planName, wo.dayName, ex.eid, nextWeek, e.target.value)}
+                      value={currentFocus || nextFocus}
+                      onChange={e => setFocus(wo.clientId, wo.planName, wo.dayName, ex.eid, wo.week || 1, e.target.value)}
                       placeholder={isLastWeekOfBlock
                         ? `Last week of the block. Anything to carry into the next block? Load ceiling, pattern fixes, etc.`
                         : `Based on this performance, what should they focus on next week?`}
-                      style={{...bi,minHeight:50,resize:"vertical",borderColor:nextFocus?'rgba(57,189,255,0.251)':C.bd,fontSize:12,textAlign:'center'}}
+                      style={{...bi,minHeight:50,resize:"vertical",borderColor:(currentFocus || nextFocus)?'rgba(57,189,255,0.251)':C.bd,fontSize:12,textAlign:'center'}}
                     />
                     {/* Block weeks mini-view (W1..planWeeks) — adapts to the
                         actual block length. Caps the visible columns at 8 to
