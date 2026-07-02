@@ -63,6 +63,7 @@ export default function MovementLab({
   jumpType = 'cmj',             // jump mode: 'cmj'|'svj'|'sl' (height) · 'drop'|'pogo' (reactive → RSI + contact)
   toolLabel = null,             // header label override (e.g. 'MOVEMENT LAB' vs 'LIFT METRICS')
   facingMode = 'environment',   // filming someone on the floor by default
+  clipUrl = null,               // when set: skip the camera, auto-analyze this remote clip URL (Review player)
   onClose,
   onSaveJump,                   // (metrics) => void — wires jump into ath eval
   defaultBodyweightKg = null,   // prefill the jump-power bodyweight from the athlete
@@ -75,7 +76,7 @@ export default function MovementLab({
   const framesRef = useRef([]);
   const recStartRef = useRef(0);
 
-  const [phase, setPhase] = useState('idle');     // idle | loading | countdown | recording | analyzing | results
+  const [phase, setPhase] = useState(clipUrl ? 'analyzing' : 'idle');     // idle | loading | countdown | recording | analyzing | results
   const [error, setError] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [countdown, setCountdown] = useState(0);
@@ -193,21 +194,23 @@ export default function MovementLab({
   // Steps through the video by seeking (≈20fps sample, capped) and runs pose
   // on each frame. Uses the 'full' model (more accurate; no real-time budget
   // since this is offline). Reuses the same analyzeClip path as live capture.
-  const analyzeUploadedFile = useCallback(async (file) => {
-    if (!file) return;
+  // Core seek-pass analyzer — reads ANY playable video src (an object URL from an
+  // uploaded File, or a remote clip URL) frame-by-frame into a frames[] array and
+  // runs the same analyzeClip / jump battery as live capture.
+  const analyzeSrc = useCallback(async (src, { revoke = null, crossOrigin = false } = {}) => {
     setError(null); setResult(null); setJump(null); setProgress(0); setPhase('analyzing');
-    let url, lm;
+    let lm;
     try {
       // Dedicated multi-pose landmarker for offline analysis — crowd-robust (the
       // shared live ref is single-pose). pickSubjectIdx isolates the athlete each
       // frame; closed in finally.
       lm = await createPoseLandmarker({ runningMode: 'VIDEO', quality: 'full', numPoses: 5 });
-      url = URL.createObjectURL(file);
       const v = document.createElement('video');
-      v.src = url; v.muted = true; v.playsInline = true; v.preload = 'auto';
+      if (crossOrigin) v.crossOrigin = 'anonymous';   // remote clip: keep the canvas untainted for detectForVideo
+      v.src = src; v.muted = true; v.playsInline = true; v.preload = 'auto';
       await new Promise((res, rej) => {
         v.onloadedmetadata = () => res();
-        v.onerror = () => rej(new Error('Could not read that video file.'));
+        v.onerror = () => rej(new Error('Could not read that video.'));
       });
       const dur = v.duration;
       if (!isFinite(dur) || dur <= 0) throw new Error('Could not read that video (no duration).');
@@ -237,12 +240,27 @@ export default function MovementLab({
       }
       setPhase('results');
     } catch (e) {
-      setPhase('idle'); setError(e?.message || 'Could not process that video.');
+      // Uploaded-file failure falls back to the camera idle screen; a remote clip
+      // (clipUrl, no camera UI) lands on results with a null result → Empty msg.
+      setPhase(clipUrl ? 'results' : 'idle'); setError(e?.message || 'Could not process that video.');
     } finally {
-      if (url) try { URL.revokeObjectURL(url); } catch {}
+      if (revoke) try { URL.revokeObjectURL(revoke); } catch {}
       if (lm) try { lm.close(); } catch {}
     }
-  }, [mode, exerciseTitle, computeJump]);
+  }, [mode, exerciseTitle, computeJump, clipUrl]);
+
+  const analyzeUploadedFile = useCallback(async (file) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    await analyzeSrc(url, { revoke: url });
+  }, [analyzeSrc]);
+
+  // Launched with a clipUrl (Review player's MOVEMENT LAB / LIFT METRICS on a
+  // trainee's uploaded form video): auto-run the analysis on mount, no camera.
+  useEffect(() => {
+    if (clipUrl) analyzeSrc(clipUrl, { crossOrigin: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clipUrl]);
 
   const pickFile = useCallback(() => fileInputRef.current?.click(), []);
 
@@ -359,8 +377,8 @@ export default function MovementLab({
         </div>
       )}
 
-      {/* control bar */}
-      <div style={{ background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10 }}>
+      {/* control bar — hidden in clipUrl mode (no camera; close via header BACK) */}
+      {!clipUrl && <div style={{ background: 'rgba(0,0,0,0.9)', borderTop: '1px solid rgba(255,255,255,0.1)', padding: 14, display: 'flex', gap: 10 }}>
         {phase === 'idle' && <>
           <BigBtn color={C.ac} onClick={startRecording}>{mode === 'jump' ? 'RECORD' : 'RECORD'} →</BigBtn>
           <button onClick={pickFile} style={{ flex: 1, padding: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.4)', color: '#FFF', fontFamily: FN, fontSize: 14, fontWeight: 700, letterSpacing: '0.14em', cursor: 'pointer' }}>⬆ UPLOAD CLIP</button>
@@ -370,7 +388,7 @@ export default function MovementLab({
         {phase === 'countdown' && <BigBtn color="#555" disabled>GET READY… {countdown}</BigBtn>}
         {recording && <BigBtn color={C.rd} onClick={stopAndAnalyze}>STOP &amp; ANALYZE</BigBtn>}
         {(phase === 'results' || phase === 'analyzing') && <BigBtn color={C.ac} onClick={reset}>↺ RECORD AGAIN</BigBtn>}
-      </div>
+      </div>}
     </div>,
     document.body
   );

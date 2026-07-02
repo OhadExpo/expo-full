@@ -1,5 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
+import { ToolBoundary, ToolLoading } from './ReviewToolsView';
+// Camera analysis tools reused on the trainee's uploaded Review clip (owner/coach
+// only). MovementLab self-portals a full-screen overlay and, given a clipUrl,
+// auto-runs the same pose→analyzeClip battery it uses for uploaded files.
+const MovementLab = lazy(() => import('./MovementLab'));
 import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 
 // Hebrew at the same fontSize as Nord visually shrinks (smaller x-height,
@@ -115,6 +121,8 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
+  // Camera analysis tool launched on THIS clip: null | '3d' (Movement Lab) | 'metrics' (Lift Metrics)
+  const [labTool, setLabTool] = useState(null);
   // All state declarations up front — derived values and callbacks below
   // reference them, and placing state after the derivations would trip
   // the temporal-dead-zone at render time.
@@ -1263,6 +1271,25 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               <option value="none">SKIP</option>
             </select>
           )}
+          {/* Camera analysis tools on this clip (coach only) — same launcher as
+              REVIEW · TOOLS, but pre-fed this trainee's uploaded video so the
+              coach never re-films. Opens MovementLab straight on results. */}
+          {role === 'trainer' && (
+            <>
+              <button onClick={() => setLabTool('3d')}
+                title="3D markerless skeleton + joint angles from this clip"
+                style={{padding:'3px 10px',borderRadius:0,border:'2px solid transparent',minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+                  background:'transparent',color:C.pu||C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+                MOVEMENT LAB
+              </button>
+              <button onClick={() => setLabTool('metrics')}
+                title="Bar velocity (VBT), ROM, tempo & collapse flags from this clip"
+                style={{padding:'3px 10px',borderRadius:0,border:'2px solid transparent',minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+                  background:'transparent',color:C.pu||C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+                LIFT METRICS
+              </button>
+            </>
+          )}
           {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
         </div>
         <div style={{flex:'0 0 auto',display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'center'}}>
@@ -1289,6 +1316,19 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
         </div>
       </div>
+      {/* Camera-tool overlay (Movement Lab / Lift Metrics) on THIS clip. Portaled
+          to <body> like REVIEW · TOOLS so the fullscreen tool + its loading/error
+          states aren't trapped by any transformed ancestor. */}
+      {labTool && createPortal(
+        <ToolBoundary toolKey={labTool} onClose={() => setLabTool(null)}>
+          <Suspense fallback={<ToolLoading label={labTool === '3d' ? 'MOVEMENT LAB' : 'LIFT METRICS'} />}>
+            <MovementLab clipUrl={url} exerciseTitle={exerciseTitle || 'Squat'} initialMode="analyze"
+              initialView={labTool} toolLabel={labTool === '3d' ? 'MOVEMENT LAB' : 'LIFT METRICS'}
+              onClose={() => setLabTool(null)} />
+          </Suspense>
+        </ToolBoundary>,
+        document.body
+      )}
       {/* Bottom row: speeds → frame-step → LOOP, all centered as one
           horizontal group (justifyContent:'center'). Order per Ohad:
           0.125x .. 2x, ◀ ▶, then ↻ LOOP. */}

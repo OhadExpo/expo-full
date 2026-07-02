@@ -59,7 +59,7 @@ const ghostBtn = {
 // it here, recover in place, let the coach close and pick another tool. Resets
 // itself whenever the active tool changes (precedent: WorkoutReview's
 // FormVideoErrorBoundary).
-class ToolBoundary extends React.Component {
+export class ToolBoundary extends React.Component {
   constructor(p) { super(p); this.state = { err: null }; }
   static getDerivedStateFromError(err) { return { err }; }
   componentDidCatch(err) { try { console.error('[EXPO] review-tool load error:', err); } catch { /* noop */ } }
@@ -89,7 +89,7 @@ class ToolBoundary extends React.Component {
 // Branded fullscreen loading state — replaces a null Suspense fallback so
 // clicking a tool gives instant feedback instead of 1–2s of dead air while the
 // MediaPipe / three.js chunk downloads and the pose engine warms up.
-function ToolLoading({ label }) {
+export function ToolLoading({ label }) {
   return (
     <div style={stage}>
       <style>{'@keyframes rtspin{to{transform:rotate(360deg)}}'}</style>
