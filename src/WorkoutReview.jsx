@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo, lazy, Suspense } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { fmtPrettyDate } from './dates';
-import { ToolBoundary, ToolLoading } from './ReviewToolsView';
-// Camera analysis tools reused on the trainee's uploaded Review clip (owner/coach
-// only). MovementLab self-portals a full-screen overlay and, given a clipUrl,
-// auto-runs the same pose→analyzeClip battery it uses for uploaded files.
-const MovementLab = lazy(() => import('./MovementLab'));
+// LIFT METRICS on a trainee's uploaded Review clip: capture the clip's pose
+// frames and run the same VBT/ROM/tempo battery MovementLab uses, rendered
+// INLINE on the player (no 3D box, no fullscreen). The on-video skeleton is the
+// existing POSE overlay (matched to the live style).
+import { AnalyzeResult, captureClipFrames } from './MovementLab';
+import { analyzeClip } from './poseLab';
 import { C, FN, FB, FH, ytId, EXPO_ICON } from './theme';
 
 // Hebrew at the same fontSize as Nord visually shrinks (smaller x-height,
@@ -121,8 +121,12 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const canvasRef = useRef(null);
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
-  // Camera analysis tool launched on THIS clip: null | '3d' (Movement Lab) | 'metrics' (Lift Metrics)
-  const [labTool, setLabTool] = useState(null);
+  // Inline LIFT METRICS on THIS clip (VBT/ROM/tempo). metricsState: idle | busy | done | err
+  const [metricsState, setMetricsState] = useState('idle');
+  const [metricsPct, setMetricsPct] = useState(0);
+  const [metrics, setMetrics] = useState(null);        // { result, frames }
+  const [metricsTab, setMetricsTab] = useState('velocity');
+  const [metricsErr, setMetricsErr] = useState('');
   // All state declarations up front — derived values and callbacks below
   // reference them, and placing state after the derivations would trip
   // the temporal-dead-zone at render time.
@@ -924,6 +928,23 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     });
   };
 
+  // LIFT METRICS — one seek-pass over the clip → pose frames → analyzeClip, then
+  // render the VBT/ROM/tempo tables inline under the player. Click again to hide.
+  const runMetrics = async () => {
+    if (metricsState === 'busy') return;
+    if (metricsState === 'done' || metricsState === 'err') { setMetricsState('idle'); setMetrics(null); setMetricsErr(''); return; }
+    setMetricsState('busy'); setMetricsPct(0); setMetrics(null); setMetricsErr('');
+    try {
+      const frames = await captureClipFrames(url, { crossOrigin: true, onProgress: setMetricsPct });
+      const result = analyzeClip(frames, exerciseTitle);
+      setMetrics({ result, frames });
+      setMetricsTab('velocity');
+      setMetricsState('done');
+    } catch (e) {
+      setMetricsErr(e?.message || 'Could not analyze this clip.'); setMetricsState('err');
+    }
+  };
+
   useEffect(() => {
     // Detection runs whenever EITHER overlay (POSE) or rep counter (REPS) is on.
     if (!poseOn && !repsOn) {
@@ -1003,8 +1024,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               // Skeleton + dots only when the overlay is enabled. Rep counting
               // still runs silently when only REPS is on.
               if (poseOn) {
-                ctx.strokeStyle = '#3BA0FF';
-                ctx.lineWidth = 2;
+                // Match the live tool's overlay (drawLive): brand cyan #39BDFF,
+                // 3px bones, cyan joint dots — so the recorded-clip skeleton reads
+                // identically to the live camera skeleton.
+                ctx.strokeStyle = '#39BDFF';
+                ctx.lineWidth = 3;
                 for (const [i, j] of POSE_CONNECTIONS) {
                   const a = lms[i], b = lms[j];
                   if (!a || !b) continue;
@@ -1013,10 +1037,10 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                   ctx.lineTo(px(b), py(b));
                   ctx.stroke();
                 }
-                ctx.fillStyle = '#fff';
+                ctx.fillStyle = '#39BDFF';
                 for (const p of lms) {
                   ctx.beginPath();
-                  ctx.arc(px(p), py(p), 3, 0, 2*Math.PI);
+                  ctx.arc(px(p), py(p), 4, 0, 2*Math.PI);
                   ctx.fill();
                 }
               }
@@ -1271,24 +1295,17 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               <option value="none">SKIP</option>
             </select>
           )}
-          {/* Camera analysis tools on this clip (coach only) — same launcher as
-              REVIEW · TOOLS, but pre-fed this trainee's uploaded video so the
-              coach never re-films. Opens MovementLab straight on results. */}
+          {/* LIFT METRICS (coach only) — analyses THIS clip in place and shows
+              VBT / ROM / tempo inline under the video. POSE (above) is the
+              on-video skeleton. No 3D box, no fullscreen. */}
           {role === 'trainer' && (
-            <>
-              <button onClick={() => setLabTool('3d')}
-                title="3D markerless skeleton + joint angles from this clip"
-                style={{padding:'3px 10px',borderRadius:0,border:'2px solid transparent',minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-                  background:'transparent',color:C.pu||C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-                MOVEMENT LAB
-              </button>
-              <button onClick={() => setLabTool('metrics')}
-                title="Bar velocity (VBT), ROM, tempo & collapse flags from this clip"
-                style={{padding:'3px 10px',borderRadius:0,border:'2px solid transparent',minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-                  background:'transparent',color:C.pu||C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-                LIFT METRICS
-              </button>
-            </>
+            <button onClick={runMetrics} disabled={metricsState==='busy'}
+              title="Bar velocity (VBT), ROM, tempo & collapse flags from this clip"
+              style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${metricsState==='done'?C.pu:'transparent'}`,minWidth:96,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+                background:metricsState==='done'?(C.puD||C.acD):'transparent',color:metricsState==='done'?(C.pu||C.ac):C.tm,
+                fontFamily:FN,fontSize:10,cursor:metricsState==='busy'?'wait':'pointer',opacity:metricsState==='busy'?0.6:1}}>
+              {metricsState==='busy' ? `ANALYZING ${metricsPct}%` : metricsState==='done' ? 'METRICS ✓' : 'LIFT METRICS'}
+            </button>
           )}
           {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
         </div>
@@ -1316,18 +1333,25 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
         </div>
       </div>
-      {/* Camera-tool overlay (Movement Lab / Lift Metrics) on THIS clip. Portaled
-          to <body> like REVIEW · TOOLS so the fullscreen tool + its loading/error
-          states aren't trapped by any transformed ancestor. */}
-      {labTool && createPortal(
-        <ToolBoundary toolKey={labTool} onClose={() => setLabTool(null)}>
-          <Suspense fallback={<ToolLoading label={labTool === '3d' ? 'MOVEMENT LAB' : 'LIFT METRICS'} />}>
-            <MovementLab clipUrl={url} exerciseTitle={exerciseTitle || 'Squat'} initialMode="analyze"
-              initialView={labTool} toolLabel={labTool === '3d' ? 'MOVEMENT LAB' : 'LIFT METRICS'}
-              onClose={() => setLabTool(null)} />
+      {/* Inline LIFT METRICS panel — VBT/ROM/tempo tables for THIS clip, rendered
+          on the same player (dark so the tables read as designed). */}
+      {metricsState === 'busy' && (
+        <div style={{marginTop:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.cardBd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.06em'}}>
+          READING THE MOVEMENT… {metricsPct}%
+          <div style={{height:3,background:'rgba(255,255,255,0.12)',marginTop:8}}><div style={{width:`${metricsPct}%`,height:'100%',background:C.ac,transition:'width 120ms'}}/></div>
+        </div>
+      )}
+      {metricsState === 'err' && (
+        <div style={{marginTop:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.rd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.rd}}>{metricsErr}</div>
+      )}
+      {metricsState === 'done' && metrics && (
+        <div data-theme="dark" style={{marginTop:8,background:'#0a0a0b',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 10px',position:'relative'}}>
+          <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title="Hide metrics"
+            style={{position:'absolute',top:6,right:6,zIndex:2,background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
+          <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
+            <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics" />
           </Suspense>
-        </ToolBoundary>,
-        document.body
+        </div>
       )}
       {/* Bottom row: speeds → frame-step → LOOP, all centered as one
           horizontal group (justifyContent:'center'). Order per Ohad:
