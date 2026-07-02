@@ -266,10 +266,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <div style={{flex:1,minWidth:0}}>
         <Card style={{marginBottom:8}}
           header={<span style={{display:'inline-flex',alignItems:'baseline',gap:10,fontWeight:700,fontSize:14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{m.name}<span style={{fontSize:10,opacity:0.78,letterSpacing:'0.02em',textTransform:'none',fontWeight:500}}>{emailsDisplay(m.email)}{m.phone?` · ${m.phone}`:''}</span></span>}>
-          {/* The name + email live in the strip header (both themes). The old
-              `{!isRefined5b() && …}` inner duplicate rendered ONLY in dark, so
-              the card was taller in dark than in light — breaking the "identical
-              layout across themes" spec (ui.jsx). Removed so both themes match. */}
+          {/* Name + email body block — rendered in BOTH themes (was `!isRefined5b()`,
+              i.e. dark only, which made dark 56px taller than light). Ohad wants
+              light to match dark's fuller build, so it's now unconditional. */}
+          <div style={{textAlign:'center',marginBottom:10}}>
+            <div style={{fontSize:18,fontWeight:700,color:C.tx,fontFamily:FN}}>{m.name}</div>
+            <div style={{fontSize:12,color:C.tm,marginTop:2}}>{emailsDisplay(m.email)}{m.phone?` · ${m.phone}`:''}</div>
+          </div>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,textAlign:'center'}}>
             {[['Age',m.age||'—'],['Weight',m.weight?`${m.weight}kg`:'—'],['Height',m.height?`${m.height}cm`:'—']].map(([l,v])=>
               <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:'uppercase',letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
@@ -403,7 +406,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             StatusMenu. The old body block re-rendered the name and a NON-clickable
             status Badge, which read as a duplicate ("mirror") and was the thing
             being clicked instead of the real menu — removed. */}
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:0,textAlign:"center"}}>{/* marginTop constant (was isRefined5b()?0:16 → double-spaced in dark under the now-both-themes strip); identical layout across themes */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(130px, 1fr))",gap:12,marginTop:16,textAlign:"center"}}>{/* marginTop constant = dark's original 16 (was isRefined5b()?0:16); both themes match dark's build */}
           {[["Format",td.format],["Package",td.package],["Sessions Left",td.sessionsRemaining],["Monthly",td.monthly?`₪${td.monthly}`:"—"],["Per Session",td.perSession?`₪${td.perSession}`:"—"],["Last Payment",fmtPrettyDate(lastPaidDate)],["Since",fmtPrettyDate(td.startDate)],["Workouts",tAllWorkouts.length]].map(([l,v])=>
             <div key={l}><div style={{fontSize:9,fontFamily:FN,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',fontWeight:700}}>{l}</div><div style={{fontSize:14,color:C.tx,marginTop:2}}>{v}</div></div>)}
         </div>
