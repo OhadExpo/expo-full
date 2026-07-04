@@ -60,6 +60,19 @@ function frameScaleY(f) {
 // single freeze-frame), since the sign math itself now has a hard proof.
 function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? -lm2.y * scale : null; }
 
+// Physical plausibility ceiling for vertical bar/hip speed. No real human
+// lift or jump gets anywhere near this — even a fast Olympic-lift bar speed
+// or a max-effort jump's takeoff velocity tops out around 3-4 m/s. A single
+// frame-pair reading above this is not a real measurement; it's tracking
+// noise (most plausibly the subject-selection picking a different detected
+// person for a frame — see pickSubjectIdx in MovementLab.jsx — but this
+// clamp is a direct safety net regardless of the exact cause). Rejected
+// frame-pairs are treated as missing data (null) so the median filter
+// interpolates through them from real neighbours, instead of a single bad
+// frame corrupting the displayed speed or an inflated "peak" number.
+const MAX_SPEED_MPS = 6;
+function clampSpeed(v) { return (v != null && Math.abs(v) > MAX_SPEED_MPS) ? null : v; }
+
 // ---------------------------------------------------------------------------
 // Channel signal — the joint-angle time series a rep cycle rides on.
 // ---------------------------------------------------------------------------
@@ -148,8 +161,8 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
       const a = pos[j], b = pos[j + 1];
       const ta = frames[j]?.t, tb = frames[j + 1]?.t;
       if (!isReal(a) || !isReal(b) || ta == null || tb == null || tb <= ta) continue;
-      const inst = (b - a) / ((tb - ta) / 1000);
-      if (inst > peak) peak = inst;
+      const inst = clampSpeed((b - a) / ((tb - ta) / 1000));
+      if (inst != null && inst > peak) peak = inst;
     }
     // startT (ms, clip-relative) — the top position before this rep's descent
     // begins. Lets a UI click-to-seek to "where rep N starts" (Review player).
@@ -197,7 +210,7 @@ export function barSpeedSeries(frames, barLandmark = 'wrist') {
     if (i === 0) return null;
     const a = pos[i - 1], b = pos[i], ta = frames[i - 1]?.t, tb = frames[i]?.t;
     if (!isReal(a) || !isReal(b) || ta == null || tb == null || tb <= ta) return null;
-    return (b - a) / ((tb - ta) / 1000);           // signed, m/s (+up / -down)
+    return clampSpeed((b - a) / ((tb - ta) / 1000));           // signed, m/s (+up / -down)
   });
   // Window 5 (was 3) — at typical mobile-capture framerates (~18-30fps), 1-2px
   // of pose-landmark jitter, differentiated into velocity, reads as real
@@ -244,7 +257,7 @@ export function barAccelSeries(frames, barLandmark = 'wrist') {
     if (i === 0) return null;
     const a = pos[i - 1], b = pos[i], ta = frames[i - 1]?.t, tb = frames[i]?.t;
     if (!isReal(a) || !isReal(b) || ta == null || tb == null || tb <= ta) return null;
-    return (b - a) / ((tb - ta) / 1000);            // signed, m/s
+    return clampSpeed((b - a) / ((tb - ta) / 1000));            // signed, m/s
   });
   const v = medianFilter(rawV, 5);                    // heavier smoothing before the 2nd derivative
   const rawA = frames.map((f, i) => {
