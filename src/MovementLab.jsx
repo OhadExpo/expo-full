@@ -552,18 +552,17 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
         {pill('accel', 'ACCELERATION', graph === 'accel', () => setGraph('accel'))}
         {pill('velocity', 'MEAN VELOCITY · PER REP', graph === 'velocity', () => setGraph('velocity'))}
       </div>
-      {/* Graph comes before the tracked-point picker now (Ohad: "add graph
-          above track") — no "TRACK" label word anymore either, just the two
-          pills directly. */}
-      {graph === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
-      {graph === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
-      {graph === 'velocity' && <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
+      {/* TRACK back above the graph (Ohad: floating alone below the chart
+          "looks weird") — no "TRACK" label word, just the two pills. */}
       {(graph === 'speed' || graph === 'accel') && (
-        <div style={{ display: 'flex', marginBottom: 12, alignItems: 'center', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', marginBottom: 8, alignItems: 'center', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
           {trackPill('wrist', 'BAR · WRISTS', point === 'wrist', () => setPoint('wrist'))}
           {trackPill('hip', 'BODY · HIPS', point === 'hip', () => setPoint('hip'))}
         </div>
       )}
+      {graph === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
+      {graph === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
+      {graph === 'velocity' && <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
       {/* Summary KPIs — MiniKpi (stacked label-then-value), not Kpi (label
           beside value): at half-width, Kpi's side-by-side baseline layout let
           the two labels wrap across a different number of lines ("BEST MEAN
