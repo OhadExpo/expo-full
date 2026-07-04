@@ -1158,7 +1158,19 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                     const smoothed = medianFilter(truncated, SMOOTH_N);
                     // Count troughs: invert signal, findPeaks = find flexion bottoms.
                     const inverted = smoothed.map(x => Number.isFinite(x) ? -x : x);
-                    const troughs = findPeaks(inverted, 25, minDist);
+                    // Prominence adapts to THIS channel's own observed swing
+                    // instead of a flat 25° for every exercise (Ohad: "reps
+                    // counter... still misses a lot"). A fixed 25° silently
+                    // dropped legitimate reps on exercises with a naturally
+                    // smaller working range (e.g. lateral raises, calf
+                    // raises) — their whole swing never cleared the bar. 25%
+                    // of the channel's own real min-max range, floored at 10°
+                    // so pure landmark jitter on a still/near-isometric clip
+                    // still can't fake a rep.
+                    const reals = smoothed.filter(Number.isFinite);
+                    const swing = reals.length ? Math.max(...reals) - Math.min(...reals) : 0;
+                    const prominence = Math.max(10, swing * 0.25);
+                    const troughs = findPeaks(inverted, prominence, minDist);
                     if (troughs.length > bestCount) bestCount = troughs.length;
                   }
                   repsCountRef.current = bestCount;
