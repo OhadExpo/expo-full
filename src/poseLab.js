@@ -44,8 +44,15 @@ function frameScaleY(f) {
   const imgLen = Math.hypot(is.x - ia.x, is.y - ia.y);
   return imgLen > 0 ? worldLen / imgLen : null;
 }
-// Image "up" position in metres: image y is DOWN, so up = -y · scale.
-function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? -lm2.y * scale : null; }
+// Image "up" position in metres. On paper, image y is DOWN so up = -y·scale
+// — but Ohad confirmed live, repeatedly, that the sign was still backwards
+// (negative speed while visibly rising) even after the scale-lock fix, which
+// was the only bug the math audit could find on paper. Rather than keep
+// theorizing blind (no working browser tools this session to verify frame
+// orientation directly — e.g. a possible rotation-metadata mismatch between
+// the offscreen analysis <video> and the displayed one), flip it to match
+// his direct visual ground truth: +y·scale reads "up" as positive.
+function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? lm2.y * scale : null; }
 
 // ---------------------------------------------------------------------------
 // Channel signal — the joint-angle time series a rep cycle rides on.
