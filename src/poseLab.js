@@ -45,13 +45,30 @@ function frameScaleY(f) {
   return imgLen > 0 ? worldLen / imgLen : null;
 }
 // Image "up" position in metres. On paper, image y is DOWN so up = -y·scale
-// — but Ohad confirmed live, repeatedly, that the sign was still backwards
-// (negative speed while visibly rising) even after the scale-lock fix, which
-// was the only bug the math audit could find on paper. Rather than keep
-// theorizing blind (no working browser tools this session to verify frame
-// orientation directly — e.g. a possible rotation-metadata mismatch between
-// the offscreen analysis <video> and the displayed one), flip it to match
-// his direct visual ground truth: +y·scale reads "up" as positive.
+// — that's the standard MediaPipe convention, and it's what jumpMetrics'
+// independent `rise = (baseY - y) * scale` also assumes (see below) and gets
+// right. But Ohad confirmed live, repeatedly, that THIS function's sign was
+// backwards (negative speed while visibly rising) even after the scale-lock
+// fix, which was the only bug the math audit found on paper.
+//
+// Reconciling the two: jumpMetrics only ever runs on frames from a LIVE
+// getUserMedia camera stream (MovementLab's own record flow) — never-
+// rotated, no container metadata to misread. This function instead only
+// feeds velocityMetrics/barSpeedSeries/barAccelSeries, which are exclusively
+// reached via analyzeClip(captureClipFrames(url)) — an OFFSCREEN, unattached
+// <video src=uploadedFile> (WorkoutReview's Review flow analyzes a trainee's
+// SUBMITTED clip this way). An offscreen video element can plausibly handle
+// a phone clip's container rotation metadata differently than the one
+// actually rendered on screen — same premise ("y decreases as it rises"),
+// different pipeline, so no contradiction in flipping ONLY this one.
+//
+// Caveat for later: MovementLab's own upload-a-clip-for-jump-testing path
+// (analyzeUploadedFile) ALSO calls jumpMetrics on captureClipFrames-sourced
+// (i.e. uploaded, not live) frames — that specific path was never reported
+// wrong, but was also likely never live-tested with an UPLOADED jump clip
+// (jump testing is normally done via the live record flow). If a jump
+// height ever reads wrong specifically on an UPLOADED clip, this same root
+// cause is the first place to look — not a reason to touch jumpMetrics now.
 function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? lm2.y * scale : null; }
 
 // ---------------------------------------------------------------------------
