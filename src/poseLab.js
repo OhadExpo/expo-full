@@ -269,6 +269,22 @@ export function jointAngleSeries(frames, exerciseTitle) {
   return { series, peak: round1(series.reduce((m, p) => Math.max(m, p.angle), 0)) };
 }
 
+// Same as jointAngleSeries, but for ONE explicit named channel (e.g. "L KNE")
+// instead of the exercise-title-derived, L+R-averaged auto pick — backs the
+// ROM & TEMPO graph's manual joint + L/R picker (Ohad: "I need to be able to
+// choose a joint, and to choose r/l then the graph adjusts").
+export function namedAngleSeries(frames, angleName) {
+  if (!frames || frames.length < 3) return null;
+  const d = ANGLE_DEFS.find(a => a.name === angleName);
+  if (!d) return null;
+  const raw = frames.map(f => (f.worldLandmarks ? angleAt(f.worldLandmarks, d.a, d.b, d.c) : null));
+  const angle = medianFilter(raw, 5);
+  const t0 = frames[0].t;
+  const series = frames.map((f, i) => (isReal(angle[i]) ? { t: Math.round(f.t - t0), angle: round1(angle[i]) } : null)).filter(Boolean);
+  if (series.length < 3) return null;
+  return { series, peak: round1(series.reduce((m, p) => Math.max(m, p.angle), 0)) };
+}
+
 // ---------------------------------------------------------------------------
 // ROM + tempo per rep, from the joint-angle channel.
 // ---------------------------------------------------------------------------
@@ -290,7 +306,10 @@ export function romTempoMetrics(frames, angle, reps) {
     const ecc = ((frames[pStart]?.t ?? tBot) - tTop) / 1000;
     const pause = ((frames[pEnd]?.t ?? tBot) - (frames[pStart]?.t ?? tBot)) / 1000;
     const con = (tEnd - (frames[pEnd]?.t ?? tBot)) / 1000;
-    return { rom, ecc: round1(ecc), pause: round1(pause), con: round1(con) };
+    // startT (ms, clip-relative) — lets the RomTable rep row seek the video
+    // to this rep's start, same as VelocityTable already does.
+    const startT = frames[startIdx]?.t;
+    return { rom, ecc: round1(ecc), pause: round1(pause), con: round1(con), startT: startT != null ? Math.round(startT) : null };
   });
   const valid = perRep.filter(Boolean);
   const maxRom = valid.reduce((m, r) => Math.max(m, r.rom), 0) || 1;

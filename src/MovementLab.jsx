@@ -17,7 +17,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspens
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, jointAngleSeries } from './poseLab';
+import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries } from './poseLab';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
@@ -797,13 +797,18 @@ function VelocityBars({ perRep, bestMean }) {
 // detectChannels kind → the joint the per-rep ROM/tempo is tracked on, so the
 // KPI names the actual joint ("LARGEST ROM · KNEE") instead of a vague label.
 const KIND_JOINT = { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', sho: 'Shoulder' };
+// Same map, but to the ANGLE_DEFS abbreviation used by namedAngleSeries — the
+// manual joint+L/R picker's default selection matches whatever the exercise
+// title auto-detected, before the coach overrides it.
+const KIND_TO_ABBR = { knee: 'KNE', hip: 'HIP', elbow: 'ELB', sho: 'SHO' };
+const JOINT_PICKS = [{ abbr: 'SHO', label: 'Shoulder' }, { abbr: 'ELB', label: 'Elbow' }, { abbr: 'HIP', label: 'Hip' }, { abbr: 'KNE', label: 'Knee' }];
 
 // Continuous joint-angle-over-time trace for ROM & TEMPO — same synced/
 // scrubbable/pinch-zoomable treatment as SpeedTrace/AccelTrace (shares
 // useTraceZoomPan + PlayheadMarker), plotting degrees instead of m/s or m/s².
 // Green stroke keeps it visually distinct from speed (cyan) and accel (purple).
-function AngleTrace({ angle, kind, playheadT = null, onScrub = null, zoom = null, setZoom = null }) {
-  const noun = (KIND_JOINT[kind] || 'JOINT').toUpperCase();
+function AngleTrace({ angle, kind, jointLabel = null, playheadT = null, onScrub = null, zoom = null, setZoom = null }) {
+  const noun = (jointLabel || KIND_JOINT[kind] || 'JOINT').toUpperCase();
   const svgRef = useRef(null);
   const hasSeries = !!(angle && angle.series && angle.series.length >= 3);
   const series = hasSeries ? angle.series : null;
@@ -858,7 +863,13 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
   // state below, which is why this sits above that early return.
   const [zoom, setZoom] = useState(null);
   useEffect(() => { setZoom(null); }, [frames]);
-  const angleTrace = useMemo(() => frames && jointAngleSeries(frames, exerciseTitle), [frames, exerciseTitle]);
+  // Manual joint + L/R picker (Ohad: "I need to be able to choose a joint,
+  // and to choose r/l then the graph adjusts") — defaults to whatever the
+  // exercise title auto-detected, coach can override either independently.
+  const [jointAbbr, setJointAbbr] = useState(() => KIND_TO_ABBR[kind] || 'KNE');
+  const [side, setSide] = useState('L');
+  useEffect(() => { setJointAbbr(KIND_TO_ABBR[kind] || 'KNE'); }, [kind]);
+  const angleTrace = useMemo(() => frames && namedAngleSeries(frames, `${side} ${jointAbbr}`), [frames, side, jointAbbr]);
   if (!r && !jointRom) return <Empty msg="No movement detected to measure range of motion." />;
   const primaryJoint = (KIND_JOINT[kind] || 'Primary Joint').toUpperCase();
   return (
@@ -866,9 +877,32 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
       {/* Synced/scrubbable/pinch-zoomable graph — same treatment as SPEED &
           ACCEL (Ohad 2026-07-04: "I need a graph display matched with the
           video timeline on this... like we have on speed/acceleration").
-          Plots the same per-frame joint-angle channel the rep segmentation
-          and ROM/tempo numbers below are derived from. */}
-      <AngleTrace angle={angleTrace} kind={kind} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />
+          Plots the manually-picked joint+side channel, not the exercise-
+          title-averaged auto pick. */}
+      <AngleTrace angle={angleTrace} jointLabel={`${side} ${JOINT_PICKS.find(j => j.abbr === jointAbbr)?.label || jointAbbr}`} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        {JOINT_PICKS.map(j => (
+          <button key={j.abbr} type="button" onClick={() => setJointAbbr(j.abbr)}
+            style={{
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
+              borderRadius: 0, cursor: 'pointer', textTransform: 'uppercase',
+              border: `1px solid ${jointAbbr === j.abbr ? C.gn : 'rgba(255,255,255,0.2)'}`,
+              background: jointAbbr === j.abbr ? `${C.gn}22` : 'transparent',
+              color: jointAbbr === j.abbr ? C.gn : 'rgba(255,255,255,0.5)',
+            }}>{j.label}</button>
+        ))}
+        <span style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.15)', margin: '0 4px' }} />
+        {['L', 'R'].map(s => (
+          <button key={s} type="button" onClick={() => setSide(s)}
+            style={{
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px',
+              borderRadius: 0, cursor: 'pointer',
+              border: `1px solid ${side === s ? C.gn : 'rgba(255,255,255,0.2)'}`,
+              background: side === s ? `${C.gn}22` : 'transparent',
+              color: side === s ? C.gn : 'rgba(255,255,255,0.5)',
+            }}>{s}</button>
+        ))}
+      </div>
       {jointRom && <JointRomPanel joints={jointRom} />}
       {r ? (
         <>
@@ -876,7 +910,8 @@ function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT =
           {r.collapsedCount > 0 && <Kpi label="ROM-COLLAPSED REPS" value={String(r.collapsedCount)} tone={C.or} />}
           <TempoBars perRep={r.perRep} />
           <Row head cells={['REP', 'ROM', 'ECC s', 'PAUSE', 'CON s']} />
-          {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined} />)}
+          {r.perRep.map((x, i) => x && <Row key={i} cells={[i + 1, `${x.rom.toFixed(0)}° (${x.romPct}%)`, x.ecc.toFixed(1), x.pause.toFixed(1), x.con.toFixed(1)]} tone={x.collapsed ? C.or : undefined}
+            onClick={onScrub && x.startT != null ? () => onScrub(x.startT) : undefined} />)}
         </>
       ) : (
         <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', marginTop: 10 }}>
