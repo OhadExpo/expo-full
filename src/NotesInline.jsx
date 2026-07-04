@@ -6,6 +6,7 @@
 
 import React, { useState } from 'react';
 import { C, FN, FB, FH } from './theme';
+import { fmtPrettyDate } from './dates';
 import { isRefined5b, RefinedHeaderStrip, confirmToast } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
@@ -129,7 +130,8 @@ export default function NotesInline({
   // 'cancelled' is terminal like 'done' — archived to history, not active.
   const isTerminal = (r) => r.status === 'done' || r.status === 'cancelled';
   const open = rows.filter(r => !isTerminal(r));
-  const done = rows.filter(isTerminal).slice(0, 3);
+  const doneRows = rows.filter(isTerminal);
+  const done = doneRows.slice(0, 3);
   const visibleOpen = compact ? open.slice(0, 3) : open;
   const showCreatePlanBtn = !!onCreatePlanForTask && targetKind === 'trainee';
 
@@ -381,6 +383,15 @@ export default function NotesInline({
 
       {done.length > 0 && (
         <div style={{ marginTop: open.length > 0 ? 8 : 0, paddingTop: 8, borderTop: open.length > 0 ? `1px dashed var(--c-cardBd)` : 'none' }}>
+          {/* Same "✓ HISTORY (N)" header + per-row "done DATE" metadata + row
+              dividers + centered strikethrough + confirm-before-delete that
+              NotesWidget (Dashboard Tasks) already has (Ohad 2026-07-04: bring
+              Coach History's design in line with it). Target-kind/label are
+              dropped here — this list is already scoped to one trainee, so
+              repeating "TRAINEE · <name>" on every row would be redundant. */}
+          <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-td)', letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4 }}>
+            ✓ HISTORY ({doneRows.length}{done.length < doneRows.length ? ` · showing ${done.length}` : ''})
+          </div>
           {done.map(n => {
             const heb = isHebrew(n.body);
             return (
@@ -389,7 +400,8 @@ export default function NotesInline({
                 // are enough "this is closed" signal in both themes. Prior
                 // opacity:0.55 double-dimmed the row and made the
                 // strikethrough body unreadable on white in light mode.
-                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '4px 0',
+                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 0',
+                borderBottom: `1px solid var(--c-cardBd)`,
               }}>
                 <input type="checkbox" checked={true}
                   title={n.status === 'cancelled' ? 'Reopen (un-cancel)' : 'Reopen'}
@@ -398,12 +410,16 @@ export default function NotesInline({
                     : toggleDone(n.id)}
                   style={{ width: 14, height: 14, accentColor: n.status === 'cancelled' ? 'var(--c-tm)' : 'var(--c-gn)', cursor: 'pointer', flexShrink: 0, marginTop: 3 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  {n.status === 'cancelled' && (
-                    <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-or)', letterSpacing: '0.08em', fontWeight: 700, marginBottom: 2 }}>CANCELLED</div>
+                  {(n.status === 'cancelled' || n.completed_at) && (
+                    <div style={{ fontFamily: FN, fontSize: 9, color: n.status === 'cancelled' ? 'var(--c-or)' : 'var(--c-td)', letterSpacing: '0.08em', fontWeight: n.status === 'cancelled' ? 700 : 400, marginBottom: 2 }}>
+                      {n.status === 'cancelled' ? 'CANCELLED' : `done ${fmtPrettyDate(n.completed_at)}`}
+                    </div>
                   )}
                   <div style={{
                     fontSize: 12, color: 'var(--c-tm)', lineHeight: 1.5, whiteSpace: 'pre-wrap', textDecoration: 'line-through',
-                    direction: heb ? 'rtl' : 'ltr', fontFamily: FB,
+                    direction: heb ? 'rtl' : 'ltr',
+                    textAlign: 'center',
+                    fontFamily: FB,
                   }}>{n.body}</div>
                   {n.linked_plan_id && (
                     <div style={{ fontFamily: FN, fontSize: 9, color: 'var(--c-ac)', letterSpacing: '0.08em', marginTop: 2, fontWeight: 700 }}>
@@ -411,8 +427,12 @@ export default function NotesInline({
                     </div>
                   )}
                 </div>
-                <button onClick={() => remove(n.id)} title="Remove"
-                  style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }} aria-label="Cancel task">×</button>
+                <button onClick={async () => {
+                    if (await confirmToast('Delete this completed task? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Cancel' })) {
+                      remove(n.id);
+                    }
+                  }} title="Remove" aria-label="Delete task"
+                  style={{ background: 'none', border: 'none', color: 'var(--c-td)', cursor: 'pointer', fontSize: 14, padding: '0 4px', flexShrink: 0 }}>×</button>
               </div>
             );
           })}
