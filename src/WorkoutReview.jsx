@@ -128,6 +128,23 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const [metricsTab, setMetricsTab] = useState('velocity');
   const [metricsErr, setMetricsErr] = useState('');
   const [videoTime, setVideoTime] = useState(0);       // drives the metrics-graph playhead
+  // Precise width check for the side-by-side layout — CSS flex-wrap alone is
+  // unreliable here: it wraps based on items' UN-SHRUNK hypothetical sizes
+  // (flex-basis), not their actual minimum sizes, so at some container widths
+  // it wraps to stacked even though both columns would comfortably fit once
+  // shrunk (Ohad: "fix the split display to make it fit too" — seen on a
+  // narrower browser window where there was clearly unused width to the right
+  // of the stacked layout). Measuring the real container width sidesteps that
+  // CSS quirk entirely.
+  const rowRef = useRef(null);
+  const [rowWide, setRowWide] = useState(true);
+  useEffect(() => {
+    const el = rowRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => { setRowWide(entries[0].contentRect.width >= 620); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   // Natural aspect ratio of THIS clip, read once metadata loads. Portrait phone
   // footage (very common for form-check uploads) was being crammed into a fixed
   // wide 16:9-ish box — object-fit:contain then pillarboxed it down to a tiny
@@ -1190,6 +1207,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   }, []);
 
   const speeds = [0.125, 0.25, 0.5, 1, 2];
+  // Side-by-side ONLY for portrait clips with metrics open AND the row is
+  // actually wide enough (measured — see rowWide above). A landscape clip
+  // already fills the row's width, so there's no spare horizontal space to
+  // put a column beside it; it keeps the original full-width stacked layout.
+  const sideBySide = !!(vidAspect?.portrait && metricsState !== 'idle' && rowWide);
   // Extracted so it can render in TWO different slots below: beside the video
   // (portrait clips — see the flex row wrapping the video block) or in its
   // original full-width spot underneath (landscape clips). Ohad: portrait
@@ -1198,19 +1220,21 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // up. The real fix is horizontal: there's plenty of unused width beside a
   // narrow portrait video on a normal screen, so put the metrics panel there
   // instead of fighting it for vertical space.
+  // marginTop is 0 when side-by-side — Ohad (OCD alignment): the panel's top
+  // edge must line up exactly with the video's top edge, which has no margin.
   const metricsPanelJsx = (
     <>
       {metricsState === 'busy' && (
-        <div style={{marginTop:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.cardBd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.06em'}}>
+        <div style={{marginTop:sideBySide?0:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.cardBd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.06em'}}>
           READING THE MOVEMENT… {metricsPct}%
           <div style={{height:3,background:'rgba(255,255,255,0.12)',marginTop:8}}><div style={{width:`${metricsPct}%`,height:'100%',background:C.ac,transition:'width 120ms'}}/></div>
         </div>
       )}
       {metricsState === 'err' && (
-        <div style={{marginTop:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.rd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.rd}}>{metricsErr}</div>
+        <div style={{marginTop:sideBySide?0:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.rd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.rd}}>{metricsErr}</div>
       )}
       {metricsState === 'done' && metrics && (
-        <div data-theme="dark" style={{marginTop:8,background:'#0a0a0b',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
+        <div data-theme="dark" style={{marginTop:sideBySide?0:8,background:'#0a0a0b',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
           {/* Dedicated title row — CLOSE used to float absolute over the content
               and sat directly on top of AnalyzeResult's own tab row (both
               anchored top-right), silently blocking the ROM & TEMPO tab's click
@@ -1231,14 +1255,10 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
       )}
     </>
   );
-  // Side-by-side ONLY for portrait clips with metrics open — a landscape clip
-  // already fills the row's width, so there's no spare horizontal space to
-  // put a column beside it; it keeps the original full-width stacked layout.
-  const sideBySide = !!(vidAspect?.portrait && metricsState !== 'idle');
   return (
     <div>
-    <div style={{display:'flex',gap:sideBySide?12:0,flexWrap:'wrap',alignItems:'flex-start'}}>
-      <div style={sideBySide ? {flex:'0 1 380px',minWidth:260} : {flex:'1 1 100%',minWidth:0}}>
+    <div ref={rowRef} style={{display:'flex',gap:sideBySide?12:0,alignItems:'flex-start'}}>
+      <div style={sideBySide ? {flex:'0 1 380px',minWidth:260,marginTop:0} : {flex:'1 1 100%',minWidth:0}}>
       {/* :fullscreen rules let pose / drawing / REPS overlays scale with the
           video when the wrapper is fullscreened. The video letterboxes via
           object-fit:contain; the pose-canvas drawing math already accounts
