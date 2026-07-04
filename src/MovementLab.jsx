@@ -447,6 +447,11 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
   //   MEAN VELOCITY — one number per rep (the VBT fatigue bars), a genuinely
   //                   different metric (a per-rep summary, not a continuous trace).
   const [graph, setGraph] = useState('speed');
+  // Pinch-zoom window on the time axis, SHARED between SPEED and ACCELERATION
+  // (they're the same timeline) so flipping tabs doesn't lose your zoom. null =
+  // full clip. Reset whenever a new clip is analyzed.
+  const [zoom, setZoom] = useState(null);
+  useEffect(() => { setZoom(null); }, [frames]);
   // TRACKED POINT for the speed/accel traces: BAR = wrists (a loaded
   // barbell/dumbbell rides the wrists) · BODY = hips (bodyweight work / no
   // bar). All speeds are VERTICAL only. Recomputed live from the captured frames.
@@ -488,8 +493,8 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
           {pill('hip', 'BODY · HIPS', point === 'hip', () => setPoint('hip'))}
         </div>
       )}
-      {graph === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} />}
-      {graph === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} />}
+      {graph === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
+      {graph === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
       {graph === 'velocity' && <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined} />)}
@@ -497,51 +502,147 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
   );
 }
 
+// Shared pinch-zoom + pan for the time axis of SpeedTrace/AccelTrace. Standard
+// gesture convention: spread two fingers apart = zoom IN (narrower time window,
+// more detail); pinch together = zoom OUT (wider window, back toward the full
+// clip). Also accepts ctrl+wheel (how Chrome/Firefox report trackpad pinch) as
+// a desktop equivalent. `zoom`/`setZoom` are owned by the caller (VelocityTable)
+// so SPEED and ACCELERATION share one zoom window across tab switches.
+// Single-finger drag still seeks the video (unchanged) — the two never
+// conflict because a second pointer immediately switches this gesture session
+// into pinch mode and a `justPinched` guard blocks a stray seek from whichever
+// finger is lifted last.
+function useTraceZoomPan({ svgRef, fullT0, fullT1, zoom, setZoom, onScrub, W, padL, padR }) {
+  const pointersRef = useRef(new Map());   // pointerId -> {x,y}
+  const dragRef = useRef(false);
+  const pinchRef = useRef(null);           // { dist0, midT0, t0, t1 } captured at pinch start
+  const justPinchedRef = useRef(false);
+
+  const t0 = zoom ? zoom.t0 : fullT0;
+  const t1 = zoom ? zoom.t1 : fullT1;
+  const span = Math.max(1, t1 - t0);
+  const FULL_SPAN = Math.max(1, fullT1 - fullT0);
+  const MIN_SPAN = 400; // ms — a zoom floor so the window can't collapse to nothing
+  const usableW = W - padL - padR;
+
+  const xToT = (clientX, rect) => {
+    const vbX = ((clientX - rect.left) / Math.max(1, rect.width)) * W;
+    const frac = Math.min(1, Math.max(0, (vbX - padL) / usableW));
+    return t0 + frac * span;
+  };
+  const clampWindow = (nt0, nt1) => {
+    if (nt0 < fullT0) { nt1 += fullT0 - nt0; nt0 = fullT0; }
+    if (nt1 > fullT1) { nt0 -= nt1 - fullT1; nt1 = fullT1; }
+    return { t0: Math.max(fullT0, nt0), t1: Math.min(fullT1, nt1) };
+  };
+  const setSpan = (newSpanRaw, anchorT) => {
+    const newSpan = Math.min(FULL_SPAN, Math.max(MIN_SPAN, newSpanRaw));
+    const w = clampWindow(anchorT - newSpan / 2, anchorT + newSpan / 2);
+    setZoom(newSpan >= FULL_SPAN - 1 ? null : w);
+  };
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const midX = (a, b) => (a.x + b.x) / 2;
+
+  const onPointerDown = (e) => {
+    if (!svgRef.current) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ }
+    if (pointersRef.current.size === 2) {
+      const [a, b] = [...pointersRef.current.values()];
+      const rect = svgRef.current.getBoundingClientRect();
+      pinchRef.current = { dist0: dist(a, b), midT0: xToT(midX(a, b), rect), t0, t1 };
+      dragRef.current = false;
+      justPinchedRef.current = true;
+    } else if (pointersRef.current.size === 1 && !justPinchedRef.current) {
+      dragRef.current = true;
+      if (onScrub) onScrub(xToT(e.clientX, svgRef.current.getBoundingClientRect()));
+    }
+  };
+  const onPointerMove = (e) => {
+    if (!pointersRef.current.has(e.pointerId) || !svgRef.current) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointersRef.current.size === 2 && pinchRef.current) {
+      const [a, b] = [...pointersRef.current.values()];
+      const scale = dist(a, b) / Math.max(1, pinchRef.current.dist0);
+      setSpan((pinchRef.current.t1 - pinchRef.current.t0) / scale, pinchRef.current.midT0);
+      return;
+    }
+    if (pointersRef.current.size === 1 && dragRef.current && onScrub) {
+      onScrub(xToT(e.clientX, svgRef.current.getBoundingClientRect()));
+    }
+  };
+  const endPointer = (e) => {
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) pinchRef.current = null;
+    if (pointersRef.current.size === 0) { dragRef.current = false; justPinchedRef.current = false; }
+  };
+  const onWheel = (e) => {
+    if (!e.ctrlKey || !svgRef.current) return;   // plain scroll passes through untouched
+    e.preventDefault();
+    setSpan(span * Math.exp(e.deltaY * 0.01), xToT(e.clientX, svgRef.current.getBoundingClientRect()));
+  };
+
+  return {
+    t0, t1, span, zoomed: !!zoom, resetZoom: () => setZoom(null),
+    handlers: { onPointerDown, onPointerMove, onPointerUp: endPointer, onPointerCancel: endPointer, onWheel },
+  };
+}
+
+const zoomResetPillStyle = {
+  fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', padding: '2px 8px',
+  border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.08)',
+  color: 'rgba(255,255,255,0.75)', cursor: 'pointer', borderRadius: 0, marginLeft: 8,
+};
+
 // Continuous VERTICAL bar/body speed over the whole set. Each rep is a peak pair
-// (lower + lift). SVG polyline; y-axis m/s (peak-scaled), x-axis real time.
-// playheadT (ms) draws a video-synced marker; onScrub(tMs) seeks the video when
-// the coach clicks/drags on the trace — two-way sync with the clip.
-function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null }) {
+// (lower + lift). SVG polyline; y-axis m/s (peak-scaled to the VISIBLE window,
+// so zooming in reveals more resolution), x-axis real time (pinch-zoomable —
+// see useTraceZoomPan). playheadT (ms) draws a video-synced marker; onScrub(tMs)
+// seeks the video when the coach clicks/drags on the trace — two-way sync.
+function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = null, setZoom = null }) {
   const noun = point === 'hip' ? 'BODY (HIP)' : 'BAR (WRIST)';
   const svgRef = useRef(null);
-  const dragRef = useRef(false);
-  if (!barSpeed || !barSpeed.series || barSpeed.series.length < 3) {
+  const hasSeries = !!(barSpeed && barSpeed.series && barSpeed.series.length >= 3);
+  const series = hasSeries ? barSpeed.series : null;
+  const fullPeak = hasSeries ? barSpeed.peak : 0;
+  const W = 300, H = 110, padL = 26, padB = 16, padT = 6, padR = 4;
+  const fullT0 = hasSeries ? series[0].t : 0;
+  const fullT1 = hasSeries ? (series[series.length - 1].t || 1) : 1;
+  // Hook runs unconditionally (rules-of-hooks) even on a "no clean trace" clip —
+  // it's a no-op there since the component returns before using its result.
+  const { t0, t1, span, zoomed, resetZoom, handlers } = useTraceZoomPan({ svgRef, fullT0, fullT1, zoom, setZoom, onScrub, W, padL, padR });
+  if (!hasSeries) {
     return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean {noun.toLowerCase()} speed trace in this clip.</div>;
   }
-  const { series, peak } = barSpeed;
-  const W = 300, H = 110, padL = 26, padB = 16, padT = 6;
-  const t0 = series[0].t, t1 = series[series.length - 1].t || 1;
-  const span = Math.max(1, t1 - t0);
+  const visible = zoomed ? series.filter(p => p.t >= t0 && p.t <= t1) : series;
+  // y-axis rescales to the VISIBLE window's peak — zooming in reveals more
+  // resolution instead of staying squashed against the full-clip peak.
+  const peak = visible.length ? Math.max(...visible.map(p => p.speed)) : fullPeak;
   const yMax = Math.max(0.3, peak);
-  const x = (t) => padL + ((t - t0) / span) * (W - padL - 4);
+  const x = (t) => padL + ((t - t0) / span) * (W - padL - padR);
   const y = (s) => padT + (1 - s / yMax) * (H - padT - padB);
-  const pts = series.map(p => `${x(p.t).toFixed(1)},${y(p.speed).toFixed(1)}`).join(' ');
+  const pts = visible.map(p => `${x(p.t).toFixed(1)},${y(p.speed).toFixed(1)}`).join(' ');
   const gridY = [0, yMax / 2, yMax];
   // clamp the playhead into the trace's time window and place it on the x-axis
   const phT = playheadT == null ? null : Math.min(t1, Math.max(t0, playheadT));
   const phX = phT == null ? null : x(phT);
-  // pointer x (client px) → time (ms), seek the video via onScrub
-  const seekFromEvent = (e) => {
-    if (!onScrub || !svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const vbX = ((e.clientX - rect.left) / Math.max(1, rect.width)) * W;
-    const frac = Math.min(1, Math.max(0, (vbX - padL) / (W - padL - 4)));
-    onScrub(t0 + frac * span);
-  };
+  // value at the playhead — nearest sample, so scrubbing has a readable number
+  const atPlayhead = phT == null ? null : series.reduce((best, p) => (best == null || Math.abs(p.t - phT) < Math.abs(best.t - phT) ? p : best), null);
   return (
     <div style={{ margin: '6px 0 16px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VERTICAL {noun} SPEED · m/s OVER TIME · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek' : ''}</div>
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }}
-        onPointerDown={onScrub ? (e) => { dragRef.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ } seekFromEvent(e); } : undefined}
-        onPointerMove={onScrub ? (e) => { if (dragRef.current) seekFromEvent(e); } : undefined}
-        onPointerUp={onScrub ? () => { dragRef.current = false; } : undefined}
-        onPointerCancel={onScrub ? () => { dragRef.current = false; } : undefined}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span>VERTICAL {noun} SPEED · m/s{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(2)}{atPlayhead ? ` · at playhead ${atPlayhead.speed.toFixed(2)}` : ''}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
+        {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ RESET ZOOM</button>}
+      </div>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
         {gridY.map((g, i) => (
           <g key={i}>
-            <line x1={padL} x2={W - 4} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
+            <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
             <text x={0} y={y(g) + 3} fill="rgba(255,255,255,0.45)" fontSize="8" fontFamily="monospace">{g.toFixed(1)}</text>
           </g>
         ))}
+        {/* soft fill under the curve — reads as a chart, not just a line */}
+        {pts && <polygon points={`${x(visible[0]?.t ?? t0).toFixed(1)},${y(0).toFixed(1)} ${pts} ${x(visible[visible.length - 1]?.t ?? t1).toFixed(1)},${y(0).toFixed(1)}`} fill={C.ac} fillOpacity="0.10" stroke="none" />}
         <polyline points={pts} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         {phX != null && (
           <g>
@@ -560,48 +661,46 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null }) {
 // y-axis is symmetric around zero (acceleration swings both ways every rep),
 // with an emphasized zero line, and a distinct stroke color so the two traces
 // are never confused at a glance.
-function AccelTrace({ accel, point, playheadT = null, onScrub = null }) {
+function AccelTrace({ accel, point, playheadT = null, onScrub = null, zoom = null, setZoom = null }) {
   const noun = point === 'hip' ? 'BODY (HIP)' : 'BAR (WRIST)';
   const svgRef = useRef(null);
-  const dragRef = useRef(false);
-  if (!accel || !accel.series || accel.series.length < 3) {
+  const hasSeries = !!(accel && accel.series && accel.series.length >= 3);
+  const series = hasSeries ? accel.series : null;
+  const fullPeak = hasSeries ? accel.peak : 0;
+  const W = 300, H = 110, padL = 26, padB = 16, padT = 6, padR = 4;
+  const fullT0 = hasSeries ? series[0].t : 0;
+  const fullT1 = hasSeries ? (series[series.length - 1].t || 1) : 1;
+  const { t0, t1, span, zoomed, resetZoom, handlers } = useTraceZoomPan({ svgRef, fullT0, fullT1, zoom, setZoom, onScrub, W, padL, padR });
+  if (!hasSeries) {
     return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean {noun.toLowerCase()} acceleration trace in this clip.</div>;
   }
-  const { series, peak } = accel;
-  const W = 300, H = 110, padL = 26, padB = 16, padT = 6;
-  const t0 = series[0].t, t1 = series[series.length - 1].t || 1;
-  const span = Math.max(1, t1 - t0);
+  const visible = zoomed ? series.filter(p => p.t >= t0 && p.t <= t1) : series;
+  const peak = visible.length ? Math.max(...visible.map(p => Math.abs(p.accel))) : fullPeak;
   const yMax = Math.max(0.5, peak);                    // symmetric range [-yMax, yMax]
-  const x = (t) => padL + ((t - t0) / span) * (W - padL - 4);
+  const x = (t) => padL + ((t - t0) / span) * (W - padL - padR);
   const y = (a) => padT + (1 - (a + yMax) / (2 * yMax)) * (H - padT - padB);
-  const pts = series.map(p => `${x(p.t).toFixed(1)},${y(p.accel).toFixed(1)}`).join(' ');
+  const pts = visible.map(p => `${x(p.t).toFixed(1)},${y(p.accel).toFixed(1)}`).join(' ');
   const gridVals = [-yMax, 0, yMax];
   const zeroY = y(0);
   const phT = playheadT == null ? null : Math.min(t1, Math.max(t0, playheadT));
   const phX = phT == null ? null : x(phT);
-  const seekFromEvent = (e) => {
-    if (!onScrub || !svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const vbX = ((e.clientX - rect.left) / Math.max(1, rect.width)) * W;
-    const frac = Math.min(1, Math.max(0, (vbX - padL) / (W - padL - 4)));
-    onScrub(t0 + frac * span);
-  };
+  const atPlayhead = phT == null ? null : series.reduce((best, p) => (best == null || Math.abs(p.t - phT) < Math.abs(best.t - phT) ? p : best), null);
   return (
     <div style={{ margin: '6px 0 16px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VERTICAL {noun} ACCELERATION · m/s² OVER TIME · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek' : ''}</div>
-      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }}
-        onPointerDown={onScrub ? (e) => { dragRef.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ } seekFromEvent(e); } : undefined}
-        onPointerMove={onScrub ? (e) => { if (dragRef.current) seekFromEvent(e); } : undefined}
-        onPointerUp={onScrub ? () => { dragRef.current = false; } : undefined}
-        onPointerCancel={onScrub ? () => { dragRef.current = false; } : undefined}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span>VERTICAL {noun} ACCELERATION · m/s²{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(2)}{atPlayhead ? ` · at playhead ${atPlayhead.accel.toFixed(2)}` : ''}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
+        {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ RESET ZOOM</button>}
+      </div>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
         {gridVals.map((g, i) => (
           <g key={i}>
-            <line x1={padL} x2={W - 4} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
+            <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
             <text x={0} y={y(g) + 3} fill="rgba(255,255,255,0.45)" fontSize="8" fontFamily="monospace">{g.toFixed(1)}</text>
           </g>
         ))}
         {/* zero line emphasized — every rep's turnaround crosses it */}
-        <line x1={padL} x2={W - 4} y1={zeroY} y2={zeroY} stroke="rgba(255,255,255,0.28)" strokeWidth="0.75" />
+        <line x1={padL} x2={W - padR} y1={zeroY} y2={zeroY} stroke="rgba(255,255,255,0.28)" strokeWidth="0.75" />
+        {pts && <polygon points={`${x(visible[0]?.t ?? t0).toFixed(1)},${zeroY.toFixed(1)} ${pts} ${x(visible[visible.length - 1]?.t ?? t1).toFixed(1)},${zeroY.toFixed(1)}`} fill={C.pu} fillOpacity="0.10" stroke="none" />}
         <polyline points={pts} fill="none" stroke={C.pu} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         {phX != null && (
           <g>

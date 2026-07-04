@@ -1381,14 +1381,23 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
         <div style={{marginTop:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.rd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.rd}}>{metricsErr}</div>
       )}
       {metricsState === 'done' && metrics && (
-        <div data-theme="dark" style={{marginTop:8,background:'#0a0a0b',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 10px',position:'relative'}}>
-          <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title="Hide metrics"
-            style={{position:'absolute',top:6,right:6,zIndex:2,background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
-          <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
-            <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics"
-              playheadT={videoTime * 1000}
-              onScrub={(tMs) => { const v = videoRef.current; if (v) { const t = Math.max(0, tMs / 1000); v.currentTime = t; setVideoTime(t); } }} />
-          </Suspense>
+        <div data-theme="dark" style={{marginTop:8,background:'#0a0a0b',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
+          {/* Dedicated title row — CLOSE used to float absolute over the content
+              and sat directly on top of AnalyzeResult's own tab row (both
+              anchored top-right), silently blocking the ROM & TEMPO tab's click
+              area. A proper header row keeps it clear of the tabs entirely. */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',borderBottom:`1px solid ${C.cardBd}`}}>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.tm}}>LIFT METRICS</span>
+            <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title="Hide metrics"
+              style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
+          </div>
+          <div style={{padding:'10px 10px 4px'}}>
+            <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
+              <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics"
+                playheadT={videoTime * 1000}
+                onScrub={(tMs) => { const v = videoRef.current; if (v) { const t = Math.max(0, tMs / 1000); v.currentTime = t; setVideoTime(t); } }} />
+            </Suspense>
+          </div>
         </div>
       )}
       {/* Bottom row: speeds → frame-step → LOOP, all centered as one
