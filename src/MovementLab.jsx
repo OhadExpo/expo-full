@@ -497,11 +497,17 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
       {graph === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
       {graph === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
       {graph === 'velocity' && <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
-      {/* Summary KPIs — side by side (was stacked full-width) to cut their
-          combined height roughly in half. */}
+      {/* Summary KPIs — MiniKpi (stacked label-then-value), not Kpi (label
+          beside value): at half-width, Kpi's side-by-side baseline layout let
+          the two labels wrap across a different number of lines ("BEST MEAN
+          VELOCITY" vs "VELOCITY LOSS (LAST REP)"), so the two boxes came out
+          different heights (Ohad: "different box sizes, different heights,
+          fix to OCD level"). MiniKpi's stacked layout contains any wrapping
+          within the label's own line, and the row's default align-items:
+          stretch then matches both boxes to the same height automatically. */}
       <div style={{ display: 'flex', gap: 8 }}>
-        <div style={{ flex: 1, minWidth: 0 }}><Kpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} /></div>
-        <div style={{ flex: 1, minWidth: 0 }}><Kpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} /></div>
+        <MiniKpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} />
+        <MiniKpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
       </div>
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined}
@@ -625,12 +631,14 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = 
   const visible = zoomed ? series.filter(p => p.t >= t0 && p.t <= t1) : series;
   // y-axis rescales to the VISIBLE window's peak — zooming in reveals more
   // resolution instead of staying squashed against the full-clip peak.
-  const peak = visible.length ? Math.max(...visible.map(p => p.speed)) : fullPeak;
+  // Symmetric range: speed is now SIGNED (+up/-down), not rectified.
+  const peak = visible.length ? Math.max(...visible.map(p => Math.abs(p.speed))) : fullPeak;
   const yMax = Math.max(0.3, peak);
   const x = (t) => padL + ((t - t0) / span) * (W - padL - padR);
-  const y = (s) => padT + (1 - s / yMax) * (H - padT - padB);
+  const y = (s) => padT + (1 - (s + yMax) / (2 * yMax)) * (H - padT - padB);
   const pts = visible.map(p => `${x(p.t).toFixed(1)},${y(p.speed).toFixed(1)}`).join(' ');
-  const gridY = [0, yMax / 2, yMax];
+  const gridY = [-yMax, 0, yMax];
+  const zeroY = y(0);
   // clamp the playhead into the trace's time window and place it on the x-axis
   const phT = playheadT == null ? null : Math.min(t1, Math.max(t0, playheadT));
   const phX = phT == null ? null : x(phT);
@@ -639,7 +647,7 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = 
   return (
     <div style={{ margin: '6px 0 16px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span>VERTICAL {noun} SPEED · m/s{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
+        <span>VERTICAL {noun} SPEED · m/s{zoomed ? '' : ' OVER TIME'} · +up / -down · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
         {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ RESET ZOOM</button>}
       </div>
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
@@ -649,8 +657,10 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = 
             <text x={0} y={y(g) + 3} fill="rgba(255,255,255,0.45)" fontSize="8" fontFamily="monospace">{g.toFixed(1)}</text>
           </g>
         ))}
-        {/* soft fill under the curve — reads as a chart, not just a line */}
-        {pts && <polygon points={`${x(visible[0]?.t ?? t0).toFixed(1)},${y(0).toFixed(1)} ${pts} ${x(visible[visible.length - 1]?.t ?? t1).toFixed(1)},${y(0).toFixed(1)}`} fill={C.ac} fillOpacity="0.10" stroke="none" />}
+        {/* zero line emphasized — the sign flips here every rep (up vs down) */}
+        <line x1={padL} x2={W - padR} y1={zeroY} y2={zeroY} stroke="rgba(255,255,255,0.28)" strokeWidth="0.75" />
+        {/* soft fill anchored at zero (not the bottom) — reads as a chart, not just a line */}
+        {pts && <polygon points={`${x(visible[0]?.t ?? t0).toFixed(1)},${zeroY.toFixed(1)} ${pts} ${x(visible[visible.length - 1]?.t ?? t1).toFixed(1)},${zeroY.toFixed(1)}`} fill={C.ac} fillOpacity="0.10" stroke="none" />}
         <polyline points={pts} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         {phX != null && (
           <g>
@@ -1252,10 +1262,10 @@ const Kpi = ({ label, value, tone }) => (
     <span style={{ fontFamily: FN, fontSize: 20, fontWeight: 800, color: tone || C.ac }}>{value}</span>
   </div>
 );
-const MiniKpi = ({ label, value }) => (
+const MiniKpi = ({ label, value, tone }) => (
   <div style={{ flex: 1, padding: '12px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
     <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', fontWeight: 700 }}>{label}</div>
-    <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: '#FFF', marginTop: 4 }}>{value}</div>
+    <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: tone || '#FFF', marginTop: 4 }}>{value}</div>
   </div>
 );
 // onClick (optional) — e.g. the Review player wires this to seek the video to

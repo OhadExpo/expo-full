@@ -148,10 +148,13 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
   };
 }
 
-// Continuous bar-speed trace — instantaneous vertical bar speed (|m/s|) per
-// frame across the WHOLE clip, for the velocity tab's "speed over time" graph.
-// Absolute value so the lowering and lifting phases both read as peaks (one
-// peak pair per rep). Lightly median-smoothed against per-frame ruler jitter.
+// Continuous bar-speed trace — instantaneous SIGNED vertical bar speed (m/s)
+// per frame across the WHOLE clip, for the velocity tab's "speed over time"
+// graph. Signed, not rectified (Ohad 2026-07-04: "speed should be displayed
+// only as vertical, so it should be positive on the way up but negative on
+// the way down") — positive = concentric/lifting, negative = eccentric/
+// lowering, matching how real VBT devices (GymAware, Vmaxpro, etc.) report
+// bar speed. Median-smoothed against per-frame ruler/landmark jitter.
 // t is ms-from-clip-start so the x-axis is real time.
 export function barSpeedSeries(frames, barLandmark = 'wrist') {
   if (!frames || frames.length < 3) return null;
@@ -165,13 +168,28 @@ export function barSpeedSeries(frames, barLandmark = 'wrist') {
     if (i === 0) return null;
     const a = pos[i - 1], b = pos[i], ta = frames[i - 1]?.t, tb = frames[i]?.t;
     if (!isReal(a) || !isReal(b) || ta == null || tb == null || tb <= ta) return null;
-    return Math.abs((b - a) / ((tb - ta) / 1000));
+    return (b - a) / ((tb - ta) / 1000);           // signed, m/s (+up / -down)
   });
-  const sm = medianFilter(raw, 3);
+  // Window 5 (was 3) — at typical mobile-capture framerates (~18-30fps), 1-2px
+  // of pose-landmark jitter, differentiated into velocity, reads as real
+  // "speed" even while the athlete is genuinely still (Ohad: "when he's not
+  // moving the speed should be 0 right? I don't think this works good" —
+  // correct catch). Heavier smoothing suppresses more jitter without
+  // meaningfully blunting real rep peaks, which span many frames.
+  const sm = medianFilter(raw, 5);
+  // Deadband — below this is noise-dominated, not real bar speed. A true
+  // stillstand (dead-stop, top/bottom pause) should read 0.00, not a phantom
+  // ±0.3-0.8 m/s. 0.15 m/s sits comfortably above typical landmark-jitter
+  // magnitude and comfortably below any deliberate movement.
+  const DEADBAND = 0.15;
   const t0 = frames[0].t;
-  const series = frames.map((f, i) => (isReal(sm[i]) ? { t: Math.round(f.t - t0), speed: round2(sm[i]) } : null)).filter(Boolean);
+  const series = frames.map((f, i) => {
+    if (!isReal(sm[i])) return null;
+    return { t: Math.round(f.t - t0), speed: round2(Math.abs(sm[i]) < DEADBAND ? 0 : sm[i]) };
+  }).filter(Boolean);
   if (series.length < 3) return null;
-  return { series, peak: round2(series.reduce((m, p) => Math.max(m, p.speed), 0)) };
+  // peak = max magnitude either direction — the graph's y-axis is symmetric.
+  return { series, peak: round2(series.reduce((m, p) => Math.max(m, Math.abs(p.speed)), 0)) };
 }
 
 // Vertical acceleration (m/s²) of the same tracked point, over time — the
