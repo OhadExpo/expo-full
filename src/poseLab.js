@@ -73,6 +73,30 @@ function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? -lm2.y * scale 
 const MAX_SPEED_MPS = 6;
 function clampSpeed(v) { return (v != null && Math.abs(v) > MAX_SPEED_MPS) ? null : v; }
 
+// Same idea as MAX_SPEED_MPS, applied to joint angles: no real joint changes
+// this fast frame-to-frame (1600 deg/s is well above even elite explosive
+// movement) — a jump this large is far more likely the subject-tracker
+// having briefly locked onto a different, differently-posed person (see
+// pickSubjectIdx in MovementLab.jsx) than a genuine flexion/extension. Applied
+// as a CAUSAL filter (compared against the last ACCEPTED value, in frame
+// order) since angle itself isn't a derivative like speed — rejecting one bad
+// frame shouldn't cascade into rejecting every frame after it.
+const MAX_DEG_PER_SEC = 1600;
+function clampAngleSeries(raw, t) {
+  const out = new Array(raw.length).fill(null);
+  let lastGood = null, lastT = null;
+  for (let i = 0; i < raw.length; i++) {
+    const v = raw[i];
+    if (!isReal(v)) continue;
+    if (lastGood == null || lastT == null || t[i] <= lastT) { out[i] = v; lastGood = v; lastT = t[i]; continue; }
+    const dtSec = (t[i] - lastT) / 1000;
+    const degPerSec = Math.abs(v - lastGood) / dtSec;
+    if (degPerSec > MAX_DEG_PER_SEC) continue; // reject — leave null, don't advance lastGood
+    out[i] = v; lastGood = v; lastT = t[i];
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Channel signal — the joint-angle time series a rep cycle rides on.
 // ---------------------------------------------------------------------------
@@ -91,7 +115,7 @@ export function channelSignal(frames, exerciseTitle) {
     }).filter(isReal);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
   });
-  return { t, angle: medianFilter(raw, 5), kind, channels };
+  return { t, angle: medianFilter(clampAngleSeries(raw, t), 5), kind, channels };
 }
 
 // ---------------------------------------------------------------------------
@@ -296,8 +320,9 @@ export function namedAngleSeries(frames, angleName) {
   if (!frames || frames.length < 3) return null;
   const d = ANGLE_DEFS.find(a => a.name === angleName);
   if (!d) return null;
+  const t = frames.map(f => f.t);
   const raw = frames.map(f => (f.worldLandmarks ? angleAt(f.worldLandmarks, d.a, d.b, d.c) : null));
-  const angle = medianFilter(raw, 5);
+  const angle = medianFilter(clampAngleSeries(raw, t), 5);
   const t0 = frames[0].t;
   const series = frames.map((f, i) => (isReal(angle[i]) ? { t: Math.round(f.t - t0), angle: round1(angle[i]) } : null)).filter(Boolean);
   if (series.length < 3) return null;
@@ -350,10 +375,11 @@ export function romTempoMetrics(frames, angle, reps) {
 // rotation axes are deliberately NOT offered here — only the flexion joints.
 export function jointRomMetrics(frames, jointNames = null) {
   if (!frames || frames.length < 4) return null;
+  const t = frames.map(f => f.t);
   const defs = jointNames ? ANGLE_DEFS.filter(d => jointNames.includes(d.name)) : ANGLE_DEFS;
   const out = defs.map(d => {
     const raw = frames.map(f => (f.worldLandmarks ? angleAt(f.worldLandmarks, d.a, d.b, d.c) : null));
-    const series = medianFilter(raw, 5).filter(isReal);
+    const series = medianFilter(clampAngleSeries(raw, t), 5).filter(isReal);
     if (series.length < 4) return null;
     const max = Math.max(...series), min = Math.min(...series);
     return { name: d.name, maxDeg: Math.round(max), minDeg: Math.round(min), romDeg: Math.round(max - min), samples: series.length };
