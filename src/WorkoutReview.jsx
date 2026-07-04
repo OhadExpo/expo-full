@@ -1190,8 +1190,55 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   }, []);
 
   const speeds = [0.125, 0.25, 0.5, 1, 2];
+  // Extracted so it can render in TWO different slots below: beside the video
+  // (portrait clips — see the flex row wrapping the video block) or in its
+  // original full-width spot underneath (landscape clips). Ohad: portrait
+  // clips at maxHeight:70vh filled the whole viewport by themselves, leaving
+  // no room to see the graph without scrolling — even after moving the graph
+  // up. The real fix is horizontal: there's plenty of unused width beside a
+  // narrow portrait video on a normal screen, so put the metrics panel there
+  // instead of fighting it for vertical space.
+  const metricsPanelJsx = (
+    <>
+      {metricsState === 'busy' && (
+        <div style={{marginTop:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.cardBd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.06em'}}>
+          READING THE MOVEMENT… {metricsPct}%
+          <div style={{height:3,background:'rgba(255,255,255,0.12)',marginTop:8}}><div style={{width:`${metricsPct}%`,height:'100%',background:C.ac,transition:'width 120ms'}}/></div>
+        </div>
+      )}
+      {metricsState === 'err' && (
+        <div style={{marginTop:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.rd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.rd}}>{metricsErr}</div>
+      )}
+      {metricsState === 'done' && metrics && (
+        <div data-theme="dark" style={{marginTop:8,background:'#0a0a0b',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
+          {/* Dedicated title row — CLOSE used to float absolute over the content
+              and sat directly on top of AnalyzeResult's own tab row (both
+              anchored top-right), silently blocking the ROM & TEMPO tab's click
+              area. A proper header row keeps it clear of the tabs entirely. */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',borderBottom:`1px solid ${C.cardBd}`}}>
+            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.tm}}>LIFT METRICS</span>
+            <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title="Hide metrics"
+              style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
+          </div>
+          <div style={{padding:'10px 10px 4px'}}>
+            <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
+              <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics"
+                playheadT={videoTime * 1000}
+                onScrub={(tMs) => { const v = videoRef.current; if (v) { const t = Math.max(0, tMs / 1000); v.currentTime = t; setVideoTime(t); } }} />
+            </Suspense>
+          </div>
+        </div>
+      )}
+    </>
+  );
+  // Side-by-side ONLY for portrait clips with metrics open — a landscape clip
+  // already fills the row's width, so there's no spare horizontal space to
+  // put a column beside it; it keeps the original full-width stacked layout.
+  const sideBySide = !!(vidAspect?.portrait && metricsState !== 'idle');
   return (
     <div>
+    <div style={{display:'flex',gap:sideBySide?12:0,flexWrap:'wrap',alignItems:'flex-start'}}>
+      <div style={sideBySide ? {flex:'0 1 380px',minWidth:260} : {flex:'1 1 100%',minWidth:0}}>
       {/* :fullscreen rules let pose / drawing / REPS overlays scale with the
           video when the wrapper is fullscreened. The video letterboxes via
           object-fit:contain; the pose-canvas drawing math already accounts
@@ -1369,37 +1416,6 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>⛶ FULL</button>
         </div>
       </div>
-      {/* Inline LIFT METRICS panel — VBT/ROM/tempo tables for THIS clip, rendered
-          on the same player (dark so the tables read as designed). */}
-      {metricsState === 'busy' && (
-        <div style={{marginTop:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.cardBd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.06em'}}>
-          READING THE MOVEMENT… {metricsPct}%
-          <div style={{height:3,background:'rgba(255,255,255,0.12)',marginTop:8}}><div style={{width:`${metricsPct}%`,height:'100%',background:C.ac,transition:'width 120ms'}}/></div>
-        </div>
-      )}
-      {metricsState === 'err' && (
-        <div style={{marginTop:8,padding:'12px 14px',background:C.sf2,border:`1px solid ${C.rd}`,borderRadius:0,fontFamily:FN,fontSize:11,color:C.rd}}>{metricsErr}</div>
-      )}
-      {metricsState === 'done' && metrics && (
-        <div data-theme="dark" style={{marginTop:8,background:'#0a0a0b',border:`1px solid ${C.cardBd}`,borderRadius:0}}>
-          {/* Dedicated title row — CLOSE used to float absolute over the content
-              and sat directly on top of AnalyzeResult's own tab row (both
-              anchored top-right), silently blocking the ROM & TEMPO tab's click
-              area. A proper header row keeps it clear of the tabs entirely. */}
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 10px',borderBottom:`1px solid ${C.cardBd}`}}>
-            <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.tm}}>LIFT METRICS</span>
-            <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title="Hide metrics"
-              style={{background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
-          </div>
-          <div style={{padding:'10px 10px 4px'}}>
-            <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
-              <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics"
-                playheadT={videoTime * 1000}
-                onScrub={(tMs) => { const v = videoRef.current; if (v) { const t = Math.max(0, tMs / 1000); v.currentTime = t; setVideoTime(t); } }} />
-            </Suspense>
-          </div>
-        </div>
-      )}
       {/* Bottom row: speeds → frame-step → LOOP, all centered as one
           horizontal group (justifyContent:'center'). Order per Ohad:
           0.125x .. 2x, ◀ ▶, then ↻ LOOP. */}
@@ -1420,6 +1436,13 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           style={{padding:'3px 10px',height:22,boxSizing:'border-box',borderRadius:0,border:`1px solid ${loop?C.ac:C.bd}`,
             background:loop?C.acD:'transparent',color:loop?C.ac:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>↻ LOOP</button>
       </div>
+      </div>
+      {/* Metrics panel sits BESIDE the video (this column) only for portrait
+          clips — see sideBySide above. */}
+      {sideBySide && <div style={{flex:'1 1 380px',minWidth:320}}>{metricsPanelJsx}</div>}
+    </div>
+    {/* Landscape clips (or metrics closed): original full-width position below the video. */}
+    {!sideBySide && metricsPanelJsx}
       {/* Drawing toolbar — only visible when the trainer is in a drawing
           context (composing a new comment, or paused at an existing one
           they can edit). Color swatches toggle draw mode; active color
