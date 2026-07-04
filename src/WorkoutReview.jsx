@@ -128,6 +128,12 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const [metricsTab, setMetricsTab] = useState('velocity');
   const [metricsErr, setMetricsErr] = useState('');
   const [videoTime, setVideoTime] = useState(0);       // drives the metrics-graph playhead
+  // Natural aspect ratio of THIS clip, read once metadata loads. Portrait phone
+  // footage (very common for form-check uploads) was being crammed into a fixed
+  // wide 16:9-ish box — object-fit:contain then pillarboxed it down to a tiny
+  // sliver with huge black bars either side. Once known, a portrait clip sizes
+  // its OWN wrapper (not just the <video>) to match, so it fills the frame.
+  const [vidAspect, setVidAspect] = useState(null);     // { ratio, portrait } | null
   // All state declarations up front — derived values and callbacks below
   // reference them, and placing state after the derivations would trip
   // the temporal-dead-zone at render time.
@@ -288,6 +294,21 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     v.addEventListener('loadedmetadata', onMeta);
     return () => v.removeEventListener('loadedmetadata', onMeta);
   }, [role, url]);
+  // Read the clip's natural orientation once available — drives the smart
+  // portrait sizing below. Reset on URL change so switching clips doesn't keep
+  // a stale ratio from the previous video for a frame.
+  useEffect(() => {
+    setVidAspect(null);
+    const v = videoRef.current;
+    if (!v || !url) return;
+    const onDims = () => {
+      const vw = v.videoWidth, vh = v.videoHeight;
+      if (vw > 0 && vh > 0) setVidAspect({ ratio: vw / vh, portrait: vh > vw });
+    };
+    if (v.videoWidth > 0) onDims();          // metadata already loaded (fast cache hit)
+    v.addEventListener('loadedmetadata', onDims);
+    return () => v.removeEventListener('loadedmetadata', onDims);
+  }, [url]);
   const addReply = (parentId) => {
     setComposing({ ts: null, replyToId: parentId });
     setComposeText('');
@@ -1193,12 +1214,15 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           width:100% !important; height:100% !important; z-index:5 !important;
         }
       `}</style>
-      <div ref={wrapperRef} className="fv-wrap" style={{position:'relative',marginBottom:6,lineHeight:0}}>
+      <div ref={wrapperRef} className="fv-wrap" style={{position:'relative',marginBottom:6,lineHeight:0,
+          ...(vidAspect?.portrait ? {maxWidth:380,margin:'0 auto 6px'} : null)}}>
         <video ref={videoRef} src={url} controls
           controlsList={isFullscreen ? '' : 'nofullscreen'}
           playsInline crossOrigin="anonymous"
           onError={handleVideoError}
-          style={{display:'block',width:'100%',borderRadius:0,maxHeight:400,background:C.sf2}} />
+          style={vidAspect?.portrait
+            ? {display:'block',width:'100%',aspectRatio:String(vidAspect.ratio),maxHeight:'70vh',borderRadius:0,background:C.sf2}
+            : {display:'block',width:'100%',borderRadius:0,maxHeight:400,background:C.sf2}} />
         {videoLoadError && (
           <a href={url} target="_blank" rel="noopener noreferrer"
             style={{position:'absolute',bottom:8,right:8,zIndex:6,

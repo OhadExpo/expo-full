@@ -171,6 +171,44 @@ export function barSpeedSeries(frames, barLandmark = 'wrist') {
   return { series, peak: round2(series.reduce((m, p) => Math.max(m, p.speed), 0)) };
 }
 
+// Vertical acceleration (m/s²) of the same tracked point, over time — the
+// derivative of velocity, NOT of the |speed| trace above. barSpeedSeries
+// rectifies direction (abs), which is correct for "how fast" but wrong for
+// acceleration: differentiating a rectified signal creates a fake spike at
+// every rep's top/bottom turnaround, exactly where velocity crosses zero.
+// So this runs its own SIGNED pipeline: position → signed velocity (smoothed)
+// → its derivative (smoothed again, since a 2nd derivative of noisy pose data
+// needs more filtering than a 1st). Sign is kept — a coach reads a hard
+// negative dip as "decelerating into the turnaround," which barSpeedSeries
+// alone can't show.
+export function barAccelSeries(frames, barLandmark = 'wrist') {
+  if (!frames || frames.length < 5) return null;
+  const scale = frames.map(frameScaleY);
+  const pos = frames.map((f, i) => {
+    const im = f.landmarks; if (!im) return null;
+    const p = barLandmark === 'hip' ? mid2(im[LM.L_HIP], im[LM.R_HIP]) : mid2(im[LM.L_WRIST], im[LM.R_WRIST]);
+    return imgUpMetres(p, scale[i]);
+  });
+  const rawV = frames.map((f, i) => {
+    if (i === 0) return null;
+    const a = pos[i - 1], b = pos[i], ta = frames[i - 1]?.t, tb = frames[i]?.t;
+    if (!isReal(a) || !isReal(b) || ta == null || tb == null || tb <= ta) return null;
+    return (b - a) / ((tb - ta) / 1000);            // signed, m/s
+  });
+  const v = medianFilter(rawV, 5);                    // heavier smoothing before the 2nd derivative
+  const rawA = frames.map((f, i) => {
+    if (i === 0) return null;
+    const a = v[i - 1], b = v[i], ta = frames[i - 1]?.t, tb = frames[i]?.t;
+    if (!isReal(a) || !isReal(b) || ta == null || tb == null || tb <= ta) return null;
+    return (b - a) / ((tb - ta) / 1000);              // signed, m/s²
+  });
+  const sm = medianFilter(rawA, 3);
+  const t0 = frames[0].t;
+  const series = frames.map((f, i) => (isReal(sm[i]) ? { t: Math.round(f.t - t0), accel: round2(sm[i]) } : null)).filter(Boolean);
+  if (series.length < 3) return null;
+  return { series, peak: round2(series.reduce((m, p) => Math.max(m, Math.abs(p.accel)), 0)) };
+}
+
 // ---------------------------------------------------------------------------
 // ROM + tempo per rep, from the joint-angle channel.
 // ---------------------------------------------------------------------------

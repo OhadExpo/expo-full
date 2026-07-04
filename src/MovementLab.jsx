@@ -17,7 +17,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspens
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries } from './poseLab';
+import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries } from './poseLab';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
@@ -392,7 +392,11 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
   // shows only velocity + ROM, 'all' keeps everything (Ohad 2026-06-15 —
   // velocity/ROM no longer live under Movement Lab).
   const allTabs = [
-    { k: 'velocity', label: 'VELOCITY', on: result.repCount > 0 },
+    // Label is "SPEED & ACCEL", not "VELOCITY" — the tab holds three distinct
+    // sub-graphs (instantaneous speed, acceleration, and per-rep mean velocity)
+    // and calling the whole tab "velocity" read as if speed/velocity were two
+    // names for the same thing (Ohad 2026-07-04).
+    { k: 'velocity', label: 'SPEED & ACCEL', on: result.repCount > 0 },
     { k: 'rom', label: 'ROM & TEMPO', on: result.repCount > 0 },
     { k: 'threeD', label: '3D ANATOMY', on: true },
   ];
@@ -435,16 +439,25 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
 }
 
 function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }) {
-  // GRAPH toggle: SPEED = continuous bar-speed-over-time trace · VELOCITY =
-  // per-rep mean-velocity profile (the VBT fatigue bars).
+  // GRAPH toggle — three DISTINCT graphs, deliberately not overlapping names
+  // (Ohad 2026-07-04: "velocity and speed are the same thing" was a fair
+  // complaint about the old two-pill picker):
+  //   SPEED         — instantaneous |velocity| of the tracked point, over time.
+  //   ACCELERATION  — its time-derivative (signed — shows deceleration too).
+  //   MEAN VELOCITY — one number per rep (the VBT fatigue bars), a genuinely
+  //                   different metric (a per-rep summary, not a continuous trace).
   const [graph, setGraph] = useState('speed');
-  // TRACKED POINT for the speed trace: BAR = wrists (a loaded barbell/dumbbell
-  // rides the wrists) · BODY = hips (bodyweight work / no bar). All speeds are
-  // VERTICAL only. Recomputed live from the captured frames.
+  // TRACKED POINT for the speed/accel traces: BAR = wrists (a loaded
+  // barbell/dumbbell rides the wrists) · BODY = hips (bodyweight work / no
+  // bar). All speeds are VERTICAL only. Recomputed live from the captured frames.
   const [point, setPoint] = useState('wrist');
   const trace = React.useMemo(
     () => (point === 'wrist' ? (barSpeed || (frames && barSpeedSeries(frames, 'wrist'))) : (frames && barSpeedSeries(frames, 'hip'))),
     [point, barSpeed, frames]
+  );
+  const accelTrace = React.useMemo(
+    () => frames && barAccelSeries(frames, point),
+    [point, frames]
   );
   if (!v) return <Empty msg="No reps detected to measure velocity." />;
   const pill = (k, label, sel, on) => (
@@ -463,20 +476,21 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
       <Kpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
       {/* graph picker */}
       <div style={{ display: 'flex', gap: 6, margin: '4px 0 8px', flexWrap: 'wrap' }}>
-        {pill('speed', 'SPEED · OVER TIME', graph === 'speed', () => setGraph('speed'))}
-        {pill('velocity', 'VELOCITY · PER REP', graph === 'velocity', () => setGraph('velocity'))}
+        {pill('speed', 'SPEED', graph === 'speed', () => setGraph('speed'))}
+        {pill('accel', 'ACCELERATION', graph === 'accel', () => setGraph('accel'))}
+        {pill('velocity', 'MEAN VELOCITY · PER REP', graph === 'velocity', () => setGraph('velocity'))}
       </div>
-      {/* tracked-point picker — only meaningful for the speed trace */}
-      {graph === 'speed' && (
+      {/* tracked-point picker — shared by the speed and acceleration traces */}
+      {(graph === 'speed' || graph === 'accel') && (
         <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em' }}>TRACK</span>
           {pill('wrist', 'BAR · WRISTS', point === 'wrist', () => setPoint('wrist'))}
           {pill('hip', 'BODY · HIPS', point === 'hip', () => setPoint('hip'))}
         </div>
       )}
-      {graph === 'speed'
-        ? <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} />
-        : <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
+      {graph === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} />}
+      {graph === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} />}
+      {graph === 'velocity' && <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined} />)}
     </div>
@@ -529,6 +543,66 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null }) {
           </g>
         ))}
         <polyline points={pts} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+        {phX != null && (
+          <g>
+            <line x1={phX} x2={phX} y1={padT} y2={H - padB} stroke="#FFFFFF" strokeWidth="1" />
+            <circle cx={phX} cy={padT} r="2.4" fill="#FFFFFF" />
+          </g>
+        )}
+      </svg>
+    </div>
+  );
+}
+
+// Continuous VERTICAL acceleration over the whole set — the derivative of
+// velocity (signed: negative = decelerating), NOT of the |speed| trace above
+// (see barAccelSeries). Same interaction/sync model as SpeedTrace but the
+// y-axis is symmetric around zero (acceleration swings both ways every rep),
+// with an emphasized zero line, and a distinct stroke color so the two traces
+// are never confused at a glance.
+function AccelTrace({ accel, point, playheadT = null, onScrub = null }) {
+  const noun = point === 'hip' ? 'BODY (HIP)' : 'BAR (WRIST)';
+  const svgRef = useRef(null);
+  const dragRef = useRef(false);
+  if (!accel || !accel.series || accel.series.length < 3) {
+    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean {noun.toLowerCase()} acceleration trace in this clip.</div>;
+  }
+  const { series, peak } = accel;
+  const W = 300, H = 110, padL = 26, padB = 16, padT = 6;
+  const t0 = series[0].t, t1 = series[series.length - 1].t || 1;
+  const span = Math.max(1, t1 - t0);
+  const yMax = Math.max(0.5, peak);                    // symmetric range [-yMax, yMax]
+  const x = (t) => padL + ((t - t0) / span) * (W - padL - 4);
+  const y = (a) => padT + (1 - (a + yMax) / (2 * yMax)) * (H - padT - padB);
+  const pts = series.map(p => `${x(p.t).toFixed(1)},${y(p.accel).toFixed(1)}`).join(' ');
+  const gridVals = [-yMax, 0, yMax];
+  const zeroY = y(0);
+  const phT = playheadT == null ? null : Math.min(t1, Math.max(t0, playheadT));
+  const phX = phT == null ? null : x(phT);
+  const seekFromEvent = (e) => {
+    if (!onScrub || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const vbX = ((e.clientX - rect.left) / Math.max(1, rect.width)) * W;
+    const frac = Math.min(1, Math.max(0, (vbX - padL) / (W - padL - 4)));
+    onScrub(t0 + frac * span);
+  };
+  return (
+    <div style={{ margin: '6px 0 16px' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VERTICAL {noun} ACCELERATION · m/s² OVER TIME · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek' : ''}</div>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }}
+        onPointerDown={onScrub ? (e) => { dragRef.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ } seekFromEvent(e); } : undefined}
+        onPointerMove={onScrub ? (e) => { if (dragRef.current) seekFromEvent(e); } : undefined}
+        onPointerUp={onScrub ? () => { dragRef.current = false; } : undefined}
+        onPointerCancel={onScrub ? () => { dragRef.current = false; } : undefined}>
+        {gridVals.map((g, i) => (
+          <g key={i}>
+            <line x1={padL} x2={W - 4} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
+            <text x={0} y={y(g) + 3} fill="rgba(255,255,255,0.45)" fontSize="8" fontFamily="monospace">{g.toFixed(1)}</text>
+          </g>
+        ))}
+        {/* zero line emphasized — every rep's turnaround crosses it */}
+        <line x1={padL} x2={W - 4} y1={zeroY} y2={zeroY} stroke="rgba(255,255,255,0.28)" strokeWidth="0.75" />
+        <polyline points={pts} fill="none" stroke={C.pu} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         {phX != null && (
           <g>
             <line x1={phX} x2={phX} y1={padT} y2={H - padB} stroke="#FFFFFF" strokeWidth="1" />
