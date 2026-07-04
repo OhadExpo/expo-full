@@ -386,7 +386,7 @@ export default function MovementLab({
 }
 
 // ----------------------------- results: analyze -----------------------------
-export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all' }) {
+export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all', playheadT = null, onScrub = null }) {
   if (!result?.ok) return <Empty msg="Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame." />;
   // The Movement-Lab/Lift-Metrics split: '3d' shows only the skeleton, 'metrics'
   // shows only velocity + ROM, 'all' keeps everything (Ohad 2026-06-15 —
@@ -423,7 +423,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
       </div>
-      {tab === 'velocity' && <VelocityTable v={result.velocity} barSpeed={result.barSpeed} frames={frames} />}
+      {tab === 'velocity' && <VelocityTable v={result.velocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
@@ -434,7 +434,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
   );
 }
 
-function VelocityTable({ v, barSpeed, frames }) {
+function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }) {
   // GRAPH toggle: SPEED = continuous bar-speed-over-time trace · VELOCITY =
   // per-rep mean-velocity profile (the VBT fatigue bars).
   const [graph, setGraph] = useState('speed');
@@ -475,7 +475,7 @@ function VelocityTable({ v, barSpeed, frames }) {
         </div>
       )}
       {graph === 'speed'
-        ? <SpeedTrace barSpeed={trace} point={point} />
+        ? <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} />
         : <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined} />)}
@@ -485,8 +485,12 @@ function VelocityTable({ v, barSpeed, frames }) {
 
 // Continuous VERTICAL bar/body speed over the whole set. Each rep is a peak pair
 // (lower + lift). SVG polyline; y-axis m/s (peak-scaled), x-axis real time.
-function SpeedTrace({ barSpeed, point }) {
+// playheadT (ms) draws a video-synced marker; onScrub(tMs) seeks the video when
+// the coach clicks/drags on the trace — two-way sync with the clip.
+function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null }) {
   const noun = point === 'hip' ? 'BODY (HIP)' : 'BAR (WRIST)';
+  const svgRef = useRef(null);
+  const dragRef = useRef(false);
   if (!barSpeed || !barSpeed.series || barSpeed.series.length < 3) {
     return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean {noun.toLowerCase()} speed trace in this clip.</div>;
   }
@@ -499,10 +503,25 @@ function SpeedTrace({ barSpeed, point }) {
   const y = (s) => padT + (1 - s / yMax) * (H - padT - padB);
   const pts = series.map(p => `${x(p.t).toFixed(1)},${y(p.speed).toFixed(1)}`).join(' ');
   const gridY = [0, yMax / 2, yMax];
+  // clamp the playhead into the trace's time window and place it on the x-axis
+  const phT = playheadT == null ? null : Math.min(t1, Math.max(t0, playheadT));
+  const phX = phT == null ? null : x(phT);
+  // pointer x (client px) → time (ms), seek the video via onScrub
+  const seekFromEvent = (e) => {
+    if (!onScrub || !svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const vbX = ((e.clientX - rect.left) / Math.max(1, rect.width)) * W;
+    const frac = Math.min(1, Math.max(0, (vbX - padL) / (W - padL - 4)));
+    onScrub(t0 + frac * span);
+  };
   return (
     <div style={{ margin: '6px 0 16px' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VERTICAL {noun} SPEED · m/s OVER TIME · peak {peak.toFixed(2)}</div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8 }}>VERTICAL {noun} SPEED · m/s OVER TIME · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek' : ''}</div>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }}
+        onPointerDown={onScrub ? (e) => { dragRef.current = true; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* noop */ } seekFromEvent(e); } : undefined}
+        onPointerMove={onScrub ? (e) => { if (dragRef.current) seekFromEvent(e); } : undefined}
+        onPointerUp={onScrub ? () => { dragRef.current = false; } : undefined}
+        onPointerCancel={onScrub ? () => { dragRef.current = false; } : undefined}>
         {gridY.map((g, i) => (
           <g key={i}>
             <line x1={padL} x2={W - 4} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
@@ -510,6 +529,12 @@ function SpeedTrace({ barSpeed, point }) {
           </g>
         ))}
         <polyline points={pts} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+        {phX != null && (
+          <g>
+            <line x1={phX} x2={phX} y1={padT} y2={H - padB} stroke="#FFFFFF" strokeWidth="1" />
+            <circle cx={phX} cy={padT} r="2.4" fill="#FFFFFF" />
+          </g>
+        )}
       </svg>
     </div>
   );

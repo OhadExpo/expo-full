@@ -127,6 +127,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   const [metrics, setMetrics] = useState(null);        // { result, frames }
   const [metricsTab, setMetricsTab] = useState('velocity');
   const [metricsErr, setMetricsErr] = useState('');
+  const [videoTime, setVideoTime] = useState(0);       // drives the metrics-graph playhead
   // All state declarations up front — derived values and callbacks below
   // reference them, and placing state after the derivations would trip
   // the temporal-dead-zone at render time.
@@ -945,6 +946,17 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     }
   };
 
+  // While the metrics panel is open, mirror the video's playback time into
+  // `videoTime` (rAF = smooth) so the graph playhead tracks the clip. The graph's
+  // onScrub does the reverse (seeks the video). Two-way sync.
+  useEffect(() => {
+    if (metricsState !== 'done') return;
+    let raf;
+    const tick = () => { const v = videoRef.current; if (v) setVideoTime(v.currentTime || 0); raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [metricsState]);
+
   useEffect(() => {
     // Detection runs whenever EITHER overlay (POSE) or rep counter (REPS) is on.
     if (!poseOn && !repsOn) {
@@ -1349,7 +1361,9 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           <button onClick={() => { setMetricsState('idle'); setMetrics(null); }} title="Hide metrics"
             style={{position:'absolute',top:6,right:6,zIndex:2,background:'transparent',border:`1px solid ${C.bd}`,color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer',padding:'2px 7px'}}>× CLOSE</button>
           <Suspense fallback={<div style={{color:C.tm,fontFamily:FN,fontSize:11,padding:12}}>Loading…</div>}>
-            <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics" />
+            <AnalyzeResult result={metrics.result} frames={metrics.frames} exerciseTitle={exerciseTitle || 'Squat'} tab={metricsTab} setTab={setMetricsTab} view="metrics"
+              playheadT={videoTime * 1000}
+              onScrub={(tMs) => { const v = videoRef.current; if (v) { const t = Math.max(0, tMs / 1000); v.currentTime = t; setVideoTime(t); } }} />
           </Suspense>
         </div>
       )}
