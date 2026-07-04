@@ -17,7 +17,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspens
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries } from './poseLab';
+import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, jointAngleSeries } from './poseLab';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
@@ -428,7 +428,7 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
       </div>
       {tab === 'velocity' && <VelocityTable v={result.velocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
-      {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} />}
+      {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} exerciseTitle={exerciseTitle} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
           <AnatomyViewer frames={frames} />
@@ -639,7 +639,7 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = 
   return (
     <div style={{ margin: '6px 0 16px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span>VERTICAL {noun} SPEED · m/s{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(2)}{atPlayhead ? ` · at playhead ${atPlayhead.speed.toFixed(2)}` : ''}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
+        <span>VERTICAL {noun} SPEED · m/s{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
         {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ RESET ZOOM</button>}
       </div>
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
@@ -654,12 +654,28 @@ function SpeedTrace({ barSpeed, point, playheadT = null, onScrub = null, zoom = 
         <polyline points={pts} fill="none" stroke={C.ac} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         {phX != null && (
           <g>
-            <line x1={phX} x2={phX} y1={padT} y2={H - padB} stroke="#FFFFFF" strokeWidth="1" />
-            <circle cx={phX} cy={padT} r="2.4" fill="#FFFFFF" />
+            <line x1={phX} x2={phX} y1={padT} y2={H - padB} stroke="#FFFFFF" strokeOpacity="0.45" strokeWidth="1" />
+            {atPlayhead && <PlayheadMarker x={phX} y={y(atPlayhead.speed)} value={atPlayhead.speed.toFixed(2)} chartW={W} padL={padL} padR={padR} />}
           </g>
         )}
       </svg>
     </div>
+  );
+}
+
+// The playhead's value now travels WITH the dot instead of sitting as static
+// caption text (Ohad: "the number should be traveling with the playhead") —
+// a dot on the curve at the actual value height, with a small floating label
+// above it (dark halo via paintOrder so it reads over a busy curve), clamped
+// so it never runs off either edge of the chart. Shared by every trace.
+function PlayheadMarker({ x, y, value, chartW, padL, padR }) {
+  const labelX = Math.min(chartW - padR - 2, Math.max(padL + 16, x));
+  return (
+    <>
+      <circle cx={x} cy={y} r="3" fill="#FFFFFF" />
+      <text x={labelX} y={Math.max(11, y - 7)} textAnchor="middle" fontSize="9" fontWeight="700" fontFamily="monospace"
+        fill="#FFFFFF" stroke="rgba(0,0,0,0.65)" strokeWidth="3" paintOrder="stroke" style={{ pointerEvents: 'none' }}>{value}</text>
+    </>
   );
 }
 
@@ -696,7 +712,7 @@ function AccelTrace({ accel, point, playheadT = null, onScrub = null, zoom = nul
   return (
     <div style={{ margin: '6px 0 16px' }}>
       <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-        <span>VERTICAL {noun} ACCELERATION · m/s²{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(2)}{atPlayhead ? ` · at playhead ${atPlayhead.accel.toFixed(2)}` : ''}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
+        <span>VERTICAL {noun} ACCELERATION · m/s²{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(2)}{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
         {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ RESET ZOOM</button>}
       </div>
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
@@ -712,8 +728,8 @@ function AccelTrace({ accel, point, playheadT = null, onScrub = null, zoom = nul
         <polyline points={pts} fill="none" stroke={C.pu} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         {phX != null && (
           <g>
-            <line x1={phX} x2={phX} y1={padT} y2={H - padB} stroke="#FFFFFF" strokeWidth="1" />
-            <circle cx={phX} cy={padT} r="2.4" fill="#FFFFFF" />
+            <line x1={phX} x2={phX} y1={padT} y2={H - padB} stroke="#FFFFFF" strokeOpacity="0.45" strokeWidth="1" />
+            {atPlayhead && <PlayheadMarker x={phX} y={y(atPlayhead.accel)} value={atPlayhead.accel.toFixed(2)} chartW={W} padL={padL} padR={padR} />}
           </g>
         )}
       </svg>
@@ -751,11 +767,78 @@ function VelocityBars({ perRep, bestMean }) {
 // detectChannels kind → the joint the per-rep ROM/tempo is tracked on, so the
 // KPI names the actual joint ("LARGEST ROM · KNEE") instead of a vague label.
 const KIND_JOINT = { knee: 'Knee', hip: 'Hip', elbow: 'Elbow', sho: 'Shoulder' };
-function RomTable({ r, jointRom, kind }) {
+
+// Continuous joint-angle-over-time trace for ROM & TEMPO — same synced/
+// scrubbable/pinch-zoomable treatment as SpeedTrace/AccelTrace (shares
+// useTraceZoomPan + PlayheadMarker), plotting degrees instead of m/s or m/s².
+// Green stroke keeps it visually distinct from speed (cyan) and accel (purple).
+function AngleTrace({ angle, kind, playheadT = null, onScrub = null, zoom = null, setZoom = null }) {
+  const noun = (KIND_JOINT[kind] || 'JOINT').toUpperCase();
+  const svgRef = useRef(null);
+  const hasSeries = !!(angle && angle.series && angle.series.length >= 3);
+  const series = hasSeries ? angle.series : null;
+  const fullPeak = hasSeries ? angle.peak : 0;
+  const W = 300, H = 110, padL = 26, padB = 16, padT = 6, padR = 4;
+  const fullT0 = hasSeries ? series[0].t : 0;
+  const fullT1 = hasSeries ? (series[series.length - 1].t || 1) : 1;
+  const { t0, t1, span, zoomed, resetZoom, handlers } = useTraceZoomPan({ svgRef, fullT0, fullT1, zoom, setZoom, onScrub, W, padL, padR });
+  if (!hasSeries) {
+    return <div style={{ fontFamily: FN, fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.08em', margin: '6px 0 16px' }}>No clean joint-angle trace in this clip.</div>;
+  }
+  const visible = zoomed ? series.filter(p => p.t >= t0 && p.t <= t1) : series;
+  const peak = visible.length ? Math.max(...visible.map(p => p.angle)) : fullPeak;
+  const yMax = Math.max(10, peak);
+  const x = (t) => padL + ((t - t0) / span) * (W - padL - padR);
+  const y = (a) => padT + (1 - a / yMax) * (H - padT - padB);
+  const pts = visible.map(p => `${x(p.t).toFixed(1)},${y(p.angle).toFixed(1)}`).join(' ');
+  const gridY = [0, yMax / 2, yMax];
+  const phT = playheadT == null ? null : Math.min(t1, Math.max(t0, playheadT));
+  const phX = phT == null ? null : x(phT);
+  const atPlayhead = phT == null ? null : series.reduce((best, p) => (best == null || Math.abs(p.t - phT) < Math.abs(best.t - phT) ? p : best), null);
+  return (
+    <div style={{ margin: '6px 0 16px' }}>
+      <div style={{ fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', marginBottom: 8, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+        <span>{noun} ANGLE · degrees{zoomed ? '' : ' OVER TIME'} · peak {peak.toFixed(0)}°{onScrub ? ' · scrub to seek, pinch to zoom' : ''}</span>
+        {zoomed && <button type="button" onClick={resetZoom} style={zoomResetPillStyle}>↺ RESET ZOOM</button>}
+      </div>
+      <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', cursor: onScrub ? 'col-resize' : 'default', touchAction: 'none' }} {...handlers}>
+        {gridY.map((g, i) => (
+          <g key={i}>
+            <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} stroke="rgba(255,255,255,0.12)" strokeWidth="0.5" />
+            <text x={0} y={y(g) + 3} fill="rgba(255,255,255,0.45)" fontSize="8" fontFamily="monospace">{g.toFixed(0)}°</text>
+          </g>
+        ))}
+        {pts && <polygon points={`${x(visible[0]?.t ?? t0).toFixed(1)},${y(0).toFixed(1)} ${pts} ${x(visible[visible.length - 1]?.t ?? t1).toFixed(1)},${y(0).toFixed(1)}`} fill={C.gn} fillOpacity="0.10" stroke="none" />}
+        <polyline points={pts} fill="none" stroke={C.gn} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+        {phX != null && (
+          <g>
+            <line x1={phX} x2={phX} y1={padT} y2={H - padB} stroke="#FFFFFF" strokeOpacity="0.45" strokeWidth="1" />
+            {atPlayhead && <PlayheadMarker x={phX} y={y(atPlayhead.angle)} value={`${atPlayhead.angle.toFixed(0)}°`} chartW={W} padL={padL} padR={padR} />}
+          </g>
+        )}
+      </svg>
+    </div>
+  );
+}
+
+function RomTable({ r, jointRom, kind, frames = null, exerciseTitle, playheadT = null, onScrub = null }) {
+  // Own zoom state (not shared with SPEED & ACCEL's — a different tab, a
+  // different graph, no reason to couple their zoom windows). Hooks run
+  // unconditionally (rules-of-hooks) even on the "nothing detected" empty
+  // state below, which is why this sits above that early return.
+  const [zoom, setZoom] = useState(null);
+  useEffect(() => { setZoom(null); }, [frames]);
+  const angleTrace = useMemo(() => frames && jointAngleSeries(frames, exerciseTitle), [frames, exerciseTitle]);
   if (!r && !jointRom) return <Empty msg="No movement detected to measure range of motion." />;
   const primaryJoint = (KIND_JOINT[kind] || 'Primary Joint').toUpperCase();
   return (
     <div>
+      {/* Synced/scrubbable/pinch-zoomable graph — same treatment as SPEED &
+          ACCEL (Ohad 2026-07-04: "I need a graph display matched with the
+          video timeline on this... like we have on speed/acceleration").
+          Plots the same per-frame joint-angle channel the rep segmentation
+          and ROM/tempo numbers below are derived from. */}
+      <AngleTrace angle={angleTrace} kind={kind} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />
       {jointRom && <JointRomPanel joints={jointRom} />}
       {r ? (
         <>

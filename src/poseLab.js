@@ -212,6 +212,21 @@ export function barAccelSeries(frames, barLandmark = 'wrist') {
   return { series, peak: round2(series.reduce((m, p) => Math.max(m, Math.abs(p.accel)), 0)) };
 }
 
+// Joint-angle-over-time trace for the ROM & TEMPO graph (Ohad: wants the same
+// synced/scrubbable/pinch-zoomable graph on ROM & TEMPO that SPEED/ACCEL has).
+// Reuses the same per-frame channel average channelSignal already computes for
+// rep segmentation — just reshaped to the {series,peak} shape the trace
+// components expect, with clip-relative ms so it lines up with playheadT.
+export function jointAngleSeries(frames, exerciseTitle) {
+  if (!frames || frames.length < 3) return null;
+  const { angle, channels } = channelSignal(frames, exerciseTitle);
+  if (!channels.length) return null;
+  const t0 = frames[0].t;
+  const series = frames.map((f, i) => (isReal(angle[i]) ? { t: Math.round(f.t - t0), angle: round1(angle[i]) } : null)).filter(Boolean);
+  if (series.length < 3) return null;
+  return { series, peak: round1(series.reduce((m, p) => Math.max(m, p.angle), 0)) };
+}
+
 // ---------------------------------------------------------------------------
 // ROM + tempo per rep, from the joint-angle channel.
 // ---------------------------------------------------------------------------
