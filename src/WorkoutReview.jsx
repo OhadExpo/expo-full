@@ -1408,10 +1408,13 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {/* Was "POSE" — renamed SKELETON (Ohad), same standalone toggle
               button as before. ROM & TEMPO auto-enables it (see the effect
               above keyed on metricsTab==='rom'); this button still works
-              independently to turn it on/off anytime. */}
+              independently to turn it on/off anytime. No active-state
+              highlight (border/fill) anymore — Ohad: "no highlight since
+              it's not related" — always plain, only the label text still
+              says ON/OFF. */}
           <button onClick={togglePose} disabled={poseLoading}
-            style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${poseOn?C.ac:'transparent'}`,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
-              background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
+            style={{padding:'3px 8px',borderRadius:0,border:'2px solid transparent',display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
+              background:'transparent',color:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
             {poseLoading ? 'LOADING…' : poseOn ? 'SKELETON ON' : 'SKELETON'}
           </button>
