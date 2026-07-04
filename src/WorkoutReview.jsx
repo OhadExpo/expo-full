@@ -1090,11 +1090,20 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               // Skeleton + dots only when the overlay is enabled. Rep counting
               // still runs silently when only REPS is on.
               if (poseOn) {
-                // Match the live tool's overlay (drawLive): brand cyan #39BDFF,
-                // 3px bones, cyan joint dots — so the recorded-clip skeleton reads
-                // identically to the live camera skeleton.
-                ctx.strokeStyle = '#39BDFF';
-                ctx.lineWidth = 3;
+                // Match ARFormOverlay's LIVE AR-coaching skeleton exactly (Ohad
+                // pointed to this earlier: "I want the skeleton embedded... like
+                // how it shows on live" — this file had drifted from it since:
+                // no dark halo, a flat unscaled 3px line, and a dot at ALL 33
+                // landmarks including face/fingers, which reads as sparse/noisy
+                // "lines" rather than a clean skeleton, especially against a
+                // bright/busy gym background (Ohad: "just show a skeleton, not
+                // these lines"). Dark underlay first for contrast, then the
+                // bright cyan stroke on top; width scales with canvas size (a
+                // fixed px count vanishes when the video renders small); joint
+                // dots only at the 12 tracked joints, not every landmark.
+                const skW = Math.max(4, Math.round(w * 0.006));
+                ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+                ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = skW + 3;
                 for (const [i, j] of POSE_CONNECTIONS) {
                   const a = lms[i], b = lms[j];
                   if (!a || !b) continue;
@@ -1103,11 +1112,24 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                   ctx.lineTo(px(b), py(b));
                   ctx.stroke();
                 }
-                ctx.fillStyle = '#39BDFF';
-                for (const p of lms) {
+                ctx.strokeStyle = '#39BDFF';
+                ctx.lineWidth = skW;
+                for (const [i, j] of POSE_CONNECTIONS) {
+                  const a = lms[i], b = lms[j];
+                  if (!a || !b) continue;
                   ctx.beginPath();
-                  ctx.arc(px(p), py(p), 4, 0, 2*Math.PI);
-                  ctx.fill();
+                  ctx.moveTo(px(a), py(a));
+                  ctx.lineTo(px(b), py(b));
+                  ctx.stroke();
+                }
+                ctx.fillStyle = '#FFFFFF';
+                for (const [i, j] of POSE_CONNECTIONS) {
+                  for (const idx of [i, j]) {
+                    const p = lms[idx]; if (!p) continue;
+                    ctx.beginPath();
+                    ctx.arc(px(p), py(p), skW * 0.85, 0, 2*Math.PI);
+                    ctx.fill();
+                  }
                 }
               }
               const next = {};
