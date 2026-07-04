@@ -22,29 +22,57 @@ import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
 // the central, tallest figure in frame (closest to the camera, framed in the
-// middle) — so a crowd of spectators around the athlete can't hijack the read.
-// Returns the index into the poses array, or -1 if none. Single-pose → 0.
-function pickSubjectIdx(poses) {
-  if (!poses || !poses.length) return -1;
-  if (poses.length === 1) return 0;
-  let best = -1, bestScore = -Infinity;
+// middle) — so a crowd of spectators/other gym-goers can't hijack the read.
+// Returns { idx, centroid } (idx -1 if none). Single-pose → { idx: 0, centroid }.
+//
+// prevCentroid (optional): the LAST selected subject's centroid. Without this,
+// every frame re-scores from scratch with ZERO memory of who was picked a
+// moment ago — in a busy gym (other people visible in frame, as most Review
+// clips are), a background person can transiently out-score the real subject
+// on span/centrality for a frame or two (e.g. during a jump, the actual
+// subject's own span swings a lot — crouched vs airborne — while someone else
+// briefly steps closer to centre). A frame-to-frame subject SWITCH means the
+// tracked wrist/hip position jumps to a completely different body between two
+// consecutive frames — a huge, physically-impossible "displacement" in an
+// arbitrary direction. That reads exactly like the reported symptom: sharp,
+// implausibly large velocity spikes (12+ m/s — no human bar/hip speed gets
+// anywhere near that) with an effectively random sign, not a genuine signed-
+// convention bug. When prevCentroid is given, continuity (closeness to where
+// the subject was a moment ago) dominates the score; span/centrality only
+// break ties or bootstrap the very first frame.
+function pickSubjectIdx(poses, prevCentroid = null) {
+  if (!poses || !poses.length) return { idx: -1, centroid: null };
+  const scored = [];
   for (let i = 0; i < poses.length; i++) {
     const p = poses[i];
     if (!p || !p.length) continue;
-    let minY = 1, maxY = 0, sumX = 0, n = 0;
+    let minY = 1, maxY = 0, sumX = 0, sumY = 0, n = 0;
     for (const pt of p) {
       if (!pt || typeof pt.y !== 'number') continue;
       if (pt.y < minY) minY = pt.y;
       if (pt.y > maxY) maxY = pt.y;
-      sumX += pt.x; n++;
+      sumX += pt.x; sumY += pt.y; n++;
     }
     if (!n) continue;
     const span = maxY - minY;                                  // taller in frame = closer / main subject
-    const centrality = 1 - Math.min(1, Math.abs(0.5 - sumX / n) * 2); // 1 at centre → 0 at the edges
-    const score = span + centrality * 0.5;
-    if (score > bestScore) { bestScore = score; best = i; }
+    const cx = sumX / n, cy = sumY / n;
+    const centrality = 1 - Math.min(1, Math.abs(0.5 - cx) * 2); // 1 at centre → 0 at the edges
+    scored.push({ i, span, centrality, cx, cy });
   }
-  return best;
+  if (!scored.length) return { idx: -1, centroid: null };
+  if (poses.length === 1) { const s = scored[0]; return { idx: s.i, centroid: { x: s.cx, y: s.cy } }; }
+  let best = null, bestScore = -Infinity;
+  for (const s of scored) {
+    let score = s.span + s.centrality * 0.5;
+    if (prevCentroid) {
+      const dist = Math.hypot(s.cx - prevCentroid.x, s.cy - prevCentroid.y);
+      // Continuity dominates: a candidate close to where the subject just was
+      // scores far above span/centrality alone can push a different person to.
+      score += Math.max(0, 1 - dist * 4) * 5;
+    }
+    if (score > bestScore) { bestScore = score; best = s; }
+  }
+  return { idx: best.i, centroid: { x: best.cx, y: best.cy } };
 }
 
 // Seek-pass frame capture from any playable video src (an uploaded object URL,
@@ -66,15 +94,21 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress }
     const MAX = 600;                   // ≈30s cap
     const total = Math.min(MAX, Math.max(2, Math.ceil(dur / STEP)));
     const frames = [];
+    // Tracks WHICH detected pose is the subject across the whole seek pass —
+    // see pickSubjectIdx's comment. Without this, a background gym-goer can
+    // steal a frame or two and the tracked wrist/hip "teleports" between two
+    // different people, producing a huge fake velocity spike.
+    let prevCentroid = null;
     for (let i = 0; i < total; i++) {
       const time = Math.min(dur - 0.001, i * STEP);
       v.currentTime = time;
       await new Promise((res) => { v.onseeked = () => res(); });
       let r = null;
       try { r = lm.detectForVideo(v, Math.round(time * 1000) + i); } catch {}
-      const si = pickSubjectIdx(r?.landmarks);
+      const { idx: si, centroid } = pickSubjectIdx(r?.landmarks, prevCentroid);
       if (si >= 0 && r.worldLandmarks?.[si]) {
         frames.push({ t: time * 1000, landmarks: r.landmarks?.[si] || null, worldLandmarks: r.worldLandmarks[si] });
+        prevCentroid = centroid;
       }
       if (onProgress) onProgress(Math.round(((i + 1) / total) * 100));
     }
