@@ -103,14 +103,25 @@ export function segmentReps(angle, fps = 30) {
 // concentric velocity (total upward displacement / duration) and peak
 // instantaneous velocity, per rep, then velocity-loss % vs the best rep.
 export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
-  // Bar position in metres, IMAGE-space (absolute vertical) × per-frame scale.
-  // Using worldLandmarks here would read ~0 (the bar is static relative to the
-  // hip). A median scale per rep tames per-frame ruler jitter.
-  const scale = frames.map(frameScaleY);
-  const pos = frames.map((f, i) => {
+  // Bar position in metres, IMAGE-space (absolute vertical) × ONE stable
+  // metres-per-image-unit for the whole clip. Using worldLandmarks here would
+  // read ~0 (the bar is static relative to the hip).
+  //
+  // This MUST be a single locked scale, not recomputed per frame (audit
+  // 2026-07-04, confirmed bug — Ohad: negative speed while visibly jumping
+  // up). d(pos)/dt with a per-frame scale[i] expands to
+  // scale·(dy/dt) + y·(dscale/dt) — a spurious second term riding on the
+  // shoulder→ankle ruler's OWN frame-to-frame jitter. That ruler is unstable
+  // exactly when it matters most (fast reps, occlusion, legs tucking), and
+  // the spurious term can dominate and even flip the sign of the true
+  // velocity. jumpMetrics already locks its scale to a stable window for
+  // this reason (see its comment); this just wasn't propagated here.
+  const scale = median(frames.map(frameScaleY).filter(isReal));
+  if (!isReal(scale) || scale <= 0) return null;
+  const pos = frames.map((f) => {
     const im = f.landmarks; if (!im) return null;
     const p = barLandmark === 'hip' ? mid2(im[LM.L_HIP], im[LM.R_HIP]) : mid2(im[LM.L_WRIST], im[LM.R_WRIST]);
-    return imgUpMetres(p, scale[i]);
+    return imgUpMetres(p, scale);
   });
   const perRep = reps.map(({ startIdx, bottomIdx, endIdx }) => {
     const t0 = frames[bottomIdx]?.t, t1 = frames[endIdx]?.t;
@@ -158,11 +169,16 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
 // t is ms-from-clip-start so the x-axis is real time.
 export function barSpeedSeries(frames, barLandmark = 'wrist') {
   if (!frames || frames.length < 3) return null;
-  const scale = frames.map(frameScaleY);
-  const pos = frames.map((f, i) => {
+  // ONE stable metres-per-image-unit for the whole clip, not recomputed per
+  // frame — see the long comment in velocityMetrics for why a per-frame ruler
+  // injects a spurious velocity term that can flip the sign (audit 2026-07-04,
+  // confirmed bug).
+  const scale = median(frames.map(frameScaleY).filter(isReal));
+  if (!isReal(scale) || scale <= 0) return null;
+  const pos = frames.map((f) => {
     const im = f.landmarks; if (!im) return null;
     const p = barLandmark === 'hip' ? mid2(im[LM.L_HIP], im[LM.R_HIP]) : mid2(im[LM.L_WRIST], im[LM.R_WRIST]);
-    return imgUpMetres(p, scale[i]);
+    return imgUpMetres(p, scale);
   });
   const raw = frames.map((f, i) => {
     if (i === 0) return null;
@@ -193,22 +209,23 @@ export function barSpeedSeries(frames, barLandmark = 'wrist') {
 }
 
 // Vertical acceleration (m/s²) of the same tracked point, over time — the
-// derivative of velocity, NOT of the |speed| trace above. barSpeedSeries
-// rectifies direction (abs), which is correct for "how fast" but wrong for
-// acceleration: differentiating a rectified signal creates a fake spike at
-// every rep's top/bottom turnaround, exactly where velocity crosses zero.
-// So this runs its own SIGNED pipeline: position → signed velocity (smoothed)
-// → its derivative (smoothed again, since a 2nd derivative of noisy pose data
-// needs more filtering than a 1st). Sign is kept — a coach reads a hard
-// negative dip as "decelerating into the turnaround," which barSpeedSeries
-// alone can't show.
+// derivative of velocity. barSpeedSeries is itself already signed (matches
+// this), but acceleration still needs its OWN velocity pass here (rather than
+// differentiating barSpeedSeries's output directly) because this one applies
+// heavier smoothing before the 2nd derivative — a 2nd derivative of noisy
+// pose data needs more filtering than a 1st. Sign is kept — a coach reads a
+// hard negative dip as "decelerating into the turnaround."
 export function barAccelSeries(frames, barLandmark = 'wrist') {
   if (!frames || frames.length < 5) return null;
-  const scale = frames.map(frameScaleY);
-  const pos = frames.map((f, i) => {
+  // ONE stable metres-per-image-unit for the whole clip — see velocityMetrics
+  // for why a per-frame ruler injects a spurious velocity term (audit
+  // 2026-07-04, confirmed bug).
+  const scale = median(frames.map(frameScaleY).filter(isReal));
+  if (!isReal(scale) || scale <= 0) return null;
+  const pos = frames.map((f) => {
     const im = f.landmarks; if (!im) return null;
     const p = barLandmark === 'hip' ? mid2(im[LM.L_HIP], im[LM.R_HIP]) : mid2(im[LM.L_WRIST], im[LM.R_WRIST]);
-    return imgUpMetres(p, scale[i]);
+    return imgUpMetres(p, scale);
   });
   const rawV = frames.map((f, i) => {
     if (i === 0) return null;
