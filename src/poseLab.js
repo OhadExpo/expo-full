@@ -44,32 +44,21 @@ function frameScaleY(f) {
   const imgLen = Math.hypot(is.x - ia.x, is.y - ia.y);
   return imgLen > 0 ? worldLen / imgLen : null;
 }
-// Image "up" position in metres. On paper, image y is DOWN so up = -y·scale
-// — that's the standard MediaPipe convention, and it's what jumpMetrics'
-// independent `rise = (baseY - y) * scale` also assumes (see below) and gets
-// right. But Ohad confirmed live, repeatedly, that THIS function's sign was
-// backwards (negative speed while visibly rising) even after the scale-lock
-// fix, which was the only bug the math audit found on paper.
-//
-// Reconciling the two: jumpMetrics only ever runs on frames from a LIVE
-// getUserMedia camera stream (MovementLab's own record flow) — never-
-// rotated, no container metadata to misread. This function instead only
-// feeds velocityMetrics/barSpeedSeries/barAccelSeries, which are exclusively
-// reached via analyzeClip(captureClipFrames(url)) — an OFFSCREEN, unattached
-// <video src=uploadedFile> (WorkoutReview's Review flow analyzes a trainee's
-// SUBMITTED clip this way). An offscreen video element can plausibly handle
-// a phone clip's container rotation metadata differently than the one
-// actually rendered on screen — same premise ("y decreases as it rises"),
-// different pipeline, so no contradiction in flipping ONLY this one.
-//
-// Caveat for later: MovementLab's own upload-a-clip-for-jump-testing path
-// (analyzeUploadedFile) ALSO calls jumpMetrics on captureClipFrames-sourced
-// (i.e. uploaded, not live) frames — that specific path was never reported
-// wrong, but was also likely never live-tested with an UPLOADED jump clip
-// (jump testing is normally done via the live record flow). If a jump
-// height ever reads wrong specifically on an UPLOADED clip, this same root
-// cause is the first place to look — not a reason to touch jumpMetrics now.
-function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? lm2.y * scale : null; }
+// Image "up" position in metres: image y is DOWN, so up = -y · scale. This IS
+// the correct convention — proved definitively 2026-07-04 with a deterministic
+// test against demoMotion.js's synthetic jump data (100% known ground-truth
+// motion, no camera/rotation ambiguity possible): at the exact instant the
+// wrist is truly rising fastest, -y·scale reads +5.95 m/s (correct) while the
+// +y·scale flip I'd shipped earlier that session read -5.95 m/s (backwards).
+// That flip is REVERTED. It was a mistake — a live-testing report ("still
+// negative on the way up") that I patched by matching the symptom instead of
+// finding the actual cause, without a deterministic check to catch that the
+// "fix" broke a case that was already correct. Ohad's repeated reports were
+// real; the true cause is still open (see project_lift_metrics_backlog memory)
+// — most likely a misjudged instant on a fast, multi-oscillation signal (the
+// exact scrubbed frame not matching what looks like "clearly rising" in a
+// single freeze-frame), since the sign math itself now has a hard proof.
+function imgUpMetres(lm2, scale) { return lm2 && isReal(scale) ? -lm2.y * scale : null; }
 
 // ---------------------------------------------------------------------------
 // Channel signal — the joint-angle time series a rep cycle rides on.
