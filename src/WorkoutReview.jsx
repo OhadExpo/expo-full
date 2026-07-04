@@ -984,6 +984,22 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
     }
   };
 
+  // ROM & TEMPO auto-enables the on-video POSE skeleton so the coach can see
+  // which joint the graph is measuring (Ohad: "rom automatically needs to
+  // come with pose (and then we can take pose down)"). Fires once per switch
+  // INTO the rom tab (keyed on metricsTab, not on poseOn) so a coach who then
+  // manually turns pose back off isn't fought — it won't re-enable itself
+  // again until they leave and re-enter the rom tab.
+  useEffect(() => {
+    if (metricsState !== 'done') return;
+    if (metricsTab === 'rom' && !poseOn) togglePose();
+    // Symmetric auto-OFF on leaving ROM & TEMPO (Ohad: "when I return to
+    // speed & accel, pose needs to turn off") — skeleton is a ROM & TEMPO
+    // companion, not something that should keep running on other tabs.
+    if (metricsTab !== 'rom' && poseOn) togglePose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metricsTab, metricsState]);
+
   // While the metrics panel is open, mirror the video's playback time into
   // `videoTime` (rAF = smooth) so the graph playhead tracks the clip. The graph's
   // onScrub does the reverse (seeks the video). Two-way sync.
@@ -1320,7 +1336,12 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               cursor: (activeDrawColor && canDraw) ? 'crosshair' : 'default',
               touchAction: 'none'}} />
         )}
-        {(poseOn || repsOn) && (Object.keys(angles).length > 0 || repsOn) && (
+        {/* SKELETON (poseOn) draws ONLY the on-video overlay (the <canvas> above)
+            — Ohad: "when I click on skeleton I wanna see the skeleton, not the
+            'pose'". The numeric joint-angle HUD used to also appear under
+            SKELETON; that's removed so the two are properly decoupled. REPS
+            keeps its own count readout here, unaffected. */}
+        {repsOn && (
           <div onPointerDown={onHudPointerDown}
             title="Long-press (mobile) or click and drag (desktop) to move"
             style={{position:'absolute',top:6,right:6,
@@ -1332,20 +1353,11 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
               fontVariantNumeric:'tabular-nums',
               cursor:hudDragArmed?'grabbing':'grab',
               touchAction:'none',userSelect:'none'}}>
-            {repsOn && (
-              <div style={{paddingBottom:4,marginBottom:poseOn?4:0,textAlign:'center',
-                borderBottom:poseOn?`1px solid ${C.bd}`:'none'}}>
-                <div style={{fontSize:9,color:C.td,letterSpacing:0.5}}>REPS</div>
-                <div style={{fontSize:18,fontWeight:700,color:C.gn,lineHeight:1}}>{reps}</div>
-                {tempo != null && <div style={{fontSize:9,color:C.tm,marginTop:2}}>{tempo.toFixed(1)}s</div>}
-              </div>
-            )}
-            {poseOn && ANGLE_DEFS.map(d => (
-              <div key={d.name} style={{display:'flex',gap:6,whiteSpace:'nowrap'}}>
-                <span style={{color:C.td,minWidth:60,display:'inline-block'}}>{d.name}</span>
-                <span style={{minWidth:32,display:'inline-block',textAlign:'right'}}>{angles[d.name] != null ? angles[d.name] + '°' : '—'}</span>
-              </div>
-            ))}
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:9,color:C.td,letterSpacing:0.5}}>REPS</div>
+              <div style={{fontSize:18,fontWeight:700,color:C.gn,lineHeight:1}}>{reps}</div>
+              {tempo != null && <div style={{fontSize:9,color:C.tm,marginTop:2}}>{tempo.toFixed(1)}s</div>}
+            </div>
           </div>
         )}
       </div>
@@ -1371,35 +1383,53 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           the pose/reps group on the left or the FULL group on the right
           grow. */}
       <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:4}}>
-        <div style={{flex:1,display:'flex',gap:4,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-start'}}>
+        <div style={{flex:1,display:'flex',gap:4,alignItems:'flex-start',flexWrap:'wrap',justifyContent:'flex-start'}}>
+          {/* alignItems:flex-start (was center) — REPS' joint-picker dropdown
+              hangs BELOW the REPS button now (see below), so the row's other
+              single-height buttons must align to the TOP, not the vertical
+              centre of that taller column. */}
+          {/* Was "POSE" — renamed SKELETON (Ohad), same standalone toggle
+              button as before. ROM & TEMPO auto-enables it (see the effect
+              above keyed on metricsTab==='rom'); this button still works
+              independently to turn it on/off anytime. */}
           <button onClick={togglePose} disabled={poseLoading}
             style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${poseOn?C.ac:'transparent'}`,minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
               background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-            {poseLoading ? 'LOADING…' : poseOn ? 'POSE ON' : 'POSE'}
+            {poseLoading ? 'LOADING…' : poseOn ? 'SKELETON ON' : 'SKELETON'}
           </button>
-          <button onClick={toggleReps} disabled={poseLoading}
-            title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-            style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${repsOn?C.gn:'transparent'}`,minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
-              background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
-              fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
-            {repsOn ? `REPS ${reps}` : 'REPS'}
-          </button>
-          {repsOn && (
-            <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
-              title="Which joint pair to count peaks on"
-              style={{height:22,boxSizing:'border-box',padding:'0 6px',borderRadius:0,border:`1px solid ${C.bd}`,
-                background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-              <option value="auto">AUTO ({(autoPick.kind || 'none').toUpperCase()})</option>
-              <option value="hip">HIP</option>
-              <option value="knee">KNEE</option>
-              <option value="elbow">ELBOW</option>
-              <option value="sho">SHOULDER</option>
-              <option value="none">SKIP</option>
-            </select>
-          )}
+          {/* REPS + its joint-picker live in their own small column, not
+              inline siblings of SKELETON/LIFT METRICS — the dropdown only
+              appears when REPS is on, and having it inline pushed LIFT
+              METRICS onto a wrapped second line (Ohad: "keep lift metrics in
+              this spot... add the joint button right beneath the reps
+              button"). Stacking it under REPS instead means the dropdown's
+              extra height only grows this one column, never disturbing where
+              SKELETON/LIFT METRICS/COMMENT sit in the row. */}
+          <div style={{display:'flex',flexDirection:'column',gap:2}}>
+            <button onClick={toggleReps} disabled={poseLoading}
+              title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
+              style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${repsOn?C.gn:'transparent'}`,minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+                background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
+                fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
+              {repsOn ? `REPS ${reps}` : 'REPS'}
+            </button>
+            {repsOn && (
+              <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
+                title="Which joint pair to count peaks on"
+                style={{height:22,boxSizing:'border-box',padding:'0 6px',borderRadius:0,border:`1px solid ${C.bd}`,
+                  background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
+                <option value="auto">AUTO ({(autoPick.kind || 'none').toUpperCase()})</option>
+                <option value="hip">HIP</option>
+                <option value="knee">KNEE</option>
+                <option value="elbow">ELBOW</option>
+                <option value="sho">SHOULDER</option>
+                <option value="none">SKIP</option>
+              </select>
+            )}
+          </div>
           {/* LIFT METRICS (coach only) — analyses THIS clip in place and shows
-              VBT / ROM / tempo inline under the video. POSE (above) is the
+              VBT / ROM / tempo inline under the video. SKELETON (above) is the
               on-video skeleton. No 3D box, no fullscreen. */}
           {role === 'trainer' && (
             <button onClick={runMetrics} disabled={metricsState==='busy'}
