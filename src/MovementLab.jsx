@@ -17,7 +17,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo, lazy, Suspens
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { createPoseLandmarker, getCamera, stopStream } from './usePose';
-import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries } from './poseLab';
+import { analyzeClip, jumpMetrics, reactiveJumpMetrics, jumpPower, frameToPoints3D, estimateFps, barSpeedSeries, barAccelSeries, namedAngleSeries, channelSignal, velocityMetrics, romTempoMetrics } from './poseLab';
 import { demoSquatFrames, demoJumpFrames } from './demoMotion';
 
 // Among several detected poses (multi-pose upload analysis), pick the SUBJECT —
@@ -387,6 +387,34 @@ export default function MovementLab({
 
 // ----------------------------- results: analyze -----------------------------
 export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view = 'all', playheadT = null, onScrub = null }) {
+  // First/last-rep trim (Ohad: "I want to be able to set where is the first
+  // and last rep, to avoid random movement analyzed into the means") — 1-
+  // indexed, inclusive, defaults to the full detected set. Only the MEAN
+  // summary stats (velocity/ROM-tempo per-rep tables + KPIs) are recomputed
+  // from the trimmed rep slice; the continuous graphs (speed/accel/angle
+  // traces) intentionally keep showing the whole clip so the coach can still
+  // SEE the excluded reps, just not have them pollute the numbers.
+  const [repFrom, setRepFrom] = useState(1);
+  const [repTo, setRepTo] = useState(null); // null = "to the end", tracks repCount live
+  useEffect(() => { setRepFrom(1); setRepTo(null); }, [frames]);
+  const repCount = result?.repCount || 0;
+  const effTo = repTo == null ? repCount : Math.min(repTo, repCount);
+  const effFrom = Math.min(Math.max(1, repFrom), effTo || 1);
+  const trimmed = effFrom > 1 || (repTo != null && effTo < repCount);
+  const trimmedVelocity = useMemo(() => {
+    if (!result?.ok || !trimmed || !frames) return result?.velocity ?? null;
+    const slice = result.reps.slice(effFrom - 1, effTo);
+    if (!slice.length) return null;
+    const { angle } = channelSignal(frames, exerciseTitle);
+    return velocityMetrics(frames, angle, slice);
+  }, [result, trimmed, effFrom, effTo, frames, exerciseTitle]);
+  const trimmedRomTempo = useMemo(() => {
+    if (!result?.ok || !trimmed || !frames) return result?.romTempo ?? null;
+    const slice = result.reps.slice(effFrom - 1, effTo);
+    if (!slice.length) return null;
+    const { angle } = channelSignal(frames, exerciseTitle);
+    return romTempoMetrics(frames, angle, slice);
+  }, [result, trimmed, effFrom, effTo, frames, exerciseTitle]);
   if (!result?.ok) return <Empty msg="Couldn't read a clean pose from that clip. Re-film side-on with the full body in frame." />;
   // The Movement-Lab/Lift-Metrics split: '3d' shows only the skeleton, 'metrics'
   // shows only velocity + ROM, 'all' keeps everything (Ohad 2026-06-15 —
@@ -427,8 +455,27 @@ export function AnalyzeResult({ result, frames, exerciseTitle, tab, setTab, view
       <div style={{ fontFamily: FN, fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', marginBottom: 12 }}>
         {result.repCount} REP{result.repCount === 1 ? '' : 'S'} · {result.fps}fps · {result.frameCount} frames
       </div>
-      {tab === 'velocity' && <VelocityTable v={result.velocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
-      {tab === 'rom' && <RomTable r={result.romTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} exerciseTitle={exerciseTitle} playheadT={playheadT} onScrub={onScrub} />}
+      {(tab === 'velocity' || tab === 'rom') && repCount > 1 && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, fontFamily: FN, fontSize: 9, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', flexWrap: 'wrap' }}>
+          <span>ANALYZE REPS</span>
+          <input type="number" min={1} max={effTo} value={effFrom}
+            onChange={e => setRepFrom(Math.max(1, Math.min(effTo, Number(e.target.value) || 1)))}
+            style={{ width: 36, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 10, padding: '3px 2px' }} />
+          <span>–</span>
+          <input type="number" min={effFrom} max={repCount} value={effTo}
+            onChange={e => setRepTo(Math.max(effFrom, Math.min(repCount, Number(e.target.value) || repCount)))}
+            style={{ width: 36, textAlign: 'center', background: 'transparent', border: `1px solid ${C.bd}`, color: '#FFF', fontFamily: FN, fontSize: 10, padding: '3px 2px' }} />
+          <span>OF {repCount}</span>
+          {trimmed && (
+            <button type="button" onClick={() => { setRepFrom(1); setRepTo(null); }}
+              style={{ fontFamily: FN, fontSize: 9, color: C.ac, background: 'transparent', border: 'none', cursor: 'pointer', letterSpacing: '0.1em', textDecoration: 'underline' }}>
+              RESET
+            </button>
+          )}
+        </div>
+      )}
+      {tab === 'velocity' && <VelocityTable v={trimmedVelocity} barSpeed={result.barSpeed} frames={frames} playheadT={playheadT} onScrub={onScrub} />}
+      {tab === 'rom' && <RomTable r={trimmedRomTempo} jointRom={result.jointRom} kind={result.kind} frames={frames} exerciseTitle={exerciseTitle} playheadT={playheadT} onScrub={onScrub} />}
       {tab === 'threeD' && (
         <Suspense fallback={<div style={{ color: 'rgba(255,255,255,0.6)', textAlign: 'center', padding: 30, fontFamily: FN, fontSize: 12, letterSpacing: '0.12em' }}>LOADING 3D…</div>}>
           <AnatomyViewer frames={frames} />
