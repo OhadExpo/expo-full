@@ -1387,13 +1387,18 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {/* alignItems:flex-start (was center) — REPS' joint-picker dropdown
               hangs BELOW the REPS button now (see below), so the row's other
               single-height buttons must align to the TOP, not the vertical
-              centre of that taller column. */}
+              centre of that taller column.
+              No fixed minWidth on any of these three anymore (was 78/78/96)
+              — sized to content instead so SKELETON/REPS/METRICS reliably
+              fit on one row even in the narrow side-by-side video column
+              (Ohad: "skeleton reps and metrics should be in one row, not
+              column"). */}
           {/* Was "POSE" — renamed SKELETON (Ohad), same standalone toggle
               button as before. ROM & TEMPO auto-enables it (see the effect
               above keyed on metricsTab==='rom'); this button still works
               independently to turn it on/off anytime. */}
           <button onClick={togglePose} disabled={poseLoading}
-            style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${poseOn?C.ac:'transparent'}`,minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+            style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${poseOn?C.ac:'transparent'}`,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
               background:poseOn?C.acD:'transparent',color:poseOn?C.ac:C.tm,
               fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
             {poseLoading ? 'LOADING…' : poseOn ? 'SKELETON ON' : 'SKELETON'}
@@ -1409,7 +1414,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           <div style={{display:'flex',flexDirection:'column',gap:2}}>
             <button onClick={toggleReps} disabled={poseLoading}
               title={activeKind === 'none' ? 'Isometric — counter off' : `Tracking ${activeKind} for rep cycles (${activeChannels.join(' + ')})`}
-              style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${repsOn?C.gn:'transparent'}`,minWidth:78,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+              style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${repsOn?C.gn:'transparent'}`,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
                 background:repsOn?C.gnD:'transparent',color:repsOn?C.gn:C.tm,
                 fontFamily:FN,fontSize:10,cursor:poseLoading?'wait':'pointer',opacity:poseLoading?0.6:1}}>
               {repsOn ? `REPS ${reps}` : 'REPS'}
@@ -1434,10 +1439,10 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           {role === 'trainer' && (
             <button onClick={runMetrics} disabled={metricsState==='busy'}
               title="Bar velocity (VBT), ROM, tempo & collapse flags from this clip"
-              style={{padding:'3px 10px',borderRadius:0,border:`2px solid ${metricsState==='done'?C.pu:'transparent'}`,minWidth:96,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',
+              style={{padding:'3px 8px',borderRadius:0,border:`2px solid ${metricsState==='done'?C.pu:'transparent'}`,display:'inline-flex',alignItems:'center',justifyContent:'center',boxSizing:'border-box',whiteSpace:'nowrap',
                 background:metricsState==='done'?(C.puD||C.acD):'transparent',color:metricsState==='done'?(C.pu||C.ac):C.tm,
                 fontFamily:FN,fontSize:10,cursor:metricsState==='busy'?'wait':'pointer',opacity:metricsState==='busy'?0.6:1}}>
-              {metricsState==='busy' ? `ANALYZING ${metricsPct}%` : metricsState==='done' ? 'METRICS ✓' : 'LIFT METRICS'}
+              {metricsState==='busy' ? `${metricsPct}%` : metricsState==='done' ? 'METRICS ✓' : 'METRICS'}
             </button>
           )}
           {poseError && <span style={{fontSize:9,color:C.rd,marginLeft:4}}>{poseError}</span>}
