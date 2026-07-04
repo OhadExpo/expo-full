@@ -504,7 +504,8 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
         <div style={{ flex: 1, minWidth: 0 }}><Kpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} /></div>
       </div>
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
-      {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined} />)}
+      {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined}
+        onClick={onScrub && r.startT != null ? () => onScrub(r.startT) : undefined} />)}
     </div>
   );
 }
@@ -1174,8 +1175,14 @@ const MiniKpi = ({ label, value }) => (
     <div style={{ fontFamily: FN, fontSize: 18, fontWeight: 800, color: '#FFF', marginTop: 4 }}>{value}</div>
   </div>
 );
-const Row = ({ cells, head, tone }) => (
-  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cells.length}, 1fr)`, gap: 4, padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+// onClick (optional) — e.g. the Review player wires this to seek the video to
+// this rep's start, so clicking a rep row jumps the clip there (preserving
+// play/pause — it's a plain currentTime set, not a pause/play call).
+const Row = ({ cells, head, tone, onClick }) => (
+  <div onClick={onClick} title={onClick ? 'Jump the video to this rep' : undefined}
+    style={{ display: 'grid', gridTemplateColumns: `repeat(${cells.length}, 1fr)`, gap: 4, padding: '7px 10px', borderBottom: '1px solid rgba(255,255,255,0.07)', cursor: onClick ? 'pointer' : 'default' }}
+    onMouseEnter={onClick ? (e) => { e.currentTarget.style.background = 'rgba(57,189,255,0.08)'; } : undefined}
+    onMouseLeave={onClick ? (e) => { e.currentTarget.style.background = 'transparent'; } : undefined}>
     {cells.map((c, i) => (
       <span key={i} style={{ fontFamily: FN, fontSize: head ? 9 : 12, fontWeight: 700, letterSpacing: head ? '0.1em' : 0, color: head ? 'rgba(255,255,255,0.45)' : (i === 0 ? '#FFF' : (tone || 'rgba(255,255,255,0.85)')), textAlign: i === 0 ? 'left' : 'right' }}>{c}</span>
     ))}

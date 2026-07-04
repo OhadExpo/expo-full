@@ -112,7 +112,7 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
     const p = barLandmark === 'hip' ? mid2(im[LM.L_HIP], im[LM.R_HIP]) : mid2(im[LM.L_WRIST], im[LM.R_WRIST]);
     return imgUpMetres(p, scale[i]);
   });
-  const perRep = reps.map(({ bottomIdx, endIdx }) => {
+  const perRep = reps.map(({ startIdx, bottomIdx, endIdx }) => {
     const t0 = frames[bottomIdx]?.t, t1 = frames[endIdx]?.t;
     const p0 = pos[bottomIdx], p1 = pos[endIdx];
     if (!isReal(p0) || !isReal(p1) || t1 == null || t0 == null || t1 <= t0) return null;
@@ -127,7 +127,10 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
       const inst = (b - a) / ((tb - ta) / 1000);
       if (inst > peak) peak = inst;
     }
-    return { meanConcentric: round2(mean), peak: round2(peak), rom: round2(Math.abs(disp)), durSec: round2(dt) };
+    // startT (ms, clip-relative) — the top position before this rep's descent
+    // begins. Lets a UI click-to-seek to "where rep N starts" (Review player).
+    const startT = frames[startIdx]?.t;
+    return { meanConcentric: round2(mean), peak: round2(peak), rom: round2(Math.abs(disp)), durSec: round2(dt), startT: startT != null ? Math.round(startT) : null };
   });
   const valid = perRep.filter(Boolean);
   const best = valid.reduce((m, r) => Math.max(m, r.meanConcentric), 0);
