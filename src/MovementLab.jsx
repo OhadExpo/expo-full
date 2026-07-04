@@ -475,6 +475,25 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
         color: sel ? C.ac : 'rgba(255,255,255,0.5)',
       }}>{label}</button>
   );
+  // TRACK (BAR·WRISTS / BODY·HIPS) is a SUB-level pick nested under the
+  // primary SPEED/ACCEL/MEAN-VELOCITY tabs above — same box-pill for both
+  // read as one flat row of equal-weight choices (Ohad: "should be displayed
+  // differently... think have we used anything like this elsewhere"). The
+  // app's own established convention for a nested sub-toggle is the
+  // underline tab (no box, no fill, just a bottom border) — TraineeCRM's
+  // COACH HISTORY ACTIONS/ACTIVITY switch and ClientPortal's nav rows both
+  // use exactly this for a secondary toggle under a primary one. Reusing it
+  // here instead of inventing a new one-off style.
+  const trackPill = (k, label, sel, on) => (
+    <button key={k} type="button" onClick={on}
+      style={{
+        fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 2px',
+        marginRight: 16, border: 'none', background: 'transparent', borderRadius: 0,
+        borderBottom: `2px solid ${sel ? C.ac : 'transparent'}`,
+        color: sel ? C.ac : 'rgba(255,255,255,0.5)',
+        cursor: 'pointer', textTransform: 'uppercase', marginBottom: -1,
+      }}>{label}</button>
+  );
   return (
     <div>
       {/* Graph comes FIRST, right under the video — Ohad: the video and the
@@ -486,17 +505,18 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
         {pill('accel', 'ACCELERATION', graph === 'accel', () => setGraph('accel'))}
         {pill('velocity', 'MEAN VELOCITY · PER REP', graph === 'velocity', () => setGraph('velocity'))}
       </div>
-      {/* tracked-point picker — shared by the speed and acceleration traces */}
-      {(graph === 'speed' || graph === 'accel') && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: FN, fontSize: 8, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em' }}>TRACK</span>
-          {pill('wrist', 'BAR · WRISTS', point === 'wrist', () => setPoint('wrist'))}
-          {pill('hip', 'BODY · HIPS', point === 'hip', () => setPoint('hip'))}
-        </div>
-      )}
+      {/* Graph comes before the tracked-point picker now (Ohad: "add graph
+          above track") — no "TRACK" label word anymore either, just the two
+          pills directly. */}
       {graph === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
       {graph === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
       {graph === 'velocity' && <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
+      {(graph === 'speed' || graph === 'accel') && (
+        <div style={{ display: 'flex', marginBottom: 12, alignItems: 'center', flexWrap: 'wrap', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          {trackPill('wrist', 'BAR · WRISTS', point === 'wrist', () => setPoint('wrist'))}
+          {trackPill('hip', 'BODY · HIPS', point === 'hip', () => setPoint('hip'))}
+        </div>
+      )}
       {/* Summary KPIs — MiniKpi (stacked label-then-value), not Kpi (label
           beside value): at half-width, Kpi's side-by-side baseline layout let
           the two labels wrap across a different number of lines ("BEST MEAN
