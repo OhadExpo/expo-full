@@ -477,9 +477,10 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
   );
   return (
     <div>
-      <Kpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} />
-      <Kpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} />
-      {/* graph picker */}
+      {/* Graph comes FIRST, right under the video — Ohad: the video and the
+          synced/scrubbable graph were too far apart to watch both at once
+          (KPIs + per-rep table used to sit above it). Summary numbers and the
+          rep table now follow the graph instead of preceding it. */}
       <div style={{ display: 'flex', gap: 6, margin: '4px 0 8px', flexWrap: 'wrap' }}>
         {pill('speed', 'SPEED', graph === 'speed', () => setGraph('speed'))}
         {pill('accel', 'ACCELERATION', graph === 'accel', () => setGraph('accel'))}
@@ -496,6 +497,12 @@ function VelocityTable({ v, barSpeed, frames, playheadT = null, onScrub = null }
       {graph === 'speed' && <SpeedTrace barSpeed={trace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
       {graph === 'accel' && <AccelTrace accel={accelTrace} point={point} playheadT={playheadT} onScrub={onScrub} zoom={zoom} setZoom={setZoom} />}
       {graph === 'velocity' && <VelocityBars perRep={v.perRep} bestMean={v.bestMean} />}
+      {/* Summary KPIs — side by side (was stacked full-width) to cut their
+          combined height roughly in half. */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}><Kpi label="BEST MEAN VELOCITY" value={`${v.bestMean.toFixed(2)} m/s`} /></div>
+        <div style={{ flex: 1, minWidth: 0 }}><Kpi label="VELOCITY LOSS (LAST REP)" value={`${v.finalLossPct}%`} tone={v.finalLossPct >= 20 ? C.rd : v.finalLossPct >= 10 ? C.or : C.gn} /></div>
+      </div>
       <Row head cells={['REP', 'MEAN m/s', 'PEAK m/s', 'LOSS']} />
       {v.perRep.map((r, i) => r && <Row key={i} cells={[i + 1, r.meanConcentric.toFixed(2), r.peak.toFixed(2), `${r.lossPct}%`]} tone={r.lossPct >= 20 ? C.rd : undefined} />)}
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState, asButton } from './ui';
 import { traineeIdsFor } from './traineeUtils';
@@ -184,6 +184,72 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
     if (days >= OVERDUE_DAYS) return { ...t, daysOverdue: days, neverPaid: false };
     return null;
   }).filter(Boolean).sort((a, b) => (b.daysOverdue || 9999) - (a.daysOverdue || 9999));
+
+  // Drag-to-reorder the three alert cards (Expiring / Overdue / Dormant) — Ohad:
+  // drag one card left/right past another to swap their positions. Order is a
+  // coach-local display preference, so it's persisted, not synced.
+  //
+  // The rail these cards live in ALREADY has a custom click-and-drag-to-SCROLL
+  // gesture (onAlertDown/Move/Up below, plain mousedown/mousemove — not native
+  // HTML5 drag). Native `draggable` on the cards would fight that: mousedown
+  // fires before dragstart, so the rail's scroll-drag would arm at the same
+  // time as a reorder-drag, and native DnD suppresses mousemove inconsistently
+  // across browsers once it takes over. So reordering reuses the SAME plain-
+  // mouse-event model as the rail, and separates the two purely by origin: a
+  // press on a card's HEADER starts a reorder-drag (via stopPropagation, so
+  // the rail's own onMouseDown never sees it); a press anywhere else on the
+  // rail still scrolls exactly as before. Nothing else on the page is touched.
+  const [alertOrder, setAlertOrder] = usePersistentState('dash-alert-order', ['expiring', 'overdue', 'dormant']);
+  const alertReorderRef = useRef(null); // { key, moved } while a reorder-drag is live
+  const [draggingAlertKey, setDraggingAlertKey] = useState(null);
+  const [dragOverAlertKey, setDragOverAlertKey] = useState(null);
+  const reorderAlertCards = (fromKey, toKey) => {
+    if (!fromKey || !toKey || fromKey === toKey) return;
+    setAlertOrder(prev => {
+      const next = prev.includes(fromKey) && prev.includes(toKey) ? [...prev] : ['expiring', 'overdue', 'dormant'];
+      const fromIdx = next.indexOf(fromKey), toIdx = next.indexOf(toKey);
+      if (fromIdx === -1 || toIdx === -1) return prev;
+      next.splice(fromIdx, 1);
+      next.splice(toIdx, 0, fromKey);
+      return next;
+    });
+  };
+  // Document-level listeners while a reorder-drag is active, so dragging past
+  // the rail's edge doesn't lose tracking (standard robust custom-DnD pattern).
+  useEffect(() => {
+    if (!draggingAlertKey) return;
+    const onMove = (e) => {
+      alertReorderRef.current.moved = true;
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const cardEl = el && el.closest('[data-alert-key]');
+      const overKey = cardEl ? cardEl.getAttribute('data-alert-key') : null;
+      setDragOverAlertKey(overKey && overKey !== draggingAlertKey ? overKey : null);
+    };
+    const onUp = () => {
+      if (dragOverAlertKey) reorderAlertCards(draggingAlertKey, dragOverAlertKey);
+      setDraggingAlertKey(null);
+      setDragOverAlertKey(null);
+      alertReorderRef.current = null;
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggingAlertKey, dragOverAlertKey]);
+  const alertHeaderDragProps = (key) => ({
+    onMouseDown: (e) => {
+      e.stopPropagation(); // keep the rail's own onAlertDown (scroll-drag) from also arming
+      alertReorderRef.current = { key, moved: false };
+      setDraggingAlertKey(key);
+    },
+    style: { cursor: 'grab' },
+  });
+  const alertCardWrapStyle = (key) => ({
+    opacity: draggingAlertKey === key ? 0.4 : 1,
+    outline: dragOverAlertKey === key ? `2px solid ${C.ac}` : 'none',
+    outlineOffset: -2,
+    transition: 'opacity 120ms',
+  });
 
   // Inbound landing-site leads (expo-il LeadCapture form). Only show
   // unconsumed rows — once Ohad clicks "mark contacted" we set consumed_at
@@ -544,26 +610,34 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
               ))}
             </div>
           )}
-          {expiring.length > 0 && (
-            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-              <RefinedHeaderStrip>
-                <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>Expiring Packages ({expiring.length})</SectionLabel>
-              </RefinedHeaderStrip>
-              {expiring.map(t => (
-                <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
-                  <span style={{ color: C.tx }}>{t.name}</span>
-                  <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining} LEFT</span>
+          {(() => {
+            // Expiring / Overdue / Dormant are drag-reorderable (alertOrder) —
+            // see the hook block above. Each card's HEADER is the drag handle
+            // (data-alert-key marks the drop target; alertCardWrapStyle/
+            // alertHeaderDragProps drive the visuals + gesture).
+            const cardsByKey = {
+              expiring: expiring.length > 0 && (
+                <div key="expiring" data-alert-key="expiring" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('expiring') }}>
+                  <div {...alertHeaderDragProps('expiring')}>
+                    <RefinedHeaderStrip>
+                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="alert" color="#FFFFFF"/>Expiring Packages ({expiring.length})</SectionLabel>
+                    </RefinedHeaderStrip>
+                  </div>
+                  {expiring.map(t => (
+                    <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
+                      <span style={{ color: C.tx }}>{t.name}</span>
+                      <span style={{ fontFamily: FN, fontWeight: 700, color: C.rd, fontSize: 12 }}>{t.sessionsRemaining} LEFT</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-          {isOwner && (overduePayment.length > 0 || (leads && leads.length > 0)) && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {overduePayment.length > 0 && (
-                <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
-                  <RefinedHeaderStrip>
-                    <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>Overdue Payment ({overduePayment.length})</SectionLabel>
-                  </RefinedHeaderStrip>
+              ),
+              overdue: isOwner && overduePayment.length > 0 && (
+                <div key="overdue" data-alert-key="overdue" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.rd}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('overdue') }}>
+                  <div {...alertHeaderDragProps('overdue')}>
+                    <RefinedHeaderStrip>
+                      <SectionLabel style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="dollar" color="#FFFFFF"/>Overdue Payment ({overduePayment.length})</SectionLabel>
+                    </RefinedHeaderStrip>
+                  </div>
                   {overduePayment.map(t => (
                     <div key={t.id} {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', cursor: 'pointer', fontSize: 13 }}>
                       <span style={{ color: C.tx, flex: 1 }}>{t.name}</span>
@@ -571,66 +645,71 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
                     </div>
                   ))}
                 </div>
-              )}
-              {leads && leads.length > 0 && (() => {
-                // Multi-tenant gate-open counter — track only coach_waitlist
-                // contexts (intake form leads on expo-il are athletes, not coaches).
-                const COACH_GATE = 5;
-                const coachLeads = leads.filter(l => l.context === 'coach_waitlist').length;
-                const gateOpen = coachLeads >= COACH_GATE;
-                const gateColor = gateOpen ? C.gn : (coachLeads > 0 ? C.or : C.td);
-                return (
-                <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
-                  <RefinedHeaderStrip>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>New Leads ({leads.length})</SectionLabel>
-                      <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
-                        style={{ fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
-                        🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
-                      </span>
-                    </div>
-                  </RefinedHeaderStrip>
-                  {leads.map(l => {
-                    const ageMs = now - new Date(l.created_at);
-                    const days = Math.floor(ageMs / 86400000);
-                    const hours = Math.floor(ageMs / 3600000);
-                    const ago = days >= 1 ? `${days}d` : hours >= 1 ? `${hours}h` : 'just now';
-                    const mailto = `mailto:${l.email}?subject=${encodeURIComponent('היי מ-EXPO')}&body=${encodeURIComponent('היי, ראיתי שהשארת מייל ב-expo-il.co.il.\n')}`;
-                    const isCoach = l.context === 'coach_waitlist';
+              ),
+              dormant: dropoutRisk.length > 0 && (
+                <div key="dormant" data-alert-key="dormant" className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow, ...alertCardWrapStyle('dormant') }}>
+                  <div {...alertHeaderDragProps('dormant')}>
+                    <RefinedHeaderStrip>
+                      <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>Dormant ({dropoutRisk.length})</SectionLabel>
+                    </RefinedHeaderStrip>
+                  </div>
+                  {dropoutRisk.map(t => {
+                    const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
                     return (
-                      <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 13 }}>
-                        {isCoach && (
-                          <span title="Coach waitlist signup" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 5px', flexShrink: 0 }}>COACH</span>
-                        )}
-                        <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${l.context} · ${l.source}`}>{l.email}</a>
-                        <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>
-                        <button onClick={() => markLeadContacted(l.id)} title="Mark contacted" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
-                        <button onClick={() => deleteLead(l.id)} title="Delete" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                      <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
+                        <span {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1 }}>{t.name}</span>
+                        <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginRight: 8 }}>{days == null ? 'Never trained' : `${days}d ago`}</span>
+                        <DormantWhatsAppButton trainee={t} days={days} />
                       </div>
                     );
                   })}
                 </div>
-                );
-              })()}
-            </div>
-          )}
-          {dropoutRisk.length > 0 && (
-            <div className="alert-card" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderLeft: `3px solid ${C.or}`, borderRadius: 0, padding: '14px 18px', boxShadow: C.cardShadow }}>
+              ),
+            };
+            return alertOrder.map(k => cardsByKey[k]).filter(Boolean);
+          })()}
+          {/* New Leads — not part of the drag-reorder set (Ohad named only
+              Expiring/Overdue/Dormant); fixed position after them. */}
+          {isOwner && leads && leads.length > 0 && (() => {
+            // Multi-tenant gate-open counter — track only coach_waitlist
+            // contexts (intake form leads on expo-il are athletes, not coaches).
+            const COACH_GATE = 5;
+            const coachLeads = leads.filter(l => l.context === 'coach_waitlist').length;
+            const gateOpen = coachLeads >= COACH_GATE;
+            const gateColor = gateOpen ? C.gn : (coachLeads > 0 ? C.or : C.td);
+            return (
+            <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '14px 18px' }}>
               <RefinedHeaderStrip>
-                <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="moon" color="#FFFFFF"/>Dormant ({dropoutRisk.length})</SectionLabel>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <SectionLabel as="span" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}><SectionIcon kind="mail" color="#FFFFFF"/>New Leads ({leads.length})</SectionLabel>
+                  <span title={gateOpen ? 'Gate open — apply multi-tenant migration' : `Multi-tenant migration applies once ${COACH_GATE} serious coach signups arrive`}
+                    style={{ fontFamily: FN, fontSize: 9, color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.55)', background: 'transparent', borderRadius: 0, padding: '2px 6px', letterSpacing: '0.04em' }}>
+                    🎯 {coachLeads}/{COACH_GATE} {gateOpen ? 'OPEN' : 'GATE'}
+                  </span>
+                </div>
               </RefinedHeaderStrip>
-              {dropoutRisk.map(t => {
-                const days = t.lastWorkout ? Math.floor((now - new Date(t.lastWorkout.date)) / 86400000) : null;
+              {leads.map(l => {
+                const ageMs = now - new Date(l.created_at);
+                const days = Math.floor(ageMs / 86400000);
+                const hours = Math.floor(ageMs / 3600000);
+                const ago = days >= 1 ? `${days}d` : hours >= 1 ? `${hours}h` : 'just now';
+                const mailto = `mailto:${l.email}?subject=${encodeURIComponent('היי מ-EXPO')}&body=${encodeURIComponent('היי, ראיתי שהשארת מייל ב-expo-il.co.il.\n')}`;
+                const isCoach = l.context === 'coach_waitlist';
                 return (
-                  <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', fontSize: 13 }}>
-                    <span {...asButton(() => onSelectTrainee(t.id))} aria-label={`Open ${t.name}`} style={{ color: C.tx, cursor: 'pointer', flex: 1 }}>{t.name}</span>
-                    <span style={{ fontFamily: FN, color: C.or, fontSize: 11, marginRight: 8 }}>{days == null ? 'Never trained' : `${days}d ago`}</span>
-                    <DormantWhatsAppButton trainee={t} days={days} />
+                  <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 13 }}>
+                    {isCoach && (
+                      <span title="Coach waitlist signup" style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.ac, background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: '2px 5px', flexShrink: 0 }}>COACH</span>
+                    )}
+                    <a href={mailto} style={{ color: C.tx, textDecoration: 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${l.context} · ${l.source}`}>{l.email}</a>
+                    <span style={{ fontFamily: FN, color: C.td, fontSize: 10 }}>{ago}</span>
+                    <button onClick={() => markLeadContacted(l.id)} title="Mark contacted" style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✓</button>
+                    <button onClick={() => deleteLead(l.id)} title="Delete" style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, borderRadius: 0, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer' }}>✕</button>
                   </div>
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
 
