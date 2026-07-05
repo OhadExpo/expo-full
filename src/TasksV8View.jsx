@@ -483,7 +483,7 @@ const SORT_MODES = [
   { id: 'name',     label: 'A→Z' },
   { id: 'manual',   label: 'Manual' },   // hand-ordered; drag a card onto another to reorder
 ];
-function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, resultCount, totalCount }) {
+function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
   const BOX_H = 28;
   const boxBase = {
     minHeight: BOX_H, height: BOX_H, padding: '0 12px', borderRadius: 0,
@@ -497,7 +497,6 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
     color: active ? 'var(--c-tx)' : C.tm,
     fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
   });
-  const isFiltered = search.trim() !== '';
   // When a mode is ACTIVE its button shows the direction as a word that flips on
   // click (↓ Newest ⇄ ↑ Oldest); inactive buttons show the plain mode name. No
   // separate direction button, so nothing appears/disappears + reflows (Ohad).
@@ -534,26 +533,10 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, search, onSearch, res
         })}
       </div>
       <span style={{ flex: 1 }} />
-      {isFiltered && (
-        <span style={{
-          fontFamily: FN, fontSize: 10, fontWeight: 700,
-          color: C.ac, letterSpacing: '0.06em',
-          marginRight: 4,
-        }}>{resultCount} of {totalCount}</span>
-      )}
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => onSearch(e.target.value)}
-        placeholder="Search…"
-        style={{
-          ...boxBase, padding: '0 10px', cursor: 'text',
-          background: 'transparent', color: C.tx,
-          border: `1px solid ${C.cardBd}`, fontSize: 11, fontWeight: 500,
-          letterSpacing: '0.04em', width: 180, outline: 'none',
-        }}
-        autoComplete="off"
-      />
+      {/* Right column, row 2 of 3 — the STATUS/CATEGORY group toggle lives
+          here so the header stacks LIST/BOARD → STATUS/CATEGORY → SEARCH,
+          one per row, all flush right (Ohad 2026-07-05). */}
+      {rightSlot}
     </div>
   );
 }
@@ -566,10 +549,12 @@ const QUICK_FILTERS = [
   { id: 'stuck',    label: 'Stuck' },
   { id: 'nodate',   label: 'No date' },
 ];
-function QuickFilters({ value, onChange, counts }) {
+function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, totalCount }) {
+  const isFiltered = (search || '').trim() !== '';
   return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
     <div style={{
-      display: 'flex', gap: 6, marginBottom: 12, width: '100%', maxWidth: FILTER_GROUP_W,
+      display: 'flex', gap: 6, width: '100%', maxWidth: FILTER_GROUP_W,
     }}>
       {QUICK_FILTERS.map(f => {
         const active = value === f.id;
@@ -593,6 +578,31 @@ function QuickFilters({ value, onChange, counts }) {
           </button>
         );
       })}
+    </div>
+    <span style={{ flex: 1 }} />
+    {/* Right column, row 3 of 3 — search sits under LIST/BOARD and
+        STATUS/CATEGORY so the three header rows share one right edge. */}
+    {isFiltered && (
+      <span style={{
+        fontFamily: FN, fontSize: 10, fontWeight: 700,
+        color: 'var(--c-ac)', letterSpacing: '0.06em',
+        marginRight: 4, whiteSpace: 'nowrap',
+      }}>{resultCount} of {totalCount}</span>
+    )}
+    <input
+      type="text"
+      value={search}
+      onChange={(e) => onSearch(e.target.value)}
+      placeholder="Search…"
+      style={{
+        height: 28, minHeight: 28, boxSizing: 'border-box', padding: '0 10px',
+        borderRadius: 0, cursor: 'text',
+        background: 'transparent', color: 'var(--c-tx)',
+        border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 11, fontWeight: 500,
+        letterSpacing: '0.04em', width: 180, outline: 'none', flexShrink: 0,
+      }}
+      autoComplete="off"
+    />
     </div>
   );
 }
@@ -2226,7 +2236,15 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
         </div>
         <ViewToggle value={view} onChange={setView} />
-        {(
+      </div>
+
+      {/* Header right column stacks LIST/BOARD → STATUS/CATEGORY → SEARCH,
+          one per row, matching the three left rows (Ohad 2026-07-05). */}
+      <SortBar
+        sortBy={sortBy} sortDir={sortDir}
+        onSortBy={setSortBy}
+        onToggleDir={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
+        rightSlot={(
           <div style={{ display: 'inline-flex', border: `1px solid var(--c-cardBd)`, borderRadius: 0, height: 28, boxSizing: 'border-box' }}>
             {[{ id: 'status', label: 'Status' }, { id: 'list', label: 'Category' }].map((g, i) => (
               <button key={g.id} onClick={() => setBoardGroup(g.id)} className="tfbtn" data-active={boardGroup === g.id ? '' : undefined} style={{
@@ -2239,17 +2257,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             ))}
           </div>
         )}
-      </div>
-
-      <SortBar
-        sortBy={sortBy} sortDir={sortDir}
-        onSortBy={setSortBy}
-        onToggleDir={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-        search={search} onSearch={setSearch}
-        resultCount={quickFiltered.length} totalCount={ownerBase.length}
       />
 
-      <QuickFilters value={quickFilter} onChange={setQuickFilter} counts={quickCounts} />
+      <QuickFilters value={quickFilter} onChange={setQuickFilter} counts={quickCounts}
+        search={search} onSearch={setSearch}
+        resultCount={quickFiltered.length} totalCount={ownerBase.length} />
 
       {view === 'list' ? (
         <div style={{
