@@ -1946,60 +1946,75 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // anatomy (label above, value below, both centered), so the row
           // shares the page's centre axis with HEY <name> instead of three
           // controls with three different anchor logics.
-          const cellLabel = {fontSize:8,color:C.tm,fontFamily:FN,letterSpacing:'0.16em',fontWeight:700,textTransform:'uppercase',marginBottom:6,whiteSpace:'nowrap'};
-          const cell = {display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'9px 4px',minWidth:0};
-          const valueRow = {height:20,display:'flex',alignItems:'center',justifyContent:'center',gap:5,whiteSpace:'nowrap'};
+          // v4 — borderless (Ohad: "remove the border lines … much prettier").
+          // Three equal centered columns, tiny tracked labels over big cyan
+          // values, air instead of boxes. Shared 24px value line keeps the
+          // trio optically level; symmetry does the work the box used to.
+          const cellLabel = {fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.22em',fontWeight:700,textTransform:'uppercase',marginBottom:8,whiteSpace:'nowrap'};
+          const cell = {display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'8px 6px 2px',minWidth:0};
+          const valueRow = {height:24,display:'flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'};
           return (
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid var(--c-cardBd)`,background:'var(--c-sf)'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr'}}>
               <div style={cell}>
                 <span style={cellLabel}>Block</span>
-                <div style={{...valueRow,flexDirection:'column',height:'auto',minHeight:20,gap:2}}>
+                <div style={{...valueRow,flexDirection:'column',height:'auto',minHeight:24,gap:2}}>
                   {/* the cell label already says BLOCK — drop the word from
                       the value so "Block #16" reads as just "#16" */}
-                  {visPlans.map(p=><span key={p.name} style={{color:C.ac,fontFamily:FN,fontSize:14,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',lineHeight:'20px'}}>{(p.name||'').replace(/^block\s*/i,'') || p.name}</span>)}
+                  {visPlans.map(p=><span key={p.name} style={{color:C.ac,fontFamily:FN,fontSize:18,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',lineHeight:'24px'}}>{(p.name||'').replace(/^block\s*/i,'') || p.name}</span>)}
                 </div>
               </div>
-              <div style={{...cell,borderLeft:`1px solid var(--c-cardBd)`,borderRight:`1px solid var(--c-cardBd)`}}>
+              <div style={cell}>
                 <span style={cellLabel}>This Week</span>
                 {weekDays.length > 0 ? (
                   <div style={valueRow}>
                     <div style={{display:'flex',gap:4}}>
-                      {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:16,height:8,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
+                      {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:20,height:10,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
                     </div>
-                    <span style={{fontSize:11,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{doneThisWeek}/{weekDays.length}</span>
+                    <span style={{fontSize:13,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{doneThisWeek}/{weekDays.length}</span>
                   </div>
                 ) : <div style={valueRow}><span style={{color:C.td,fontSize:11}}>—</span></div>}
               </div>
               <div style={cell}>
                 <span style={cellLabel}>Sessions Left</span>
                 <div style={valueRow}>
-                  <span style={{fontSize:16,fontWeight:700,fontFamily:FN,color:C.ac,lineHeight:1,letterSpacing:'-0.01em',fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span>
+                  <span style={{fontSize:20,fontWeight:700,fontFamily:FN,color:C.ac,lineHeight:1,letterSpacing:'-0.01em',fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span>
                 </div>
               </div>
             </div>
           );
         })()}
       </div>
-      {/* Two-row nav (Ohad spec 2026-05-16):
-            Row 1 → PROGRAM · BW · MEAL LOG  (active work)
-            Row 2 → MESSAGES · HISTORY · PRs (review & comms)
-          Both rows share the cyan underline pattern (2px active /
-          0.25px+30% inactive) — see [[feedback-stroke-ruling]]. */}
+      {/* Two-row nav — v2 (Ohad 2026-07-05: "too messy, no borders, nobody
+          knows it's clickable"). Same 3+3 grouping as the 05-16 spec, but as
+          a SEGMENTED 3×2 GRID: one hairline box, hairlines between every
+          cell, active cell filled cyan-tint — the same boxed language as the
+          header stats strip and the WEEK selector, and unmistakably buttons. */}
       {(() => {
-        const navRow = (items) => (
-          <div style={{display:'flex',gap:0}}>
-            {items.map(([k,l]) =>
-              <button key={k} onClick={() => setVw(k)}
-                style={{flex:1,padding:'10px 4px',borderRadius:0,border:'none',borderBottom:`${vw===k?'2px':'0.25px'} solid ${C.ac}${vw===k?'':'4D'}`,background:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',position:'relative'}}>
-                {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>}
-              </button>
-            )}
-          </div>
-        );
+        const NAV = [
+          ['prog','PROGRAM'],['bwt','BW'],['meal','MEAL LOG'],
+          ['hist',`HISTORY (${cw.length})`],['pr','PRs'],['msg','MESSAGES'],
+        ];
         return (
           <div style={{padding:'14px 20px 0'}}>
-            {navRow([['prog','PROGRAM'],['bwt','BW'],['meal','MEAL LOG']])}
-            {navRow([['hist',`HISTORY (${cw.length})`],['pr','PRs'],['msg','MESSAGES']])}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`,background:'var(--c-sf)'}}>
+              {/* Active page = SOLID cyan fill + black text — pages, not
+                  filters. The WEEK strip below keeps the quiet tint fill,
+                  so the two segmented controls stop reading as twins
+                  (Ohad: "too similar to the weeks boxes"). */}
+              {NAV.map(([k,l], i) =>
+                <button key={k} onClick={() => setVw(k)}
+                  style={{padding:'12px 4px',borderRadius:0,border:'none',
+                    borderLeft: i % 3 ? `1px solid ${C.cardBd}` : 'none',
+                    borderTop: i >= 3 ? `1px solid ${C.cardBd}` : 'none',
+                    background: vw===k ? C.ac : 'transparent',
+                    color: vw===k ? '#000000' : C.tm,
+                    fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',
+                    cursor:'pointer',position:'relative',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                    transition:'background .15s, color .15s'}}>
+                  {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>}
+                </button>
+              )}
+            </div>
           </div>
         );
       })()}
@@ -2248,10 +2263,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               language as the header stats strip; label style matches the
               strip cell labels. */}
           {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>WEEK</div>
-            <div style={{display:'grid',gridTemplateColumns:`repeat(${activePlan ? (activePlan.weeks || 4) : 4}, 1fr)`,border:`1px solid ${C.cardBd}`,background:'var(--c-sf)'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{padding:'9px 0',borderRadius:0,border:'none',borderLeft:w?`1px solid ${C.cardBd}`:'none',background:wk===w?'rgba(57,189,255,0.12)':'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{padding:'9px 0',borderLeft:w?`1px solid ${C.cardBd}`:'none',opacity:0.3,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',color:C.tm,textAlign:'center'}}>—</div>)}</div></div>}
+            {/* Fixed 36px cells (+1px strip border top/bottom = 38 outer) so
+                the KG input at 38 border-box is EXACTLY the same height —
+                padding-derived heights drifted (Ohad: "that's not ocd"). */}
+            <div style={{display:'grid',gridTemplateColumns:`repeat(${activePlan ? (activePlan.weeks || 4) : 4}, 1fr)`,border:`1px solid ${C.cardBd}`,background:'var(--c-sf)'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{height:36,padding:0,borderRadius:0,border:'none',borderLeft:w?`1px solid ${C.cardBd}`:'none',background:wk===w?'rgba(57,189,255,0.12)':'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{height:36,display:'flex',alignItems:'center',justifyContent:'center',borderLeft:w?`1px solid ${C.cardBd}`:'none',opacity:0.3,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',color:C.tm}}>—</div>)}</div></div>}
           <div style={{width:120}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>BW{lb?` · ${lb}KG`:''}</div>
             <div style={{display:'flex',gap:4}}>
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background: 'var(--c-sf2)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'9px 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background: 'var(--c-sf2)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:38,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>SAVE</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{activePlan.rest}</div>}
@@ -2287,14 +2305,17 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               routine — the plan-level warm-up doesn't apply to those, so
               showing it just creates UI noise. If even one day is week-paced,
               the warm-up is still relevant and stays visible. */}
-          {vp.warmup?.length > 0 && !(vp.kind === 'daily' || (Array.isArray(vp.days) && vp.days.length > 0 && vp.days.every(d => d.kind === 'daily'))) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
+          {vp.warmup?.length > 0 && !(vp.kind === 'daily' || (Array.isArray(vp.days) && vp.days.length > 0 && vp.days.every(d => d.kind === 'daily'))) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'14px 14px 0',marginBottom:14}}>
             {/* v2 — strip header, same card language as the coach app
                 (RefinedHeaderStrip pattern: bleeds to the card edge, closed
-                by a bottom hairline). Warm-up keeps its orange identity. */}
-            <div style={{background:'var(--c-stripBg, var(--c-sf))',margin:'-14px -14px 10px',padding:'8px 14px',borderBottom:`1px solid ${C.cardBd}`}}>
+                by a bottom hairline). Warm-up keeps its orange identity.
+                Same OCD rhythm as the day cards: strip marginBottom 0 +
+                card bottom padding 0 → the rows' symmetric padding is the
+                only vertical spacing. */}
+            <div style={{background:'var(--c-stripBg, var(--c-sf))',margin:'-14px -14px 0',padding:'8px 14px',borderBottom:`1px solid ${C.cardBd}`}}>
               <span style={{fontSize:13,fontFamily:FN,color:C.or,fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase'}}>Warm-Up · {vp.name} <span style={{opacity:0.65}}>({vp.warmup.length})</span></span>
             </div>
-            {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:20,padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid rgba(127,127,131,0.22)`:'none'}}>
+            {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:20,padding:'7px 0 8px',borderTop:i?`1px solid rgba(127,127,131,0.22)`:'none'}}>
               <span style={{fontSize:13,color:C.tx,minWidth:0}}>{w.t}</span>
               <div style={{display:'flex',gap:10,alignItems:'center',flexShrink:0}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600,whiteSpace:'nowrap'}}>{(() => {
                 if (w.sets || w.reps) {
@@ -2325,11 +2346,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // Done days: neutral border (no green box) + a green ✓ next to the name
           // (Ohad: "don't like the green around the cyan DONE — green check instead").
           const doneBorderColor = done ? C.cardBd : C.ac;
-          return <div key={vp.name+'-'+di} style={{background:'var(--c-sf)',border:`1px solid ${doneBorderColor}`,borderRadius:0,marginBottom:12,padding:'14px 18px'}}>
+          return <div key={vp.name+'-'+di} style={{background:'var(--c-sf)',border:`1px solid ${doneBorderColor}`,borderRadius:0,marginBottom:12,padding:'14px 18px 0'}}>
             {/* v2 — day title lives in a strip header (coach-app card
                 language): name + ✓ + count left, LOG button right, closed
-                by the bottom hairline. */}
-            <div style={{background:'var(--c-stripBg, var(--c-sf))',margin:'-14px -18px 10px',padding:'8px 18px',borderBottom:`1px solid ${C.cardBd}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                by the bottom hairline. OCD alignment (Ohad): the strip's
+                marginBottom is 0 and the card's bottom padding is 0, so the
+                rows' own symmetric 8px padding is the ONLY vertical rhythm —
+                gap(hairline→row1) == gap(title→divider) == gap(last→border). */}
+            <div style={{background:'var(--c-stripBg, var(--c-sf))',margin:'-14px -18px 0',padding:'8px 18px',borderBottom:`1px solid ${C.cardBd}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
               <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
                 {/* DAY A + 7 EX share a BASELINE box (13px vs 10px text
                     center-aligns wrong — the small label floats high);
@@ -2351,27 +2375,36 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               // title against a small rep count. The exercise NAME gets a
               // clean second row (indented past the index) and can wrap
               // freely without crowding the metadata.
-              return <div key={i} style={{padding:'8px 0',borderTop:i?`1px solid ${C.cardBd}`:'none'}}>
+              return <div key={i} style={{padding:'7px 0 8px',borderTop:i?`1px solid ${C.cardBd}`:'none'}}>
+                {/* Number square is a LEFT COLUMN centered against the
+                    meta+title pair (Ohad: "vertically aligned in the center
+                    between the reps/sets and the exercise name"), not a
+                    passenger of the meta row. paddingTop is 7 (not 8): the
+                    meta line's inline box sits 0.8px lower than the padding
+                    edge, so 7px top ≈ 8px bottom measured at the text —
+                    divider-to-meta == title-to-divider (Ohad's ruler). */}
                 <div style={{display:'flex',gap:10,alignItems:'center'}}>
                   <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,lineHeight:1}}>{i+1}</div>
-                  <div style={{flex:1,minWidth:0,display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
-                    {/* Weekly cells are FREE-TEXT: some hold a full prescription
-                        ("2x10 e"), some bare reps ("8"). Show full cells as-is;
-                        prefix SETSx onto bare ones — otherwise rows with weekly
-                        overrides lose their sets (Ohad 2026-07-05). */}
-                    <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{(() => {
-                      const sets = (ex.wkS && ex.wkS[wk]) || ex.s;
-                      if (!hw) return sets + 'x' + ex.r;
-                      const wrS = String(wr ?? '').trim();
-                      if (!wrS) return sets + 'x' + ex.r;
-                      return /[x×]/i.test(wrS) ? wrS : sets + 'x' + wrS;
-                    })()}</span>
-                    {ex.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{ex.tempo}</span>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
+                      {/* Weekly cells are FREE-TEXT: some hold a full prescription
+                          ("2x10 e"), some bare reps ("8"). Show full cells as-is;
+                          prefix SETSx onto bare ones — otherwise rows with weekly
+                          overrides lose their sets (Ohad 2026-07-05). */}
+                      <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{(() => {
+                        const sets = (ex.wkS && ex.wkS[wk]) || ex.s;
+                        if (!hw) return sets + 'x' + ex.r;
+                        const wrS = String(wr ?? '').trim();
+                        if (!wrS) return sets + 'x' + ex.r;
+                        return /[x×]/i.test(wrS) ? wrS : sets + 'x' + wrS;
+                      })()}</span>
+                      {ex.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{ex.tempo}</span>}
+                    </div>
+                    <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{d.t}</div>
                   </div>
                   {/* No video in the overview — the athlete watches it inside the
                       logging session, so showing it here just clutters (Ohad). */}
                 </div>
-                <div style={{marginInlineStart:30,marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{d.t}</div>
                 {focus && <OverviewFocus text={focus} />}
               </div>})}
           </div>})}</React.Fragment>)})()}
