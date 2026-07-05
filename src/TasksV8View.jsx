@@ -1381,6 +1381,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
     <React.Fragment>
       <div
         {...asButton(onToggleExpand)}
+        data-taskid={row.id}
         aria-label="Expand task for comments + detail"
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
@@ -1780,6 +1781,38 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     }
   };
   const theme = liveTheme || (typeof document !== 'undefined' ? document.documentElement.getAttribute('data-theme') : 'dark');
+
+  // Dashboard → task deep-link. NotesWidget's compact mini-board stores the
+  // clicked task's id in sessionStorage before routing here; once rows land
+  // we jump to that task: right owner tab, section un-collapsed (auto/done
+  // pools open if it lives there), row expanded + scrolled into view.
+  const focusHandledRef = useRef(false);
+  useEffect(() => {
+    if (focusHandledRef.current || !rows.length) return;
+    let pending = null;
+    try { pending = sessionStorage.getItem('expo-pendingFocusTask'); } catch { /* noop */ }
+    if (!pending) return;
+    focusHandledRef.current = true;
+    try { sessionStorage.removeItem('expo-pendingFocusTask'); } catch { /* noop */ }
+    const row = rows.find(r => r.id === pending);
+    if (!row) return;
+    setOwner(ownerFromBody(row.body));
+    setView('list');
+    setQuickFilter('all');
+    setSearch('');
+    if (row.status === 'done' || row.status === 'cancelled') setDoneOpen(true);
+    if (sourceKey(row) === 'auto') setAutoOpen(true);
+    setCollapsedSections(p => ({ ...p, [sourceKey(row)]: false }));
+    setExpandedRows(new Set([pending]));
+    // Scroll after the expand + section-open renders settle.
+    setTimeout(() => {
+      try {
+        document.querySelector(`[data-taskid="${CSS.escape(pending)}"]`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch { /* noop */ }
+    }, 300);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
 
   const decorated = useMemo(() => rows.map(r => {
     const o = ownerFromBody(r.body);

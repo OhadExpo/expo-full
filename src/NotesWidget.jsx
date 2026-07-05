@@ -514,6 +514,14 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
   };
 
   const handleClick = (n) => {
+    // Compact (dashboard) mini-board: clicking a task opens THE TASK itself —
+    // full Tasks page with that row expanded (comments + detail), not the
+    // task's target (Ohad 2026-07-05). TasksV8View consumes the key on mount.
+    if (compact && onOpenFullTasks) {
+      try { sessionStorage.setItem('expo-pendingFocusTask', n.id); } catch { /* noop */ }
+      onOpenFullTasks();
+      return;
+    }
     if (!onNavigate) return;
     if (n.target_kind && n.target_id) onNavigate(n.target_kind, n.target_id);
   };
