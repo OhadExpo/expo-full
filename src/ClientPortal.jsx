@@ -1946,39 +1946,38 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // anatomy (label above, value below, both centered), so the row
           // shares the page's centre axis with HEY <name> instead of three
           // controls with three different anchor logics.
-          // v4 — borderless (Ohad: "remove the border lines … much prettier").
-          // Three equal centered columns, tiny tracked labels over big cyan
-          // values, air instead of boxes. Shared 24px value line keeps the
-          // trio optically level; symmetry does the work the box used to.
-          const cellLabel = {fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.22em',fontWeight:700,textTransform:'uppercase',marginBottom:8,whiteSpace:'nowrap'};
-          const cell = {display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'8px 6px 2px',minWidth:0};
-          const valueRow = {height:24,display:'flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'};
+          // v5 — VALUE-FIRST hero trio (Ohad: v4 "still ugly"). Big cyan
+          // values carry the row, tiny tracked labels sit BENEATH them
+          // (sports-watch hierarchy), no borders anywhere. Shared 26px
+          // value line keeps the trio level.
+          const cellLabel = {fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.22em',fontWeight:700,textTransform:'uppercase',marginTop:7,whiteSpace:'nowrap'};
+          const cell = {display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'6px 6px 0',minWidth:0};
+          const valueRow = {height:26,display:'flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'};
           return (
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr'}}>
               <div style={cell}>
-                <span style={cellLabel}>Block</span>
-                <div style={{...valueRow,flexDirection:'column',height:'auto',minHeight:24,gap:2}}>
-                  {/* the cell label already says BLOCK — drop the word from
-                      the value so "Block #16" reads as just "#16" */}
-                  {visPlans.map(p=><span key={p.name} style={{color:C.ac,fontFamily:FN,fontSize:18,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',lineHeight:'24px'}}>{(p.name||'').replace(/^block\s*/i,'') || p.name}</span>)}
+                <div style={{...valueRow,flexDirection:'column',height:'auto',minHeight:26,gap:2}}>
+                  {/* the label beneath says BLOCK — value is just "#16" */}
+                  {visPlans.map(p=><span key={p.name} style={{color:C.ac,fontFamily:FN,fontSize:21,fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',lineHeight:'26px'}}>{(p.name||'').replace(/^block\s*/i,'') || p.name}</span>)}
                 </div>
+                <span style={cellLabel}>Block</span>
               </div>
               <div style={cell}>
-                <span style={cellLabel}>This Week</span>
                 {weekDays.length > 0 ? (
                   <div style={valueRow}>
                     <div style={{display:'flex',gap:4}}>
                       {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:20,height:10,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
                     </div>
-                    <span style={{fontSize:13,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{doneThisWeek}/{weekDays.length}</span>
+                    <span style={{fontSize:14,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{doneThisWeek}/{weekDays.length}</span>
                   </div>
                 ) : <div style={valueRow}><span style={{color:C.td,fontSize:11}}>—</span></div>}
+                <span style={cellLabel}>This Week</span>
               </div>
               <div style={cell}>
-                <span style={cellLabel}>Sessions Left</span>
                 <div style={valueRow}>
-                  <span style={{fontSize:20,fontWeight:700,fontFamily:FN,color:C.ac,lineHeight:1,letterSpacing:'-0.01em',fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span>
+                  <span style={{fontSize:21,fontWeight:700,fontFamily:FN,color:C.ac,lineHeight:1,letterSpacing:'-0.01em',fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span>
                 </div>
+                <span style={cellLabel}>Sessions Left</span>
               </div>
             </div>
           );
@@ -2263,13 +2262,17 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               language as the header stats strip; label style matches the
               strip cell labels. */}
           {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>WEEK</div>
-            {/* Fixed 36px cells (+1px strip border top/bottom = 38 outer) so
-                the KG input at 38 border-box is EXACTLY the same height —
-                padding-derived heights drifted (Ohad: "that's not ocd"). */}
-            <div style={{display:'grid',gridTemplateColumns:`repeat(${activePlan ? (activePlan.weeks || 4) : 4}, 1fr)`,border:`1px solid ${C.cardBd}`,background:'var(--c-sf)'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{height:36,padding:0,borderRadius:0,border:'none',borderLeft:w?`1px solid ${C.cardBd}`:'none',background:wk===w?'rgba(57,189,255,0.12)':'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{height:36,display:'flex',alignItems:'center',justifyContent:'center',borderLeft:w?`1px solid ${C.cardBd}`:'none',opacity:0.3,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',color:C.tm}}>—</div>)}</div></div>}
+            {/* v5 — weeks are a FILTER, not pages: floating text with the
+                classic underline pattern (active 2px cyan, inactive
+                transparent), NO box — so it can't be confused with the
+                boxed solid-fill nav above (Ohad: "too similar"). Fixed
+                36px height keeps it level with the KG underline input. */}
+            <div style={{display:'flex',height:36,alignItems:'stretch'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:1,padding:0,borderRadius:0,border:'none',borderBottom:`2px solid ${wk===w?C.ac:'transparent'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, border-color .15s'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',opacity:0.3,fontFamily:FN,fontSize:13,fontWeight:600,letterSpacing:'0.06em',color:C.tm}}>—</div>)}</div></div>}
           <div style={{width:120}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>BW{lb?` · ${lb}KG`:''}</div>
             <div style={{display:'flex',gap:4}}>
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background: 'var(--c-sf2)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:38,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+            {/* KG matches the weeks' underline anatomy — an ENTRY, not a
+                box: transparent, hairline bottom border only, same 36px. */}
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:36,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>SAVE</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{activePlan.rest}</div>}
