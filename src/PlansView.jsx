@@ -428,7 +428,10 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
             title={anyOpen ? 'Collapse all warm-ups' : 'Expand all warm-ups to edit fully'}
             style={{ marginLeft:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, padding:'3px 0', color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.14em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
             <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}>▾</span>
-            {anyOpen ? 'COLLAPSE ALL' : 'EXPAND ALL'}
+            {/* marginRight cancels the trailing letter-space (letterSpacing
+                adds 0.14em AFTER the last glyph too), so the arrow+text group
+                optically centres in the box instead of sitting ~1.4px left. */}
+            <span style={{ marginRight:'-0.14em' }}>{anyOpen ? 'COLLAPSE ALL' : 'EXPAND ALL'}</span>
           </button>
           {/* Invisible spacer mirroring the day cards' "× delete" slot
               (line ~1311: fontSize 17, padding '0 4px') so the warm-up
@@ -1094,7 +1097,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, portalVis, setPortalVis }) {
+function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, portalVis, setPortalVis, editorApiRef }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -1195,6 +1198,15 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // Autosave: shared hook serializes saves, flushes on tab switch / screen
   // lock / browser back / refresh / close / unmount.
   const { status: autoStatus, flush: flushAutosave, markClean } = useAutosave(plan, savePlan);
+  // Expose autosave controls to the parent. doDelete needs them: it must
+  // flush (let any pending/in-flight save land) and then markClean BEFORE
+  // deleting, or the editor's unmount autosave fires after the DELETE and
+  // upserts the plan straight back into the DB.
+  useEffect(() => {
+    if (!editorApiRef) return undefined;
+    editorApiRef.current = { flush: flushAutosave, markClean };
+    return () => { editorApiRef.current = null; };
+  }, [editorApiRef, flushAutosave, markClean]);
   // Compare mode: pad the fixed Program-Name/Phase/Weeks row right so it
   // ends level with the scroller content (Pattern Coverage), not over the
   // scrollbar.
@@ -1536,7 +1548,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     {/* One glyph rotated for both states — ▴ and ▾ render at
                         different sizes in this font, so the arrows mismatched. */}
                     <span aria-hidden style={{display:'inline-block',transform:anyOpen?'rotate(180deg)':'none',transition:'transform 180ms ease',lineHeight:1}}>▾</span>
-                    {anyOpen?'COLLAPSE ALL':'EXPAND ALL'}
+                    {/* Same trailing letter-space cancellation as the warm-up
+                        EXPAND ALL — see that comment. */}
+                    <span style={{marginRight:'-0.14em'}}>{anyOpen?'COLLAPSE ALL':'EXPAND ALL'}</span>
                   </button>;
                 })()}
                 {/* Remove-day — ported from the dead detail view (unified had
@@ -1744,6 +1758,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const [shareTarget, setShareTarget] = useState(null);   // planId being shared → opens the athlete picker
   const [shareSearch, setShareSearch] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null); // {id,name,fromEditor} → styled type-"delete" modal
+  const editorApiRef = useRef(null); // PlanEditor registers {flush, markClean} here (see doDelete)
   const [deleteTyped, setDeleteTyped] = useState('');
   const [newProgramPrompt, setNewProgramPrompt] = useState(null); // {id,name} → "create a new program?" menu
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -1918,6 +1933,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     if (!pendingDelete || deleteTyped.trim().toLowerCase() !== 'delete') return;
     const { id, fromEditor } = pendingDelete;
     setPendingDelete(null); setDeleteTyped('');
+    if (fromEditor) {
+      // Neutralize the editor's autosave BEFORE deleting: flush lets any
+      // pending/in-flight save land now, markClean stops the unmount write.
+      // Without this, an autosave landing after the DELETE upserts the plan
+      // right back into the DB (resurrection).
+      await editorApiRef.current?.flush?.();
+      editorApiRef.current?.markClean?.();
+    }
     await deletePlan(id);
     if (fromEditor) handleCancel(); else await reloadIndex();
   };
@@ -2174,7 +2197,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
     return <>
-      <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} portalVis={portalVis} setPortalVis={setPortalVis} />
+      <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} portalVis={portalVis} setPortalVis={setPortalVis} editorApiRef={editorApiRef} />
       {shareModal}
       {deleteModal}
       {newProgramModal}
