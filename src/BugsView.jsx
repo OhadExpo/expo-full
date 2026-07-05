@@ -9,6 +9,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { C, FN, FB } from './theme';
+import { safeUrl } from './VideoEmbed';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, confirmToast, toast } from './ui';
 
@@ -150,7 +151,11 @@ export default function BugsView() {
             </div>
             {r.url && (
               <div style={{ marginTop: 4, fontSize: 11, color: C.tm, wordBreak: 'break-all' }}>
-                <a href={r.url} target="_blank" rel="noopener noreferrer" style={{ color: C.ac }}>{r.url}</a>
+                {/* r.url is user-submitted — render as a link only when it's
+                    a real http(s) URL; otherwise show it as plain text. */}
+                {safeUrl(r.url)
+                  ? <a href={safeUrl(r.url)} target="_blank" rel="noopener noreferrer" style={{ color: C.ac }}>{r.url}</a>
+                  : <span>{r.url}</span>}
               </div>
             )}
 

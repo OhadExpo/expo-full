@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { fmtPrettyDate } from './dates';
+import { safeUrl } from './VideoEmbed';
 // LIFT METRICS on a trainee's uploaded Review clip: capture the clip's pose
 // frames and run the same VBT/ROM/tempo battery MovementLab uses, rendered
 // INLINE on the player (no 3D box, no fullscreen). The on-video skeleton is the
@@ -1340,8 +1341,8 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
           style={vidAspect?.portrait
             ? {display:'block',width:'100%',aspectRatio:String(vidAspect.ratio),maxHeight:'70vh',borderRadius:0,background:C.sf2}
             : {display:'block',width:'100%',borderRadius:0,maxHeight:400,background:C.sf2}} />
-        {videoLoadError && (
-          <a href={url} target="_blank" rel="noopener noreferrer"
+        {videoLoadError && safeUrl(url) && (
+          <a href={safeUrl(url)} target="_blank" rel="noopener noreferrer"
             style={{position:'absolute',bottom:8,right:8,zIndex:6,
               background:'rgba(10,10,11,0.85)',border:`1px solid ${C.ac}`,color:C.ac,
               fontFamily:FN,fontSize:10,padding:'4px 8px',borderRadius:0,

@@ -10,6 +10,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
+import { safeUrl } from './VideoEmbed';
 import { EXPOMark } from './expoMark';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
@@ -690,8 +691,8 @@ function ClientPortalMock({ onPick }) {
                       <div style={{ fontSize: 11, color: C.ac, marginTop: 3, opacity: 0.85, lineHeight: 1.4, display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden' }}>💡 {ex.focus}</div>
                     )}
                   </div>
-                  {ex.vid && (
-                    <a href={ex.vid} target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{
+                  {safeUrl(ex.vid) && (
+                    <a href={safeUrl(ex.vid)} target="_blank" rel="noopener" onClick={e => e.stopPropagation()} style={{
                       color: C.rd, fontSize: 10, textDecoration: 'none',
                       padding: '2px 6px', background: C.rdD, borderRadius: 0, flexShrink: 0,
                     }}>▶</a>

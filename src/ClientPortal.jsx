@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { fmtPrettyDate } from './dates';
+import { safeUrl } from './VideoEmbed';
 import useAutosave from './hooks/useAutosave';
 import { C, FN, FB, FH, uid, ytId, ytIsShort, EXPO_LOGO, EXPO_ICON, EXPO_LOGO_NAV } from './theme';
 import { EXPOMark } from './expoMark';
@@ -198,7 +199,7 @@ function GooglePhotosEmbed({ url }) {
   if (state.phase === 'loading') return <div style={{...wrap,display:'flex',alignItems:'center',justifyContent:'center',color:C.tm,fontFamily:FN,fontSize:11,letterSpacing:'0.18em'}}>LOADING VIDEO…</div>;
   if (state.phase === 'err' || streamFailed) return <div style={{...wrap,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,color:C.tm,fontFamily:FN,fontSize:11,padding:16,textAlign:'center'}}>
     <div>VIDEO COULD NOT BE EMBEDDED</div>
-    <a href={url} target="_blank" rel="noopener noreferrer" style={{color:C.ac,textDecoration:'none',letterSpacing:'0.18em'}}>OPEN IN GOOGLE PHOTOS →</a></div>;
+    {safeUrl(url) && <a href={safeUrl(url)} target="_blank" rel="noopener noreferrer" style={{color:C.ac,textDecoration:'none',letterSpacing:'0.18em'}}>OPEN IN GOOGLE PHOTOS →</a>}</div>;
   const handleBadStream = () => setStreamFailed(true);
   const handleMeta = (e) => { if (!(e.currentTarget.duration > 0)) setStreamFailed(true); };
   return <div style={wrap}><video src={state.src} poster={state.poster||undefined} controls playsInline onError={handleBadStream} onLoadedMetadata={handleMeta} style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>;
@@ -1473,7 +1474,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
               style={{width:'100%',borderRadius:0,maxHeight:200,background:'transparent'}} />
             {f.videoError && (
               <div style={{marginTop:6,padding:8,background:'var(--c-sf)',border:`1px solid ${C.or||'#c97a00'}`,fontSize:11,color:C.or||'#c97a00',fontFamily:FN}}>
-                Video failed to load. {f.cloudUrl ? <a href={f.cloudUrl} target="_blank" rel="noopener noreferrer" style={{color:C.ac}}>Open in new tab ↗</a> : 'Try Re-recording.'}
+                Video failed to load. {safeUrl(f.cloudUrl) ? <a href={safeUrl(f.cloudUrl)} target="_blank" rel="noopener noreferrer" style={{color:C.ac}}>Open in new tab ↗</a> : 'Try Re-recording.'}
               </div>
             )}
             <div style={{display:'flex',gap:8,marginTop:6}}>
@@ -2243,7 +2244,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 }
                 return w.rx || '';
               })()}</span>
-                {w.vid && <a href={w.vid} target="_blank" rel="noopener" style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em'}}>VIDEO →</a>}</div></div>)}</div>}
+                {safeUrl(w.vid) && <a href={safeUrl(w.vid)} target="_blank" rel="noopener" style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em'}}>VIDEO →</a>}</div></div>)}</div>}
           {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++;
           // Daily-routine: PER-DAY flag (`day.kind === 'daily'`) lets the
@@ -2281,7 +2282,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',fontVariantNumeric:'tabular-nums'}}>{((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+((hw&&wr)||ex.r)}</span>
                     {ex.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{ex.tempo}</span>}
                   </div>
-                  {v ? <a href={v} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em',flexShrink:0}}>VIDEO →</a> : null}
+                  {safeUrl(v) ? <a href={safeUrl(v)} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em',flexShrink:0}}>VIDEO →</a> : null}
                 </div>
                 <div style={{marginInlineStart:30,marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{d.t}</div>
                 {focus && <div style={{marginInlineStart:30,fontSize:11,color:C.ac,marginTop:4,opacity:0.85,lineHeight:1.4,display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'}}><span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>FOCUS</span>{focus}</div>}

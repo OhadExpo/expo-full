@@ -9,6 +9,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { C, FN, FB } from './theme';
+import { safeUrl } from './VideoEmbed';
 import { supabase } from './supabase';
 import { EXPOMark } from './expoMark';
 import { toast } from './ui';
@@ -206,8 +207,8 @@ export default function BookingPublic() {
           <div style={{ fontSize: 13, color: C.tm, marginBottom: 16 }}>
             with {settings.display_name || 'your coach'}
           </div>
-          {confirmation.zoom && (
-            <a href={confirmation.zoom} target="_blank" rel="noopener noreferrer"
+          {safeUrl(confirmation.zoom) && (
+            <a href={safeUrl(confirmation.zoom)} target="_blank" rel="noopener noreferrer"
               style={{ display: 'inline-block', padding: '10px 18px', background: C.ac, color: C.acOnSurface, textDecoration: 'none', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em' }}>
               JOIN ZOOM →
             </a>
