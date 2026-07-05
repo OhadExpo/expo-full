@@ -906,6 +906,32 @@ function setRowDragImage(e, handleEl, cellCount) {
   } catch { /* drag still works with the default image */ }
 }
 
+// Whole-DAY drag image — clones just the day card's HEADER row (name, count,
+// toggles), not the full card: the cards collapse during the drag, so a
+// header-sized ghost matches what the cursor is actually moving. Must run
+// synchronously inside dragstart. Cosmetic only — never throws.
+function setDayDragImage(e, cardEl) {
+  try {
+    if (!cardEl) return;
+    const headerEl = cardEl.querySelector('[data-dayheader]');
+    if (!headerEl) return;
+    const ghost = headerEl.cloneNode(true);
+    // cloneNode copies attributes, not the live value React set on the
+    // property — sync the day-name input so the ghost shows the real name.
+    const src = [...headerEl.querySelectorAll('input,select,textarea')];
+    const dst = [...ghost.querySelectorAll('input,select,textarea')];
+    src.forEach((s, j) => { if (dst[j]) dst[j].value = s.value; });
+    ghost.style.margin = '0';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = `position:absolute;top:-10000px;left:0;pointer-events:none;box-sizing:border-box;opacity:0.95;padding:10px 12px;border:1px solid ${C.ac};background:var(--c-sf);`;
+    wrap.style.width = cardEl.getBoundingClientRect().width + 'px';
+    wrap.appendChild(ghost);
+    document.body.appendChild(wrap);
+    e.dataTransfer.setDragImage(wrap, 24, wrap.getBoundingClientRect().height / 2);
+    setTimeout(() => wrap.remove(), 0);
+  } catch { /* drag still works with the default image */ }
+}
+
 // Red trash icon — an SVG (not the 🗑 emoji, which ignores `color`) so it
 // renders clearly RED in both light and dark themes via C.rd.
 function TrashIcon({ size = 14, color = C.rd }) {
@@ -1096,6 +1122,52 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // insertion bar). Reorder is constrained to within the source row's day.
   const [dragSrc, setDragSrc] = useState(null);
   const [dragOver, setDragOver] = useState(null);
+  // Whole-DAY drag-to-reorder — separate state from the exercise-row drag so
+  // the two gestures can't cross-fire (exercise drag events bubble up to the
+  // days column, which ignores them unless a day drag is live, and vice
+  // versa). Same visual grammar as the row drag: dim the source, absolute
+  // insertion bar gliding between slots.
+  const [dayDragSrc, setDayDragSrc] = useState(null);   // dayIdx picked up
+  const [dayDragOver, setDayDragOver] = useState(null); // {gap, y} target slot in the days column
+  const dayDragging = dayDragSrc != null;
+  const reorderDay = (from, to) => {
+    setPlan(p => {
+      const days = [...p.days];
+      if (from < 0 || from >= days.length || to < 0 || to >= days.length || from === to) return p;
+      const [moved] = days.splice(from, 1);
+      days.splice(to, 0, moved);
+      return { ...p, days };
+    });
+    // Keep the add-exercise target pointing at the same day it did before.
+    setActiveDay(a => a === from ? to : (from < a && to >= a ? a - 1 : (from > a && to <= a ? a + 1 : a)));
+  };
+  // Drop zone = the whole days column. Gap picked by comparing the cursor
+  // against each day card's vertical centre (same approach as the exercise
+  // grid — see onGridDragOver below for the rationale).
+  const onDaysDragOver = (e) => {
+    if (!dayDragging) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    const cards = [...e.currentTarget.querySelectorAll('[data-daycard]')];
+    let gap = cards.length;
+    for (let i = 0; i < cards.length; i++) { const r = cards[i].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { gap = i; break; } }
+    const cRect = e.currentTarget.getBoundingClientRect();
+    let y;
+    if (cards.length === 0) y = 0;
+    else if (gap === 0) y = cards[0].getBoundingClientRect().top - cRect.top - 7;
+    else if (gap === cards.length) y = cards[cards.length - 1].getBoundingClientRect().bottom - cRect.top + 7;
+    else { const a = cards[gap - 1].getBoundingClientRect(), b = cards[gap].getBoundingClientRect(); y = ((a.bottom + b.top) / 2) - cRect.top; }
+    setDayDragOver(prev => (prev && prev.gap === gap && Math.abs(prev.y - y) < 1) ? prev : { gap, y });
+  };
+  const onDaysDrop = (e) => {
+    if (!dayDragging) return;
+    e.preventDefault();
+    if (dayDragOver) {
+      let to = dayDragOver.gap;
+      if (to > dayDragSrc) to -= 1; // source is spliced out first, so slots above it shift down one
+      if (to !== dayDragSrc) reorderDay(dayDragSrc, to);
+    }
+    setDayDragSrc(null); setDayDragOver(null);
+  };
   // Move exercise from `from` index to `to` index within the same day.
   const reorderExInDay = (di, from, to) => setPlan(p => ({...p, days: p.days.map((d, idx) => {
     if (idx !== di) return d;
@@ -1279,9 +1351,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             PORTAL
           </button>}
-          {onShare && plan?.id && <button onClick={onShare}
+          {/* Flush pending autosave BEFORE share/duplicate: both re-read the
+              plan from the DB, and the 600ms debounce means edits made just
+              before the click aren't there yet — the copy would miss them. */}
+          {onShare && plan?.id && <button onClick={async () => { await flushAutosave(); onShare(); }}
             title="Share this program to another athlete (duplicates it for them)" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>⤴ SHARE</button>}
-          {onDuplicate && plan?.id && <button onClick={onDuplicate}
+          {onDuplicate && plan?.id && <button onClick={async () => { await flushAutosave(); onDuplicate(); }}
             title="Duplicate this program for the same athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>⎘ DUPLICATE</button>}
           {setPortalVis && plan?.id && plan?.traineeId && (() => {
             // "Show only this program" on the athlete's portal — makes THIS the
@@ -1345,13 +1420,17 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           during the block — e.g., a "Morning Routine" day inside a Mon/Wed/Fri
           program. Plan-level kind='daily' is the legacy form (96e5f72) and is
           treated as "all days daily" at display time. */}
-      <div style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16}}>
+      <div onDragOver={onDaysDragOver} onDrop={onDaysDrop} style={{display:"flex",flexDirection:"column",gap:12,marginBottom:16,position:'relative'}}>
         {plan.days.map((d, dayIdx) => {
           const dayExs = d.exercises || [];
           const weeks = plan.weeks || 4;
           const resize = (arr, n, fill) => Array.from({length:n}, (_,i) => (arr && arr[i] !== undefined ? arr[i] : fill));
           const tinyInput = {...baseInput, background:'color-mix(in srgb, var(--c-sf2) 85%, #ffffff)', padding:"3px 6px", fontSize:11, minWidth:0, width:"100%", height:24, boxSizing:"border-box"};
-          const dayCollapsed = !!collapsedDays[d.id];
+          // While a DAY drag is live every card renders collapsed (the 0fr/1fr
+          // transition animates them shut) so the column becomes a compact,
+          // scannable list of headers — same trick the exercise rows use.
+          // collapsedDays itself is untouched; cards re-open where they were.
+          const dayCollapsed = !!collapsedDays[d.id] || dayDragging;
           // Drag-reorder. The whole day grid is the drop zone (not just the
           // narrow drag-handle column it used to be — that made the indicator
           // update only when the cursor happened to be over the # cell, so it
@@ -1393,13 +1472,28 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             setDragSrc(null); setDragOver(null);
           };
           return (
-            <div key={d.id} style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'12px'}}>
+            <div key={d.id} data-daycard style={{background: 'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'12px',opacity:dayDragging&&dayDragSrc===dayIdx?0.4:1,transition:'opacity 120ms'}}>
               {/* marginBottom only while open — a collapsed card otherwise
                   reads 12px above the row but 20px below (off-centre). */}
               {/* Sticky header (compare) gets a hairline below it — rows
                   scroll under it, so without a divider the pinned row reads
                   as floating over the table (Ohad). */}
-              <div style={{display:"flex",alignItems:"center",flexWrap:"wrap",marginBottom:dayCollapsed?0:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:dayCollapsed?0:8,borderBottom:dayCollapsed?'none':`1px solid ${C.cardBd}`} : {})}}>
+              <div data-dayheader style={{display:"flex",alignItems:"center",flexWrap:"wrap",marginBottom:dayCollapsed?0:8,gap:10, ...(compareActive ? {position:'sticky',top:0,zIndex:3,background:'var(--c-sf)',paddingTop:4,marginTop:-4,paddingBottom:dayCollapsed?0:8,borderBottom:dayCollapsed?'none':`1px solid ${C.cardBd}`} : {})}}>
+                {/* Day drag handle — a dedicated ⇕ (not the whole header: the
+                    header holds the name input, and `draggable` on a parent
+                    makes text-selection inside inputs start drags instead). */}
+                {plan.days.length > 1 && <span draggable title="Drag to reorder days" aria-label="Drag to reorder days"
+                  onDragStart={e => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', 'day:' + dayIdx);
+                    setDayDragImage(e, e.currentTarget.closest('[data-daycard]'));
+                    // Deferred one tick — same Chrome gotcha as the exercise
+                    // rows: a synchronous re-render (cards snapping collapsed)
+                    // aborts the drag before it's established.
+                    setTimeout(() => setDayDragSrc(dayIdx), 0);
+                  }}
+                  onDragEnd={() => { setDayDragSrc(null); setDayDragOver(null); }}
+                  style={{cursor:'grab',color:C.tm,fontFamily:FN,fontSize:13,lineHeight:1,flexShrink:0,userSelect:'none',padding:'2px 1px'}}>⇕</span>}
                 <span role="button" tabIndex={0} onClick={()=>toggleDayCollapse(d.id)}
                   onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleDayCollapse(d.id); } }}
                   title={dayCollapsed?'Expand day':'Collapse day'}
@@ -1565,6 +1659,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             in the dead detail view, so the unified editor couldn't add days). */}
         <button onClick={addDay} title="Add a day to this program"
           style={{background:`${C.ac}12`,border:`1px solid ${C.ac}`,borderRadius:0,padding:'15px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase'}}>+ ADD DAY</button>
+        {/* Day insertion bar — absolute overlay, glides between card slots
+            without moving the cards (same pattern as the exercise rows). */}
+        {dayDragging && dayDragOver && dayDragOver.y != null && (
+          <div style={{ position: 'absolute', left: 0, right: 0, top: dayDragOver.y - 1, height: 2, background: C.ac, boxShadow: `0 0 5px ${C.ac}88`, pointerEvents: 'none', zIndex: 4, transition: 'top 90ms ease' }} />
+        )}
       </div>
       {/* (Removed dead `!overview` detail-view day-name input + daily-routine
           toggle — overview is forced true so they never rendered; both live
@@ -1778,10 +1877,17 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // wherever the editor was opened from — typically the trainee card if
   // they clicked "Open Plan" there, no-op when opened from the plans list.
   const handleCancel = () => { setEditMode(false); clearPlan(); reloadIndex(); if (onCloseEditor) onCloseEditor(); };
+  // Toast both outcomes: inside the EDITOR the coach stays on the original
+  // program after duplicating, so without feedback the click looks dead —
+  // that read as "duplicate is broken" (Ohad, 2026-07-05).
   const handleDuplicate = async (planId) => {
     const { supabase: sb } = await import('./supabase');
     const { data } = await sb.from('plans').select('*').eq('id', planId).single();
-    if (data) { await duplicatePlan({ id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase, notes: data.notes, active: data.active, createdAt: data.created_at, days: data.data?.days||[], warmup: data.data?.warmup||[], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase }); await reloadIndex(); }
+    if (!data) { toast('Duplicate failed — could not load the program.', 'error'); return; }
+    const copy = await duplicatePlan({ id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase, notes: data.notes, active: data.active, createdAt: data.created_at, days: data.data?.days||[], warmup: data.data?.warmup||[], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase });
+    await reloadIndex();
+    if (copy) toast(`Duplicated — "${copy.name}"`, 'success', { ttl: 3000 });
+    else toast('Duplicate failed — the save was refused. See console.', 'error');
   };
   const handleDelete = async (planId) => { await deletePlan(planId); setConfirmDelete(null); await reloadIndex(); };
   // Delete from inside the editor (the DELETE button between PORTAL + Save).
@@ -1810,6 +1916,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       await duplicatePlan({ id: data.id, name: data.name, traineeId: athlete.id, phase: data.phase, notes: data.notes, active: true, createdAt: data.created_at, days: data.data?.days || [], warmup: data.data?.warmup || [], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase });
       await reloadIndex();
       try { toast(`Program copied to ${athlete.name}`, 'success', { ttl: 3000 }); } catch { /* noop */ }
+    } else {
+      toast('Share failed — could not load the program.', 'error');
     }
     setShareTarget(null); setShareSearch('');
   };
@@ -1989,13 +2097,73 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     return rows;
   }, [planIndex, clientWorkouts, trainees, search, filterTrainee, traineeMap, sortField, sortDir, portalVis]);
 
+  // Rendered from BOTH returns below — the editor early-return used to skip
+  // these entirely, so SHARE (and the typed-delete confirm) inside the editor
+  // silently did nothing.
+  const deleteModal = pendingDelete ? (() => {
+    const ok = deleteTyped.trim().toLowerCase() === 'delete';
+    const close = () => { setPendingDelete(null); setDeleteTyped(''); };
+    return (
+      <div onClick={close} style={{ position:'fixed', inset:0, zIndex:10001, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+        <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.rd}`, borderRadius:0, width:'min(420px, 94vw)', boxShadow:C.cardShadow }}>
+          <div style={{ padding:'16px 18px 6px', fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.08em', color:C.tx, textTransform:'uppercase' }}>Delete program?</div>
+          <div style={{ padding:'0 18px 12px', fontFamily:FN, fontSize:12, color:C.tm, lineHeight:1.6 }}>
+            “{pendingDelete.name || 'this program'}” — logged workouts stay; this can’t be undone. Type <b style={{color:C.tx}}>delete</b> to confirm.
+          </div>
+          <input value={deleteTyped} onChange={e=>setDeleteTyped(e.target.value)} autoFocus placeholder="type delete"
+            onKeyDown={e=>{ if (e.key==='Enter' && ok) doDelete(); if (e.key==='Escape') close(); }}
+            style={{ margin:'0 18px', width:'calc(100% - 36px)', boxSizing:'border-box', padding:'9px 12px', background:'transparent', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:13, outline:'none' }} />
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'14px 18px' }}>
+            <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>Cancel</button>
+            <button onClick={doDelete} disabled={!ok} style={{ background: ok ? C.rd : 'transparent', border:`1px solid ${C.rd}`, color: ok ? '#FFFFFF' : C.rd, opacity: ok ? 1 : 0.5, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor: ok ? 'pointer' : 'not-allowed', textTransform:'uppercase' }}>Delete</button>
+          </div>
+        </div>
+      </div>
+    );
+  })() : null;
+  const shareModal = shareTarget ? (
+    <ShareAthleteModal
+      trainees={trainees}
+      shareSearch={shareSearch}
+      setShareSearch={setShareSearch}
+      onPick={handleShareToAthlete}
+      onClose={() => { setShareTarget(null); setShareSearch(''); }}
+    />
+  ) : null;
+  // "No programs yet → start one?" prompt — reached from the editor's athlete
+  // dropdown too (assigning to an athlete with zero programs), so it must
+  // render in edit mode as well.
+  const newProgramModal = newProgramPrompt ? (() => {
+    const close = () => setNewProgramPrompt(null);
+    const create = () => { const id = newProgramPrompt.id; close(); handleNewPlan(id); };
+    return (
+      <div onClick={close} style={{ position:'fixed', inset:0, zIndex:10001, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+        <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, width:'min(420px, 94vw)', boxShadow:C.cardShadow }}>
+          <div style={{ padding:'16px 18px 6px', fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.08em', color:C.tx, textTransform:'uppercase' }}>No programs yet</div>
+          <div style={{ padding:'0 18px 14px', fontFamily:FN, fontSize:12, color:C.tm, lineHeight:1.6 }}>
+            {newProgramPrompt.name} has no programs. Start a new one for them?
+          </div>
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'4px 18px 16px' }}>
+            <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>Cancel</button>
+            <button onClick={create} style={{ background:C.ac, border:`1px solid ${C.ac}`, color:'#FFFFFF', borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>+ New Program</button>
+          </div>
+        </div>
+      </div>
+    );
+  })() : null;
+
   if (editMode) {
     if (editLoading || !editPlanData) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
     // key={editPlanData.id} forces a remount when the visitor switches
     // programs via the new in-editor dropdown — PlanEditor's internal `plan`
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
-    return <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} portalVis={portalVis} setPortalVis={setPortalVis} />;
+    return <>
+      <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} portalVis={portalVis} setPortalVis={setPortalVis} />
+      {shareModal}
+      {deleteModal}
+      {newProgramModal}
+    </>;
   }
 
   return (
@@ -2220,77 +2388,45 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         );
       })()}
       <ConfirmDialog open={!!confirmDelete} title="Delete Program?" message="Existing workouts will remain." onConfirm={()=>handleDelete(confirmDelete)} onCancel={()=>setConfirmDelete(null)} />
-      {pendingDelete && (() => {
-        const ok = deleteTyped.trim().toLowerCase() === 'delete';
-        const close = () => { setPendingDelete(null); setDeleteTyped(''); };
-        return (
-          <div onClick={close} style={{ position:'fixed', inset:0, zIndex:10001, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-            <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.rd}`, borderRadius:0, width:'min(420px, 94vw)', boxShadow:C.cardShadow }}>
-              <div style={{ padding:'16px 18px 6px', fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.08em', color:C.tx, textTransform:'uppercase' }}>Delete program?</div>
-              <div style={{ padding:'0 18px 12px', fontFamily:FN, fontSize:12, color:C.tm, lineHeight:1.6 }}>
-                “{pendingDelete.name || 'this program'}” — logged workouts stay; this can’t be undone. Type <b style={{color:C.tx}}>delete</b> to confirm.
-              </div>
-              <input value={deleteTyped} onChange={e=>setDeleteTyped(e.target.value)} autoFocus placeholder="type delete"
-                onKeyDown={e=>{ if (e.key==='Enter' && ok) doDelete(); if (e.key==='Escape') close(); }}
-                style={{ margin:'0 18px', width:'calc(100% - 36px)', boxSizing:'border-box', padding:'9px 12px', background:'transparent', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:13, outline:'none' }} />
-              <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'14px 18px' }}>
-                <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>Cancel</button>
-                <button onClick={doDelete} disabled={!ok} style={{ background: ok ? C.rd : 'transparent', border:`1px solid ${C.rd}`, color: ok ? '#FFFFFF' : C.rd, opacity: ok ? 1 : 0.5, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor: ok ? 'pointer' : 'not-allowed', textTransform:'uppercase' }}>Delete</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-      {newProgramPrompt && (() => {
-        const close = () => setNewProgramPrompt(null);
-        const create = () => { const id = newProgramPrompt.id; close(); handleNewPlan(id); };
-        return (
-          <div onClick={close} style={{ position:'fixed', inset:0, zIndex:10001, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-            <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, width:'min(420px, 94vw)', boxShadow:C.cardShadow }}>
-              <div style={{ padding:'16px 18px 6px', fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.08em', color:C.tx, textTransform:'uppercase' }}>No programs yet</div>
-              <div style={{ padding:'0 18px 14px', fontFamily:FN, fontSize:12, color:C.tm, lineHeight:1.6 }}>
-                {newProgramPrompt.name} has no programs. Start a new one for them?
-              </div>
-              <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'4px 18px 16px' }}>
-                <button onClick={close} style={{ background:'transparent', border:`1px solid ${C.cardBd}`, color:C.tm, borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>Cancel</button>
-                <button onClick={create} style={{ background:C.ac, border:`1px solid ${C.ac}`, color:'#FFFFFF', borderRadius:0, padding:'8px 16px', fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.12em', cursor:'pointer', textTransform:'uppercase' }}>+ New Program</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-      {shareTarget && (() => {
-        // Build the athlete list EXACTLY like the editor's assignment dropdown so
-        // the trainee_id matches: couples expand to per-member ids (t.id__0/__1),
-        // singles use t.id. Assigning to the parent couple id would be wrong.
-        const q = shareSearch.toLowerCase();
-        const list = (trainees || [])
-          .filter(t => t.status !== 'Archived')
-          .flatMap(t => (t.members && t.members.length === 2)
-            ? t.members.map((m, i) => ({ id: t.id + '__' + i, name: m.name || ('Member ' + (i + 1)) }))
-            : [{ id: t.id, name: t.name }])
-          .filter(o => (o.name || '').toLowerCase().includes(q));
-        const close = () => { setShareTarget(null); setShareSearch(''); };
-        return (
-          <div onClick={close} style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-            <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(440px, 94vw)', maxHeight:'80vh', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
-              <div style={{ padding:'14px 18px', borderBottom:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>Share program to…</span>
-                <button onClick={close} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>
-              </div>
-              <input value={shareSearch} onChange={e=>setShareSearch(e.target.value)} placeholder="Search athletes…" autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'10px 18px', background:'transparent', color:C.tx, border:'none', borderBottom:`1px solid ${C.cardBd}`, fontFamily:FN, fontSize:13, outline:'none' }} />
-              <div style={{ overflowY:'auto' }}>
-                {list.map(t => (
-                  <button key={t.id} onClick={()=>handleShareToAthlete(t)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%', padding:'11px 18px', background:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, color:C.tx, fontFamily:FN, fontSize:13, cursor:'pointer', textAlign:'left' }}>
-                    <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.name}</span>
-                    <span style={{ color:C.ac, fontSize:10, fontWeight:700, letterSpacing:'0.1em', flexShrink:0, marginLeft:10 }}>DUPLICATE →</span>
-                  </button>
-                ))}
-                {list.length === 0 && <div style={{ padding:'18px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No athletes match.</div>}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
+      {deleteModal}
+      {newProgramModal}
+      {shareModal}
     </div>);
+}
+
+// Athlete-picker modal for SHARE. Factored out of PlansView's JSX so it can
+// render from BOTH returns — the programs list AND the editor (edit mode
+// early-returns <PlanEditor/>, which used to make the modal unreachable: the
+// editor's SHARE button set state and nothing ever appeared).
+function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onClose }) {
+  // Build the athlete list EXACTLY like the editor's assignment dropdown so
+  // the trainee_id matches: couples expand to per-member ids (t.id__0/__1),
+  // singles use t.id. Assigning to the parent couple id would be wrong.
+  const q = shareSearch.toLowerCase();
+  const list = (trainees || [])
+    .filter(t => t.status !== 'Archived')
+    .flatMap(t => (t.members && t.members.length === 2)
+      ? t.members.map((m, i) => ({ id: t.id + '__' + i, name: m.name || ('Member ' + (i + 1)) }))
+      : [{ id: t.id, name: t.name }])
+    .filter(o => (o.name || '').toLowerCase().includes(q));
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(440px, 94vw)', maxHeight:'80vh', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
+        <div style={{ padding:'14px 18px', borderBottom:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>Share program to…</span>
+          <button onClick={onClose} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>
+        </div>
+        <input value={shareSearch} onChange={e=>setShareSearch(e.target.value)} placeholder="Search athletes…" autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'10px 18px', background:'transparent', color:C.tx, border:'none', borderBottom:`1px solid ${C.cardBd}`, fontFamily:FN, fontSize:13, outline:'none' }} />
+        <div style={{ overflowY:'auto' }}>
+          {list.map(t => (
+            <button key={t.id} onClick={()=>onPick(t)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', width:'100%', padding:'11px 18px', background:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, color:C.tx, fontFamily:FN, fontSize:13, cursor:'pointer', textAlign:'left' }}>
+              <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{t.name}</span>
+              <span style={{ color:C.ac, fontSize:10, fontWeight:700, letterSpacing:'0.1em', flexShrink:0, marginLeft:10 }}>DUPLICATE →</span>
+            </button>
+          ))}
+          {list.length === 0 && <div style={{ padding:'18px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No athletes match.</div>}
+        </div>
+      </div>
+    </div>
+  );
 }
