@@ -2114,8 +2114,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         // EDITORIAL — one left-aligned row of underline tabs riding a
         // continuous baseline hairline (active 2px cyan per stroke ruling).
         if (ident === 'EDITORIAL') return (
-          <div style={{padding:'14px 20px 0'}}>
+          <div style={{padding:'14px 20px 0',position:'relative'}}>
             <style>{`.pv-scroll::-webkit-scrollbar{display:none}`}</style>
+            {/* right-edge fade = "there's more" affordance on narrow screens
+                where MESSAGES scrolls out of view */}
+            <div aria-hidden="true" style={{position:'absolute',top:14,bottom:0,right:20,width:26,background:`linear-gradient(90deg, transparent, ${C.bg})`,pointerEvents:'none',zIndex:1}}/>
             <div className="pv-scroll" style={{display:'flex',gap:0,borderBottom:`1px solid ${C.cardBd}`,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
               {NAV.map(([k,l]) =>
                 <button key={k} onClick={() => setVw(k)}
@@ -2539,10 +2542,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 : 'none';
               if (ident === 'TABLE') return (
                 <div key={i} style={{padding:'8px 0',borderTop:divider,display:'flex',alignItems:'center',gap:10}}>
-                  <span style={{width:18,flexShrink:0,fontFamily:FN,fontSize:10,fontWeight:700,color:C.td,fontVariantNumeric:'tabular-nums',textAlign:'right'}}>{numOf(r.num)}</span>
+                  {/* width 20 (not 18): every ident indents row content 30px
+                      (num 20 + gap 10) so OverviewFocus's fixed 30px
+                      marginInlineStart lines up everywhere */}
+                  <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:10,fontWeight:700,color:C.td,fontVariantNumeric:'tabular-nums',textAlign:'right'}}>{numOf(r.num)}</span>
                   <span style={{flex:1,minWidth:0,fontWeight:600,fontSize:12,lineHeight:1.3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.title}</span>
-                  {r.tempo && <span style={{fontSize:10,color:C.or,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap'}}>{r.tempo}</span>}
-                  <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:56,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
+                  {/* fixed tempo column so the orange values form a true rail
+                      instead of floating ragged between title and rx */}
+                  <span style={{fontSize:10,color:C.or,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right'}}>{r.tempo || ''}</span>
+                  <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',width:72,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
                 </div>
               );
               // number element per identity — square (BASE/RAIL), mono
