@@ -1834,7 +1834,20 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
 
-  const handleOpenPlan = async (planId) => { await loadFullPlan(planId); setEditMode(true); };
+  // Open = fetch the full plan, then flip to the editor. Two lag killers:
+  // (1) the hover preview (220ms timer) has usually ALREADY fetched this
+  //     exact plan — reuse it and open instantly instead of re-fetching;
+  // (2) while a fetch is unavoidable, openingId dims the clicked row so the
+  //     click acknowledges immediately instead of feeling dead for the
+  //     round-trip (the "sometimes slightly laggy" report).
+  const [openingId, setOpeningId] = useState(null);
+  const handleOpenPlan = async (planId) => {
+    clearTimeout(hoverTimerRef.current); setHoverPos(null);
+    if (previewPlan?.id === planId) { setEditPlan(previewPlan); setEditMode(true); return; }
+    setOpeningId(planId);
+    try { await loadFullPlan(planId); setEditMode(true); }
+    finally { setOpeningId(null); }
+  };
   const handleNewPlan = async (presetTraineeId = '') => {
     // Default name "New Program" + persist on creation so the program lands in
     // planIndex and is selectable in the top block picker immediately — before
@@ -2287,7 +2300,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 220);
                   }}
                   onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                  style={{cursor:'pointer',padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                  style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                   <div className="prog-main"
                     style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
@@ -2340,7 +2353,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                           hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 220);
                         }}
                         onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
-                        style={{cursor:'pointer',padding:'7px 14px 7px 32px',display:'flex',alignItems:'center',gap:8,opacity:0.78,borderTop:`1px solid rgba(57,189,255,0.102)`}}>
+                        style={{cursor:openingId===p.id?'progress':'pointer',padding:'7px 14px 7px 32px',display:'flex',alignItems:'center',gap:8,opacity:openingId===p.id?0.45:0.78,transition:'opacity 0.12s',borderTop:`1px solid rgba(57,189,255,0.102)`}}>
                         <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:8}}>
                           <div style={{flex:1,minWidth:0,fontSize:13,color:C.tm,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN}}>{p.name||"Untitled"}</div>
                           <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex</div>
@@ -2371,7 +2384,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       {!grouped && (filtered.length===0?<EmptyState icon="" message="No programs match your search." />:(
         <div style={{display:"grid",gap:6}}>{visible.map(p => {
           const tName = traineeMap[p.traineeId] || "Unassigned";
-          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: 'var(--c-sf)', borderLeft:`3px solid ${C.ac}`}}
+          return <Card key={p.id} onClick={()=>handleOpenPlan(p.id)} style={{padding:'10px 14px', background: 'var(--c-sf)', borderLeft:`3px solid ${C.ac}`, cursor:openingId===p.id?'progress':undefined, opacity:openingId===p.id?0.55:1, transition:'opacity 0.12s'}}
             onMouseEnter={e => {
               const x = e.clientX, y = e.clientY;
               clearTimeout(hoverTimerRef.current);
