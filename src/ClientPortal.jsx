@@ -1946,38 +1946,82 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // anatomy (label above, value below, both centered), so the row
           // shares the page's centre axis with HEY <name> instead of three
           // controls with three different anchor logics.
-          // v5 — VALUE-FIRST hero trio (Ohad: v4 "still ugly"). Big cyan
-          // values carry the row, tiny tracked labels sit BENEATH them
-          // (sports-watch hierarchy), no borders anywhere. Shared 26px
-          // value line keeps the trio level.
-          const cellLabel = {fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.22em',fontWeight:700,textTransform:'uppercase',marginTop:7,whiteSpace:'nowrap'};
-          const cell = {display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',padding:'6px 6px 0',minWidth:0};
-          const valueRow = {height:26,display:'flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'};
-          return (
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr'}}>
-              <div style={cell}>
-                <div style={{...valueRow,flexDirection:'column',height:'auto',minHeight:26,gap:2}}>
-                  {/* the label beneath says BLOCK — value is just "#16" */}
-                  {visPlans.map(p=><span key={p.name} style={{color:C.ac,fontFamily:FN,fontSize:21,fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:'100%',lineHeight:'26px'}}>{(p.name||'').replace(/^block\s*/i,'') || p.name}</span>)}
-                </div>
-                <span style={cellLabel}>Block</span>
-              </div>
-              <div style={cell}>
-                {weekDays.length > 0 ? (
-                  <div style={valueRow}>
-                    <div style={{display:'flex',gap:4}}>
-                      {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:20,height:10,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
-                    </div>
-                    <span style={{fontSize:14,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{doneThisWeek}/{weekDays.length}</span>
+          // ── Three researched finals, switchable via ?hv=1|2|3 ──────────
+          // Shared principles (WHOOP / Nike / Strava patterns): ONE dominant
+          // element per zone (the trio failed because three equal items = no
+          // hierarchy); ≥2.5x value-to-label scale contrast; progress gets a
+          // VISUAL, not digits; metadata collapses to one quiet tracked
+          // line; 8pt spacing grid; tabular numerals.
+          const hv = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('hv')) || '1';
+          const blockLabel = visPlans.length ? ((visPlans[0].name||'').replace(/^block\s*/i,'') || visPlans[0].name) : '';
+          const metaLbl = {fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.2em',fontWeight:700,textTransform:'uppercase',whiteSpace:'nowrap'};
+          const metaVal = {fontSize:12,color:C.ac,fontFamily:FN,fontWeight:700,letterSpacing:'0.06em',fontVariantNumeric:'tabular-nums'};
+          const metaDot = <span aria-hidden="true" style={{color:C.td,fontSize:10,margin:'0 10px'}}>·</span>;
+
+          // V1 FOCUS — the week's progress is the hero: wide segmented bar
+          // centred under the greeting, count beside it; block + sessions
+          // demoted to one metadata line below.
+          // (Ohad: all three on the SAME ROW) — block identity left, the
+          // week progress as the bigger centre element, countdown right.
+          if (hv === '1') return (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'2px 2px 0',whiteSpace:'nowrap'}}>
+              <span style={metaLbl}>Block <span style={metaVal}>{blockLabel}</span></span>
+              {weekDays.length > 0 && (
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  {/* count sits BEFORE the fill blocks (Ohad) */}
+                  <span style={{fontSize:15,color:C.ac,fontFamily:FN,fontWeight:700,letterSpacing:'0.02em',fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
+                  <div style={{display:'flex',gap:4}}>
+                    {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:26,height:9,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
                   </div>
-                ) : <div style={valueRow}><span style={{color:C.td,fontSize:11}}>—</span></div>}
-                <span style={cellLabel}>This Week</span>
-              </div>
-              <div style={cell}>
-                <div style={valueRow}>
-                  <span style={{fontSize:21,fontWeight:700,fontFamily:FN,color:C.ac,lineHeight:1,letterSpacing:'-0.01em',fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span>
                 </div>
-                <span style={cellLabel}>Sessions Left</span>
+              )}
+              <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> Left</span>
+            </div>
+          );
+
+          // V2 EDITORIAL — asymmetric two-column: block identity stacked
+          // left-ragged, one big countdown number flush right (Nike-style
+          // tension between text mass and a single hero numeral).
+          if (hv === '2') return (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,padding:'2px 2px 0'}}>
+              <div style={{display:'flex',flexDirection:'column',gap:6,minWidth:0}}>
+                <span style={{fontSize:20,color:C.tx,fontFamily:FN,fontWeight:700,letterSpacing:'0.03em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1}}>Block <span style={{color:C.ac}}>{blockLabel}</span></span>
+                {weekDays.length > 0 && (
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{...metaLbl,letterSpacing:'0.14em'}}>{doneThisWeek}/{weekDays.length}</span>
+                    <div style={{display:'flex',gap:4}}>
+                      {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:22,height:7,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
+                    </div>
+                    <span style={{...metaLbl,letterSpacing:'0.14em'}}>This Week</span>
+                  </div>
+                )}
+              </div>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,flexShrink:0}}>
+                <span style={{fontSize:34,color:C.ac,fontFamily:FN,fontWeight:700,lineHeight:0.9,letterSpacing:'-0.02em',fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span>
+                <span style={metaLbl}>Left</span>
+              </div>
+            </div>
+          );
+
+          // V3 INSTRUMENT — one continuous 4px progress track edge to edge
+          // (block completion, not just this week), three quiet readouts
+          // anchored under it: left / centre / right (car-dash footer).
+          const totalPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+          return (
+            <div style={{display:'flex',flexDirection:'column',gap:8,padding:'4px 0 0'}}>
+              <div style={{position:'relative',height:4,background:'var(--c-sf2)',overflow:'hidden'}} title={`${completed}/${total} block sessions done`}>
+                <div style={{position:'absolute',inset:'0 auto 0 0',width:`${totalPct}%`,background:C.ac,transition:'width .3s'}}/>
+              </div>
+              <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',whiteSpace:'nowrap'}}>
+                <span style={metaLbl}>Block <span style={metaVal}>{blockLabel}</span></span>
+                {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
+                  <span style={metaVal}>{doneThisWeek}/{weekDays.length}</span>
+                  <span style={{display:'inline-flex',gap:3}}>
+                    {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:12,height:6,borderRadius:0,display:'inline-block',background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`}}/>)}
+                  </span>
+                  <span style={metaLbl}>Week</span>
+                </span>}
+                <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> Left</span>
               </div>
             </div>
           );
@@ -2262,17 +2306,17 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               language as the header stats strip; label style matches the
               strip cell labels. */}
           {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>WEEK</div>
-            {/* v5 — weeks are a FILTER, not pages: floating text with the
-                classic underline pattern (active 2px cyan, inactive
-                transparent), NO box — so it can't be confused with the
-                boxed solid-fill nav above (Ohad: "too similar"). Fixed
-                36px height keeps it level with the KG underline input. */}
-            <div style={{display:'flex',height:36,alignItems:'stretch'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:1,padding:0,borderRadius:0,border:'none',borderBottom:`2px solid ${wk===w?C.ac:'transparent'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, border-color .15s'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',opacity:0.3,fontFamily:FN,fontSize:13,fontWeight:600,letterSpacing:'0.06em',color:C.tm}}>—</div>)}</div></div>}
+            {/* v6 — weeks back in a box (the floating underline read worse,
+                Ohad) but at a SMALLER SCALE than the nav: 30px cells, 11px
+                type, gaps between cells instead of a fused grid, active =
+                tint fill + cyan (nav active = solid + black). Same family,
+                clearly a lighter control. */}
+            <div style={{display:'flex',gap:4,height:32,alignItems:'stretch'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:1,padding:0,borderRadius:0,border:`1px solid ${wk===w?C.ac:C.cardBd}`,background:wk===w?'rgba(57,189,255,0.12)':'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${C.cardBd}`,opacity:0.3,fontFamily:FN,fontSize:11,fontWeight:600,letterSpacing:'0.06em',color:C.tm}}>—</div>)}</div></div>}
           <div style={{width:120}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>BW{lb?` · ${lb}KG`:''}</div>
             <div style={{display:'flex',gap:4}}>
-            {/* KG matches the weeks' underline anatomy — an ENTRY, not a
-                box: transparent, hairline bottom border only, same 36px. */}
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:36,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+            {/* KG box matches the week cells exactly: same 32px border-box,
+                same hairline, filled surface marks it as an input. */}
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background:'var(--c-sf2)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>SAVE</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{activePlan.rest}</div>}
@@ -2318,18 +2362,27 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{background:'var(--c-stripBg, var(--c-sf))',margin:'-14px -14px 0',padding:'8px 14px',borderBottom:`1px solid ${C.cardBd}`}}>
               <span style={{fontSize:13,fontFamily:FN,color:C.or,fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase'}}>Warm-Up · {vp.name} <span style={{opacity:0.65}}>({vp.warmup.length})</span></span>
             </div>
-            {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:20,padding:'7px 0 8px',borderTop:i?`1px solid rgba(127,127,131,0.22)`:'none'}}>
-              <span style={{fontSize:13,color:C.tx,minWidth:0}}>{w.t}</span>
-              <div style={{display:'flex',gap:10,alignItems:'center',flexShrink:0}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600,whiteSpace:'nowrap'}}>{(() => {
-                if (w.sets || w.reps) {
-                  const setsStr = w.sets ?? '';
-                  const repsStr = w.reps ?? '';
-                  const core = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
-                  return w.tempo ? `${core}  ${w.tempo}` : core;
-                }
-                return w.rx || '';
-              })()}</span>
-                </div></div>)}</div>}
+            {/* v6 — warm-up rows use the EXACT day-row anatomy (Ohad: "the
+                reps and sets, the tempo, all look different and worse than
+                the day card"): number square left, cyan sets×reps + orange
+                tempo meta line, title below. */}
+            {vp.warmup.map((w,i) => {
+              const core = (w.sets || w.reps)
+                ? ((w.sets ?? '') && (w.reps ?? '') ? `${w.sets}×${w.reps}` : `${w.sets ?? ''}${w.reps ?? ''}`)
+                : (w.rx || '');
+              return <div key={i} style={{padding:'7px 0 8px',borderTop:i?`1px solid ${C.cardBd}`:'none'}}>
+                <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                  <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.or,flexShrink:0,lineHeight:1}}>{i+1}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
+                      <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{core}</span>
+                      {w.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{w.tempo}</span>}
+                    </div>
+                    <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{w.t}</div>
+                  </div>
+                </div>
+              </div>;
+            })}</div>}
           {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++;
           // Daily-routine: PER-DAY flag (`day.kind === 'daily'`) lets the
