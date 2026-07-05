@@ -977,6 +977,19 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
   const libTarget = libEnabled
     ? (exData || (exTitle ? exercises.find(e => (e.title || '').trim().toLowerCase() === exTitle.trim().toLowerCase()) : null))
     : null;
+  // "Update" is only a real action when the card actually DIFFERS from the
+  // library target — with no diff the push is a no-op, so the button must
+  // not sit highlighted (Ohad: don't light it while the textbox still shows
+  // the untouched library text). Compare against the TARGET's fields, not
+  // libCues/libUrl — a free-text row can match a library entry by title,
+  // and there exData is null so libCues/libUrl are ''.
+  const norm = (s) => (s || '').trim();
+  const libDirty = !!libTarget && (
+    norm(exTitle) !== norm(libTarget.title) ||
+    norm(vidValue) !== norm(libTarget.videoLink) ||
+    norm(noteValue) !== norm(libTarget.cues)
+  );
+  const canUpdateLib = !!libTarget && libDirty;
   const [libConfirm, setLibConfirm] = useState(null); // 'update' | 'new' | null
 
   // Overwrite the target library exercise with this card's name/video/cues, link
@@ -1055,9 +1068,11 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
       {libEnabled && (exTitle || vidValue || noteValue) ? (
         <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center',paddingTop:12,marginTop:2,borderTop:`1px solid ${C.cardBd}`}}>
           <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.14em',marginRight:'auto'}}>EXERCISE DATABASE</span>
-          <button onClick={()=>setLibConfirm('update')} disabled={!libTarget}
-            title={libTarget?`Overwrite "${libTarget.title}" in the exercise database with this card's name, video and notes.`:'No matching library exercise to update — use “Save new exercise”.'}
-            style={{background:'transparent',border:`1px solid ${libTarget?C.ac:C.cardBd}`,color:libTarget?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:libTarget?'pointer':'not-allowed',opacity:libTarget?1:0.5,borderRadius:0,textTransform:'uppercase'}}>↑ Update the exercise database</button>
+          <button onClick={()=>setLibConfirm('update')} disabled={!canUpdateLib}
+            title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
+              : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this card's name, video and notes.`
+              : 'This card matches the library — nothing to update. Edit the name, video or notes first.'}
+            style={{background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}>↑ Update the exercise database</button>
           <button onClick={()=>setLibConfirm('new')}
             title="Create a brand-new exercise in the database from this card, and link this row to it."
             style={{background:'transparent',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:'pointer',borderRadius:0,textTransform:'uppercase'}}>+ Save new exercise</button>
