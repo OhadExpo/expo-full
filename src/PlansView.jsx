@@ -1306,9 +1306,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {/* Athlete assignment — editable, to the LEFT of the block dropdown
               (Ohad). This is the ONLY athlete control now (dropped the duplicate
               field from the row below). */}
-          <div style={{position:'relative',display:'flex',minWidth:0,flex:'1 1 240px',maxWidth:360}}>
-            <select value={plan.traineeId||""} onChange={async e=>{
-                const tid = e.target.value;
+          <AthleteCombo
+            value={plan.traineeId||""}
+            options={[{value:'',label:'Unassigned'}, ...trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}])]}
+            title="Switch to this athlete's program (assigns the current one if they have none yet) — type to search"
+            onPick={async (tid, label)=>{
                 const theirs = tid ? (planIndex||[]).filter(p=>p.traineeId===tid).slice().sort(sortProgramsChrono) : [];
                 // Primary behaviour: changing the athlete navigates to THAT
                 // athlete's latest program (what the coach expects). Only when
@@ -1323,18 +1325,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   // start a new blank program for them. Don't auto-create one (that
                   // left Ohad with junk to delete) and don't silently re-assign.
                   await flushAutosave();
-                  onNewProgramFor(tid, e.target.options[e.target.selectedIndex]?.text);
+                  onNewProgramFor(tid, label);
                 } else {
                   setPlan({...plan,traineeId:tid}); // explicit "Unassigned"
                 }
-              }}
-              title="Switch to this athlete's program (assigns the current one if they have none yet)"
-              style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',height:42,padding:'0 36px 0 18px',borderRadius:0,outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',textAlign:'center',textAlignLast:'center',whiteSpace:'nowrap',textOverflow:'ellipsis'}}>
-              <option value="">Unassigned</option>
-              {trainees.flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i,label:m.name||('Member '+(i+1))})) : [{value:t.id,label:t.name}]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
-          </div>
+              }} />
           {/* Switch-program dropdown — lets the coach scroll between this
               athlete's programs (current + earlier blocks) without leaving
               the editor. Saves any pending edits first. Mounted only when
@@ -2453,6 +2448,56 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
 // render from BOTH returns — the programs list AND the editor (edit mode
 // early-returns <PlanEditor/>, which used to make the modal unreachable: the
 // editor's SHARE button set state and nothing ever appeared).
+// Searchable athlete picker for the editor header (Ohad: "not just picker").
+// Same 42px trigger box as the native select it replaced; opening drops an
+// anchored panel with a filter input + option list. Search state lives inside
+// so typing only re-renders the combo (input focus-loss rule).
+function AthleteCombo({ value, options, onPick, title }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [idx, setIdx] = useState(0);
+  const inputRef = useRef(null);
+  const current = options.find(o => o.value === value);
+  const filtered = q ? options.filter(o => (o.label || '').toLowerCase().includes(q.toLowerCase())) : options;
+  useEffect(() => {
+    if (open) { setQ(''); setIdx(0); const t = setTimeout(() => inputRef.current?.focus(), 0); return () => clearTimeout(t); }
+  }, [open]);
+  const pick = (o) => { setOpen(false); if (o && o.value !== value) onPick(o.value, o.label); };
+  return (
+    <div style={{position:'relative',display:'flex',minWidth:0,flex:'1 1 240px',maxWidth:360}}>
+      <button onClick={()=>setOpen(v=>!v)} title={title}
+        style={{background:'var(--c-sf)',border:`1px solid ${open?C.ac:C.cardBd}`,color:C.tx,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',height:42,padding:'0 36px 0 18px',borderRadius:0,outline:'none',flex:1,minWidth:0,boxSizing:'border-box',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+        <bdi>{current?.label || 'Unassigned'}</bdi>
+      </button>
+      <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
+      {open && <>
+        <div onClick={()=>setOpen(false)} style={{position:'fixed',inset:0,zIndex:9998}} />
+        <div style={{position:'absolute',top:44,left:0,right:0,zIndex:9999,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,boxShadow:C.cardShadow,display:'flex',flexDirection:'column',maxHeight:'min(420px, 60vh)'}}>
+          <input ref={inputRef} value={q}
+            onChange={e=>{ setQ(e.target.value); setIdx(0); }}
+            onKeyDown={e=>{
+              if (e.key === 'ArrowDown') { e.preventDefault(); setIdx(i => Math.min(i + 1, filtered.length - 1)); }
+              else if (e.key === 'ArrowUp') { e.preventDefault(); setIdx(i => Math.max(i - 1, 0)); }
+              else if (e.key === 'Enter') { e.preventDefault(); pick(filtered[idx]); }
+              else if (e.key === 'Escape') { e.preventDefault(); setOpen(false); }
+            }}
+            placeholder="Search athletes…"
+            style={{width:'100%',boxSizing:'border-box',padding:'10px 14px',background:'transparent',color:C.tx,border:'none',borderBottom:`1px solid ${C.cardBd}`,fontFamily:FN,fontSize:13,outline:'none'}} />
+          <div style={{overflowY:'auto'}}>
+            {filtered.map((o, i) => (
+              <button key={o.value || '__none__'} onClick={()=>pick(o)} onMouseEnter={()=>setIdx(i)}
+                style={{display:'block',width:'100%',padding:'9px 14px',background:i===idx?`${C.ac}1f`:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,color:o.value===value?C.ac:C.tx,fontFamily:FN,fontSize:13,fontWeight:o.value===value?700:500,cursor:'pointer',textAlign:'center',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                <bdi>{o.label}</bdi>
+              </button>
+            ))}
+            {filtered.length === 0 && <div style={{padding:'14px',textAlign:'center',color:C.tm,fontFamily:FN,fontSize:12}}>No athletes match.</div>}
+          </div>
+        </div>
+      </>}
+    </div>
+  );
+}
+
 function ShareAthleteModal({ trainees, shareSearch, setShareSearch, onPick, onClose }) {
   // Build the athlete list EXACTLY like the editor's assignment dropdown so
   // the trainee_id matches: couples expand to per-member ids (t.id__0/__1),
