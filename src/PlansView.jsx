@@ -2291,26 +2291,30 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   <div className="prog-main"
                     style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
-                    <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{cur.name||"Untitled"}</div>
+                    <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:'0 1 auto'}}>{cur.name||"Untitled"}</div>
+                    {/* +N earlier-blocks expander lives right after the block
+                        number (Ohad uses it constantly — was buried in the
+                        action cluster on the far right). */}
+                    {row.earlier.length > 0 && (
+                      <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
+                        title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
+                        style={{display:'inline-flex',alignItems:'center',justifyContent:'space-between',height:30,width:48,padding:'0 8px',background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums',alignSelf:'center'}}>
+                        <span style={{flexShrink:0}}>{expanded?'▴':'▾'}</span>
+                        <span>{expanded?row.earlier.length:`+${row.earlier.length}`}</span>
+                      </button>
+                    )}
+                    <div style={{flex:1}} />
                     <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
                   </div>
-                  {/* Fixed-width columns + reserved empty slots for the +N and
-                      LATEST-ONLY controls (absent on rows with no earlier
-                      blocks) so every box sits in the same column down the
-                      list. Order: tag · +N · ON PORTAL · LATEST ONLY · PREVIEW
-                      · DUPLICATE · SHARE. */}
+                  {/* Fixed-width columns so every box sits in the same column
+                      down the list. Order: tag · ON PORTAL · PREVIEW ·
+                      DUPLICATE · SHARE · DELETE. */}
                   <div className="prog-actions"
                     onMouseEnter={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
                     style={{display:'flex',gap:8,alignItems:'center',justifyContent:'flex-end',flexShrink:0}}>
                     <span title={`Last session: ${tagText.toLowerCase()}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:30,width:112,fontSize:10,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText.toLowerCase()}</span>
-                    {row.earlier.length > 0 ? (
-                      <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
-                        title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                        style={{display:'inline-flex',alignItems:'center',justifyContent:'space-between',height:30,width:48,padding:'0 8px',background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums'}}>
-                        <span style={{flexShrink:0}}>{expanded?'▴':'▾'}</span>
-                        <span>{expanded?row.earlier.length:`+${row.earlier.length}`}</span>
-                      </button>
-                    ) : <div style={{width:48,flexShrink:0}} />}
+                    {/* +N expander moved into prog-main next to the block
+                        number — no reserved slot needed here anymore. */}
                     {setPortalVis ? (() => {
                       const vk = visKeyForPlan(cur, trainees);
                       if (!vk) return <div style={{width:108,flexShrink:0}} />;
