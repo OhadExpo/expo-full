@@ -123,7 +123,6 @@ function pageHtml(p) {
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
   <meta http-equiv="refresh" content="0; url=/#/programs/${p.id}" />
-  <script>location.replace('/#/programs/${p.id}');</script>
   <style>
     html,body{background:#000;color:#f0f0f4;font-family:system-ui,sans-serif;margin:0;padding:24px;text-align:center}
     a{color:#39BDFF}
