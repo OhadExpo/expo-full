@@ -1864,6 +1864,22 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
   // and History so the layout stays consistent across tabs.
+  //
+  // ?pv=1..5 — five COMPLETE design identities for Ohad's review round
+  // (2026-07-05): every styled zone (stats header / nav / weeks+KG /
+  // warm-up card / day cards) renders per identity. Brand constants hold
+  // across all five: #39BDFF cyan, JetBrains Mono, square corners,
+  // hairlines, orange warm-up identity, green done.
+  //   (no param) BASE — the design Ohad approved as baseline (commit
+  //                     44540d0): segmented strips + strip-header cards.
+  //                     ALWAYS reachable at the bare /athlete URL.
+  //   1 EDITORIAL — asymmetric type, underline tabs, left-rail cards
+  //   2 TABLE     — progress track, fused controls, single-line data rows
+  //   3 CONSOLE   — mono banner, inverse-video actives, numbered listing
+  //   4 AIR       — no chrome: whitespace, text-only controls, open cards
+  //   5 RAIL      — cyan rails: hero week bar, rail-topped actives, left-rail cards
+  const pv = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pv')) || '0';
+  const ident = ({'1':'EDITORIAL','2':'TABLE','3':'CONSOLE','4':'AIR','5':'RAIL'})[pv] || 'BASE';
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
   const renderTopHeader = () => (
     <>
@@ -1946,13 +1962,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // anatomy (label above, value below, both centered), so the row
           // shares the page's centre axis with HEY <name> instead of three
           // controls with three different anchor logics.
-          // ── Three researched finals, switchable via ?hv=1|2|3 ──────────
+          // ── Stats header per identity ───────────────────────────────────
           // Shared principles (WHOOP / Nike / Strava patterns): ONE dominant
           // element per zone (the trio failed because three equal items = no
           // hierarchy); ≥2.5x value-to-label scale contrast; progress gets a
           // VISUAL, not digits; metadata collapses to one quiet tracked
           // line; 8pt spacing grid; tabular numerals.
-          const hv = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('hv')) || '1';
+          const hv = ({BASE:'1',EDITORIAL:'2',TABLE:'3',CONSOLE:'4',AIR:'5',RAIL:'6'})[ident];
           const blockLabel = visPlans.length ? ((visPlans[0].name||'').replace(/^block\s*/i,'') || visPlans[0].name) : '';
           const metaLbl = {fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.2em',fontWeight:700,textTransform:'uppercase',whiteSpace:'nowrap'};
           const metaVal = {fontSize:12,color:C.ac,fontFamily:FN,fontWeight:700,letterSpacing:'0.06em',fontVariantNumeric:'tabular-nums'};
@@ -2003,11 +2019,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             </div>
           );
 
-          // V3 INSTRUMENT — one continuous 4px progress track edge to edge
+          // V3 TABLE — one continuous 4px progress track edge to edge
           // (block completion, not just this week), three quiet readouts
           // anchored under it: left / centre / right (car-dash footer).
           const totalPct = total > 0 ? Math.round((completed / total) * 100) : 0;
-          return (
+          if (hv === '3') return (
             <div style={{display:'flex',flexDirection:'column',gap:8,padding:'4px 0 0'}}>
               <div style={{position:'relative',height:4,background:'var(--c-sf2)',overflow:'hidden'}} title={`${completed}/${total} block sessions done`}>
                 <div style={{position:'absolute',inset:'0 auto 0 0',width:`${totalPct}%`,background:C.ac,transition:'width .3s'}}/>
@@ -2025,6 +2041,62 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>
             </div>
           );
+
+          // V4 CONSOLE — a mono status banner boxed by top+bottom hairlines
+          // only. One line: identity left, progress mid, countdown right —
+          // inverse-video accents, everything tabular. Symmetric: banner
+          // padding 10/10, groups share one baseline.
+          if (hv === '4') return (
+            <div style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'flex',alignItems:'baseline',justifyContent:'space-between',whiteSpace:'nowrap',gap:10}}>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx}}>BLOCK <span style={{color:C.ac}}>{blockLabel}</span></span>
+              {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN}}>
+                <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums'}}>{doneThisWeek}/{weekDays.length}</span>
+                <span style={{display:'inline-flex',gap:2}}>
+                  {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:10,height:10,display:'inline-block',background:isDayDone(d)?C.ac:'var(--c-sf2)',border:`1px solid ${isDayDone(d)?C.ac:C.cardBd}`}}/>)}
+                </span>
+                <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700}}>WEEK</span>
+              </span>}
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> LEFT</span>
+            </div>
+          );
+
+          // V5 AIR — no chrome at all: one centred whisper line, values in
+          // cyan, progress as small dots, wide tracking. Symmetric around
+          // the page centre like the greeting above it.
+          if (hv === '5') return (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',padding:'2px 0 0'}}>
+              <span style={{...metaLbl,letterSpacing:'0.24em'}}>Block <span style={metaVal}>{blockLabel}</span></span>
+              {weekDays.length > 0 && <>
+                {metaDot}
+                <span style={{display:'inline-flex',alignItems:'center',gap:8}}>
+                  <span style={metaVal}>{doneThisWeek}/{weekDays.length}</span>
+                  <span style={{display:'inline-flex',gap:5,alignItems:'center'}}>
+                    {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:7,height:7,borderRadius:0,display:'inline-block',transform:'rotate(45deg)',background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`}}/>)}
+                  </span>
+                </span>
+              </>}
+              {metaDot}
+              <span style={{...metaLbl,letterSpacing:'0.24em'}}><span style={metaVal}>{blockLeft}</span> Left</span>
+            </div>
+          );
+
+          // V6 RAIL — the week is the hero: one row, count BEFORE wide fill
+          // blocks in the centre at hero scale, block identity left and
+          // countdown right as quiet anchors. Same-row rule holds.
+          return (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'2px 2px 0',whiteSpace:'nowrap'}}>
+              <span style={metaLbl}>Block <span style={metaVal}>{blockLabel}</span></span>
+              {weekDays.length > 0 && (
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:17,color:C.ac,fontFamily:FN,fontWeight:700,letterSpacing:'0.02em',fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
+                  <div style={{display:'flex',gap:4}}>
+                    {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:34,height:11,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',borderTop:`2px solid ${isDayDone(d)?C.ac:C.cardBd}`,borderLeft:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,borderRight:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,borderBottom:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
+                  </div>
+                </div>
+              )}
+              <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> Left</span>
+            </div>
+          );
         })()}
       </div>
       {/* Two-row nav — v2 (Ohad 2026-07-05: "too messy, no borders, nobody
@@ -2037,24 +2109,94 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           ['prog','PROGRAM'],['bwt','BW'],['meal','MEAL LOG'],
           ['hist',`HISTORY (${cw.length})`],['pr','PRs'],['msg','MESSAGES'],
         ];
+        const unreadDot = (k) => k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>;
+
+        // EDITORIAL — one left-aligned row of underline tabs riding a
+        // continuous baseline hairline (active 2px cyan per stroke ruling).
+        if (ident === 'EDITORIAL') return (
+          <div style={{padding:'14px 20px 0'}}>
+            <style>{`.pv-scroll::-webkit-scrollbar{display:none}`}</style>
+            <div className="pv-scroll" style={{display:'flex',gap:0,borderBottom:`1px solid ${C.cardBd}`,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+              {NAV.map(([k,l]) =>
+                <button key={k} onClick={() => setVw(k)}
+                  style={{padding:'10px 10px',marginBottom:-1,borderRadius:0,border:'none',
+                    borderBottom:`2px solid ${vw===k?C.ac:'transparent'}`,
+                    background:'transparent',color:vw===k?C.ac:C.tm,
+                    fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',
+                    cursor:'pointer',position:'relative',whiteSpace:'nowrap',flexShrink:0,
+                    transition:'color .15s, border-color .15s'}}>
+                  {l}{unreadDot(k)}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+
+        // CONSOLE — same 3×2 grid geometry, but inverse-video active
+        // with a ▸ cursor prefix; every cell mono, tight tracking.
+        if (ident === 'CONSOLE') return (
+          <div style={{padding:'14px 20px 0'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`}}>
+              {NAV.map(([k,l], i) =>
+                <button key={k} onClick={() => setVw(k)}
+                  style={{padding:'11px 4px',borderRadius:0,border:'none',
+                    borderLeft: i % 3 ? `1px solid ${C.cardBd}` : 'none',
+                    borderTop: i >= 3 ? `1px solid ${C.cardBd}` : 'none',
+                    background: vw===k ? C.ac : 'transparent',
+                    color: vw===k ? '#000000' : C.tm,
+                    fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',
+                    cursor:'pointer',position:'relative',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                    transition:'background .12s, color .12s'}}>
+                  {vw===k ? '▸ ' : ''}{l}{unreadDot(k)}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+
+        // AIR — chrome-free: two centred text rows, the active page is
+        // a small solid cyan chip; everything else is bare tracked text.
+        if (ident === 'AIR') return (
+          <div style={{padding:'16px 20px 0',display:'flex',flexDirection:'column',gap:10}}>
+            {[NAV.slice(0,3), NAV.slice(3)].map((row, ri) => (
+              <div key={ri} style={{display:'flex',justifyContent:'center',gap:26}}>
+                {row.map(([k,l]) =>
+                  <button key={k} onClick={() => setVw(k)}
+                    style={{padding:'5px 10px',borderRadius:0,border:'none',
+                      background: vw===k ? C.ac : 'transparent',
+                      color: vw===k ? '#000000' : C.tm,
+                      fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',
+                      cursor:'pointer',position:'relative',whiteSpace:'nowrap',
+                      transition:'background .15s, color .15s'}}>
+                    {l}{unreadDot(k)}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+
+        // BASE (house: SOLID cyan active) + TABLE (quiet tint active) +
+        // RAIL (tint active with a 2px cyan top rail echoing the cards) —
+        // all share the segmented 3×2 grid geometry.
+        const active = (k) => vw === k;
+        const activeBg = ident === 'BASE' ? C.ac : 'rgba(57,189,255,0.12)';
+        const activeFg = ident === 'BASE' ? '#000000' : C.ac;
         return (
           <div style={{padding:'14px 20px 0'}}>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`,background:'var(--c-sf)'}}>
-              {/* Active page = SOLID cyan fill + black text — pages, not
-                  filters. The WEEK strip below keeps the quiet tint fill,
-                  so the two segmented controls stop reading as twins
-                  (Ohad: "too similar to the weeks boxes"). */}
               {NAV.map(([k,l], i) =>
                 <button key={k} onClick={() => setVw(k)}
                   style={{padding:'12px 4px',borderRadius:0,border:'none',
                     borderLeft: i % 3 ? `1px solid ${C.cardBd}` : 'none',
                     borderTop: i >= 3 ? `1px solid ${C.cardBd}` : 'none',
-                    background: vw===k ? C.ac : 'transparent',
-                    color: vw===k ? '#000000' : C.tm,
+                    boxShadow: ident === 'RAIL' && active(k) ? `inset 0 2px 0 0 ${C.ac}` : 'none',
+                    background: active(k) ? activeBg : 'transparent',
+                    color: active(k) ? activeFg : C.tm,
                     fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',
                     cursor:'pointer',position:'relative',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
                     transition:'background .15s, color .15s'}}>
-                  {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>}
+                  {l}{unreadDot(k)}
                 </button>
               )}
             </div>
@@ -2306,17 +2448,53 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               language as the header stats strip; label style matches the
               strip cell labels. */}
           {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>WEEK</div>
-            {/* v6 — weeks back in a box (the floating underline read worse,
-                Ohad) but at a SMALLER SCALE than the nav: 30px cells, 11px
-                type, gaps between cells instead of a fused grid, active =
-                tint fill + cyan (nav active = solid + black). Same family,
-                clearly a lighter control. */}
-            <div style={{display:'flex',gap:4,height:32,alignItems:'stretch'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:1,padding:0,borderRadius:0,border:`1px solid ${wk===w?C.ac:C.cardBd}`,background:wk===w?'rgba(57,189,255,0.12)':'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${C.cardBd}`,opacity:0.3,fontFamily:FN,fontSize:11,fontWeight:600,letterSpacing:'0.06em',color:C.tm}}>—</div>)}</div></div>}
+            {/* Weeks per identity. All fixed 32px so the KG input stays
+                level in every version. */}
+            {(() => {
+              const N = activePlan ? (activePlan.weeks || 4) : 4;
+              const mk = (w, styles) => activePlan
+                ? <button key={w} onClick={() => setWk(w)} style={styles}>W{w+1}</button>
+                : <div key={w} style={{...styles,opacity:0.3,display:'flex',alignItems:'center',justifyContent:'center',border:styles.border||'none'}}>—</div>;
+              // EDITORIAL — underline text (coherent: the nav is underline too)
+              if (ident === 'EDITORIAL') return (
+                <div style={{display:'flex',height:32,alignItems:'stretch',borderBottom:`1px solid ${C.cardBd}`}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,marginBottom:-1,borderRadius:0,border:'none',borderBottom:`2px solid ${activePlan&&wk===w?C.ac:'transparent'}`,background:'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, border-color .15s'}))}
+                </div>);
+              // TABLE — one fused segmented strip (instrument cluster)
+              if (ident === 'TABLE') return (
+                <div style={{display:'grid',gridTemplateColumns:`repeat(${N}, 1fr)`,border:`1px solid ${C.cardBd}`,height:32,boxSizing:'border-box'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{padding:0,borderRadius:0,border:'none',borderLeft:w?`1px solid ${C.cardBd}`:'none',background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s'}))}
+                </div>);
+              // CONSOLE — mono chips, ACTIVE = inverse video
+              if (ident === 'CONSOLE') return (
+                <div style={{display:'flex',gap:4,height:32,alignItems:'stretch'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,background:activePlan&&wk===w?C.ac:'transparent',color:activePlan&&wk===w?'#000000':C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',transition:'color .12s, background .12s'}))}
+                </div>);
+              // AIR — bare text, active = cyan + weight only (full 32px
+              // hit-targets so the row bottoms out level with the KG box)
+              if (ident === 'AIR') return (
+                <div style={{display:'flex',height:32,alignItems:'stretch',justifyContent:'space-between',padding:'0 4px'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{padding:'0 8px',height:32,borderRadius:0,border:'none',background:'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:activePlan&&wk===w?700:500,letterSpacing:'0.08em',cursor:'pointer',transition:'color .15s'}))}
+                </div>);
+              // RAIL — fused strip, active carries a 2px cyan top rail
+              if (ident === 'RAIL') return (
+                <div style={{display:'grid',gridTemplateColumns:`repeat(${N}, 1fr)`,border:`1px solid ${C.cardBd}`,height:32,boxSizing:'border-box'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{padding:0,borderRadius:0,border:'none',borderLeft:w?`1px solid ${C.cardBd}`:'none',boxShadow:activePlan&&wk===w?`inset 0 2px 0 0 ${C.ac}`:'none',background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s'}))}
+                </div>);
+              // BASE — compact separated boxes, tint active (approved)
+              return (
+                <div style={{display:'flex',gap:4,height:32,alignItems:'stretch'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}))}
+                </div>);
+            })()}</div>}
           <div style={{width:120}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>BW{lb?` · ${lb}KG`:''}</div>
             <div style={{display:'flex',gap:4}}>
-            {/* KG box matches the week cells exactly: same 32px border-box,
-                same hairline, filled surface marks it as an input. */}
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background:'var(--c-sf2)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+            {/* KG matches the week cells: 32px border-box in every identity;
+                underline material where the identity is underline/bare. */}
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan}
+              style={(ident === 'EDITORIAL' || ident === 'AIR')
+                ? {background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}
+                : {background:'var(--c-sf2)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>SAVE</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{activePlan.rest}</div>}
@@ -2341,7 +2519,130 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         </div>}
         {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>NO ACTIVE PROGRAM</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
         {/* Per-plan block: divider → warm-up → rest → training days */}
-        {(()=>{ let globalDayIdx = 0; return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
+        {(()=>{ let globalDayIdx = 0;
+          // ── buildCard: ONE card renderer, six identities ────────────────
+          // rows: [{num, rx, tempo, title, focus?}]; accent = C.or (warm-up)
+          // or C.ac (day); header extras (✓ / N LOGGED) and the LOG action
+          // are passed in so warm-up and day cards share every identity's
+          // chrome and rhythm exactly (Ohad: same design, obviously).
+          const buildCard = ({ key, accent, title, count, extras = null, action = null, rows, borderColor, countColor }) => {
+            const hair = C.cardBd;
+            const isWu = accent === C.or;
+            const numOf = (n) => ident === 'CONSOLE' ? String(n).padStart(2,'0') : String(n);
+            // Row: two-line everywhere except TABLE (single-line data row).
+            const exRow = (r, i) => {
+              // AIR breathes: dividers at ~40% of the house hairline
+              const divider = i
+                ? (ident === 'CONSOLE' ? `1px dashed ${hair}`
+                  : ident === 'AIR' ? '1px solid rgba(127,127,131,0.16)'
+                  : `1px solid ${hair}`)
+                : 'none';
+              if (ident === 'TABLE') return (
+                <div key={i} style={{padding:'8px 0',borderTop:divider,display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{width:18,flexShrink:0,fontFamily:FN,fontSize:10,fontWeight:700,color:C.td,fontVariantNumeric:'tabular-nums',textAlign:'right'}}>{numOf(r.num)}</span>
+                  <span style={{flex:1,minWidth:0,fontWeight:600,fontSize:12,lineHeight:1.3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.title}</span>
+                  {r.tempo && <span style={{fontSize:10,color:C.or,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap'}}>{r.tempo}</span>}
+                  <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:56,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
+                </div>
+              );
+              // number element per identity — square (BASE/RAIL), mono
+              // listing number (CONSOLE/EDITORIAL), bare numeral (AIR)
+              const numEl = (ident === 'BASE' || ident === 'RAIL')
+                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:accent,flexShrink:0,lineHeight:1}}>{r.num}</div>
+                : <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:11,fontWeight:700,color:ident==='AIR'?accent:C.td,fontVariantNumeric:'tabular-nums',textAlign:ident==='AIR'?'left':'right',lineHeight:'20px'}}>{numOf(r.num)}</span>;
+              return (
+                <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '7px 0 8px',borderTop:divider}}>
+                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                    {numEl}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
+                        <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{r.rx}</span>
+                        {r.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{r.tempo}</span>}
+                      </div>
+                      <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{r.title}</div>
+                    </div>
+                  </div>
+                  {r.focus && <OverviewFocus text={r.focus} />}
+                </div>
+              );
+            };
+            // LOG action per identity: bordered chip (BASE/TABLE/CONSOLE/
+            // RAIL) or a text link (EDITORIAL/AIR).
+            const actionEl = action && ((ident === 'EDITORIAL' || ident === 'AIR')
+              ? <button onClick={action.onClick} style={{background:'none',border:'none',padding:0,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>{action.label} →</button>
+              : <button onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
+            const titleGroup = (size, tracking) => (
+              <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+                <span style={{display:'inline-flex',alignItems:'baseline',gap:10,whiteSpace:'nowrap',minWidth:0}}>
+                  <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
+                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',...(countColor?{opacity:0.65}:{})}}>{count}</span>
+                </span>
+                {extras}
+              </div>
+            );
+            // ── card chrome per identity ──
+            if (ident === 'EDITORIAL') return (
+              <div key={key} style={{background:'var(--c-sf)',borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:14,padding:'12px 16px 0'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:10,borderBottom:`1px solid ${hair}`}}>
+                  {titleGroup(16,'0.02em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            if (ident === 'CONSOLE') return (
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${borderColor || hair}`,borderRadius:0,marginBottom:12,padding:'0 14px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'8px 0',borderBottom:`1px solid ${hair}`}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+                    <span aria-hidden="true" style={{width:4,height:14,background:accent,flexShrink:0}}/>
+                    {titleGroup(12,'0.12em')}
+                  </div>
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            if (ident === 'AIR') return (
+              <div key={key} style={{marginBottom:26}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:9,borderBottom:`1px solid ${hair}`}}>
+                  {titleGroup(15,'0.06em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            if (ident === 'RAIL') return (
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${hair}`,borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:12,padding:'10px 16px 0'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:9,borderBottom:`1px solid ${hair}`}}>
+                  {titleGroup(13,'0.04em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            if (ident === 'TABLE') return (
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${borderColor || hair}`,borderRadius:0,marginBottom:12,padding:'0 14px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'8px 0',borderBottom:`1px solid ${hair}`}}>
+                  {titleGroup(12,'0.06em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            // BASE — approved strip-header card, untouched geometry
+            // (warm-up keeps its committed 14px horizontal padding; day 18px)
+            const bpx = isWu ? 14 : 18;
+            return (
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${borderColor || C.ac}`,borderRadius:0,marginBottom:isWu?14:12,padding:`14px ${bpx}px 0`}}>
+                <div style={{background:'var(--c-stripBg, var(--c-sf))',margin:`-14px -${bpx}px 0`,padding:`8px ${bpx}px`,borderBottom:`1px solid ${hair}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                  {titleGroup(13,'0.04em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+          };
+          return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
             <div style={{flex:1,height:1,background:C.bd2}}/>
             <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{vp.name.toUpperCase()}</span>
@@ -2352,37 +2653,22 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               routine — the plan-level warm-up doesn't apply to those, so
               showing it just creates UI noise. If even one day is week-paced,
               the warm-up is still relevant and stays visible. */}
-          {vp.warmup?.length > 0 && !(vp.kind === 'daily' || (Array.isArray(vp.days) && vp.days.length > 0 && vp.days.every(d => d.kind === 'daily'))) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'14px 14px 0',marginBottom:14}}>
-            {/* v2 — strip header, same card language as the coach app
-                (RefinedHeaderStrip pattern: bleeds to the card edge, closed
-                by a bottom hairline). Warm-up keeps its orange identity.
-                Same OCD rhythm as the day cards: strip marginBottom 0 +
-                card bottom padding 0 → the rows' symmetric padding is the
-                only vertical spacing. */}
-            <div style={{background:'var(--c-stripBg, var(--c-sf))',margin:'-14px -14px 0',padding:'8px 14px',borderBottom:`1px solid ${C.cardBd}`}}>
-              <span style={{fontSize:13,fontFamily:FN,color:C.or,fontWeight:700,letterSpacing:'0.04em',textTransform:'uppercase'}}>Warm-Up · {vp.name} <span style={{opacity:0.65}}>({vp.warmup.length})</span></span>
-            </div>
-            {/* v6 — warm-up rows use the EXACT day-row anatomy (Ohad: "the
-                reps and sets, the tempo, all look different and worse than
-                the day card"): number square left, cyan sets×reps + orange
-                tempo meta line, title below. */}
-            {vp.warmup.map((w,i) => {
-              const core = (w.sets || w.reps)
+          {vp.warmup?.length > 0 && !(vp.kind === 'daily' || (Array.isArray(vp.days) && vp.days.length > 0 && vp.days.every(d => d.kind === 'daily'))) && buildCard({
+            key: 'wu-' + vp.name,
+            accent: C.or,
+            borderColor: C.cardBd,
+            title: `Warm-Up · ${vp.name}`,
+            count: `(${vp.warmup.length})`,
+            countColor: C.or,
+            rows: vp.warmup.map((w,i) => ({
+              num: i + 1,
+              rx: (w.sets || w.reps)
                 ? ((w.sets ?? '') && (w.reps ?? '') ? `${w.sets}×${w.reps}` : `${w.sets ?? ''}${w.reps ?? ''}`)
-                : (w.rx || '');
-              return <div key={i} style={{padding:'7px 0 8px',borderTop:i?`1px solid ${C.cardBd}`:'none'}}>
-                <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                  <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.or,flexShrink:0,lineHeight:1}}>{i+1}</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
-                      <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{core}</span>
-                      {w.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{w.tempo}</span>}
-                    </div>
-                    <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{w.t}</div>
-                  </div>
-                </div>
-              </div>;
-            })}</div>}
+                : (w.rx || ''),
+              tempo: w.tempo,
+              title: w.t,
+            })),
+          })}
           {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++;
           // Daily-routine: PER-DAY flag (`day.kind === 'daily'`) lets the
@@ -2402,68 +2688,41 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // Done days: neutral border (no green box) + a green ✓ next to the name
           // (Ohad: "don't like the green around the cyan DONE — green check instead").
           const doneBorderColor = done ? C.cardBd : C.ac;
-          return <div key={vp.name+'-'+di} style={{background:'var(--c-sf)',border:`1px solid ${doneBorderColor}`,borderRadius:0,marginBottom:12,padding:'14px 18px 0'}}>
-            {/* v2 — day title lives in a strip header (coach-app card
-                language): name + ✓ + count left, LOG button right, closed
-                by the bottom hairline. OCD alignment (Ohad): the strip's
-                marginBottom is 0 and the card's bottom padding is 0, so the
-                rows' own symmetric 8px padding is the ONLY vertical rhythm —
-                gap(hairline→row1) == gap(title→divider) == gap(last→border). */}
-            <div style={{background:'var(--c-stripBg, var(--c-sf))',margin:'-14px -18px 0',padding:'8px 18px',borderBottom:`1px solid ${C.cardBd}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
-              <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
-                {/* DAY A + 7 EX share a BASELINE box (13px vs 10px text
-                    center-aligns wrong — the small label floats high);
-                    the ✓ badge stays center-aligned as a box. */}
-                <span style={{display:'inline-flex',alignItems:'baseline',gap:10,whiteSpace:'nowrap'}}>
-                  <span style={{fontWeight:700,fontSize:13,fontFamily:FN,letterSpacing:'0.04em',textTransform:'uppercase'}}>{day.name}</span>
-                  <span style={{fontSize:10,color:C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase'}}>{day.ex.length} EX</span>
-                </span>
-                {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:14,height:14,borderRadius:0,background:C.gn,color:'#FFFFFF',fontSize:10,fontWeight:800,lineHeight:1,flexShrink:0}}>✓</span>}
-                {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em'}}>{dailyCount} LOGGED</span>}
-              </div>
-              <button onClick={() => setLg(dayIdx)} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{done?'AGAIN':'LOG'}</button>
-            </div>
-            {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
-              const focus = weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${wk}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk}`];
-              const v = 'vid' in ex ? ex.vid : d.vid;
-              // Two-row layout: meta row (index + reps + tempo + VIDEO) is
-              // always single-line so the eye never has to track a long
-              // title against a small rep count. The exercise NAME gets a
-              // clean second row (indented past the index) and can wrap
-              // freely without crowding the metadata.
-              return <div key={i} style={{padding:'7px 0 8px',borderTop:i?`1px solid ${C.cardBd}`:'none'}}>
-                {/* Number square is a LEFT COLUMN centered against the
-                    meta+title pair (Ohad: "vertically aligned in the center
-                    between the reps/sets and the exercise name"), not a
-                    passenger of the meta row. paddingTop is 7 (not 8): the
-                    meta line's inline box sits 0.8px lower than the padding
-                    edge, so 7px top ≈ 8px bottom measured at the text —
-                    divider-to-meta == title-to-divider (Ohad's ruler). */}
-                <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                  <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,lineHeight:1}}>{i+1}</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
-                      {/* Weekly cells are FREE-TEXT: some hold a full prescription
-                          ("2x10 e"), some bare reps ("8"). Show full cells as-is;
-                          prefix SETSx onto bare ones — otherwise rows with weekly
-                          overrides lose their sets (Ohad 2026-07-05). */}
-                      <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{(() => {
-                        const sets = (ex.wkS && ex.wkS[wk]) || ex.s;
-                        if (!hw) return sets + 'x' + ex.r;
-                        const wrS = String(wr ?? '').trim();
-                        if (!wrS) return sets + 'x' + ex.r;
-                        return /[x×]/i.test(wrS) ? wrS : sets + 'x' + wrS;
-                      })()}</span>
-                      {ex.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{ex.tempo}</span>}
-                    </div>
-                    <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{d.t}</div>
-                  </div>
-                  {/* No video in the overview — the athlete watches it inside the
-                      logging session, so showing it here just clutters (Ohad). */}
-                </div>
-                {focus && <OverviewFocus text={focus} />}
-              </div>})}
-          </div>})}</React.Fragment>)})()}
+          // Weekly cells are FREE-TEXT: some hold a full prescription
+          // ("2x10 e"), some bare reps ("8"). Show full cells as-is; prefix
+          // SETSx onto bare ones (Ohad 2026-07-05). No video in the
+          // overview — it lives in the logging session.
+          const rxOf = (ex) => {
+            const hw = ex.wk?.length > 0;
+            const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
+            const sets = (ex.wkS && ex.wkS[wk]) || ex.s;
+            if (!hw) return sets + 'x' + ex.r;
+            const wrS = String(wr ?? '').trim();
+            if (!wrS) return sets + 'x' + ex.r;
+            return /[x×]/i.test(wrS) ? wrS : sets + 'x' + wrS;
+          };
+          return buildCard({
+            key: vp.name + '-' + di,
+            accent: C.ac,
+            borderColor: doneBorderColor,
+            title: day.name,
+            count: `${day.ex.length} EX`,
+            extras: <>
+              {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:14,height:14,borderRadius:0,background:C.gn,color:'#FFFFFF',fontSize:10,fontWeight:800,lineHeight:1,flexShrink:0}}>✓</span>}
+              {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em'}}>{dailyCount} LOGGED</span>}
+            </>,
+            action: { label: done ? 'AGAIN' : 'LOG', onClick: () => setLg(dayIdx) },
+            rows: day.ex.map((ex,i) => {
+              const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' };
+              return {
+                num: i + 1,
+                rx: rxOf(ex),
+                tempo: ex.tempo,
+                title: d.t,
+                focus: weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${wk}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk}`],
+              };
+            }),
+          });})}</React.Fragment>)})()}
       </div>
       {showPwModal && <PasswordChangeModal demoMode={demoMode} onClose={()=>setShowPwModal(false)}/>}
       </div>; }
