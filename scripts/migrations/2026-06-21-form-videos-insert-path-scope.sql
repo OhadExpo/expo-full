@@ -1,3 +1,11 @@
+-- ✅ OBSOLETE — ALREADY LIVE (verified 2026-07-05). Prod carries the same
+-- scoping under different names: form_videos_insert_own + form_videos_update_own
+-- (is_trainer() OR folder = current_trainee_id()), applied during the 06-12
+-- grant-drift work. No other INSERT policy touches the form-videos bucket.
+-- Live-tested as couple member tr_moshe_dana: own-folder upload OK,
+-- cross-folder upload blocked by RLS. Do NOT run this file — it would create
+-- a redundant duplicate policy.
+--
 -- Hardening (audit 2026-06-21): the form-videos storage INSERT policy only
 -- checks bucket + authed, NOT the folder. SELECT was path-scoped on 2026-05-07,
 -- but INSERT was left open — so an authenticated trainee using supabase-js

@@ -1,5 +1,11 @@
 -- 2026-06-29 — Fix plans RLS prefix-collision (security audit, MEDIUM).
 --
+-- ✅ APPLIED TO PROD 2026-07-05 (Management API). Live policy verified to be
+-- exactly clauses 1+2. Real-seat checks passed: tr_yuval_gotlib no longer
+-- reads tr_yuval's plans (the one live collision); couple logins
+-- (tr_moshe_dana, tr_neta_tom) still see both sub-members' plans via
+-- clause 2; single athlete sees only his own.
+--
 -- ⚠️  REVIEW BEFORE APPLYING — this touches a PRODUCTION RLS policy.
 --
 -- The authoritative `client_read_own_plans` policy lives ONLY in production
