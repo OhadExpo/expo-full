@@ -621,7 +621,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                       ? { fontFamily: `Heebo, ${FN}`, fontSize: 13, letterSpacing: 0, lineHeight: 1 }
                       : { fontSize: 10, letterSpacing: '0.1em' }),
                   }}>
-                  {lbl}
+                  {/* leading ↑/↓ split into a flex-centred box so the arrow
+                      glyph doesn't sit low next to the label (Ohad button audit). */}
+                  {(() => { const mm = /^([↑↓])\s+(.*)$/.exec(lbl); if (!mm) return lbl; return (
+                    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4 }}>
+                      <span aria-hidden="true" style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:9, height:9, fontSize:9, lineHeight:1 }}>{mm[1]}</span>
+                      <span>{mm[2]}</span>
+                    </span>
+                  ); })()}
                 </button>
               );
             })}

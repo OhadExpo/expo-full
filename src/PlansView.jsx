@@ -1081,7 +1081,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
             title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
               : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this card's name, video and notes.`
               : 'This card matches the library — nothing to update. Edit the name, video or notes first.'}
-            style={{background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}>↑ Update the exercise database</button>
+            style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}><span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:9,height:9,fontSize:9,lineHeight:1}}>↑</span><span>Update the exercise database</span></button>
           <button onClick={()=>setLibConfirm('new')} disabled={!canSaveNew}
             title={canSaveNew
               ? 'Create a brand-new exercise in the database from this card, and link this row to it.'

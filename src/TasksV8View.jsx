@@ -427,6 +427,9 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
 // Shared width for the three toolbar filter rows (owner tabs / sort / quick
 // filters) so they END at the same x — buttons flex to fill it (Ohad).
 const FILTER_GROUP_W = 460;
+// Shared width for the RIGHT column (LIST/BOARD · STATUS/CATEGORY · SEARCH) so
+// all three rows start AND end at the same x — buttons flex to fill (Ohad).
+const HEADER_RIGHT_W = 210;
 function OwnerTab({ label, count, active, onClick }) {
   // Monochrome: active = white outline, not a colour fill (Ohad: the page was
   // too colourful — only green/red status pills keep colour). Hover via .tfbtn.
@@ -456,12 +459,13 @@ function ViewToggle({ value, onChange }) {
   ];
   return (
     <div style={{
-      display: 'inline-flex',
+      display: 'flex', width: '100%',
       border: `1px solid var(--c-cardBd)`,
       borderRadius: 0, height: 28, boxSizing: 'border-box',
     }}>
       {items.map((it, i) => (
         <button key={it.id} onClick={() => onChange(it.id)} className="tfbtn" data-active={value === it.id ? '' : undefined} style={{
+          flex: 1,
           background: value === it.id ? 'var(--c-sf2)' : 'transparent',
           color: value === it.id ? 'var(--c-tx)' : 'var(--c-tm)',
           border: 'none',
@@ -500,16 +504,19 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
   // When a mode is ACTIVE its button shows the direction as a word that flips on
   // click (↓ Newest ⇄ ↑ Oldest); inactive buttons show the plain mode name. No
   // separate direction button, so nothing appears/disappears + reflows (Ohad).
-  const activeDirLabel = (mode) => {
+  // {a: leading vertical arrow (optional), t: label}. The arrow is split out
+  // so it can be rendered in a flex-centred box — the raw ↑/↓ glyph sits low
+  // in its em box and reads as detached/misaligned inline (Ohad).
+  const activeDirParts = (mode) => {
     const d = sortDir === 'desc';
     switch (mode) {
-      case 'date':     return d ? '↑ Latest'  : '↓ Soonest';
-      case 'newest':   return d ? '↓ Newest'  : '↑ Oldest';
-      case 'priority': return d ? '↑ Low'     : '↓ High';
-      case 'status':   return d ? '↑ Done'    : '↓ To-Do';
-      case 'name':     return d ? 'Z → A'     : 'A → Z';
-      case 'manual':   return 'Manual';
-      default:         return mode;
+      case 'date':     return d ? { a:'↑', t:'Latest'  } : { a:'↓', t:'Soonest' };
+      case 'newest':   return d ? { a:'↓', t:'Newest'  } : { a:'↑', t:'Oldest'  };
+      case 'priority': return d ? { a:'↑', t:'Low'     } : { a:'↓', t:'High'    };
+      case 'status':   return d ? { a:'↑', t:'Done'    } : { a:'↓', t:'To-Do'   };
+      case 'name':     return d ? { t:'Z → A' } : { t:'A → Z' };  // → is horizontal, sits fine inline
+      case 'manual':   return { t:'Manual' };
+      default:         return { t:mode };
     }
   };
   // Bare left-aligned row (no bordered container, no "SORT" prefix label) so
@@ -527,7 +534,12 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
             <button key={m.id} onClick={() => active ? onToggleDir() : onSortBy(m.id)} className="tfbtn" data-active={active ? '' : undefined}
               title={active ? (m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : `Sort by ${m.label}`}
               style={{ ...pill(active), flex: 1, minWidth: 0, padding: '0 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {active ? activeDirLabel(m.id) : m.label}
+              {active ? (() => { const { a, t } = activeDirParts(m.id); return (
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4, minWidth:0 }}>
+                  {a && <span aria-hidden="true" style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:9, height:9, fontSize:9, lineHeight:1, flexShrink:0 }}>{a}</span>}
+                  <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{t}</span>
+                </span>
+              ); })() : m.label}
             </button>
           );
         })}
@@ -599,7 +611,7 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
         borderRadius: 0, cursor: 'text',
         background: 'transparent', color: 'var(--c-tx)',
         border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 11, fontWeight: 500,
-        letterSpacing: '0.04em', width: 180, outline: 'none', flexShrink: 0,
+        letterSpacing: '0.04em', width: HEADER_RIGHT_W, outline: 'none', flexShrink: 0,
       }}
       autoComplete="off"
     />
@@ -2235,7 +2247,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')} />
           <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
         </div>
-        <ViewToggle value={view} onChange={setView} />
+        <div style={{ width: HEADER_RIGHT_W, flexShrink: 0 }}><ViewToggle value={view} onChange={setView} /></div>
       </div>
 
       {/* Header right column stacks LIST/BOARD → STATUS/CATEGORY → SEARCH,
@@ -2245,9 +2257,10 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         onSortBy={setSortBy}
         onToggleDir={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
         rightSlot={(
-          <div style={{ display: 'inline-flex', border: `1px solid var(--c-cardBd)`, borderRadius: 0, height: 28, boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', width: HEADER_RIGHT_W, flexShrink: 0, border: `1px solid var(--c-cardBd)`, borderRadius: 0, height: 28, boxSizing: 'border-box' }}>
             {[{ id: 'status', label: 'Status' }, { id: 'list', label: 'Category' }].map((g, i) => (
               <button key={g.id} onClick={() => setBoardGroup(g.id)} className="tfbtn" data-active={boardGroup === g.id ? '' : undefined} style={{
+                flex: 1,
                 background: boardGroup === g.id ? 'var(--c-sf2)' : 'transparent',
                 color: boardGroup === g.id ? 'var(--c-tx)' : 'var(--c-tm)',
                 border: 'none', borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
