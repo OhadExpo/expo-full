@@ -1157,12 +1157,15 @@ function CommentsThread({ noteId, viewer }) {
               </span>
             </div>
             {editing ? (
-              <div style={{ display: 'flex', gap: 6, marginTop: 4, direction: 'ltr' }}>
-                <input type="text" value={editDraft} autoFocus
-                  onChange={(e) => setEditDraft(e.target.value)}
+              <div style={{ display: 'flex', gap: 6, marginTop: 4, direction: 'ltr', alignItems: 'flex-start' }}>
+                {/* Multi-line edit (matches the composer): Enter = newline,
+                    ⌘/Ctrl+Enter = save, Escape = cancel. */}
+                <textarea value={editDraft} autoFocus rows={1}
+                  onChange={(e) => { setEditDraft(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'; }}
                   onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') setEditingId(null); }}
-                  style={{ flex: 1, background: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FB, fontSize: 12, color: 'var(--c-tx)', padding: '6px 10px', borderRadius: 0, outline: 'none' }} />
+                  onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(); } if (e.key === 'Escape') setEditingId(null); }}
+                  ref={(el) => { if (el && el.style.height === '') { el.style.height = Math.min(el.scrollHeight, 160) + 'px'; } }}
+                  style={{ flex: 1, background: 'transparent', border: `1px solid var(--c-cardBd)`, fontFamily: FB, fontSize: 12, color: 'var(--c-tx)', padding: '6px 10px', borderRadius: 0, outline: 'none', resize: 'vertical', minHeight: 30, lineHeight: 1.4, boxSizing: 'border-box' }} />
                 <button onClick={(e) => { e.stopPropagation(); saveEdit(); }} style={{ ...cmtActionBtn, background: 'var(--c-ac)', color: '#fff', border: 'none' }}>Save</button>
                 <button onClick={(e) => { e.stopPropagation(); setEditingId(null); }} style={cmtActionBtn}>Cancel</button>
               </div>
@@ -1191,7 +1194,7 @@ function CommentsThread({ noteId, viewer }) {
         );
       })}
       <form onSubmit={submit} style={{
-        display: 'flex', gap: 6, alignItems: 'stretch',
+        display: 'flex', gap: 6, alignItems: 'flex-start',
         marginTop: rows.length > 0 ? 8 : 0,
       }}>
         {/* Author is fixed to the viewer — a non-interactive identity chip
@@ -1203,21 +1206,26 @@ function CommentsThread({ noteId, viewer }) {
             background: author === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)',
             color: '#FFFFFF', fontFamily: FN, fontSize: 11, fontWeight: 700,
           }}>{author === 'yuval' ? 'Y' : 'O'}</span>
-        <input type="text" value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+        {/* Multi-line comment box (Yuval: "Enter didn't work"). Enter now adds
+            a newline; ⌘/Ctrl+Enter or the Send button posts. Auto-grows with
+            content up to a cap, then scrolls. */}
+        <textarea value={draft} rows={1}
+          onChange={(e) => { setDraft(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'; }}
           onClick={(e) => e.stopPropagation()}
-          placeholder="Add comment…  (use @ohad or @yuval to mention)"
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(e); } }}
+          placeholder="Add comment…  (Enter = new line · ⌘/Ctrl+Enter to send · @ohad @yuval to mention)"
           style={{
             flex: 1, background: 'transparent',
             border: `1px solid var(--c-cardBd)`,
             fontFamily: FB, fontSize: 12, color: 'var(--c-tx)',
-            padding: '6px 10px', borderRadius: 0, outline: 'none',
+            padding: '7px 10px', borderRadius: 0, outline: 'none',
+            resize: 'vertical', minHeight: 30, lineHeight: 1.4, boxSizing: 'border-box',
           }} />
         <button type="submit" disabled={busy || !draft.trim()}
           style={{
             background: draft.trim() ? 'var(--c-ac)' : 'var(--c-sf2)',
             color: draft.trim() ? '#FFFFFF' : 'var(--c-td)',
-            border: 'none', padding: '0 14px', height: 30,
+            border: 'none', padding: '0 14px', height: 30, flexShrink: 0,
             fontFamily: FN, fontSize: 10, fontWeight: 700,
             letterSpacing: '0.12em', textTransform: 'uppercase',
             cursor: draft.trim() && !busy ? 'pointer' : 'default',
