@@ -1455,8 +1455,10 @@ function DemoPrograms() {
                           {row.earlier.length > 0 && (
                             <button onClick={e => { e.stopPropagation(); toggleAthlete(row.tid); }}
                               title={expanded ? `Hide ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}` : `Show ${row.earlier.length} earlier block${row.earlier.length === 1 ? '' : 's'}`}
-                              style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', padding: '3px 8px', fontFamily: FN, fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', whiteSpace: 'nowrap', minWidth: 34, textAlign: 'center' }}>
-                              {expanded ? `▴ ${row.earlier.length}` : `▾ +${row.earlier.length}`}
+                              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, color: C.tm, cursor: 'pointer', height: 26, padding: '0 11px', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.03em', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                              {/* number-first + centred rotating chevron, matching the real programs list */}
+                              <span>{expanded ? row.earlier.length : `+${row.earlier.length}`}</span>
+                              <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 8, height: 8, fontSize: 8, lineHeight: 1, opacity: 0.7, transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>
                             </button>
                           )}
                           {(() => {
