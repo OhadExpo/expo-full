@@ -2583,7 +2583,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               // number element per identity — square (BASE/RAIL), mono
               // listing number (CONSOLE/EDITORIAL), bare numeral (AIR)
               const numEl = (ident === 'BASE' || ident === 'RAIL')
-                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,lineHeight:1}}>{r.num}</div>
+                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.tx,flexShrink:0,lineHeight:1}}>{r.num}</div>
                 : <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:11,fontWeight:700,color:ident==='AIR'?accent:C.td,fontVariantNumeric:'tabular-nums',textAlign:ident==='AIR'?'left':'right',lineHeight:'20px'}}>{numOf(r.num)}</span>;
               return (
                 <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '7px 0 8px',borderTop:divider}}>
@@ -2747,7 +2747,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             title: day.name,
             count: `${day.ex.length} EX`,
             extras: <>
-              {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>✓ DONE</span>}
+              {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,padding:'5px 10px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0}}>✓</span>}
               {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em'}}>{dailyCount} LOGGED</span>}
             </>,
             action: { label: done ? 'AGAIN' : 'LOG', onClick: () => setLg(dayIdx) },
