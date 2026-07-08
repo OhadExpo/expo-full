@@ -2549,7 +2549,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // or C.ac (day); header extras (✓ / N LOGGED) and the LOG action
           // are passed in so warm-up and day cards share every identity's
           // chrome and rhythm exactly (Ohad: same design, obviously).
-          const buildCard = ({ key, accent, title, count, extras = null, action = null, rows, borderColor, countColor, tempoColor = C.or }) => {
+          const buildCard = ({ key, accent, title, count, extras = null, action = null, rows, borderColor, countColor, tempoColor = C.tm }) => {
             const hair = C.cardBd;
             const isWu = accent === C.or;
             const numOf = (n) => ident === 'CONSOLE' ? String(n).padStart(2,'0') : String(n);
