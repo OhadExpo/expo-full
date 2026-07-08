@@ -23,11 +23,12 @@ import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue }
 const MealLogger = React.lazy(() => import('./MealLogger'));
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
 
-// Tempo colour — muted GREY. It's a secondary spec, so it must be clearly
-// distinct from BOTH the bright-cyan reps/sets AND the orange warm-up. A faded
-// cyan read too close to the reps/sets; grey is the only choice distinct from
-// both. One source of truth for every card + the logger. (Ohad)
-const TEMPO_COLOR = C.tm;
+// Tempo colour — a LEGIBLE light cool-grey. Secondary spec: must be clearly
+// distinct from the bright-cyan reps/sets AND the orange warm-up. Faded cyan
+// read too close to the reps/sets; the muted C.tm grey read too dim/dull.
+// #9BA0AC is neutral, clearly not cyan/orange, and reads cleanly on dark.
+// One source of truth for every card + the logger. (Ohad)
+const TEMPO_COLOR = '#9BA0AC';
 
 // Feature gate for the swap-exercise UI. Substitution is ONLY for trainees on
 // expo-il template-purchased plans — Ohad's manually-coached private clients
