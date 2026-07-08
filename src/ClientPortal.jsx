@@ -2378,8 +2378,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         // expects to see their most-recent session at the top. Use the
         // natural newest-first order.
         cw.map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'var(--c-sf)',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
-          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em'}}>{w.dayName} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
-          <div style={{fontSize:10,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.08em'}}>{fmtPrettyDate(w.date)} · W{w.week}</div>
+          {/* header strip — day/block on the left, date/week on the right, on a
+              tinted band with a cyan left rail + bottom border (card-header look
+              like the coach dashboard). Spans the card via negative margins. */}
+          <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
+            <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)} · W{w.week}</div>
+          </div>
           {(w.exercises || []).map((x,i) => {
             const fv = (w.formVideos || [])[i];
             const hasVideo = !!(fv && fv.cloudUrl);
