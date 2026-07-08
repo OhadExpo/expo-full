@@ -1,4 +1,11 @@
 -- 2026-06-12-plan-index-view.sql
+-- ✅ APPLIED TO PROD 2026-07-08 (Management API). Verified: view returns 200
+-- (was 404 → 2 console errors on every coach page + ~290KB full-JSONB reads);
+-- owner sees all 215 plans, athlete (Diego) sees only their 10 via
+-- security_invoker RLS (no leak); day/exercise counts match the raw plans
+-- (2/8, 1/9). Coach pages now load the few-KB index instead of every plan's
+-- full data blob.
+--
 -- Lightweight server-side plan index for usePlanIndex().
 --
 -- Why: the coach app's plan index needs only counts + day names, but the
