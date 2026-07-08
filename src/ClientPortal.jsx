@@ -23,6 +23,11 @@ import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue }
 const MealLogger = React.lazy(() => import('./MealLogger'));
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
 
+// Tempo colour — a faded/desaturated cyan so it reads as a SECONDARY spec that
+// won't be confused with the vivid-cyan sets×reps, and is distinct from the
+// orange warm-up identity. One source of truth for every card + the logger. (Ohad)
+const TEMPO_COLOR = '#7FA6BC';
+
 // Feature gate for the swap-exercise UI. Substitution is ONLY for trainees on
 // expo-il template-purchased plans — Ohad's manually-coached private clients
 // should never see this button (he handles substitutions for them himself).
@@ -1090,14 +1095,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         {/* Prefer the new structured fields (sets × reps × tempo) and fall
             back to the legacy free-text rx for plans authored before the
             split. Existing plans render unchanged until the coach edits. */}
-        <div style={{fontSize:15,color:C.or,fontWeight:700,fontFamily:FN,marginBottom:14}}>{(() => {
+        <div style={{fontSize:15,fontWeight:700,fontFamily:FN,marginBottom:14}}>{(() => {
           if (wu.sets || wu.reps) {
             const setsStr = wu.sets ?? '';
             const repsStr = wu.reps ?? '';
             const core = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
-            return wu.tempo ? `${core}  ${wu.tempo}` : core;
+            // rx orange, tempo grey (Ohad: tempo grey in all cards/screens)
+            return <><span style={{color:C.or}}>{core}</span>{wu.tempo ? <span style={{color:TEMPO_COLOR}}>{`  ${wu.tempo}`}</span> : null}</>;
           }
-          return wu.rx || '';
+          return <span style={{color:C.or}}>{wu.rx || ''}</span>;
         })()}</div>
         {/* Coach note for this warm-up (authored in the plan editor's
             warm-up expand panel). */}
@@ -1360,8 +1366,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             onClose={() => setLiveCountForEid(null)} />
         </React.Suspense>
       )}
-      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
-      {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
+      <div style={{fontSize:15,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{(() => {
+        const s = String(setsForDisplay ?? '').trim(), r = String(repsForDisplay ?? '').trim();
+        if (!s && !r) return <span style={{color:C.ac}}>—</span>;
+        const lbl = { fontSize:9, color:C.tm, letterSpacing:'0.1em', fontWeight:700, marginLeft:3 };
+        // sets/reps spelled out so the two numbers can't be confused (Ohad)
+        return <><span style={{color:C.ac}}>{s}</span><span style={lbl}>SETS</span><span style={{color:C.ac,margin:'0 7px'}}>×</span><span style={{color:C.ac}}>{r}</span><span style={lbl}>REPS</span></>;
+      })()}</div>
+      {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
 
       {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
@@ -2549,7 +2561,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // or C.ac (day); header extras (✓ / N LOGGED) and the LOG action
           // are passed in so warm-up and day cards share every identity's
           // chrome and rhythm exactly (Ohad: same design, obviously).
-          const buildCard = ({ key, accent, title, count, extras = null, action = null, rows, borderColor, countColor, tempoColor = C.tm }) => {
+          const buildCard = ({ key, accent, title, count, extras = null, action = null, rows, borderColor, countColor, tempoColor = TEMPO_COLOR }) => {
             const hair = C.cardBd;
             const isWu = accent === C.or;
             const numOf = (n) => ident === 'CONSOLE' ? String(n).padStart(2,'0') : String(n);
@@ -2692,7 +2704,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             // warm-up owns ORANGE (number + title + rail); its tempo goes muted
             // so the warm-up's colour is clearly different from the tempo, which
             // is orange on the day cards (Ohad).
-            tempoColor: C.tm,
+            tempoColor: TEMPO_COLOR,
             rows: vp.warmup.map((w,i) => ({
               num: i + 1,
               rx: (w.sets || w.reps)
