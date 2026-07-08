@@ -1377,7 +1377,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onDelete, now, search, viewer, readOnly = false, board = false, compact = false }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false }) {
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1521,10 +1521,16 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           flexShrink: 0,
         }} title="More actions (Phase 1)">⋯</span>
         {/* Board: title takes line 1, so push the status pill to the card's right
-            edge on line 2 (in LIST the title's flex already does this). */}
-        <span style={{ display: 'inline-flex', marginLeft: board ? 'auto' : undefined }}>
-          <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
-        </span>
+            edge on line 2 (in LIST the title's flex already does this).
+            hideStatus drops the pill in the STATUS board — the column header
+            already states the status, so repeating it on every card is noise
+            (Yuval: make the board status more readable). Status there is
+            changed by dragging between columns / from the expanded detail. */}
+        {!hideStatus && (
+          <span style={{ display: 'inline-flex', marginLeft: board ? 'auto' : undefined }}>
+            <StatusPill status={row.status} theme={theme} onSetStatus={(s) => onSetStatus(row, s)} readOnly={readOnly} />
+          </span>
+        )}
       </div>
       {expanded && (
         <div style={{
@@ -2491,7 +2497,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title="Select"
                       style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
                     <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact}
-                      theme={theme} showAvatar={owner === 'shared'} board
+                      theme={theme} showAvatar={owner === 'shared'} board hideStatus={!!section.statusId}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
                       onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onDelete={handleDeleteTask}
