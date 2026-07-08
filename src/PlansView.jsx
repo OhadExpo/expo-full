@@ -1105,7 +1105,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, portalVis, setPortalVis, editorApiRef }) {
+function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, clientWorkouts, portalVis, setPortalVis, editorApiRef }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -1114,6 +1114,17 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // Copy-day flow: null | { dayIdxs:Set<number> } — the picker that copies the
   // chosen day(s) into another program (existing or new) as new bottom days.
   const [copyDaysModal, setCopyDaysModal] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false); // logged-workouts panel for THIS block
+  // Logged workouts for THIS block: prefer an exact planId link, else fall back
+  // to same-athlete + same block-name (older sessions predate planId). Newest
+  // first. clientId carries the couples sub-id, matching plan.traineeId.
+  const blockWorkouts = useMemo(() => {
+    const pid = plan?.id, ptid = plan?.traineeId, pname = (plan?.name || '').trim();
+    return (clientWorkouts || []).filter(w =>
+      (w.planId && pid && w.planId === pid) ||
+      (w.clientId === ptid && (w.planName || '').trim() === pname)
+    ).sort((a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0));
+  }, [clientWorkouts, plan?.id, plan?.traineeId, plan?.name]);
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
   // Unified view: expand an OVERVIEW row inline to its full detail (swap +
@@ -1384,6 +1395,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             PORTAL
+          </button>}
+          {plan?.id && <button onClick={()=>setHistoryOpen(true)}
+            title="See the workouts the athlete has logged for this block"
+            style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:42,padding:'0 18px',lineHeight:'42px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:8,whiteSpace:'nowrap'}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            HISTORY{blockWorkouts.length ? <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:'#0a0a0b',background:C.ac,borderRadius:0,padding:'1px 6px',lineHeight:1.4,letterSpacing:'0.04em'}}>{blockWorkouts.length}</span> : null}
           </button>}
           {/* Flush pending autosave BEFORE share/duplicate: both re-read the
               plan from the DB, and the 600ms debounce means edits made just
@@ -1756,6 +1773,44 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         onClose={()=>setCopyDaysModal(null)}
         onCopy={onCopyDays}
       />}
+      {historyOpen && (
+        <div onClick={()=>setHistoryOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:200,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'6vh 16px',overflowY:'auto'}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,width:'min(560px,100%)',maxHeight:'88vh',display:'flex',flexDirection:'column'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'14px 18px',borderBottom:`1px solid ${C.cardBd}`,flexShrink:0}}>
+              <div style={{fontFamily:FN,fontWeight:700,fontSize:14,letterSpacing:'0.04em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>HISTORY · {plan.name} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>· {blockWorkouts.length} logged</span></div>
+              <button onClick={()=>setHistoryOpen(false)} aria-label="Close history" style={{background:'transparent',border:'none',color:C.tm,cursor:'pointer',fontSize:20,lineHeight:1,flexShrink:0,padding:0}}>×</button>
+            </div>
+            <div style={{overflowY:'auto',padding:'12px 18px 18px'}}>
+              {blockWorkouts.length === 0
+                ? <div style={{color:C.td,textAlign:'center',padding:'34px 10px',fontSize:13}}>No logged workouts for this block yet.</div>
+                : blockWorkouts.map(w => {
+                    const exs = w.exercises || [];
+                    const doneEx = exs.filter(x => (x.sets||[]).some(s=>s.done)).length;
+                    const totalSets = exs.reduce((a,x)=>a+(x.sets||[]).length,0);
+                    const doneSets = exs.reduce((a,x)=>a+(x.sets||[]).filter(s=>s.done).length,0);
+                    const d = new Date(w.date || w.createdAt || 0);
+                    const dateStr = isFinite(d.getTime()) ? d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '';
+                    return (
+                      <div key={w.id} style={{border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 12px',marginBottom:8}}>
+                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+                          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,color:C.tx}}>{w.dayName || 'Workout'} {w.week!=null && <span style={{color:C.tm,fontWeight:400,fontSize:11}}>· W{w.week}</span>}</div>
+                          <div style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',flexShrink:0}}>{dateStr}</div>
+                        </div>
+                        <div style={{fontFamily:FN,fontSize:11,color:C.ac,margin:'4px 0 6px',letterSpacing:'0.03em'}}>{doneEx}/{exs.length} exercises · {doneSets}/{totalSets} sets</div>
+                        {exs.map((x,i)=>(
+                          <div key={i} style={{fontSize:12,color:C.tm,display:'flex',gap:6,padding:'1px 0'}}>
+                            <span style={{flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{i+1}. {x.title}</span>
+                            <span style={{color:C.td,fontFamily:FN,flexShrink:0}}>{(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span>
+                          </div>
+                        ))}
+                        {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:6,fontStyle:'italic'}}>“{w.notes}”</div>}
+                      </div>
+                    );
+                  })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>);
 }
 
@@ -2423,7 +2478,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
     return <>
-      <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} onCopyDays={handleCopyDays} portalVis={portalVis} setPortalVis={setPortalVis} editorApiRef={editorApiRef} />
+      <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} onCopyDays={handleCopyDays} clientWorkouts={clientWorkouts} portalVis={portalVis} setPortalVis={setPortalVis} editorApiRef={editorApiRef} />
       {shareModal}
       {deleteModal}
       {newProgramModal}
