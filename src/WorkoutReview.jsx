@@ -1407,7 +1407,7 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             const isActive = pausedAtCommentId === n.id;
             return (
               <div key={n.id} onClick={() => seekTo(n.ts, n.id)}
-                title={`${fmtTs(n.ts)} — ${n.text.slice(0, 80)}`}
+                title={`${fmtTs(n.ts)} — ${(n.text || '').slice(0, 80)}`}
                 style={{position:'absolute',left:pct+'%',top:0,bottom:0,width:isActive?5:3,background:n.author==='trainer'?C.ac:C.gn,cursor:'pointer',borderRadius:0,transform:'translateX(-1px)',boxShadow:isActive?`0 0 6px ${n.author==='trainer'?C.ac:C.gn}`:'none'}}/>
             );
           })}
