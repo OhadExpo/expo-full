@@ -2510,12 +2510,15 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {row.earlier.length > 0 && (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                        style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,height:26,padding:'0 10px',background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.02em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums'}}>
-                        {/* chevron sized down + flex-centered so the triangle
-                            sits on the number's optical centre (the ▾ glyph
-                            renders high in its em box otherwise). */}
-                        <span aria-hidden="true" style={{fontSize:8,lineHeight:1,display:'inline-flex',alignItems:'center',height:'100%'}}>{expanded?'▲':'▼'}</span>
-                        <span style={{lineHeight:1}}>{expanded?row.earlier.length:`+${row.earlier.length}`}</span>
+                        className="prog-plusn"
+                        style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,height:26,padding:'0 11px',background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.03em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums'}}>
+                        {/* Number is the hero; a small muted chevron trails it
+                            and ROTATES on open (one glyph, no ▾/▴ size mismatch).
+                            Wrapped in a fixed-size flex box so it's optically
+                            centred on the digits regardless of the glyph's em
+                            metrics. */}
+                        <span>{expanded?row.earlier.length:`+${row.earlier.length}`}</span>
+                        <span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:8,height:8,fontSize:8,lineHeight:1,opacity:0.7,transform:expanded?'rotate(180deg)':'none',transition:'transform 180ms ease'}}>▾</span>
                       </button>
                     )}
                     <div style={{flex:1}} />
@@ -2557,7 +2560,10 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
                         style={{cursor:openingId===p.id?'progress':'pointer',padding:'7px 14px 7px 32px',display:'flex',alignItems:'center',gap:8,opacity:openingId===p.id?0.45:0.78,transition:'opacity 0.12s',borderTop:`1px solid rgba(57,189,255,0.102)`}}>
                         <div style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:8}}>
-                          <div style={{flex:1,minWidth:0,fontSize:13,color:C.tm,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN}}>{p.name||"Untitled"}</div>
+                          {/* older blocks read in faded cyan (Ohad) — same
+                              brand colour as the current block, dropped to ~72%
+                              so the eye still lands on the current row first. */}
+                          <div style={{flex:1,minWidth:0,fontSize:13,color:C.ac,opacity:0.72,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,fontWeight:700}}>{p.name||"Untitled"}</div>
                           <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex</div>
                         </div>
                         {/* hovering the actions cancels the preview (Ohad) */}
