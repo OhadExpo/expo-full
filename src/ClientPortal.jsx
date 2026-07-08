@@ -2600,7 +2600,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     {numEl}
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
-                        <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{r.rx}</span>
+                        {(() => {
+                          // reps cyan; the rest/tempo after the first comma goes
+                          // grey so combined free-text ("5XI, 30 SEC REST") reads
+                          // the same as the logger + day rows (consistency).
+                          const rx = String(r.rx || ''); const ci = rx.indexOf(',');
+                          const base = {fontSize:11,fontWeight:700,fontFamily:FN,letterSpacing:'0.04em'};
+                          if (ci === -1) return <span style={{...base,color:C.ac}}>{rx}</span>;
+                          return <><span style={{...base,color:C.ac}}>{rx.slice(0,ci)}</span><span style={{...base,color:tempoColor}}>{rx.slice(ci)}</span></>;
+                        })()}
                         {r.tempo && <span style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em'}}>{r.tempo}</span>}
                       </div>
                       <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{r.title}</div>
