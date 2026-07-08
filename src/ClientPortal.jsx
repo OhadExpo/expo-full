@@ -1101,9 +1101,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             const repsStr = wu.reps ?? '';
             const core = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
             // rx orange, tempo grey (Ohad: tempo grey in all cards/screens)
-            return <><span style={{color:C.or}}>{core}</span>{wu.tempo ? <span style={{color:TEMPO_COLOR}}>{`  ${wu.tempo}`}</span> : null}</>;
+            return <><span style={{color:C.ac}}>{core}</span>{wu.tempo ? <span style={{color:TEMPO_COLOR}}>{`  ${wu.tempo}`}</span> : null}</>;
           }
-          return <span style={{color:C.or}}>{wu.rx || ''}</span>;
+          return <span style={{color:C.ac}}>{wu.rx || ''}</span>;
         })()}</div>
         {/* Coach note for this warm-up (authored in the plan editor's
             warm-up expand panel). */}
@@ -1366,13 +1366,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             onClose={() => setLiveCountForEid(null)} />
         </React.Suspense>
       )}
-      <div style={{fontSize:15,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{(() => {
-        const s = String(setsForDisplay ?? '').trim(), r = String(repsForDisplay ?? '').trim();
-        if (!s && !r) return <span style={{color:C.ac}}>—</span>;
-        const lbl = { fontSize:9, color:C.tm, letterSpacing:'0.1em', fontWeight:700, marginLeft:3 };
-        // sets/reps spelled out so the two numbers can't be confused (Ohad)
-        return <><span style={{color:C.ac}}>{s}</span><span style={lbl}>SETS</span><span style={{color:C.ac,margin:'0 7px'}}>×</span><span style={{color:C.ac}}>{r}</span><span style={lbl}>REPS</span></>;
-      })()}</div>
+      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
       {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
 
       {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
@@ -2589,7 +2583,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               // number element per identity — square (BASE/RAIL), mono
               // listing number (CONSOLE/EDITORIAL), bare numeral (AIR)
               const numEl = (ident === 'BASE' || ident === 'RAIL')
-                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:accent,flexShrink:0,lineHeight:1}}>{r.num}</div>
+                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,lineHeight:1}}>{r.num}</div>
                 : <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:11,fontWeight:700,color:ident==='AIR'?accent:C.td,fontVariantNumeric:'tabular-nums',textAlign:ident==='AIR'?'left':'right',lineHeight:'20px'}}>{numOf(r.num)}</span>;
               return (
                 <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '7px 0 8px',borderTop:divider}}>
@@ -2753,7 +2747,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             title: day.name,
             count: `${day.ex.length} EX`,
             extras: <>
-              {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:14,height:14,borderRadius:0,background:C.gn,color:'#FFFFFF',fontSize:10,fontWeight:800,lineHeight:1,flexShrink:0}}>✓</span>}
+              {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',flexShrink:0}}>✓ DONE</span>}
               {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em'}}>{dailyCount} LOGGED</span>}
             </>,
             action: { label: done ? 'AGAIN' : 'LOG', onClick: () => setLg(dayIdx) },
