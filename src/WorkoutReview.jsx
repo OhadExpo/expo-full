@@ -1766,7 +1766,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     Array.isArray(w.formVideos) && w.formVideos.some(f => f && f.cloudUrl);
 
   const byClient = {};
-  clientWorkouts.forEach(w => {
+  (clientWorkouts || []).forEach(w => {
     if (!hasReviewableVideo(w)) return;
     const key = w.clientId || 'unknown';
     if (!byClient[key]) byClient[key] = { name: nameOf(key), workouts: [] };
@@ -1934,8 +1934,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
     // block. The editor still shows so the trainer can capture an end-of-
     // block takeaway, but it's labelled and aimed differently.
     const nextWeek = isLastWeekOfBlock ? currentWeek : currentWeek + 1;
-    const completedSets = wo.exercises.reduce((a, ex) => a + ex.sets.filter(s => s.done).length, 0);
-    const totalSets = wo.exercises.reduce((a, ex) => a + ex.sets.length, 0);
+    const completedSets = (wo.exercises || []).reduce((a, ex) => a + (ex.sets || []).filter(s => s.done).length, 0);
+    const totalSets = (wo.exercises || []).reduce((a, ex) => a + (ex.sets || []).length, 0);
 
     return (
       <div>
@@ -2010,9 +2010,13 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         </div>
 
         {/* Exercise cards */}
-        {wo.exercises.map((ex, i) => {
+        {(wo.exercises || []).map((ex, i) => {
           const isExpanded = expandedEx === i;
-          const doneSets = ex.sets.filter(s => s.done).length;
+          const setsArr = ex.sets || [];
+          const doneSets = setsArr.filter(s => s.done).length;
+          // "all done" only when there's ≥1 set — an empty/skipped exercise
+          // must NOT show the green complete badge (0===0). (audit)
+          const allDone = setsArr.length > 0 && doneSets === setsArr.length;
           const libId = ex.eid?.startsWith('dyn_') ? ex.eid.slice(4) : ex.eid;
           const fromLib = exById.get(libId);
           const exName = EX[ex.eid]?.t || fromLib?.title || ex.title || ex.eid;
@@ -2040,9 +2044,12 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 const eidMatch = ex.eid && px.eid === ex.eid;
                 const titleMatch = titleKey && pTitleKey === titleKey;
                 if (!eidMatch && !titleMatch) continue;
-                const sets = (px.sets || []).filter(s => parseFloat(s.load) > 0);
-                if (sets.length && (!bestDate || new Date(w.date) > new Date(bestDate))) {
-                  prevWeekSets = sets;
+                // Use load>0 only to decide this week qualifies, but store the
+                // FULL set array so prevWeekSets[si] lines up with THIS week's
+                // set index si (filtering shifted the ghost row by one). (audit)
+                const realSets = (px.sets || []).filter(s => parseFloat(s.load) > 0);
+                if (realSets.length && (!bestDate || new Date(w.date) > new Date(bestDate))) {
+                  prevWeekSets = px.sets || [];
                   prevWeekIdx = targetWeek;
                   bestDate = w.date;
                 }
@@ -2057,13 +2064,13 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 role="button" tabIndex={0} aria-expanded={isExpanded}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedEx(isExpanded?null:i); } }}
                 style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",cursor:"pointer"}}>
-                <div style={{width:26,height:26,borderRadius:0,background:doneSets===ex.sets.length?C.gnD:C.acD,
+                <div style={{width:26,height:26,borderRadius:0,background:allDone?C.gnD:C.acD,
                   display:"flex",alignItems:"center",justifyContent:"center",fontFamily:FN,fontSize:11,fontWeight:700,
-                  color:doneSets===ex.sets.length?C.gn:C.ac,flexShrink:0}}>{i+1}</div>
+                  color:allDone?C.gn:C.ac,flexShrink:0}}>{i+1}</div>
                 <div style={{flex:1}}>
                   <div style={{fontWeight:600,fontSize:13}}>{exName}</div>
                   <div style={{fontSize:11,color:C.tm,marginTop:2}}>
-                    {ex.prescribed} · {doneSets}/{ex.sets.length} sets
+                    {ex.prescribed} · {doneSets}/{setsArr.length} sets
                     {(formVideo?.has || formVideo?.cloudUrl) && <span title="Form video submitted" style={{color:C.gn,marginLeft:6}}>📹</span>}
                     {(formVideo?.reviewNotes?.length > 0) && (
                       <span title={`${formVideo.reviewNotes.length} comment${formVideo.reviewNotes.length===1?'':'s'} on this exercise`} style={{color:C.ac,marginLeft:6}}>
@@ -2095,8 +2102,11 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                       {['SET','REPS','LOAD','RPE'].map(h =>
                         <div key={h} style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',textAlign:'center'}}>{h}</div>)}
                     </div>
-                    {ex.sets.map((set, si) => {
-                      const prior = prevWeekSets?.[si];
+                    {setsArr.map((set, si) => {
+                      const priorRaw = prevWeekSets?.[si];
+                      // aligned by index now; only show the ghost when last week's
+                      // set at THIS index actually had load (skip 0-load warmups).
+                      const prior = (priorRaw && parseFloat(priorRaw.load) > 0) ? priorRaw : null;
                       return (
                         <React.Fragment key={si}>
                           {prior && (
@@ -2108,7 +2118,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                             </div>
                           )}
                           <div style={{display:"grid",gridTemplateColumns:"40px 1fr 1fr 1fr",gap:4,padding:"3px 0",
-                            opacity:set.done?1:0.4,borderBottom:si<ex.sets.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
+                            opacity:set.done?1:0.4,borderBottom:si<setsArr.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
                             <div style={{fontFamily:FN,fontSize:12,color:set.done?C.gn:C.td,textAlign:"center"}}>{set.done?'✓':si+1}</div>
                             <div style={{fontSize:12,color:C.tx,textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{set.reps||'—'}</div>
                             <div style={{fontSize:12,color:C.tx,textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{set.load?set.load+'kg':'—'}</div>
@@ -2339,7 +2349,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   }
 
   // ===== WORKOUT LIST VIEW =====
-  const allWorkouts = clientWorkouts.slice().reverse();
+  const allWorkouts = (clientWorkouts || []).slice().reverse();
 
   if (allWorkouts.length === 0) return (
     <div>
@@ -2399,8 +2409,8 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               return new Date(b.date) - new Date(a.date);
             })
             .map(wo => {
-            const doneSets = wo.exercises.reduce((a,ex) => a + ex.sets.filter(s=>s.done).length, 0);
-            const totalSets = wo.exercises.reduce((a,ex) => a + ex.sets.length, 0);
+            const doneSets = (wo.exercises || []).reduce((a,ex) => a + (ex.sets || []).filter(s=>s.done).length, 0);
+            const totalSets = (wo.exercises || []).reduce((a,ex) => a + (ex.sets || []).length, 0);
             const hasFormVids = hasReviewableVideo(wo);
             const reviewed = !!wo.reviewedAt;
             return (
@@ -2414,7 +2424,10 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                 onMouseLeave={e=>{e.currentTarget.style.borderColor=C.cardBd; e.currentTarget.style.opacity=reviewed?'0.55':'1';}}>
                 {(() => {
                   // Week progress (B2): total weeks from the plan, current = wo.week.
-                  const planWeeks = (planIndex || []).find(p => p.name === wo.planName)?.weeks || null;
+                  // match the athlete FIRST (two athletes can share a block name
+                  // of different lengths), fall back to name-only. (audit)
+                  const planWeeks = ((planIndex || []).find(p => p.traineeId === wo.clientId && p.name === wo.planName)
+                    || (planIndex || []).find(p => p.name === wo.planName))?.weeks || null;
                   const segCount = planWeeks && planWeeks <= 12 ? planWeeks : 0;
                   return (
                 <div style={{minWidth:0,flex:1}}>
