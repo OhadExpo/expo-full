@@ -45,7 +45,7 @@ export function AuthProvider({ children, clientList }) {
     const lower = email.toLowerCase();
     const isTrainer = TRAINER_EMAILS.includes(lower);
     let matchedClientId = null;
-    for (const cl of clientList) {
+    for (const cl of (clientList || [])) {
       if (!cl.email) continue;
       const emails = Array.isArray(cl.email) ? cl.email : [cl.email];
       if (emails.some(e => e.toLowerCase() === lower)) { matchedClientId = cl.id; break; }
