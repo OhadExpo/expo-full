@@ -1884,8 +1884,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   //   3 CONSOLE   — mono banner, inverse-video actives, numbered listing
   //   4 AIR       — no chrome: whitespace, text-only controls, open cards
   //   5 RAIL      — cyan rails: hero week bar, rail-topped actives, left-rail cards
-  const pv = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pv')) || '0';
-  const ident = ({'1':'EDITORIAL','2':'TABLE','3':'CONSOLE','4':'AIR','5':'RAIL'})[pv] || 'BASE';
+  // RAIL (pv5) is the real portal — the default at bare /athlete. BASE stays
+  // reachable at ?pv=0 and the other explorations at ?pv=1..4. (Ohad 2026-07-08)
+  const pv = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pv')) || '';
+  const ident = ({'0':'BASE','1':'EDITORIAL','2':'TABLE','3':'CONSOLE','4':'AIR','5':'RAIL'})[pv] || 'RAIL';
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
   const renderTopHeader = () => (
     <>
