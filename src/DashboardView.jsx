@@ -35,12 +35,12 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
 
   const statusColor = { Active: C.gn, "On Hold": C.or, Inactive: C.td, Trial: C.ac };
 
-  const enriched = useMemo(() => trainees.map(t => {
+  const enriched = useMemo(() => (trainees || []).map(t => {
     // Workouts and payments for couple trainees may be recorded under sub-member IDs
     // (tr_xxx__0 / __1). Roll everything up to the parent for dashboard display.
     const ids = new Set(traineeIdsFor(t.id));
-    const tPay = payments.filter(p => ids.has(p.traineeId));
-    const tWorkInPerson = workouts.filter(w => ids.has(w.traineeId) && w.status === 'completed');
+    const tPay = (payments || []).filter(p => ids.has(p.traineeId));
+    const tWorkInPerson = (workouts || []).filter(w => ids.has(w.traineeId) && w.status === 'completed');
     // Trainee-portal logged workouts (client-side) — counted alongside in-
     // person sessions for "last activity" so the dropout signal doesn't
     // false-positive on clients who train solo through the portal.
@@ -53,7 +53,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
     const totalPaid = tPaidOnly.reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
     const lastPay = tPaidOnly.slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
     const lastWorkout = tWork.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-    return { ...t, totalPaid, lastPay, lastWorkout, workoutCount: tWork.length, planCount: planCounts[t.id] || 0 };
+    return { ...t, totalPaid, lastPay, lastWorkout, workoutCount: tWork.length, planCount: (planCounts || {})[t.id] || 0 };
   }), [trainees, payments, workouts, clientWorkouts, planCounts]);
 
   const filtered = enriched.filter(t => !filter || (t.name || '').toLowerCase().includes(filter.toLowerCase()));
@@ -219,6 +219,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
   useEffect(() => {
     if (!draggingAlertKey) return;
     const onMove = (e) => {
+      if (!alertReorderRef.current) return; // ref nulled on mouseup; ignore stray moves (audit)
       alertReorderRef.current.moved = true;
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const cardEl = el && el.closest('[data-alert-key]');
@@ -771,7 +772,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
                     {parseFloat(t.monthly) > 0 ? `₪${parseInt(t.monthly).toLocaleString()}/MO` : '—'}
                   </td>}
                   {isOwner && <td style={{ padding: '12px', color: C.tm, fontSize: 12, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
-                    {t.lastPayment ? new Date(t.lastPayment).toLocaleDateString('en-GB') : '—'}
+                    {(() => { const d = t.lastPay?.date || t.lastPayment; return d ? new Date(d).toLocaleDateString('en-GB') : '—'; })()}
                   </td>}
                   <td style={{ padding: '12px', fontFamily: FN, color: t.workoutCount > 0 ? C.ac : C.td, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
                     {t.workoutCount || '—'}
