@@ -23,10 +23,11 @@ import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue }
 const MealLogger = React.lazy(() => import('./MealLogger'));
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
 
-// Tempo colour — a faded/desaturated cyan so it reads as a SECONDARY spec that
-// won't be confused with the vivid-cyan sets×reps, and is distinct from the
-// orange warm-up identity. One source of truth for every card + the logger. (Ohad)
-const TEMPO_COLOR = '#7FA6BC';
+// Tempo colour — muted GREY. It's a secondary spec, so it must be clearly
+// distinct from BOTH the bright-cyan reps/sets AND the orange warm-up. A faded
+// cyan read too close to the reps/sets; grey is the only choice distinct from
+// both. One source of truth for every card + the logger. (Ohad)
+const TEMPO_COLOR = C.tm;
 
 // Feature gate for the swap-exercise UI. Substitution is ONLY for trainees on
 // expo-il template-purchased plans — Ohad's manually-coached private clients
@@ -1103,7 +1104,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             // rx orange, tempo grey (Ohad: tempo grey in all cards/screens)
             return <><span style={{color:C.ac}}>{core}</span>{wu.tempo ? <span style={{color:TEMPO_COLOR}}>{`  ${wu.tempo}`}</span> : null}</>;
           }
-          return <span style={{color:C.ac}}>{wu.rx || ''}</span>;
+          // Legacy free-text ("5XI, 30 SEC REST"): reps before the first comma
+          // stay cyan; the rest/tempo remainder goes grey so they don't blend.
+          const rx = String(wu.rx || '');
+          const ci = rx.indexOf(',');
+          if (ci === -1) return <span style={{color:C.ac}}>{rx}</span>;
+          return <><span style={{color:C.ac}}>{rx.slice(0, ci)}</span><span style={{color:TEMPO_COLOR}}>{rx.slice(ci)}</span></>;
         })()}</div>
         {/* Coach note for this warm-up (authored in the plan editor's
             warm-up expand panel). */}
