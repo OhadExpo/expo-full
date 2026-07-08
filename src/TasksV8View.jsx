@@ -1295,7 +1295,7 @@ function EventTimeline({ noteId }) {
   );
 }
 
-function ExpandedDetail({ row, displayBody, viewer, onSetCategory, readOnly = false }) {
+function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, onDelete, readOnly = false }) {
   const heb = isHebrew(displayBody || '');
   // Filter internal-use tags (gevent/getag/glink/approved) out of the
   // visible tag list. (Dual-approval removed 2026-06-06 — any legacy
@@ -1351,6 +1351,23 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, readOnly = fa
           </select>
         </div>
       )}
+      {/* Per-task management (Yuval): Archive moves it to the Done/Cancelled
+          pool at the bottom (recoverable); Delete removes it for good with a
+          typed-free confirm. Both hidden on the other coach's read-only tasks. */}
+      {!readOnly && (onArchive || onDelete) && (
+        <div style={{ marginTop: 10, direction: 'ltr', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {onArchive && row.status !== 'cancelled' && (
+            <button onClick={(e) => { e.stopPropagation(); onArchive(row); }}
+              title="Archive — moves this task to the Done/Cancelled pool (recoverable)"
+              style={{ background: 'transparent', border: `1px solid var(--c-cardBd)`, color: 'var(--c-tm)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>⊘ Archive</button>
+          )}
+          {onDelete && (
+            <button onClick={async (e) => { e.stopPropagation(); if (await confirmToast('Delete this task permanently? This cannot be undone.', { okLabel: 'Delete', cancelLabel: 'Keep' })) onDelete(row); }}
+              title="Delete this task permanently"
+              style={{ background: 'transparent', border: `1px solid var(--c-rd)`, color: 'var(--c-rd)', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '5px 10px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>🗑 Delete</button>
+          )}
+        </div>
+      )}
       {/* Comments + audit timeline (Phase 2). Both gracefully no-op
           when their migrations haven't been applied — Comments shows
           a hint, EventTimeline silently absents itself. */}
@@ -1360,7 +1377,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, readOnly = fa
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, now, search, viewer, readOnly = false, board = false, compact = false }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onDelete, now, search, viewer, readOnly = false, board = false, compact = false }) {
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1516,6 +1533,8 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
           <ExpandedDetail row={row} displayBody={row._display}
             viewer={viewer}
             onSetCategory={onSetCategory}
+            onArchive={onSetStatus ? (r) => onSetStatus(r, 'cancelled') : undefined}
+            onDelete={onDelete}
             readOnly={readOnly}
           />
         </div>
@@ -2053,6 +2072,9 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     for (const id of [...selectedIds]) { await remove(id); }
     clearSelect();
   };
+  // Single-task permanent delete (Yuval). Confirm lives in ExpandedDetail;
+  // this just performs the removal.
+  const handleDeleteTask = async (r) => { if (r?.id) await remove(r.id); };
 
   // Terminal pool — done AND cancelled live together at the bottom.
   const done = useMemo(
@@ -2346,7 +2368,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                       theme={theme} showAvatar={owner === 'shared'}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
-                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
+                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onDelete={handleDeleteTask}
                       now={now} search={search} viewer={viewerOwner}
                       gcalConnected={gcalConnected}
                       onSyncToCalendar={handleSyncToCalendar}
@@ -2387,7 +2409,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
+                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onDelete={handleDeleteTask}
                   now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
@@ -2452,7 +2474,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                       theme={theme} showAvatar={owner === 'shared'} board
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
-                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
+                      onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onDelete={handleDeleteTask}
                       search={search} viewer={viewerOwner}
                       now={now} />
                   </div>
@@ -2537,7 +2559,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
-                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory}
+                  onSetStatus={setStatus} onSetPriority={setPriority} onSetCategory={setCategory} onDelete={handleDeleteTask}
                   now={now} search={search} viewer={viewerOwner}
                   gcalConnected={gcalConnected}
                   onSyncToCalendar={handleSyncToCalendar}
