@@ -2747,7 +2747,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
             <div style={{flex:1,height:1,background:C.bd2}}/>
-            <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{vp.name.toUpperCase()}</span>
+            <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{(vp.name || '').toUpperCase()}</span>
             {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}
             <div style={{flex:1,height:1,background:C.bd2}}/>
           </div>}
