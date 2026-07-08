@@ -212,7 +212,10 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         traineeId: p.traineeId,
         planId: p.planId,
         planName: plan?.name || '',
-        planWeeks: Number(plan?.weeks) || undefined,
+        // weeks isn't on the plans row we fetched (id,name,data) — read it from
+        // planIndex, which carries the block length. Was always undefined →
+        // nextWeekFor capped at the fallback 8. (audit)
+        planWeeks: Number(planIndex.find(pi => pi.id === p.planId)?.weeks) || undefined,
         dayName: day.name || p.dayName || 'Session',
         week,
         checkedIn: false,
