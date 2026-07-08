@@ -53,7 +53,7 @@ function Field({ q, value, onChange, dir }) {
       <div style={{ marginBottom: 16 }}>
         <label style={labelStyle}>{q.label}{required}</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, direction: dir }}>
-          {q.choices.map(c => (
+          {(q.choices || []).map(c => (
             <label key={c} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontFamily: dir === 'rtl' ? FH : FB, fontSize: 14, color: C.tx }}>
               <input type="radio" name={q.id} value={c} checked={value === c}
                 onChange={() => onChange(c)} style={{ accentColor: C.ac }} />
@@ -76,7 +76,7 @@ function Field({ q, value, onChange, dir }) {
       <div style={{ marginBottom: 16 }}>
         <label style={labelStyle}>{q.label}{required}</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, direction: dir }}>
-          {q.choices.map(c => {
+          {(q.choices || []).map(c => {
             const isSel = selected.includes(c);
             return (
               <button key={c} type="button" onClick={() => toggle(c)}
