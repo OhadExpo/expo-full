@@ -993,6 +993,12 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
     norm(noteValue) !== norm(libTarget.cues)
   );
   const canUpdateLib = !!libTarget && libDirty;
+  // "Save new exercise" only makes sense when there's something new to save:
+  // either the row has NO library match (a genuinely new exercise), or it
+  // matches one but the coach CHANGED the title/video/notes (forking a new
+  // entry). A library-matched, untouched row would just duplicate the
+  // identical library entry — so dim + disable it (Ohad).
+  const canSaveNew = !libTarget || libDirty;
   const [libConfirm, setLibConfirm] = useState(null); // 'update' | 'new' | null
 
   // Overwrite the target library exercise with this card's name/video/cues, link
@@ -1076,9 +1082,11 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
               : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this card's name, video and notes.`
               : 'This card matches the library — nothing to update. Edit the name, video or notes first.'}
             style={{background:'transparent',border:`1px solid ${canUpdateLib?C.ac:C.cardBd}`,color:canUpdateLib?C.ac:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canUpdateLib?'pointer':'not-allowed',opacity:canUpdateLib?1:0.5,borderRadius:0,textTransform:'uppercase'}}>↑ Update the exercise database</button>
-          <button onClick={()=>setLibConfirm('new')}
-            title="Create a brand-new exercise in the database from this card, and link this row to it."
-            style={{background:'transparent',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:'pointer',borderRadius:0,textTransform:'uppercase'}}>+ Save new exercise</button>
+          <button onClick={()=>setLibConfirm('new')} disabled={!canSaveNew}
+            title={canSaveNew
+              ? 'Create a brand-new exercise in the database from this card, and link this row to it.'
+              : 'This card already matches a library exercise — nothing new to save. Edit the name, video or notes first.'}
+            style={{background:'transparent',border:`1px solid ${canSaveNew?C.gn:C.cardBd}`,color:canSaveNew?C.gn:C.td,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.08em',padding:'6px 12px',cursor:canSaveNew?'pointer':'not-allowed',opacity:canSaveNew?1:0.5,borderRadius:0,textTransform:'uppercase'}}>+ Save new exercise</button>
         </div>
       ) : null}
       <ConfirmDialog
@@ -1765,28 +1773,27 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
   const [picked, setPicked] = useState(() => new Set(preselected || []));
-  const [q, setQ] = useState('');
   const [mode, setMode] = useState('existing'); // 'existing' | 'new'
   const [newName, setNewName] = useState('');
   const [newAthlete, setNewAthlete] = useState('');   // '' = unassigned
-  const [athQ, setAthQ] = useState('');               // athlete search in new mode
+  const [existAthlete, setExistAthlete] = useState(''); // athlete chosen in existing mode
+  const [targetId, setTargetId] = useState('');         // program chosen for that athlete
   const [busy, setBusy] = useState(false);
-  const athletes = useMemo(() => {
-    const ql = athQ.trim().toLowerCase();
-    return (athleteOptions || []).filter(o => !ql || (o.label||'').toLowerCase().includes(ql)).slice(0, 60);
-  }, [athleteOptions, athQ]);
   const toggle = (i) => setPicked(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
-  const targets = useMemo(() => {
-    const ql = q.trim().toLowerCase();
-    return (planIndex || [])
-      .filter(p => p.id !== currentPlanId)
-      .map(p => ({ id: p.id, name: p.name || 'Untitled', who: traineeMap[p.traineeId] || 'Unassigned' }))
-      .filter(p => !ql || p.name.toLowerCase().includes(ql) || p.who.toLowerCase().includes(ql))
-      .slice(0, 60);
-  }, [planIndex, currentPlanId, q, traineeMap]);
-  const [targetId, setTargetId] = useState(null);
+  // Athletes who have at least one OTHER program (a valid copy target).
+  const athletesWithTargets = useMemo(() => {
+    const tids = new Set((planIndex || []).filter(p => p.id !== currentPlanId).map(p => p.traineeId));
+    return (athleteOptions || []).filter(o => tids.has(o.value));
+  }, [athleteOptions, planIndex, currentPlanId]);
+  // That athlete's programs (excluding the open one) = the second picker.
+  const programsForAthlete = useMemo(() =>
+    (planIndex || []).filter(p => p.id !== currentPlanId && p.traineeId === existAthlete),
+  [planIndex, currentPlanId, existAthlete]);
   const count = picked.size;
   const canCopy = count > 0 && (mode === 'new' ? true : !!targetId) && !busy;
+  // Native-select style, matching the Sessions "add athletes" pickers.
+  const sel = { width:'100%', height:38, boxSizing:'border-box', background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:'0 10px', color:C.tx, fontFamily:FN, fontSize:12, outline:'none', cursor:'pointer' };
+  const fieldLbl = { fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:6, textTransform:'uppercase' };
   const doCopy = async () => {
     if (!canCopy) return;
     setBusy(true);
@@ -1828,41 +1835,37 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
             ))}
           </div>
           {mode === 'existing' ? (
-            <div>
-              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search programs / athletes…" autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'9px 12px', background:'var(--c-sf2)', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:12, outline:'none', marginBottom:8 }} />
-              <div style={{ maxHeight:200, overflowY:'auto', border:`1px solid ${C.cardBd}` }}>
-                {targets.length === 0 && <div style={{ padding:'14px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No programs match.</div>}
-                {targets.map(t => {
-                  const on = targetId === t.id;
-                  return (
-                    <button key={t.id} onClick={()=>setTargetId(t.id)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, width:'100%', padding:'9px 12px', background: on?`${C.ac}1f`:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${on?C.ac:'transparent'}`, cursor:'pointer', textAlign:'left' }}>
-                      <span style={{ color: on?C.ac:C.tx, fontFamily:FN, fontSize:12, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t.name}</span>
-                      <span style={{ color:C.tm, fontFamily:FN, fontSize:10, flexShrink:0 }}><bdi>{t.who}</bdi></span>
-                    </button>
-                  );
-                })}
+            /* Two cascading pickers — athlete → block — like the Sessions
+               add-athletes row (Ohad: "two pickers like in groups"). */
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+              <div>
+                <div style={fieldLbl}>Athlete</div>
+                <select value={existAthlete} onChange={e=>{ setExistAthlete(e.target.value); setTargetId(''); }} style={sel}>
+                  <option value="">— athlete —</option>
+                  {athletesWithTargets.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <div style={fieldLbl}>Block</div>
+                <select value={targetId} onChange={e=>setTargetId(e.target.value)} style={{ ...sel, opacity: existAthlete ? 1 : 0.5 }} disabled={!existAthlete}>
+                  <option value="">{existAthlete ? '— block —' : '— pick athlete —'}</option>
+                  {programsForAthlete.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
+                </select>
               </div>
             </div>
           ) : (
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              {/* block / program name */}
+            /* New program — same two-picker rhythm: athlete select + block name. */
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
               <div>
-                <div style={{ fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:6, textTransform:'uppercase' }}>Block / program name</div>
-                <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder='e.g. "Block #10"' autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'9px 12px', background:'var(--c-sf2)', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:12, outline:'none' }} />
+                <div style={fieldLbl}>Athlete</div>
+                <select value={newAthlete} onChange={e=>setNewAthlete(e.target.value)} style={sel}>
+                  <option value="">Unassigned</option>
+                  {(athleteOptions||[]).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
               </div>
-              {/* athlete picker — assign the new program on creation (Ohad) */}
               <div>
-                <div style={{ fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:6, textTransform:'uppercase' }}>Athlete</div>
-                <input value={athQ} onChange={e=>setAthQ(e.target.value)} placeholder="Search athletes…" style={{ width:'100%', boxSizing:'border-box', padding:'9px 12px', background:'var(--c-sf2)', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:12, outline:'none', marginBottom:8 }} />
-                <div style={{ maxHeight:180, overflowY:'auto', border:`1px solid ${C.cardBd}` }}>
-                  {/* explicit "leave unassigned" row so the old behaviour stays reachable */}
-                  <button onClick={()=>setNewAthlete('')} style={{ display:'block', width:'100%', padding:'9px 12px', background: newAthlete===''?`${C.ac}1f`:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${newAthlete===''?C.ac:'transparent'}`, color: newAthlete===''?C.ac:C.tm, fontFamily:FN, fontSize:12, fontWeight:700, cursor:'pointer', textAlign:'left' }}>Unassigned</button>
-                  {athletes.map(o => {
-                    const on = newAthlete === o.value;
-                    return <button key={o.value} onClick={()=>setNewAthlete(o.value)} style={{ display:'block', width:'100%', padding:'9px 12px', background: on?`${C.ac}1f`:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${on?C.ac:'transparent'}`, color: on?C.ac:C.tx, fontFamily:FN, fontSize:12, fontWeight:on?700:500, cursor:'pointer', textAlign:'left', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><bdi>{o.label}</bdi></button>;
-                  })}
-                  {athletes.length === 0 && <div style={{ padding:'12px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No athletes match.</div>}
-                </div>
+                <div style={fieldLbl}>Block name</div>
+                <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder='e.g. "Block #10"' style={{ ...sel, cursor:'text' }} />
               </div>
             </div>
           )}
@@ -2476,7 +2479,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             if (row.orphan) {
               return (
                 <div key={row.tid} style={{background: 'var(--c-sf)',border:`0.25px dashed rgba(255,165,2,0.502)`,borderRadius:0,padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
-                  <div style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
+                  <div style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>NO PROGRAM ASSIGNED</div>
                   </div>
@@ -2498,7 +2501,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                   onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}
                   style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'12px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                   <div className="prog-main"
-                    style={{minWidth:0,flex:1,display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
+                    style={{minWidth:0,flex:1,display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
                     <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',letterSpacing:'0.01em',flexShrink:0}}><bdi>{row.name}</bdi></div>
                     <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:'0 1 auto'}}>{cur.name||"Untitled"}</div>
                     {/* +N earlier-blocks expander lives right after the block
@@ -2507,9 +2510,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     {row.earlier.length > 0 && (
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
-                        style={{display:'inline-flex',alignItems:'center',justifyContent:'space-between',height:30,width:48,padding:'0 8px',background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums',alignSelf:'center'}}>
-                        <span style={{flexShrink:0}}>{expanded?'▴':'▾'}</span>
-                        <span>{expanded?row.earlier.length:`+${row.earlier.length}`}</span>
+                        style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5,height:26,padding:'0 10px',background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.02em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums'}}>
+                        {/* chevron sized down + flex-centered so the triangle
+                            sits on the number's optical centre (the ▾ glyph
+                            renders high in its em box otherwise). */}
+                        <span aria-hidden="true" style={{fontSize:8,lineHeight:1,display:'inline-flex',alignItems:'center',height:'100%'}}>{expanded?'▲':'▼'}</span>
+                        <span style={{lineHeight:1}}>{expanded?row.earlier.length:`+${row.earlier.length}`}</span>
                       </button>
                     )}
                     <div style={{flex:1}} />
@@ -2588,8 +2594,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             }}
             onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); }}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12}}>
-              <div style={{minWidth:0,flex:1,direction:'ltr',unicodeBidi:'isolate',display:'flex',alignItems:'baseline',gap:14,flexWrap:'wrap'}}>
-                <div style={{fontWeight:700,fontSize:isHebrew(tName)?18:15,fontFamily:isHebrew(tName)?FH:undefined,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.01em',flexShrink:0}}><bdi>{tName}</bdi></div>
+              <div style={{minWidth:0,flex:1,direction:'ltr',unicodeBidi:'isolate',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                {/* Hebrew and English names render at the EXACT same 15px
+                    (Ohad) — no per-script size bump. Latin glyphs fall back to
+                    DM Sans, Hebrew to its own face, but the font-size is
+                    identical, matching the grouped-view rows. */}
+                <div style={{fontWeight:700,fontSize:15,color:C.tx,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.01em',flexShrink:0}}><bdi>{tName}</bdi></div>
                 <div style={{fontWeight:700,fontSize:15,color:C.ac,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,minWidth:0,flex:1}}>{p.name||"Untitled"}</div>
                 <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex{p.phase?` · ${p.phase}`:''}</div>
               </div>
