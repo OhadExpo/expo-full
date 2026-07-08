@@ -1540,7 +1540,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     unlimited times per block, no DONE lock, no week rotation. */}
                 <button onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { kind: 'daily' }); }}
                   title={d.kind==='daily' ? 'Daily Routine ON — unlimited logs per block, no DONE lock, no week rotation. Click for a standard week-paced day.' : 'Make this a Daily Routine day (unlimited logs, no DONE lock, no week rotation).'}
-                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,padding:"3px 0",color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
+                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,height:24,padding:0,color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
                 {(() => {
                   const dayIds = (dayExs||[]).map(e=>e.id);
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);
@@ -1551,7 +1551,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     setOvExpanded(prev=>{ const next={...prev}; dayIds.forEach(id=>{ if(anyOpen) delete next[id]; else next[id]=true; }); return next; });
                   }}
                     title={anyOpen?'Collapse all exercises in this day':'Expand all exercises in this day to edit fully'}
-                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:"3px 0",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',whiteSpace:'nowrap',width:142,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5}}>
+                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:24,padding:0,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',whiteSpace:'nowrap',width:142,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5}}>
                     {/* One glyph rotated for both states — ▴ and ▾ render at
                         different sizes in this font, so the arrows mismatched. */}
                     <span aria-hidden style={{display:'inline-block',transform:anyOpen?'rotate(180deg)':'none',transition:'transform 180ms ease',lineHeight:1}}>▾</span>
@@ -1560,18 +1560,18 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     <span style={{marginRight:'-0.14em'}}>{anyOpen?'COLLAPSE ALL':'EXPAND ALL'}</span>
                   </button>;
                 })()}
-                {/* ⤴ copy-day + × delete-day = one matched icon pair, sized to
-                    the 20px DAILY / EXPAND-ALL chips so the row reads as a
-                    single control cluster (Ohad OCD). Both 26×20 hairline
-                    boxes: share = cyan, delete = neutral→red on hover. Kept
-                    together with a hair gap; delete only shows when >1 day. */}
+                {/* ⤴ copy-day + × delete-day = one matched icon pair, the SAME
+                    24px height as the DAILY / EXPAND-ALL chips so the whole
+                    right cluster reads as one control row (Ohad OCD). Both
+                    28×24 boxes, glyphs optically centred (⤴ smaller than × per
+                    point, so 12 vs 15 balances). Delete only shows when >1 day. */}
                 {(onCopyDays || plan.days.length > 1) && (
                   <div style={{display:'inline-flex',gap:4,flexShrink:0,alignItems:'center'}}>
                     {onCopyDays && <button onClick={()=>setCopyDaysModal({ dayIdxs: new Set([dayIdx]) })} title="Copy this day to another program" aria-label="Copy day to another program"
-                      style={{width:26,height:20,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontSize:12,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}>⤴</button>}
+                      style={{width:28,height:24,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontSize:12,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}>⤴</button>}
                     {plan.days.length > 1 && <button onClick={()=>setConfirmDeleteDay(dayIdx)} title="Delete this day" aria-label="Delete day"
                       className="daydel-btn"
-                      style={{width:26,height:20,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.rd,cursor:'pointer',fontSize:15,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0,transition:'border-color .12s'}}>×</button>}
+                      style={{width:28,height:24,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.rd,cursor:'pointer',fontSize:15,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0,transition:'border-color .12s'}}>×</button>}
                   </div>
                 )}
               </div>
