@@ -1883,6 +1883,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
   const renderTopHeader = () => (
     <>
+      {/* Reserve the scrollbar gutter always so switching tabs (short Messages
+          vs tall Program) never shifts the centred content left/right (Ohad:
+          "pages glitch from left to right"). */}
+      <style>{`html{scrollbar-gutter:stable}`}</style>
       <div style={{background:C.bg,padding:'calc(12px + env(safe-area-inset-top)) 20px 12px',borderBottom:`1px solid ${C.bd2}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
           {/* EXPO logo. For dual-role accounts (trainer who also has a
@@ -1968,7 +1972,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // hierarchy); ≥2.5x value-to-label scale contrast; progress gets a
           // VISUAL, not digits; metadata collapses to one quiet tracked
           // line; 8pt spacing grid; tabular numerals.
-          const hv = ({BASE:'1',EDITORIAL:'2',TABLE:'3',CONSOLE:'4',AIR:'5',RAIL:'6'})[ident];
+          // RAIL (pv5) is the chosen design, but Ohad wants its TOP (stat
+          // strip) to look like CONSOLE (pv3) — so RAIL maps to the console
+          // header block. The rest of RAIL (week strip, cards) is unchanged.
+          const hv = ({BASE:'1',EDITORIAL:'2',TABLE:'3',CONSOLE:'4',AIR:'5',RAIL:'4'})[ident];
           const blockLabel = visPlans.length ? ((visPlans[0].name||'').replace(/^block\s*/i,'') || visPlans[0].name) : '';
           const metaLbl = {fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.2em',fontWeight:700,textTransform:'uppercase',whiteSpace:'nowrap'};
           const metaVal = {fontSize:12,color:C.ac,fontFamily:FN,fontWeight:700,letterSpacing:'0.06em',fontVariantNumeric:'tabular-nums'};
@@ -2137,9 +2144,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
 
         // CONSOLE — same 3×2 grid geometry, but inverse-video active
         // with a ▸ cursor prefix; every cell mono, tight tracking.
-        if (ident === 'CONSOLE') return (
+        // RAIL borrows this nav too (Ohad: pv5 top like pv3).
+        if (ident === 'CONSOLE' || ident === 'RAIL') return (
           <div style={{padding:'14px 20px 0'}}>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`}}>
+            {/* no top border — Ohad: remove the grey line above PROGRAM/BW/MEAL LOG */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`,borderTop:'none'}}>
               {NAV.map(([k,l], i) =>
                 <button key={k} onClick={() => setVw(k)}
                   style={{padding:'11px 4px',borderRadius:0,border:'none',
@@ -2479,10 +2488,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 <div style={{display:'flex',height:32,alignItems:'stretch',justifyContent:'space-between',padding:'0 4px'}}>
                   {Array.from({length:N},(_,w)=>mk(w,{padding:'0 8px',height:32,borderRadius:0,border:'none',background:'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:activePlan&&wk===w?700:500,letterSpacing:'0.08em',cursor:'pointer',transition:'color .15s'}))}
                 </div>);
-              // RAIL — fused strip, active carries a 2px cyan top rail
+              // RAIL — separate bordered boxes (each 32px border-box, own 1px
+              // border) so every week box is EXACTLY the same size as the KG
+              // input (also 32px border-box) — Ohad: KG must match the weeks.
+              // The RAIL identity is kept via the 2px cyan top rail on active.
               if (ident === 'RAIL') return (
-                <div style={{display:'grid',gridTemplateColumns:`repeat(${N}, 1fr)`,border:`1px solid ${C.cardBd}`,height:32,boxSizing:'border-box'}}>
-                  {Array.from({length:N},(_,w)=>mk(w,{padding:0,borderRadius:0,border:'none',borderLeft:w?`1px solid ${C.cardBd}`:'none',boxShadow:activePlan&&wk===w?`inset 0 2px 0 0 ${C.ac}`:'none',background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s'}))}
+                <div style={{display:'flex',gap:4,alignItems:'stretch'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{flex:1,height:32,boxSizing:'border-box',padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,boxShadow:activePlan&&wk===w?`inset 0 2px 0 0 ${C.ac}`:'none',background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}))}
                 </div>);
               // BASE — compact separated boxes, tint active (approved)
               return (
@@ -2556,7 +2568,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               // number element per identity — square (BASE/RAIL), mono
               // listing number (CONSOLE/EDITORIAL), bare numeral (AIR)
               const numEl = (ident === 'BASE' || ident === 'RAIL')
-                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:accent,flexShrink:0,lineHeight:1}}>{r.num}</div>
+                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,lineHeight:1}}>{r.num}</div>
                 : <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:11,fontWeight:700,color:ident==='AIR'?accent:C.td,fontVariantNumeric:'tabular-nums',textAlign:ident==='AIR'?'left':'right',lineHeight:'20px'}}>{numOf(r.num)}</span>;
               return (
                 <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '7px 0 8px',borderTop:divider}}>
