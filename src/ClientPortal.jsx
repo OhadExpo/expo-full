@@ -30,6 +30,21 @@ const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
 // One source of truth for every card + the logger. (Ohad)
 const TEMPO_COLOR = '#9BA0AC';
 
+// Split a free-text prescription into [reps, rest]: the leading reps token
+// (e.g. "1×12 E", "3x5", "2X4") stays cyan; everything after it (tempo/rest,
+// incl. Hebrew like "שלוש שניות ירידה" or ", 30 SEC REST") is the rest, shown
+// grey. Returns null when there's no leading NxM reps token (e.g. "80KG (2X4 E)")
+// so the caller renders the whole string cyan. Handles comma OR space delimiters.
+const splitPrescription = (str) => {
+  const s = String(str || '');
+  // reps token = N×M (with optional range) + an optional trailing unit word
+  // (SEC/REPS/MIN/E) so "3 X 10-20 SEC" stays whole. The rest is only taken
+  // when it's a comma-clause or whitespace-then-non-digit (e.g. Hebrew tempo).
+  const m = s.match(/^(\s*\d+\s*[×xX]\s*[\d–-]+(?:\s*(?:SECS?|REPS?|MIN|E))?)(\s*,\s*.*|\s+\D.*)?$/i);
+  if (!m) return null;
+  return [m[1].trim(), (m[2] || '').trim() ? m[2] : ''];
+};
+
 // Feature gate for the swap-exercise UI. Substitution is ONLY for trainees on
 // expo-il template-purchased plans — Ohad's manually-coached private clients
 // should never see this button (he handles substitutions for them himself).
@@ -1091,30 +1106,34 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const vid = ytId(wu.vid);
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12}}>
-          <div style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,padding:'4px 10px',fontFamily:FN,fontSize:9,color:C.or,fontWeight:700,letterSpacing:'0.18em',minWidth:110,textAlign:'center',fontVariantNumeric:'tabular-nums',boxSizing:'border-box'}}>WARM-UP {wi+1}/{wuCount}</div></div>
-        <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{wu.t}</h2>
-        {/* Prefer the new structured fields (sets × reps × tempo) and fall
-            back to the legacy free-text rx for plans authored before the
-            split. Existing plans render unchanged until the coach edits. */}
-        <div style={{fontSize:15,fontWeight:700,fontFamily:FN,marginBottom:14}}>{(() => {
+        {/* Warm-up screen matches the EXERCISE screen exactly — centred name,
+            cyan reps, grey ⏱ tempo — minus find-alternate / set-log grid /
+            form-check (warm-ups aren't logged). The top bar already shows
+            "Warm-Up i/N", so no body pill. (Ohad) */}
+        <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{wu.t}</h2>
+        {(() => {
+          let reps = '', tempo = '';
           if (wu.sets || wu.reps) {
-            const setsStr = wu.sets ?? '';
-            const repsStr = wu.reps ?? '';
-            const core = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
-            // rx orange, tempo grey (Ohad: tempo grey in all cards/screens)
-            return <><span style={{color:C.ac}}>{core}</span>{wu.tempo ? <span style={{color:TEMPO_COLOR}}>{`  ${wu.tempo}`}</span> : null}</>;
+            const setsStr = wu.sets ?? '', repsStr = wu.reps ?? '';
+            reps = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
+            tempo = wu.tempo || '';
+          } else {
+            const parts = splitPrescription(wu.rx);
+            if (parts) { reps = parts[0]; tempo = String(parts[1] || '').replace(/^[\s,]+/, ''); }
+            else reps = String(wu.rx || '');
           }
-          // Legacy free-text ("5XI, 30 SEC REST"): reps before the first comma
-          // stay cyan; the rest/tempo remainder goes grey so they don't blend.
-          const rx = String(wu.rx || '');
-          const ci = rx.indexOf(',');
-          if (ci === -1) return <span style={{color:C.ac}}>{rx}</span>;
-          return <><span style={{color:C.ac}}>{rx.slice(0, ci)}</span><span style={{color:TEMPO_COLOR}}>{rx.slice(ci)}</span></>;
-        })()}</div>
+          return <>
+            {reps && <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{reps}</div>}
+            {tempo && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,textAlign:'center'}}>⏱ {tempo}</div>}
+            <div style={{marginBottom:14}} />
+          </>;
+        })()}
         {/* Coach note for this warm-up (authored in the plan editor's
             warm-up expand panel). */}
-        {wu.note && <div dir="auto" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.or}`,borderRadius:0,padding:'10px 12px',marginBottom:14,fontSize:14,lineHeight:1.55,whiteSpace:'pre-wrap',color:C.tx}}>{wu.note}</div>}
+        {wu.note && <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:14}}>
+          <div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>EXERCISE NOTE</div>
+          <div dir="auto" style={{fontSize:13,color:C.tx,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',direction:/[֐-׿]/.test(wu.note||'')?'rtl':'ltr',fontFamily:/[֐-׿]/.test(wu.note||'')?FH:undefined}}>{wu.note}</div>
+        </div>}
         {vid ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
           <iframe src={`https://www.youtube.com/embed/${vid}`} style={{width:'100%',height:'100%',border:'none'}} allowFullScreen/></div>
           : wu.vid && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(wu.vid) ? <div style={{marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'#000',border:`1px solid ${C.cardBd}`}}>
