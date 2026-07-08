@@ -1887,7 +1887,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           vs tall Program) never shifts the centred content left/right (Ohad:
           "pages glitch from left to right"). */}
       <style>{`html{scrollbar-gutter:stable}`}</style>
-      <div style={{background:C.bg,padding:'calc(12px + env(safe-area-inset-top)) 20px 12px',borderBottom:`1px solid ${C.bd2}`}}>
+      <div style={{background:C.bg,padding:'calc(12px + env(safe-area-inset-top)) 20px 12px',borderBottom:(ident==='CONSOLE'||ident==='RAIL')?'none':`1px solid ${C.bd2}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
@@ -2147,8 +2147,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         // RAIL borrows this nav too (Ohad: pv5 top like pv3).
         if (ident === 'CONSOLE' || ident === 'RAIL') return (
           <div style={{padding:'14px 20px 0'}}>
-            {/* no top border — Ohad: remove the grey line above PROGRAM/BW/MEAL LOG */}
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`,borderTop:'none'}}>
+            {/* keep the cyan nav border (cardBd is cyan) — the grey line Ohad
+                wanted gone is the header section's bd2 divider, removed below. */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`}}>
               {NAV.map(([k,l], i) =>
                 <button key={k} onClick={() => setVw(k)}
                   style={{padding:'11px 4px',borderRadius:0,border:'none',
@@ -2457,7 +2458,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
-        <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'center'}}>
+        {/* flex-end so the WEEK strip and KG box bottom-align exactly — their
+            labels differ by a sub-pixel, and centring offset the boxes ~0.8px
+            (Ohad: "kg and wk4 not aligned"). */}
+        <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'flex-end'}}>
           {/* WEEK selector hidden for daily-routine plans — they have no
               week structure. BW input stays useful regardless. */}
           {/* v2 — WEEK is a single segmented strip (equal cells inside one
@@ -2545,7 +2549,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // or C.ac (day); header extras (✓ / N LOGGED) and the LOG action
           // are passed in so warm-up and day cards share every identity's
           // chrome and rhythm exactly (Ohad: same design, obviously).
-          const buildCard = ({ key, accent, title, count, extras = null, action = null, rows, borderColor, countColor }) => {
+          const buildCard = ({ key, accent, title, count, extras = null, action = null, rows, borderColor, countColor, tempoColor = C.or }) => {
             const hair = C.cardBd;
             const isWu = accent === C.or;
             const numOf = (n) => ident === 'CONSOLE' ? String(n).padStart(2,'0') : String(n);
@@ -2566,14 +2570,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   <span style={{flex:1,minWidth:0,fontWeight:600,fontSize:12,lineHeight:1.3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.title}</span>
                   {/* fixed tempo column so the orange values form a true rail
                       instead of floating ragged between title and rx */}
-                  <span style={{fontSize:10,color:C.or,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right'}}>{r.tempo || ''}</span>
+                  <span style={{fontSize:10,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right'}}>{r.tempo || ''}</span>
                   <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',width:72,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
                 </div>
               );
               // number element per identity — square (BASE/RAIL), mono
               // listing number (CONSOLE/EDITORIAL), bare numeral (AIR)
               const numEl = (ident === 'BASE' || ident === 'RAIL')
-                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,lineHeight:1}}>{r.num}</div>
+                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:accent,flexShrink:0,lineHeight:1}}>{r.num}</div>
                 : <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:11,fontWeight:700,color:ident==='AIR'?accent:C.td,fontVariantNumeric:'tabular-nums',textAlign:ident==='AIR'?'left':'right',lineHeight:'20px'}}>{numOf(r.num)}</span>;
               return (
                 <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '7px 0 8px',borderTop:divider}}>
@@ -2582,7 +2586,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
                         <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em'}}>{r.rx}</span>
-                        {r.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{r.tempo}</span>}
+                        {r.tempo && <span style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em'}}>{r.tempo}</span>}
                       </div>
                       <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{r.title}</div>
                     </div>
@@ -2685,6 +2689,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             title: `Warm-Up · ${vp.name}`,
             count: `(${vp.warmup.length})`,
             countColor: C.or,
+            // warm-up owns ORANGE (number + title + rail); its tempo goes muted
+            // so the warm-up's colour is clearly different from the tempo, which
+            // is orange on the day cards (Ohad).
+            tempoColor: C.tm,
             rows: vp.warmup.map((w,i) => ({
               num: i + 1,
               rx: (w.sets || w.reps)
