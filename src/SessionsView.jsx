@@ -14,6 +14,7 @@
 // overlay) launch per-athlete from here but are separate surfaces.
 
 import React, { useEffect, useMemo, useState, useCallback, useRef, Suspense, lazy } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { supabase } from './supabase';
 import { RefinedHeaderStrip, toast, confirmToast } from './ui';
@@ -484,7 +485,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
     onConfirm(picks);
   };
 
-  return (
+  return createPortal((
     <div onClick={onCancel} role="dialog" aria-modal="true" style={overlay}>
       <div onClick={e => e.stopPropagation()} style={modal}>
         <h3 style={{ margin: '0 0 14px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>ADD ATHLETES</h3>
@@ -524,7 +525,7 @@ function AthletePicker({ trainees, planIndex, existing = [], clientWorkouts = []
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 // ---- bits ----

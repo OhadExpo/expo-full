@@ -9,6 +9,7 @@
 // MovementLab's jump tool. onSave(seconds:number) folds into evalTestMap.toValue.
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN } from './theme';
 
 const fmt = (ms) => {
@@ -89,7 +90,7 @@ export default function HoldTimer({
     background: bg, color, border: `1px solid ${border}`, textTransform: 'uppercase',
   });
 
-  return (
+  return createPortal((
     <div role="dialog" aria-modal="true" aria-label="Isometric hold timer" style={{
       position: 'fixed', inset: 0, background: '#000', zIndex: 400,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -125,5 +126,5 @@ export default function HoldTimer({
         </>}
       </div>
     </div>
-  );
+  ), document.body);
 }

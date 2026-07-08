@@ -4,6 +4,7 @@
 // the URL via WhatsApp; athlete signs from any device.
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { useEscClose } from './ui';
@@ -53,7 +54,7 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
     }
   };
 
-  return (
+  return createPortal((
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Send contract" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 250,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
@@ -133,7 +134,7 @@ export default function CoachContractComposer({ trainee, coachEmail, onClose, on
         )}
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 function FormRow({ label, children }) {

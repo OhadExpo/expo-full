@@ -19,6 +19,7 @@
 // in one place. The caller passes the canonical trainee object.
 
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip, useEscClose, usePersistentState } from './ui';
 import CoachMessages from './CoachMessages';
@@ -248,7 +249,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
     }
   };
 
-  return (
+  return createPortal((
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Log activity" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
@@ -330,7 +331,7 @@ function CombinedLogModal({ trainee, addActivity, onClose, onSaved }) {
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 // CoachHistoryCard — the unified card the spec asks for. One header

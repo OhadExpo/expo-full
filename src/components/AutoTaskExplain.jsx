@@ -2,6 +2,7 @@
 // by NotesWidget (dashboard tasks) and NotesInline (trainee-card tasks)
 // so the "why is this task here" experience is identical everywhere.
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FN } from '../theme';
 import { explainAutoTask } from '../autoTasks';
 import { useEscClose } from '../ui';
@@ -25,7 +26,7 @@ export function ExplainInfoButton({ note, trainee, color = 'var(--c-ac)' }) {
 export function AutoTaskExplainModal({ note, trainee, accent = 'var(--c-ac)', onClose }) {
   const exp = explainAutoTask(note, trainee);
   useEscClose(true, onClose); // Escape closes the explainer
-  return (
+  return createPortal((
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Why this task" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 220,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 80,
@@ -74,7 +75,7 @@ export function AutoTaskExplainModal({ note, trainee, accent = 'var(--c-ac)', on
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 function Section({ label, children }) {

@@ -1,6 +1,7 @@
 // src/auth.jsx — Supabase Auth context for EXPO
 // Two roles: trainer (Ohad) and client (matched by email in CLIENTS array)
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from './supabase';
 import { onSaveError } from './useSupaStore';
 import { subscribe as subscribeQueue, drain as drainQueue, getCount as getQueueCount } from './offlineQueue';
@@ -307,7 +308,7 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
     }
   };
 
-  return (
+  return createPortal((
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Change password" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: C.bg, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: 24, maxWidth: 360, width: '100%' }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 12, textAlign: 'center' }}>CHANGE PASSWORD</div>
@@ -332,7 +333,7 @@ export function PasswordChangeModal({ onClose, demoMode = false }) {
         )}
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 // Toast for Supabase write failures. Subscribes to useSupaStore's

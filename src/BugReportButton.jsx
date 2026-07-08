@@ -9,6 +9,7 @@
 // rate limit at the API edge keep abuse cheap.
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { toast, useEscClose } from './ui';
 import { snapshotConsoleBuffer, onError, hasSeenError } from './consoleBuffer.js';
@@ -144,7 +145,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
         </svg>
       </button>
 
-      {open && (
+      {open && createPortal((
         <div onClick={() => !submitting && setOpen(false)} role="dialog" aria-modal="true" aria-label="Report a bug" style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200,
           display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60,
@@ -216,7 +217,7 @@ export default function BugReportButton({ role = 'anon', reporterEmail = '', var
             </div>
           </div>
         </div>
-      )}
+      ), document.body)}
     </>
   );
 }

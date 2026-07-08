@@ -15,6 +15,7 @@
 // Just count + display.
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { ANGLE_DEFS, angleAt, detectChannels, isReal } from './repCounter';
 
@@ -223,7 +224,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   // Render
   // -----------------------------------------------------------------
   const repColor = targetReps && reps >= targetReps ? C.gn : C.ac;
-  return (
+  return createPortal((
     <div style={{
       position: 'fixed', inset: 0, background: '#000', zIndex: 1500,
       display: 'flex', flexDirection: 'column',
@@ -342,7 +343,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
         )}
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 // Lightweight skeleton overlay — connections list from MediaPipe Pose

@@ -8,6 +8,7 @@
 // edit-in-place.
 
 import React, { useState, useMemo, lazy, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { isRefined5b, useEscClose, useIsMobile, toast } from './ui';
 import { EVAL_SCHEMA, romKey } from './evaluationSchema';
@@ -411,7 +412,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
 
   return (
     <>
-    <div onClick={onClose} role="dialog" aria-modal="true" aria-label="Athletic evaluation" style={{
+    {createPortal((<div onClick={onClose} role="dialog" aria-modal="true" aria-label="Athletic evaluation" style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 300,
       display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: isMobile ? '16px 8px' : '40px 16px',
       overflowY: 'auto',
@@ -486,7 +487,7 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
           </button>
         </div>
       </div>
-    </div>
+    </div>), document.body)}
 
     {/* Embedded camera test overlay — fullscreen, stacks over the eval modal.
         On SAVE it writes the measured value into the row and closes. */}

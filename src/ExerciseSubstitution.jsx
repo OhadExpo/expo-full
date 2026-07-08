@@ -12,6 +12,7 @@
 // stays untouched.
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
 import { findAlternates } from './exerciseSimilarity';
 
@@ -98,7 +99,7 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
   }, [allAlternates, activeEquip]);
   const targetEquip = equipmentHintFor(currentTitle);
 
-  return (
+  return createPortal((
     <div onClick={onClose} style={{
       position: 'fixed', inset: 0, background: C.scrim,
       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
@@ -249,5 +250,5 @@ export default function ExerciseSubstitution({ currentTitle, currentEx, library,
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }

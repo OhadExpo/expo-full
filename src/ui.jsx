@@ -1,5 +1,13 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
+
+// Every full-screen overlay in this file renders through <body> via
+// createPortal. Views are wrapped in a `.motion-rise` element whose CSS
+// transform becomes the containing block for position:fixed descendants —
+// so an un-portaled fixed overlay anchors to that wrapper (off-centre)
+// instead of the viewport. Portaling to document.body escapes the transform.
+const portal = (node) => (typeof document !== 'undefined') ? createPortal(node, document.body) : node;
 
 // Delayed-unmount for exit animations: keeps a node mounted for `delay` ms
 // after `open` flips false so it can play a .motion-fade-out / .motion-fall
@@ -646,7 +654,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- onClose via ref
   const { mounted, closing } = useDelayedUnmount(open);
   if (!mounted) return null;
-  return (
+  return portal(
     <div
       role="dialog" aria-modal="true" aria-labelledby={titleId} className={closing ? 'motion-fade-out' : 'motion-fade-in'}
       style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 60, background: C.scrim, backdropFilter: "blur(8px)" }}
@@ -701,7 +709,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps -- onCancel via ref
   const { mounted, closing } = useDelayedUnmount(open);
   if (!mounted) return null;
-  return (
+  return portal(
     <div role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={onCancel}>
       <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: 400, padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         <h3 id={titleId} style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>

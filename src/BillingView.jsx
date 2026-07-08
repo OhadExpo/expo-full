@@ -15,6 +15,7 @@
 // bit_payment_requests.
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
@@ -214,7 +215,7 @@ function RequestModal({ trainees, onClose, onCreated }) {
     }
   };
 
-  return (
+  return createPortal((
     <div onClick={onClose} role="dialog" aria-modal="true" aria-label="New payment request" style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1200, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 60, backdropFilter: 'blur(4px)' }}>
       <div onClick={e => e.stopPropagation()} style={{ background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, maxWidth: 480, width: '100%', padding: 22, maxHeight: '80vh', overflow: 'auto' }}>
         <h3 style={{ margin: '0 0 16px', fontFamily: FN, fontSize: 14, color: C.ac, letterSpacing: '0.12em', fontWeight: 700 }}>+ NEW PAYMENT REQUEST</h3>
@@ -244,7 +245,7 @@ function RequestModal({ trainees, onClose, onCreated }) {
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }
 
 function pillStyle(color) {
