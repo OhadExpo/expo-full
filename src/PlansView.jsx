@@ -1097,12 +1097,15 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, portalVis, setPortalVis, editorApiRef }) {
+function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, portalVis, setPortalVis, editorApiRef }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [confirmDeleteDay, setConfirmDeleteDay] = useState(null); // dayIdx pending delete-confirm
+  // Copy-day flow: null | { dayIdxs:Set<number> } — the picker that copies the
+  // chosen day(s) into another program (existing or new) as new bottom days.
+  const [copyDaysModal, setCopyDaysModal] = useState(null);
   const [collapsedDays, setCollapsedDays] = usePersistentState('plan-collapsed-days', {}); // overview day cards collapse
   const toggleDayCollapse = (id) => setCollapsedDays(prev => ({ ...prev, [id]: !prev[id] }));
   // Unified view: expand an OVERVIEW row inline to its full detail (swap +
@@ -1299,6 +1302,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         /* (Removed .ex-row-outer/.ex-row-scroll/.ex-row-grid rules — those
            classes died with the !overview detail view; the unified grid
            handles narrow widths via its own overflowX scroll.) */
+        .daydel-btn:hover { border-color: var(--c-rd, #ff5a5a) !important; }
       `}</style>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12,flexWrap:'wrap'}}>
         <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flex:'1 1 100%',justifyContent:'center',position:'relative'}}>
@@ -1548,9 +1552,20 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     <span style={{marginRight:'-0.14em'}}>{anyOpen?'COLLAPSE ALL':'EXPAND ALL'}</span>
                   </button>;
                 })()}
-                {/* Remove-day — ported from the dead detail view (unified had
-                    no way to delete a day). Confirm since it's destructive. */}
-                {plan.days.length > 1 && <button onClick={()=>setConfirmDeleteDay(dayIdx)} title="Delete this day" aria-label="Delete day" style={{background:'transparent',border:'none',color:C.rd,cursor:'pointer',fontSize:17,lineHeight:1,padding:'0 4px',opacity:0.55,flexShrink:0}}>×</button>}
+                {/* ⤴ copy-day + × delete-day = one matched icon pair, sized to
+                    the 20px DAILY / EXPAND-ALL chips so the row reads as a
+                    single control cluster (Ohad OCD). Both 26×20 hairline
+                    boxes: share = cyan, delete = neutral→red on hover. Kept
+                    together with a hair gap; delete only shows when >1 day. */}
+                {(onCopyDays || plan.days.length > 1) && (
+                  <div style={{display:'inline-flex',gap:4,flexShrink:0,alignItems:'center'}}>
+                    {onCopyDays && <button onClick={()=>setCopyDaysModal({ dayIdxs: new Set([dayIdx]) })} title="Copy this day to another program" aria-label="Copy day to another program"
+                      style={{width:26,height:20,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontSize:12,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0}}>⤴</button>}
+                    {plan.days.length > 1 && <button onClick={()=>setConfirmDeleteDay(dayIdx)} title="Delete this day" aria-label="Delete day"
+                      className="daydel-btn"
+                      style={{width:26,height:20,boxSizing:'border-box',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,color:C.rd,cursor:'pointer',fontSize:15,lineHeight:1,display:'inline-flex',alignItems:'center',justifyContent:'center',padding:0,transition:'border-color .12s'}}>×</button>}
+                  </div>
+                )}
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
               {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
@@ -1722,7 +1737,135 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         onConfirm={()=>{ removeDay(confirmDeleteDay); setConfirmDeleteDay(null); }}
         onCancel={()=>setConfirmDeleteDay(null)}
       />
+      {copyDaysModal && <CopyDaysModal
+        days={plan.days}
+        currentPlanId={plan.id}
+        preselected={copyDaysModal.dayIdxs}
+        planIndex={planIndex}
+        traineeMap={Object.fromEntries((trainees||[]).flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>[t.id+'__'+i, m.name||('Member '+(i+1))]) : [[t.id, t.name]]))}
+        athleteOptions={(trainees||[]).filter(t=>t.status!=='Archived').flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i, label:m.name||('Member '+(i+1))})) : [{value:t.id, label:t.name}])}
+        onClose={()=>setCopyDaysModal(null)}
+        onCopy={onCopyDays}
+      />}
     </div>);
+}
+
+// Copy day(s) → another program. Left: this program's days as a checklist
+// (the clicked day pre-checked). Right/below: pick a target — search existing
+// programs, or create a new one. Copies FULL exercise data (parent's
+// handleCopyDays deep-clones with fresh ids, spreading every field). Selected
+// days append to the BOTTOM of the target.
+function CopyDaysModal({ days, currentPlanId, preselected, planIndex, traineeMap, athleteOptions, onClose, onCopy }) {
+  const [picked, setPicked] = useState(() => new Set(preselected || []));
+  const [q, setQ] = useState('');
+  const [mode, setMode] = useState('existing'); // 'existing' | 'new'
+  const [newName, setNewName] = useState('');
+  const [newAthlete, setNewAthlete] = useState('');   // '' = unassigned
+  const [athQ, setAthQ] = useState('');               // athlete search in new mode
+  const [busy, setBusy] = useState(false);
+  const athletes = useMemo(() => {
+    const ql = athQ.trim().toLowerCase();
+    return (athleteOptions || []).filter(o => !ql || (o.label||'').toLowerCase().includes(ql)).slice(0, 60);
+  }, [athleteOptions, athQ]);
+  const toggle = (i) => setPicked(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
+  const targets = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    return (planIndex || [])
+      .filter(p => p.id !== currentPlanId)
+      .map(p => ({ id: p.id, name: p.name || 'Untitled', who: traineeMap[p.traineeId] || 'Unassigned' }))
+      .filter(p => !ql || p.name.toLowerCase().includes(ql) || p.who.toLowerCase().includes(ql))
+      .slice(0, 60);
+  }, [planIndex, currentPlanId, q, traineeMap]);
+  const [targetId, setTargetId] = useState(null);
+  const count = picked.size;
+  const canCopy = count > 0 && (mode === 'new' ? true : !!targetId) && !busy;
+  const doCopy = async () => {
+    if (!canCopy) return;
+    setBusy(true);
+    const chosen = [...picked].sort((a,b)=>a-b).map(i => days[i]).filter(Boolean);
+    const target = mode === 'new' ? { kind: 'new', name: newName, traineeId: newAthlete } : { kind: 'existing', planId: targetId };
+    const res = await onCopy(chosen, target);
+    setBusy(false);
+    if (res && res.ok) onClose();
+  };
+  return (
+    <div onClick={onClose} role="dialog" aria-modal="true" style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(480px, 96vw)', maxHeight:'86vh', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
+        <div style={{ padding:'14px 18px', borderBottom:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>Copy day{count===1?'':'s'} to…</span>
+          <button onClick={onClose} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>
+        </div>
+        <div style={{ overflowY:'auto', padding:'12px 18px', display:'flex', flexDirection:'column', gap:14 }}>
+          {/* which day(s) */}
+          <div>
+            <div style={{ fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:8, textTransform:'uppercase' }}>Days to copy</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+              {days.map((d,i) => {
+                const on = picked.has(i);
+                const n = (d.exercises || d.ex || []).length;
+                return (
+                  <button key={d.id||i} onClick={()=>toggle(i)} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 10px', background: on ? `${C.ac}1f` : 'transparent', border:`1px solid ${on?C.ac:C.cardBd}`, borderRadius:0, cursor:'pointer', textAlign:'left' }}>
+                    <span aria-hidden="true" style={{ width:15, height:15, flexShrink:0, border:`1px solid ${on?C.ac:C.tm}`, background: on?C.ac:'transparent', color:'#000', fontSize:11, fontWeight:800, lineHeight:'14px', textAlign:'center' }}>{on?'✓':''}</span>
+                    <span style={{ flex:1, minWidth:0, color:C.tx, fontFamily:FB, fontSize:13, fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{d.name || `Day ${i+1}`}</span>
+                    <span style={{ color:C.td, fontFamily:FN, fontSize:10, flexShrink:0 }}>{n} ex</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          {/* target mode toggle */}
+          <div style={{ display:'flex', gap:0, border:`1px solid ${C.cardBd}` }}>
+            {[['existing','EXISTING PROGRAM'],['new','NEW PROGRAM']].map(([m,l],mi) => (
+              <button key={m} onClick={()=>setMode(m)} style={{ flex:1, padding:'9px 4px', border:'none', borderLeft: mi?`1px solid ${C.cardBd}`:'none', background: mode===m?C.ac:'transparent', color: mode===m?'#000':C.tm, fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.1em', cursor:'pointer' }}>{l}</button>
+            ))}
+          </div>
+          {mode === 'existing' ? (
+            <div>
+              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search programs / athletes…" autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'9px 12px', background:'var(--c-sf2)', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:12, outline:'none', marginBottom:8 }} />
+              <div style={{ maxHeight:200, overflowY:'auto', border:`1px solid ${C.cardBd}` }}>
+                {targets.length === 0 && <div style={{ padding:'14px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No programs match.</div>}
+                {targets.map(t => {
+                  const on = targetId === t.id;
+                  return (
+                    <button key={t.id} onClick={()=>setTargetId(t.id)} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, width:'100%', padding:'9px 12px', background: on?`${C.ac}1f`:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${on?C.ac:'transparent'}`, cursor:'pointer', textAlign:'left' }}>
+                      <span style={{ color: on?C.ac:C.tx, fontFamily:FN, fontSize:12, fontWeight:700, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{t.name}</span>
+                      <span style={{ color:C.tm, fontFamily:FN, fontSize:10, flexShrink:0 }}><bdi>{t.who}</bdi></span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {/* block / program name */}
+              <div>
+                <div style={{ fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:6, textTransform:'uppercase' }}>Block / program name</div>
+                <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder='e.g. "Block #10"' autoFocus style={{ width:'100%', boxSizing:'border-box', padding:'9px 12px', background:'var(--c-sf2)', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:12, outline:'none' }} />
+              </div>
+              {/* athlete picker — assign the new program on creation (Ohad) */}
+              <div>
+                <div style={{ fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:6, textTransform:'uppercase' }}>Athlete</div>
+                <input value={athQ} onChange={e=>setAthQ(e.target.value)} placeholder="Search athletes…" style={{ width:'100%', boxSizing:'border-box', padding:'9px 12px', background:'var(--c-sf2)', color:C.tx, border:`1px solid ${C.cardBd}`, borderRadius:0, fontFamily:FN, fontSize:12, outline:'none', marginBottom:8 }} />
+                <div style={{ maxHeight:180, overflowY:'auto', border:`1px solid ${C.cardBd}` }}>
+                  {/* explicit "leave unassigned" row so the old behaviour stays reachable */}
+                  <button onClick={()=>setNewAthlete('')} style={{ display:'block', width:'100%', padding:'9px 12px', background: newAthlete===''?`${C.ac}1f`:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${newAthlete===''?C.ac:'transparent'}`, color: newAthlete===''?C.ac:C.tm, fontFamily:FN, fontSize:12, fontWeight:700, cursor:'pointer', textAlign:'left' }}>Unassigned</button>
+                  {athletes.map(o => {
+                    const on = newAthlete === o.value;
+                    return <button key={o.value} onClick={()=>setNewAthlete(o.value)} style={{ display:'block', width:'100%', padding:'9px 12px', background: on?`${C.ac}1f`:'transparent', border:'none', borderBottom:`1px solid ${C.cardBd}`, borderLeft:`3px solid ${on?C.ac:'transparent'}`, color: on?C.ac:C.tx, fontFamily:FN, fontSize:12, fontWeight:on?700:500, cursor:'pointer', textAlign:'left', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}><bdi>{o.label}</bdi></button>;
+                  })}
+                  {athletes.length === 0 && <div style={{ padding:'12px', textAlign:'center', color:C.tm, fontFamily:FN, fontSize:12 }}>No athletes match.</div>}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ padding:'12px 18px', borderTop:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'flex-end', gap:8 }}>
+          <button onClick={onClose} style={{ padding:'8px 16px', background:'transparent', border:`1px solid ${C.cardBd}`, borderRadius:0, color:C.tm, fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.1em', cursor:'pointer' }}>CANCEL</button>
+          <button onClick={doCopy} disabled={!canCopy} style={{ padding:'8px 18px', background: canCopy?C.ac:'transparent', border:`1px solid ${canCopy?C.ac:C.cardBd}`, borderRadius:0, color: canCopy?'#000':C.td, fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.1em', cursor: canCopy?'pointer':'default' }}>{busy?'COPYING…':`COPY ${count||''} DAY${count===1?'':'S'} →`}</button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // Build the same visibility key TraineeDetail uses (`${trainee.name}:${plan.name}:m${memberIndex}`)
@@ -1967,6 +2110,52 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     }
     setShareTarget(null); setShareSearch('');
   };
+  // COPY DAY(S) → append selected day(s) from the open program to another
+  // program (existing or a brand-new one) as new days at the BOTTOM. Days are
+  // deep-cloned with fresh ids and FULL exercise fields (spread preserves
+  // sets/reps/tempo/load/rpe/rest/notes/videoUrl/cues/superset/wk — nothing
+  // is dropped). Target is written directly to the DB (savePlan) so the open
+  // editor's own plan is untouched; a "new" target is created unassigned.
+  const cloneDayFresh = (day) => ({
+    ...day,
+    id: uid(),
+    exercises: (day.exercises || []).map(ex => ({ ...ex, id: uid() })),
+  });
+  const handleCopyDays = async (days, target) => {
+    const cloned = (days || []).map(cloneDayFresh);
+    if (!cloned.length) return { ok: false };
+    try {
+      if (target.kind === 'new') {
+        const fresh = { id: 'pl_' + uid(), name: target.name?.trim() || 'New Program', traineeId: target.traineeId || '', phase: '', notes: '', active: true, createdAt: new Date().toISOString(), days: cloned, warmup: [], weeks: 4 };
+        const saved = await savePlan(fresh);
+        await reloadIndex();
+        if (saved) { const whoName = target.traineeId ? (trainees.flatMap(t=>t.members&&t.members.length===2?t.members.map((m,i)=>({v:t.id+'__'+i,n:m.name})):[{v:t.id,n:t.name}]).find(o=>o.v===target.traineeId)?.n) : null; toast(`Created "${fresh.name}"${whoName?` for ${whoName}`:''} with ${cloned.length} day${cloned.length===1?'':'s'}`, 'success', { ttl: 3000 }); return { ok: true, name: fresh.name }; }
+        toast('Copy failed — the new program was refused. See console.', 'error'); return { ok: false };
+      }
+      // existing: re-read the target from the DB (freshest), append, save.
+      const { supabase: sb } = await import('./supabase');
+      const { data } = await sb.from('plans').select('*').eq('id', target.planId).single();
+      if (!data) { toast('Copy failed — could not load the target program.', 'error'); return { ok: false }; }
+      // Keep the target's existing days EXACTLY as stored (old d.ex shape or
+      // new d.exercises shape) — appending, never rewriting them. Each day is
+      // independently valid; read paths handle both shapes ([[plan_dual_shape]]).
+      const existingDays = data.data?.days || [];
+      const merged = {
+        id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase || '', notes: data.notes || '',
+        active: data.active, createdAt: data.created_at,
+        days: [...existingDays, ...cloned],
+        warmup: data.data?.warmup || [], weeks: data.data?.weeks || 4, kind: data.data?.kind,
+        isTemplatePurchase: data.is_template_purchase === true || data.data?.isTemplatePurchase === true,
+      };
+      const saved = await savePlan(merged);
+      await reloadIndex();
+      if (saved) { toast(`Copied ${cloned.length} day${cloned.length===1?'':'s'} to "${data.name}"`, 'success', { ttl: 3000 }); return { ok: true, name: data.name }; }
+      toast('Copy failed — the save was refused. See console.', 'error'); return { ok: false };
+    } catch (e) {
+      console.error('handleCopyDays error:', e);
+      toast('Copy failed — see console.', 'error'); return { ok: false };
+    }
+  };
 
   // F-18 — Public program share. Creates a program_shares row with a
   // random token, copies the public URL to the clipboard, and toasts
@@ -2205,7 +2394,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
     return <>
-      <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} portalVis={portalVis} setPortalVis={setPortalVis} editorApiRef={editorApiRef} />
+      <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} onCopyDays={handleCopyDays} portalVis={portalVis} setPortalVis={setPortalVis} editorApiRef={editorApiRef} />
       {shareModal}
       {deleteModal}
       {newProgramModal}
