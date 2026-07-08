@@ -2006,6 +2006,21 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
               <div style={{fontSize:13,color:C.tx}}>{wo.notes}</div>
             </div>
           )}
+          {/* Pre-workout readiness check-in (autoregulation) the athlete filled
+              in the portal. Elevated pain is flagged orange for the coach. */}
+          {wo.autoregulation && (wo.autoregulation.pain || wo.autoregulation.sleep || wo.autoregulation.energy) && (
+            <div style={{marginTop:10,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10}}>
+              <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',marginBottom:6}}>READINESS CHECK-IN</div>
+              <div style={{display:'flex',gap:18,flexWrap:'wrap'}}>
+                {[['PAIN','pain'],['SLEEP','sleep'],['ENERGY','energy']].map(([label,key]) => wo.autoregulation[key] ? (
+                  <div key={key} style={{display:'flex',alignItems:'baseline',gap:6}}>
+                    <span style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.1em'}}>{label}</span>
+                    <span style={{fontSize:13,fontFamily:FN,fontWeight:700,textTransform:'uppercase',color:key==='pain'&&/mod|high/i.test(wo.autoregulation[key])?C.or:C.tx}}>{wo.autoregulation[key]}</span>
+                  </div>
+                ) : null)}
+              </div>
+            </div>
+          )}
           </div>
         </div>
 
