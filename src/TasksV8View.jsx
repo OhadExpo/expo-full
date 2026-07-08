@@ -1991,7 +1991,27 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [decorated, owner, search, sortBy, sortDir, now]);
 
-  const boardSections = (view === 'board' && boardGroup === 'status') ? statusSections : sections;
+  // In the BOARD's category grouping, always render the two fixed columns
+  // (Performance Center + General) even when empty — otherwise a category with
+  // no tasks has no column, so you can't drag a card INTO it (Yuval: "can't
+  // drag from general to athletic performance"). The list view keeps hiding
+  // empty groups; only the board needs the empty drop targets.
+  const boardSections = useMemo(() => {
+    if (view === 'board' && boardGroup === 'status') return statusSections;
+    if (view === 'board' && boardGroup === 'list') {
+      const has = (k) => sections.some(s => s.key === k);
+      const out = [...sections];
+      if (!has('center')) out.unshift({ key: 'center', rows: [] });
+      if (!has('manual')) {
+        const autoIdx = out.findIndex(s => s.key === 'auto');
+        const manualSection = { key: 'manual', rows: [] };
+        if (autoIdx >= 0) out.splice(autoIdx, 0, manualSection);
+        else out.push(manualSection);
+      }
+      return out;
+    }
+    return sections;
+  }, [view, boardGroup, statusSections, sections]);
 
   // Drop a dragged card onto a column → change that column's dimension.
   const onDropToColumn = async (section) => {
@@ -2458,7 +2478,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{headLabel}</span>
                 <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', opacity: 0.85 }}>{section.rows.length}</span>
               </div>
-              <div style={{ maxHeight: 360, minHeight: isStatus ? 52 : undefined, overflowY: 'auto' }}>
+              <div style={{ maxHeight: 360, minHeight: (isStatus || boardGroup === 'list') ? 52 : undefined, overflowY: 'auto' }}>
                 {section.rows.map(row => (
                   <div key={row.id}
                     draggable={!isReadOnly(row)}
@@ -2479,7 +2499,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                       now={now} />
                   </div>
                 ))}
-                {isStatus && section.rows.length === 0 && (
+                {(isStatus || boardGroup === 'list') && section.rows.length === 0 && (
                   <div style={{ padding: '16px 12px', textAlign: 'center', fontFamily: FN, fontSize: 9, letterSpacing: '0.12em', color: 'var(--c-td)', textTransform: 'uppercase' }}>Drop here</div>
                 )}
               </div>
