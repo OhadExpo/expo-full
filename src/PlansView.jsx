@@ -1780,15 +1780,29 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
   const [targetId, setTargetId] = useState('');         // program chosen for that athlete
   const [busy, setBusy] = useState(false);
   const toggle = (i) => setPicked(prev => { const n = new Set(prev); n.has(i) ? n.delete(i) : n.add(i); return n; });
-  // Athletes who have at least one OTHER program (a valid copy target).
+  // Athletes who have at least one OTHER program (a valid copy target), plus
+  // an "Unassigned / other" bucket for target programs whose owner isn't a
+  // listed athlete — unassigned template blocks (traineeId '') or
+  // archived-athlete-owned programs — so those stay reachable (they were in
+  // the old flat search list).
+  const UNASSIGNED_TARGETS = '__unassigned__';
   const athletesWithTargets = useMemo(() => {
-    const tids = new Set((planIndex || []).filter(p => p.id !== currentPlanId).map(p => p.traineeId));
-    return (athleteOptions || []).filter(o => tids.has(o.value));
+    const known = new Set((athleteOptions || []).map(o => o.value));
+    const targets = (planIndex || []).filter(p => p.id !== currentPlanId);
+    const tids = new Set(targets.map(p => p.traineeId));
+    const list = (athleteOptions || []).filter(o => tids.has(o.value));
+    if (targets.some(p => !known.has(p.traineeId))) list.push({ value: UNASSIGNED_TARGETS, label: 'Unassigned / other' });
+    return list;
   }, [athleteOptions, planIndex, currentPlanId]);
-  // That athlete's programs (excluding the open one) = the second picker.
-  const programsForAthlete = useMemo(() =>
-    (planIndex || []).filter(p => p.id !== currentPlanId && p.traineeId === existAthlete),
-  [planIndex, currentPlanId, existAthlete]);
+  // That athlete's programs (excluding the open one) = the second picker. The
+  // Unassigned bucket collects every target program not owned by a listed
+  // athlete.
+  const programsForAthlete = useMemo(() => {
+    const known = new Set((athleteOptions || []).map(o => o.value));
+    return (planIndex || []).filter(p => p.id !== currentPlanId && (
+      existAthlete === UNASSIGNED_TARGETS ? !known.has(p.traineeId) : p.traineeId === existAthlete
+    ));
+  }, [planIndex, currentPlanId, existAthlete, athleteOptions]);
   const count = picked.size;
   const canCopy = count > 0 && (mode === 'new' ? true : !!targetId) && !busy;
   // Native-select style, matching the Sessions "add athletes" pickers.
