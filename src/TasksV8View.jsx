@@ -268,6 +268,9 @@ function applySort(rows, mode, dir, now, orderArr) {
   else if (mode === 'status') cmp = (x, y) => (STATUS_RANK[x.status] ?? 9) - (STATUS_RANK[y.status] ?? 9);
   else if (mode === 'priority') cmp = (x, y) => (PRIORITY_RANK[x._priority] ?? 2) - (PRIORITY_RANK[y._priority] ?? 2);
   else if (mode === 'name')   cmp = (x, y) => (x.body || '').localeCompare(y.body || '');
+  // "Due" (default) — sort by parsed due date, soonest first; no-due-date last;
+  // tie-break by created_at. Previously fell through to created_at only. (audit)
+  else if (mode === 'date')   cmp = (x, y) => { const dx = x._dueAt ? new Date(x._dueAt).getTime() : Infinity; const dy = y._dueAt ? new Date(y._dueAt).getTime() : Infinity; return (dx - dy) || (new Date(x.created_at) - new Date(y.created_at)); };
   else                        cmp = (x, y) => new Date(x.created_at) - new Date(y.created_at);
   a.sort(cmp);
   if (dir === 'desc') a.reverse();
@@ -1980,7 +1983,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     if (byKey.has('manual'))  result.push({ key: 'manual',  rows: byKey.get('manual')  });
     if (byKey.has('auto'))    result.push({ key: 'auto',    rows: byKey.get('auto')    });
     return result;
-  }, [quickFiltered, sortBy, sortDir, now]);
+  }, [quickFiltered, sortBy, sortDir, now, taskOrder]);
 
   // Status-kanban columns (board "Group: Status"): the 5 active statuses as
   // columns, owner-matched + searched, INCLUDING done so its column fills.
@@ -1988,14 +1991,26 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // columns are KEPT so a card can be dragged into an empty status.
   const statusSections = useMemo(() => {
     const q = search.trim().toLowerCase();
+    // Apply the quick-filter here too — the default view is status-grouped, and
+    // the chips (Today/Overdue/Stuck/No-date) previously did nothing here. (audit)
+    const quickMatch = (r) => {
+      if (quickFilter === 'all') return true;
+      const dm = dateMeta(r._dueAt || null, now);
+      if (quickFilter === 'today')   return !!r._dueAt && dm.label === 'TODAY';
+      if (quickFilter === 'overdue') return !!r._dueAt && dm.isOverdue;
+      if (quickFilter === 'stuck')   return r.status === 'stuck';
+      if (quickFilter === 'nodate')  return !r._dueAt;
+      return true;
+    };
     const src = decorated.filter(r => ownerMatches(r) && r.status !== 'cancelled'
-      && (!q || (r._display || r.body || '').toLowerCase().includes(q)));
+      && (!q || (r._display || r.body || '').toLowerCase().includes(q))
+      && quickMatch(r));
     const order = ['open', 'working', 'waiting', 'stuck', 'done'];
     const byStatus = new Map(order.map(s => [s, []]));
     for (const r of src) { const s = byStatus.has(r.status) ? r.status : 'open'; byStatus.get(s).push(r); }
     return order.map(s => ({ key: 'status:' + s, statusId: s, rows: applySort(byStatus.get(s), sortBy, sortDir, now, taskOrder) }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [decorated, owner, search, sortBy, sortDir, now]);
+  }, [decorated, owner, search, sortBy, sortDir, now, quickFilter, taskOrder]);
 
   // In the BOARD's category grouping, always render the two fixed columns
   // (Performance Center + General) even when empty — otherwise a category with
