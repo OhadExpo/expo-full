@@ -124,7 +124,7 @@ export default function BillingView({ trainees }) {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 84, textAlign: 'center' }}>
-                  {r.status.toUpperCase()}
+                  {(r.status || '').toUpperCase()}
                 </span>
                 <span style={{ fontWeight: 700, fontSize: 14, color: C.tx }}>{t?.name || r.trainee_id}</span>
                 <span style={{ flex: 1 }} />
@@ -158,7 +158,7 @@ export default function BillingView({ trainees }) {
         {(trainees || []).filter(t => t.status === 'Active').map(t => {
           const r = rosterSummary[t.id];
           const tone = !r ? C.td : r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
-          const labelTxt = !r ? 'NO REQUEST' : r.status.toUpperCase();
+          const labelTxt = !r ? 'NO REQUEST' : (r.status || '').toUpperCase();
           return (
             <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 6px', borderBottom: `1px solid ${C.cardBd}` }}>
               <span style={{ fontFamily: FN, fontSize: 9, color: tone, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${tone}`, padding: '2px 8px', minWidth: 90, textAlign: 'center' }}>

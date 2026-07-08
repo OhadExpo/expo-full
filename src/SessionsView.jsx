@@ -259,10 +259,18 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       // the previous-week ghost — same store all three logging surfaces use.
       setClientWorkouts(prev => [...prev, ...completed]);
     }
+    // Cancel any pending debounced upsert so it can't re-create the row we're
+    // about to delete — otherwise a set edited just before FINISH resurrects the
+    // finished session on next load. (audit)
+    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
     try { await supabase.from('store').delete().eq('key', SKEY); } catch {}
     setSession(null);
     if (completed.length) toast(`${completed.length} athlete${completed.length === 1 ? '' : 's'} logged to their history`, 'success', { ttl: 4000 });
   }, [session, clientWorkouts, setClientWorkouts]);
+
+  // Cancel a pending debounced session upsert on unmount (a late write after
+  // navigating away could otherwise revive a cleared session). (audit)
+  useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
   if (!loaded) return <div style={{ padding: 30, textAlign: 'center', color: C.td }}>Loading…</div>;
 

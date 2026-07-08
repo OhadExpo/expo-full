@@ -138,7 +138,7 @@ function ActivityFeed({ trainee, activity, clientWorkouts, payments, planIndex, 
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 9, fontFamily: FN, letterSpacing: '0.08em', fontWeight: 700, marginBottom: 3 }}>
-                <span style={{ color: KIND_COLOR[ev.kind] || C.tm }}>{KIND_LABEL[ev.kind] || ev.kind.toUpperCase()}</span>
+                <span style={{ color: KIND_COLOR[ev.kind] || C.tm }}>{KIND_LABEL[ev.kind] || (ev.kind || '').toUpperCase()}</span>
                 <span style={{ color: C.td }}> · {new Date(ev.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} · {new Date(ev.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</span>
                 {!isManual && <span style={{ marginLeft: 6, color: C.tm }}>· AUTO</span>}
               </div>
@@ -472,7 +472,7 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
           <div style={{
             fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.12em',
             fontWeight: 700, padding: '6px 10px', border: `1px solid ${C.cardBd}`,
-          }}>STATUS · {trainee.status.toUpperCase()}</div>
+          }}>STATUS · {(trainee.status || '').toUpperCase()}</div>
         )}
       </div>
       <CoachHistoryCard
