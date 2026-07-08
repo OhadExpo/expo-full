@@ -2614,9 +2614,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               : <button onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
             const titleGroup = (size, tracking) => (
               <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
-                <span style={{display:'inline-flex',alignItems:'baseline',gap:10,whiteSpace:'nowrap',minWidth:0}}>
-                  <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
-                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',...(countColor?{opacity:0.65}:{})}}>{count}</span>
+                <span style={{display:'inline-flex',alignItems:'baseline',gap:10,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
+                  <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
+                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
                 {extras}
               </div>
