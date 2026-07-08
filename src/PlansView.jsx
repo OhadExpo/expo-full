@@ -1954,10 +1954,11 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
   );
 }
 
-// Build the same visibility key TraineeDetail uses (`${trainee.name}:${plan.name}:m${memberIndex}`)
-// from a plan in the program list. Couples store plans against tr_xxx__N
-// sub-IDs; we strip the suffix to find the parent name and use the suffix as
-// the member index. Solo plans get m0.
+// Build the SAME visibility key the athlete portal (ClientPortal.visKeyFor)
+// and TraineeDetail read: couples use `${parent.name}:${plan.name}:m${i}`,
+// but SOLO athletes use `${name}:${plan.name}` with NO suffix. Writing ":m0"
+// for solos (the old bug) produced a key the portal never reads, so the
+// ON-PORTAL / SHOW-ONLY toggles silently did nothing for solo athletes.
 function visKeyForPlan(p, trainees) {
   const tid = p?.traineeId || '';
   if (!tid) return null;
@@ -1969,7 +1970,7 @@ function visKeyForPlan(p, trainees) {
   }
   const trainee = trainees.find(t => t.id === tid);
   if (!trainee) return null;
-  return `${trainee.name}:${p.name}:m0`;
+  return `${trainee.name}:${p.name}`;
 }
 
 export default function PlansView({ planIndex, reloadIndex, trainees, exercises, setExercises, clientWorkouts, weeklyFocus, setWeeklyFocus, openPlanId, onPlanOpened, onEditorOpen, onEditorClose, onPreviewPlan, portalVis, setPortalVis, onCloseEditor }) {
