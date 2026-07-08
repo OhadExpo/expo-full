@@ -232,7 +232,10 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
           <div style={{ marginBottom: 18 }}>
             {!photoUrl && !uploading && (
               <label style={{ display: 'block' }}>
-                <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} style={{ display: 'none' }} />
+                {/* No `capture` attr → the native picker offers BOTH gallery and
+                    camera (capture forced camera-only). accept="image/*" keeps
+                    it pictures-only. Icon removed (Ohad). */}
+                <input type="file" accept="image/*" onChange={onPickPhoto} style={{ display: 'none' }} />
                 <span style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                   cursor: 'pointer', padding: '16px 18px',
@@ -240,7 +243,6 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                   fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em',
                   textAlign: 'center', boxSizing: 'border-box',
                 }}>
-                  <span style={{ fontSize: 20 }}>📸</span>
                   <span>SNAP A MEAL</span>
                 </span>
               </label>

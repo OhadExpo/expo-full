@@ -2511,7 +2511,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}))}
                 </div>);
             })()}</div>}
-          <div style={{width:120}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>BW{lb?` · ${lb}KG`:''}</div>
+          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>BW</span>{lb?<span style={{color:C.ac}}>{` · ${lb}KG`}</span>:''}</div>
             <div style={{display:'flex',gap:4}}>
             {/* KG matches the week cells: 32px border-box in every identity;
                 underline material where the identity is underline/bare. */}
