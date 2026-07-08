@@ -304,12 +304,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (Number.isFinite(wi) && wi >= 0 && wi < wuCount) return r;
     } else if (typeof r === 'number' && r >= 0 && r < groupCount) {
       return r;
-    } else if (r === 'end') {
+    } else if (r === 'end' || r === 'checkin') {
       return r;
     }
-    return wuCount > 0 ? 'wu0' : 0;
+    return wuCount > 0 ? 'wu0' : 'checkin';
   });
   const [notes, setNotes] = useState(_restoredSession?.notes || '');
+  // Readiness check-in (autoregulation) — collected between warm-ups and the
+  // first exercise, saved onto the workout. (Ohad: "couldn't see the check-in")
+  const [checkin, setCheckin] = useState(_restoredSession?.autoregulation || { pain: '', sleep: '', energy: '' });
   // Per-week sets (ex.wkS) takes precedence over the scalar ex.s for allocating log rows.
   // weekNum is 0-indexed; fall back to the flat sets count (or 3) if the week is missing.
   const setCountFor = (ex) => {
@@ -427,8 +430,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return safe;
   });
   const sessionDraft = React.useMemo(
-    () => ({ step, notes, allSets, fv: serializeFv(fv), wuDone, substitutions, savedAt: Date.now() }),
-    [step, notes, allSets, fv, wuDone, substitutions]
+    () => ({ step, notes, autoregulation: checkin, allSets, fv: serializeFv(fv), wuDone, substitutions, savedAt: Date.now() }),
+    [step, notes, checkin, allSets, fv, wuDone, substitutions]
   );
   const sessionAutosave = useAutosave(
     sessionDraft,
@@ -998,7 +1001,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const finishedAt = new Date().toISOString();
     onComplete({
       id: workoutId, clientId, planName: plan.name, dayName: day.name,
-      week: weekNum + 1, date: finishedAt, notes,
+      week: weekNum + 1, date: finishedAt, notes, autoregulation: checkin,
       formVideos,
       exercises: day.ex.map((ex, i) => {
         const sub = substitutions[ex.eid];
@@ -1028,15 +1031,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Navigation helpers
   const totalSteps = wuCount + groupCount; // warmups + groups
   const stepIndex = typeof step === 'string' && step.startsWith('wu') ? parseInt(step.slice(2)) :
-    step === 'end' ? totalSteps : wuCount + step;
+    step === 'end' ? totalSteps : step === 'checkin' ? wuCount : wuCount + step;
   const goNext = () => {
     window.scrollTo(0,0);
     if (typeof step === 'string' && step.startsWith('wu')) {
       const wi = parseInt(step.slice(2));
       const nd = [...wuDone]; nd[wi] = true; setWuDone(nd);
       if (wi + 1 < wuCount) setStep('wu' + (wi + 1));
-      else setStep(0);
+      else setStep('checkin');
     }
+    else if (step === 'checkin') setStep(0);
     else if (typeof step === 'number' && step < groupCount - 1) setStep(step + 1);
     else setStep('end');
   };
@@ -1046,8 +1050,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const wi = parseInt(step.slice(2));
       if (wi > 0) setStep('wu' + (wi - 1)); else onBack();
     }
-    else if (step === 0) {
-      // Back from the first exercise: into the last warmup if any, else exit.
+    else if (step === 0) setStep('checkin');
+    else if (step === 'checkin') {
+      // Back from the check-in: into the last warmup if any, else exit.
       if (wuCount > 0) setStep('wu' + (wuCount - 1));
       else onBack();
     }
@@ -1094,6 +1099,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     </div>
     <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:4,textAlign:'center'}}>
       {typeof step==='string'&&step.startsWith('wu') ? `Warm-Up ${parseInt(step.slice(2))+1}/${wuCount}` :
+       step==='checkin' ? 'Check-In' :
        step==='end' ? 'Complete' :
        groups[step]?.superset ? `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}` :
        `Exercise ${step+1}/${groupCount}`}
@@ -1149,7 +1155,32 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       </div></div>;
   }
 
-  // ===== PRE-WORKOUT CHECK =====
+  // ===== CHECK-IN (readiness / autoregulation) =====
+  if (step === 'checkin') {
+    const lbl = { fontSize:10, fontFamily:FN, color:C.tm, letterSpacing:'0.18em', fontWeight:700, marginBottom:8 };
+    const scale = (field, opts) => (
+      <div style={{display:'flex',gap:6}}>
+        {opts.map(([v,l]) => {
+          const on = checkin[field] === v;
+          return <button key={v} onClick={()=>setCheckin(c=>({...c,[field]: on ? '' : v}))}
+            style={{flex:1,padding:'11px 0',borderRadius:0,boxSizing:'border-box',border:`1px solid ${on?C.ac:C.cardBd}`,background:on?'rgba(57,189,255,0.12)':'transparent',color:on?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer'}}>{l}</button>;
+        })}
+      </div>
+    );
+    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+      <div style={{padding:20}}>
+        <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>Readiness Check-In</h2>
+        <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24}}>How are you feeling today? <span style={{color:C.td}}>(optional)</span></div>
+        <div style={{marginBottom:18}}><div style={lbl}>PAIN</div>{scale('pain',[['none','NONE'],['mild','MILD'],['moderate','MODERATE'],['high','HIGH']])}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>SLEEP</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']])}</div>
+        <div style={{marginBottom:26}}><div style={lbl}>ENERGY</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']])}</div>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+          <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
+        </div>
+      </div></div>;
+  }
+
   // ===== FINISH =====
   // Detect new PRs in this session — for each prescribed exercise, compute
   // this session's top completed-set load and compare to the trainee's prior
