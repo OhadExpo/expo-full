@@ -1792,12 +1792,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     const d = new Date(w.date || w.createdAt || 0);
                     const dateStr = isFinite(d.getTime()) ? d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '';
                     return (
-                      <div key={w.id} style={{border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 12px',marginBottom:8}}>
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
-                          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,color:C.tx}}>{w.dayName || 'Workout'} {w.week!=null && <span style={{color:C.tm,fontWeight:400,fontSize:11}}>· W{w.week}</span>}</div>
+                      <div key={w.id} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0,padding:'10px 12px',marginBottom:8}}>
+                        {/* card-header strip — matches the athlete-portal history look */}
+                        <div style={{background:'var(--c-sf2)',borderBottom:`1px solid ${C.cardBd}`,margin:'-10px -12px 8px',padding:'7px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+                          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName || 'Workout'} {w.week!=null && <span style={{color:C.tm,fontWeight:400,fontSize:11}}>· W{w.week}</span>}</div>
                           <div style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',flexShrink:0}}>{dateStr}</div>
                         </div>
-                        <div style={{fontFamily:FN,fontSize:11,color:C.ac,margin:'4px 0 6px',letterSpacing:'0.03em'}}>{doneEx}/{exs.length} exercises · {doneSets}/{totalSets} sets</div>
+                        <div style={{fontFamily:FN,fontSize:11,color:C.ac,margin:'0 0 6px',letterSpacing:'0.03em'}}>{doneEx}/{exs.length} exercises · {doneSets}/{totalSets} sets</div>
                         {exs.map((x,i)=>(
                           <div key={i} style={{fontSize:12,color:C.tm,display:'flex',gap:6,padding:'1px 0'}}>
                             <span style={{flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{i+1}. {x.title}</span>
