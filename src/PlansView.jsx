@@ -1742,6 +1742,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         currentPlanId={plan.id}
         preselected={copyDaysModal.dayIdxs}
         planIndex={planIndex}
+        sourceWeeks={plan.weeks || 4}
         traineeMap={Object.fromEntries((trainees||[]).flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>[t.id+'__'+i, m.name||('Member '+(i+1))]) : [[t.id, t.name]]))}
         athleteOptions={(trainees||[]).filter(t=>t.status!=='Archived').flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i, label:m.name||('Member '+(i+1))})) : [{value:t.id, label:t.name}])}
         onClose={()=>setCopyDaysModal(null)}
@@ -1755,7 +1756,14 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
 // programs, or create a new one. Copies FULL exercise data (parent's
 // handleCopyDays deep-clones with fresh ids, spreading every field). Selected
 // days append to the BOTTOM of the target.
-function CopyDaysModal({ days, currentPlanId, preselected, planIndex, traineeMap, athleteOptions, onClose, onCopy }) {
+function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeeks, traineeMap, athleteOptions, onClose, onCopy }) {
+  // Escape closes (backdrop + × already do). Listener, not autoFocus-only,
+  // so it works before the coach touches anything.
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
   const [picked, setPicked] = useState(() => new Set(preselected || []));
   const [q, setQ] = useState('');
   const [mode, setMode] = useState('existing'); // 'existing' | 'new'
@@ -1783,7 +1791,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, traineeMap
     if (!canCopy) return;
     setBusy(true);
     const chosen = [...picked].sort((a,b)=>a-b).map(i => days[i]).filter(Boolean);
-    const target = mode === 'new' ? { kind: 'new', name: newName, traineeId: newAthlete } : { kind: 'existing', planId: targetId };
+    const target = mode === 'new' ? { kind: 'new', name: newName, traineeId: newAthlete, weeks: sourceWeeks } : { kind: 'existing', planId: targetId };
     const res = await onCopy(chosen, target);
     setBusy(false);
     if (res && res.ok) onClose();
@@ -2126,7 +2134,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     if (!cloned.length) return { ok: false };
     try {
       if (target.kind === 'new') {
-        const fresh = { id: 'pl_' + uid(), name: target.name?.trim() || 'New Program', traineeId: target.traineeId || '', phase: '', notes: '', active: true, createdAt: new Date().toISOString(), days: cloned, warmup: [], weeks: 4 };
+        // Inherit the SOURCE program's week count so per-week programming
+        // (ex.wk arrays sized to the source's weeks) stays fully visible in
+        // the new program — hardcoding 4 hid weeks 5+ of a longer block.
+        const newWeeks = Math.max(1, Number(target.weeks) || 4);
+        const fresh = { id: 'pl_' + uid(), name: target.name?.trim() || 'New Program', traineeId: target.traineeId || '', phase: '', notes: '', active: true, createdAt: new Date().toISOString(), days: cloned, warmup: [], weeks: newWeeks };
         const saved = await savePlan(fresh);
         await reloadIndex();
         if (saved) { const whoName = target.traineeId ? (trainees.flatMap(t=>t.members&&t.members.length===2?t.members.map((m,i)=>({v:t.id+'__'+i,n:m.name})):[{v:t.id,n:t.name}]).find(o=>o.v===target.traineeId)?.n) : null; toast(`Created "${fresh.name}"${whoName?` for ${whoName}`:''} with ${cloned.length} day${cloned.length===1?'':'s'}`, 'success', { ttl: 3000 }); return { ok: true, name: fresh.name }; }
