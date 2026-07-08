@@ -2525,14 +2525,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                       <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
                         title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`}
                         className="prog-plusn"
-                        style={{display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,height:26,padding:'0 11px',background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.03em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums'}}>
-                        {/* Number is the hero; a small muted chevron trails it
-                            and ROTATES on open (one glyph, no ▾/▴ size mismatch).
-                            Wrapped in a fixed-size flex box so it's optically
-                            centred on the digits regardless of the glyph's em
-                            metrics. */}
-                        <span>{expanded?row.earlier.length:`+${row.earlier.length}`}</span>
-                        <span aria-hidden="true" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:8,height:8,fontSize:8,lineHeight:1,opacity:0.7,transform:expanded?'rotate(180deg)':'none',transition:'transform 180ms ease'}}>▾</span>
+                        style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:26,minWidth:46,padding:'0 12px',background: expanded ? C.ac : 'transparent',border:`1px solid ${C.ac}`,borderRadius:0,color: expanded ? '#0a0a0b' : C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums',transition:'background .15s, color .15s'}}>
+                        {/* No chevron — the fill IS the state. Collapsed: +N
+                            outlined; open: −N solid cyan (matches the nav-active
+                            toggle). Cleaner than any triangle glyph (Ohad). */}
+                        {expanded?`−${row.earlier.length}`:`+${row.earlier.length}`}
                       </button>
                     )}
                     <div style={{flex:1}} />
