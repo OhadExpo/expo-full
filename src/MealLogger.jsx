@@ -161,10 +161,12 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
   if (page) {
     return (
       <div>
-        {/* Day navigator — strip with prev/next + label */}
+        {/* Day navigator — strip with prev/next + label. Fixed minHeight so the
+            DAY TOTAL card below sits at the SAME vertical height on every date,
+            regardless of the → arrow or label length (Ohad: no toggle glitch). */}
         <div style={{
           display: 'grid', gridTemplateColumns: '40px 1fr 40px',
-          alignItems: 'center', marginBottom: 14, gap: 8,
+          alignItems: 'center', marginBottom: 14, gap: 8, minHeight: 42, boxSizing: 'border-box',
         }}>
           <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() - 1); setDay(d.toISOString().slice(0, 10)); }}
             aria-label="Previous day"
