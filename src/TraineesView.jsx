@@ -539,7 +539,10 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple']].map(([label,format])=>(
               <button key={format} onClick={()=>{
                 const f = {...defaultTrainee(), format};
-                if(format==='Gym, Couple') f.members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:''}];
+                // Use _members (the edit-form shape the modal + handleSave read)
+                // so a NEW couple actually shows the two member field-sets. Setting
+                // `members` here left the modal on the solo layout → unnamed members. (audit)
+                if(format==='Gym, Couple') f._members=[{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']},{name:'',email:'',phone:'',age:'',weight:'',height:'',injuries:'',goals:'',notes:'',_emails:['']}];
                 setForm(f); setEditId(null); setShowForm(true); setAddMenuOpen(false);
               }} style={{display:'block',width:'100%',padding:'10px 16px',background:'transparent',border:'none',borderBottom:`1px solid ${C.bd}`,color:C.tx,fontFamily:FB,fontSize:13,fontWeight:500,cursor:'pointer',textAlign:'left'}}
                 onMouseEnter={e=>e.currentTarget.style.background=C.sf2} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
