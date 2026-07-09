@@ -1185,7 +1185,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{padding:20}}>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>Readiness Check-In</h2>
         <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24}}>How are you feeling today? <span style={{color:C.td}}>(optional)</span></div>
-        <div style={{marginBottom:18}}><div style={lbl}>PAIN</div>{scale('pain',[['none','NONE'],['mild','MILD'],['moderate','MODERATE'],['high','HIGH']], true)}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>PAIN</div>{scale('pain',[['high','HIGH'],['moderate','MODERATE'],['mild','MILD'],['none','NONE']], false)}</div>
         <div style={{marginBottom:18}}><div style={lbl}>SLEEP</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
         <div style={{marginBottom:26}}><div style={lbl}>ENERGY</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
         <div style={{display:'flex',gap:8}}>
