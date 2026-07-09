@@ -2576,7 +2576,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           {/* Monochrome trend glyph — a colour emoji (📈) clashed with the mono
               cyan design. Tiny inline SVG matches the actual graph. (Ohad) */}
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true" style={{flexShrink:0}}><polyline points="1,10 4.5,6 7.5,8 12,2.5" stroke={C.ac} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          CHECK-IN TRENDS</button>}
+          READINESS GRAPH</button>}
       </div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         // The DB query orders by date DESC (newest first). The previous
