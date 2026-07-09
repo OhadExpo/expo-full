@@ -1473,11 +1473,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       })()}
       {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{ex.tempo}</span></div>}
 
-      {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
-          {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`1px solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
-            <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
-            <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div></div>}
+      {/* No outer frame — the wrapper's cardBd (cyan-30% in dark) read as a
+          cyan line around the WK1–WK4 group. Dropping it + its padding lets the
+          cells span the full width, flush with the video box below (Ohad). */}
+      {hw && <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4,marginTop:12,marginBottom:14}}>
+        {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`1px solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
+          <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
+          <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div>}
 
       {/* Cyan-polish pass: every neutral border on this view is now 1px
           C.cardBd (thicker, gray) instead of 0.25px / C.ac. Cyan is reserved
@@ -2567,9 +2569,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:14}}>
         <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
         {/* Graph button — same shape as the coach dashboard buttons; opens the
-            check-in trends view. Only shown once the athlete has logged a
-            readiness check-in (otherwise there's nothing to plot). */}
-        {cw.some(w => hasReadiness(w.autoregulation)) && <button onClick={() => setVw('chk')} style={{display:'inline-flex',alignItems:'center',gap:6,background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'6px 12px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>📈</span><span style={{lineHeight:1}}>CHECK-IN TRENDS</span></button>}
+            check-in trends view. Always shown once there's any history so the
+            feature is discoverable; the trends view carries its own empty state
+            until the athlete has logged check-ins. */}
+        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{display:'inline-flex',alignItems:'center',gap:6,background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'6px 12px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>📈</span><span style={{lineHeight:1}}>CHECK-IN TRENDS</span></button>}
       </div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         // The DB query orders by date DESC (newest first). The previous
