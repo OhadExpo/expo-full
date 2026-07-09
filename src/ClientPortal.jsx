@@ -1441,7 +1441,33 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             onClose={() => setLiveCountForEid(null)} />
         </React.Suspense>
       )}
-      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
+      {(() => {
+        // SETS × REPS with a micro-label under each number so the athlete reads
+        // which is which (Ohad: "I can't see reps vs sets"). Labelled layout is
+        // used ONLY for the clean numeric case; any free-text reps cell (a whole
+        // prescription, "AMRAP", "30 SEC") falls back to the plain centred
+        // string so we never print "3 × 2x10 e" beneath a REPS label.
+        const sStr = String(setsForDisplay ?? '').trim();
+        const rStr = String(repsForDisplay ?? '').trim();
+        const clean = sStr && rStr && !/[×x]/i.test(rStr) && rStr.length <= 7;
+        if (!clean) {
+          const txt = `${sStr} × ${rStr}`.replace(/^ × $/, '—').trim() || '—';
+          return <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{txt}</div>;
+        }
+        const col = (val, label) => (
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+            <span style={{fontSize:19,color:C.ac,fontWeight:700,fontFamily:FN,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{val}</span>
+            <span style={{fontSize:8,color:C.tm,fontWeight:700,fontFamily:FN,letterSpacing:'0.2em',textIndent:'0.2em',lineHeight:1}}>{label}</span>
+          </div>
+        );
+        return (
+          <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:14}}>
+            {col(sStr, 'SETS')}
+            <span style={{fontSize:14,color:C.tm,fontWeight:400,fontFamily:FN,lineHeight:1}}>×</span>
+            {col(rStr, 'REPS')}
+          </div>
+        );
+      })()}
       {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{ex.tempo}</span></div>}
 
       {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
