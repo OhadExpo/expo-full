@@ -17,6 +17,7 @@ import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscrib
 import { emitSaveError } from './useSupaStore';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
+import ReadinessRow, { CHECKIN_METRICS, checkinQuality, readinessColor, hasReadiness } from './ReadinessRow';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
@@ -1669,6 +1670,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [lg, setLg] = useState(null);
   const [vw, setVw] = useState('prog');
   const [expandedHistEx, setExpandedHistEx] = useState(null); // `${workoutId}:${exIdx}` — which exercise row in History is open
+  const [chkMetric, setChkMetric] = useState('pain'); // which readiness metric the check-in trends graph shows (one at a time)
   // Last-seen timestamp for client-side unread tracking of coach comments.
   // Stored per client in localStorage. Updated each time the History tab
   // opens. Comments with createdAt > this count as unread.
@@ -2479,11 +2481,96 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     return <TraineePRsView clientWorkouts={cw} traineeId={ci} header={renderTopHeader()} />;
   }
 
+  // Check-in trends graph — same bespoke-SVG build as the BW graph, but plots
+  // one readiness metric at a time (PAIN / SLEEP / ENERGY) with a toggle. Each
+  // level maps to a 0..3 quality (3 = best / most ready = top of the chart);
+  // dots are severity-coloured (green good → red bad), the line stays cyan like
+  // the BW trend. Reached from the "CHECK-IN TRENDS" button in History.
+  if (vw === 'chk' && trainee) {
+    const metric = CHECKIN_METRICS.find(m => m.key === chkMetric) || CHECKIN_METRICS[0];
+    const chkData = cw
+      .filter(w => checkinQuality(metric.key, w.autoregulation?.[metric.key]) != null)
+      .map(w => ({ date: w.date, q: checkinQuality(metric.key, w.autoregulation[metric.key]), raw: w.autoregulation[metric.key], week: w.week }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    const W = Math.max(chkData.length * 60, 300);
+    const yOf = q => 10 + ((3 - q) / 3) * 130; // q=3 (best) at top
+    const first = chkData[0], last = chkData[chkData.length - 1];
+    const dir = chkData.length >= 2 ? (last.q > first.q ? 'up' : last.q < first.q ? 'down' : 'flat') : 'flat';
+    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+      {renderTopHeader()}
+      <div style={{padding:'14px 20px 20px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
+          <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {chkData.length} CHECK-IN{chkData.length===1?'':'S'}</div>
+        </div>
+        {/* Metric toggle — one graph at a time (Ohad). */}
+        <div style={{display:'flex',gap:6,marginBottom:16}}>
+          {CHECKIN_METRICS.map(m => <button key={m.key} onClick={() => setChkMetric(m.key)}
+            style={{flex:1,padding:'9px 0',borderRadius:0,border:`${chkMetric===m.key?'2px':'0.25px'} solid ${C.ac}${chkMetric===m.key?'':'4D'}`,background:chkMetric===m.key?'rgba(57,189,255,0.12)':'transparent',color:chkMetric===m.key?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{m.label}</button>)}
+        </div>
+        {chkData.length < 2 ? (
+          <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
+            <div style={{fontSize:24,marginBottom:8}}>📈</div>
+            <div style={{fontSize:13}}>Log at least 2 check-ins to see your {metric.label.toLowerCase()} trend</div>
+          </div>
+        ) : (
+          <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:14,marginBottom:16}}>
+            <div style={{fontSize:10,fontFamily:FN,color:C.ac,letterSpacing:'0.15em',fontWeight:700,marginBottom:10}}>{metric.label} TREND</div>
+            <svg viewBox={`0 -10 ${W} 185`} style={{width:'100%',height:185}}>
+              {/* 4 category grid lines (best at top) */}
+              {[3,2,1,0].map(L => {
+                const y = yOf(L);
+                return <g key={L}>
+                  <line x1="52" y1={y} x2={W-10} y2={y} stroke={C.bd} strokeWidth="0.5" strokeDasharray="4"/>
+                  <text x="48" y={y+3} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="end">{metric.scale[L].toUpperCase()}</text>
+                </g>;
+              })}
+              <polyline fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                points={chkData.map((d,i) => `${60+i*50},${yOf(d.q)}`).join(' ')}/>
+              {chkData.map((d,i) => {
+                const x = 60 + i*50, y = yOf(d.q);
+                const above = d.q < 3; // put the value label below when the dot is at the very top
+                return <g key={i}>
+                  <circle cx={x} cy={y} r="3.5" fill={readinessColor(metric.key, d.raw) || C.ac}/>
+                  <text x={x} y={above ? y-8 : y+16} fill={C.tx} fontSize="8" fontFamily={FN} textAnchor="middle" fontWeight="700">{String(d.raw).toUpperCase()}</text>
+                  <text x={x} y={152} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week||'?'}</text>
+                  <text x={x} y={163} fill={C.tm} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
+                </g>;
+              })}
+            </svg>
+            <div style={{display:'flex',gap:8,marginTop:10}}>
+              <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
+                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>LATEST</div>
+                <div style={{fontSize:14,fontWeight:700,fontFamily:FN,textTransform:'uppercase',color:readinessColor(metric.key,last.raw)||C.tx}}>{last.raw}</div>
+              </div>
+              <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
+                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>TREND</div>
+                {/* "up" in quality is always the good direction (green); pain
+                    quality already inverts (none=best), so green=improving. */}
+                <div style={{fontSize:14,fontWeight:700,fontFamily:FN,color:dir==='up'?C.gn:dir==='down'?C.or:C.tm}}>{dir==='up'?'↑ BETTER':dir==='down'?'↓ WORSE':'→ SAME'}</div>
+              </div>
+              <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
+                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>CHECK-INS</div>
+                <div style={{fontSize:14,fontWeight:700,fontFamily:FN,color:C.tx}}>{chkData.length}</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>;
+  }
+
   // History
   if (vw === 'hist' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
     <div style={{padding:'14px 20px 20px'}}>
-      <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700,marginBottom:14}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:14}}>
+        <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
+        {/* Graph button — same shape as the coach dashboard buttons; opens the
+            check-in trends view. Only shown once the athlete has logged a
+            readiness check-in (otherwise there's nothing to plot). */}
+        {cw.some(w => hasReadiness(w.autoregulation)) && <button onClick={() => setVw('chk')} style={{display:'inline-flex',alignItems:'center',gap:6,background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'6px 12px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>📈</span><span style={{lineHeight:1}}>CHECK-IN TRENDS</span></button>}
+      </div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         // The DB query orders by date DESC (newest first). The previous
         // `.reverse()` flipped it to oldest-first, but the athlete
@@ -2497,6 +2584,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
             <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)} · W{w.week}</div>
           </div>
+          {/* Pre-workout readiness check-in the athlete logged for this session. */}
+          {hasReadiness(w.autoregulation) && <div style={{marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${C.cardBd}`}}><ReadinessRow data={w.autoregulation} showTitle /></div>}
           {(w.exercises || []).map((x,i) => {
             const fv = (w.formVideos || [])[i];
             const hasVideo = !!(fv && fv.cloudUrl);

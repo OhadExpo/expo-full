@@ -13,6 +13,7 @@ import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInpu
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
+import ReadinessRow, { hasReadiness } from './ReadinessRow';
 import TraineeCRM from './TraineeCRM';
 import CoachMessages from './CoachMessages';
 import CoachContractComposer from './CoachContractComposer';
@@ -74,7 +75,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const tcw = (clientWorkouts || []).filter(w => _allIds.has(w.clientId));
   const tAllWorkouts = [
     ...tw.map(w => ({ id: w.id, date: w.date, dayName: w.dayName, source: 'coach' })),
-    ...tcw.map(w => ({ id: w.id, date: w.date, dayName: w.dayName || w.planName || 'Session', source: 'portal' })),
+    ...tcw.map(w => ({ id: w.id, date: w.date, dayName: w.dayName || w.planName || 'Session', source: 'portal', autoregulation: w.autoregulation })),
   ].sort((a,b) => new Date(b.date) - new Date(a.date));
   // Bodyweight log entries that belong to this trainee, oldest → newest so
   // the sparkline reads left-to-right as time-forward.
@@ -518,7 +519,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === WORKOUTS — slot #7 (collapsible) */}
       <CollapsibleSection bare title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0'}}>
         {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
-          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div></Card>)}
+          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span></div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>{hasReadiness(w.autoregulation)&&<div style={{marginTop:8,paddingTop:8,borderTop:`1px solid ${C.cardBd}`}}><ReadinessRow data={w.autoregulation} showTitle/></div>}</Card>)}
       </CollapsibleSection>
 
       {/* === ASSIGNED PROGRAMS — slot #8 */}
