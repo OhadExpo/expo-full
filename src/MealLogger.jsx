@@ -360,7 +360,9 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
         <>
           {!photoUrl && !uploading && (
             <label style={{ display: 'block' }}>
-              <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} style={{ display: 'none' }} />
+              {/* No `capture` attr → native picker offers gallery AND camera;
+                  accept="image/*" keeps it pictures-only (no video). */}
+              <input type="file" accept="image/*" onChange={onPickPhoto} style={{ display: 'none' }} />
               <span style={{
                 display: 'inline-block', cursor: 'pointer',
                 padding: '10px 18px', border: `1px solid ${C.ac}`, color: C.ac,
