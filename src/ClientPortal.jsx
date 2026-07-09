@@ -1086,7 +1086,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 mono digits instead of floating high. (Ohad — OCD timer align) */}
             {sessionAutosave.status === 'saving' ? <span>… SAVING</span> :
              sessionAutosave.status === 'error' ? <span>⚠ SAVE FAILED</span> :
-             lastSavedAt ? <><span style={{lineHeight:1}}>✓</span><span style={{lineHeight:1}}>{lastSavedAt.toTimeString().slice(0,5)}</span></> : ''}
+             lastSavedAt ? <><span style={{lineHeight:1}}>✓</span><span style={{lineHeight:1}}>SAVED</span></> : ''}
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
         )}
@@ -1174,7 +1174,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // full colour (label + 2px underline). PAIN·NONE (green) can never read
     // like PAIN·HIGH (red). All scales put good on the RIGHT — PAIN reads
     // best-first, SLEEP/ENERGY worst-first, so `goodFirst` flips the ramp.
-    const RAMP = ['#35C36A', '#C9D64B', '#E8A13C', '#EC5A5A']; // best → worst
+    const RAMP = ['#35C36A', '#E5CE3C', '#E8A13C', '#EC5A5A']; // best → worst
     const scale = (field, opts, goodFirst) => (
       <div style={{display:'flex',gap:14}}>
         {opts.map(([v,l],idx) => {
@@ -1454,17 +1454,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           const txt = `${sStr} × ${rStr}`.replace(/^ × $/, '—').trim() || '—';
           return <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{txt}</div>;
         }
-        const col = (val, label) => (
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-            <span style={{fontSize:19,color:C.ac,fontWeight:700,fontFamily:FN,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{val}</span>
-            <span style={{fontSize:8,color:C.tm,fontWeight:700,fontFamily:FN,letterSpacing:'0.2em',textIndent:'0.2em',lineHeight:1}}>{label}</span>
-          </div>
-        );
+        // One font size across the whole row (Ohad: "too many different sizes").
+        // Numbers cyan, SETS/REPS labels + × muted grey — hierarchy by colour,
+        // not by size.
         return (
-          <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:14}}>
-            {col(sStr, 'SETS')}
-            <span style={{fontSize:14,color:C.tm,fontWeight:400,fontFamily:FN,lineHeight:1}}>×</span>
-            {col(rStr, 'REPS')}
+          <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:7,fontFamily:FN,fontSize:14,lineHeight:1}}>
+            <span style={{color:C.ac,fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{sStr}</span>
+            <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.1em'}}>SETS</span>
+            <span style={{color:C.tm,fontWeight:400,margin:'0 2px'}}>×</span>
+            <span style={{color:C.ac,fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{rStr}</span>
+            <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.1em'}}>REPS</span>
           </div>
         );
       })()}
