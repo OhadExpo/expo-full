@@ -1072,14 +1072,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const bar = <div style={{padding:'calc(10px + env(safe-area-inset-top)) 16px 10px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',minHeight:40}}>
       <EXPOMark theme="dark" height={36} style={{flexShrink:0}} />
-      <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
+      <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
       {/* Right cluster — one flex box anchored right with marginLeft:'auto',
           so ← Exit sits on the RIGHT EDGE always (Ohad). Previously only the
           autosave pill carried the auto-margin, so before the first autosave
           the Exit button hugged the logo on the left. */}
       <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
-          <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{background:'var(--c-sf)',border:`1px solid ${sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn}4D`,color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.06em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}>
+          <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}>
             {/* Glyphs (✓/⚠/…) aren't in JetBrains Mono → they render in a
                 fallback font with a taller baseline. Splitting the mark into
                 its own flex item lets alignItems:center line it up with the
@@ -1090,10 +1090,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
         )}
-        {showResumedPill && <span title="Restored from your last session" style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
+        {showResumedPill && <span title="Restored from your last session" style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>RESUMED</span></span>}
         {/* Bnei Herzliya team crest — readable size, vertically centered. */}
         {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
-        <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1,whiteSpace:'nowrap'}}>← Exit</button>
+        <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>EXIT</span></button>
       </div></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
@@ -1454,16 +1454,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           const txt = `${sStr} × ${rStr}`.replace(/^ × $/, '—').trim() || '—';
           return <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{txt}</div>;
         }
-        // One font size across the whole row (Ohad: "too many different sizes").
-        // Numbers cyan, SETS/REPS labels + × muted grey — hierarchy by colour,
-        // not by size.
+        // Each number with its SETS / REPS micro-label directly beneath it
+        // (Ohad loves this) — muted × baseline-aligned between the two columns.
+        const col = (val, label) => (
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+            <span style={{fontSize:19,color:C.ac,fontWeight:700,fontFamily:FN,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{val}</span>
+            <span style={{fontSize:8,color:C.tm,fontWeight:700,fontFamily:FN,letterSpacing:'0.2em',textIndent:'0.2em',lineHeight:1}}>{label}</span>
+          </div>
+        );
         return (
-          <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:7,fontFamily:FN,fontSize:14,lineHeight:1}}>
-            <span style={{color:C.ac,fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{sStr}</span>
-            <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.1em'}}>SETS</span>
-            <span style={{color:C.tm,fontWeight:400,margin:'0 2px'}}>×</span>
-            <span style={{color:C.ac,fontWeight:700,fontVariantNumeric:'tabular-nums'}}>{rStr}</span>
-            <span style={{color:C.tm,fontWeight:600,letterSpacing:'0.1em'}}>REPS</span>
+          <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:14}}>
+            {col(sStr, 'SETS')}
+            <span style={{fontSize:14,color:C.tm,fontWeight:400,fontFamily:FN,lineHeight:1}}>×</span>
+            {col(rStr, 'REPS')}
           </div>
         );
       })()}

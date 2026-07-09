@@ -81,10 +81,13 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
   return (
     <div style={{position:'relative'}}>
       <div style={{position:'sticky',top:0,zIndex:50,background:C.bg,borderBottom:`1px solid ${C.ac}`,padding:'10px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
-          <div style={{fontFamily:FN,fontSize:10,color:C.ac,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>👁 PREVIEW</div>
-          <div style={{fontFamily:FB,fontSize:13,color:C.tx,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerLabel}</div>
-          <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.04em',whiteSpace:'nowrap'}}>· edits sandboxed</div>
+        {/* One font + one size + lineHeight:1 across the whole row so the three
+            pieces sit on a single level baseline (Ohad: "not leveled" — was
+            10/13/10px in two fonts, the Hebrew name floated off the Latin). */}
+        <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0,fontFamily:FN,fontSize:11,lineHeight:1,letterSpacing:'0.1em',textTransform:'uppercase'}}>
+          <div style={{color:C.ac,fontWeight:700,whiteSpace:'nowrap'}}>👁 PREVIEW</div>
+          <div style={{color:C.tx,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{headerLabel}</div>
+          <div style={{color:C.tm,whiteSpace:'nowrap'}}>· edits sandboxed</div>
         </div>
         <button onClick={onBack} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,padding:'6px 14px',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',borderRadius:0}}>← BACK TO COACH</button>
       </div>
