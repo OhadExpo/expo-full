@@ -1079,11 +1079,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           the Exit button hugged the logo on the left. */}
       <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
-          <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{background:'var(--c-sf)',border:`1px solid ${sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn}4D`,color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.06em',whiteSpace:'nowrap'}}>
-            {sessionAutosave.status === 'saving' ? '… SAVING' :
-             sessionAutosave.status === 'error' ? '⚠ SAVE FAILED' :
-             lastSavedAt ? `✓ ${lastSavedAt.toTimeString().slice(0,5)}` : ''}
-            {pendingBlobs > 0 && <span style={{marginLeft:6,opacity:0.85}}>· ↑{pendingBlobs}</span>}
+          <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{background:'var(--c-sf)',border:`1px solid ${sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn}4D`,color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.06em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}>
+            {/* Glyphs (✓/⚠/…) aren't in JetBrains Mono → they render in a
+                fallback font with a taller baseline. Splitting the mark into
+                its own flex item lets alignItems:center line it up with the
+                mono digits instead of floating high. (Ohad — OCD timer align) */}
+            {sessionAutosave.status === 'saving' ? <span>… SAVING</span> :
+             sessionAutosave.status === 'error' ? <span>⚠ SAVE FAILED</span> :
+             lastSavedAt ? <><span style={{lineHeight:1}}>✓</span><span style={{lineHeight:1}}>{lastSavedAt.toTimeString().slice(0,5)}</span></> : ''}
+            {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
         )}
         {showResumedPill && <span title="Restored from your last session" style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
@@ -1135,7 +1139,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           }
           return <>
             {reps && <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{reps}</div>}
-            {tempo && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,textAlign:'center'}}>⏱ {tempo}</div>}
+            {tempo && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{tempo}</span></div>}
             <div style={{marginBottom:14}} />
           </>;
         })()}
@@ -1164,12 +1168,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   if (step === 'checkin') {
     const lbl = { fontSize:10, fontFamily:FN, color:C.tm, letterSpacing:'0.18em', fontWeight:700, marginBottom:8 };
     // Options render as the underline-input ENTRY material (not solid boxes),
-    // matching the portal's control-material system. Every option carries its
-    // severity colour on a good→bad ramp AT ALL TIMES (coloured underline), so
-    // the green→amber→red gradient is legible before you even tap — PAIN·NONE
-    // (green) can never look like PAIN·HIGH (red). The selected option fills
-    // with a faint tint of its colour + brightens its label. PAIN reads
-    // best-first; SLEEP/ENERGY read worst-first, so `goodFirst` flips the ramp.
+    // matching the portal's control-material system. Each option's underline
+    // carries a FAINT good→bad severity tint (25%) so the direction is
+    // perceptible without shouting; the selected option alone brightens to the
+    // full colour (label + 2px underline). PAIN·NONE (green) can never read
+    // like PAIN·HIGH (red). All scales put good on the RIGHT — PAIN reads
+    // best-first, SLEEP/ENERGY worst-first, so `goodFirst` flips the ramp.
     const RAMP = ['#35C36A', '#C9D64B', '#E8A13C', '#EC5A5A']; // best → worst
     const scale = (field, opts, goodFirst) => (
       <div style={{display:'flex',gap:14}}>
@@ -1177,7 +1181,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           const on = checkin[field] === v;
           const sev = goodFirst ? RAMP[idx] : RAMP[opts.length-1-idx];
           return <button key={v} onClick={()=>setCheckin(c=>({...c,[field]: on ? '' : v}))}
-            style={{flex:1,padding:'9px 0',background:on?sev+'22':'transparent',border:'none',borderBottom:`2px solid ${sev}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, background .12s'}}>{l}</button>;
+            style={{flex:1,padding:'9px 0',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:sev+'40'}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{l}</button>;
         })}
       </div>
     );
@@ -1438,7 +1442,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         </React.Suspense>
       )}
       <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
-      {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
+      {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{ex.tempo}</span></div>}
 
       {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
