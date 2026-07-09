@@ -1673,6 +1673,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [vw, setVw] = useState('prog');
   const [expandedHistEx, setExpandedHistEx] = useState(null); // `${workoutId}:${exIdx}` — which exercise row in History is open
   const [chkMetric, setChkMetric] = useState('pain'); // which readiness metric the check-in trends graph shows (one at a time)
+  const [bwHistOpen, setBwHistOpen] = useState(false); // BW weigh-in history list collapsed by default (Ohad)
   // Last-seen timestamp for client-side unread tracking of coach comments.
   // Stored per client in localStorage. Updated each time the History tab
   // opens. Comments with createdAt > this count as unread.
@@ -2447,12 +2448,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>
         )}
 
-        {/* Log history */}
-        <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>HISTORY</div>
-        {bwData.slice().reverse().map((d,i) => {
-          const onEdit = () => { setBw(String(d.bw)); setWk((d.week||1)-1); if (d.blockName) setSelectedBlockName(d.blockName); };
+        {/* Log history — collapsible; the strip is the toggle handle. Rows are
+            NOT clickable (clicking used to jump the value into the LOG box +
+            let you re-save it — Ohad: must not). Delete stays via the × only. */}
+        <button onClick={() => setBwHistOpen(o => !o)} style={{display:'flex',alignItems:'center',gap:8,background:'transparent',border:'none',padding:0,marginBottom:8,cursor:'pointer'}}>
+          <span style={{fontSize:9,color:C.td,fontFamily:FN}}>{bwHistOpen ? '▾' : '▸'}</span>
+          <span style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>HISTORY{bwData.length ? ` · ${bwData.length}` : ''}</span>
+        </button>
+        {bwHistOpen && bwData.slice().reverse().map((d,i) => {
           const onDelete = (e) => { e.stopPropagation(); setBwDeleteConfirm(d); };
-          return <div key={i} onClick={onEdit} title="Click to edit" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:4,cursor:'pointer'}}>
+          return <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:4}}>
             <div>
               <span style={{fontSize:13,fontWeight:600,fontFamily:FN,color:C.tx}}>{d.bw} kg</span>
               <span style={{fontSize:11,color:C.tm,marginLeft:8,fontFamily:FN}}>{d.blockName||'?'} · W{d.week||'?'}</span>
@@ -2463,7 +2468,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             </div>
           </div>;
         })}
-        {bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
+        {bwHistOpen && bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
       </div>
       {bwDel.value && <div role="dialog" aria-modal="true" aria-label="Delete bodyweight entry" className={bwDel.closing ? 'motion-fade-out' : 'motion-fade-in'} onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
         <div onClick={e=>e.stopPropagation()} className={bwDel.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
