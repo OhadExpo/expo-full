@@ -1164,10 +1164,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   if (step === 'checkin') {
     const lbl = { fontSize:10, fontFamily:FN, color:C.tm, letterSpacing:'0.18em', fontWeight:700, marginBottom:8 };
     // Options render as the underline-input ENTRY material (not solid boxes),
-    // matching the portal's control-material system. The selected option glows
-    // its severity colour on a good→bad ramp so PAIN·NONE (green) can never
-    // look like PAIN·HIGH (red). PAIN reads best-first; SLEEP/ENERGY read
-    // worst-first, so `goodFirst` flips the ramp per scale.
+    // matching the portal's control-material system. Every option carries its
+    // severity colour on a good→bad ramp AT ALL TIMES (coloured underline), so
+    // the green→amber→red gradient is legible before you even tap — PAIN·NONE
+    // (green) can never look like PAIN·HIGH (red). The selected option fills
+    // with a faint tint of its colour + brightens its label. PAIN reads
+    // best-first; SLEEP/ENERGY read worst-first, so `goodFirst` flips the ramp.
     const RAMP = ['#35C36A', '#C9D64B', '#E8A13C', '#EC5A5A']; // best → worst
     const scale = (field, opts, goodFirst) => (
       <div style={{display:'flex',gap:14}}>
@@ -1175,7 +1177,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           const on = checkin[field] === v;
           const sev = goodFirst ? RAMP[idx] : RAMP[opts.length-1-idx];
           return <button key={v} onClick={()=>setCheckin(c=>({...c,[field]: on ? '' : v}))}
-            style={{flex:1,padding:'8px 0 9px',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:C.cardBd}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{l}</button>;
+            style={{flex:1,padding:'9px 0',background:on?sev+'22':'transparent',border:'none',borderBottom:`2px solid ${sev}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, background .12s'}}>{l}</button>;
         })}
       </div>
     );
