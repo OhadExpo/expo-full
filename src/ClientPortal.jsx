@@ -2572,7 +2572,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             check-in trends view. Always shown once there's any history so the
             feature is discoverable; the trends view carries its own empty state
             until the athlete has logged check-ins. */}
-        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{display:'inline-flex',alignItems:'center',gap:6,background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',padding:'6px 12px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>📈</span><span style={{lineHeight:1}}>CHECK-IN TRENDS</span></button>}
+        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{display:'inline-flex',alignItems:'center',gap:8,background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',padding:'7px 13px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>
+          {/* Monochrome trend glyph — a colour emoji (📈) clashed with the mono
+              cyan design. Tiny inline SVG matches the actual graph. (Ohad) */}
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true" style={{flexShrink:0}}><polyline points="1,10 4.5,6 7.5,8 12,2.5" stroke={C.ac} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          CHECK-IN TRENDS</button>}
       </div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         // The DB query orders by date DESC (newest first). The previous
