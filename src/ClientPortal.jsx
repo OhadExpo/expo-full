@@ -1086,7 +1086,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
                 mono digits instead of floating high. (Ohad — OCD timer align) */}
             {sessionAutosave.status === 'saving' ? <span>… SAVING</span> :
              sessionAutosave.status === 'error' ? <span>⚠ SAVE FAILED</span> :
-             lastSavedAt ? <><span style={{lineHeight:1}}>✓</span><span style={{lineHeight:1}}>SAVED</span></> : ''}
+             lastSavedAt ? <span style={{lineHeight:1}}>✓</span> : ''}
             {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
           </span>
         )}
