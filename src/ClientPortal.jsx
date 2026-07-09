@@ -1175,7 +1175,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // full colour (label + 2px underline). PAIN·NONE (green) can never read
     // like PAIN·HIGH (red). All scales put good on the RIGHT — PAIN reads
     // best-first, SLEEP/ENERGY worst-first, so `goodFirst` flips the ramp.
-    const RAMP = ['#35C36A', '#E5CE3C', '#E8A13C', '#EC5A5A']; // best → worst
+    const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#EC5A5A']; // best → worst (yellow vs orange kept distinct)
     const scale = (field, opts, goodFirst) => (
       <div style={{display:'flex',gap:14}}>
         {opts.map(([v,l],idx) => {
@@ -2505,14 +2505,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
           <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {chkData.length} CHECK-IN{chkData.length===1?'':'S'}</div>
         </div>
-        {/* Metric toggle — one graph at a time (Ohad). */}
-        <div style={{display:'flex',gap:6,marginBottom:16}}>
+        {/* Metric toggle — same segmented strip as the RAIL week selector
+            (bordered boxes, active = cyan border + 2px inset top rail + tint). */}
+        <div style={{display:'flex',gap:4,alignItems:'stretch',marginBottom:16}}>
           {CHECKIN_METRICS.map(m => <button key={m.key} onClick={() => setChkMetric(m.key)}
-            style={{flex:1,padding:'9px 0',borderRadius:0,border:`${chkMetric===m.key?'2px':'0.25px'} solid ${C.ac}${chkMetric===m.key?'':'4D'}`,background:chkMetric===m.key?'rgba(57,189,255,0.12)':'transparent',color:chkMetric===m.key?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>{m.label}</button>)}
+            style={{flex:1,height:32,boxSizing:'border-box',padding:0,borderRadius:0,border:`1px solid ${chkMetric===m.key?C.ac:C.cardBd}`,boxShadow:chkMetric===m.key?`inset 0 2px 0 0 ${C.ac}`:'none',background:chkMetric===m.key?'rgba(57,189,255,0.12)':'transparent',color:chkMetric===m.key?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:chkMetric===m.key?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}}>{m.label}</button>)}
         </div>
         {chkData.length < 2 ? (
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
-            <div style={{fontSize:24,marginBottom:8}}>📈</div>
             <div style={{fontSize:13}}>Log at least 2 check-ins to see your {metric.label.toLowerCase()} trend</div>
           </div>
         ) : (
@@ -2531,29 +2531,27 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 points={chkData.map((d,i) => `${60+i*50},${yOf(d.q)}`).join(' ')}/>
               {chkData.map((d,i) => {
                 const x = 60 + i*50, y = yOf(d.q);
-                const above = d.q < 3; // put the value label below when the dot is at the very top
                 return <g key={i}>
                   <circle cx={x} cy={y} r="3.5" fill={readinessColor(metric.key, d.raw) || C.ac}/>
-                  <text x={x} y={above ? y-8 : y+16} fill={C.tx} fontSize="8" fontFamily={FN} textAnchor="middle" fontWeight="700">{String(d.raw).toUpperCase()}</text>
                   <text x={x} y={152} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week||'?'}</text>
                   <text x={x} y={163} fill={C.tm} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
                 </g>;
               })}
             </svg>
-            <div style={{display:'flex',gap:8,marginTop:10}}>
-              <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>LATEST</div>
-                <div style={{fontSize:14,fontWeight:700,fontFamily:FN,textTransform:'uppercase',color:readinessColor(metric.key,last.raw)||C.tx}}>{last.raw}</div>
+            {/* Summary tiles — big value, quiet label; trend shows a coloured
+                arrow (green up = more ready, red down = less). */}
+            <div style={{display:'flex',gap:4,marginTop:12}}>
+              <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
+                <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>LATEST</div>
+                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,textTransform:'uppercase',color:readinessColor(metric.key,last.raw)||C.tx}}>{last.raw}</div>
               </div>
-              <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>TREND</div>
-                {/* "up" in quality is always the good direction (green); pain
-                    quality already inverts (none=best), so green=improving. */}
-                <div style={{fontSize:14,fontWeight:700,fontFamily:FN,color:dir==='up'?C.gn:dir==='down'?C.or:C.tm}}>{dir==='up'?'↑ BETTER':dir==='down'?'↓ WORSE':'→ SAME'}</div>
+              <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
+                <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>TREND</div>
+                <div style={{lineHeight:1,color:dir==='up'?C.gn:dir==='down'?'#EC5A5A':C.tm,display:'inline-flex',alignItems:'baseline',gap:4,fontFamily:FN,fontWeight:700}}><span style={{fontSize:17}}>{dir==='up'?'↑':dir==='down'?'↓':'→'}</span><span style={{fontSize:11,letterSpacing:'0.08em'}}>{dir==='up'?'BETTER':dir==='down'?'WORSE':'SAME'}</span></div>
               </div>
-              <div style={{flex:1,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,textAlign:'center'}}>
-                <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>CHECK-INS</div>
-                <div style={{fontSize:14,fontWeight:700,fontFamily:FN,color:C.tx}}>{chkData.length}</div>
+              <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
+                <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>CHECK-INS</div>
+                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,color:C.tx}}>{chkData.length}</div>
               </div>
             </div>
           </div>
@@ -2572,11 +2570,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             check-in trends view. Always shown once there's any history so the
             feature is discoverable; the trends view carries its own empty state
             until the athlete has logged check-ins. */}
-        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{display:'inline-flex',alignItems:'center',gap:8,background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',padding:'7px 13px',borderRadius:0,cursor:'pointer',whiteSpace:'nowrap'}}>
-          {/* Monochrome trend glyph — a colour emoji (📈) clashed with the mono
-              cyan design. Tiny inline SVG matches the actual graph. (Ohad) */}
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true" style={{flexShrink:0}}><polyline points="1,10 4.5,6 7.5,8 12,2.5" stroke={C.ac} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          READINESS GRAPH</button>}
+        {/* Small text CTA (no icon, no box) — matches the HISTORY label scale. */}
+        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',padding:0,cursor:'pointer',whiteSpace:'nowrap'}}>READINESS GRAPH →</button>}
       </div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         // The DB query orders by date DESC (newest first). The previous
