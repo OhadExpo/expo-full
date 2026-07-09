@@ -1175,7 +1175,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // full colour (label + 2px underline). PAIN·NONE (green) can never read
     // like PAIN·HIGH (red). All scales put good on the RIGHT — PAIN reads
     // best-first, SLEEP/ENERGY worst-first, so `goodFirst` flips the ramp.
-    const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#EC5A5A']; // best → worst (yellow vs orange kept distinct)
+    const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#E23B3B']; // best → worst (yellow/orange/red all distinct)
     const scale = (field, opts, goodFirst) => (
       <div style={{display:'flex',gap:14}}>
         {opts.map(([v,l],idx) => {
@@ -2490,20 +2490,23 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // the BW trend. Reached from the "CHECK-IN TRENDS" button in History.
   if (vw === 'chk' && trainee) {
     const metric = CHECKIN_METRICS.find(m => m.key === chkMetric) || CHECKIN_METRICS[0];
-    const chkData = cw
-      .filter(w => checkinQuality(metric.key, w.autoregulation?.[metric.key]) != null)
-      .map(w => ({ date: w.date, q: checkinQuality(metric.key, w.autoregulation[metric.key]), raw: w.autoregulation[metric.key], week: w.week }))
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
-    const W = Math.max(chkData.length * 60, 300);
+    // X axis = EVERY check-in session (not just the ones with this metric), so
+    // all three graphs span the exact same width regardless of a skipped metric
+    // on some day (Ohad: "all three graphs take the same space"). Points with a
+    // value are plotted at their session index; a missing one just leaves a gap.
+    const sessions = cw.filter(w => hasReadiness(w.autoregulation)).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const chkData = sessions.map((w, i) => ({ i, date: w.date, week: w.week, q: checkinQuality(metric.key, w.autoregulation?.[metric.key]), raw: w.autoregulation?.[metric.key] }));
+    const valid = chkData.filter(d => d.q != null);
+    const W = Math.max(sessions.length * 60, 300);
     const yOf = q => 10 + ((3 - q) / 3) * 130; // q=3 (best) at top
-    const first = chkData[0], last = chkData[chkData.length - 1];
-    const dir = chkData.length >= 2 ? (last.q > first.q ? 'up' : last.q < first.q ? 'down' : 'flat') : 'flat';
+    const first = valid[0], last = valid[valid.length - 1];
+    const dir = valid.length >= 2 ? (last.q > first.q ? 'up' : last.q < first.q ? 'down' : 'flat') : 'flat';
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {chkData.length} CHECK-IN{chkData.length===1?'':'S'}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {valid.length} CHECK-IN{valid.length===1?'':'S'}</div>
         </div>
         {/* Metric toggle — same segmented strip as the RAIL week selector
             (bordered boxes, active = cyan border + 2px inset top rail + tint). */}
@@ -2511,7 +2514,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           {CHECKIN_METRICS.map(m => <button key={m.key} onClick={() => setChkMetric(m.key)}
             style={{flex:1,height:32,boxSizing:'border-box',padding:0,borderRadius:0,border:`1px solid ${chkMetric===m.key?C.ac:C.cardBd}`,boxShadow:chkMetric===m.key?`inset 0 2px 0 0 ${C.ac}`:'none',background:chkMetric===m.key?'rgba(57,189,255,0.12)':'transparent',color:chkMetric===m.key?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:chkMetric===m.key?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}}>{m.label}</button>)}
         </div>
-        {chkData.length < 2 ? (
+        {valid.length < 2 ? (
           <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
             <div style={{fontSize:13}}>Log at least 2 check-ins to see your {metric.label.toLowerCase()} trend</div>
           </div>
@@ -2528,11 +2531,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 </g>;
               })}
               <polyline fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                points={chkData.map((d,i) => `${60+i*50},${yOf(d.q)}`).join(' ')}/>
-              {chkData.map((d,i) => {
-                const x = 60 + i*50, y = yOf(d.q);
-                return <g key={i}>
-                  <circle cx={x} cy={y} r="3.5" fill={readinessColor(metric.key, d.raw) || C.ac}/>
+                points={valid.map(d => `${60+d.i*50},${yOf(d.q)}`).join(' ')}/>
+              {chkData.map((d) => {
+                const x = 60 + d.i*50;
+                return <g key={d.i}>
+                  {d.q != null && <circle cx={x} cy={yOf(d.q)} r="3.5" fill={readinessColor(metric.key, d.raw) || C.ac}/>}
                   <text x={x} y={152} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week||'?'}</text>
                   <text x={x} y={163} fill={C.tm} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
                 </g>;
@@ -2547,11 +2550,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               </div>
               <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
                 <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>TREND</div>
-                <div style={{lineHeight:1,color:dir==='up'?C.gn:dir==='down'?'#EC5A5A':C.tm,display:'inline-flex',alignItems:'baseline',gap:4,fontFamily:FN,fontWeight:700}}><span style={{fontSize:17}}>{dir==='up'?'↑':dir==='down'?'↓':'→'}</span><span style={{fontSize:11,letterSpacing:'0.08em'}}>{dir==='up'?'BETTER':dir==='down'?'WORSE':'SAME'}</span></div>
+                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,color:dir==='up'?C.gn:dir==='down'?'#E23B3B':C.tm}}>{dir==='up'?'BETTER':dir==='down'?'WORSE':'SAME'}</div>
               </div>
               <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
                 <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>CHECK-INS</div>
-                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,color:C.tx}}>{chkData.length}</div>
+                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,color:C.tx}}>{valid.length}</div>
               </div>
             </div>
           </div>

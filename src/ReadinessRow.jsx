@@ -19,7 +19,7 @@ export const CHECKIN_METRICS = [
 const BY_KEY = Object.fromEntries(CHECKIN_METRICS.map(m => [m.key, m]));
 
 // Good → bad ramp (mirrors the check-in screen's RAMP).
-const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#EC5A5A']; // best → worst (yellow vs orange kept distinct)
+const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#E23B3B']; // best → worst (yellow/orange/red all distinct)
 
 // 0..3 quality value for a level (3 = best), or null if unknown/blank.
 export function checkinQuality(key, val) {
