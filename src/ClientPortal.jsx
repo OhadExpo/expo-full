@@ -1118,14 +1118,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             "Warm-Up i/N", so no body pill. (Ohad) */}
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{wu.t}</h2>
         {(() => {
-          let reps = '', tempo = '';
+          // Explicit wu.tempo is the source of truth — the overview warm-up
+          // card always reads w.tempo (line ~2774). The bug: the rx branch
+          // below ran splitPrescription(wu.rx) and IGNORED wu.tempo, so a
+          // warm-up with rx "1X10 E" + tempo "3-4 SEC ECC" showed the tempo
+          // on the overview but dropped it in-session. Seed tempo from the
+          // explicit field; only fall back to the rx-split remainder.
+          let reps = '', tempo = wu.tempo || '';
           if (wu.sets || wu.reps) {
             const setsStr = wu.sets ?? '', repsStr = wu.reps ?? '';
             reps = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
-            tempo = wu.tempo || '';
           } else {
             const parts = splitPrescription(wu.rx);
-            if (parts) { reps = parts[0]; tempo = String(parts[1] || '').replace(/^[\s,]+/, ''); }
+            if (parts) { reps = parts[0]; if (!tempo) tempo = String(parts[1] || '').replace(/^[\s,]+/, ''); }
             else reps = String(wu.rx || '');
           }
           return <>
@@ -1158,12 +1163,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // ===== CHECK-IN (readiness / autoregulation) =====
   if (step === 'checkin') {
     const lbl = { fontSize:10, fontFamily:FN, color:C.tm, letterSpacing:'0.18em', fontWeight:700, marginBottom:8 };
-    const scale = (field, opts) => (
-      <div style={{display:'flex',gap:6}}>
-        {opts.map(([v,l]) => {
+    // Options render as the underline-input ENTRY material (not solid boxes),
+    // matching the portal's control-material system. The selected option glows
+    // its severity colour on a good→bad ramp so PAIN·NONE (green) can never
+    // look like PAIN·HIGH (red). PAIN reads best-first; SLEEP/ENERGY read
+    // worst-first, so `goodFirst` flips the ramp per scale.
+    const RAMP = ['#35C36A', '#C9D64B', '#E8A13C', '#EC5A5A']; // best → worst
+    const scale = (field, opts, goodFirst) => (
+      <div style={{display:'flex',gap:14}}>
+        {opts.map(([v,l],idx) => {
           const on = checkin[field] === v;
+          const sev = goodFirst ? RAMP[idx] : RAMP[opts.length-1-idx];
           return <button key={v} onClick={()=>setCheckin(c=>({...c,[field]: on ? '' : v}))}
-            style={{flex:1,padding:'11px 0',borderRadius:0,boxSizing:'border-box',border:`1px solid ${on?C.ac:C.cardBd}`,background:on?'rgba(57,189,255,0.12)':'transparent',color:on?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer'}}>{l}</button>;
+            style={{flex:1,padding:'8px 0 9px',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:C.cardBd}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{l}</button>;
         })}
       </div>
     );
@@ -1171,9 +1183,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       <div style={{padding:20}}>
         <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>Readiness Check-In</h2>
         <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24}}>How are you feeling today? <span style={{color:C.td}}>(optional)</span></div>
-        <div style={{marginBottom:18}}><div style={lbl}>PAIN</div>{scale('pain',[['none','NONE'],['mild','MILD'],['moderate','MODERATE'],['high','HIGH']])}</div>
-        <div style={{marginBottom:18}}><div style={lbl}>SLEEP</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']])}</div>
-        <div style={{marginBottom:26}}><div style={lbl}>ENERGY</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']])}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>PAIN</div>{scale('pain',[['none','NONE'],['mild','MILD'],['moderate','MODERATE'],['high','HIGH']], true)}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>SLEEP</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
+        <div style={{marginBottom:26}}><div style={lbl}>ENERGY</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
         <div style={{display:'flex',gap:8}}>
           <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
           <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
@@ -2675,7 +2687,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               : <button onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
             const titleGroup = (size, tracking) => (
               <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
-                <span style={{display:'inline-flex',alignItems:'baseline',gap:10,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
+                <span style={{display:'inline-flex',alignItems:'center',gap:7,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
                   <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
                   <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
