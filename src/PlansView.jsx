@@ -1135,6 +1135,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [confirmDeleteDay, setConfirmDeleteDay] = useState(null); // dayIdx pending delete-confirm
+  const [confirmDeleteEx, setConfirmDeleteEx] = useState(null); // { dayIdx, exIdx, title } pending exercise delete-confirm
   // Copy-day flow: null | { dayIdxs:Set<number> } — the picker that copies the
   // chosen day(s) into another program (existing or new) as new bottom days.
   const [copyDaysModal, setCopyDaysModal] = useState(null);
@@ -1766,7 +1767,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       <input value={ex.load||""} onChange={e=>update({load:e.target.value})} placeholder="kg/%" style={tinyInput} />
                       <input value={ex.rpe||""} onChange={e=>update({rpe:e.target.value})} placeholder="7-8" style={tinyInput} />
                       <input value={ex.tempo||""} onChange={e=>update({tempo:e.target.value})} placeholder="3010" style={tinyInput} />
-                      <button onClick={()=>removeExFromDay(dayIdx, exIdx)} title="Remove exercise from this day" aria-label="Remove exercise"
+                      <button onClick={()=>setConfirmDeleteEx({ dayIdx, exIdx, title })} title="Remove exercise from this day" aria-label="Remove exercise"
                         style={{background:"none",border:"none",cursor:"pointer",padding:0,height:24,boxSizing:"border-box",display:"inline-flex",alignItems:"center",justifyContent:"center"}}><TrashIcon size={15} /></button>
                       {/* Per-week toggles, column-aligned under SETS (col 4) and
                           REPS (col 5), shown only when the row is expanded. */}
@@ -1852,6 +1853,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         message={confirmDeleteDay !== null ? `"${plan.days[confirmDeleteDay]?.name || 'This day'}" and its ${plan.days[confirmDeleteDay]?.exercises?.length || 0} exercise(s) will be removed. This can't be undone.` : ''}
         onConfirm={()=>{ removeDay(confirmDeleteDay); setConfirmDeleteDay(null); }}
         onCancel={()=>setConfirmDeleteDay(null)}
+      />
+      <ConfirmDialog
+        open={confirmDeleteEx !== null}
+        title="Remove exercise?"
+        message={confirmDeleteEx !== null ? `"${confirmDeleteEx.title || 'This exercise'}" will be removed from ${plan.days[confirmDeleteEx.dayIdx]?.name || 'this day'}. This can't be undone.` : ''}
+        onConfirm={()=>{ removeExFromDay(confirmDeleteEx.dayIdx, confirmDeleteEx.exIdx); setConfirmDeleteEx(null); }}
+        onCancel={()=>setConfirmDeleteEx(null)}
       />
       {copyDaysModal && <CopyDaysModal
         days={plan.days}
