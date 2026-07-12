@@ -536,17 +536,21 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <CollapsibleSection bare title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0'}}>
         {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
           tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>Week {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
-            {/* Per-workout readiness — redesigned from the flat text strip into
-                clean metric chips (muted label + severity-coloured value), one
-                per logged metric (Ohad: redesign, don't remove). */}
-            {hasReadiness(w.autoregulation)&&<div style={{display:'flex',gap:6,marginTop:10,flexWrap:'wrap'}}>
-              {CHECKIN_METRICS.filter(m=>w.autoregulation[m.key]).map(m=>(
-                <div key={m.key} style={{display:'inline-flex',alignItems:'center',gap:7,padding:'4px 10px',border:`1px solid ${C.cardBd}`,background:'var(--c-sf2)',borderRadius:0}}>
-                  <span style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.14em',fontWeight:700}}>{m.label}</span>
-                  <span style={{fontSize:11,fontFamily:FN,fontWeight:700,letterSpacing:'0.02em',textTransform:'uppercase',color:readinessColor(m.key,w.autoregulation[m.key])||C.tx}}>{w.autoregulation[m.key]}</span>
-                </div>
-              ))}
-            </div>}
+            {/* Per-workout readiness — equal-width stat cells (label stacked over
+                a severity-coloured value), so PAIN/SLEEP/ENERGY line up in a neat
+                aligned row rather than differently-sized chips (Ohad: align +
+                cleaner design). A thin top accent bar in the severity colour
+                gives each cell a quiet at-a-glance read. */}
+            {hasReadiness(w.autoregulation)&&(()=>{ const items=CHECKIN_METRICS.filter(m=>w.autoregulation[m.key]); return (
+              <div style={{display:'grid',gridTemplateColumns:`repeat(${items.length}, minmax(0,132px))`,gap:8,marginTop:10}}>
+                {items.map(m=>{ const col=readinessColor(m.key,w.autoregulation[m.key])||C.tx; return (
+                  <div key={m.key} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5,padding:'9px 8px 8px',border:`1px solid ${C.cardBd}`,borderTop:`2px solid ${col}`,background:'var(--c-sf2)',borderRadius:0}}>
+                    <span style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.2em',fontWeight:700}}>{m.label}</span>
+                    <span style={{fontSize:13,fontFamily:FN,fontWeight:700,letterSpacing:'0.04em',lineHeight:1,textTransform:'uppercase',color:col}}>{w.autoregulation[m.key]}</span>
+                  </div>
+                );})}
+              </div>
+            );})()}
           </Card>)}
       </CollapsibleSection>
 
