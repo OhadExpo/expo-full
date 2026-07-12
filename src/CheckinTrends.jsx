@@ -61,7 +61,7 @@ export default function CheckinTrends({ workouts = [] }) {
     // edge-to-edge across ~1400px where a handful of points looked too sparse
     // (Ohad: "wider … but that was way too wide"). On the narrow athlete portal
     // (~500px) the cap is inert.
-    <div style={{ maxWidth: 720 }}>
+    <div style={{ maxWidth: 720, margin: '0 auto' }}>
       {/* Metric toggle — bordered segmented strip, active = cyan border + inset rail + tint. */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'stretch', marginBottom: 12 }}>
         {CHECKIN_METRICS.map(m => (

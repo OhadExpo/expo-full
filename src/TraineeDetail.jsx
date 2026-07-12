@@ -14,7 +14,7 @@ import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInpu
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
-import { hasReadiness } from './ReadinessRow';
+import { hasReadiness, CHECKIN_METRICS, readinessColor } from './ReadinessRow';
 import CheckinTrends from './CheckinTrends';
 import TraineeCRM from './TraineeCRM';
 import CoachMessages from './CoachMessages';
@@ -236,15 +236,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     if (plans.length === 0) return null;
     const showing = anyVisible(plans, keyFn);
     return (
-      <div style={{display:'flex',gap:6,alignItems:'stretch'}}>
+      <div style={{display:'flex',gap:6,alignItems:'center'}}>
         {plans.length > 1 && <button onClick={()=>bulkOnlyCurrent(plans, keyFn)}
           title="Hide all blocks except the most recent one"
-          style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>
+          style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',lineHeight:1}}>
           ONLY CURRENT
         </button>}
         <button onClick={()=>bulkSetVis(plans, keyFn, !showing)}
           title={showing ? "Hide all from portal" : "Show all on portal"}
-          style={{background:'var(--c-sf)',border:`1px solid ${showing?C.rd:C.gn}`,borderRadius:0,height:28,padding:"0 12px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center'}}>
+          style={{background:'var(--c-sf)',border:`1px solid ${showing?C.rd:C.gn}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:showing?C.rd:C.gn,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',lineHeight:1}}>
           {showing ? 'HIDE ALL' : 'SHOW ALL'}
         </button>
       </div>
@@ -535,7 +535,19 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {/* === WORKOUTS — slot #7 (collapsible) */}
       <CollapsibleSection bare title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0'}}>
         {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
-          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>Week {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div></Card>)}
+          tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>Week {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
+            {/* Per-workout readiness — redesigned from the flat text strip into
+                clean metric chips (muted label + severity-coloured value), one
+                per logged metric (Ohad: redesign, don't remove). */}
+            {hasReadiness(w.autoregulation)&&<div style={{display:'flex',gap:6,marginTop:10,flexWrap:'wrap'}}>
+              {CHECKIN_METRICS.filter(m=>w.autoregulation[m.key]).map(m=>(
+                <div key={m.key} style={{display:'inline-flex',alignItems:'center',gap:7,padding:'4px 10px',border:`1px solid ${C.cardBd}`,background:'var(--c-sf2)',borderRadius:0}}>
+                  <span style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.14em',fontWeight:700}}>{m.label}</span>
+                  <span style={{fontSize:11,fontFamily:FN,fontWeight:700,letterSpacing:'0.02em',textTransform:'uppercase',color:readinessColor(m.key,w.autoregulation[m.key])||C.tx}}>{w.autoregulation[m.key]}</span>
+                </div>
+              ))}
+            </div>}
+          </Card>)}
       </CollapsibleSection>
 
       {/* === ASSIGNED PROGRAMS — slot #8 */}
