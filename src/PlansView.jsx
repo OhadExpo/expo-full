@@ -2577,6 +2577,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     </>;
   }
 
+  // Auto-opening a program (deep-link / from TraineeDetail): editMode only flips
+  // true AFTER loadFullPlan resolves, so for the duration of that async fetch
+  // the render fell through to the LIST — which read as the programs page
+  // flashing up for a moment before the program opened (Ohad). While an open is
+  // pending, show the same loading state the editor uses instead of the list.
+  if (openPlanId && !editMode) return <div style={{textAlign:"center",padding:60,color:C.td}}><div style={{fontSize:14}}>Loading program...</div></div>;
+
   return (
     <div>
       <div style={{display:"flex",gap:12,marginBottom:12,alignItems:"stretch",flexWrap:"wrap"}}>
