@@ -48,6 +48,44 @@ const splitPrescription = (str) => {
   return [m[1].trim(), (m[2] || '').trim() ? m[2] : ''];
 };
 
+// SETS × REPS hero — two big cyan numbers with SETS / REPS micro-labels beneath
+// so the athlete reads which is which (Ohad). Shared by the exercise step AND
+// the warm-up step so the header is consistent everywhere. Time-based reps
+// ("15 SEC E") get a smaller value font so they still fit on one line. Falls
+// back to a plain centred line only when the reps cell is itself a full N×M
+// prescription (a per-week "2x10 e" cell) — printing that under a REPS label
+// would double-count the sets. Splits a combined "N×reps" string when passed
+// as reps with no explicit sets (the warm-up rx path).
+function SetsRepsHero({ sets, reps }) {
+  let sStr = String(sets ?? '').trim();
+  let rStr = String(reps ?? '').trim();
+  // Warm-up rx path: reps arrives combined ("1×12 E") with no separate sets —
+  // split the leading "N×" so it renders labelled like the exercise step.
+  if (!sStr && rStr) {
+    const sp = rStr.match(/^(\d+)\s*[×xX]\s*(.+)$/);
+    if (sp) { sStr = sp[1]; rStr = sp[2].trim(); }
+  }
+  if (!sStr && !rStr) return null;
+  const labeled = sStr && rStr && !/[×x]/i.test(rStr) && rStr.length <= 12;
+  if (!labeled) {
+    const txt = [sStr, rStr].filter(Boolean).join(' × ') || '—';
+    return <div style={{ fontSize: 15, color: C.ac, fontWeight: 700, fontFamily: FN, textAlign: 'center' }}>{txt}</div>;
+  }
+  const col = (val, label) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+      <span style={{ fontSize: val.length > 4 ? 15 : 19, color: C.ac, fontWeight: 700, fontFamily: FN, lineHeight: 1.05, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{val}</span>
+      <span style={{ fontSize: 8, color: C.tm, fontWeight: 700, fontFamily: FN, letterSpacing: '0.2em', textIndent: '0.2em', lineHeight: 1 }}>{label}</span>
+    </div>
+  );
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 14 }}>
+      {col(sStr, 'SETS')}
+      <span style={{ fontSize: 14, color: C.tm, fontWeight: 400, fontFamily: FN, lineHeight: 1 }}>×</span>
+      {col(rStr, 'REPS')}
+    </div>
+  );
+}
+
 // Feature gate for the swap-exercise UI. Substitution is ONLY for trainees on
 // expo-il template-purchased plans — Ohad's manually-coached private clients
 // should never see this button (he handles substitutions for them himself).
@@ -1132,17 +1170,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // warm-up with rx "1X10 E" + tempo "3-4 SEC ECC" showed the tempo
           // on the overview but dropped it in-session. Seed tempo from the
           // explicit field; only fall back to the rx-split remainder.
-          let reps = '', tempo = wu.tempo || '';
+          // Structured warm-up → pass sets/reps to the shared hero so it renders
+          // the same labelled SETS / REPS block as the exercise step (Ohad wants
+          // them consistent). rx-only warm-ups pass the combined reps token, which
+          // SetsRepsHero splits (or shows plainly if it can't).
+          let heroSets = '', heroReps = '', tempo = wu.tempo || '';
           if (wu.sets || wu.reps) {
-            const setsStr = wu.sets ?? '', repsStr = wu.reps ?? '';
-            reps = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
+            heroSets = wu.sets ?? ''; heroReps = wu.reps ?? '';
           } else {
             const parts = splitPrescription(wu.rx);
-            if (parts) { reps = parts[0]; if (!tempo) tempo = String(parts[1] || '').replace(/^[\s,]+/, ''); }
-            else reps = String(wu.rx || '');
+            if (parts) { heroReps = parts[0]; if (!tempo) tempo = String(parts[1] || '').replace(/^[\s,]+/, ''); }
+            else heroReps = String(wu.rx || '');
           }
           return <>
-            {reps && <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{reps}</div>}
+            {(heroSets || heroReps) && <SetsRepsHero sets={heroSets} reps={heroReps} />}
             {tempo && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{tempo}</span></div>}
             <div style={{marginBottom:14}} />
           </>;
@@ -1448,35 +1489,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             onClose={() => setLiveCountForEid(null)} />
         </React.Suspense>
       )}
-      {(() => {
-        // SETS × REPS with a micro-label under each number so the athlete reads
-        // which is which (Ohad: "I can't see reps vs sets"). Labelled layout is
-        // used ONLY for the clean numeric case; any free-text reps cell (a whole
-        // prescription, "AMRAP", "30 SEC") falls back to the plain centred
-        // string so we never print "3 × 2x10 e" beneath a REPS label.
-        const sStr = String(setsForDisplay ?? '').trim();
-        const rStr = String(repsForDisplay ?? '').trim();
-        const clean = sStr && rStr && !/[×x]/i.test(rStr) && rStr.length <= 7;
-        if (!clean) {
-          const txt = `${sStr} × ${rStr}`.replace(/^ × $/, '—').trim() || '—';
-          return <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{txt}</div>;
-        }
-        // Each number with its SETS / REPS micro-label directly beneath it
-        // (Ohad loves this) — muted × baseline-aligned between the two columns.
-        const col = (val, label) => (
-          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-            <span style={{fontSize:19,color:C.ac,fontWeight:700,fontFamily:FN,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{val}</span>
-            <span style={{fontSize:8,color:C.tm,fontWeight:700,fontFamily:FN,letterSpacing:'0.2em',textIndent:'0.2em',lineHeight:1}}>{label}</span>
-          </div>
-        );
-        return (
-          <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:14}}>
-            {col(sStr, 'SETS')}
-            <span style={{fontSize:14,color:C.tm,fontWeight:400,fontFamily:FN,lineHeight:1}}>×</span>
-            {col(rStr, 'REPS')}
-          </div>
-        );
-      })()}
+      <SetsRepsHero sets={setsForDisplay} reps={repsForDisplay} />
       {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{ex.tempo}</span></div>}
 
       {/* No outer frame — the wrapper's cardBd (cyan-30% in dark) read as a
