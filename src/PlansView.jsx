@@ -801,7 +801,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                           {dayExs.map((pe, ei) => {
                             const exData = exById(exercises).get(pe.exerciseId);
                             const title = exData?.title || pe.title || (pe.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
-                            const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : C.td;
+                            const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : pe.superset === 'D' ? C.gn : pe.superset === 'E' ? C.rd : C.td;
                             const weeks = Math.max((pe.wk?.length||0), (pe.wkS?.length||0), 1);
                             const exKey = pe.id || `${cmpDayKey}-${ei}`;
                             const exOpen = !!cmpExpandedEx[exKey];
@@ -1256,9 +1256,15 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     const fromExs = days[fromDay].exercises;
     if (fromIdx < 0 || fromIdx >= fromExs.length) return p;
     const [moved] = fromExs.splice(fromIdx, 1);
+    // Drop the superset letter when crossing into a new day: the letter only
+    // groups exercises WITHIN a day, so carrying it over would silently merge
+    // the moved exercise into a same-letter group in the target day (the
+    // athlete would then be told to superset a pairing the coach never set).
+    // The coach re-tags a superset in the destination day if they want one.
+    const cleaned = moved.superset ? { ...moved, superset: '' } : moved;
     const toExs = days[toDay].exercises;
     const at = Math.max(0, Math.min(toGap, toExs.length));
-    toExs.splice(at, 0, moved);
+    toExs.splice(at, 0, cleaned);
     return {...p, days};
   });
   // Autosave: shared hook serializes saves, flushes on tab switch / screen
@@ -1777,7 +1783,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                           <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} showEmbed={exOpen}
                             exercises={exercises} setExercises={setExercises}
                             picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})}
-                              onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: '' }); }) : undefined}
+                              onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name }); }) : undefined}
                               label="Exercise" fallbackTitle={ex.title} />} />
                         </div>
                        </div>
