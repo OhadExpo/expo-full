@@ -1163,6 +1163,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   // insertion bar). Reorder is constrained to within the source row's day.
   const [dragSrc, setDragSrc] = useState(null);
   const [dragOver, setDragOver] = useState(null);
+  // True whenever an exercise row is in flight, regardless of which day it
+  // came from. Cross-day drag needs this: the drop target may be a DIFFERENT
+  // day's grid than the source, so every grid must accept dragover/drop while
+  // a drag is live — not just the source day (which is what per-day `dragging`
+  // scopes to). Also drives the "all cards render collapsed during drag" so the
+  // insertion gap reads cleanly in whichever day the cursor is over.
+  const anyExDragging = dragSrc != null;
   // Whole-DAY drag-to-reorder — separate state from the exercise-row drag so
   // the two gestures can't cross-fire (exercise drag events bubble up to the
   // days column, which ignores them unless a day drag is live, and vice
@@ -1218,6 +1225,24 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     exs.splice(to, 0, moved);
     return {...d, exercises: exs};
   })}));
+  // Move an exercise from one day into another, inserting at slot `toGap`
+  // (0..len of the target day). Splices out of the source array and into the
+  // target array. Like reorderExInDay, this preserves array order as the source
+  // of truth and does NOT renumber ex.order — the render path (editor + portal)
+  // iterates in array order, so a stale order field is harmless (same
+  // convention the within-day reorder relies on).
+  const moveExAcrossDays = (fromDay, fromIdx, toDay, toGap) => setPlan(p => {
+    if (fromDay === toDay) return p;
+    const days = p.days.map(d => ({...d, exercises: [...(d.exercises || [])]}));
+    if (fromDay < 0 || fromDay >= days.length || toDay < 0 || toDay >= days.length) return p;
+    const fromExs = days[fromDay].exercises;
+    if (fromIdx < 0 || fromIdx >= fromExs.length) return p;
+    const [moved] = fromExs.splice(fromIdx, 1);
+    const toExs = days[toDay].exercises;
+    const at = Math.max(0, Math.min(toGap, toExs.length));
+    toExs.splice(at, 0, moved);
+    return {...p, days};
+  });
   // Autosave: shared hook serializes saves, flushes on tab switch / screen
   // lock / browser back / refresh / close / unmount.
   const { status: autoStatus, flush: flushAutosave, markClean } = useAutosave(plan, savePlan);
@@ -1498,7 +1523,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           // shifted every row a few px per slot change (read as "jumpy").
           const rowDivider = { gridColumn: '1 / -1', borderTop: `1px dashed ${C.ac}`, opacity: 0.22, margin: 0, position: 'relative', top: '-1.5px' };
           const onGridDragOver = (e) => {
-            if (!dragging) return;
+            // Accept dragover whenever ANY exercise drag is live, not only when
+            // this is the source day — that's what makes a drop into a
+            // different day possible. The gap/y below are computed for THIS
+            // day's rows, so the insertion bar tracks the hovered day.
+            if (!anyExDragging) return;
             e.preventDefault(); e.dataTransfer.dropEffect = 'move';
             const rows = [...e.currentTarget.querySelectorAll('[data-exrow]')];
             let gap = rows.length;
@@ -1515,11 +1544,20 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           };
           const onGridDrop = (e) => {
             e.preventDefault();
-            if (dragging && dragOver && dragOver.dayIdx === dayIdx) {
+            if (anyExDragging && dragOver && dragOver.dayIdx === dayIdx) {
+              const fromDay = dragSrc.dayIdx;
               const from = dragSrc.exIdx;
               let to = dragOver.gap;
-              if (to > from) to -= 1; // source is spliced out first, so slots above it shift down one
-              if (to !== from) reorderExInDay(dayIdx, from, to);
+              if (fromDay === dayIdx) {
+                // Same-day reorder: source is spliced out first, so any slot
+                // above it shifts down one.
+                if (to > from) to -= 1;
+                if (to !== from) reorderExInDay(dayIdx, from, to);
+              } else {
+                // Cross-day move: target array is untouched by the source
+                // splice, so the gap index needs no adjustment.
+                moveExAcrossDays(fromDay, from, dayIdx, to);
+              }
             }
             setDragSrc(null); setDragOver(null);
           };
@@ -1594,7 +1632,17 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                 )}
               </div>
               <div style={{display:'grid',gridTemplateRows:dayCollapsed?'0fr':'1fr',transition:'grid-template-rows 260ms ease'}}><div style={{overflow:'hidden',minHeight:0}}>
-              {dayExs.length === 0 ? <div style={{color:C.td,fontSize:12,fontStyle:"italic"}}>No exercises.</div> :
+              {dayExs.length === 0 ? (
+                // Empty day is still a valid cross-day drop target. Attach the
+                // same grid drop handlers (with no rows, the gap resolves to 0)
+                // so an exercise can be moved INTO an otherwise-empty day.
+                <div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{position:'relative',color:C.td,fontSize:12,fontStyle:"italic",padding:'4px 0',minHeight:26,display:'flex',alignItems:'center'}}>
+                  {anyExDragging && dragSrc.dayIdx !== dayIdx ? <span style={{color:C.ac,fontStyle:'normal'}}>Drop here to move into this day</span> : 'No exercises.'}
+                  {anyExDragging && dragOver && dragOver.dayIdx === dayIdx && dragOver.y != null && (
+                    <div style={{ position: 'absolute', left: 0, right: 0, top: dragOver.y - 1, height: 2, background: C.ac, boxShadow: `0 0 5px ${C.ac}88`, pointerEvents: 'none', zIndex: 2 }} />
+                  )}
+                </div>
+              ) :
                 <div style={{overflowX:"auto",margin:"0 -12px",padding:compareActive?"0 12px 7px":"0 12px"}}><div onDragOver={onGridDragOver} onDrop={onGridDrop} style={{display:"grid",position:"relative",gridTemplateColumns: compareActive ? `30px minmax(0,3.3fr) 44px minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,0.9fr) minmax(0,60px) minmax(0,1.3fr) 22px` : `36px minmax(180px,3.3fr) 56px minmax(${Math.max(56,weeks*22)}px,0.9fr) minmax(${Math.max(64,weeks*26)}px,1.4fr) minmax(60px,80px) minmax(48px,60px) minmax(80px,1.3fr) 24px`,gap:"3px 8px",fontSize:12,alignItems:"center",minWidth: compareActive ? Math.max(590,516+weeks*40) : Math.max(614,540+weeks*40)}}>
                   {["#","EXERCISE","GRP","SETS","REPS","LOAD","RPE","TEMPO",""].map((h,hi) =>
                     hi === 0 ? (
@@ -1623,7 +1671,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     // transition) so the drag gets the same clean gap-line
                     // effect as collapsed mode. ovExpanded itself is left
                     // untouched — rows re-open where they were on drop.
-                    const exOpen = !!ovExpanded[ex.id] && !dragging;
+                    const exOpen = !!ovExpanded[ex.id] && !anyExDragging;
                     return <React.Fragment key={ex.id}>
                       {/* Divider between exercises — static; the drag
                           insertion bar is the absolute overlay below. */}
@@ -1707,7 +1755,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   })}
                   {/* Insertion bar — absolute overlay, glides between slots
                       without ever moving the rows themselves. */}
-                  {dragging && dragOver && dragOver.dayIdx === dayIdx && dragOver.y != null && (
+                  {anyExDragging && dragOver && dragOver.dayIdx === dayIdx && dragOver.y != null && (
                     <div style={{ position: 'absolute', left: 0, right: 0, top: dragOver.y - 1, height: 2, background: C.ac, boxShadow: `0 0 5px ${C.ac}88`, pointerEvents: 'none', zIndex: 2, transition: 'top 90ms ease' }} />
                   )}
                 </div></div>
