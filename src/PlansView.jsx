@@ -1664,7 +1664,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   {dayExs.map((ex, exIdx) => {
                     const exData = exById(exercises).get(ex.exerciseId);
                     const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
-                    const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:C.td;
+                    const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:ex.superset==="D"?C.gn:ex.superset==="E"?C.rd:C.td;
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
                     // While a drag is live in this day, render expanded rows
                     // as collapsed (the panel animates shut via its 0fr/1fr
