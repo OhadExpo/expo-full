@@ -40,12 +40,19 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
 
   const loadDay = useCallback(async (iso) => {
     try {
+      // athlete_meals columns: trainee_id, created_at, photo_url, kcal,
+      // protein_g, carbs_g, fat_g, notes. There's no meal_date column, so
+      // filter the day by a created_at range [iso 00:00, next-day 00:00).
+      const next = new Date(iso + 'T00:00:00');
+      next.setDate(next.getDate() + 1);
+      const nextIso = next.toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from('athlete_meals')
         .select('*')
-        .eq('client_id', clientId)
-        .eq('meal_date', iso)
-        .order('logged_at', { ascending: true });
+        .eq('trainee_id', clientId)
+        .gte('created_at', iso + 'T00:00:00')
+        .lt('created_at', nextIso + 'T00:00:00')
+        .order('created_at', { ascending: true });
       if (!error) setMeals(data || []);
     } catch {}
   }, [clientId]);
@@ -122,17 +129,16 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
     if (!macros || !photoUrl || demoMode) return;
     setError(null);
     try {
+      // Map to the real athlete_meals columns (created_at is auto). The AI
+      // response uses carb_g; the table column is carbs_g. items/confidence
+      // aren't stored (no columns) — the macros + photo + notes are.
       const row = {
-        client_id: clientId,
-        meal_date: day,
-        logged_at: new Date().toISOString(),
+        trainee_id: clientId,
         photo_url: photoUrl,
-        items: macros.items || [],
         kcal: macros.kcal,
         protein_g: macros.protein_g,
-        carb_g: macros.carb_g,
+        carbs_g: macros.carb_g,
         fat_g: macros.fat_g,
-        confidence: macros.confidence,
         notes: macros.notes || hint || null,
       };
       const { error } = await supabase.from('athlete_meals').insert(row);
@@ -149,7 +155,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
   const totals = meals.reduce((acc, m) => ({
     kcal: acc.kcal + (Number(m.kcal) || 0),
     p: acc.p + (Number(m.protein_g) || 0),
-    c: acc.c + (Number(m.carb_g) || 0),
+    c: acc.c + (Number(m.carbs_g) || 0),
     f: acc.f + (Number(m.fat_g) || 0),
   }), { kcal: 0, p: 0, c: 0, f: 0 });
 
@@ -161,10 +167,12 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
   if (page) {
     return (
       <div>
-        {/* Day navigator — strip with prev/next + label */}
+        {/* Day navigator — strip with prev/next + label. Fixed minHeight so the
+            DAY TOTAL card below sits at the SAME vertical height on every date,
+            regardless of the → arrow or label length (Ohad: no toggle glitch). */}
         <div style={{
           display: 'grid', gridTemplateColumns: '40px 1fr 40px',
-          alignItems: 'center', marginBottom: 14, gap: 8,
+          alignItems: 'center', marginBottom: 14, gap: 8, minHeight: 42, boxSizing: 'border-box',
         }}>
           <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() - 1); setDay(d.toISOString().slice(0, 10)); }}
             aria-label="Previous day"
@@ -232,7 +240,10 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
           <div style={{ marginBottom: 18 }}>
             {!photoUrl && !uploading && (
               <label style={{ display: 'block' }}>
-                <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} style={{ display: 'none' }} />
+                {/* No `capture` attr → the native picker offers BOTH gallery and
+                    camera (capture forced camera-only). accept="image/*" keeps
+                    it pictures-only. Icon removed (Ohad). */}
+                <input type="file" accept="image/*" onChange={onPickPhoto} style={{ display: 'none' }} />
                 <span style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                   cursor: 'pointer', padding: '16px 18px',
@@ -240,7 +251,6 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
                   fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.18em',
                   textAlign: 'center', boxSizing: 'border-box',
                 }}>
-                  <span style={{ fontSize: 20 }}>📸</span>
                   <span>SNAP A MEAL</span>
                 </span>
               </label>
@@ -350,7 +360,9 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
         <>
           {!photoUrl && !uploading && (
             <label style={{ display: 'block' }}>
-              <input type="file" accept="image/*" capture="environment" onChange={onPickPhoto} style={{ display: 'none' }} />
+              {/* No `capture` attr → native picker offers gallery AND camera;
+                  accept="image/*" keeps it pictures-only (no video). */}
+              <input type="file" accept="image/*" onChange={onPickPhoto} style={{ display: 'none' }} />
               <span style={{
                 display: 'inline-block', cursor: 'pointer',
                 padding: '10px 18px', border: `1px solid ${C.ac}`, color: C.ac,
@@ -476,7 +488,7 @@ function MealRow({ meal, page = false }) {
             }}>
               <span style={{
                 fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700,
-              }}>{new Date(meal.logged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              }}>{new Date(meal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               <span style={{
                 fontFamily: FN, fontSize: 14, color: C.ac, fontWeight: 700, letterSpacing: '0.02em',
                 fontVariantNumeric: 'tabular-nums',
@@ -497,7 +509,7 @@ function MealRow({ meal, page = false }) {
             fontVariantNumeric: 'tabular-nums',
           }}>
             <span style={{ color: C.gn }}>{meal.protein_g}<span style={{ color: C.tm, marginLeft: 2 }}>P</span></span>
-            <span style={{ color: C.or }}>{meal.carb_g}<span style={{ color: C.tm, marginLeft: 2 }}>C</span></span>
+            <span style={{ color: C.or }}>{meal.carbs_g}<span style={{ color: C.tm, marginLeft: 2 }}>C</span></span>
             <span style={{ color: C.ac }}>{meal.fat_g}<span style={{ color: C.tm, marginLeft: 2 }}>F</span></span>
           </div>
         </div>
@@ -511,10 +523,10 @@ function MealRow({ meal, page = false }) {
       <img src={meal.photo_url} alt="" style={{ width: 56, height: 56, objectFit: 'cover', flexShrink: 0 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', fontWeight: 700 }}>
-          {new Date(meal.logged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {meal.kcal} kcal
+          {new Date(meal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {meal.kcal} kcal
         </div>
         <div style={{ fontFamily: FN, fontSize: 12, color: C.tx, marginTop: 2 }}>
-          {meal.protein_g}P / {meal.carb_g}C / {meal.fat_g}F
+          {meal.protein_g}P / {meal.carbs_g}C / {meal.fat_g}F
         </div>
         {Array.isArray(meal.items) && meal.items.length > 0 && (
           <div style={{ fontSize: 11, color: C.td, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

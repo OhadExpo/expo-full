@@ -19,11 +19,34 @@ import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscrib
 import { emitSaveError } from './useSupaStore';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
+import ReadinessRow, { CHECKIN_METRICS, checkinQuality, readinessColor, hasReadiness } from './ReadinessRow';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
 const MealLogger = React.lazy(() => import('./MealLogger'));
 const LiveRepCounter = React.lazy(() => import('./LiveRepCounter'));
+
+// Tempo colour — a LEGIBLE light cool-grey. Secondary spec: must be clearly
+// distinct from the bright-cyan reps/sets AND the orange warm-up. Faded cyan
+// read too close to the reps/sets; the muted C.tm grey read too dim/dull.
+// #9BA0AC is neutral, clearly not cyan/orange, and reads cleanly on dark.
+// One source of truth for every card + the logger. (Ohad)
+const TEMPO_COLOR = '#9BA0AC';
+
+// Split a free-text prescription into [reps, rest]: the leading reps token
+// (e.g. "1×12 E", "3x5", "2X4") stays cyan; everything after it (tempo/rest,
+// incl. Hebrew like "שלוש שניות ירידה" or ", 30 SEC REST") is the rest, shown
+// grey. Returns null when there's no leading NxM reps token (e.g. "80KG (2X4 E)")
+// so the caller renders the whole string cyan. Handles comma OR space delimiters.
+const splitPrescription = (str) => {
+  const s = String(str || '');
+  // reps token = N×M (with optional range) + an optional trailing unit word
+  // (SEC/REPS/MIN/E) so "3 X 10-20 SEC" stays whole. The rest is only taken
+  // when it's a comma-clause or whitespace-then-non-digit (e.g. Hebrew tempo).
+  const m = s.match(/^(\s*\d+\s*[×xX]\s*[\d–-]+(?:\s*(?:SECS?|REPS?|MIN|E))?)(\s*,\s*.*|\s+\D.*)?$/i);
+  if (!m) return null;
+  return [m[1].trim(), (m[2] || '').trim() ? m[2] : ''];
+};
 
 // Feature gate for the swap-exercise UI. Substitution is ONLY for trainees on
 // expo-il template-purchased plans — Ohad's manually-coached private clients
@@ -206,6 +229,24 @@ function GooglePhotosEmbed({ url }) {
   return <div style={wrap}><video src={state.src} poster={state.poster||undefined} controls playsInline onError={handleBadStream} onLoadedMetadata={handleMeta} style={{width:'100%',height:'100%',objectFit:'contain',background:'#000'}}/></div>;
 }
 
+// Overview focus note — clamps to 2 lines so the card stays compact, with a
+// MORE/LESS toggle that reveals the full text on tap (Ohad: don't balloon the
+// cards, don't let any length of text size them).
+function OverviewFocus({ text }) {
+  const [open, setOpen] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => { const el = ref.current; if (el) setOverflows(el.scrollHeight > el.clientHeight + 1); }, [text, open]);
+  return (
+    <div style={{marginInlineStart:30,marginTop:4}}>
+      <div ref={ref} style={{fontSize:11,color:C.ac,opacity:0.85,lineHeight:1.4,...(open?null:{display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'})}}>
+        <span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>FOCUS</span>{text}
+      </div>
+      {(overflows || open) && <span onClick={(e)=>{e.stopPropagation();setOpen(o=>!o);}} style={{display:'inline-block',marginTop:3,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',color:C.ac,cursor:'pointer',opacity:0.85}}>{open?'▲ LESS':'▼ MORE'}</span>}
+    </div>
+  );
+}
+
 // StepLogger: warmup steps → pre-workout → exercise steps → finish
 function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFocus, trainerExercises, priorWorkouts, allowSubstitution, demoMode = false, branch = ''}) {
   // Steps: 'wu0','wu1',... → 0,1,2,... (group indices) → 'end'
@@ -266,12 +307,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (Number.isFinite(wi) && wi >= 0 && wi < wuCount) return r;
     } else if (typeof r === 'number' && r >= 0 && r < groupCount) {
       return r;
-    } else if (r === 'end') {
+    } else if (r === 'end' || r === 'checkin') {
       return r;
     }
-    return wuCount > 0 ? 'wu0' : 0;
+    return wuCount > 0 ? 'wu0' : 'checkin';
   });
   const [notes, setNotes] = useState(_restoredSession?.notes || '');
+  // Readiness check-in (autoregulation) — collected between warm-ups and the
+  // first exercise, saved onto the workout. (Ohad: "couldn't see the check-in")
+  const [checkin, setCheckin] = useState(_restoredSession?.autoregulation || { pain: '', sleep: '', energy: '' });
   // Per-week sets (ex.wkS) takes precedence over the scalar ex.s for allocating log rows.
   // weekNum is 0-indexed; fall back to the flat sets count (or 3) if the week is missing.
   const setCountFor = (ex) => {
@@ -389,8 +433,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return safe;
   });
   const sessionDraft = React.useMemo(
-    () => ({ step, notes, allSets, fv: serializeFv(fv), wuDone, substitutions, savedAt: Date.now() }),
-    [step, notes, allSets, fv, wuDone, substitutions]
+    () => ({ step, notes, autoregulation: checkin, allSets, fv: serializeFv(fv), wuDone, substitutions, savedAt: Date.now() }),
+    [step, notes, checkin, allSets, fv, wuDone, substitutions]
   );
   const sessionAutosave = useAutosave(
     sessionDraft,
@@ -960,7 +1004,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const finishedAt = new Date().toISOString();
     onComplete({
       id: workoutId, clientId, planName: plan.name, dayName: day.name,
-      week: weekNum + 1, date: finishedAt, notes,
+      week: weekNum + 1, date: finishedAt, notes, autoregulation: checkin,
       formVideos,
       exercises: day.ex.map((ex, i) => {
         const sub = substitutions[ex.eid];
@@ -990,15 +1034,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // Navigation helpers
   const totalSteps = wuCount + groupCount; // warmups + groups
   const stepIndex = typeof step === 'string' && step.startsWith('wu') ? parseInt(step.slice(2)) :
-    step === 'end' ? totalSteps : wuCount + step;
+    step === 'end' ? totalSteps : step === 'checkin' ? wuCount : wuCount + step;
   const goNext = () => {
     window.scrollTo(0,0);
     if (typeof step === 'string' && step.startsWith('wu')) {
       const wi = parseInt(step.slice(2));
       const nd = [...wuDone]; nd[wi] = true; setWuDone(nd);
       if (wi + 1 < wuCount) setStep('wu' + (wi + 1));
-      else setStep(0);
+      else setStep('checkin');
     }
+    else if (step === 'checkin') setStep(0);
     else if (typeof step === 'number' && step < groupCount - 1) setStep(step + 1);
     else setStep('end');
   };
@@ -1008,8 +1053,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const wi = parseInt(step.slice(2));
       if (wi > 0) setStep('wu' + (wi - 1)); else onBack();
     }
-    else if (step === 0) {
-      // Back from the first exercise: into the last warmup if any, else exit.
+    else if (step === 0) setStep('checkin');
+    else if (step === 'checkin') {
+      // Back from the check-in: into the last warmup if any, else exit.
       if (wuCount > 0) setStep('wu' + (wuCount - 1));
       else onBack();
     }
@@ -1029,20 +1075,29 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const bar = <div style={{padding:'calc(10px + env(safe-area-inset-top)) 16px 10px',background:C.sf,borderBottom:`1px solid ${C.bd}`,position:'sticky',top:0,zIndex:10}}>
     <div style={{display:'flex',alignItems:'center',marginBottom:6,position:'relative',minHeight:40}}>
       <EXPOMark theme="dark" height={36} style={{flexShrink:0}} />
-      <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
-      {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
-        <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{marginLeft:'auto',background:'var(--c-sf)',border:`1px solid ${sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn}4D`,color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.06em',whiteSpace:'nowrap'}}>
-          {sessionAutosave.status === 'saving' ? '… SAVING' :
-           sessionAutosave.status === 'error' ? '⚠ SAVE FAILED' :
-           lastSavedAt ? `✓ ${lastSavedAt.toTimeString().slice(0,5)}` : ''}
-          {pendingBlobs > 0 && <span style={{marginLeft:6,opacity:0.85}}>· ↑{pendingBlobs}</span>}
-        </span>
-      )}
-      {showResumedPill && <span title="Restored from your last session" style={{marginLeft:8,background:'var(--c-sf)',border:`1px solid ${C.or}`,color:C.or,fontFamily:FN,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:0,letterSpacing:'0.18em'}}>↻ RESUMED</span>}
-      {/* Bnei Herzliya team crest — top-right of the step-logger header,
-          readable size, vertically centered with the EXPO mark and ← Exit. */}
-      {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',marginLeft:(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error' || showResumedPill) ? 10 : 'auto',flexShrink:0}} />}
-      <button onClick={onBack} style={{marginLeft:8,background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FB,fontSize:13,padding:0,lineHeight:1}}>← Back</button></div>
+      <span style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',fontFamily:FN,fontSize:12,color:C.tm,whiteSpace:'nowrap',lineHeight:1}}>{day.name} · W{weekNum+1}</span>
+      {/* Right cluster — one flex box anchored right with marginLeft:'auto',
+          so ← Exit sits on the RIGHT EDGE always (Ohad). Previously only the
+          autosave pill carried the auto-margin, so before the first autosave
+          the Exit button hugged the logo on the left. */}
+      <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+        {(lastSavedAt || pendingBlobs > 0 || sessionAutosave.status === 'saving' || sessionAutosave.status === 'error') && (
+          <span title={pendingBlobs > 0 ? `${pendingBlobs} video${pendingBlobs===1?'':'s'} waiting to upload` : (sessionAutosave.status === 'error' ? 'Last save failed — your edits are not safe yet' : 'Session saved locally')} style={{color:sessionAutosave.status==='error'?C.rd:pendingBlobs>0?C.or:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}>
+            {/* Glyphs (✓/⚠/…) aren't in JetBrains Mono → they render in a
+                fallback font with a taller baseline. Splitting the mark into
+                its own flex item lets alignItems:center line it up with the
+                mono digits instead of floating high. (Ohad — OCD timer align) */}
+            {sessionAutosave.status === 'saving' ? <span>… SAVING</span> :
+             sessionAutosave.status === 'error' ? <span>⚠ SAVE FAILED</span> :
+             lastSavedAt ? <span style={{lineHeight:1}}>✓</span> : ''}
+            {pendingBlobs > 0 && <span style={{opacity:0.85}}>· ↑{pendingBlobs}</span>}
+          </span>
+        )}
+        {showResumedPill && <span title="Restored from your last session" style={{color:C.or,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5,lineHeight:1}}><span style={{lineHeight:1}}>↻</span><span style={{lineHeight:1}}>RESUMED</span></span>}
+        {/* Bnei Herzliya team crest — readable size, vertically centered. */}
+        {branch === 'Bnei Herzliya' && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:40,width:'auto',objectFit:'contain',flexShrink:0}} />}
+        <button onClick={onBack} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,display:'inline-flex',alignItems:'center',gap:5,lineHeight:1,whiteSpace:'nowrap'}}><span style={{lineHeight:1}}>←</span><span style={{lineHeight:1}}>EXIT</span></button>
+      </div></div>
     <div style={{display:'flex',gap:2}}>
       {/* Warm-up dots (orange) + Exercise dots (blue/green) */}
       {warmup.map((_,i) => <div key={'wu'+i} style={{flex:1,height:3,borderRadius:0,background:stepIndex>i?C.or:stepIndex===i?'rgba(255,165,2,0.502)':C.bd}} />)}
@@ -1051,6 +1106,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     </div>
     <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:4,textAlign:'center'}}>
       {typeof step==='string'&&step.startsWith('wu') ? `Warm-Up ${parseInt(step.slice(2))+1}/${wuCount}` :
+       step==='checkin' ? 'Check-In' :
        step==='end' ? 'Complete' :
        groups[step]?.superset ? `Superset ${groups[step].superset} · Group ${step+1}/${groupCount}` :
        `Exercise ${step+1}/${groupCount}`}
@@ -1064,24 +1120,39 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const vidShort = ytIsShort(wu.vid);
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginBottom:12}}>
-          <div style={{background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,padding:'4px 10px',fontFamily:FN,fontSize:9,color:C.or,fontWeight:700,letterSpacing:'0.18em',minWidth:110,textAlign:'center',fontVariantNumeric:'tabular-nums',boxSizing:'border-box'}}>WARM-UP {wi+1}/{wuCount}</div></div>
-        <h2 style={{margin:'0 0 6px',fontFamily:FN,fontSize:18}}>{wu.t}</h2>
-        {/* Prefer the new structured fields (sets × reps × tempo) and fall
-            back to the legacy free-text rx for plans authored before the
-            split. Existing plans render unchanged until the coach edits. */}
-        <div style={{fontSize:15,color:C.or,fontWeight:700,fontFamily:FN,marginBottom:14}}>{(() => {
+        {/* Warm-up screen matches the EXERCISE screen exactly — centred name,
+            cyan reps, grey ⏱ tempo — minus find-alternate / set-log grid /
+            form-check (warm-ups aren't logged). The top bar already shows
+            "Warm-Up i/N", so no body pill. (Ohad) */}
+        <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>{wu.t}</h2>
+        {(() => {
+          // Explicit wu.tempo is the source of truth — the overview warm-up
+          // card always reads w.tempo (line ~2774). The bug: the rx branch
+          // below ran splitPrescription(wu.rx) and IGNORED wu.tempo, so a
+          // warm-up with rx "1X10 E" + tempo "3-4 SEC ECC" showed the tempo
+          // on the overview but dropped it in-session. Seed tempo from the
+          // explicit field; only fall back to the rx-split remainder.
+          let reps = '', tempo = wu.tempo || '';
           if (wu.sets || wu.reps) {
-            const setsStr = wu.sets ?? '';
-            const repsStr = wu.reps ?? '';
-            const core = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
-            return wu.tempo ? `${core}  ${wu.tempo}` : core;
+            const setsStr = wu.sets ?? '', repsStr = wu.reps ?? '';
+            reps = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
+          } else {
+            const parts = splitPrescription(wu.rx);
+            if (parts) { reps = parts[0]; if (!tempo) tempo = String(parts[1] || '').replace(/^[\s,]+/, ''); }
+            else reps = String(wu.rx || '');
           }
-          return wu.rx || '';
-        })()}</div>
+          return <>
+            {reps && <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{reps}</div>}
+            {tempo && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{tempo}</span></div>}
+            <div style={{marginBottom:14}} />
+          </>;
+        })()}
         {/* Coach note for this warm-up (authored in the plan editor's
             warm-up expand panel). */}
-        {wu.note && <div dir="auto" style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.or}`,borderRadius:0,padding:'10px 12px',marginBottom:14,fontSize:14,lineHeight:1.55,whiteSpace:'pre-wrap',color:C.tx}}>{wu.note}</div>}
+        {wu.note && <div style={{background:'transparent',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.cardBd}`,borderRadius:0,padding:12,marginBottom:14}}>
+          <div style={{fontSize:10,fontFamily:FN,color:C.td,marginBottom:6,fontWeight:700,letterSpacing:'0.18em'}}>EXERCISE NOTE</div>
+          <div dir="auto" style={{fontSize:13,color:C.tx,lineHeight:1.5,whiteSpace:'pre-wrap',wordBreak:'break-word',direction:/[֐-׿]/.test(wu.note||'')?'rtl':'ltr',fontFamily:/[֐-׿]/.test(wu.note||'')?FH:undefined}}>{wu.note}</div>
+        </div>}
         {vid ? <div style={vidShort
           ? {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'9/16',maxWidth:300,marginLeft:'auto',marginRight:'auto',background:'#000',border:`1px solid ${C.cardBd}`}
           : {marginTop:16,marginBottom:14,borderRadius:0,overflow:'hidden',aspectRatio:'16/9',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`}}>
@@ -1099,7 +1170,41 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       </div></div>;
   }
 
-  // ===== PRE-WORKOUT CHECK =====
+  // ===== CHECK-IN (readiness / autoregulation) =====
+  if (step === 'checkin') {
+    const lbl = { fontSize:10, fontFamily:FN, color:C.tm, letterSpacing:'0.18em', fontWeight:700, marginBottom:8 };
+    // Options render as the underline-input ENTRY material (not solid boxes),
+    // matching the portal's control-material system. Each option's underline
+    // carries a FAINT good→bad severity tint (25%) so the direction is
+    // perceptible without shouting; the selected option alone brightens to the
+    // full colour (label + 2px underline). PAIN·NONE (green) can never read
+    // like PAIN·HIGH (red). All scales put good on the RIGHT — PAIN reads
+    // best-first, SLEEP/ENERGY worst-first, so `goodFirst` flips the ramp.
+    const RAMP = ['#35C36A', '#F2CE1E', '#F0862A', '#E23B3B']; // best → worst (yellow/orange/red all distinct)
+    const scale = (field, opts, goodFirst) => (
+      <div style={{display:'flex',gap:14}}>
+        {opts.map(([v,l],idx) => {
+          const on = checkin[field] === v;
+          const sev = goodFirst ? RAMP[idx] : RAMP[opts.length-1-idx];
+          return <button key={v} onClick={()=>setCheckin(c=>({...c,[field]: on ? '' : v}))}
+            style={{flex:1,padding:'9px 0',background:'transparent',border:'none',borderBottom:`${on?2:1}px solid ${on?sev:sev+'40'}`,color:on?sev:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.04em',cursor:'pointer',borderRadius:0,transition:'color .12s, border-color .12s'}}>{l}</button>;
+        })}
+      </div>
+    );
+    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
+      <div style={{padding:20}}>
+        <h2 style={{margin:'0 0 4px',fontFamily:FN,fontSize:18,textAlign:'center'}}>Readiness Check-In</h2>
+        <div style={{fontSize:13,color:C.tm,textAlign:'center',marginBottom:24}}>How are you feeling today? <span style={{color:C.td}}>(optional)</span></div>
+        <div style={{marginBottom:18}}><div style={lbl}>PAIN</div>{scale('pain',[['high','HIGH'],['moderate','MODERATE'],['mild','MILD'],['none','NONE']], false)}</div>
+        <div style={{marginBottom:18}}><div style={lbl}>SLEEP</div>{scale('sleep',[['poor','POOR'],['ok','OK'],['good','GOOD'],['great','GREAT']], false)}</div>
+        <div style={{marginBottom:26}}><div style={lbl}>ENERGY</div>{scale('energy',[['low','LOW'],['ok','OK'],['good','GOOD'],['high','HIGH']], false)}</div>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={goPrev} style={{flex:1,padding:14,borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>← Back</button>
+          <button onClick={goNext} style={{flex:2,padding:14,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>Start Workout →</button>
+        </div>
+      </div></div>;
+  }
+
   // ===== FINISH =====
   // Detect new PRs in this session — for each prescribed exercise, compute
   // this session's top completed-set load and compare to the trainee's prior
@@ -1343,14 +1448,44 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             onClose={() => setLiveCountForEid(null)} />
         </React.Suspense>
       )}
-      <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{`${setsForDisplay ?? ''} × ${repsForDisplay ?? ''}`.replace(/^ × $/, '—').trim()}</div>
-      {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:C.or,marginTop:4,textAlign:'center'}}>⏱ {ex.tempo}</div>}
+      {(() => {
+        // SETS × REPS with a micro-label under each number so the athlete reads
+        // which is which (Ohad: "I can't see reps vs sets"). Labelled layout is
+        // used ONLY for the clean numeric case; any free-text reps cell (a whole
+        // prescription, "AMRAP", "30 SEC") falls back to the plain centred
+        // string so we never print "3 × 2x10 e" beneath a REPS label.
+        const sStr = String(setsForDisplay ?? '').trim();
+        const rStr = String(repsForDisplay ?? '').trim();
+        const clean = sStr && rStr && !/[×x]/i.test(rStr) && rStr.length <= 7;
+        if (!clean) {
+          const txt = `${sStr} × ${rStr}`.replace(/^ × $/, '—').trim() || '—';
+          return <div style={{fontSize:15,color:C.ac,fontWeight:700,fontFamily:FN,textAlign:'center'}}>{txt}</div>;
+        }
+        // Each number with its SETS / REPS micro-label directly beneath it
+        // (Ohad loves this) — muted × baseline-aligned between the two columns.
+        const col = (val, label) => (
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+            <span style={{fontSize:19,color:C.ac,fontWeight:700,fontFamily:FN,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{val}</span>
+            <span style={{fontSize:8,color:C.tm,fontWeight:700,fontFamily:FN,letterSpacing:'0.2em',textIndent:'0.2em',lineHeight:1}}>{label}</span>
+          </div>
+        );
+        return (
+          <div style={{display:'flex',alignItems:'baseline',justifyContent:'center',gap:14}}>
+            {col(sStr, 'SETS')}
+            <span style={{fontSize:14,color:C.tm,fontWeight:400,fontFamily:FN,lineHeight:1}}>×</span>
+            {col(rStr, 'REPS')}
+          </div>
+        );
+      })()}
+      {ex.tempo && String(ex.tempo)!==String(repsForDisplay) && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{ex.tempo}</span></div>}
 
-      {hw && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:10,marginTop:12,marginBottom:14}}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4}}>
-          {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`1px solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
-            <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
-            <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div></div>}
+      {/* No outer frame — the wrapper's cardBd (cyan-30% in dark) read as a
+          cyan line around the WK1–WK4 group. Dropping it + its padding lets the
+          cells span the full width, flush with the video box below (Ohad). */}
+      {hw && <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:4,marginTop:12,marginBottom:14}}>
+        {ex.wk.map((w,i) => <div key={i} style={{background:'var(--c-sf)',border:`1px solid ${weekNum===i?C.ac:C.cardBd}`,borderRadius:0,padding:6,textAlign:'center'}}>
+          <div style={{fontSize:9,color:C.td,fontFamily:FN}}>WK {i+1}</div>
+          <div style={{fontSize:12,color:weekNum===i?C.ac:C.tx,fontWeight:600}}>{w}</div></div>)}</div>}
 
       {/* Cyan-polish pass: every neutral border on this view is now 1px
           C.cardBd (thicker, gray) instead of 0.25px / C.ac. Cyan is reserved
@@ -1428,19 +1563,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           return <React.Fragment key={si}>
             {showGhost && <div style={{
               display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,
-              // marginBottom 0 — ghost W1 row sits flush against its
-              // live W2 row directly below, reading as a stacked
-              // pair within one set. marginTop 8 between sets keeps
-              // the visual separation between distinct set groups.
               alignItems:'center',marginBottom:0,marginTop:si===0?0:8,
               opacity:0.72,
             }}>
               <div style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',textAlign:'center',letterSpacing:'0.1em',fontWeight:700}}>W{prevWeekIdx}</div>
-              {/* Cell dimensions mirror the live `bi` input style
-                  (padding 8px 10px, fontSize 14, FB body font, center)
-                  so the ghost row sits in the exact same row-height as
-                  the W2 input row below — visually identical scale,
-                  carried by opacity 0.5 to mark it as reference. */}
               <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.reps || '—'}</div>
               <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{parseFloat(prior.load) || '—'}</div>
               <div style={{padding:'8px 10px',fontFamily:FB,fontSize:14,color:'var(--c-tx)',textAlign:'center',fontVariantNumeric:'tabular-nums'}}>{prior.rpe || '—'}</div>
@@ -1554,6 +1680,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [lg, setLg] = useState(null);
   const [vw, setVw] = useState('prog');
   const [expandedHistEx, setExpandedHistEx] = useState(null); // `${workoutId}:${exIdx}` — which exercise row in History is open
+  const [chkMetric, setChkMetric] = useState('pain'); // which readiness metric the check-in trends graph shows (one at a time)
+  const [bwHistOpen, setBwHistOpen] = useState(false); // BW weigh-in history list collapsed by default (Ohad)
   // Last-seen timestamp for client-side unread tracking of coach comments.
   // Stored per client in localStorage. Updated each time the History tab
   // opens. Comments with createdAt > this count as unread.
@@ -1858,10 +1986,32 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
   // and History so the layout stays consistent across tabs.
+  //
+  // ?pv=1..5 — five COMPLETE design identities for Ohad's review round
+  // (2026-07-05): every styled zone (stats header / nav / weeks+KG /
+  // warm-up card / day cards) renders per identity. Brand constants hold
+  // across all five: #39BDFF cyan, JetBrains Mono, square corners,
+  // hairlines, orange warm-up identity, green done.
+  //   (no param) BASE — the design Ohad approved as baseline (commit
+  //                     44540d0): segmented strips + strip-header cards.
+  //                     ALWAYS reachable at the bare /athlete URL.
+  //   1 EDITORIAL — asymmetric type, underline tabs, left-rail cards
+  //   2 TABLE     — progress track, fused controls, single-line data rows
+  //   3 CONSOLE   — mono banner, inverse-video actives, numbered listing
+  //   4 AIR       — no chrome: whitespace, text-only controls, open cards
+  //   5 RAIL      — cyan rails: hero week bar, rail-topped actives, left-rail cards
+  // RAIL (pv5) is the real portal — the default at bare /athlete. BASE stays
+  // reachable at ?pv=0 and the other explorations at ?pv=1..4. (Ohad 2026-07-08)
+  const pv = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('pv')) || '';
+  const ident = ({'0':'BASE','1':'EDITORIAL','2':'TABLE','3':'CONSOLE','4':'AIR','5':'RAIL'})[pv] || 'RAIL';
   const sl = Math.max(0, (trainee?.sessionsRemaining || 0));
   const renderTopHeader = () => (
     <>
-      <div style={{background:C.bg,padding:'calc(12px + env(safe-area-inset-top)) 20px 12px',borderBottom:`1px solid ${C.bd2}`}}>
+      {/* Reserve the scrollbar gutter always so switching tabs (short Messages
+          vs tall Program) never shifts the centred content left/right (Ohad:
+          "pages glitch from left to right"). */}
+      <style>{`html{scrollbar-gutter:stable}`}</style>
+      <div style={{background:C.bg,padding:'calc(12px + env(safe-area-inset-top)) 20px 12px',borderBottom:(ident==='CONSOLE'||ident==='RAIL')?'none':`1px solid ${C.bd2}`}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
@@ -1919,36 +2069,274 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.ac,marginTop:6,textAlign:'center'}}>BNEI HERZLIYA</div>
           )}
         </div>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',gap:14}}>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{display:'flex',flexDirection:'column',gap:4}}>{visPlans.map(p=><span key={p.name} style={{display:'inline-block',padding:'2px 0 2px 10px',borderLeft:`2px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase'}}>{p.name}</span>)}</div>
-          </div>
-          <div style={{textAlign:'center',flexShrink:0}}>
-            <div style={{fontSize:24,fontWeight:700,fontFamily:FN,color:sl<=2?C.rd:C.ac,lineHeight:1,letterSpacing:'-0.02em'}}>{sl}</div>
-            <div style={{fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.18em',fontWeight:700,marginTop:5}}>SESSIONS</div>
-          </div>
-        </div>
+        {/* Three across: BLOCK (left) · THIS WEEK completion blocks (centred) ·
+            SESSIONS-LEFT-IN-BLOCK (right). All computed once from the primary
+            plan. 1fr auto 1fr centres the middle regardless of side widths.
+            SESSIONS now counts workouts remaining until the block is finished
+            (total block sessions − distinct logged (week,day)), not billing. */}
+        {(() => {
+          const primaryPlan = visPlans[0];
+          const weekDays = (primaryPlan?.days || []).filter(d => d.kind !== 'daily');
+          const weeks = Number(primaryPlan?.weeks) || Number(primaryPlan?.data?.weeks) || 4;
+          const dayNames = new Set(weekDays.map(d => d.name));
+          const loggedWeeks = cw.map(w => w.week).filter(n => Number.isFinite(n));
+          const curWeek = loggedWeeks.length ? Math.max(...loggedWeeks) : 1;
+          const isDayDone = (d) => cw.some(w => w.dayName === d.name && w.week === curWeek);
+          const doneThisWeek = weekDays.filter(isDayDone).length;
+          const total = weeks * weekDays.length;
+          const completed = new Set(cw.filter(w => dayNames.has(w.dayName) && w.week >= 1 && w.week <= weeks).map(w => w.week + '|' + w.dayName)).size;
+          const blockLeft = Math.max(0, total - completed);
+          // v2 — one symmetric strip: three EQUAL cells, every cell the same
+          // anatomy (label above, value below, both centered), so the row
+          // shares the page's centre axis with HEY <name> instead of three
+          // controls with three different anchor logics.
+          // ── Stats header per identity ───────────────────────────────────
+          // Shared principles (WHOOP / Nike / Strava patterns): ONE dominant
+          // element per zone (the trio failed because three equal items = no
+          // hierarchy); ≥2.5x value-to-label scale contrast; progress gets a
+          // VISUAL, not digits; metadata collapses to one quiet tracked
+          // line; 8pt spacing grid; tabular numerals.
+          // RAIL (pv5) is the chosen design, but Ohad wants its TOP (stat
+          // strip) to look like CONSOLE (pv3) — so RAIL maps to the console
+          // header block. The rest of RAIL (week strip, cards) is unchanged.
+          const hv = ({BASE:'1',EDITORIAL:'2',TABLE:'3',CONSOLE:'4',AIR:'5',RAIL:'4'})[ident];
+          const blockLabel = visPlans.length ? ((visPlans[0].name||'').replace(/^block\s*/i,'') || visPlans[0].name) : '';
+          const metaLbl = {fontSize:9,color:C.tm,fontFamily:FN,letterSpacing:'0.2em',fontWeight:700,textTransform:'uppercase',whiteSpace:'nowrap'};
+          const metaVal = {fontSize:12,color:C.ac,fontFamily:FN,fontWeight:700,letterSpacing:'0.06em',fontVariantNumeric:'tabular-nums'};
+          const metaDot = <span aria-hidden="true" style={{color:C.td,fontSize:10,margin:'0 10px'}}>·</span>;
+
+          // V1 FOCUS — the week's progress is the hero: wide segmented bar
+          // centred under the greeting, count beside it; block + sessions
+          // demoted to one metadata line below.
+          // (Ohad: all three on the SAME ROW) — block identity left, the
+          // week progress as the bigger centre element, countdown right.
+          if (hv === '1') return (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'2px 2px 0',whiteSpace:'nowrap'}}>
+              <span style={metaLbl}>Block <span style={metaVal}>{blockLabel}</span></span>
+              {weekDays.length > 0 && (
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  {/* count sits BEFORE the fill blocks (Ohad) */}
+                  <span style={{fontSize:15,color:C.ac,fontFamily:FN,fontWeight:700,letterSpacing:'0.02em',fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
+                  <div style={{display:'flex',gap:4}}>
+                    {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:26,height:9,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
+                  </div>
+                </div>
+              )}
+              <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> Left</span>
+            </div>
+          );
+
+          // V2 EDITORIAL — asymmetric two-column: block identity stacked
+          // left-ragged, one big countdown number flush right (Nike-style
+          // tension between text mass and a single hero numeral).
+          if (hv === '2') return (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,padding:'2px 2px 0'}}>
+              <div style={{display:'flex',flexDirection:'column',gap:6,minWidth:0}}>
+                <span style={{fontSize:20,color:C.tx,fontFamily:FN,fontWeight:700,letterSpacing:'0.03em',textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',lineHeight:1}}>Block <span style={{color:C.ac}}>{blockLabel}</span></span>
+                {weekDays.length > 0 && (
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <span style={{...metaLbl,letterSpacing:'0.14em'}}>{doneThisWeek}/{weekDays.length}</span>
+                    <div style={{display:'flex',gap:4}}>
+                      {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:22,height:7,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
+                    </div>
+                    <span style={{...metaLbl,letterSpacing:'0.14em'}}>This Week</span>
+                  </div>
+                )}
+              </div>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,flexShrink:0}}>
+                <span style={{fontSize:34,color:C.ac,fontFamily:FN,fontWeight:700,lineHeight:0.9,letterSpacing:'-0.02em',fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span>
+                <span style={metaLbl}>Left</span>
+              </div>
+            </div>
+          );
+
+          // V3 TABLE — one continuous 4px progress track edge to edge
+          // (block completion, not just this week), three quiet readouts
+          // anchored under it: left / centre / right (car-dash footer).
+          const totalPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+          if (hv === '3') return (
+            <div style={{display:'flex',flexDirection:'column',gap:8,padding:'4px 0 0'}}>
+              <div style={{position:'relative',height:4,background:'var(--c-sf2)',overflow:'hidden'}} title={`${completed}/${total} block sessions done`}>
+                <div style={{position:'absolute',inset:'0 auto 0 0',width:`${totalPct}%`,background:C.ac,transition:'width .3s'}}/>
+              </div>
+              <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',whiteSpace:'nowrap'}}>
+                <span style={metaLbl}>Block <span style={metaVal}>{blockLabel}</span></span>
+                {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:6}}>
+                  <span style={metaVal}>{doneThisWeek}/{weekDays.length}</span>
+                  <span style={{display:'inline-flex',gap:3}}>
+                    {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:12,height:6,borderRadius:0,display:'inline-block',background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`}}/>)}
+                  </span>
+                  <span style={metaLbl}>Week</span>
+                </span>}
+                <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> Left</span>
+              </div>
+            </div>
+          );
+
+          // V4 CONSOLE — a mono status banner boxed by top+bottom hairlines
+          // only. One line: identity left, progress mid, countdown right —
+          // inverse-video accents, everything tabular. Symmetric: banner
+          // padding 10/10, groups share one baseline.
+          if (hv === '4') return (
+            <div style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'flex',alignItems:'baseline',justifyContent:'space-between',whiteSpace:'nowrap',gap:10}}>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx}}>BLOCK <span style={{color:C.ac}}>{blockLabel}</span></span>
+              {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN}}>
+                <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums'}}>{doneThisWeek}/{weekDays.length}</span>
+                <span style={{display:'inline-flex',gap:2}}>
+                  {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:10,height:10,display:'inline-block',background:isDayDone(d)?C.ac:'var(--c-sf2)',border:`1px solid ${isDayDone(d)?C.ac:C.cardBd}`}}/>)}
+                </span>
+                <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700}}>WEEK</span>
+              </span>}
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> LEFT</span>
+            </div>
+          );
+
+          // V5 AIR — no chrome at all: one centred whisper line, values in
+          // cyan, progress as small dots, wide tracking. Symmetric around
+          // the page centre like the greeting above it.
+          if (hv === '5') return (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',whiteSpace:'nowrap',padding:'2px 0 0'}}>
+              <span style={{...metaLbl,letterSpacing:'0.24em'}}>Block <span style={metaVal}>{blockLabel}</span></span>
+              {weekDays.length > 0 && <>
+                {metaDot}
+                <span style={{display:'inline-flex',alignItems:'center',gap:8}}>
+                  <span style={metaVal}>{doneThisWeek}/{weekDays.length}</span>
+                  <span style={{display:'inline-flex',gap:5,alignItems:'center'}}>
+                    {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:7,height:7,borderRadius:0,display:'inline-block',transform:'rotate(45deg)',background:isDayDone(d)?C.ac:'transparent',border:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`}}/>)}
+                  </span>
+                </span>
+              </>}
+              {metaDot}
+              <span style={{...metaLbl,letterSpacing:'0.24em'}}><span style={metaVal}>{blockLeft}</span> Left</span>
+            </div>
+          );
+
+          // V6 RAIL — the week is the hero: one row, count BEFORE wide fill
+          // blocks in the centre at hero scale, block identity left and
+          // countdown right as quiet anchors. Same-row rule holds.
+          return (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'2px 2px 0',whiteSpace:'nowrap'}}>
+              <span style={metaLbl}>Block <span style={metaVal}>{blockLabel}</span></span>
+              {weekDays.length > 0 && (
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <span style={{fontSize:17,color:C.ac,fontFamily:FN,fontWeight:700,letterSpacing:'0.02em',fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
+                  <div style={{display:'flex',gap:4}}>
+                    {weekDays.map((d,i)=><div key={i} title={d.name} style={{width:34,height:11,borderRadius:0,background:isDayDone(d)?C.ac:'transparent',borderTop:`2px solid ${isDayDone(d)?C.ac:C.cardBd}`,borderLeft:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,borderRight:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,borderBottom:`1px solid ${isDayDone(d)?C.ac:'var(--c-cardBd)'}`,transition:'background .2s'}}/>)}
+                  </div>
+                </div>
+              )}
+              <span style={metaLbl}><span style={metaVal}>{blockLeft}</span> Left</span>
+            </div>
+          );
+        })()}
       </div>
-      {/* Two-row nav (Ohad spec 2026-05-16):
-            Row 1 → PROGRAM · BW · MEAL LOG  (active work)
-            Row 2 → MESSAGES · HISTORY · PRs (review & comms)
-          Both rows share the cyan underline pattern (2px active /
-          0.25px+30% inactive) — see [[feedback-stroke-ruling]]. */}
+      {/* Two-row nav — v2 (Ohad 2026-07-05: "too messy, no borders, nobody
+          knows it's clickable"). Same 3+3 grouping as the 05-16 spec, but as
+          a SEGMENTED 3×2 GRID: one hairline box, hairlines between every
+          cell, active cell filled cyan-tint — the same boxed language as the
+          header stats strip and the WEEK selector, and unmistakably buttons. */}
       {(() => {
-        const navRow = (items) => (
-          <div style={{display:'flex',gap:0}}>
-            {items.map(([k,l]) =>
-              <button key={k} onClick={() => setVw(k)}
-                style={{flex:1,padding:'10px 4px',borderRadius:0,border:'none',borderBottom:`${vw===k?'2px':'0.25px'} solid ${C.ac}${vw===k?'':'4D'}`,background:'transparent',color:vw===k?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',cursor:'pointer',position:'relative'}}>
-                {l}{k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>}
-              </button>
-            )}
+        const NAV = [
+          ['prog','PROGRAM'],['bwt','BW'],['meal','MEAL LOG'],
+          ['hist',`HISTORY (${cw.length})`],['pr','PRs'],['msg','MESSAGES'],
+        ];
+        const unreadDot = (k) => k==='hist' && unreadCoachNotes>0 && <span style={{position:'absolute',top:6,right:8,width:6,height:6,background:C.rd}}/>;
+
+        // EDITORIAL — one left-aligned row of underline tabs riding a
+        // continuous baseline hairline (active 2px cyan per stroke ruling).
+        if (ident === 'EDITORIAL') return (
+          <div style={{padding:'14px 20px 0',position:'relative'}}>
+            <style>{`.pv-scroll::-webkit-scrollbar{display:none}`}</style>
+            {/* right-edge fade = "there's more" affordance on narrow screens
+                where MESSAGES scrolls out of view */}
+            <div aria-hidden="true" style={{position:'absolute',top:14,bottom:0,right:20,width:26,background:`linear-gradient(90deg, transparent, ${C.bg})`,pointerEvents:'none',zIndex:1}}/>
+            <div className="pv-scroll" style={{display:'flex',gap:0,borderBottom:`1px solid ${C.cardBd}`,overflowX:'auto',scrollbarWidth:'none',msOverflowStyle:'none'}}>
+              {NAV.map(([k,l]) =>
+                <button key={k} onClick={() => setVw(k)}
+                  style={{padding:'10px 10px',marginBottom:-1,borderRadius:0,border:'none',
+                    borderBottom:`2px solid ${vw===k?C.ac:'transparent'}`,
+                    background:'transparent',color:vw===k?C.ac:C.tm,
+                    fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',
+                    cursor:'pointer',position:'relative',whiteSpace:'nowrap',flexShrink:0,
+                    transition:'color .15s, border-color .15s'}}>
+                  {l}{unreadDot(k)}
+                </button>
+              )}
+            </div>
           </div>
         );
+
+        // CONSOLE — same 3×2 grid geometry, but inverse-video active
+        // with a ▸ cursor prefix; every cell mono, tight tracking.
+        // RAIL borrows this nav too (Ohad: pv5 top like pv3).
+        if (ident === 'CONSOLE' || ident === 'RAIL') return (
+          <div style={{padding:'14px 20px 0'}}>
+            {/* keep the cyan nav border (cardBd is cyan) — the grey line Ohad
+                wanted gone is the header section's bd2 divider, removed below. */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`}}>
+              {NAV.map(([k,l], i) =>
+                <button key={k} onClick={() => setVw(k)}
+                  style={{padding:'11px 4px',borderRadius:0,border:'none',
+                    borderLeft: i % 3 ? `1px solid ${C.cardBd}` : 'none',
+                    borderTop: i >= 3 ? `1px solid ${C.cardBd}` : 'none',
+                    background: vw===k ? C.ac : 'transparent',
+                    color: vw===k ? '#000000' : C.tm,
+                    fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',
+                    cursor:'pointer',position:'relative',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                    transition:'background .12s, color .12s'}}>
+                  {vw===k ? '▸ ' : ''}{l}{unreadDot(k)}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+
+        // AIR — chrome-free: two centred text rows, the active page is
+        // a small solid cyan chip; everything else is bare tracked text.
+        if (ident === 'AIR') return (
+          <div style={{padding:'16px 20px 0',display:'flex',flexDirection:'column',gap:10}}>
+            {[NAV.slice(0,3), NAV.slice(3)].map((row, ri) => (
+              <div key={ri} style={{display:'flex',justifyContent:'center',gap:26}}>
+                {row.map(([k,l]) =>
+                  <button key={k} onClick={() => setVw(k)}
+                    style={{padding:'5px 10px',borderRadius:0,border:'none',
+                      background: vw===k ? C.ac : 'transparent',
+                      color: vw===k ? '#000000' : C.tm,
+                      fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',
+                      cursor:'pointer',position:'relative',whiteSpace:'nowrap',
+                      transition:'background .15s, color .15s'}}>
+                    {l}{unreadDot(k)}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+
+        // BASE (house: SOLID cyan active) + TABLE (quiet tint active) +
+        // RAIL (tint active with a 2px cyan top rail echoing the cards) —
+        // all share the segmented 3×2 grid geometry.
+        const active = (k) => vw === k;
+        const activeBg = ident === 'BASE' ? C.ac : 'rgba(57,189,255,0.12)';
+        const activeFg = ident === 'BASE' ? '#000000' : C.ac;
         return (
           <div style={{padding:'14px 20px 0'}}>
-            {navRow([['prog','PROGRAM'],['bwt','BW'],['meal','MEAL LOG']])}
-            {navRow([['hist',`HISTORY (${cw.length})`],['pr','PRs'],['msg','MESSAGES']])}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`,background:'var(--c-sf)'}}>
+              {NAV.map(([k,l], i) =>
+                <button key={k} onClick={() => setVw(k)}
+                  style={{padding:'12px 4px',borderRadius:0,border:'none',
+                    borderLeft: i % 3 ? `1px solid ${C.cardBd}` : 'none',
+                    borderTop: i >= 3 ? `1px solid ${C.cardBd}` : 'none',
+                    boxShadow: ident === 'RAIL' && active(k) ? `inset 0 2px 0 0 ${C.ac}` : 'none',
+                    background: active(k) ? activeBg : 'transparent',
+                    color: active(k) ? activeFg : C.tm,
+                    fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',
+                    cursor:'pointer',position:'relative',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                    transition:'background .15s, color .15s'}}>
+                  {l}{unreadDot(k)}
+                </button>
+              )}
+            </div>
           </div>
         );
       })()}
@@ -2068,12 +2456,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           </div>
         )}
 
-        {/* Log history */}
-        <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700,marginBottom:8}}>HISTORY</div>
-        {bwData.slice().reverse().map((d,i) => {
-          const onEdit = () => { setBw(String(d.bw)); setWk((d.week||1)-1); if (d.blockName) setSelectedBlockName(d.blockName); };
+        {/* Log history — collapsible; the strip is the toggle handle. Rows are
+            NOT clickable (clicking used to jump the value into the LOG box +
+            let you re-save it — Ohad: must not). Delete stays via the × only. */}
+        <button onClick={() => setBwHistOpen(o => !o)} style={{display:'flex',alignItems:'center',gap:8,background:'transparent',border:'none',padding:0,marginBottom:8,cursor:'pointer'}}>
+          <span style={{fontSize:9,color:C.td,fontFamily:FN}}>{bwHistOpen ? '▾' : '▸'}</span>
+          <span style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>HISTORY{bwData.length ? ` · ${bwData.length}` : ''}</span>
+        </button>
+        {bwHistOpen && bwData.slice().reverse().map((d,i) => {
           const onDelete = (e) => { e.stopPropagation(); setBwDeleteConfirm(d); };
-          return <div key={i} onClick={onEdit} title="Click to edit" style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:4,cursor:'pointer'}}>
+          return <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,marginBottom:4}}>
             <div>
               <span style={{fontSize:13,fontWeight:600,fontFamily:FN,color:C.tx}}>{d.bw} kg</span>
               <span style={{fontSize:11,color:C.tm,marginLeft:8,fontFamily:FN}}>{d.blockName||'?'} · W{d.week||'?'}</span>
@@ -2084,7 +2476,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             </div>
           </div>;
         })}
-        {bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
+        {bwHistOpen && bwData.length === 0 && <div style={{textAlign:'center',padding:20,color:C.td,fontSize:13}}>No bodyweight entries yet</div>}
       </div>
       {bwDel.value && createPortal(<div role="dialog" aria-modal="true" aria-label="Delete bodyweight entry" className={bwDel.closing ? 'motion-fade-out' : 'motion-fade-in'} onClick={() => setBwDeleteConfirm(null)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}}>
         <div onClick={e=>e.stopPropagation()} className={bwDel.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:24,maxWidth:320,width:'100%'}}>
@@ -2104,19 +2496,114 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     return <TraineePRsView clientWorkouts={cw} traineeId={ci} header={renderTopHeader()} />;
   }
 
+  // Check-in trends graph — same bespoke-SVG build as the BW graph, but plots
+  // one readiness metric at a time (PAIN / SLEEP / ENERGY) with a toggle. Each
+  // level maps to a 0..3 quality (3 = best / most ready = top of the chart);
+  // dots are severity-coloured (green good → red bad), the line stays cyan like
+  // the BW trend. Reached from the "CHECK-IN TRENDS" button in History.
+  if (vw === 'chk' && trainee) {
+    const metric = CHECKIN_METRICS.find(m => m.key === chkMetric) || CHECKIN_METRICS[0];
+    // X axis = EVERY check-in session (not just the ones with this metric), so
+    // all three graphs span the exact same width regardless of a skipped metric
+    // on some day (Ohad: "all three graphs take the same space"). Points with a
+    // value are plotted at their session index; a missing one just leaves a gap.
+    const sessions = cw.filter(w => hasReadiness(w.autoregulation)).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const chkData = sessions.map((w, i) => ({ i, date: w.date, week: w.week, q: checkinQuality(metric.key, w.autoregulation?.[metric.key]), raw: w.autoregulation?.[metric.key] }));
+    const valid = chkData.filter(d => d.q != null);
+    const W = Math.max(sessions.length * 60, 300);
+    const yOf = q => 10 + ((3 - q) / 3) * 130; // q=3 (best) at top
+    const first = valid[0], last = valid[valid.length - 1];
+    const dir = valid.length >= 2 ? (last.q > first.q ? 'up' : last.q < first.q ? 'down' : 'flat') : 'flat';
+    return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
+      {renderTopHeader()}
+      <div style={{padding:'14px 20px 20px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
+          <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {valid.length} CHECK-IN{valid.length===1?'':'S'}</div>
+        </div>
+        {/* Metric toggle — same segmented strip as the RAIL week selector
+            (bordered boxes, active = cyan border + 2px inset top rail + tint). */}
+        <div style={{display:'flex',gap:4,alignItems:'stretch',marginBottom:16}}>
+          {CHECKIN_METRICS.map(m => <button key={m.key} onClick={() => setChkMetric(m.key)}
+            style={{flex:1,height:32,boxSizing:'border-box',padding:0,borderRadius:0,border:`1px solid ${chkMetric===m.key?C.ac:C.cardBd}`,boxShadow:chkMetric===m.key?`inset 0 2px 0 0 ${C.ac}`:'none',background:chkMetric===m.key?'rgba(57,189,255,0.12)':'transparent',color:chkMetric===m.key?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:chkMetric===m.key?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}}>{m.label}</button>)}
+        </div>
+        {valid.length < 2 ? (
+          <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
+            <div style={{fontSize:13}}>Log at least 2 check-ins to see your {metric.label.toLowerCase()} trend</div>
+          </div>
+        ) : (
+          <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:14,marginBottom:16}}>
+            <div style={{fontSize:10,fontFamily:FN,color:C.ac,letterSpacing:'0.15em',fontWeight:700,marginBottom:10}}>{metric.label} TREND</div>
+            <svg viewBox={`0 -10 ${W} 185`} style={{width:'100%',height:185}}>
+              {/* 4 category grid lines (best at top) */}
+              {[3,2,1,0].map(L => {
+                const y = yOf(L);
+                return <g key={L}>
+                  <line x1="52" y1={y} x2={W-10} y2={y} stroke={C.bd} strokeWidth="0.5" strokeDasharray="4"/>
+                  <text x="48" y={y+3} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="end">{metric.scale[L].toUpperCase()}</text>
+                </g>;
+              })}
+              <polyline fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                points={valid.map(d => `${60+d.i*50},${yOf(d.q)}`).join(' ')}/>
+              {chkData.map((d) => {
+                const x = 60 + d.i*50;
+                return <g key={d.i}>
+                  {d.q != null && <circle cx={x} cy={yOf(d.q)} r="3.5" fill={readinessColor(metric.key, d.raw) || C.ac}/>}
+                  <text x={x} y={152} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week||'?'}</text>
+                  <text x={x} y={163} fill={C.tm} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
+                </g>;
+              })}
+            </svg>
+            {/* Summary tiles — big value, quiet label; trend shows a coloured
+                arrow (green up = more ready, red down = less). */}
+            <div style={{display:'flex',gap:4,marginTop:12}}>
+              <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
+                <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>LATEST</div>
+                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,textTransform:'uppercase',color:readinessColor(metric.key,last.raw)||C.tx}}>{last.raw}</div>
+              </div>
+              <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
+                <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>TREND</div>
+                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,color:dir==='up'?C.gn:dir==='down'?'#E23B3B':C.tm}}>{dir==='up'?'BETTER':dir==='down'?'WORSE':'SAME'}</div>
+              </div>
+              <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
+                <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>CHECK-INS</div>
+                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,color:C.tx}}>{valid.length}</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>;
+  }
+
   // History
   if (vw === 'hist' && trainee) return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
     {renderTopHeader()}
     <div style={{padding:'14px 20px 20px'}}>
-      <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700,marginBottom:14}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,marginBottom:14}}>
+        <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.18em',fontWeight:700}}>HISTORY · {cw.length} SESSION{cw.length===1?'':'S'}</div>
+        {/* Graph button — same shape as the coach dashboard buttons; opens the
+            check-in trends view. Always shown once there's any history so the
+            feature is discoverable; the trends view carries its own empty state
+            until the athlete has logged check-ins. */}
+        {/* Small text CTA (no icon, no box) — matches the HISTORY label scale. */}
+        {cw.length > 0 && <button onClick={() => setVw('chk')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',padding:0,cursor:'pointer',whiteSpace:'nowrap'}}>READINESS GRAPH →</button>}
+      </div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
         // The DB query orders by date DESC (newest first). The previous
         // `.reverse()` flipped it to oldest-first, but the athlete
         // expects to see their most-recent session at the top. Use the
         // natural newest-first order.
         cw.map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'var(--c-sf)',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
-          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em'}}>{w.dayName} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
-          <div style={{fontSize:10,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.08em'}}>{fmtPrettyDate(w.date)} · W{w.week}</div>
+          {/* header strip — day/block on the left, date/week on the right, on a
+              tinted band with a cyan left rail + bottom border (card-header look
+              like the coach dashboard). Spans the card via negative margins. */}
+          <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
+            <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)} · W{w.week}</div>
+          </div>
+          {/* Pre-workout readiness check-in the athlete logged for this session. */}
+          {hasReadiness(w.autoregulation) && <div style={{marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${C.cardBd}`}}><ReadinessRow data={w.autoregulation} showTitle /></div>}
           {(w.exercises || []).map((x,i) => {
             const fv = (w.formVideos || [])[i];
             const hasVideo = !!(fv && fv.cloudUrl);
@@ -2189,14 +2676,67 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
-        <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'center'}}>
+        {/* flex-end so the WEEK strip and KG box bottom-align exactly — their
+            labels differ by a sub-pixel, and centring offset the boxes ~0.8px
+            (Ohad: "kg and wk4 not aligned"). */}
+        <div style={{display:'flex',gap:10,marginBottom:16,alignItems:'flex-end'}}>
           {/* WEEK selector hidden for daily-routine plans — they have no
               week structure. BW input stays useful regardless. */}
-          {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.18em',fontWeight:700}}>WEEK</div>
-            <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>{activePlan ? Array.from({length: activePlan.weeks || 4}, (_, w) => <button key={w} onClick={() => setWk(w)} style={{flex:'1 1 40px',padding:'8px 0',borderRadius:0,border:`${wk===w?'2px':'0.25px'} solid ${C.ac}${wk===w?'':'4D'}`,background:'transparent',color:wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',cursor:'pointer'}}>W{w+1}</button>) : Array.from({length: 4}, (_, w) => <div key={w} style={{flex:'1 1 40px',padding:'8px 0',border:`1px solid ${C.cardBd}`,opacity:0.3,fontFamily:FN,fontSize:12,fontWeight:600,letterSpacing:'0.06em',color:C.tm,textAlign:'center'}}>—</div>)}</div></div>}
-          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.18em',fontWeight:700}}>BW{lb?` · ${lb}KG`:''}</div>
+          {/* v2 — WEEK is a single segmented strip (equal cells inside one
+              hairline box, active cell filled) so it speaks the same boxed
+              language as the header stats strip; label style matches the
+              strip cell labels. */}
+          {activePlan?.kind !== 'daily' && <div style={{flex:1}}><div style={{fontSize:8,fontFamily:FN,color:C.tm,marginBottom:6,letterSpacing:'0.16em',fontWeight:700}}>WEEK</div>
+            {/* Weeks per identity. All fixed 32px so the KG input stays
+                level in every version. */}
+            {(() => {
+              const N = activePlan ? (activePlan.weeks || 4) : 4;
+              const mk = (w, styles) => activePlan
+                ? <button key={w} onClick={() => setWk(w)} style={styles}>W{w+1}</button>
+                : <div key={w} style={{...styles,opacity:0.3,display:'flex',alignItems:'center',justifyContent:'center',border:styles.border||'none'}}>—</div>;
+              // EDITORIAL — underline text (coherent: the nav is underline too)
+              if (ident === 'EDITORIAL') return (
+                <div style={{display:'flex',height:32,alignItems:'stretch',borderBottom:`1px solid ${C.cardBd}`}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,marginBottom:-1,borderRadius:0,border:'none',borderBottom:`2px solid ${activePlan&&wk===w?C.ac:'transparent'}`,background:'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, border-color .15s'}))}
+                </div>);
+              // TABLE — one fused segmented strip (instrument cluster)
+              if (ident === 'TABLE') return (
+                <div style={{display:'grid',gridTemplateColumns:`repeat(${N}, 1fr)`,border:`1px solid ${C.cardBd}`,height:32,boxSizing:'border-box'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{padding:0,borderRadius:0,border:'none',borderLeft:w?`1px solid ${C.cardBd}`:'none',background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s'}))}
+                </div>);
+              // CONSOLE — mono chips, ACTIVE = inverse video
+              if (ident === 'CONSOLE') return (
+                <div style={{display:'flex',gap:4,height:32,alignItems:'stretch'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,background:activePlan&&wk===w?C.ac:'transparent',color:activePlan&&wk===w?'#000000':C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',transition:'color .12s, background .12s'}))}
+                </div>);
+              // AIR — bare text, active = cyan + weight only (full 32px
+              // hit-targets so the row bottoms out level with the KG box)
+              if (ident === 'AIR') return (
+                <div style={{display:'flex',height:32,alignItems:'stretch',justifyContent:'space-between',padding:'0 4px'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{padding:'0 8px',height:32,borderRadius:0,border:'none',background:'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:12,fontWeight:activePlan&&wk===w?700:500,letterSpacing:'0.08em',cursor:'pointer',transition:'color .15s'}))}
+                </div>);
+              // RAIL — separate bordered boxes (each 32px border-box, own 1px
+              // border) so every week box is EXACTLY the same size as the KG
+              // input (also 32px border-box) — Ohad: KG must match the weeks.
+              // The RAIL identity is kept via the 2px cyan top rail on active.
+              if (ident === 'RAIL') return (
+                <div style={{display:'flex',gap:4,alignItems:'stretch'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{flex:1,height:32,boxSizing:'border-box',padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,boxShadow:activePlan&&wk===w?`inset 0 2px 0 0 ${C.ac}`:'none',background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}))}
+                </div>);
+              // BASE — compact separated boxes, tint active (approved)
+              return (
+                <div style={{display:'flex',gap:4,height:32,alignItems:'stretch'}}>
+                  {Array.from({length:N},(_,w)=>mk(w,{flex:1,padding:0,borderRadius:0,border:`1px solid ${activePlan&&wk===w?C.ac:C.cardBd}`,background:activePlan&&wk===w?'rgba(57,189,255,0.12)':'transparent',color:activePlan&&wk===w?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:activePlan&&wk===w?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}))}
+                </div>);
+            })()}</div>}
+          <div style={{width:120}}><div style={{fontSize:9,fontFamily:FN,marginBottom:6,letterSpacing:'0.14em',fontWeight:700,textAlign:'center'}}><span style={{color:C.tm}}>BW</span>{lb?<span style={{color:C.ac}}>{` · ${lb}KG`}</span>:''}</div>
             <div style={{display:'flex',gap:4}}>
-            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan} style={{background: 'var(--c-sf2)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
+            {/* KG matches the week cells: 32px border-box in every identity;
+                underline material where the identity is underline/bare. */}
+            <input value={bw} onChange={e => setBw(e.target.value)} placeholder="KG" type="number" disabled={!activePlan}
+              style={(ident === 'EDITORIAL' || ident === 'AIR')
+                ? {background:'transparent',border:'none',borderBottom:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}
+                : {background:'transparent',border:`1px solid ${C.cardBd}`,borderRadius:0,height:32,padding:'0 8px',color:C.tx,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',outline:'none',width:'100%',boxSizing:'border-box',textAlign:'center',opacity:activePlan?1:0.5}}/>
             {bw && Number.isFinite(parseFloat(bw)) && activePlan && <button onClick={()=>{setBwLog(prev=>{const filtered=prev.filter(b=>!(b.clientId===ci&&b.blockName===activePlan.name&&b.week===wk+1));return[...filtered,{date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}]});setBw('')}} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:'4px 10px',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer',whiteSpace:'nowrap'}}>SAVE</button>}
             </div></div></div>
         {activePlan?.rest && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'10px 14px',marginBottom:14,fontSize:12,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{activePlan.rest}</div>}
@@ -2221,10 +2761,151 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         </div>}
         {visPlans.length===0 && !plansLoadError && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'40px 30px',textAlign:'center',color:C.td,marginBottom:14}}><div style={{fontSize:10,fontFamily:FN,fontWeight:700,letterSpacing:'0.18em',color:C.tm,marginBottom:10}}>NO ACTIVE PROGRAM</div><div style={{fontSize:13,color:C.td}}>Contact your coach to start training.</div></div>}
         {/* Per-plan block: divider → warm-up → rest → training days */}
-        {(()=>{ let globalDayIdx = 0; return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
+        {(()=>{ let globalDayIdx = 0;
+          // ── buildCard: ONE card renderer, six identities ────────────────
+          // rows: [{num, rx, tempo, title, focus?}]; accent = C.or (warm-up)
+          // or C.ac (day); header extras (✓ / N LOGGED) and the LOG action
+          // are passed in so warm-up and day cards share every identity's
+          // chrome and rhythm exactly (Ohad: same design, obviously).
+          const buildCard = ({ key, accent, title, count, extras = null, action = null, rows, borderColor, countColor, tempoColor = TEMPO_COLOR }) => {
+            const hair = C.cardBd;
+            const isWu = accent === C.or;
+            const numOf = (n) => ident === 'CONSOLE' ? String(n).padStart(2,'0') : String(n);
+            // Row: two-line everywhere except TABLE (single-line data row).
+            const exRow = (r, i) => {
+              // AIR breathes: dividers at ~40% of the house hairline
+              const divider = i
+                ? (ident === 'CONSOLE' ? `1px dashed ${hair}`
+                  : ident === 'AIR' ? '1px solid rgba(127,127,131,0.16)'
+                  : `1px solid ${hair}`)
+                : 'none';
+              if (ident === 'TABLE') return (
+                <div key={i} style={{padding:'8px 0',borderTop:divider,display:'flex',alignItems:'center',gap:10}}>
+                  {/* width 20 (not 18): every ident indents row content 30px
+                      (num 20 + gap 10) so OverviewFocus's fixed 30px
+                      marginInlineStart lines up everywhere */}
+                  <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:10,fontWeight:700,color:C.td,fontVariantNumeric:'tabular-nums',textAlign:'right'}}>{numOf(r.num)}</span>
+                  <span style={{flex:1,minWidth:0,fontWeight:600,fontSize:12,lineHeight:1.3,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{r.title}</span>
+                  {/* fixed tempo column so the orange values form a true rail
+                      instead of floating ragged between title and rx */}
+                  <span style={{fontSize:10,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',minWidth:76,textAlign:'right'}}>{r.tempo || ''}</span>
+                  <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',flexShrink:0,whiteSpace:'nowrap',width:72,textAlign:'right',fontVariantNumeric:'tabular-nums'}}>{r.rx}</span>
+                </div>
+              );
+              // number element per identity — square (BASE/RAIL), mono
+              // listing number (CONSOLE/EDITORIAL), bare numeral (AIR)
+              const numEl = (ident === 'BASE' || ident === 'RAIL')
+                ? <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${hair}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.tx,flexShrink:0,lineHeight:1}}>{r.num}</div>
+                : <span style={{width:20,flexShrink:0,fontFamily:FN,fontSize:11,fontWeight:700,color:ident==='AIR'?accent:C.td,fontVariantNumeric:'tabular-nums',textAlign:ident==='AIR'?'left':'right',lineHeight:'20px'}}>{numOf(r.num)}</span>;
+              return (
+                <div key={i} style={{padding: ident==='AIR' ? '9px 0 10px' : '7px 0 8px',borderTop:divider}}>
+                  <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                    {numEl}
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
+                        {(() => {
+                          // reps cyan; the rest/tempo after the first comma goes
+                          // grey so combined free-text ("5XI, 30 SEC REST") reads
+                          // the same as the logger + day rows (consistency).
+                          const rx = String(r.rx || ''); const ci = rx.indexOf(',');
+                          const base = {fontSize:11,fontWeight:700,fontFamily:FN,letterSpacing:'0.04em'};
+                          if (ci === -1) return <span style={{...base,color:C.ac}}>{rx}</span>;
+                          return <><span style={{...base,color:C.ac}}>{rx.slice(0,ci)}</span><span style={{...base,color:tempoColor}}>{rx.slice(ci)}</span></>;
+                        })()}
+                        {r.tempo && <span style={{fontSize:11,color:tempoColor,fontFamily:FN,letterSpacing:'0.04em'}}>{r.tempo}</span>}
+                      </div>
+                      <div style={{marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{r.title}</div>
+                    </div>
+                  </div>
+                  {r.focus && <OverviewFocus text={r.focus} />}
+                </div>
+              );
+            };
+            // LOG action per identity: bordered chip (BASE/TABLE/CONSOLE/
+            // RAIL) or a text link (EDITORIAL/AIR).
+            const actionEl = action && ((ident === 'EDITORIAL' || ident === 'AIR')
+              ? <button onClick={action.onClick} style={{background:'none',border:'none',padding:0,color:C.ac,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.14em',cursor:'pointer',whiteSpace:'nowrap',flexShrink:0}}>{action.label} →</button>
+              : <button onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
+            const titleGroup = (size, tracking) => (
+              <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+                {/* Count sits on the title BASELINE, then rises by the cap-height
+                    difference so the small (N) optically CENTERS on the big title
+                    caps (Ohad). Size-aware: caps ≈ 0.72·fontSize, so half the
+                    cap-height gap is 0.36·(size−10). Fixes both the baseline-low
+                    and the box-center-high looks. */}
+                <span style={{display:'inline-flex',alignItems:'baseline',gap:7,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
+                  <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
+                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,position:'relative',bottom:`${Math.max(0,(size-10)*0.36)}px`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
+                </span>
+                {extras}
+              </div>
+            );
+            // ── card chrome per identity ──
+            if (ident === 'EDITORIAL') return (
+              <div key={key} style={{background:'var(--c-sf)',borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:14,padding:'12px 16px 0'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:10,borderBottom:`1px solid ${hair}`}}>
+                  {titleGroup(16,'0.02em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            if (ident === 'CONSOLE') return (
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${borderColor || hair}`,borderRadius:0,marginBottom:12,padding:'0 14px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'8px 0',borderBottom:`1px solid ${hair}`}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+                    <span aria-hidden="true" style={{width:4,height:14,background:accent,flexShrink:0}}/>
+                    {titleGroup(12,'0.12em')}
+                  </div>
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            if (ident === 'AIR') return (
+              <div key={key} style={{marginBottom:26}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:9,borderBottom:`1px solid ${hair}`}}>
+                  {titleGroup(15,'0.06em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            if (ident === 'RAIL') return (
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${hair}`,borderLeft:`3px solid ${accent}`,borderRadius:0,marginBottom:12,padding:'10px 16px 0'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,paddingBottom:9,borderBottom:`1px solid ${hair}`}}>
+                  {titleGroup(13,'0.04em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            if (ident === 'TABLE') return (
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${borderColor || hair}`,borderRadius:0,marginBottom:12,padding:'0 14px'}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,padding:'8px 0',borderBottom:`1px solid ${hair}`}}>
+                  {titleGroup(12,'0.06em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+            // BASE — approved strip-header card, untouched geometry
+            // (warm-up keeps its committed 14px horizontal padding; day 18px)
+            const bpx = isWu ? 14 : 18;
+            return (
+              <div key={key} style={{background:'var(--c-sf)',border:`1px solid ${borderColor || C.ac}`,borderRadius:0,marginBottom:isWu?14:12,padding:`14px ${bpx}px 0`}}>
+                <div style={{background:'var(--c-stripBg, var(--c-sf))',margin:`-14px -${bpx}px 0`,padding:`8px ${bpx}px`,borderBottom:`1px solid ${hair}`,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
+                  {titleGroup(13,'0.04em')}
+                  {actionEl}
+                </div>
+                {rows.map(exRow)}
+              </div>
+            );
+          };
+          return visPlans.map((vp,vpIdx) => <React.Fragment key={vp.name}>
           {visPlans.length>1 && <div style={{display:'flex',alignItems:'center',gap:10,margin:vpIdx===0?'0 0 12px':'20px 0 12px'}}>
             <div style={{flex:1,height:1,background:C.bd2}}/>
-            <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{vp.name.toUpperCase()}</span>
+            <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{(vp.name || '').toUpperCase()}</span>
             {vp.phase && <span style={{fontSize:10,color:C.tm}}>· {vp.phase}</span>}
             <div style={{flex:1,height:1,background:C.bd2}}/>
           </div>}
@@ -2232,20 +2913,26 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               routine — the plan-level warm-up doesn't apply to those, so
               showing it just creates UI noise. If even one day is week-paced,
               the warm-up is still relevant and stays visible. */}
-          {vp.warmup?.length > 0 && !(vp.kind === 'daily' || (Array.isArray(vp.days) && vp.days.length > 0 && vp.days.every(d => d.kind === 'daily'))) && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:14,marginBottom:14}}>
-            <div style={{fontSize:10,fontFamily:FN,color:C.or,marginBottom:10,fontWeight:700,letterSpacing:'0.15em',textTransform:'uppercase'}}>Warm-Up · {vp.name} ({vp.warmup.length})</div>
-            {vp.warmup.map((w,i) => <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'5px 0',borderBottom:i<vp.warmup.length-1?`1px solid rgba(127,127,131,0.133)`:'none'}}>
-              <span style={{fontSize:13,color:C.tx}}>{w.t}</span>
-              <div style={{display:'flex',gap:10,alignItems:'center',flexShrink:0}}><span style={{fontSize:11,color:C.ac,fontFamily:FN,fontWeight:600,whiteSpace:'nowrap'}}>{(() => {
-                if (w.sets || w.reps) {
-                  const setsStr = w.sets ?? '';
-                  const repsStr = w.reps ?? '';
-                  const core = setsStr && repsStr ? `${setsStr}×${repsStr}` : `${setsStr}${repsStr}`;
-                  return w.tempo ? `${core}  ${w.tempo}` : core;
-                }
-                return w.rx || '';
-              })()}</span>
-                {safeUrl(w.vid) && <a href={safeUrl(w.vid)} target="_blank" rel="noopener" style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em'}}>VIDEO →</a>}</div></div>)}</div>}
+          {vp.warmup?.length > 0 && !(vp.kind === 'daily' || (Array.isArray(vp.days) && vp.days.length > 0 && vp.days.every(d => d.kind === 'daily'))) && buildCard({
+            key: 'wu-' + vp.name,
+            accent: C.or,
+            borderColor: C.cardBd,
+            title: `Warm-Up · ${vp.name}`,
+            count: `(${vp.warmup.length})`,
+            countColor: C.or,
+            // warm-up owns ORANGE (number + title + rail); its tempo goes muted
+            // so the warm-up's colour is clearly different from the tempo, which
+            // is orange on the day cards (Ohad).
+            tempoColor: TEMPO_COLOR,
+            rows: vp.warmup.map((w,i) => ({
+              num: i + 1,
+              rx: (w.sets || w.reps)
+                ? ((w.sets ?? '') && (w.reps ?? '') ? `${w.sets}×${w.reps}` : `${w.sets ?? ''}${w.reps ?? ''}`)
+                : (w.rx || ''),
+              tempo: w.tempo,
+              title: w.t,
+            })),
+          })}
           {vp.rest && visPlans.length>1 && <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'8px 12px',marginBottom:12,fontSize:11,color:C.tm,fontFamily:FN}}><span style={{color:C.td,fontSize:9,fontWeight:700,letterSpacing:'0.15em',marginRight:10}}>REST</span>{vp.rest}</div>}
           {vp.days.map((day,di) => { const dayIdx = globalDayIdx++;
           // Daily-routine: PER-DAY flag (`day.kind === 'daily'`) lets the
@@ -2262,33 +2949,44 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // inside nested ${ … } expressions (it's how the original bare
           // rgba(...) crash slipped past CI), so we keep the template
           // expression to a plain identifier.
-          const doneBorderColor = done ? 'rgba(46,213,115,0.251)' : C.ac;
-          return <div key={vp.name+'-'+di} style={{background:'var(--c-sf)',border:`${done?'0.25px':'1px'} solid ${doneBorderColor}`,borderRadius:0,marginBottom:12,padding:'14px 18px'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'stretch',marginBottom:8,gap:12}}>
-              <div><span style={{fontWeight:700,fontSize:15,fontFamily:FN,letterSpacing:'0.02em'}}>{day.name}</span>{done && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,marginLeft:10,padding:'3px 7px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'middle'}}>DONE</span>}{isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,marginLeft:10,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em',verticalAlign:'middle'}}>{dailyCount} LOGGED</span>}
-                <div style={{fontSize:10,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase'}}>{day.ex.length} exercises</div></div>
-              <button onClick={() => setLg(dayIdx)} style={{padding:'6px 16px',minWidth:78,borderRadius:0,border:`1px solid ${done?C.gn:C.ac}`,background:'transparent',color:done?C.gn:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{done?'AGAIN':'LOG'}</button></div>
-            {day.ex.map((ex,i) => {const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' }; const hw = ex.wk?.length>0; const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
-              const focus = weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${wk}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk}`];
-              const v = 'vid' in ex ? ex.vid : d.vid;
-              // Two-row layout: meta row (index + reps + tempo + VIDEO) is
-              // always single-line so the eye never has to track a long
-              // title against a small rep count. The exercise NAME gets a
-              // clean second row (indented past the index) and can wrap
-              // freely without crowding the metadata.
-              return <div key={i} style={{padding:'8px 0',borderTop:i?`1px solid ${C.cardBd}`:'none'}}>
-                <div style={{display:'flex',gap:10,alignItems:'center'}}>
-                  <div style={{width:20,height:20,borderRadius:0,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:FN,fontSize:11,fontWeight:700,color:C.ac,flexShrink:0,lineHeight:1}}>{i+1}</div>
-                  <div style={{flex:1,minWidth:0,display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
-                    <span style={{fontSize:11,fontWeight:700,color:C.ac,fontFamily:FN,letterSpacing:'0.04em',fontVariantNumeric:'tabular-nums'}}>{((ex.wkS&&ex.wkS[wk])||ex.s)+'x'+((hw&&wr)||ex.r)}</span>
-                    {ex.tempo && <span style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.04em'}}>{ex.tempo}</span>}
-                  </div>
-                  {safeUrl(v) ? <a href={safeUrl(v)} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} style={{color:C.ac,fontSize:9,textDecoration:'none',padding:'2px 0',fontFamily:FN,fontWeight:700,letterSpacing:'0.12em',flexShrink:0}}>VIDEO →</a> : null}
-                </div>
-                <div style={{marginInlineStart:30,marginTop:4,fontWeight:600,fontSize:12,lineHeight:1.35,wordBreak:'break-word'}}>{d.t}</div>
-                {focus && <div style={{marginInlineStart:30,fontSize:11,color:C.ac,marginTop:4,opacity:0.85,lineHeight:1.4,display:'-webkit-box',WebkitBoxOrient:'vertical',WebkitLineClamp:2,overflow:'hidden'}}><span style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',marginRight:8,opacity:0.7}}>FOCUS</span>{focus}</div>}
-              </div>})}
-          </div>})}</React.Fragment>)})()}
+          // Done days: neutral border (no green box) + a green ✓ next to the name
+          // (Ohad: "don't like the green around the cyan DONE — green check instead").
+          const doneBorderColor = done ? C.cardBd : C.ac;
+          // Weekly cells are FREE-TEXT: some hold a full prescription
+          // ("2x10 e"), some bare reps ("8"). Show full cells as-is; prefix
+          // SETSx onto bare ones (Ohad 2026-07-05). No video in the
+          // overview — it lives in the logging session.
+          const rxOf = (ex) => {
+            const hw = ex.wk?.length > 0;
+            const wr = hw ? (ex.wk[wk] ?? ex.r) : null;
+            const sets = (ex.wkS && ex.wkS[wk]) || ex.s;
+            if (!hw) return sets + 'x' + ex.r;
+            const wrS = String(wr ?? '').trim();
+            if (!wrS) return sets + 'x' + ex.r;
+            return /[x×]/i.test(wrS) ? wrS : sets + 'x' + wrS;
+          };
+          return buildCard({
+            key: vp.name + '-' + di,
+            accent: C.ac,
+            borderColor: doneBorderColor,
+            title: day.name,
+            count: `${day.ex.length} EX`,
+            extras: <>
+              {done && <span title="Completed this week" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',lineHeight:1,padding:'5px 10px',border:`1px solid ${C.gn}`,color:C.gn,fontFamily:FN,fontSize:12,fontWeight:700,flexShrink:0}}>✓</span>}
+              {isDailyRoutine && dailyCount > 0 && <span style={{display:'inline-flex',alignItems:'center',lineHeight:1,padding:'3px 7px',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.18em'}}>{dailyCount} LOGGED</span>}
+            </>,
+            action: { label: done ? 'AGAIN' : 'LOG', onClick: () => setLg(dayIdx) },
+            rows: day.ex.map((ex,i) => {
+              const d = EX[ex.eid] || { t: `Exercise ${i+1}`, vid: '', q: '' };
+              return {
+                num: i + 1,
+                rx: rxOf(ex),
+                tempo: ex.tempo,
+                title: d.t,
+                focus: weeklyFocus?.[`${ci}|${vp.name}|${day.name}|${ex.eid}|W${wk}`] ?? weeklyFocus?.[`${vp.name}|${day.name}|${ex.eid}|W${wk}`],
+              };
+            }),
+          });})}</React.Fragment>)})()}
       </div>
       {showPwModal && <PasswordChangeModal demoMode={demoMode} onClose={()=>setShowPwModal(false)}/>}
       </div>; }
