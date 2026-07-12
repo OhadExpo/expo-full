@@ -1671,7 +1671,18 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     // transition) so the drag gets the same clean gap-line
                     // effect as collapsed mode. ovExpanded itself is left
                     // untouched — rows re-open where they were on drop.
-                    const exOpen = !!ovExpanded[ex.id] && !anyExDragging;
+                    // Collapsing expanded rows during a drag gives clean
+                    // insertion gaps — but in COMPARE mode the rows live in a
+                    // fixed-height scroll pane, so collapsing them the instant
+                    // a drag starts shrinks the pane and force-clamps its
+                    // scrollTop by thousands of px. That scroll jump yanks the
+                    // grabbed row out from under the cursor and Chrome aborts
+                    // the native drag (the classic layout-shift abort, which
+                    // the setTimeout(0) defer can't escape here because it's a
+                    // scroll clamp, not just a reflow). So in compare mode keep
+                    // rows as-is during a drag — the insertion bar is derived
+                    // from live row rects, so it still lands in the right gap.
+                    const exOpen = !!ovExpanded[ex.id] && !(anyExDragging && !compareActive);
                     return <React.Fragment key={ex.id}>
                       {/* Divider between exercises — static; the drag
                           insertion bar is the absolute overlay below. */}
