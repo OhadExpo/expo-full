@@ -14,7 +14,15 @@ import { C, FN } from './theme';
 import { CHECKIN_METRICS, checkinQuality, readinessColor, hasReadiness } from './ReadinessRow';
 
 export default function CheckinTrends({ workouts = [] }) {
-  const [chkMetric, setChkMetric] = useState('pain');
+  // Default to a metric that actually has data, so the graph never opens on an
+  // empty state when the athlete logged e.g. SLEEP/ENERGY but never PAIN
+  // (the section is shown whenever ANY metric has data). Prefer a metric with a
+  // plottable trend (>=2 points), then any-data, then PAIN.
+  const [chkMetric, setChkMetric] = useState(() => {
+    const withData = (min) => CHECKIN_METRICS.find(m =>
+      (workouts || []).filter(w => checkinQuality(m.key, w.autoregulation?.[m.key]) != null).length >= min);
+    return (withData(2) || withData(1) || CHECKIN_METRICS[0]).key;
+  });
   const metric = CHECKIN_METRICS.find(m => m.key === chkMetric) || CHECKIN_METRICS[0];
 
   // X axis = every check-in session, oldest → newest, so all three metric

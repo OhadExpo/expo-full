@@ -1490,6 +1490,18 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               title={isOnly ? 'This is the only program shown on the portal — click to show all again' : 'Show ONLY this program on the athlete portal (hide the others)'}
               style={{background: isOnly ? `${C.gn}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${isOnly ? C.gn : C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:isOnly ? C.gn : C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>{isOnly ? '✓ ONLY THIS' : 'SHOW ONLY'}</button>;
           })()}
+          {/* NEW PROGRAM — start a fresh, empty program for THIS athlete without
+              leaving the editor (Ohad; placed next to DELETE). Same flow as the
+              athlete-dropdown "new program" path; flush pending autosave first so
+              the current edits land. Matches the row's 38px button metrics. */}
+          {onNewProgramFor && plan?.traineeId && <button onClick={async () => {
+              await flushAutosave();
+              const base = String(plan.traineeId).split('__')[0];
+              const t = (trainees || []).find(x => x.id === base);
+              const label = t ? (t.members && t.members.length === 2 ? (t.members[parseInt(String(plan.traineeId).split('__')[1] || '0')]?.name || t.name) : t.name) : undefined;
+              onNewProgramFor(plan.traineeId, label);
+            }}
+            title="Create a new, empty program for this athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>+ NEW PROGRAM</button>}
           {onDelete && plan?.id && <button onClick={onDelete}
             title="Delete this program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.rd,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -2104,7 +2116,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // Auto-open plan if requested from TraineeDetail
   React.useEffect(() => {
     if (openPlanId && !editMode) {
-      loadFullPlan(openPlanId).then(() => { setEditMode(true); if (onPlanOpened) onPlanOpened(); });
+      // Only enter edit mode if the plan actually loaded. A deleted / RLS-denied
+      // id resolves to null (load swallows the error) — without this guard we'd
+      // setEditMode(true) with no plan and hang forever on "Loading…". On a
+      // null load we clear openPlanId and fall back to the list.
+      loadFullPlan(openPlanId).then((p) => { if (p) setEditMode(true); if (onPlanOpened) onPlanOpened(); });
     }
   }, [openPlanId]);
 

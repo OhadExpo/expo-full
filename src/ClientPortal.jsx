@@ -19,7 +19,8 @@ import { enqueueBlob, attachWorkout, drainBlobs, newBlobId, removeBlob, subscrib
 import { emitSaveError } from './useSupaStore';
 import ExerciseSubstitution, { libExerciseToEx } from './ExerciseSubstitution';
 import TraineePRsView from './TraineePRsView';
-import ReadinessRow, { CHECKIN_METRICS, checkinQuality, readinessColor, hasReadiness } from './ReadinessRow';
+import ReadinessRow, { hasReadiness } from './ReadinessRow';
+import CheckinTrends from './CheckinTrends';
 import { toast, confirmToast, isRefined5b, useEscClose, useDelayedUnmountValue } from './ui';
 // F-14 — meal photo → macros logger. Lazy-loaded since most athletes
 // won't open it on every page load (and it pulls in the meals query).
@@ -54,18 +55,18 @@ const splitPrescription = (str) => {
 // ("15 SEC E") get a smaller value font so they still fit on one line. Falls
 // back to a plain centred line only when the reps cell is itself a full N×M
 // prescription (a per-week "2x10 e" cell) — printing that under a REPS label
-// would double-count the sets. Splits a combined "N×reps" string when passed
-// as reps with no explicit sets (the warm-up rx path).
-function SetsRepsHero({ sets, reps }) {
+// would double-count the sets. With splitCombined (warm-up rx path only) a
+// combined "N×reps" reps string with no explicit sets is split into the two
+// columns; the exercise step passes splitCombined=false so a blank-sets +
+// "2x10 e" reps cell stays verbatim (splitting it there would fabricate a sets
+// count and mislabel the trailing tempo token). Renders "—" when both empty.
+function SetsRepsHero({ sets, reps, splitCombined = false }) {
   let sStr = String(sets ?? '').trim();
   let rStr = String(reps ?? '').trim();
-  // Warm-up rx path: reps arrives combined ("1×12 E") with no separate sets —
-  // split the leading "N×" so it renders labelled like the exercise step.
-  if (!sStr && rStr) {
+  if (splitCombined && !sStr && rStr) {
     const sp = rStr.match(/^(\d+)\s*[×xX]\s*(.+)$/);
     if (sp) { sStr = sp[1]; rStr = sp[2].trim(); }
   }
-  if (!sStr && !rStr) return null;
   const labeled = sStr && rStr && !/[×x]/i.test(rStr) && rStr.length <= 12;
   if (!labeled) {
     const txt = [sStr, rStr].filter(Boolean).join(' × ') || '—';
@@ -1183,7 +1184,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
             else heroReps = String(wu.rx || '');
           }
           return <>
-            {(heroSets || heroReps) && <SetsRepsHero sets={heroSets} reps={heroReps} />}
+            {(heroSets || heroReps) && <SetsRepsHero sets={heroSets} reps={heroReps} splitCombined />}
             {tempo && <div style={{fontSize:13,color:TEMPO_COLOR,marginTop:4,display:'flex',alignItems:'center',justifyContent:'center',gap:5,lineHeight:1}}><span style={{fontSize:12,lineHeight:1}}>⏱</span><span style={{lineHeight:1}}>{tempo}</span></div>}
             <div style={{marginBottom:14}} />
           </>;
@@ -1693,7 +1694,6 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const [lg, setLg] = useState(null);
   const [vw, setVw] = useState('prog');
   const [expandedHistEx, setExpandedHistEx] = useState(null); // `${workoutId}:${exIdx}` — which exercise row in History is open
-  const [chkMetric, setChkMetric] = useState('pain'); // which readiness metric the check-in trends graph shows (one at a time)
   const [bwHistOpen, setBwHistOpen] = useState(false); // BW weigh-in history list collapsed by default (Ohad)
   // Last-seen timestamp for client-side unread tracking of coach comments.
   // Stored per client in localStorage. Updated each time the History tab
@@ -2509,82 +2509,19 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     return <TraineePRsView clientWorkouts={cw} traineeId={ci} header={renderTopHeader()} />;
   }
 
-  // Check-in trends graph — same bespoke-SVG build as the BW graph, but plots
-  // one readiness metric at a time (PAIN / SLEEP / ENERGY) with a toggle. Each
-  // level maps to a 0..3 quality (3 = best / most ready = top of the chart);
-  // dots are severity-coloured (green good → red bad), the line stays cyan like
-  // the BW trend. Reached from the "CHECK-IN TRENDS" button in History.
+  // Check-in trends graph — renders the SHARED CheckinTrends component (also
+  // used on the coach trainee page) inside the portal chrome, so the two stay
+  // identical. Reached from the "READINESS GRAPH →" link in History.
   if (vw === 'chk' && trainee) {
-    const metric = CHECKIN_METRICS.find(m => m.key === chkMetric) || CHECKIN_METRICS[0];
-    // X axis = EVERY check-in session (not just the ones with this metric), so
-    // all three graphs span the exact same width regardless of a skipped metric
-    // on some day (Ohad: "all three graphs take the same space"). Points with a
-    // value are plotted at their session index; a missing one just leaves a gap.
-    const sessions = cw.filter(w => hasReadiness(w.autoregulation)).sort((a, b) => new Date(a.date) - new Date(b.date));
-    const chkData = sessions.map((w, i) => ({ i, date: w.date, week: w.week, q: checkinQuality(metric.key, w.autoregulation?.[metric.key]), raw: w.autoregulation?.[metric.key] }));
-    const valid = chkData.filter(d => d.q != null);
-    const W = Math.max(sessions.length * 60, 300);
-    const yOf = q => 10 + ((3 - q) / 3) * 130; // q=3 (best) at top
-    const first = valid[0], last = valid[valid.length - 1];
-    const dir = valid.length >= 2 ? (last.q > first.q ? 'up' : last.q < first.q ? 'down' : 'flat') : 'flat';
+    const checkinCount = cw.filter(w => hasReadiness(w.autoregulation)).length;
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
           <button onClick={() => setVw('hist')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',cursor:'pointer',padding:0}}>← HISTORY</button>
-          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {valid.length} CHECK-IN{valid.length===1?'':'S'}</div>
+          <div style={{fontSize:9,fontFamily:FN,color:C.tm,letterSpacing:'0.12em',fontWeight:700}}>{clientName} · {checkinCount} CHECK-IN{checkinCount===1?'':'S'}</div>
         </div>
-        {/* Metric toggle — same segmented strip as the RAIL week selector
-            (bordered boxes, active = cyan border + 2px inset top rail + tint). */}
-        <div style={{display:'flex',gap:4,alignItems:'stretch',marginBottom:16}}>
-          {CHECKIN_METRICS.map(m => <button key={m.key} onClick={() => setChkMetric(m.key)}
-            style={{flex:1,height:32,boxSizing:'border-box',padding:0,borderRadius:0,border:`1px solid ${chkMetric===m.key?C.ac:C.cardBd}`,boxShadow:chkMetric===m.key?`inset 0 2px 0 0 ${C.ac}`:'none',background:chkMetric===m.key?'rgba(57,189,255,0.12)':'transparent',color:chkMetric===m.key?C.ac:C.tm,fontFamily:FN,fontSize:11,fontWeight:chkMetric===m.key?700:600,letterSpacing:'0.06em',cursor:'pointer',transition:'color .15s, background .15s, border-color .15s'}}>{m.label}</button>)}
-        </div>
-        {valid.length < 2 ? (
-          <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,padding:40,textAlign:'center',color:C.td,marginBottom:16}}>
-            <div style={{fontSize:13}}>Log at least 2 check-ins to see your {metric.label.toLowerCase()} trend</div>
-          </div>
-        ) : (
-          <div style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,padding:14,marginBottom:16}}>
-            <div style={{fontSize:10,fontFamily:FN,color:C.ac,letterSpacing:'0.15em',fontWeight:700,marginBottom:10}}>{metric.label} TREND</div>
-            <svg viewBox={`0 -10 ${W} 185`} style={{width:'100%',height:185}}>
-              {/* 4 category grid lines (best at top) */}
-              {[3,2,1,0].map(L => {
-                const y = yOf(L);
-                return <g key={L}>
-                  <line x1="52" y1={y} x2={W-10} y2={y} stroke={C.bd} strokeWidth="0.5" strokeDasharray="4"/>
-                  <text x="48" y={y+3} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="end">{metric.scale[L].toUpperCase()}</text>
-                </g>;
-              })}
-              <polyline fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                points={valid.map(d => `${60+d.i*50},${yOf(d.q)}`).join(' ')}/>
-              {chkData.map((d) => {
-                const x = 60 + d.i*50;
-                return <g key={d.i}>
-                  {d.q != null && <circle cx={x} cy={yOf(d.q)} r="3.5" fill={readinessColor(metric.key, d.raw) || C.ac}/>}
-                  <text x={x} y={152} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week||'?'}</text>
-                  <text x={x} y={163} fill={C.tm} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})}</text>
-                </g>;
-              })}
-            </svg>
-            {/* Summary tiles — big value, quiet label; trend shows a coloured
-                arrow (green up = more ready, red down = less). */}
-            <div style={{display:'flex',gap:4,marginTop:12}}>
-              <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
-                <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>LATEST</div>
-                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,textTransform:'uppercase',color:readinessColor(metric.key,last.raw)||C.tx}}>{last.raw}</div>
-              </div>
-              <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
-                <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>TREND</div>
-                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,color:dir==='up'?C.gn:dir==='down'?'#E23B3B':C.tm}}>{dir==='up'?'BETTER':dir==='down'?'WORSE':'SAME'}</div>
-              </div>
-              <div style={{flex:1,border:`1px solid ${C.cardBd}`,borderRadius:0,padding:'11px 6px',textAlign:'center'}}>
-                <div style={{fontSize:8,fontFamily:FN,color:C.tm,letterSpacing:'0.16em',fontWeight:700,marginBottom:6}}>CHECK-INS</div>
-                <div style={{fontSize:17,fontWeight:700,fontFamily:FN,lineHeight:1,color:C.tx}}>{valid.length}</div>
-              </div>
-            </div>
-          </div>
-        )}
+        <CheckinTrends workouts={cw} />
       </div>
     </div>;
   }

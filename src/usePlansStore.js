@@ -137,6 +137,7 @@ export function useFullPlan() {
 
   const load = useCallback(async (planId) => {
     setLoading(true);
+    let loaded = null;
     try {
       const { data } = await supabase
         .from('plans')
@@ -145,7 +146,7 @@ export function useFullPlan() {
         .single();
       if (data) {
         // Convert from DB format to app format
-        setPlan({
+        loaded = {
           id: data.id,
           name: data.name,
           traineeId: data.trainee_id,
@@ -165,10 +166,15 @@ export function useFullPlan() {
             data.is_template_purchase === true
             || data.data?.isTemplatePurchase === true
             || /^(\[expo\]|expo · |expo - )/i.test(data.name || ''),
-        });
+        };
+        setPlan(loaded);
       }
     } catch (e) { console.error('useFullPlan load error:', e); }
     setLoading(false);
+    // Return the loaded plan (or null on missing/denied/error) so callers can
+    // gate on success — e.g. the editor only enters edit mode when a plan
+    // actually loaded, instead of getting stuck on a permanent "Loading…".
+    return loaded;
   }, []);
 
   const clear = useCallback(() => setPlan(null), []);
