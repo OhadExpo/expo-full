@@ -299,7 +299,23 @@ function ExerciseBrowserModal({ open, onClose, onPick, onPickName, onCreateLibra
 }
 
 // Small button shown inline in an exercise row. Clicking it opens the browser modal.
-function ExPicker({ exercises, value, onChange, onPickName, label, fallbackTitle }) {
+// Create a reusable library exercise from a bare name and return its id (or
+// null if the name is blank / no library setter is wired). Taxonomy is left
+// blank for the coach to fill in later in the Exercises screen — same shape as
+// createLibraryExercise, but it returns the id so the caller can link the row
+// it was invoked from instead of appending a new one.
+function addLibExercise(setExercises, name) {
+  const t = (name || '').trim();
+  if (!t || !setExercises) return null;
+  const lib = newLibExercise({ title: t });
+  setExercises(prev => [...(prev || []), lib]);
+  return lib.id;
+}
+
+// onCreateLibrary(name) — optional: create a real library exercise AND link this
+// row to it (vs onPickName which adds free text for this program only). When
+// wired, the picker's modal shows a "+ CREATE … IN LIBRARY" button.
+function ExPicker({ exercises, value, onChange, onPickName, onCreateLibrary, label, fallbackTitle }) {
   const [modalOpen, setModalOpen] = useState(false);
   const sel = exById(exercises).get(value);
   const displayTitle = sel?.title || fallbackTitle || '';
@@ -324,6 +340,7 @@ function ExPicker({ exercises, value, onChange, onPickName, label, fallbackTitle
         onClose={() => setModalOpen(false)}
         onPick={id => { onChange(id); setModalOpen(false); }}
         onPickName={onPickName ? (name => { onPickName(name); setModalOpen(false); }) : undefined}
+        onCreateLibrary={onCreateLibrary ? (name => { onCreateLibrary(name); setModalOpen(false); }) : undefined}
         exercises={exercises}
         currentId={value}
         currentEx={sel}
@@ -347,7 +364,7 @@ function wuRx(w) {
   return (w && w.rx) || '';
 }
 
-function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
+function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExercises = null }) {
   const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
   // Collapsed by default whenever there's content, so the warm-up doesn't
   // dominate the editor when the coach is iterating on the main exercise
@@ -526,7 +543,8 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [] }) {
                         <div style={{ minWidth: 0 }}>
                           <ExPicker exercises={exercises} value={w.exerciseId || ''} label="Exercise" fallbackTitle={w.t}
                             onChange={id => { const lib = exById(exercises).get(id); update(i, { exerciseId: id, t: lib?.title || w.t || '', ...((!w.vid && lib?.videoLink) ? { vid: lib.videoLink } : {}), ...((!w.note && lib?.cues) ? { note: lib.cues } : {}) }); }}
-                            onPickName={name => update(i, { exerciseId: '', t: name })} />
+                            onPickName={name => update(i, { exerciseId: '', t: name })}
+                            onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update(i, { exerciseId: id, t: name }); }) : undefined} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                           <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>Video</label>
@@ -1490,7 +1508,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           touching the pane's cyan scrollbar. */}
       <div data-compare-pane ref={leftPaneRef} style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingRight:compareActive?6:0}}>
       <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
-      <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} exercises={exercises} />
+      <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} exercises={exercises} setExercises={setExercises} />
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
           via a small 📆 toggle inside the day's content (see below). A daily
           day in a multi-day plan lets the athlete log it any number of times
@@ -1758,7 +1776,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                               video URL (50/50, aligned with notes/thumb below). */}
                           <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} showEmbed={exOpen}
                             exercises={exercises} setExercises={setExercises}
-                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})} label="Exercise" fallbackTitle={ex.title} />} />
+                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})}
+                              onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: '' }); }) : undefined}
+                              label="Exercise" fallbackTitle={ex.title} />} />
                         </div>
                        </div>
                       </div>
