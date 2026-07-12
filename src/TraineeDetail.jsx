@@ -15,6 +15,7 @@ import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
 import ReadinessRow, { hasReadiness } from './ReadinessRow';
+import CheckinTrends from './CheckinTrends';
 import TraineeCRM from './TraineeCRM';
 import CoachMessages from './CoachMessages';
 import CoachContractComposer from './CoachContractComposer';
@@ -521,6 +522,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       <CollapsibleSection bare title="Bodyweight" count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0'}}>
         <BWChart entries={tBw} />
       </CollapsibleSection>
+
+      {/* === READINESS TRENDS — check-in graph (PAIN/SLEEP/ENERGY over time),
+          the SAME graph the athlete sees in their portal (Ohad). Only shown
+          once the athlete has logged at least one readiness check-in. */}
+      {tAllWorkouts.some(w=>hasReadiness(w.autoregulation)) && (
+        <CollapsibleSection bare title="Readiness" count={tAllWorkouts.filter(w=>hasReadiness(w.autoregulation)).length} storageKey={`td-readiness-${trainee}`} style={{margin:'20px 0 0'}}>
+          <CheckinTrends workouts={tAllWorkouts} />
+        </CollapsibleSection>
+      )}
 
       {/* === WORKOUTS — slot #7 (collapsible) */}
       <CollapsibleSection bare title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0'}}>
