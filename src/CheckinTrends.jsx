@@ -1,23 +1,27 @@
 // Check-in (readiness) trends graph — PAIN / SLEEP / ENERGY plotted over the
-// athlete's logged sessions, one metric at a time. Extracted from the athlete
-// portal's trends view so the coach's trainee page shows the IDENTICAL graph
-// (Ohad: "graphs like we have on the athlete portal"). Reads the shared
-// ReadinessRow helpers so quality (0..3, 3 = best) and severity colours match
-// the per-session rows exactly.
+// athlete's logged sessions, one metric at a time. Shared by the athlete portal
+// AND the coach trainee page so both show the IDENTICAL graph (Ohad). Reads the
+// shared ReadinessRow helpers so quality (0..3, 3 = best) and severity colours
+// match the per-session rows exactly.
+//
+// The chart fills its container width the same way BWChart does: geometry
+// (area + line) lives in an SVG with preserveAspectRatio="none" so it stretches
+// edge-to-edge, while the dots and the axis labels are HTML overlays (kept out
+// of the SVG so they stay round / unstretched). This is what fixes the graph
+// rendering tiny-and-centred inside the wide coach card.
 //
 // Props:
 //   workouts — array of rows carrying { autoregulation, date, week }. Rows
-//              without readiness are ignored. Coach-logged rows (no check-in)
-//              simply don't appear.
+//              without readiness are ignored.
 import React, { useState } from 'react';
 import { C, FN } from './theme';
 import { CHECKIN_METRICS, checkinQuality, readinessColor, hasReadiness } from './ReadinessRow';
 
+const AC = '#39BDFF'; // brand cyan literal — C.ac resolves to black in light mode
+
 export default function CheckinTrends({ workouts = [] }) {
   // Default to a metric that actually has data, so the graph never opens on an
-  // empty state when the athlete logged e.g. SLEEP/ENERGY but never PAIN
-  // (the section is shown whenever ANY metric has data). Prefer a metric with a
-  // plottable trend (>=2 points), then any-data, then PAIN.
+  // empty state when the athlete logged e.g. SLEEP/ENERGY but never PAIN.
   const [chkMetric, setChkMetric] = useState(() => {
     const withData = (min) => CHECKIN_METRICS.find(m =>
       (workouts || []).filter(w => checkinQuality(m.key, w.autoregulation?.[m.key]) != null).length >= min);
@@ -25,8 +29,8 @@ export default function CheckinTrends({ workouts = [] }) {
   });
   const metric = CHECKIN_METRICS.find(m => m.key === chkMetric) || CHECKIN_METRICS[0];
 
-  // X axis = every check-in session, oldest → newest, so all three metric
-  // graphs span the same width even if one metric was skipped on some day.
+  // X axis = every check-in session, oldest → newest (all three metric graphs
+  // span the same points even if one metric was skipped on some day).
   const sessions = (workouts || [])
     .filter(w => hasReadiness(w.autoregulation))
     .sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -36,13 +40,28 @@ export default function CheckinTrends({ workouts = [] }) {
     raw: w.autoregulation?.[metric.key],
   }));
   const valid = chkData.filter(d => d.q != null);
-  const W = Math.max(sessions.length * 60, 300);
-  const yOf = q => 10 + ((3 - q) / 3) * 130; // q=3 (best) at top
   const first = valid[0], last = valid[valid.length - 1];
   const dir = valid.length >= 2 ? (last.q > first.q ? 'up' : last.q < first.q ? 'down' : 'flat') : 'flat';
 
+  // ── chart geometry (viewBox units; stretched horizontally to fill width) ──
+  const W = 800, H = 150, PAD_X = 34, PAD_TOP = 12, PAD_BOTTOM = 30;
+  const plotH = H - PAD_TOP - PAD_BOTTOM;
+  const yOf = q => PAD_TOP + ((3 - q) / 3) * plotH;      // q=3 (best) at top
+  const n = chkData.length;
+  const xOf = i => (n <= 1 ? W / 2 : PAD_X + i * ((W - PAD_X * 2) / (n - 1)));
+  const linePts = valid.map(d => `${xOf(d.i).toFixed(1)},${yOf(d.q).toFixed(1)}`).join(' ');
+  const areaPath = valid.length >= 2
+    ? `M${xOf(valid[0].i).toFixed(1)},${(H - PAD_BOTTOM)} L${linePts.replace(/ /g, ' L')} L${xOf(valid[valid.length - 1].i).toFixed(1)},${(H - PAD_BOTTOM)} Z`
+    : '';
+  const pctX = i => `${(xOf(i) / W) * 100}%`;
+
   return (
-    <div>
+    // Cap the width so on the wide coach card the chart reads as a comfortable
+    // trend graph — wider than the old tiny-centred render, but not stretched
+    // edge-to-edge across ~1400px where a handful of points looked too sparse
+    // (Ohad: "wider … but that was way too wide"). On the narrow athlete portal
+    // (~500px) the cap is inert.
+    <div style={{ maxWidth: 720 }}>
       {/* Metric toggle — bordered segmented strip, active = cyan border + inset rail + tint. */}
       <div style={{ display: 'flex', gap: 4, alignItems: 'stretch', marginBottom: 12 }}>
         {CHECKIN_METRICS.map(m => (
@@ -57,25 +76,36 @@ export default function CheckinTrends({ workouts = [] }) {
       ) : (
         <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.ac}`, borderRadius: 0, padding: 14 }}>
           <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>{metric.label} TREND</div>
-          <svg viewBox={`0 -10 ${W} 185`} style={{ width: '100%', height: 185 }}>
-            {[3, 2, 1, 0].map(L => {
-              const y = yOf(L);
-              return <g key={L}>
-                <line x1="52" y1={y} x2={W - 10} y2={y} stroke={C.bd} strokeWidth="0.5" strokeDasharray="4" />
-                <text x="48" y={y + 3} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="end">{metric.scale[L].toUpperCase()}</text>
-              </g>;
-            })}
-            <polyline fill="none" stroke={C.ac} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              points={valid.map(d => `${60 + d.i * 50},${yOf(d.q)}`).join(' ')} />
-            {chkData.map((d) => {
-              const x = 60 + d.i * 50;
-              return <g key={d.i}>
-                {d.q != null && <circle cx={x} cy={yOf(d.q)} r="3.5" fill={readinessColor(metric.key, d.raw) || C.ac} />}
-                <text x={x} y={152} fill={C.tm} fontSize="8" fontFamily={FN} textAnchor="middle">W{d.week || '?'}</text>
-                <text x={x} y={163} fill={C.tm} fontSize="7" fontFamily={FN} textAnchor="middle">{new Date(d.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}</text>
-              </g>;
-            })}
-          </svg>
+          {/* Chart: full-width SVG geometry + HTML overlays for round dots and labels. */}
+          <div style={{ position: 'relative', width: '100%', height: H }}>
+            <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, display: 'block' }} preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chkAreaGrad" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor={AC} stopOpacity="0.28" />
+                  <stop offset="100%" stopColor={AC} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {[3, 2, 1, 0].map(L => <line key={L} x1={PAD_X} y1={yOf(L)} x2={W - 6} y2={yOf(L)} stroke={C.bd} strokeWidth="0.75" strokeDasharray="4" />)}
+              {areaPath && <path d={areaPath} fill="url(#chkAreaGrad)" />}
+              <polyline fill="none" stroke={AC} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={linePts} />
+            </svg>
+            {/* Y category labels (best→worst), aligned to the grid rows. */}
+            {[3, 2, 1, 0].map(L => (
+              <div key={L} style={{ position: 'absolute', left: 0, top: yOf(L) - 5, fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.06em', lineHeight: 1, pointerEvents: 'none' }}>{metric.scale[L].toUpperCase()}</div>
+            ))}
+            {/* Round severity-coloured dots (HTML so they stay circular). */}
+            {chkData.map(d => d.q != null && (
+              <div key={d.i} title={String(d.raw || '').toUpperCase()} style={{ position: 'absolute', left: pctX(d.i), top: yOf(d.q), width: 9, height: 9, borderRadius: '50%', background: readinessColor(metric.key, d.raw) || C.ac, transform: 'translate(-50%,-50%)', boxShadow: `0 0 0 2px var(--c-sf)`, pointerEvents: 'none' }} />
+            ))}
+            {/* X labels (week + date). */}
+            {chkData.map(d => (
+              <div key={d.i} style={{ position: 'absolute', left: pctX(d.i), bottom: 0, transform: 'translateX(-50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, lineHeight: 1.2 }}>W{d.week || '?'}</div>
+                <div style={{ fontSize: 7, fontFamily: FN, color: C.td, lineHeight: 1.2 }}>{new Date(d.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}</div>
+              </div>
+            ))}
+          </div>
+          {/* Summary tiles. */}
           <div style={{ display: 'flex', gap: 4, marginTop: 12 }}>
             <div style={{ flex: 1, border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '11px 6px', textAlign: 'center' }}>
               <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 6 }}>LATEST</div>
