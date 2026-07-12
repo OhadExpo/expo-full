@@ -41,8 +41,8 @@ function StatusMenu({ status, onChange }) {
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
       <button onClick={() => setOpen(o => !o)} title="Change status"
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 100, height: 24, boxSizing: 'border-box', gap: 6, background: 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
-        {status}<span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 100, height: 24, boxSizing: 'border-box', gap: 6, background: 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 10px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+        <span style={{ marginRight: '-0.12em' }}>{status}</span><span style={{ fontSize: 9, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>▾</span>
       </button>
       {open && (
         <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 60, background: 'var(--c-bg)', border: `1px solid ${C.cardBd}`, minWidth: 130 }}>
