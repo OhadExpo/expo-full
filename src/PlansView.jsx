@@ -2,10 +2,18 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 
-// Superset group E colour — a magenta/pink, distinct from A(cyan) / B(purple) /
-// C(orange) / D(green), and deliberately NOT red: red is reserved for delete /
-// error affordances, so a red group letter read as a warning (Ohad).
-const SUPERSET_E = '#E759A8';
+// Superset group E colour — gold/amber. The four taken hues are A(cyan) /
+// B(purple) / C(orange) / D(green) and red is reserved for delete/errors, so
+// gold is the one remaining clearly-distinct categorical colour (and it reads
+// on both the dark and light themes — Ohad: "colors that are unique").
+const SUPERSET_E = '#EAB308';
+
+// One place maps a superset letter → its group colour. Used for the row accent
+// strip, the GRP cell text, AND each letter in the GRP dropdown so the menu is
+// colour-coded per group (Ohad). '' / '—' (no group) stays muted grey.
+function supersetColor(s) {
+  return s === 'A' ? C.ac : s === 'B' ? C.pu : s === 'C' ? C.or : s === 'D' ? C.gn : s === 'E' ? SUPERSET_E : C.td;
+}
 
 // Heebo's x-height is smaller than Nord's at the same fontSize, so Hebrew
 // names visually shrink in a row designed for English. Per the
@@ -806,7 +814,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                           {dayExs.map((pe, ei) => {
                             const exData = exById(exercises).get(pe.exerciseId);
                             const title = exData?.title || pe.title || (pe.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
-                            const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : pe.superset === 'D' ? C.gn : pe.superset === 'E' ? SUPERSET_E : C.td;
+                            const sc = supersetColor(pe.superset);
                             const weeks = Math.max((pe.wk?.length||0), (pe.wkS?.length||0), 1);
                             const exKey = pe.id || `${cmpDayKey}-${ei}`;
                             const exOpen = !!cmpExpandedEx[exKey];
@@ -1694,7 +1702,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   {dayExs.map((ex, exIdx) => {
                     const exData = exById(exercises).get(ex.exerciseId);
                     const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
-                    const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:ex.superset==="D"?C.gn:ex.superset==="E"?SUPERSET_E:C.td;
+                    const sc = supersetColor(ex.superset);
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
                     // While a drag is live in this day, render expanded rows
                     // as collapsed (the panel animates shut via its 0fr/1fr
@@ -1742,7 +1750,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                       </div>
                       <select value={ex.superset||""} onChange={e=>update({superset:e.target.value})}
                         style={{...tinyInput, color:sc, fontFamily:FN, fontWeight:600, height:24, minHeight:24, padding:'0 6px', boxSizing:'border-box', appearance:'none', WebkitAppearance:'none', textAlignLast:'center'}}>
-                        {SUPERSET_LABELS.map(s => <option key={s} value={s}>{s||"—"}</option>)}
+                        {SUPERSET_LABELS.map(s => <option key={s} value={s} style={{color: supersetColor(s), fontWeight: 700}}>{s||"—"}</option>)}
                       </select>
                       {ex.wkS && Array.isArray(ex.wkS) && ex.wkS.length > 0 ? (
                         <div style={{display:"grid", gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
