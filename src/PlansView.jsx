@@ -2,6 +2,11 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 
+// Superset group E colour — a magenta/pink, distinct from A(cyan) / B(purple) /
+// C(orange) / D(green), and deliberately NOT red: red is reserved for delete /
+// error affordances, so a red group letter read as a warning (Ohad).
+const SUPERSET_E = '#E759A8';
+
 // Heebo's x-height is smaller than Nord's at the same fontSize, so Hebrew
 // names visually shrink in a row designed for English. Per the
 // feedback_new_ui_box_dimensions rule: Hebrew bumps +3px inside the box.
@@ -801,7 +806,7 @@ function ReadOnlyPlanPanel({ planIndex, currentPlan, exercises, trainees, onClos
                           {dayExs.map((pe, ei) => {
                             const exData = exById(exercises).get(pe.exerciseId);
                             const title = exData?.title || pe.title || (pe.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
-                            const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : pe.superset === 'D' ? C.gn : pe.superset === 'E' ? C.rd : C.td;
+                            const sc = pe.superset === 'A' ? C.ac : pe.superset === 'B' ? C.pu : pe.superset === 'C' ? C.or : pe.superset === 'D' ? C.gn : pe.superset === 'E' ? SUPERSET_E : C.td;
                             const weeks = Math.max((pe.wk?.length||0), (pe.wkS?.length||0), 1);
                             const exKey = pe.id || `${cmpDayKey}-${ei}`;
                             const exOpen = !!cmpExpandedEx[exKey];
@@ -1688,7 +1693,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   {dayExs.map((ex, exIdx) => {
                     const exData = exById(exercises).get(ex.exerciseId);
                     const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
-                    const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:ex.superset==="D"?C.gn:ex.superset==="E"?C.rd:C.td;
+                    const sc = ex.superset==="A"?C.ac:ex.superset==="B"?C.pu:ex.superset==="C"?C.or:ex.superset==="D"?C.gn:ex.superset==="E"?SUPERSET_E:C.td;
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
                     // While a drag is live in this day, render expanded rows
                     // as collapsed (the panel animates shut via its 0fr/1fr
