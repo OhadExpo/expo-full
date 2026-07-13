@@ -84,7 +84,7 @@ const variants = {
   // text, but using the AA variant keeps the small "ghost"-on-white wins
   // free without re-evaluating per call site.
   primary: { background: 'transparent', color: C.acText, border: `1px solid ${C.ac}` },
-  ghost: { background: "transparent", color: C.tm, border: `1px solid ${C.cardBd}` },
+  ghost: { background: "transparent", color: C.tm, border: `1px solid var(--c-ghostBd)` },
   danger: { background: 'transparent', color: C.rd, border: `1px solid ${C.rd}` },
   success: { background: 'transparent', color: C.gn, border: `1px solid ${C.gn}` },
 };

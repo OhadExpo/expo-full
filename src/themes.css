@@ -59,6 +59,12 @@
   --c-acSurface: #39BDFF;
   --c-acOnSurface: #ffffff;
   --c-cardBd: rgba(57,189,255,0.30);  /* canonical card border — cyan-30% on dark */
+  /* Ghost/secondary BUTTON border. A semi-transparent slice of the muted-text
+     colour so it always contrasts the surface: reads near-white on dark (Ohad:
+     "white, not full opacity"), dark on light — visible on grey page bg AND on
+     white cards, unlike the faint cyan cardBd it replaces. Defined once on the
+     base :root; each theme overrides --c-tm, so this recomputes per theme. */
+  --c-ghostBd: color-mix(in srgb, var(--c-tx) 34%, transparent);
   --c-rd: #FF4757;
   --c-rdD: rgba(255,71,87,0.10);
   --c-gn: #2ED573;

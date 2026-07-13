@@ -72,10 +72,14 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
     const txt = [sStr, rStr].filter(Boolean).join(' × ') || '—';
     return <div style={{ fontSize: 15, color: C.ac, fontWeight: 700, fontFamily: FN, textAlign: 'center' }}>{txt}</div>;
   }
+  // Both columns share ONE font size (driven by the longer value) so SETS and
+  // REPS always render at the same size (Ohad), while a long value like
+  // "10-20 SEC" still shrinks to fit rather than overflowing.
+  const valFont = Math.max(sStr.length, rStr.length) > 4 ? 15 : 19;
   const col = (val, label) => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-      <span style={{ fontSize: val.length > 4 ? 15 : 19, color: C.ac, fontWeight: 700, fontFamily: FN, lineHeight: 1.05, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{val}</span>
-      <span style={{ fontSize: 8, color: C.tm, fontWeight: 700, fontFamily: FN, letterSpacing: '0.2em', textIndent: '0.2em', lineHeight: 1 }}>{label}</span>
+      <span style={{ fontSize: valFont, color: C.ac, fontWeight: 700, fontFamily: FN, lineHeight: 1.05, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{val}</span>
+      <span style={{ fontSize: 8, color: C.tx, fontWeight: 700, fontFamily: FN, letterSpacing: '0.2em', textIndent: '0.2em', lineHeight: 1 }}>{label}</span>
     </div>
   );
   return (
@@ -1214,7 +1218,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 
   // ===== CHECK-IN (readiness / autoregulation) =====
   if (step === 'checkin') {
-    const lbl = { fontSize:10, fontFamily:FN, color:C.tm, letterSpacing:'0.18em', fontWeight:700, marginBottom:8 };
+    const lbl = { fontSize:10, fontFamily:FN, color:C.tx, letterSpacing:'0.18em', fontWeight:700, marginBottom:8 };
     // Options render as the underline-input ENTRY material (not solid boxes),
     // matching the portal's control-material system. Each option's underline
     // carries a FAINT good→bad severity tint (25%) so the direction is
@@ -1645,11 +1649,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           </div>
         ) : (
           <div style={{display:'flex',gap:8}}>
-            <label style={{flex:1,padding:'16px 8px',borderRadius:0,border:`0.25px dashed ${C.cardBd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <label style={{flex:1,padding:'16px 8px',borderRadius:0,border:`1px dashed ${C.ac}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center'}}>
               <span>Record</span>
               <input type="file" accept="video/*" capture="environment" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
             </label>
-            <label style={{flex:1,padding:'16px 8px',borderRadius:0,border:`0.25px dashed ${C.cardBd}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <label style={{flex:1,padding:'16px 8px',borderRadius:0,border:`1px dashed ${C.ac}`,background:'transparent',color:C.tm,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',textAlign:'center',display:'flex',alignItems:'center',justifyContent:'center'}}>
               <span>Gallery</span>
               <input type="file" accept="video/*" style={{display:'none'}} onChange={async e => { await handleVideoUpload(e, ei); }} />
             </label>
@@ -1659,7 +1663,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           style={{width:'100%',marginTop:8,padding:'11px 8px',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>
           Live Rep Counter
         </button>
-        <textarea dir="auto" value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8}}/>
+        <textarea dir="auto" value={f.note} onChange={e => {const n=[...fv];n[ei]={...n[ei],note:e.target.value};setFv(n)}} placeholder="Notes for coach" style={{...bi,fontSize:13,minHeight:50,resize:'vertical',marginTop:8,color:C.ac}}/>
       </div>
     </div>;
   };

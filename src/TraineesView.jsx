@@ -533,7 +533,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
   return (
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 20, alignItems: "center" }}>
-        <div style={{ flex: 1 }}><input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12, height: 40, padding: '0 14px', border: `1px solid ${C.ac}` }} /></div>
+        <div style={{ flex: 1 }}><input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12, height: 48, padding: '0 16px', fontSize: 15, border: `1px solid ${C.ac}` }} /></div>
         <button onClick={() => setShowArchived(!showArchived)} style={{ background: isRefined5b() ? 'transparent' : 'var(--c-sf)', border: `${showArchived?'1px':'0.25px'} solid ${showArchived ? C.rd : C.cardBd}`, borderRadius: 0, height: 40, padding: "0 18px", color: showArchived ? C.rd : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: "pointer", display: 'inline-flex', alignItems: 'center' }}>
           {showArchived ? `Archive (${archived.length})` : `Archive (${archived.length})`}
         </button>

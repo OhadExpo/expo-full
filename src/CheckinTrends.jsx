@@ -66,7 +66,7 @@ export default function CheckinTrends({ workouts = [] }) {
       <div style={{ display: 'flex', gap: 4, alignItems: 'stretch', marginBottom: 12 }}>
         {CHECKIN_METRICS.map(m => (
           <button key={m.key} onClick={() => setChkMetric(m.key)}
-            style={{ flex: 1, height: 32, boxSizing: 'border-box', padding: 0, borderRadius: 0, border: `1px solid ${chkMetric === m.key ? C.ac : C.cardBd}`, boxShadow: chkMetric === m.key ? `inset 0 2px 0 0 ${C.ac}` : 'none', background: chkMetric === m.key ? 'rgba(57,189,255,0.12)' : 'transparent', color: chkMetric === m.key ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: chkMetric === m.key ? 700 : 600, letterSpacing: '0.06em', cursor: 'pointer', transition: 'color .15s, background .15s, border-color .15s' }}>{m.label}</button>
+            style={{ flex: 1, height: 32, boxSizing: 'border-box', padding: 0, borderRadius: 0, border: `1px solid ${chkMetric === m.key ? C.ac : 'var(--c-ghostBd)'}`, boxShadow: chkMetric === m.key ? `inset 0 2px 0 0 ${C.ac}` : 'none', background: chkMetric === m.key ? 'rgba(57,189,255,0.12)' : 'transparent', color: chkMetric === m.key ? C.ac : C.tm, fontFamily: FN, fontSize: 11, fontWeight: chkMetric === m.key ? 700 : 600, letterSpacing: '0.06em', cursor: 'pointer', transition: 'color .15s, background .15s, border-color .15s' }}>{m.label}</button>
         ))}
       </div>
       {valid.length < 2 ? (
@@ -78,32 +78,37 @@ export default function CheckinTrends({ workouts = [] }) {
           <div style={{ fontSize: 10, fontFamily: FN, color: C.ac, letterSpacing: '0.15em', fontWeight: 700, marginBottom: 10 }}>{metric.label} TREND</div>
           {/* Chart: full-width SVG geometry + HTML overlays for round dots and labels. */}
           <div style={{ position: 'relative', width: '100%', height: H }}>
-            <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, display: 'block' }} preserveAspectRatio="none">
-              <defs>
-                <linearGradient id="chkAreaGrad" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0%" stopColor={AC} stopOpacity="0.28" />
-                  <stop offset="100%" stopColor={AC} stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              {[3, 2, 1, 0].map(L => <line key={L} x1={PAD_X} y1={yOf(L)} x2={W - 6} y2={yOf(L)} stroke={C.bd} strokeWidth="0.75" strokeDasharray="4" />)}
-              {areaPath && <path d={areaPath} fill="url(#chkAreaGrad)" />}
-              <polyline fill="none" stroke={AC} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={linePts} />
-            </svg>
-            {/* Y category labels (best→worst), aligned to the grid rows. */}
+            {/* Y category labels — a fixed 46px left gutter, right-aligned, so the
+                graph geometry sits to their RIGHT and never covers the words (Ohad). */}
             {[3, 2, 1, 0].map(L => (
-              <div key={L} style={{ position: 'absolute', left: 0, top: yOf(L) - 5, fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.06em', lineHeight: 1, pointerEvents: 'none' }}>{metric.scale[L].toUpperCase()}</div>
+              <div key={L} style={{ position: 'absolute', left: 0, top: yOf(L) - 4, width: 46, fontSize: 8, fontFamily: FN, color: C.tm, letterSpacing: '0.02em', lineHeight: 1, pointerEvents: 'none', textAlign: 'right' }}>{metric.scale[L].toUpperCase()}</div>
             ))}
-            {/* Round severity-coloured dots (HTML so they stay circular). */}
-            {chkData.map(d => d.q != null && (
-              <div key={d.i} title={String(d.raw || '').toUpperCase()} style={{ position: 'absolute', left: pctX(d.i), top: yOf(d.q), width: 9, height: 9, borderRadius: '50%', background: readinessColor(metric.key, d.raw) || C.ac, transform: 'translate(-50%,-50%)', boxShadow: `0 0 0 2px var(--c-sf)`, pointerEvents: 'none' }} />
-            ))}
-            {/* X labels (week + date). */}
-            {chkData.map(d => (
-              <div key={d.i} style={{ position: 'absolute', left: pctX(d.i), bottom: 0, transform: 'translateX(-50%)', textAlign: 'center', pointerEvents: 'none' }}>
-                <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, lineHeight: 1.2 }}>W{d.week || '?'}</div>
-                <div style={{ fontSize: 7, fontFamily: FN, color: C.td, lineHeight: 1.2 }}>{new Date(d.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}</div>
-              </div>
-            ))}
+            {/* Chart content, offset right of the gutter; svg + dots + x-labels
+                all share this box so they stay aligned with each other. */}
+            <div style={{ position: 'absolute', left: 52, right: 4, top: 0, bottom: 0 }}>
+              <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, display: 'block' }} preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="chkAreaGrad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor={AC} stopOpacity="0.28" />
+                    <stop offset="100%" stopColor={AC} stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {[3, 2, 1, 0].map(L => <line key={L} x1={0} y1={yOf(L)} x2={W} y2={yOf(L)} stroke={C.bd} strokeWidth="0.75" strokeDasharray="4" />)}
+                {areaPath && <path d={areaPath} fill="url(#chkAreaGrad)" />}
+                <polyline fill="none" stroke={AC} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={linePts} />
+              </svg>
+              {/* Round severity-coloured dots (HTML so they stay circular). */}
+              {chkData.map(d => d.q != null && (
+                <div key={d.i} title={String(d.raw || '').toUpperCase()} style={{ position: 'absolute', left: pctX(d.i), top: yOf(d.q), width: 9, height: 9, borderRadius: '50%', background: readinessColor(metric.key, d.raw) || C.ac, transform: 'translate(-50%,-50%)', boxShadow: `0 0 0 2px var(--c-sf)`, pointerEvents: 'none' }} />
+              ))}
+              {/* X labels (week + date). */}
+              {chkData.map(d => (
+                <div key={d.i} style={{ position: 'absolute', left: pctX(d.i), bottom: 0, transform: 'translateX(-50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                  <div style={{ fontSize: 8, fontFamily: FN, color: C.tm, lineHeight: 1.2 }}>W{d.week || '?'}</div>
+                  <div style={{ fontSize: 7, fontFamily: FN, color: C.td, lineHeight: 1.2 }}>{new Date(d.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}</div>
+                </div>
+              ))}
+            </div>
           </div>
           {/* Summary tiles. */}
           <div style={{ display: 'flex', gap: 4, marginTop: 12 }}>
