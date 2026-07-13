@@ -354,10 +354,16 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               own notifications (coach messages, missed-day cron) are
               unaffected. State persisted on the trainee object so it syncs
               across coach devices via the trainees store. */}
+          {/* Order: primary actions (LOG SESSION / PORTAL / EDIT) first, then the
+              NOTIFICATION toggle, then ARCHIVE (destructive) last — grouped so the
+              row reads left-to-right by intent instead of leading with a setting. */}
+          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
+          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
+          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>EDIT</Btn>
           <button
             onClick={() => { if (setTrainees) setTrainees(prev => prev.map(t => t.id === trainee ? { ...t, notifOff: !t.notifOff } : t)); }}
             title={td.notifOff ? 'Notifications muted for this athlete — click to unmute' : 'Notifications on — click to mute push + dashboard alerts about this athlete'}
-            style={{ background: 'transparent', border: `1px solid ${C.bd2}`, borderRadius: 0, cursor: 'pointer', padding: '4px 10px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+            style={{ background: 'transparent', border: `1px solid var(--c-ghostBd)`, borderRadius: 0, cursor: 'pointer', padding: '4px 10px', height: 30, boxSizing: 'border-box', display: 'inline-flex', alignItems: 'center', gap: 9 }}>
             <span style={{ fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: td.notifOff ? C.td : C.tx }}>NOTIFICATION</span>
             {/* color on/off toggle — green = on, grey = muted (matches the
                 program-visibility switches below) */}
@@ -365,9 +371,6 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
               <span style={{ width: 16, height: 16, borderRadius: 8, background: td.notifOff ? C.td : C.gn, position: 'absolute', top: 1, left: td.notifOff ? 1 : 18, transition: 'all .15s' }} />
             </span>
           </button>
-          {onOpenInPersonForTrainee && <Btn variant="ghost" onClick={()=>onOpenInPersonForTrainee(trainee)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open the in-person workout logger pre-filtered to this athlete">LOG SESSION</Btn>}
-          {onPreviewPortal && <Btn variant="ghost" onClick={onPreviewPortal} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}} title="Open this athlete's portal in preview mode">PORTAL</Btn>}
-          <Btn variant="ghost" onClick={openEdit} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>EDIT</Btn>
           {td.status==="Archived" ? <>
             <Btn variant="ghost" onClick={()=>{if(setTrainees)setTrainees(prev=>prev.map(t=>t.id===trainee?{...t,status:"Inactive",archivedAt:undefined}:t));onBack()}} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>RESTORE</Btn>
             <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>Permanently Delete</Btn>
@@ -605,11 +608,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </div>
         </CollapsibleSection>
       </> : <>
-        <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
-            {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
-            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
-          </>}>
+        <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}}>
+        {/* Controls on their own row beneath the title (Ohad) — wraps cleanly on
+            mobile instead of crowding the header. Order: sort → portal-visibility
+            → + New Program (the primary create action, last). */}
+        <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',marginBottom:12}}>
+          <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid var(--c-ghostBd)`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+          {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
+          <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
+        </div>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
         </CollapsibleSection>
       </>}
