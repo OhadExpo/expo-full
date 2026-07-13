@@ -73,6 +73,24 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
 
   useEffect(() => { reload(); }, [reload]);
 
+  // Hydrate seenAt from the DB on mount (survives a dropped localStorage),
+  // taking the LATER of the local + server timestamps so a mark-read on any
+  // device/session wins and the inbox never "resets" on reload (Ohad).
+  useEffect(() => {
+    let cancelled = false;
+    supabase.from('store').select('value').eq('key', SEEN_KEY).maybeSingle().then(({ data }) => {
+      if (cancelled || !data) return;
+      const dbAt = typeof data.value === 'string' ? data.value : (data.value && data.value.at) || '';
+      if (!dbAt) return;
+      setSeenAt(prev => {
+        const later = (!prev || new Date(dbAt).getTime() > new Date(prev).getTime()) ? dbAt : prev;
+        try { localStorage.setItem(SEEN_KEY, later); } catch {}
+        return later;
+      });
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   // Realtime: refresh whenever a new message lands (coach or athlete).
   useEffect(() => {
     const ch = supabase
@@ -121,6 +139,12 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
     const now = new Date().toISOString();
     try { localStorage.setItem(SEEN_KEY, now); } catch {}
     setSeenAt(now);
+    // Persist server-side too — localStorage alone is fragile on mobile
+    // (private mode / PWA storage can drop it on reload), which made the inbox
+    // "reset" and re-show already-handled messages (Ohad). The store row is the
+    // source of truth on reload; localStorage stays a fast local cache.
+    supabase.from('store').upsert({ key: SEEN_KEY, value: now, updated_at: now })
+      .then(({ error }) => { if (error) console.warn('seenAt persist failed:', error.message); });
   };
 
   const nameFor = (id) => {
