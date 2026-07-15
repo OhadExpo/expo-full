@@ -6,6 +6,12 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
+import { RefinedHeaderStrip, SectionLabel } from './ui';
+
+// Common lifts — quick-pick chips that set the analysed movement. The pose
+// engine keyword-matches this name to decide which joints to read, so picking
+// the right lift is what makes the ROM/tempo/depth numbers meaningful.
+const QUICK_LIFTS = ['Squat', 'Bench Press', 'Deadlift', 'Overhead Press', 'Row', 'Pull-Up'];
 
 const MovementLab   = lazy(() => import('./MovementLab'));
 const ARFormOverlay = lazy(() => import('./ARFormOverlay'));
@@ -110,7 +116,7 @@ function ToolLoading({ label }) {
 // OPEN). Editorial/linear layout — no nested card, no "use when" clutter — so
 // the launcher reads calm. Hover paints a soft cyan wash; live tools without a
 // camera are dimmed and marked.
-function ToolRow({ t, blocked, isLast, onOpen }) {
+function ToolRow({ t, blocked, isFirst, onOpen }) {
   const [hover, setHover] = useState(false);
   const active = hover && !blocked;
   return (
@@ -121,8 +127,8 @@ function ToolRow({ t, blocked, isLast, onOpen }) {
       onKeyDown={blocked ? undefined : (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
-        display: 'flex', alignItems: 'center', gap: 16, padding: '16px 12px',
-        borderTop: `1px solid ${C.cardBd}`, cursor: blocked ? 'not-allowed' : 'pointer',
+        display: 'flex', alignItems: 'center', gap: 16, padding: '15px 4px',
+        borderTop: isFirst ? 'none' : `1px solid ${C.cardBd}`, cursor: blocked ? 'not-allowed' : 'pointer',
         opacity: blocked ? 0.55 : 1, background: active ? 'rgba(57,189,255,0.05)' : 'transparent',
         transition: 'background .15s', outline: 'none',
       }}>
@@ -141,14 +147,7 @@ function ToolRow({ t, blocked, isLast, onOpen }) {
 export default function ReviewToolsView() {
   const [title, setTitle] = useState('Squat');
   const [tool, setTool]   = useState(null); // 'lab' | 'metrics' | 'jump' | 'live' | null
-  const [lastKey, setLastKey] = useState(null);
   const camOk = useRef(hasCameraApi());
-
-  // Restore the last tool the coach used (label only — never auto-open, that
-  // would hijack the camera).
-  useEffect(() => {
-    try { setLastKey(localStorage.getItem(LAST_TOOL_KEY)); } catch { /* noop */ }
-  }, []);
 
   // Lock body scroll while a fullscreen tool is mounted so the page behind
   // can't rubber-band on touch underneath the camera.
@@ -161,7 +160,7 @@ export default function ReviewToolsView() {
 
   const open = (key) => {
     setTool(key);
-    setLastKey(key);
+    // Remember the last tool used (not auto-opened — that would hijack the camera).
     try { localStorage.setItem(LAST_TOOL_KEY, key); } catch { /* noop */ }
   };
   const close = () => setTool(null);
@@ -170,26 +169,45 @@ export default function ReviewToolsView() {
 
   return (
     <div className="motion-rise" style={{ width: '100%' }}>
-      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, color: C.tm, textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: 8 }}>REVIEW · TOOLS</div>
-      <h2 style={{ fontFamily: FB, fontSize: 26, fontWeight: 800, letterSpacing: '-0.01em', color: C.tx, margin: '0 0 8px' }}>Measure the lift</h2>
-      <div style={{ color: C.tm, fontSize: 13, marginBottom: 22, fontFamily: FB, maxWidth: 560, lineHeight: 1.5 }}>
-        Camera &amp; pose tools to read a set you're reviewing — bar speed, range
-        of motion, jump power, live coaching. Owner trial; nothing is saved to
-        the athlete.
+      {/* Header card — cyan strip + intro + the lift selector, matching the
+          coach app's card/strip pattern (was a bespoke editorial layout). */}
+      <div style={{ marginBottom: 16, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
+        <RefinedHeaderStrip padY={14} padX={18} marginBottom={14}>
+          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>MEASURE THE LIFT</SectionLabel>
+        </RefinedHeaderStrip>
+        <div style={{ color: C.tm, fontSize: 13, fontFamily: FB, lineHeight: 1.5, maxWidth: 620, marginBottom: 16 }}>
+          Camera &amp; pose tools to read a set you're reviewing — bar speed, range
+          of motion, jump power, live coaching. Owner trial; nothing is saved to
+          the athlete.
+        </div>
+
+        {/* The lift being analysed. NOT cosmetic: the pose engine keyword-matches
+            this name to choose which joints to read, so it's what makes the ROM /
+            tempo / depth numbers meaningful. Jump auto-labels itself. */}
+        <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 3, textTransform: 'uppercase' }}>Lift being analysed</label>
+        <div style={{ fontFamily: FB, fontSize: 11, color: C.tm, marginBottom: 9, maxWidth: 480, lineHeight: 1.4 }}>
+          Tells the pose engine which joints to read — squat reads knee/hip depth, bench reads elbow lockout.
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+          {QUICK_LIFTS.map(l => {
+            const on = title.trim().toLowerCase() === l.toLowerCase();
+            return (
+              <button key={l} onClick={() => setTitle(l)} type="button"
+                style={{ background: on ? 'var(--c-sf2)' : 'transparent', border: `1px solid ${on ? C.ac : C.cardBd}`, color: on ? C.ac : C.tm, fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', padding: '6px 12px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>{l}</button>
+            );
+          })}
+        </div>
+        <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="…or type any lift, e.g. Front Squat"
+          style={{ width: '100%', maxWidth: 380, boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '10px 13px', borderRadius: 0, outline: 'none' }} />
       </div>
 
-      {/* Exercise name — drives the label/overlay for Lab / Metrics / Live.
-          Jump auto-labels itself, so this is scoped to the other three. */}
-      <div style={{ marginBottom: 22, maxWidth: 380 }}>
-        <label htmlFor="rt-exercise" style={{ display: 'block', fontFamily: FN, fontSize: 9, color: C.td, letterSpacing: '0.16em', fontWeight: 700, marginBottom: 7, textTransform: 'uppercase' }}>Exercise · for Lab / Metrics / Live</label>
-        <input id="rt-exercise" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Back Squat"
-          style={{ width: '100%', boxSizing: 'border-box', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tx, fontFamily: FB, fontSize: 14, padding: '11px 13px', borderRadius: 0, outline: 'none' }} />
-      </div>
-
-      {/* Tools as a calm linear list — hairline-divided full-width rows. */}
-      <div style={{ borderBottom: `1px solid ${C.cardBd}` }}>
-        {REVIEW_TOOLS.map(t => (
-          <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isLast={t.key === lastKey} onOpen={() => open(t.key)} />
+      {/* Tools card — hairline-divided rows inside the standard surface card. */}
+      <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '14px 18px' }}>
+        <RefinedHeaderStrip padY={14} padX={18} marginBottom={4}>
+          <SectionLabel as="div" style={{ color: '#FFFFFF', fontSize: C.alertLabelSize }}>TOOLS</SectionLabel>
+        </RefinedHeaderStrip>
+        {REVIEW_TOOLS.map((t, i) => (
+          <ToolRow key={t.key} t={t} blocked={t.live && !camOk.current} isFirst={i === 0} onOpen={() => open(t.key)} />
         ))}
       </div>
 

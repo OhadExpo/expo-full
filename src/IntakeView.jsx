@@ -9,9 +9,10 @@
 // sends a link to can submit. There is no public /intake landing page.
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { C, FN, FB, FH } from './theme';
-import { Btn, Modal, Card, Badge, isRefined5b, confirmToast, toast, SectionLabel, CollapsibleSection } from './ui';
+import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleSection, ConfirmDialog } from './ui';
 import { supabase } from './supabase';
 import { generateIntakeToken, getForm } from './intakeFormSchemas';
+import PayloadDetail from './IntakePayloadDetail';
 
 function fmt(iso) {
   if (!iso) return '—';
@@ -33,40 +34,6 @@ function ago(iso) {
 
 const RTL = /[֐-׿]/;
 
-function PayloadDetail({ form, payload }) {
-  if (!form) return <div style={{ color: C.tm, fontSize: 13 }}>Form schema unknown.</div>;
-  return (
-    <div style={{ direction: form.locale === 'he' ? 'rtl' : 'ltr', fontFamily: form.locale === 'he' ? FH : FB }}>
-      {form.questions.map(q => {
-        const v = payload?.[q.id];
-        const isArr = Array.isArray(v);
-        const isEmpty = v == null || v === '' || (isArr && v.length === 0);
-        return (
-          <div key={q.id} style={{ marginBottom: 12, paddingBottom: 10, borderBottom: `1px solid rgba(57,189,255,0.149)` }}>
-            <div style={{ fontFamily: FN, fontSize: 10, color: C.tm, letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>{q.label}</div>
-            {isArr && !isEmpty ? (
-              // multichoice — render selected options as cyan chips
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {v.map((opt, i) => (
-                  <span key={i} style={{
-                    padding: '3px 10px', border: `1px solid ${C.ac}`, color: C.ac,
-                    fontFamily: form.locale === 'he' ? FH : FN, fontSize: 12,
-                    direction: /[֐-׿]/.test(String(opt)) ? 'rtl' : 'ltr',
-                  }}>{String(opt)}</span>
-                ))}
-              </div>
-            ) : (
-              <div style={{ fontFamily: form.locale === 'he' ? FH : FB, fontSize: 14, color: isEmpty ? C.td : C.tx, fontStyle: isEmpty ? 'italic' : 'normal', whiteSpace: 'pre-wrap' }}>
-                {isEmpty ? '—' : String(v)}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function IntakeView({ trainees }) {
   const [submissions, setSubmissions] = useState(null);
   const [tokens, setTokens] = useState([]);
@@ -77,6 +44,7 @@ export default function IntakeView({ trainees }) {
   const [genForm, setGenForm] = useState({ formType: 'initial', locale: 'he', traineeId: '', label: '' });
   const [genResult, setGenResult] = useState(null); // { url, label }
   const [genError, setGenError] = useState('');
+  const [pendingDelete, setPendingDelete] = useState(null); // { kind:'token'|'submission', key } — centered delete confirm
 
   const reload = useCallback(async (ctx) => {
     // ctx is an opt-in cancellation handle from the mount effect. Manual
@@ -149,10 +117,19 @@ export default function IntakeView({ trainees }) {
     try { const { error } = await supabase.from('intake_submissions').update({ reviewed_at: null }).eq('id', id); if (error) throw error; } catch (e) { toast('Could not undo — reload to check: ' + (e.message || e), 'error'); }
   };
   const deleteSubmission = async (id) => {
-    // confirmToast — iOS PWA blocks the native confirm() dialog.
-    if (!(await confirmToast('Delete this submission permanently?', { okLabel: 'Delete', cancelLabel: 'Cancel' }))) return;
+    // Actual removal — gated by the centered ConfirmDialog (Ohad: deletes get
+    // a popup verification, consistent with the unused-link delete). Optimistic,
+    // but reload() on failure so a row that didn't actually delete comes back.
     setSubmissions(curr => (curr || []).filter(s => s.id !== id));
-    try { const { error } = await supabase.from('intake_submissions').delete().eq('id', id); if (error) throw error; } catch (e) { toast('Delete failed — reload to check: ' + (e.message || e), 'error'); }
+    try { const { error } = await supabase.from('intake_submissions').delete().eq('id', id); if (error) throw error; } catch (e) { toast('Delete failed — restoring: ' + (e.message || e), 'error'); reload(); }
+  };
+  const deleteToken = async (token) => {
+    // Actual removal — the centered ConfirmDialog gates this (Ohad: delete
+    // needs a popup verification, not the bottom confirm-toast). Keyed on the
+    // token PK (not id). Optimistic; reload() on failure restores the link so
+    // it can't silently vanish from the UI while still live in the DB.
+    setTokens(curr => (curr || []).filter(t => t.token !== token));
+    try { const { error } = await supabase.from('intake_tokens').delete().eq('token', token); if (error) throw error; } catch (e) { toast('Delete failed — restoring: ' + (e.message || e), 'error'); reload(); }
   };
 
   const generateLink = async () => {
@@ -231,10 +208,16 @@ export default function IntakeView({ trainees }) {
                   <span style={{ color: C.tm }}>{t.locale.toUpperCase()}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
                   <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
-                  <button onClick={async () => { try { await navigator.clipboard.writeText(url); } catch {} }}
-                    style={{ marginLeft: 'auto', background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
-                    Copy URL
-                  </button>
+                  <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
+                    <button onClick={async () => { try { await navigator.clipboard.writeText(url); } catch {} }}
+                      style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.ac, padding: '3px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', cursor: 'pointer', borderRadius: 0 }}>
+                      Copy URL
+                    </button>
+                    <button onClick={() => setPendingDelete({ kind: 'token', key: t.token })} title="Delete this unused link" aria-label="Delete link"
+                      style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '3px 9px', fontFamily: FN, fontSize: 11, fontWeight: 700, lineHeight: 1, cursor: 'pointer', borderRadius: 0 }}>
+                      ✕
+                    </button>
+                  </span>
                 </div>
               );
             })}
@@ -272,7 +255,7 @@ export default function IntakeView({ trainees }) {
               ) : (
                 <button onClick={() => markReviewed(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.gn}`, color: C.gn, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.18em', cursor: 'pointer', borderRadius: 0 }}>✓ DONE</button>
               )}
-              <button onClick={() => deleteSubmission(s.id)} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', borderRadius: 0 }}>✕</button>
+              <button onClick={() => setPendingDelete({ kind: 'submission', key: s.id })} style={{ background: 'var(--c-sf)', border: `1px solid ${C.rd}`, color: C.rd, padding: '4px 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, cursor: 'pointer', borderRadius: 0 }}>✕</button>
             </div>
           </div>
         </Card>
@@ -350,6 +333,21 @@ export default function IntakeView({ trainees }) {
           </div>
         )}
       </Modal>
+
+      {/* Centered confirm popup for both delete flows — unused link + submission (Ohad). */}
+      <ConfirmDialog
+        open={!!pendingDelete}
+        title={pendingDelete?.kind === 'token' ? 'Delete link?' : 'Delete submission?'}
+        message={pendingDelete?.kind === 'token'
+          ? "This unused intake link will be permanently removed. Anyone you already sent it to won't be able to open the form."
+          : 'This submitted intake will be permanently removed. This cannot be undone.'}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          const p = pendingDelete; setPendingDelete(null);
+          if (p?.kind === 'token') deleteToken(p.key);
+          else if (p?.kind === 'submission') deleteSubmission(p.key);
+        }}
+      />
     </div>
   );
 }

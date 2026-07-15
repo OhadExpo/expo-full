@@ -20,6 +20,7 @@ import TraineeCRM from './TraineeCRM';
 import CoachMessages from './CoachMessages';
 import CoachContractComposer from './CoachContractComposer';
 import TraineeEvaluation from './TraineeEvaluation';
+import TraineeIntake from './TraineeIntake';
 import { emailsToArr, emailsToStore, emailsDisplay, traineeIdsFor, subMemberId, sortProgramsChrono } from './traineeUtils';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 
@@ -621,8 +622,16 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </CollapsibleSection>
       </>}
 
-      {/* === ATHLETIC EVALUATION — slot #9 */}
-      {td && <TraineeEvaluation trainee={td} />}
+      {/* === ATHLETIC EVALUATION + INTAKE — slot #9. Grouped as one "who is
+          this athlete" block: a top gap sets the pair apart from Assigned
+          Programs above, while the two sit tight together (Ohad). */}
+      {td && (
+        <div style={{ marginTop: 28 }}>
+          <TraineeEvaluation trainee={td} />
+          {/* Renders nothing until an intake is submitted. */}
+          <TraineeIntake trainee={td} />
+        </div>
+      )}
 
       {/* === PROGRESSIVE OVERLOAD — slot #10. Now the single progression
           hub: the table is the overview, each row expands into the lift's

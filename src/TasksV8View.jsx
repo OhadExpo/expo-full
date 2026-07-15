@@ -429,27 +429,27 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
 
 // Shared width for the three toolbar filter rows (owner tabs / sort / quick
 // filters) so they END at the same x — buttons flex to fill it (Ohad).
-const FILTER_GROUP_W = 460;
+const FILTER_GROUP_W = 492;
 // Shared width for the RIGHT column (LIST/BOARD · STATUS/CATEGORY · SEARCH) so
 // all three rows start AND end at the same x — buttons flex to fill (Ohad).
 const HEADER_RIGHT_W = 210;
-function OwnerTab({ label, count, active, onClick }) {
-  // Monochrome: active = white outline, not a colour fill (Ohad: the page was
-  // too colourful — only green/red status pills keep colour). Hover via .tfbtn.
+// One segment of the owner segmented control. Monochrome: active = filled
+// surface + white text, NOT a colour (Ohad: page too colourful — only status
+// pills keep colour). `first` omits the left divider. Hover via .tfbtn.
+function OwnerTab({ label, count, active, onClick, first }) {
   return (
     <button onClick={onClick} className="tfbtn" data-active={active ? '' : undefined} style={{
-      flex: 1, minWidth: 0,
+      flex: 1, minWidth: 0, height: '100%',
       background: active ? 'var(--c-sf2)' : 'transparent',
       color: active ? 'var(--c-tx)' : 'var(--c-tm)',
-      border: `1px solid ${active ? 'var(--c-tx)' : 'var(--c-cardBd)'}`,
+      border: 'none', borderLeft: first ? 'none' : `1px solid var(--c-cardBd)`,
       fontFamily: FN, fontSize: 10, fontWeight: 700,
-      letterSpacing: '0.12em', padding: '0 14px', height: 28,
-      cursor: 'pointer', borderRadius: 0,
-      textTransform: 'uppercase', display: 'inline-flex',
+      letterSpacing: '0.12em', padding: '0 14px',
+      cursor: 'pointer', textTransform: 'uppercase', display: 'inline-flex',
       alignItems: 'center', justifyContent: 'center', gap: 8, boxSizing: 'border-box',
     }}>
       <span>{label}</span>
-      <span style={{ opacity: 0.78, fontSize: 10 }}>{count}</span>
+      <span style={{ opacity: 0.6, fontSize: 9, fontWeight: 700 }}>{count}</span>
     </button>
   );
 }
@@ -464,17 +464,17 @@ function ViewToggle({ value, onChange }) {
     <div style={{
       display: 'flex', width: '100%',
       border: `1px solid var(--c-cardBd)`,
-      borderRadius: 0, height: 28, boxSizing: 'border-box',
+      borderRadius: 0, height: 30, boxSizing: 'border-box',
     }}>
       {items.map((it, i) => (
         <button key={it.id} onClick={() => onChange(it.id)} className="tfbtn" data-active={value === it.id ? '' : undefined} style={{
-          flex: 1,
+          flex: 1, height: '100%',
           background: value === it.id ? 'var(--c-sf2)' : 'transparent',
           color: value === it.id ? 'var(--c-tx)' : 'var(--c-tm)',
           border: 'none',
           borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
           fontFamily: FN, fontSize: 10, fontWeight: 700,
-          letterSpacing: '0.12em', padding: '0 14px', height: 26,
+          letterSpacing: '0.12em', padding: '0 14px',
           cursor: 'pointer', textTransform: 'uppercase',
         }}>{it.label}</button>
       ))}
@@ -491,18 +491,14 @@ const SORT_MODES = [
   { id: 'manual',   label: 'Manual' },   // hand-ordered; drag a card onto another to reorder
 ];
 function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
-  const BOX_H = 28;
-  const boxBase = {
-    minHeight: BOX_H, height: BOX_H, padding: '0 12px', borderRadius: 0,
+  const seg = (active, first) => ({
+    height: '100%', padding: '0 4px', borderRadius: 0,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     fontFamily: FN, fontWeight: 700, cursor: 'pointer', boxSizing: 'border-box',
-  };
-  const pill = (active) => ({
-    ...boxBase,
-    border: `1px solid ${active ? 'var(--c-tx)' : C.cardBd}`,
+    border: 'none', borderLeft: first ? 'none' : `1px solid var(--c-cardBd)`,
     background: active ? 'var(--c-sf2)' : 'transparent',
     color: active ? 'var(--c-tx)' : C.tm,
-    fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+    fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase',
   });
   // When a mode is ACTIVE its button shows the direction as a word that flips on
   // click (↓ Newest ⇄ ↑ Oldest); inactive buttons show the plain mode name. No
@@ -529,14 +525,15 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
     <div style={{
       display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 12,
     }}>
-      {/* sort modes + dir share the same total width as the owner/quick rows */}
-      <div style={{ display: 'flex', gap: 6, width: '100%', maxWidth: FILTER_GROUP_W }}>
-        {SORT_MODES.map(m => {
+      {/* sort modes + dir = one segmented control, same total width as the
+          owner/quick rows. No gaps → each mode has room for its active label. */}
+      <div style={{ display: 'flex', width: '100%', maxWidth: FILTER_GROUP_W, height: 30, border: `1px solid var(--c-cardBd)`, boxSizing: 'border-box' }}>
+        {SORT_MODES.map((m, i) => {
           const active = sortBy === m.id;
           return (
             <button key={m.id} onClick={() => active ? onToggleDir() : onSortBy(m.id)} className="tfbtn" data-active={active ? '' : undefined}
               title={active ? (m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : `Sort by ${m.label}`}
-              style={{ ...pill(active), flex: 1, minWidth: 0, padding: '0 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              style={{ ...seg(active, i === 0), flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {active ? (() => { const { a, t } = activeDirParts(m.id); return (
                 <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4, minWidth:0 }}>
                   {a && <span aria-hidden="true" style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:9, height:9, fontSize:9, lineHeight:1, flexShrink:0 }}>{a}</span>}
@@ -569,27 +566,28 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
   return (
     <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
     <div style={{
-      display: 'flex', gap: 6, width: '100%', maxWidth: FILTER_GROUP_W,
+      display: 'flex', width: '100%', maxWidth: FILTER_GROUP_W,
+      height: 30, border: `1px solid var(--c-cardBd)`, boxSizing: 'border-box',
     }}>
-      {QUICK_FILTERS.map(f => {
+      {/* Hide chips with zero count (except 'all'); compute the visible set
+          first so the segmented dividers land on real edges. */}
+      {QUICK_FILTERS.filter(f => f.id === 'all' || (counts[f.id] ?? 0) > 0).map((f, i) => {
         const active = value === f.id;
         const c = counts[f.id] ?? 0;
-        // Hide chips that have zero count, except 'all' which always shows.
-        if (f.id !== 'all' && c === 0) return null;
         return (
           <button key={f.id} onClick={() => onChange(f.id)} className="tfbtn" data-active={active ? '' : undefined} style={{
-            flex: 1, minWidth: 0,
+            flex: 1, minWidth: 0, height: '100%',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             background: active ? 'var(--c-sf2)' : 'transparent',
             color: active ? 'var(--c-tx)' : 'var(--c-tm)',
-            border: `1px solid ${active ? 'var(--c-tx)' : 'var(--c-cardBd)'}`,
+            border: 'none', borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
             fontFamily: FN, fontSize: 10, fontWeight: 700,
-            letterSpacing: '0.12em', padding: '0 12px', height: 28,
-            cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
+            letterSpacing: '0.10em', padding: '0 10px',
+            cursor: 'pointer', textTransform: 'uppercase',
             boxSizing: 'border-box',
           }}>
             <span>{f.label}</span>
-            <span style={{ opacity: 0.65, fontSize: 9 }}>{c}</span>
+            <span style={{ opacity: 0.55, fontSize: 9 }}>{c}</span>
           </button>
         );
       })}
@@ -610,7 +608,7 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
       onChange={(e) => onSearch(e.target.value)}
       placeholder="Search…"
       style={{
-        height: 28, minHeight: 28, boxSizing: 'border-box', padding: '0 10px',
+        height: 30, minHeight: 30, boxSizing: 'border-box', padding: '0 10px',
         borderRadius: 0, cursor: 'text',
         background: 'transparent', color: 'var(--c-tx)',
         border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 11, fontWeight: 500,
@@ -2309,12 +2307,12 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         display: 'flex', gap: 8, marginBottom: 12,
         flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
       }}>
-        <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: FILTER_GROUP_W }}>
+        <div style={{ display: 'flex', width: '100%', maxWidth: FILTER_GROUP_W, height: 30, border: `1px solid var(--c-cardBd)`, boxSizing: 'border-box' }}>
           {/* Both partners see all three tabs so each can SEE the other's
               tasks; tasks owned solely by the other partner render read-only
               (no status change / calendar edit) — only your own + shared are
               editable. Default tab is the viewer's own (clamped on mount). */}
-          <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} />
+          <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} first />
           <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')} />
           <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
         </div>
@@ -2328,14 +2326,14 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         onSortBy={setSortBy}
         onToggleDir={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
         rightSlot={(
-          <div style={{ display: 'flex', width: HEADER_RIGHT_W, flexShrink: 0, border: `1px solid var(--c-cardBd)`, borderRadius: 0, height: 28, boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', width: HEADER_RIGHT_W, flexShrink: 0, border: `1px solid var(--c-cardBd)`, borderRadius: 0, height: 30, boxSizing: 'border-box' }}>
             {[{ id: 'status', label: 'Status' }, { id: 'list', label: 'Category' }].map((g, i) => (
               <button key={g.id} onClick={() => setBoardGroup(g.id)} className="tfbtn" data-active={boardGroup === g.id ? '' : undefined} style={{
-                flex: 1,
+                flex: 1, height: '100%',
                 background: boardGroup === g.id ? 'var(--c-sf2)' : 'transparent',
                 color: boardGroup === g.id ? 'var(--c-tx)' : 'var(--c-tm)',
                 border: 'none', borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
-                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', padding: '0 12px', height: 26,
+                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', padding: '0 12px',
                 cursor: 'pointer', textTransform: 'uppercase',
               }}>{g.label}</button>
             ))}
