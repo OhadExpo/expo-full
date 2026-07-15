@@ -608,15 +608,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </div>
         </CollapsibleSection>
       </> : <>
-        <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}}>
-        {/* Controls on their own row beneath the title (Ohad) — wraps cleanly on
-            mobile instead of crowding the header. Order: sort → portal-visibility
-            → + New Program (the primary create action, last). */}
-        <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',marginBottom:12}}>
-          <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid var(--c-ghostBd)`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
-          {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
-          <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
-        </div>
+        {/* Controls live in the always-visible header (right slot) so + New
+            Program / sort / visibility stay reachable even when the program list
+            is collapsed. Clean order: sort → portal-visibility → + New Program
+            (primary, last); wraps under the title on narrow widths. */}
+        <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
+            <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid var(--c-ghostBd)`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
+            {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
+            <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
+          </>}>
         {tp.length===0?<div style={{color:C.td,fontSize:13}}>No programs assigned.</div>:renderProgramsList()}
         </CollapsibleSection>
       </>}

@@ -16,6 +16,7 @@ import { C, FN, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState } from './ui';
 import { useTheme } from './hooks/useTheme';
 import { supabase } from './supabase';
+import { enqueue } from './offlineQueue';
 
 const SEEN_KEY = 'expo-msgs-seen-at';
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
@@ -141,10 +142,11 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
     setSeenAt(now);
     // Persist server-side too — localStorage alone is fragile on mobile
     // (private mode / PWA storage can drop it on reload), which made the inbox
-    // "reset" and re-show already-handled messages (Ohad). The store row is the
-    // source of truth on reload; localStorage stays a fast local cache.
-    supabase.from('store').upsert({ key: SEEN_KEY, value: now, updated_at: now })
-      .then(({ error }) => { if (error) console.warn('seenAt persist failed:', error.message); });
+    // "reset" and re-show already-handled messages (Ohad). Routed through the
+    // offlineQueue (same path as every other store write) so a flaky/offline
+    // tap is retried instead of silently lost. The store row is the source of
+    // truth on reload; localStorage stays a fast local cache.
+    enqueue({ type: 'store.upsert', payload: { key: SEEN_KEY, value: now }, dedupeKey: SEEN_KEY });
   };
 
   const nameFor = (id) => {

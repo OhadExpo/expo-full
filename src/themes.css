@@ -1,6 +1,14 @@
 /* src/themes.css — single source of truth for theme tokens.
    Consumed by all inline styles via var(--c-*) values exported from theme.js. */
 
+/* Fallback for browsers WITHOUT color-mix() (e.g. iOS Safari < 16.2): give the
+   ghost/secondary button border a static value so it never resolves to an invalid
+   colour and disappears. Modern browsers use the color-mix() value from :root. */
+@supports not (color: color-mix(in srgb, red, transparent)) {
+  :root { --c-ghostBd: rgba(255,255,255,0.34); }
+  :root[data-theme="light"] { --c-ghostBd: rgba(18,26,38,0.30); }
+}
+
 /* Dashboard alert blocks — a drag-to-pan horizontal rail (Ohad). Each block is a
    fixed-width column so the row scrolls instead of squashing; on narrow screens
    a block is ~viewport-wide so the next one peeks, inviting the drag. */
@@ -59,11 +67,13 @@
   --c-acSurface: #39BDFF;
   --c-acOnSurface: #ffffff;
   --c-cardBd: rgba(57,189,255,0.30);  /* canonical card border — cyan-30% on dark */
-  /* Ghost/secondary BUTTON border. A semi-transparent slice of the muted-text
-     colour so it always contrasts the surface: reads near-white on dark (Ohad:
-     "white, not full opacity"), dark on light — visible on grey page bg AND on
-     white cards, unlike the faint cyan cardBd it replaces. Defined once on the
-     base :root; each theme overrides --c-tm, so this recomputes per theme. */
+  /* Ghost/secondary BUTTON border. A semi-transparent slice of the high-contrast
+     TEXT colour (--c-tx) so it always contrasts the surface: reads near-white on
+     dark (Ohad: "white, not full opacity"), near-black on light — visible on the
+     grey page bg AND on white cards, unlike the faint cyan cardBd it replaces.
+     Defined once on the base :root; each theme overrides --c-tx, so this recomputes
+     per theme. Static @supports fallback at the top of this file covers browsers
+     without color-mix() (old iOS Safari) so ghost borders never disappear. */
   --c-ghostBd: color-mix(in srgb, var(--c-tx) 34%, transparent);
   --c-rd: #FF4757;
   --c-rdD: rgba(255,71,87,0.10);

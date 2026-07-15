@@ -534,11 +534,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 20, alignItems: "center" }}>
         <div style={{ flex: 1 }}><input placeholder="Search athletes..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...baseInput, paddingLeft: 12, height: 48, padding: '0 16px', fontSize: 15, border: `1px solid ${C.ac}` }} /></div>
-        <button onClick={() => setShowArchived(!showArchived)} style={{ background: isRefined5b() ? 'transparent' : 'var(--c-sf)', border: `${showArchived?'1px':'0.25px'} solid ${showArchived ? C.rd : C.cardBd}`, borderRadius: 0, height: 40, padding: "0 18px", color: showArchived ? C.rd : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: "pointer", display: 'inline-flex', alignItems: 'center' }}>
+        <button onClick={() => setShowArchived(!showArchived)} style={{ background: isRefined5b() ? 'transparent' : 'var(--c-sf)', border: `${showArchived?'1px':'0.25px'} solid ${showArchived ? C.rd : C.cardBd}`, borderRadius: 0, height: 48, boxSizing: 'border-box', padding: "0 18px", color: showArchived ? C.rd : C.tm, fontFamily: FN, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: "pointer", display: 'inline-flex', alignItems: 'center' }}>
           {showArchived ? `Archive (${archived.length})` : `Archive (${archived.length})`}
         </button>
         <div ref={addMenuRef} style={{position:'relative'}}>
-          <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ height: 40, padding: '0 18px' }}>+ Add Athlete ▾</Btn>
+          <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ height: 48, boxSizing: 'border-box', padding: '0 18px' }}>+ Add Athlete ▾</Btn>
           {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
             {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple']].map(([label,format])=>(
               <button key={format} onClick={()=>{
