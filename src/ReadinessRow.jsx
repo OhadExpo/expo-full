@@ -49,7 +49,7 @@ export default function ReadinessRow({ data, showTitle = false, style }) {
       {showTitle && <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>READINESS</div>}
       {/* PAIN / SLEEP / ENERGY on a single row below the title — no wrapping, so
           the three metrics always line up together (Ohad). Labels white. */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, flexWrap: 'nowrap', overflowX: 'auto', maxWidth: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 28, flexWrap: 'nowrap', overflowX: 'auto', maxWidth: '100%' }}>
         {items.map(m => (
           <span key={m.key} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
             <span style={{ fontSize: 8, fontFamily: FN, color: C.tx, letterSpacing: '0.14em', fontWeight: 700 }}>{m.label}</span>

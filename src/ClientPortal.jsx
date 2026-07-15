@@ -2787,9 +2787,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                     caps (Ohad). Size-aware: caps ≈ 0.72·fontSize, so half the
                     cap-height gap is 0.36·(size−10). Fixes both the baseline-low
                     and the box-center-high looks. */}
-                <span style={{display:'inline-flex',alignItems:'baseline',gap:7,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
+                <span style={{display:'inline-flex',alignItems:'center',gap:7,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
                   <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
-                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,position:'relative',bottom:`${Math.max(0,(size-10)*0.36)}px`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
+                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
                 {extras}
               </div>
