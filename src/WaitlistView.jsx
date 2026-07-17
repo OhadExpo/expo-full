@@ -178,8 +178,10 @@ export default function WaitlistView({ trainees }) {
     if (error) { toast('Update failed: ' + error.message, 'error'); reload(); }
   };
   const undoContacted = async (id) => {
-    setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, consumed_at: null } : l));
-    const { error } = await supabase.from('leads').update({ consumed_at: null }).eq('id', id);
+    // Also reset stage → 'lead', else the list reads NEW (consumed_at null) while
+    // the board still shows the card in CONTACTED and the funnel disagrees.
+    setLeads(curr => (curr || []).map(l => l.id === id ? { ...l, consumed_at: null, stage: 'lead' } : l));
+    const { error } = await supabase.from('leads').update({ consumed_at: null, stage: 'lead' }).eq('id', id);
     if (error) { toast('Update failed: ' + error.message, 'error'); reload(); }
   };
   const removeLead = async (id) => {

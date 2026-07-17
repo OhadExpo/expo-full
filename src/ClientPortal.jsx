@@ -1428,7 +1428,16 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     </div></div>;
 
   // ===== EXERCISE STEP (single exercise OR grouped superset) =====
-  const group = groups[step]; if (!group) return null;
+  // A thin/empty day (name-only Drive import, 0 exercises) has no groups, so
+  // groups[step] is undefined. Returning null stranded the athlete on a blank
+  // screen with no way out — render an EXIT affordance instead.
+  const group = groups[step];
+  if (!group) return (
+    <div style={{ padding: '40px 20px', textAlign: 'center', minHeight: '60vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 18 }}>
+      <div style={{ fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: '0.08em', lineHeight: 1.6 }}>This day has no exercises yet.<br />Check back once your coach adds them.</div>
+      <button onClick={onBack} style={{ background: 'transparent', border: `1px solid ${C.ac}`, color: C.ac, cursor: 'pointer', fontFamily: FN, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', padding: '10px 22px', borderRadius: 0 }}>← EXIT</button>
+    </div>
+  );
   const isSuperset = group.exIdxs.length > 1 && !!group.superset;
   // Stub-fill any unresolved entry instead of silently dropping it — a missing
   // EX[eid] used to make exercises vanish from the day, masquerading as data

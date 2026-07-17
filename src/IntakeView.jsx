@@ -205,7 +205,7 @@ export default function IntakeView({ trainees }) {
               return (
                 <div key={t.token} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: FB }}>
                   <Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{t.form_type}</Badge>
-                  <span style={{ color: C.tm }}>{t.locale.toUpperCase()}</span>
+                  <span style={{ color: C.tm }}>{(t.locale || '').toUpperCase()}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}
                   <span style={{ color: C.td }}>· {ago(t.created_at)} ago</span>
                   <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6 }}>
