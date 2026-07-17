@@ -100,9 +100,20 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress }
     // different people, producing a huge fake velocity spike.
     let prevCentroid = null;
     for (let i = 0; i < total; i++) {
-      const time = Math.min(dur - 0.001, i * STEP);
+      // +0.001 so the first sample (i=0) never seeks to the already-current
+      // position 0 — that assignment fires no 'seeked' event in Chromium and
+      // would hang the await forever ("READING THE MOVEMENT…" stuck).
+      const time = Math.min(dur - 0.001, i * STEP + 0.001);
       v.currentTime = time;
-      await new Promise((res) => { v.onseeked = () => res(); });
+      // Race the seek against a timeout + error handler so a seek that never
+      // resolves (already-current position, undecodable/duplicate target)
+      // can't stall the whole capture pass.
+      await new Promise((res) => {
+        let settled = false;
+        const done = () => { if (!settled) { settled = true; res(); } };
+        v.onseeked = done; v.onerror = done;
+        setTimeout(done, 600);
+      });
       let r = null;
       try { r = lm.detectForVideo(v, Math.round(time * 1000) + i); } catch {}
       const { idx: si, centroid } = pickSubjectIdx(r?.landmarks, prevCentroid);
@@ -174,11 +185,16 @@ export default function MovementLab({
     let res = null;
     try { res = lm.detectForVideo(v, now); } catch { res = null; }
     if (res?.worldLandmarks?.[0]) {
-      framesRef.current.push({
-        t: now - recStartRef.current,
-        landmarks: res.landmarks?.[0] || null,
-        worldLandmarks: res.worldLandmarks[0],
-      });
+      // Backstop against a forgotten/very-long recording growing unbounded (each
+      // frame is 33 landmark objects and analyzeClip does O(n) passes). ~90s at
+      // 60fps / 180s at 30fps — far beyond any real set, but caps memory.
+      if (framesRef.current.length < 5400) {
+        framesRef.current.push({
+          t: now - recStartRef.current,
+          landmarks: res.landmarks?.[0] || null,
+          worldLandmarks: res.worldLandmarks[0],
+        });
+      }
       drawLive(liveCanvasRef.current, v, res.landmarks?.[0]);
     } else {
       drawLive(liveCanvasRef.current, v, null);
@@ -221,6 +237,10 @@ export default function MovementLab({
         });
       }, 1000);
     } catch (e) {
+      // If the camera opened but pose init (or play) then failed, release the
+      // stream — otherwise the camera LED stays on behind the error screen with
+      // no control to stop it until unmount.
+      if (streamRef.current) { stopStream(streamRef.current); streamRef.current = null; }
       setPhase('idle'); setError(e?.message || 'Could not start the camera.');
     }
   }, [facingMode, beginCapture]);

@@ -143,7 +143,12 @@ export default function ARFormOverlay({ exerciseTitle = 'Squat', facingMode = 'e
       setReps(0); setMoving('top');
       setPhase('live');
       rafRef.current = requestAnimationFrame(loop);
-    } catch (e) { setPhase('idle'); setError(e?.message || 'Could not start the camera.'); }
+    } catch (e) {
+      // Release the camera if it opened but pose init/play then failed — else
+      // the LED stays on behind the error screen (no stop control here).
+      if (streamRef.current) { stopStream(streamRef.current); streamRef.current = null; }
+      setPhase('idle'); setError(e?.message || 'Could not start the camera.');
+    }
   }, [loop]);
 
   // Swap front/rear without tearing down the pose engine. Re-lock the bar since

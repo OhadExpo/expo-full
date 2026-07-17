@@ -196,6 +196,10 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
       setStatus('counting');
       rafRef.current = requestAnimationFrame(frameLoop);
     } catch (e) {
+      // Release the camera if it opened but pose load then failed — otherwise
+      // the LED stays on behind the error state. (camera audit)
+      try { streamRef.current?.getTracks().forEach(t => t.stop()); } catch { /* ignore */ }
+      streamRef.current = null;
       setStatus('idle');
       setError(e.message || 'Could not start counting.');
     }
