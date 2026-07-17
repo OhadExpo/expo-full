@@ -259,6 +259,19 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
 
   useEffect(() => { reload(); }, [reload]);
 
+  // Live: the other party's message appears in an OPEN thread without a reload.
+  // coach_messages is already in the realtime publication (the Dashboard inbox
+  // card subscribes to it), so this needs no DDL — just a filtered INSERT
+  // listener that re-pulls. RLS scopes what each role can read.
+  useEffect(() => {
+    if (!traineeId || demoMode) return;
+    const ch = supabase
+      .channel(`coach-msg-thread-${role}-${traineeId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'coach_messages', filter: `trainee_id=eq.${traineeId}` }, () => reload())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [traineeId, role, demoMode, reload]);
+
   const send = async ({ body_text, audio_url, duration_sec }) => {
     if (demoMode) { toast('Preview only — message not sent.', 'info', { ttl: 3000 }); return; }
     const row = { trainee_id: traineeId, sender_role: role, body_text, audio_url, duration_sec };
