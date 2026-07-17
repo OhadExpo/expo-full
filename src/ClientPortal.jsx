@@ -2198,12 +2198,19 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           const weekDays = (primaryPlan?.days || []).filter(d => d.kind !== 'daily');
           const weeks = Number(primaryPlan?.weeks) || Number(primaryPlan?.data?.weeks) || 4;
           const dayNames = new Set(weekDays.map(d => d.name));
-          const loggedWeeks = cw.map(w => w.week).filter(n => Number.isFinite(n));
+          // Scope progress to THIS block only. Day names and week numbers repeat
+          // across blocks (week resets to 1, "Push/Pull"/"Day A" recur), so
+          // unscoped `cw` let a previous block's logs mark the current block's
+          // days done and skew THIS WEEK / N-LEFT for every returning athlete
+          // (audit H2). Mirrors the planName-scoped pattern used elsewhere here.
+          const pName = primaryPlan?.name;
+          const pcw = pName ? cw.filter(w => w.planName === pName) : cw;
+          const loggedWeeks = pcw.map(w => w.week).filter(n => Number.isFinite(n));
           const curWeek = loggedWeeks.length ? Math.max(...loggedWeeks) : 1;
-          const isDayDone = (d) => cw.some(w => w.dayName === d.name && w.week === curWeek);
+          const isDayDone = (d) => pcw.some(w => w.dayName === d.name && w.week === curWeek);
           const doneThisWeek = weekDays.filter(isDayDone).length;
           const total = weeks * weekDays.length;
-          const completed = new Set(cw.filter(w => dayNames.has(w.dayName) && w.week >= 1 && w.week <= weeks).map(w => w.week + '|' + w.dayName)).size;
+          const completed = new Set(pcw.filter(w => dayNames.has(w.dayName) && w.week >= 1 && w.week <= weeks).map(w => w.week + '|' + w.dayName)).size;
           const blockLeft = Math.max(0, total - completed);
           // v2 — one symmetric strip: three EQUAL cells, every cell the same
           // anatomy (label above, value below, both centered), so the row
@@ -2998,8 +3005,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // level kind='daily' (96e5f72 legacy shape) is treated as
           // "every day in this plan is daily" so old data renders the same.
           const isDailyRoutine = day.kind === 'daily' || vp.kind === 'daily';
-          const dailyCount = isDailyRoutine ? cw.filter(w => w.dayName === day.name).length : 0;
-          const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === wk + 1);
+          // Scope to THIS plan (vp.name) — day names + week numbers repeat
+          // across blocks, so unscoped `cw` marked a current-block day ✓/AGAIN
+          // from a PRIOR block's log, so the athlete could skip an untrained
+          // session (audit H2). Mirrors the planName-scoped pattern used above.
+          const dailyCount = isDailyRoutine ? cw.filter(w => w.dayName === day.name && w.planName === vp.name).length : 0;
+          const done = !isDailyRoutine && cw.some(w => w.dayName === day.name && w.week === wk + 1 && w.planName === vp.name);
           // doneBorderColor hoisted out of the inline template — the
           // build-time guard's parser mis-tracks single-quoted strings
           // inside nested ${ … } expressions (it's how the original bare
