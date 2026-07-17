@@ -1751,7 +1751,18 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
   useEscClose(!!deleteConfirmFor, () => { setDeleteConfirmFor(null); setDeleteConfirmText(''); });
   useEscClose(!!comparePicker, () => setComparePicker(null));
 
-  const nameOf = (cid) => (trainees || []).find(t => t.id === cid)?.name || cid || 'unknown';
+  const nameOf = (cid) => {
+    const t = (trainees || []).find(x => x.id === cid);
+    if (t) return t.name;
+    // Couple members log under `${parentId}__${i}` (no own row); resolve to the
+    // member's name like the other surfaces do, not the raw sub-id string.
+    const m = String(cid || '').match(/^(.*)__(\d+)$/);
+    if (m) {
+      const mem = (trainees || []).find(x => x.id === m[1])?.members?.[Number(m[2])];
+      if (mem?.name) return mem.name;
+    }
+    return cid || 'unknown';
+  };
 
   // Group workouts by client — use real trainee names, no hardcoded ID map.
   //
