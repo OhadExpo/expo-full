@@ -3022,7 +3022,8 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 {expanded && row.earlier.length > 0 && (
                   <div style={{borderTop:`1px solid ${C.cardBd}`}}>
                     {row.earlier.map((p, i) => (
-                      <div key={p.id} onClick={()=>handleOpenPlan(p.id)}
+                      <div key={p.id} role="button" tabIndex={0} onClick={()=>handleOpenPlan(p.id)}
+                        onKeyDown={e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); handleOpenPlan(p.id); } }}
                         onMouseEnter={e => { const x = e.clientX, y = e.clientY; clearTimeout(hoverTimerRef.current); hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 260); }}
                         onMouseLeave={cancelHover}
                         style={{cursor:openingId===p.id?'progress':'pointer',opacity:openingId===p.id?0.45:0.9,transition:'opacity 0.12s',padding:'10px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',borderTop:i===0?'none':`1px solid rgba(57,189,255,0.102)`}}>
