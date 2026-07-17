@@ -269,8 +269,13 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
   const [description, setDescription] = useState(initial?.description || '');
   const [goalType, setGoalType] = useState(initial?.goal_type || 'workouts_count');
   const [goalValue, setGoalValue] = useState(initial?.goal_value || '');
-  const [startAt, setStartAt] = useState(initial?.start_at?.slice(0, 10) || new Date().toISOString().slice(0, 10));
-  const [endAt, setEndAt] = useState(initial?.end_at?.slice(0, 10) || new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+  // Read stored instants as LOCAL dates (not a UTC slice). save() writes local
+  // midnight as a UTC instant, so `.slice(0,10)` read the UTC calendar day — a
+  // day early in Israel — and each edit+save walked the start back another day.
+  // Lazy init so it runs once; also corrects existing challenges' shown date.
+  const localDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const [startAt, setStartAt] = useState(() => localDay(initial?.start_at ? new Date(initial.start_at) : new Date()));
+  const [endAt, setEndAt] = useState(() => localDay(initial?.end_at ? new Date(initial.end_at) : new Date(Date.now() + 30 * 86400000)));
   const [participantIds, setParticipantIds] = useState(new Set(existingParticipants.map(p => p.trainee_id)));
   const [saving, setSaving] = useState(false);
 
