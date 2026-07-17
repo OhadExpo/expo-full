@@ -188,6 +188,10 @@ export function velocityMetrics(frames, angle, reps, barLandmark = 'wrist') {
       const inst = clampSpeed((b - a) / ((tb - ta) / 1000));
       if (inst != null && inst > peak) peak = inst;
     }
+    // Peak (max instantaneous) can never be below the mean; if the true peak
+    // frame-pair got clamped out on a fast rep, floor peak at the mean so the
+    // table never shows the physically-impossible PEAK < MEAN.
+    if (mean > peak) peak = mean;
     // startT (ms, clip-relative) — the top position before this rep's descent
     // begins. Lets a UI click-to-seek to "where rep N starts" (Review player).
     const startT = frames[startIdx]?.t;
