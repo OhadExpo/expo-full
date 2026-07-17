@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH, uid } from './theme';
 
@@ -48,8 +48,8 @@ function InlineVideo({ url }) {
   return null;
 }
 
-function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack }) {
-  const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); };
+function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack, onBroadcastSet }) {
+  const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); if (onBroadcastSet) { const eid = exs[ei].exerciseId; Object.entries(u).forEach(([k,v]) => onBroadcastSet(eid, si, k, v)); } };
   const updateEx = (ei,u) => { const exs=[...workout.exercises]; exs[ei]={...exs[ei],...u}; onUpdate({exercises:exs}); };
   // Group consecutive exercises that share a superset letter into one block —
   // like the athlete portal renders them — instead of a big "Group A" badge on
@@ -378,6 +378,47 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     setActive(w);
   };
   const updateActive = (updates) => setActive(prev => prev ? { ...prev, ...updates } : prev);
+  // Live two-way bridge for the SINGLE (1-on-1) session — mirrors the group
+  // session's. The coach's edits here broadcast to the athlete's portal, and
+  // the athlete's portal edits merge into this live logger. Same 'gym-session'
+  // channel + 'athlete-set' event as SessionsView; single-athlete so we match
+  // on active.traineeId (no athletes[] loop), map eid→exerciseId, and translate
+  // the portal's 'done' field to this view's 'completed'.
+  const chanRef = useRef(null);
+  useEffect(() => {
+    const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
+    ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
+      if (!p || !p.traineeId || !p.eid || p.si == null || !p.field) return;
+      setActive(prev => {
+        if (!prev || prev.traineeId !== p.traineeId) return prev;
+        if (p.planName && prev.planName && p.planName !== prev.planName) return prev;
+        if (p.dayName && prev.dayName && p.dayName !== prev.dayName) return prev;
+        const key = p.field === 'done' ? 'completed' : p.field;
+        let hit = false;
+        const exercises = prev.exercises.map(ex => {
+          if (ex.exerciseId !== p.eid || p.si >= (ex.sets || []).length) return ex;
+          const sets = ex.sets.map((s, i) => i === p.si ? { ...s, [key]: p.value } : s);
+          hit = true;
+          return { ...ex, sets };
+        });
+        return hit ? { ...prev, exercises } : prev;
+      });
+    });
+    ch.subscribe();
+    chanRef.current = ch;
+    return () => { chanRef.current = null; supabase.removeChannel(ch); };
+  }, []);
+  // Broadcast one coach set-edit to the athlete's portal. Reads the live
+  // `active` via closure (recreated each render), translates 'completed'→'done'.
+  const broadcastSet = (eid, si, field, value) => {
+    if (!active || !eid) return;
+    try {
+      chanRef.current?.send({ type: 'broadcast', event: 'athlete-set', payload: {
+        traineeId: active.traineeId, planName: active.planName, dayName: active.dayName, week: active.week,
+        eid, si, field: field === 'completed' ? 'done' : field, value,
+      } });
+    } catch { /* channel not ready */ }
+  };
   const completeWorkout = () => {
     const w = active;
     if (!w) return;
@@ -454,7 +495,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     // Previous-week reference reads the athlete's portal history (the same
     // store the portal logs to, which now includes coach-logged sessions).
     const priorWorkouts = (clientWorkouts||[]).filter(x => x.clientId===w.traineeId);
-    return <WorkoutLogger workout={w} exercises={exercises} priorWorkouts={priorWorkouts} onUpdate={updateActive} onComplete={completeWorkout} onBack={()=>setActive(null)} />;
+    return <WorkoutLogger workout={w} exercises={exercises} priorWorkouts={priorWorkouts} onUpdate={updateActive} onComplete={completeWorkout} onBack={()=>setActive(null)} onBroadcastSet={broadcastSet} />;
   }
   // "Completed" = coach-logged sessions in the athlete's portal history.
   const completed = (clientWorkouts||[])

@@ -466,11 +466,43 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   const sessChanRef = useRef(null);
   useEffect(() => {
     if (demoMode) return;
+    // Merge a single remote field into local set state WITHOUT re-broadcasting
+    // (only uSet broadcasts) — this is how the coach's edits land here live.
+    const applyRemoteSet = (eid, si, field, value) => {
+      const ei = (day.ex || []).findIndex(e => e.eid === eid);
+      if (ei < 0) return;
+      setAllSets(prev => {
+        if (!prev[ei] || si >= prev[ei].length || prev[ei][si]?.[field] === value) return prev;
+        const n = [...prev]; n[ei] = [...n[ei]]; n[ei][si] = { ...n[ei][si], [field]: value };
+        return n;
+      });
+    };
+    const mine = (planName, dayName) =>
+      (!planName || planName === plan?.name) && (!dayName || dayName === day?.name);
     const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
+    // SINGLE session: the coach's WorkoutsView broadcasts one 'athlete-set' per edit.
+    ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
+      if (!p || p.traineeId !== clientId || !p.eid || p.si == null || !p.field) return;
+      if (!mine(p.planName, p.dayName)) return;
+      applyRemoteSet(p.eid, p.si, p.field, p.value);
+    });
+    // GROUP session: the coach's SessionsView broadcasts the whole 'session'
+    // object on each edit; pull this athlete's matching sets out of it.
+    ch.on('broadcast', { event: 'session' }, ({ payload }) => {
+      const s = payload?.value;
+      if (!s || !Array.isArray(s.athletes)) return;
+      const a = s.athletes.find(x => x.traineeId === clientId && mine(x.planName, x.dayName));
+      if (!a) return;
+      for (const ex of (a.exercises || [])) {
+        (ex.sets || []).forEach((st, si) => {
+          ['reps', 'load', 'rpe', 'done'].forEach(f => { if (st[f] !== undefined) applyRemoteSet(ex.eid, si, f, st[f]); });
+        });
+      }
+    });
     ch.subscribe();
     sessChanRef.current = ch;
     return () => { sessChanRef.current = null; supabase.removeChannel(ch); };
-  }, [demoMode]);
+  }, [demoMode]); // eslint-disable-line react-hooks/exhaustive-deps
   const broadcastSet = (ei, si, f, v) => {
     if (demoMode) return;
     const eid = day.ex?.[ei]?.eid;
