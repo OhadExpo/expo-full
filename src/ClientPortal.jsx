@@ -506,6 +506,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // Coach edit (group or single) → one 'athlete-set' per field.
     ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
       if (!p || p.ei == null || p.si == null || !p.field) return;
+      // Defence in depth: even though the topic is already per-trainee, reject
+      // any message not addressed to this athlete so a stray/injected broadcast
+      // on a guessed topic can't write into this logger (until the channel is
+      // made private with Realtime Authorization — see task #35).
+      if (p.traineeId && p.traineeId !== clientId) return;
       if (!mine(p.planName, p.dayName)) return;
       applyRemoteSet(p.ei, p.si, p.field, p.value);
     });

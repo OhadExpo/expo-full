@@ -289,9 +289,20 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // Tear down all per-trainee channels on unmount.
   useEffect(() => () => { for (const [, ch] of setChansRef.current) supabase.removeChannel(ch); setChansRef.current.clear(); }, []);
 
+  // Functional so a coach edit merges onto the LATEST state — the old
+  // structuredClone(session) used a render-closure snapshot, so a coach edit
+  // landing right after a portal 'athlete-set' merge would drop that athlete's
+  // just-synced set from both the screen and the durable store (audit F3).
   const mutate = useCallback((fn) => {
-    persist((() => { const draft = structuredClone(session); fn(draft); return draft; })());
-  }, [session, persist]);
+    setSession(prev => {
+      const draft = structuredClone(prev);
+      fn(draft);
+      try { chanRef.current?.send({ type: 'broadcast', event: 'session', payload: { value: draft } }); } catch { /* not ready */ }
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => { supabase.from('store').upsert({ key: SKEY, value: draft, updated_at: new Date().toISOString() }).then(() => {}, () => {}); }, 400);
+      return draft;
+    });
+  }, []);
 
   // ---- add athletes ----
   const addAthletes = useCallback(async (picks) => {
