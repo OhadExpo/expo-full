@@ -471,11 +471,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   useEffect(() => {
     if (demoMode) return;
     // Merge a remote field into local set state WITHOUT re-broadcasting (only
-    // uSet broadcasts). fillOnly=true (catch-up sync) never clobbers a value
-    // the athlete already entered and only ORs completion on.
-    const applyRemoteSet = (eid, si, field, value, fillOnly) => {
-      const ei = (day.ex || []).findIndex(e => e.eid === eid);
-      if (ei < 0) return;
+    // uSet broadcasts). Matched by EXERCISE INDEX (ei) — the coach session and
+    // the portal derive exercise ids from different schemes (plan exerciseId vs
+    // title-hash), but both iterate the same plan-day exercises in the same
+    // order, so position is the reliable shared key. fillOnly=true (catch-up)
+    // never clobbers a value the athlete already entered; only ORs completion.
+    const applyRemoteSet = (ei, si, field, value, fillOnly) => {
+      if (ei == null || ei < 0) return;
       setAllSets(prev => {
         if (!prev[ei] || si >= prev[ei].length) return prev;
         const cur = prev[ei][si];
@@ -490,18 +492,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     };
     const mine = (planName, dayName) =>
       (!planName || planName === plan?.name) && (!dayName || dayName === day?.name);
-    // My current sets as a {eid, sets[]} list — for replying to a sync-request.
-    const snapshot = () => (day.ex || []).map((e, ei) => ({
-      eid: e.eid,
-      sets: (allSetsRef.current[ei] || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.done })),
+    // My current sets as a positional exercises[] list (index = exercise index).
+    const snapshot = () => (allSetsRef.current || []).map((rows) => ({
+      sets: (rows || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.done })),
     }));
     const hasData = (exs) => exs.some(x => x.sets.some(s => s.reps || s.load || s.rpe || s.done));
     const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
     // SINGLE session: coach's WorkoutsView broadcasts one 'athlete-set' per edit.
     ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
-      if (!p || p.traineeId !== clientId || !p.eid || p.si == null || !p.field) return;
+      if (!p || p.traineeId !== clientId || p.ei == null || p.si == null || !p.field) return;
       if (!mine(p.planName, p.dayName)) return;
-      applyRemoteSet(p.eid, p.si, p.field, p.value);
+      applyRemoteSet(p.ei, p.si, p.field, p.value);
     });
     // GROUP session: coach's SessionsView broadcasts the whole 'session' object
     // (all sets, most empty) on every change. Treat it as CATCH-UP only —
@@ -512,11 +513,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (!s || !Array.isArray(s.athletes)) return;
       const a = s.athletes.find(x => x.traineeId === clientId && mine(x.planName, x.dayName));
       if (!a) return;
-      for (const ex of (a.exercises || [])) {
+      (a.exercises || []).forEach((ex, ei) => {
         (ex.sets || []).forEach((st, si) => {
-          ['reps', 'load', 'rpe', 'done'].forEach(f => { if (st[f] !== undefined) applyRemoteSet(ex.eid, si, f, st[f], true); });
+          ['reps', 'load', 'rpe', 'done'].forEach(f => { if (st[f] !== undefined) applyRemoteSet(ei, si, f, st[f], true); });
         });
-      }
+      });
     });
     // CATCH-UP: a peer just connected and asked for the current state — if I
     // hold data for this athlete/day, reply with it.
@@ -529,11 +530,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // CATCH-UP: a peer replied with its current state — fill my empty slots.
     ch.on('broadcast', { event: 'sync-state' }, ({ payload: p }) => {
       if (!p || p.traineeId !== clientId || !mine(p.planName, p.dayName)) return;
-      for (const ex of (p.exercises || [])) {
+      (p.exercises || []).forEach((ex, ei) => {
         (ex.sets || []).forEach((st, si) => {
-          ['reps', 'load', 'rpe', 'done'].forEach(f => { if (st[f] !== undefined) applyRemoteSet(ex.eid, si, f, st[f], true); });
+          ['reps', 'load', 'rpe', 'done'].forEach(f => { if (st[f] !== undefined) applyRemoteSet(ei, si, f, st[f], true); });
         });
-      }
+      });
     });
     // On connect, ask whoever's online (coach session / other device) for the
     // current state so a freshly-opened portal pulls what's already filled.
@@ -547,12 +548,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   }, [demoMode]); // eslint-disable-line react-hooks/exhaustive-deps
   const broadcastSet = (ei, si, f, v) => {
     if (demoMode) return;
-    const eid = day.ex?.[ei]?.eid;
-    if (!eid) return;
     try {
       sessChanRef.current?.send({ type: 'broadcast', event: 'athlete-set', payload: {
         traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum,
-        eid, si, field: f, value: v,
+        ei, si, field: f, value: v,
       } });
     } catch { /* channel not ready yet — skip this edit, the next one syncs */ }
   };

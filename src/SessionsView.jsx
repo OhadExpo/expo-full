@@ -203,7 +203,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         && (!p.planName || !x.planName || x.planName === p.planName)
         && (!p.dayName || !x.dayName || x.dayName === p.dayName));
       if (!a) return;
-      const exercises = (a.exercises || []).map(ex => ({ eid: ex.eid, sets: (ex.sets || []).map(s2 => ({ reps: s2.reps, load: s2.load, rpe: s2.rpe, done: s2.done })) }));
+      const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s2 => ({ reps: s2.reps, load: s2.load, rpe: s2.rpe, done: s2.done })) }));
       if (!exercises.some(x => x.sets.some(s2 => s2.reps || s2.load || s2.rpe || s2.done))) return;
       try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName, exercises } }); } catch { /* not ready */ }
     });
@@ -218,8 +218,8 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           if (a.traineeId !== p.traineeId) return a;
           if (p.planName && a.planName && p.planName !== a.planName) return a;
           if (p.dayName && a.dayName && p.dayName !== a.dayName) return a;
-          const exercises = (a.exercises || []).map(ex => {
-            const rex = p.exercises.find(e => e.eid === ex.eid);
+          const exercises = (a.exercises || []).map((ex, ei) => {
+            const rex = p.exercises[ei];
             if (!rex) return ex;
             const sets = (ex.sets || []).map((s, si) => {
               const rs = rex.sets?.[si];
@@ -246,22 +246,23 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     // exercise"). self:false means every coach device receives this directly
     // and applies it independently, so we never re-broadcast — just persist.
     ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
-      if (!p || !p.traineeId || !p.eid || p.si == null || !p.field) return;
+      if (!p || !p.traineeId || p.ei == null || p.si == null || !p.field) return;
       setSession(prev => {
         if (!prev || !Array.isArray(prev.athletes)) return prev;
         let hit = false;
         const athletes = prev.athletes.map(a => {
           if (a.traineeId !== p.traineeId) return a;
           // Guard plan/day so a portal left open on a different day doesn't
-          // bleed numbers onto the athlete's session card.
+          // bleed numbers onto the athlete's session card. Match by exercise
+          // INDEX — coach and portal use different eid schemes but share order.
           if (p.planName && a.planName && p.planName !== a.planName) return a;
           if (p.dayName && a.dayName && p.dayName !== a.dayName) return a;
-          const exercises = (a.exercises || []).map(ex => {
-            if (ex.eid !== p.eid) return ex;
-            const sets = (ex.sets || []).map((s, i) => i === p.si ? { ...s, [p.field]: p.value } : s);
-            hit = true;
-            return { ...ex, sets };
-          });
+          const ex = a.exercises?.[p.ei];
+          if (!ex || p.si >= (ex.sets || []).length) return a;
+          const exercises = a.exercises.map((e, ei) => ei === p.ei
+            ? { ...e, sets: e.sets.map((s, i) => i === p.si ? { ...s, [p.field]: p.value } : s) }
+            : e);
+          hit = true;
           return { ...a, exercises };
         });
         if (!hit) return prev;
@@ -455,10 +456,9 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
               // it carries every (mostly empty) set and would wipe the athlete's
               // own entries; 'athlete-set' overwrites only the field we changed.
               const a2 = sessionRef.current?.athletes?.[ai];
-              const eid = a2?.exercises?.[ei]?.eid;
-              if (eid && chanRef.current) {
+              if (a2 && chanRef.current) {
                 Object.entries(patch).forEach(([f, v]) => {
-                  try { chanRef.current.send({ type: 'broadcast', event: 'athlete-set', payload: { traineeId: a2.traineeId, planName: a2.planName, dayName: a2.dayName, week: a2.week, eid, si, field: f, value: v } }); } catch { /* not ready */ }
+                  try { chanRef.current.send({ type: 'broadcast', event: 'athlete-set', payload: { traineeId: a2.traineeId, planName: a2.planName, dayName: a2.dayName, week: a2.week, ei, si, field: f, value: v } }); } catch { /* not ready */ }
                 });
               }
             }}

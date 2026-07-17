@@ -49,7 +49,7 @@ function InlineVideo({ url }) {
 }
 
 function WorkoutLogger({ workout, exercises, priorWorkouts, onUpdate, onComplete, onBack, onBroadcastSet }) {
-  const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); if (onBroadcastSet) { const eid = exs[ei].exerciseId; Object.entries(u).forEach(([k,v]) => onBroadcastSet(eid, si, k, v)); } };
+  const updateSet = (ei,si,u) => { const exs=[...workout.exercises]; const sets=[...exs[ei].sets]; sets[si]={...sets[si],...u}; exs[ei]={...exs[ei],sets}; onUpdate({exercises:exs}); if (onBroadcastSet) { Object.entries(u).forEach(([k,v]) => onBroadcastSet(ei, si, k, v)); } };
   const updateEx = (ei,u) => { const exs=[...workout.exercises]; exs[ei]={...exs[ei],...u}; onUpdate({exercises:exs}); };
   // Group consecutive exercises that share a superset letter into one block —
   // like the athlete portal renders them — instead of a big "Group A" badge on
@@ -393,37 +393,39 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       && (!p.planName || !prev.planName || p.planName === prev.planName)
       && (!p.dayName || !prev.dayName || p.dayName === prev.dayName);
     const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
+    // Matched by EXERCISE INDEX (ei) — the portal derives exercise ids from the
+    // title while this logger uses the plan's exerciseId, so only position is a
+    // reliable shared key. 'done' (portal) maps to 'completed' (this view).
     ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
-      if (!p || !p.traineeId || !p.eid || p.si == null || !p.field) return;
+      if (!p || !p.traineeId || p.ei == null || p.si == null || !p.field) return;
       setActive(prev => {
         if (!matches(prev, p)) return prev;
         const key = p.field === 'done' ? 'completed' : p.field;
-        let hit = false;
-        const exercises = prev.exercises.map(ex => {
-          if (ex.exerciseId !== p.eid || p.si >= (ex.sets || []).length) return ex;
-          const sets = ex.sets.map((s, i) => i === p.si ? { ...s, [key]: p.value } : s);
-          hit = true;
-          return { ...ex, sets };
-        });
-        return hit ? { ...prev, exercises } : prev;
+        const ex = prev.exercises?.[p.ei];
+        if (!ex || p.si >= (ex.sets || []).length) return prev;
+        const exercises = prev.exercises.map((e, ei) => ei === p.ei
+          ? { ...e, sets: e.sets.map((s, i) => i === p.si ? { ...s, [key]: p.value } : s) }
+          : e);
+        return { ...prev, exercises };
       });
     });
-    // CATCH-UP: reply to a peer's sync-request with the current logged sets.
+    // CATCH-UP: reply to a peer's sync-request with the current logged sets
+    // (positional exercises[], index = exercise index).
     ch.on('broadcast', { event: 'sync-request' }, ({ payload: p }) => {
       const a = activeRef.current;
       if (!p || !p.traineeId || !matches(a, p)) return;
-      const exercises = (a.exercises || []).map(ex => ({ eid: ex.exerciseId, sets: (ex.sets || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.completed })) }));
+      const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.completed })) }));
       if (!exercises.some(x => x.sets.some(s => s.reps || s.load || s.rpe || s.done))) return;
       try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName, exercises } }); } catch { /* not ready */ }
     });
-    // CATCH-UP: fill empty local slots from a peer's replied state.
+    // CATCH-UP: fill empty local slots from a peer's replied state (by index).
     ch.on('broadcast', { event: 'sync-state' }, ({ payload: p }) => {
       if (!p || !p.traineeId || !Array.isArray(p.exercises)) return;
       setActive(prev => {
         if (!matches(prev, p)) return prev;
         let hit = false;
-        const exercises = prev.exercises.map(ex => {
-          const rex = p.exercises.find(e => e.eid === ex.exerciseId);
+        const exercises = prev.exercises.map((ex, ei) => {
+          const rex = p.exercises[ei];
           if (!rex) return ex;
           const sets = (ex.sets || []).map((s, si) => {
             const rs = rex.sets?.[si];
@@ -454,12 +456,12 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   }, [active?.traineeId, active?.planName, active?.dayName]); // eslint-disable-line react-hooks/exhaustive-deps
   // Broadcast one coach set-edit to the athlete's portal. Reads the live
   // `active` via closure (recreated each render), translates 'completed'→'done'.
-  const broadcastSet = (eid, si, field, value) => {
-    if (!active || !eid) return;
+  const broadcastSet = (ei, si, field, value) => {
+    if (!active || ei == null) return;
     try {
       chanRef.current?.send({ type: 'broadcast', event: 'athlete-set', payload: {
         traineeId: active.traineeId, planName: active.planName, dayName: active.dayName, week: active.week,
-        eid, si, field: field === 'completed' ? 'done' : field, value,
+        ei, si, field: field === 'completed' ? 'done' : field, value,
       } });
     } catch { /* channel not ready */ }
   };
