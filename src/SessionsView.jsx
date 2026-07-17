@@ -276,11 +276,20 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         if (!exercises.some(x => x.sets.some(s2 => s2.reps || s2.load || s2.rpe || s2.done))) return;
         try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: tid, planName: a.planName, dayName: a.dayName, exercises } }); } catch { /* not ready */ }
       });
-      // On connect, pull anything the athlete already logged in their portal.
+      // On connect: pull anything the athlete already logged in their portal,
+      // AND push our current card so the portal fills any value the coach typed
+      // in the ~1s before this channel finished subscribing (audit F4). The
+      // portal applies sync-state fill-empty-only, so it can't clobber the
+      // athlete's own entries.
       ch.subscribe((status) => {
         if (status !== 'SUBSCRIBED') return;
         const a = findA();
-        if (a) { try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: tid, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ } }
+        if (!a) return;
+        try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: tid, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ }
+        const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s2 => ({ reps: s2.reps, load: s2.load, rpe: s2.rpe, done: s2.done })) }));
+        if (exercises.some(x => x.sets.some(s2 => s2.reps || s2.load || s2.rpe || s2.done))) {
+          try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: tid, planName: a.planName, dayName: a.dayName, exercises } }); } catch { /* not ready */ }
+        }
       });
       map.set(tid, ch);
     }
