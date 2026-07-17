@@ -43,6 +43,10 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   const recognitionRef = useRef(null);
 
   const [status, setStatus] = useState('idle'); // idle | loading | listening | counting | stopped
+  // Latest status for the persistent SpeechRecognition callback, which would
+  // otherwise test the value captured when voice was first enabled (stale).
+  const statusRef = useRef(status);
+  statusRef.current = status;
   const [reps, setReps] = useState(0);
   const [phase, setPhase] = useState('top'); // top | bottom
   const [lastAngle, setLastAngle] = useState(null);
@@ -116,9 +120,9 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
       for (let i = e.resultIndex; i < e.results.length; i++) text += e.results[i][0].transcript + ' ';
       text = text.toLowerCase();
       if (VOICE_START_PHRASES.some(p => text.includes(p))) {
-        if (status !== 'counting') beginCounting();
+        if (statusRef.current !== 'counting') beginCounting();
       } else if (VOICE_STOP_PHRASES.some(p => text.includes(p))) {
-        if (status === 'counting') stopCounting();
+        if (statusRef.current === 'counting') stopCounting();
       }
     };
     rec.onerror = (e) => { console.warn('voice err:', e.error); };
