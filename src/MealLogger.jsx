@@ -22,6 +22,15 @@ function todayISO() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+// Step a YYYY-MM-DD by n days in LOCAL time. `new Date('YYYY-MM-DD')` parses as
+// UTC midnight and toISOString() formats back as UTC, so in Israel (UTC+2/+3)
+// the prev/next arrows could skip or repeat a day at the date boundary and drift
+// out of sync with the local todayISO() label. Parsing the parts keeps it local.
+function addDaysISO(iso, n) {
+  const [y, m, d] = String(iso).split('-').map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
 function dayLabel(iso) {
   if (iso === todayISO()) return 'Today';
   const d = new Date(iso);
@@ -174,7 +183,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
           display: 'grid', gridTemplateColumns: '40px 1fr 40px',
           alignItems: 'center', marginBottom: 14, gap: 8, minHeight: 42, boxSizing: 'border-box',
         }}>
-          <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() - 1); setDay(d.toISOString().slice(0, 10)); }}
+          <button onClick={() => setDay(addDaysISO(day, -1))}
             aria-label="Previous day"
             style={{
               background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
@@ -190,7 +199,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
             </div>
           </div>
           {!isToday ? (
-            <button onClick={() => { const d = new Date(day); d.setDate(d.getDate() + 1); setDay(d.toISOString().slice(0, 10)); }}
+            <button onClick={() => setDay(addDaysISO(day, 1))}
               aria-label="Next day"
               style={{
                 background: 'transparent', border: `1px solid ${C.cardBd}`, color: C.tm,
