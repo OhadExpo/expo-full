@@ -183,12 +183,62 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // same session in real time. Broadcast (not postgres_changes) so it needs no
   // table replication / RLS change and works across roles. self:false → we
   // never receive the echo of our own broadcast.
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+  const requestedRef = useRef(new Set()); // traineeIds we've already pinged for catch-up
+  const subscribedRef = useRef(false);    // gate sync-requests until the channel is live
   useEffect(() => {
     const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
     ch.on('broadcast', { event: 'session' }, ({ payload }) => {
       const v = payload?.value;
       if (v == null) { setSession(null); return; }
       if (Array.isArray(v.athletes)) setSession(v);
+    });
+    // CATCH-UP: an athlete's portal (or another coach device) just connected and
+    // asked for the current state of an athlete — reply with our session's copy.
+    ch.on('broadcast', { event: 'sync-request' }, ({ payload: p }) => {
+      if (!p || !p.traineeId) return;
+      const s = sessionRef.current;
+      const a = (s?.athletes || []).find(x => x.traineeId === p.traineeId
+        && (!p.planName || !x.planName || x.planName === p.planName)
+        && (!p.dayName || !x.dayName || x.dayName === p.dayName));
+      if (!a) return;
+      const exercises = (a.exercises || []).map(ex => ({ eid: ex.eid, sets: (ex.sets || []).map(s2 => ({ reps: s2.reps, load: s2.load, rpe: s2.rpe, done: s2.done })) }));
+      if (!exercises.some(x => x.sets.some(s2 => s2.reps || s2.load || s2.rpe || s2.done))) return;
+      try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName, exercises } }); } catch { /* not ready */ }
+    });
+    // CATCH-UP: a peer replied with an athlete's current sets — fill our empty
+    // slots only (never clobber values the coach already entered).
+    ch.on('broadcast', { event: 'sync-state' }, ({ payload: p }) => {
+      if (!p || !p.traineeId || !Array.isArray(p.exercises)) return;
+      setSession(prev => {
+        if (!prev || !Array.isArray(prev.athletes)) return prev;
+        let hit = false;
+        const athletes = prev.athletes.map(a => {
+          if (a.traineeId !== p.traineeId) return a;
+          if (p.planName && a.planName && p.planName !== a.planName) return a;
+          if (p.dayName && a.dayName && p.dayName !== a.dayName) return a;
+          const exercises = (a.exercises || []).map(ex => {
+            const rex = p.exercises.find(e => e.eid === ex.eid);
+            if (!rex) return ex;
+            const sets = (ex.sets || []).map((s, si) => {
+              const rs = rex.sets?.[si];
+              if (!rs) return s;
+              const ns = { ...s };
+              ['reps', 'load', 'rpe'].forEach(f => { if ((ns[f] === '' || ns[f] == null) && rs[f] != null && rs[f] !== '') { ns[f] = rs[f]; hit = true; } });
+              if (!ns.done && rs.done) { ns.done = true; hit = true; }
+              return ns;
+            });
+            return { ...ex, sets };
+          });
+          return { ...a, exercises };
+        });
+        if (!hit) return prev;
+        const next = { ...prev, athletes };
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(() => { supabase.from('store').upsert({ key: SKEY, value: next, updated_at: new Date().toISOString() }).then(() => {}, () => {}); }, 500);
+        return next;
+      });
     });
     // A checked-in athlete logging a set from THEIR portal: merge that one
     // field into the matching athlete/exercise/set so the floor screen updates
@@ -223,10 +273,36 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         return next;
       });
     });
-    ch.subscribe();
+    // Fire catch-up requests only once the channel is actually live — sends
+    // before SUBSCRIBED are silently dropped, which is why a coach reopening a
+    // session with a pre-loaded athlete saw nothing. On connect, request every
+    // athlete already in the session; new athletes are handled by the effect.
+    const pingAthletes = () => {
+      const s = sessionRef.current;
+      for (const a of (s?.athletes || [])) {
+        if (!a.traineeId || requestedRef.current.has(a.traineeId)) continue;
+        requestedRef.current.add(a.traineeId);
+        try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ }
+      }
+    };
+    ch.subscribe((status) => { if (status === 'SUBSCRIBED') { subscribedRef.current = true; pingAthletes(); } });
     chanRef.current = ch;
-    return () => { chanRef.current = null; supabase.removeChannel(ch); };
+    return () => { chanRef.current = null; subscribedRef.current = false; supabase.removeChannel(ch); };
   }, []);
+
+  // CATCH-UP dispatch for athletes added AFTER connect (checked in live): ping
+  // their portal for anything already logged there. Gated on subscribedRef so
+  // it never races the subscription; pre-connect athletes are pinged above.
+  useEffect(() => {
+    if (!subscribedRef.current) return;
+    const ch = chanRef.current;
+    if (!ch || !session || !Array.isArray(session.athletes)) return;
+    for (const a of session.athletes) {
+      if (!a.traineeId || requestedRef.current.has(a.traineeId)) continue;
+      requestedRef.current.add(a.traineeId);
+      try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ }
+    }
+  }, [session]);
 
   const mutate = useCallback((fn) => {
     persist((() => { const draft = structuredClone(session); fn(draft); return draft; })());
@@ -372,7 +448,20 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           <AthleteCard key={a.rowId} a={a} name={(traineeById[a.traineeId]?.name) || a.traineeId}
             prevMap={prevByKey[`${a.traineeId}|${a.planName}|${a.dayName}|${(Number(a.week) || 1) - 1}`]} exDetail={exDetail}
             onToggleIn={() => mutate(d => { d.athletes[ai].checkedIn = !d.athletes[ai].checkedIn; })}
-            onSet={(ei, si, patch) => mutate(d => { Object.assign(d.athletes[ai].exercises[ei].sets[si], patch); })}
+            onSet={(ei, si, patch) => {
+              mutate(d => { Object.assign(d.athletes[ai].exercises[ei].sets[si], patch); });
+              // Granular per-field broadcast so the athlete's portal gets THIS
+              // edit live. The full 'session' broadcast can't drive the portal —
+              // it carries every (mostly empty) set and would wipe the athlete's
+              // own entries; 'athlete-set' overwrites only the field we changed.
+              const a2 = sessionRef.current?.athletes?.[ai];
+              const eid = a2?.exercises?.[ei]?.eid;
+              if (eid && chanRef.current) {
+                Object.entries(patch).forEach(([f, v]) => {
+                  try { chanRef.current.send({ type: 'broadcast', event: 'athlete-set', payload: { traineeId: a2.traineeId, planName: a2.planName, dayName: a2.dayName, week: a2.week, eid, si, field: f, value: v } }); } catch { /* not ready */ }
+                });
+              }
+            }}
             onCurEx={(ei) => mutate(d => { d.athletes[ai].curEx = ei; })}
             onRemove={() => mutate(d => { d.athletes.splice(ai, 1); })}
           />

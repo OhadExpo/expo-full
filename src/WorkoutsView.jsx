@@ -385,14 +385,18 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   // on active.traineeId (no athletes[] loop), map eid→exerciseId, and translate
   // the portal's 'done' field to this view's 'completed'.
   const chanRef = useRef(null);
+  const subscribedRef = useRef(false);
+  const activeRef = useRef(active);
+  activeRef.current = active;
   useEffect(() => {
+    const matches = (prev, p) => prev && prev.traineeId === p.traineeId
+      && (!p.planName || !prev.planName || p.planName === prev.planName)
+      && (!p.dayName || !prev.dayName || p.dayName === prev.dayName);
     const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
     ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
       if (!p || !p.traineeId || !p.eid || p.si == null || !p.field) return;
       setActive(prev => {
-        if (!prev || prev.traineeId !== p.traineeId) return prev;
-        if (p.planName && prev.planName && p.planName !== prev.planName) return prev;
-        if (p.dayName && prev.dayName && p.dayName !== prev.dayName) return prev;
+        if (!matches(prev, p)) return prev;
         const key = p.field === 'done' ? 'completed' : p.field;
         let hit = false;
         const exercises = prev.exercises.map(ex => {
@@ -404,10 +408,50 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
         return hit ? { ...prev, exercises } : prev;
       });
     });
-    ch.subscribe();
+    // CATCH-UP: reply to a peer's sync-request with the current logged sets.
+    ch.on('broadcast', { event: 'sync-request' }, ({ payload: p }) => {
+      const a = activeRef.current;
+      if (!p || !p.traineeId || !matches(a, p)) return;
+      const exercises = (a.exercises || []).map(ex => ({ eid: ex.exerciseId, sets: (ex.sets || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.completed })) }));
+      if (!exercises.some(x => x.sets.some(s => s.reps || s.load || s.rpe || s.done))) return;
+      try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName, exercises } }); } catch { /* not ready */ }
+    });
+    // CATCH-UP: fill empty local slots from a peer's replied state.
+    ch.on('broadcast', { event: 'sync-state' }, ({ payload: p }) => {
+      if (!p || !p.traineeId || !Array.isArray(p.exercises)) return;
+      setActive(prev => {
+        if (!matches(prev, p)) return prev;
+        let hit = false;
+        const exercises = prev.exercises.map(ex => {
+          const rex = p.exercises.find(e => e.eid === ex.exerciseId);
+          if (!rex) return ex;
+          const sets = (ex.sets || []).map((s, si) => {
+            const rs = rex.sets?.[si];
+            if (!rs) return s;
+            const ns = { ...s };
+            ['reps', 'load', 'rpe'].forEach(f => { if ((ns[f] === '' || ns[f] == null) && rs[f] != null && rs[f] !== '') { ns[f] = rs[f]; hit = true; } });
+            if (!ns.completed && rs.done) { ns.completed = true; hit = true; }
+            return ns;
+          });
+          return { ...ex, sets };
+        });
+        return hit ? { ...prev, exercises } : prev;
+      });
+    });
+    const ping = (a) => { if (a?.traineeId) { try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ } } };
+    ch.subscribe((status) => { if (status === 'SUBSCRIBED') { subscribedRef.current = true; ping(activeRef.current); } });
     chanRef.current = ch;
-    return () => { chanRef.current = null; supabase.removeChannel(ch); };
+    return () => { chanRef.current = null; subscribedRef.current = false; supabase.removeChannel(ch); };
   }, []);
+  // CATCH-UP dispatch: when a single session starts, ask the athlete's portal
+  // for anything already logged there. Gated on subscribedRef so it never races
+  // the subscription (a session active at mount is pinged on SUBSCRIBED above).
+  useEffect(() => {
+    if (!subscribedRef.current) return;
+    const ch = chanRef.current, a = active;
+    if (!ch || !a || !a.traineeId) return;
+    try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ }
+  }, [active?.traineeId, active?.planName, active?.dayName]); // eslint-disable-line react-hooks/exhaustive-deps
   // Broadcast one coach set-edit to the athlete's portal. Reads the live
   // `active` via closure (recreated each render), translates 'completed'→'done'.
   const broadcastSet = (eid, si, field, value) => {
