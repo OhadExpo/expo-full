@@ -407,6 +407,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
         const key = p.field === 'done' ? 'completed' : p.field;
         const ex = prev.exercises?.[p.ei];
         if (!ex || p.si >= (ex.sets || []).length) return prev;
+        if (ex.sets[p.si]?.[key] === p.value) return prev; // no-op — avoid churn / needless overwrite
         const exercises = prev.exercises.map((e, ei) => ei === p.ei
           ? { ...e, sets: e.sets.map((s, i) => i === p.si ? { ...s, [key]: p.value } : s) }
           : e);
