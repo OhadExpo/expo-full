@@ -11,7 +11,7 @@
 // Unread tracking lives in localStorage['expo-msgs-seen-at'] (single-
 // coach store; swap for a per-coach Supabase column when multi-tenant).
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { C, FN, FH } from './theme';
 import { isRefined5b, RefinedHeaderStrip, SectionLabel, usePersistentState } from './ui';
 import { useTheme } from './hooks/useTheme';
@@ -136,10 +136,28 @@ export default function MessagesCard({ trainees, onSelectTrainee }) {
   const handledThreads = useMemo(() => threads.filter(r => !unreadFor(r)), [threads, seenAt, mutedIds]);
   const visibleThreads = showHandled ? threads : threads.filter(unreadFor);
 
+  // Sync read-state across this user's OWN tabs instantly (same-origin, no
+  // server round-trip) so marking the inbox read in one tab clears the badge in
+  // the others live instead of on reload (Ohad: the "tabs" angle).
+  const seenChanRef = useRef(null);
+  useEffect(() => {
+    if (typeof BroadcastChannel === 'undefined') return;
+    const bc = new BroadcastChannel('expo-msgs-seen');
+    bc.onmessage = (e) => {
+      const ts = e?.data;
+      if (!ts) return;
+      setSeenAt(prev => (!prev || new Date(ts).getTime() > new Date(prev).getTime()) ? ts : prev);
+      try { const cur = localStorage.getItem(SEEN_KEY) || ''; if (!cur || new Date(ts).getTime() > new Date(cur).getTime()) localStorage.setItem(SEEN_KEY, ts); } catch { /* ignore */ }
+    };
+    seenChanRef.current = bc;
+    return () => { seenChanRef.current = null; bc.close(); };
+  }, []);
+
   const markRead = () => {
     const now = new Date().toISOString();
     try { localStorage.setItem(SEEN_KEY, now); } catch {}
     setSeenAt(now);
+    try { seenChanRef.current?.postMessage(now); } catch { /* ignore */ }
     // Persist server-side too — localStorage alone is fragile on mobile
     // (private mode / PWA storage can drop it on reload), which made the inbox
     // "reset" and re-show already-handled messages (Ohad). Routed through the
