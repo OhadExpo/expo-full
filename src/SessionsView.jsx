@@ -467,7 +467,7 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
               {cue && <div style={{ fontSize: 11.5, color: C.tx, lineHeight: 1.45, marginBottom: 6, background: 'rgba(57,189,255,0.06)', borderInlineStart: `3px solid ${C.ac}`, padding: '6px 8px', direction: /[֐-׿]/.test(cue) ? 'rtl' : 'ltr', fontFamily: /[֐-׿]/.test(cue) ? FH : FB, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{cue}</div>}
               {videoUrl && <InlineVideo url={videoUrl} />}
               <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, marginTop: 8, marginBottom: 2 }}>
-                {['', 'KG', 'REPS', 'RPE', '✓'].map(h => <span key={h} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
+                {['', 'REPS', 'KG', 'RPE', '✓'].map(h => <span key={h} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {ex.sets.map((s, si) => {
@@ -477,16 +477,16 @@ function AthleteCard({ a, name, prevMap, exDetail, onToggleIn, onSet, onCurEx, o
                     {prior && (parseFloat(prior.load) > 0 || prior.reps) && (
                       <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center', opacity: 0.6, marginTop: si === 0 ? 0 : 4 }} title="Previous week">
                         <span style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, color: C.ac, textAlign: 'center' }}>‹</span>
-                        <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{parseFloat(prior.load) || '—'}</span>
                         <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.reps || '—'}</span>
+                        <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{parseFloat(prior.load) || '—'}</span>
                         <span style={{ fontFamily: FB, fontSize: 11, color: C.tx, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{prior.rpe || '—'}</span>
                         <span />
                       </div>
                     )}
                     <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center' }}>
                       <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
-                      <input value={s.load} onChange={e => onSet(ei, si, { load: e.target.value })} placeholder="kg" inputMode="decimal" style={cell} />
                       <input value={s.reps} onChange={e => onSet(ei, si, { reps: e.target.value })} placeholder="reps" inputMode="numeric" style={cell} />
+                      <input value={s.load} onChange={e => onSet(ei, si, { load: e.target.value })} placeholder="kg" inputMode="decimal" style={cell} />
                       <input value={s.rpe} onChange={e => onSet(ei, si, { rpe: e.target.value })} placeholder="—" inputMode="decimal" style={cell} />
                       <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                         <input type="checkbox" checked={!!s.done} onChange={e => onSet(ei, si, { done: e.target.checked })} style={{ width: 20, height: 20, accentColor: C.gn, cursor: 'pointer' }} />

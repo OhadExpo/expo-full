@@ -2668,14 +2668,14 @@ function DemoSessionExercise({ ex, open, onToggle }) {
           {ex.cue && <div style={{ fontSize: 11.5, color: C.tx, lineHeight: 1.45, marginBottom: 6, background: 'rgba(57,189,255,0.06)', borderInlineStart: `3px solid ${C.ac}`, padding: '6px 8px', direction: isHeb(ex.cue) ? 'rtl' : 'ltr', fontFamily: isHeb(ex.cue) ? FH : FB }}>{ex.cue}</div>}
           <DemoInlineVideo title={ex.title} />
           <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, marginTop: 8, marginBottom: 2 }}>
-            {['', 'KG', 'REPS', 'RPE', '✓'].map((h, i) => <span key={i} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
+            {['', 'REPS', 'KG', 'RPE', '✓'].map((h, i) => <span key={i} style={{ fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.06em', color: C.tm, textAlign: 'center' }}>{h}</span>)}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {ex.sets.map((s, si) => (
               <div key={si} style={{ display: 'grid', gridTemplateColumns: COLS, gap: 4, alignItems: 'center' }}>
                 <span style={{ fontFamily: FN, fontSize: 10, color: C.td, textAlign: 'center' }}>{si + 1}</span>
-                <input defaultValue={s.kg} placeholder="kg" style={dCell} />
                 <input defaultValue={s.reps} placeholder="reps" style={dCell} />
+                <input defaultValue={s.kg} placeholder="kg" style={dCell} />
                 <input defaultValue={s.rpe} placeholder="—" style={dCell} />
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <input type="checkbox" defaultChecked={s.done} style={{ width: 18, height: 18, accentColor: C.gn, cursor: 'pointer' }} />
