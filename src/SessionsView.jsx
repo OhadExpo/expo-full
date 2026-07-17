@@ -90,6 +90,8 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   const [picking, setPicking] = useState(false);
   const [planDays, setPlanDays] = useState({}); // planId → days[] (for live tempo/video/cue lookup)
   const saveTimer = useRef(null);
+  // Realtime broadcast channel for live cross-device session sync.
+  const chanRef = useRef(null);
 
   const exById = useMemo(() => {
     const m = new Map();
@@ -167,10 +169,29 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   }, []);
   const persist = useCallback((next) => {
     setSession(next);
+    // Live-broadcast the new state to every other device on the channel
+    // (immediate — no DB round-trip), then debounce the durable store write.
+    try { chanRef.current?.send({ type: 'broadcast', event: 'session', payload: { value: next } }); } catch { /* channel not ready yet */ }
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       supabase.from('store').upsert({ key: SKEY, value: next, updated_at: new Date().toISOString() }).then(() => {}, () => {});
     }, 400);
+  }, []);
+
+  // ---- LIVE sync across devices (Supabase Broadcast) ----
+  // The on-the-floor big screen mirrors edits made from any other device on the
+  // same session in real time. Broadcast (not postgres_changes) so it needs no
+  // table replication / RLS change and works across roles. self:false → we
+  // never receive the echo of our own broadcast.
+  useEffect(() => {
+    const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
+    ch.on('broadcast', { event: 'session' }, ({ payload }) => {
+      const v = payload?.value;
+      if (v == null) { setSession(null); return; }
+      if (Array.isArray(v.athletes)) setSession(v);
+    }).subscribe();
+    chanRef.current = ch;
+    return () => { chanRef.current = null; supabase.removeChannel(ch); };
   }, []);
 
   const mutate = useCallback((fn) => {
@@ -266,6 +287,8 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     // about to delete — otherwise a set edited just before FINISH resurrects the
     // finished session on next load. (audit)
     if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
+    // Tell the other devices the session ended so their floor screen clears too.
+    try { chanRef.current?.send({ type: 'broadcast', event: 'session', payload: { value: null } }); } catch { /* noop */ }
     try { await supabase.from('store').delete().eq('key', SKEY); } catch {}
     setSession(null);
     if (completed.length) toast(`${completed.length} athlete${completed.length === 1 ? '' : 's'} logged to their history`, 'success', { ttl: 4000 });
@@ -299,6 +322,17 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     <div style={{ maxWidth: 1100, margin: '0 auto' }}>
       <FloorBar session={session} checkedIn={checkedIn} traineeById={traineeById}
         onAdd={() => setPicking(true)} onFinish={finishSession} />
+      {session.athletes.length === 0 ? (
+        // Empty floor — guide the coach to add athletes instead of a blank box.
+        <div style={{ marginTop: 12, border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)', boxShadow: C.cardShadow, padding: '54px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, textAlign: 'center' }}>
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke={C.ac} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.9 }}>
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <div style={{ fontFamily: FN, fontSize: 13, fontWeight: 700, letterSpacing: '0.14em', color: C.tx, textTransform: 'uppercase' }}>No one on the floor yet</div>
+          <div style={{ fontFamily: FB, fontSize: 13, color: C.tm, maxWidth: 380, lineHeight: 1.55 }}>Add the athletes training now — check them in as they arrive and log every set from this one screen.</div>
+          <button onClick={() => setPicking(true)} style={{ ...primaryBtn, width: 'auto', padding: '12px 26px', marginTop: 4 }}>+ Add athletes</button>
+        </div>
+      ) : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12, marginTop: 12 }}>
         {session.athletes.map((a, ai) => (
           <AthleteCard key={a.rowId} a={a} name={(traineeById[a.traineeId]?.name) || a.traineeId}
@@ -310,6 +344,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           />
         ))}
       </div>
+      )}
       {picking && <AthletePicker trainees={trainees} planIndex={planIndex} existing={session.athletes.map(a => a.traineeId)} clientWorkouts={clientWorkouts} onCancel={() => setPicking(false)} onConfirm={addAthletes} />}
     </div>
   );
@@ -330,6 +365,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
           </div>
         </div>
       </RefinedHeaderStrip>
+      {session.athletes.length > 0 && (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: 12 }}>
         {session.athletes.map(a => {
           const cur = a.exercises[a.curEx];
@@ -342,6 +378,7 @@ function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }

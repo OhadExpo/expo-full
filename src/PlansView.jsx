@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB, FH, uid, REQUIRED_PATTERNS, SUPERSET_LABELS, CATEGORIES, RESISTANCE_TYPES, BODY_POSITIONS, MOVEMENT_TYPES, MOVEMENT_PATTERNS, LATERALITY } from './theme';
 
@@ -377,7 +377,7 @@ function wuRx(w) {
   return (w && w.rx) || '';
 }
 
-function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExercises = null }) {
+function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExercises = null, onCopyWarmup = null }) {
   const warmup = Array.isArray(plan.warmup) ? plan.warmup : [];
   // Collapsed by default whenever there's content, so the warm-up doesn't
   // dominate the editor when the coach is iterating on the main exercise
@@ -452,12 +452,16 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
         {warmup.length > 0 && (() => {
           const anyOpen = warmup.some((_, i) => wuExpanded[i]);
           return <>
+          {/* ⤴ copy the whole warm-up to another program — mirrors the day
+              card's ⤴ (Ohad: "share a warmup like a day"). */}
+          {onCopyWarmup && <button onClick={(e)=>{ e.stopPropagation(); onCopyWarmup(); }} title="Copy this warm-up to another program" aria-label="Copy warm-up to another program"
+            style={{ marginLeft:'auto', width:28, height:24, boxSizing:'border-box', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, color:C.ac, cursor:'pointer', fontSize:12, lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0, flexShrink:0 }}>⤴</button>}
           <button onClick={() => {
             if (!anyOpen && !open) setOpen(true);
             setWuExpanded(prev => { const next = { ...prev }; warmup.forEach((_, i) => { if (anyOpen) delete next[i]; else next[i] = true; }); return next; });
           }}
             title={anyOpen ? 'Collapse all warm-ups' : 'Expand all warm-ups to edit fully'}
-            style={{ marginLeft:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, padding:'3px 0', color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.14em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+            style={{ marginLeft: onCopyWarmup ? 8 : 'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, padding:'3px 0', color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.14em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
             <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}>▾</span>
             {/* marginRight cancels the trailing letter-space (letterSpacing
                 adds 0.14em AFTER the last glyph too), so the arrow+text group
@@ -1137,7 +1141,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
   );
 }
 
-function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, clientWorkouts, portalVis, setPortalVis, editorApiRef }) {
+function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, onCopyWarmup, clientWorkouts, portalVis, setPortalVis, editorApiRef }) {
   const [plan, setPlan] = useState(init);
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -1448,8 +1452,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             );
           })()}
         </div>
+        {/* Autosave status on its OWN right-aligned line with a RESERVED height,
+            so it appearing / disappearing / changing width ("Saving…" ⇄
+            "✓ Saved") never re-centers and shifts the button row below (Ohad). */}
+        <div style={{flex:'1 1 100%',display:'flex',justifyContent:'flex-end',alignItems:'center',minHeight:15,marginBottom:1,paddingRight:2}}>
+          {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:10,fontWeight:700,color:statusLabel.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{statusLabel.text}</span>}
+        </div>
         <div style={{display:"flex",gap:8,alignItems:"stretch",justifyContent:"center",flexWrap:"wrap",flex:"1 1 100%"}}>
-          {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:11,fontWeight:600,color:statusLabel.color,letterSpacing:"0.04em",alignSelf:'center'}}>{statusLabel.text}</span>}
           {/* COMPARE: read-only view of a previous program for the same
               athlete, side-by-side with the editor grid. */}
           <button onClick={()=>setCompareOpen(v=>!v)}
@@ -1540,7 +1549,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           touching the pane's cyan scrollbar. */}
       <div data-compare-pane ref={leftPaneRef} style={{overflowY:compareActive?'auto':'visible',minHeight:0,flex:compareActive?1:'unset',paddingRight:compareActive?6:0}}>
       <PatternCoverage plan={plan} exercises={exercises} cols={compareActive ? 3 : 5} />
-      <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} exercises={exercises} setExercises={setExercises} />
+      <WarmupEditor plan={plan} setPlan={setPlan} compact={compareActive} exercises={exercises} setExercises={setExercises}
+        onCopyWarmup={onCopyWarmup ? () => setCopyDaysModal({ warmup: true }) : null} />
       {/* Day tabs. Each tab can be individually flagged as a "daily routine"
           via a small 📆 toggle inside the day's content (see below). A daily
           day in a multi-day plan lets the athlete log it any number of times
@@ -1883,6 +1893,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
       />
       {copyDaysModal && <CopyDaysModal
         days={plan.days}
+        warmupMode={!!copyDaysModal.warmup}
+        warmup={plan.warmup}
         currentPlanId={plan.id}
         preselected={copyDaysModal.dayIdxs}
         planIndex={planIndex}
@@ -1891,6 +1903,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         athleteOptions={(trainees||[]).filter(t=>t.status!=='Archived').flatMap(t => t.members && t.members.length===2 ? t.members.map((m,i)=>({value:t.id+'__'+i, label:m.name||('Member '+(i+1))})) : [{value:t.id, label:t.name}])}
         onClose={()=>setCopyDaysModal(null)}
         onCopy={onCopyDays}
+        onCopyWarmup={onCopyWarmup}
       />}
       {historyOpen && createPortal((
         <div onClick={()=>setHistoryOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.72)',zIndex:10000,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'6vh 16px',overflowY:'auto'}}>
@@ -1939,7 +1952,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
 // programs, or create a new one. Copies FULL exercise data (parent's
 // handleCopyDays deep-clones with fresh ids, spreading every field). Selected
 // days append to the BOTTOM of the target.
-function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeeks, traineeMap, athleteOptions, onClose, onCopy }) {
+function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeeks, traineeMap, athleteOptions, onClose, onCopy, warmupMode = false, warmup = [], onCopyWarmup = null }) {
   // Escape closes (backdrop + × already do). Listener, not autoFocus-only,
   // so it works before the coach touches anything.
   useEffect(() => {
@@ -1979,16 +1992,18 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
     ));
   }, [planIndex, currentPlanId, existAthlete, athleteOptions]);
   const count = picked.size;
-  const canCopy = count > 0 && (mode === 'new' ? true : !!targetId) && !busy;
+  const wuSteps = (warmup || []).length;
+  const canCopy = (warmupMode ? wuSteps > 0 : count > 0) && (mode === 'new' ? true : !!targetId) && !busy;
   // Native-select style, matching the Sessions "add athletes" pickers.
   const sel = { width:'100%', height:38, boxSizing:'border-box', background:'var(--c-sf2)', border:`1px solid ${C.cardBd}`, borderRadius:0, padding:'0 10px', color:C.tx, fontFamily:FN, fontSize:12, outline:'none', cursor:'pointer' };
   const fieldLbl = { fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:6, textTransform:'uppercase' };
   const doCopy = async () => {
     if (!canCopy) return;
     setBusy(true);
-    const chosen = [...picked].sort((a,b)=>a-b).map(i => days[i]).filter(Boolean);
     const target = mode === 'new' ? { kind: 'new', name: newName, traineeId: newAthlete, weeks: sourceWeeks } : { kind: 'existing', planId: targetId };
-    const res = await onCopy(chosen, target);
+    const res = warmupMode
+      ? await onCopyWarmup(warmup, target)
+      : await onCopy([...picked].sort((a,b)=>a-b).map(i => days[i]).filter(Boolean), target);
     setBusy(false);
     if (res && res.ok) onClose();
   };
@@ -1999,13 +2014,19 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
     <div onClick={onClose} role="dialog" aria-modal="true" style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <div onClick={e=>e.stopPropagation()} style={{ background:'var(--c-sf)', border:`1px solid ${C.cardBd}`, borderRadius:0, width:'min(480px, 96vw)', maxHeight:'86vh', display:'flex', flexDirection:'column', boxShadow:C.cardShadow }}>
         <div style={{ padding:'14px 18px', borderBottom:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>Copy day{count===1?'':'s'} to…</span>
+          <span style={{ fontFamily:FN, fontSize:13, fontWeight:700, letterSpacing:'0.12em', color:C.tx, textTransform:'uppercase' }}>{warmupMode ? 'Copy warm-up to…' : `Copy day${count===1?'':'s'} to…`}</span>
           <button onClick={onClose} style={{ background:'transparent', border:'none', color:C.tm, fontSize:20, lineHeight:1, cursor:'pointer' }}>×</button>
         </div>
         <div style={{ overflowY:'auto', padding:'12px 18px', display:'flex', flexDirection:'column', gap:14 }}>
-          {/* which day(s) */}
+          {/* what to copy — the day checklist, or (warm-up mode) a summary */}
           <div>
-            <div style={{ fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:8, textTransform:'uppercase' }}>Days to copy</div>
+            <div style={{ fontFamily:FN, fontSize:9, color:C.td, letterSpacing:'0.16em', fontWeight:700, marginBottom:8, textTransform:'uppercase' }}>{warmupMode ? 'Warm-up to copy' : 'Days to copy'}</div>
+            {warmupMode ? (
+              <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', border:`1px solid ${C.ac}`, background:`${C.ac}1f` }}>
+                <span style={{ color:C.or, fontFamily:FN, fontSize:12, fontWeight:700, letterSpacing:'0.06em' }}>WARM-UP</span>
+                <span style={{ flex:1, color:C.tx, fontFamily:FB, fontSize:13 }}>{wuSteps} step{wuSteps===1?'':'s'}</span>
+              </div>
+            ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
               {days.map((d,i) => {
                 const on = picked.has(i);
@@ -2019,6 +2040,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
                 );
               })}
             </div>
+            )}
           </div>
           {/* target mode toggle */}
           <div style={{ display:'flex', gap:0, border:`1px solid ${C.cardBd}` }}>
@@ -2064,7 +2086,7 @@ function CopyDaysModal({ days, currentPlanId, preselected, planIndex, sourceWeek
         </div>
         <div style={{ padding:'12px 18px', borderTop:`1px solid ${C.cardBd}`, display:'flex', justifyContent:'flex-end', gap:8 }}>
           <button onClick={onClose} style={{ padding:'8px 16px', background:'transparent', border:`1px solid ${C.cardBd}`, borderRadius:0, color:C.tm, fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.1em', cursor:'pointer' }}>CANCEL</button>
-          <button onClick={doCopy} disabled={!canCopy} style={{ padding:'8px 18px', background: canCopy?C.ac:'transparent', border:`1px solid ${canCopy?C.ac:C.cardBd}`, borderRadius:0, color: canCopy?'#000':C.td, fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.1em', cursor: canCopy?'pointer':'default' }}>{busy?'COPYING…':`COPY ${count||''} DAY${count===1?'':'S'} →`}</button>
+          <button onClick={doCopy} disabled={!canCopy} style={{ padding:'8px 18px', background: canCopy?C.ac:'transparent', border:`1px solid ${canCopy?C.ac:C.cardBd}`, borderRadius:0, color: canCopy?'#000':C.td, fontFamily:FN, fontSize:11, fontWeight:700, letterSpacing:'0.1em', cursor: canCopy?'pointer':'default' }}>{busy?'COPYING…':(warmupMode ? 'COPY WARM-UP →' : `COPY ${count||''} DAY${count===1?'':'S'} →`)}</button>
         </div>
       </div>
     </div>,
@@ -2112,6 +2134,25 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // Default 'created desc' matches the old creation-order-newest-first list.
   const [sortField, setSortField] = useState('created');
   const [sortDir, setSortDir] = useState('desc');
+  // View mode for the grouped default view: 'table' (dense athlete rows) or
+  // 'grid' (one card per athlete, double-click to expand earlier blocks).
+  // Persisted so Ohad's pick survives reloads. Only affects the grouped
+  // (unfiltered) view — search/trainee-filter always fall back to the flat list.
+  const [progView, setProgView] = usePersistentState('programs-view-mode', 'table');
+  // Single-vs-double click reconciler for grid cards: a single click opens the
+  // current program after a short delay; a double click cancels that and
+  // expands the card's earlier blocks instead (Ohad: "expandable on a double
+  // click in the grid option").
+  const cardClickTimerRef = useRef(null);
+  // FLIP shove animation for the card grid: when a card expands to full width,
+  // the cards after it reflow to new positions (right-of-it cards drop to the
+  // next row, everything below shifts down). CSS grid doesn't transition that
+  // reflow, so we measure each card's position before/after the expand and
+  // animate the delta with a transform (Ohad: "animation where the other cards
+  // get shoved down to clear the space"). Keyed on expandedAthletes/progView so
+  // it only fires on an actual expand/collapse, not on hover re-renders.
+  const gridRef = useRef(null);
+  const prevRectsRef = useRef(new Map());
 
   // Auto-open plan if requested from TraineeDetail
   React.useEffect(() => {
@@ -2143,6 +2184,33 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
+
+  // FLIP: animate grid cards from their previous positions to their new ones
+  // whenever an expand/collapse changes the layout. Runs synchronously after
+  // the DOM mutates (useLayoutEffect) so the browser never paints the jumped
+  // positions — we invert with a transform, then release it next frame.
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) { prevRectsRef.current = new Map(); return; }
+    const cards = grid.querySelectorAll('[data-prog-card]');
+    const newRects = new Map();
+    cards.forEach(el => newRects.set(el.getAttribute('data-prog-card'), el.getBoundingClientRect()));
+    const prev = prevRectsRef.current;
+    cards.forEach(el => {
+      const key = el.getAttribute('data-prog-card');
+      const a = prev.get(key), b = newRects.get(key);
+      if (!a || !b) return;
+      const dx = a.left - b.left, dy = a.top - b.top;
+      if (!dx && !dy) return;
+      el.style.transition = 'none';
+      el.style.transform = `translate(${dx}px, ${dy}px)`;
+      requestAnimationFrame(() => {
+        el.style.transition = 'transform 320ms cubic-bezier(0.22,0.61,0.36,1)';
+        el.style.transform = '';
+      });
+    });
+    prevRectsRef.current = newRects;
+  }, [expandedAthletes, progView]);
 
   const traineeMap = useMemo(() => {
     const m = {};
@@ -2370,6 +2438,43 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     }
   };
 
+  // Copy THIS program's warm-up onto another program — the warm-up analog of
+  // handleCopyDays (Ohad: "share a warmup like a day"). Existing target →
+  // append this warm-up's steps to theirs; new target → a fresh program with
+  // the warm-up + one empty day. Never rewrites the target's days.
+  const handleCopyWarmup = async (warmup, target) => {
+    const steps = (warmup || []).map(w => ({ ...w }));
+    if (!steps.length) return { ok: false };
+    try {
+      if (target.kind === 'new') {
+        const newWeeks = Math.max(1, Number(target.weeks) || 4);
+        const fresh = { id: 'pl_' + uid(), name: target.name?.trim() || 'New Program', traineeId: target.traineeId || '', phase: '', notes: '', active: true, createdAt: new Date().toISOString(), days: [defaultDay(1)], warmup: steps, weeks: newWeeks };
+        const saved = await savePlan(fresh);
+        await reloadIndex();
+        if (saved) { toast(`Created "${fresh.name}" with the warm-up (${steps.length} step${steps.length===1?'':'s'})`, 'success', { ttl: 3000 }); return { ok: true, name: fresh.name }; }
+        toast('Copy failed — the new program was refused. See console.', 'error'); return { ok: false };
+      }
+      const { supabase: sb } = await import('./supabase');
+      const { data } = await sb.from('plans').select('*').eq('id', target.planId).single();
+      if (!data) { toast('Copy failed — could not load the target program.', 'error'); return { ok: false }; }
+      const existingWarmup = data.data?.warmup || [];
+      const merged = {
+        id: data.id, name: data.name, traineeId: data.trainee_id, phase: data.phase || '', notes: data.notes || '',
+        active: data.active, createdAt: data.created_at,
+        days: data.data?.days || [],
+        warmup: [...existingWarmup, ...steps], weeks: data.data?.weeks || 4, kind: data.data?.kind,
+        isTemplatePurchase: data.is_template_purchase === true || data.data?.isTemplatePurchase === true,
+      };
+      const saved = await savePlan(merged);
+      await reloadIndex();
+      if (saved) { toast(`Copied the warm-up (${steps.length} step${steps.length===1?'':'s'}) to "${data.name}"`, 'success', { ttl: 3000 }); return { ok: true, name: data.name }; }
+      toast('Copy failed — the save was refused. See console.', 'error'); return { ok: false };
+    } catch (e) {
+      console.error('handleCopyWarmup error:', e);
+      toast('Copy failed — see console.', 'error'); return { ok: false };
+    }
+  };
+
   // F-18 — Public program share. Creates a program_shares row with a
   // random token, copies the public URL to the clipboard, and toasts
   // success. Anon visitors hit /p/<token> which reads via the
@@ -2402,11 +2507,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // Row action button — TEXT label only (Ohad: the icons are unnecessary once
   // the words are visible). One shape across all row variants. `children`
   // (the old icon) is intentionally ignored.
-  const LabeledBtn = ({ onClick, title, label, danger }) => (
+  const LabeledBtn = ({ onClick, title, label, danger, block }) => (
     <button onClick={onClick} title={title}
       style={{
         display:'inline-flex', alignItems:'center', justifyContent:'center',
-        height:30, width:76, padding:0, lineHeight:1, flexShrink:0,
+        height:30, width: block ? '100%' : 76, padding:0, lineHeight:1, flexShrink:0,
         background: isRefined5b() ? 'transparent' : 'var(--c-sf)',
         border:`1px solid ${danger ? 'rgba(255,71,87,0.5)' : C.ac}`, borderRadius:0,
         color: danger ? C.rd : C.ac, cursor:'pointer',
@@ -2417,15 +2522,16 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
   // Portal-visibility as a single-line pill (status dot + text) at the same
   // height as the action buttons — replaces the 2-line switch+caption column
   // that didn't vertically align with the rest of the row.
-  const PortalPill = ({ on, onClick, onLabel = 'ON PORTAL', offLabel = 'HIDDEN', title }) => (
+  const PortalPill = ({ on, onClick, onLabel = 'ON PORTAL', offLabel = 'HIDDEN', title, block }) => (
     <button onClick={onClick}
       title={title || (on ? 'Visible on athlete portal — click to hide' : 'Hidden from athlete portal — click to show')}
       style={{
         // Fixed width so both states of a toggle (and every toggle on the
         // page) are identical length — keeps the pill columns symmetric
-        // across rows regardless of the label inside.
+        // across rows regardless of the label inside. `block` opts into
+        // fill-width for the card-grid action cluster.
         display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6,
-        height:30, width:108, padding:0, lineHeight:1, flexShrink:0, borderRadius:0, cursor:'pointer',
+        height:30, width: block ? '100%' : 108, padding:0, lineHeight:1, flexShrink:0, borderRadius:0, cursor:'pointer',
         background:'transparent', border:`1px solid ${on ? C.gn : C.cardBd}`,
         color: on ? C.gn : C.tm,
         fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', whiteSpace:'nowrap',
@@ -2607,7 +2713,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     // state is initialized from `init` only once, so a remount is the
     // simplest way to load fresh data without rewiring its state plumbing.
     return <>
-      <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} onCopyDays={handleCopyDays} clientWorkouts={clientWorkouts} portalVis={portalVis} setPortalVis={setPortalVis} editorApiRef={editorApiRef} />
+      <PlanEditor key={editPlanData.id} plan={editPlanData} onSave={handleSave} onCancel={handleCancel} onSwitchProgram={loadFullPlan} trainees={trainees} exercises={exercises} setExercises={setExercises} planIndex={planIndex} onPreviewPlan={onPreviewPlan} onDelete={handleEditorDelete} onNewProgramFor={(tid, name) => setNewProgramPrompt({ id: tid, name: name || 'this athlete' })} onShare={() => setShareTarget(editPlanData.id)} onDuplicate={() => handleDuplicate(editPlanData.id)} onCopyDays={handleCopyDays} onCopyWarmup={handleCopyWarmup} clientWorkouts={clientWorkouts} portalVis={portalVis} setPortalVis={setPortalVis} editorApiRef={editorApiRef} />
       {shareModal}
       {deleteModal}
       {newProgramModal}
@@ -2659,6 +2765,22 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             </button>
           );
         })}
+        {/* Table ⇄ Grid view toggle — only meaningful for the grouped (default)
+            view, so it's hidden while searching/filtering (flat list). */}
+        {grouped && (
+          <>
+            <div style={{flex:1,minWidth:12}} />
+            <div style={{display:'inline-flex',border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',flexShrink:0}}>
+              {[['table','TABLE'],['grid','GRID']].map(([v,label]) => {
+                const on = progView === v;
+                return (
+                  <button key={v} onClick={()=>setProgView(v)} title={v==='table'?'Dense list — one row per athlete':'Card grid — double-click a card to expand earlier blocks'}
+                    style={{padding:'4px 12px',border:'none',borderRadius:0,background:on?C.ac:'transparent',color:on?'#0a0a0b':C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{label}</button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
       <div style={{fontSize:12,color:C.td,marginBottom:12,fontFamily:FN}}>
         {grouped
@@ -2669,7 +2791,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           surfaced prominently with last-session signal. (N earlier blocks)
           chevron expands the older blocks inline so nothing is lost — they
           just stay out of the daily scan path. */}
-      {grouped && grouped.length > 0 && (
+      {grouped && grouped.length > 0 && progView === 'table' && (
         <div style={{display:"grid",gap:8}}>
           {grouped.map(row => {
             const expanded = expandedAthletes.has(row.tid);
@@ -2780,6 +2902,135 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                         <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE" />
                         <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
                         <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" label="DELETE" danger />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {/* Card-grid view (Ohad's design B): one card per athlete, current block
+          front-and-centre. Single click opens the current program; double
+          click expands the card to reveal earlier blocks inline. Same data,
+          same actions, same hover-preview as the table. */}
+      {grouped && grouped.length > 0 && progView === 'grid' && (
+        <div ref={gridRef} style={{display:'grid',gap:14,gridTemplateColumns:'repeat(auto-fill,minmax(360px,1fr))'}}>
+          {grouped.map(row => {
+            const expanded = expandedAthletes.has(row.tid);
+            const cur = row.current;
+            const tagColor = row.daysSince == null ? C.td : row.daysSince <= 3 ? C.gn : row.daysSince <= 7 ? C.tm : row.daysSince <= 14 ? C.or : C.rd;
+            const tagText = row.daysSince == null ? 'never logged' : row.daysSince === 0 ? 'trained today' : `${row.daysSince}d ago`;
+            // Orphan (active athlete, no program) — dashed card mirroring the
+            // table's zero-state row.
+            if (row.orphan) {
+              return (
+                <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,minHeight:120}}>
+                  <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div>
+                  <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>No program assigned</div>
+                  <div style={{flex:1}} />
+                  <button onClick={()=>handleNewPlan()} style={{alignSelf:'flex-start',background:'var(--c-sf)',border:`1px solid ${C.or}`,borderRadius:0,color:C.or,cursor:'pointer',padding:'5px 12px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.18em',whiteSpace:'nowrap'}}>+ ASSIGN PROGRAM</button>
+                </div>
+              );
+            }
+            // Shared handlers + action builders so the collapsed (narrow,
+            // stacked) and expanded (full-width, table-like) layouts stay in
+            // sync without duplicating the wiring.
+            const cancelHover = () => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); };
+            const openHandlers = {
+              role:'button', tabIndex:0,
+              onClick:()=>{ if (cardClickTimerRef.current) return; cardClickTimerRef.current = setTimeout(()=>{ cardClickTimerRef.current = null; handleOpenPlan(cur.id); }, 280); },
+              onDoubleClick:()=>{ clearTimeout(cardClickTimerRef.current); cardClickTimerRef.current = null; if (row.earlier.length > 0) toggleAthlete(row.tid); },
+              onKeyDown:e=>{ if(e.key==='Enter'){ e.preventDefault(); handleOpenPlan(cur.id); } },
+              onMouseEnter:e => { const x = e.clientX, y = e.clientY; clearTimeout(hoverTimerRef.current); hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 260); },
+              onMouseLeave:cancelHover,
+            };
+            const portalPillFor = (p, block) => {
+              if (!setPortalVis) return null;
+              const vk = visKeyForPlan(p, trainees);
+              if (!vk) return null;
+              const isVis = portalVis?.[vk] !== false;
+              return <PortalPill block={block} on={isVis} onClick={e=>{e.stopPropagation();setPortalVis({...portalVis,[vk]:!isVis})}} />;
+            };
+            const curActions = (block) => [
+              onPreviewPlan && <LabeledBtn key="p" block={block} onClick={e=>{e.stopPropagation();onPreviewPlan(cur.id);}} title="Preview as trainee" label="PREVIEW" />,
+              <LabeledBtn key="d" block={block} onClick={e=>{e.stopPropagation();handleDuplicate(cur.id);}} title="Duplicate program" label="DUPLICATE" />,
+              <LabeledBtn key="s" block={block} onClick={e=>{e.stopPropagation();setShareTarget(cur.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />,
+              <LabeledBtn key="x" block={block} onClick={e=>{e.stopPropagation(); setPendingDelete({ id: cur.id, name: cur.name, fromEditor: false }); setDeleteTyped('');}} title="Delete program" label="DELETE" />,
+            ].filter(Boolean);
+            const nCur = onPreviewPlan ? 4 : 3;
+            const plusBtn = row.earlier.length > 0 && (
+              <button onClick={e=>{e.stopPropagation();toggleAthlete(row.tid);}}
+                title={expanded?`Hide ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'}`:`Show ${row.earlier.length} earlier block${row.earlier.length===1?'':'s'} (or double-click the card)`}
+                style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:24,minWidth:44,padding:'0 10px',background:expanded?C.ac:'transparent',border:`1px solid ${C.ac}`,borderRadius:0,color:expanded?'#0a0a0b':C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.06em',whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box',fontVariantNumeric:'tabular-nums'}}>
+                {expanded?`−${row.earlier.length}`:`+${row.earlier.length}`}
+              </button>
+            );
+            const tag = (
+              <span title={`Last session: ${tagText}`} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',height:22,padding:'0 8px',fontSize:9,fontFamily:FN,color:tagColor,letterSpacing:'0.04em',fontWeight:600,border:`1px solid ${tagColor}`,whiteSpace:'nowrap',flexShrink:0,boxSizing:'border-box'}}>{tagText}</span>
+            );
+            return (
+              <div key={row.tid} data-prog-card={row.tid}
+                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow}}>
+                {expanded ? (
+                  /* FULL-WIDTH: one horizontal row like the table — body left,
+                     actions right, using the whole width. */
+                  <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+                    <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',whiteSpace:'nowrap',flexShrink:0}}><bdi>{row.name}</bdi></div>
+                    <div style={{fontWeight:700,fontSize:15,color:C.ac,letterSpacing:'0.04em',fontFamily:FN,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',minWidth:0,flex:'0 1 auto'}}>{cur.name||"Untitled"}</div>
+                    {plusBtn}
+                    <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,whiteSpace:'nowrap',flexShrink:0}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
+                    <div style={{flex:1,minWidth:12}} />
+                    {tag}
+                    <div onMouseEnter={cancelHover} style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                      {portalPillFor(cur, false)}
+                      {curActions(false)}
+                    </div>
+                  </div>
+                ) : (
+                  /* NARROW: stacked body + two symmetrical action lines. */
+                  <>
+                    <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px 14px 12px',display:'flex',flexDirection:'column',gap:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><bdi>{row.name}</bdi></div>
+                        {tag}
+                      </div>
+                      <div style={{fontWeight:700,fontSize:15,color:C.ac,letterSpacing:'0.04em',fontFamily:FN,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cur.name||"Untitled"}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
+                        <div style={{flex:1}} />
+                        {plusBtn}
+                      </div>
+                    </div>
+                    {/* Two symmetrical lines: the ON PORTAL toggle on its own
+                        full-width line, then the CRUD actions in an even grid. */}
+                    <div onMouseEnter={cancelHover} style={{display:'flex',flexDirection:'column',gap:6,padding:'0 14px 12px'}}>
+                      {portalPillFor(cur, true)}
+                      <div style={{display:'grid',gridTemplateColumns:`repeat(${nCur},1fr)`,gap:6}}>{curActions(true)}</div>
+                    </div>
+                  </>
+                )}
+                {/* Expanded earlier blocks — full-width rows, each mirroring the
+                    current-block row's columns so everything lines up down the
+                    card (Ohad ref: stacked rows, not boxed mini-cards). */}
+                {expanded && row.earlier.length > 0 && (
+                  <div style={{borderTop:`1px solid ${C.cardBd}`}}>
+                    {row.earlier.map((p, i) => (
+                      <div key={p.id} onClick={()=>handleOpenPlan(p.id)}
+                        onMouseEnter={e => { const x = e.clientX, y = e.clientY; clearTimeout(hoverTimerRef.current); hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(p.id); }, 260); }}
+                        onMouseLeave={cancelHover}
+                        style={{cursor:openingId===p.id?'progress':'pointer',opacity:openingId===p.id?0.45:0.9,transition:'opacity 0.12s',padding:'10px 14px',display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',borderTop:i===0?'none':`1px solid rgba(57,189,255,0.102)`}}>
+                        <div style={{fontSize:13,color:C.ac,opacity:0.82,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'0.04em',fontFamily:FN,fontWeight:700,minWidth:0,flex:'0 1 auto'}}>{p.name||"Untitled"}</div>
+                        <div style={{flex:1,minWidth:12}} />
+                        <div style={{fontSize:11,color:C.td,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,flexShrink:0,whiteSpace:'nowrap'}}>{p.dayCount}d · {p.exerciseCount}ex</div>
+                        <div onMouseEnter={cancelHover} style={{display:'flex',gap:8,alignItems:'center',flexShrink:0,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                          {portalPillFor(p, false) || <div style={{width:108,flexShrink:0}} />}
+                          {onPreviewPlan && <LabeledBtn onClick={e=>{e.stopPropagation();onPreviewPlan(p.id);}} title="Preview as trainee" label="PREVIEW" />}
+                          <LabeledBtn onClick={e=>{e.stopPropagation();handleDuplicate(p.id);}} title="Duplicate program" label="DUPLICATE" />
+                          <LabeledBtn onClick={e=>{e.stopPropagation();setShareTarget(p.id);}} title="Share to an athlete — duplicates this program for them" label="SHARE" />
+                          <LabeledBtn onClick={e=>{e.stopPropagation();setConfirmDelete(p.id);}} title="Delete program" label="DELETE" danger />
                         </div>
                       </div>
                     ))}

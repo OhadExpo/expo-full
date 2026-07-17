@@ -429,27 +429,35 @@ function PriorityPill({ priority, onSetPriority, readOnly = false }) {
 
 // Shared width for the three toolbar filter rows (owner tabs / sort / quick
 // filters) so they END at the same x — buttons flex to fill it (Ohad).
-const FILTER_GROUP_W = 492;
+const FILTER_GROUP_W = 528;
 // Shared width for the RIGHT column (LIST/BOARD · STATUS/CATEGORY · SEARCH) so
 // all three rows start AND end at the same x — buttons flex to fill (Ohad).
 const HEADER_RIGHT_W = 210;
+// Toolbar tab/filter buttons reuse the PLATFORM's established sort-tab idiom
+// (PlansView "NAME / UPLOADED / LAST EDITED", :2650): separate bordered buttons,
+// active = 1px accent border + accent text, inactive = 0.25px cyan hairline +
+// muted text. Inactive keeps a hairline so it's never bare floating text (Ohad).
+const segBtn = (active) => ({
+  // Selected = SOLID cyan fill + white text (matches the nav's active tab — the
+  // platform's clearest "selected" indicator). Inactive = white box + cyan
+  // hairline (never grey-inside-grey). White boxes on the grey page (Ohad).
+  background: active ? '#39BDFF' : 'var(--c-sf)', borderRadius: 0, boxSizing: 'border-box',
+  border: `1px solid ${active ? '#39BDFF' : 'var(--c-cardBd)'}`,
+  color: active ? '#FFFFFF' : 'var(--c-tm)',
+  fontFamily: FN, fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer',
+});
 // One segment of the owner segmented control. Monochrome: active = filled
 // surface + white text, NOT a colour (Ohad: page too colourful — only status
 // pills keep colour). `first` omits the left divider. Hover via .tfbtn.
-function OwnerTab({ label, count, active, onClick, first }) {
+function OwnerTab({ label, count, active, onClick }) {
   return (
     <button onClick={onClick} className="tfbtn" data-active={active ? '' : undefined} style={{
-      flex: 1, minWidth: 0, height: '100%',
-      background: active ? 'var(--c-sf2)' : 'transparent',
-      color: active ? 'var(--c-tx)' : 'var(--c-tm)',
-      border: 'none', borderLeft: first ? 'none' : `1px solid var(--c-cardBd)`,
-      fontFamily: FN, fontSize: 10, fontWeight: 700,
-      letterSpacing: '0.12em', padding: '0 14px',
-      cursor: 'pointer', textTransform: 'uppercase', display: 'inline-flex',
-      alignItems: 'center', justifyContent: 'center', gap: 8, boxSizing: 'border-box',
+      ...segBtn(active), flex: 1, minWidth: 0, height: 30,
+      fontSize: 10, letterSpacing: '0.12em', padding: '0 10px',
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
     }}>
       <span>{label}</span>
-      <span style={{ opacity: 0.6, fontSize: 9, fontWeight: 700 }}>{count}</span>
+      <span style={{ opacity: 0.65, fontSize: 9, fontWeight: 700 }}>{count}</span>
     </button>
   );
 }
@@ -461,21 +469,12 @@ function ViewToggle({ value, onChange }) {
     { id: 'board', label: 'Board' },
   ];
   return (
-    <div style={{
-      display: 'flex', width: '100%',
-      border: `1px solid var(--c-cardBd)`,
-      borderRadius: 0, height: 30, boxSizing: 'border-box',
-    }}>
-      {items.map((it, i) => (
+    <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+      {items.map((it) => (
         <button key={it.id} onClick={() => onChange(it.id)} className="tfbtn" data-active={value === it.id ? '' : undefined} style={{
-          flex: 1, height: '100%',
-          background: value === it.id ? 'var(--c-sf2)' : 'transparent',
-          color: value === it.id ? 'var(--c-tx)' : 'var(--c-tm)',
-          border: 'none',
-          borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
-          fontFamily: FN, fontSize: 10, fontWeight: 700,
-          letterSpacing: '0.12em', padding: '0 14px',
-          cursor: 'pointer', textTransform: 'uppercase',
+          ...segBtn(value === it.id), flex: 1, height: 30,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 10, letterSpacing: '0.12em', padding: '0 14px',
         }}>{it.label}</button>
       ))}
     </div>
@@ -491,14 +490,10 @@ const SORT_MODES = [
   { id: 'manual',   label: 'Manual' },   // hand-ordered; drag a card onto another to reorder
 ];
 function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
-  const seg = (active, first) => ({
-    height: '100%', padding: '0 4px', borderRadius: 0,
+  const seg = (active) => ({
+    ...segBtn(active), height: 30, padding: '0 3px',
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    fontFamily: FN, fontWeight: 700, cursor: 'pointer', boxSizing: 'border-box',
-    border: 'none', borderLeft: first ? 'none' : `1px solid var(--c-cardBd)`,
-    background: active ? 'var(--c-sf2)' : 'transparent',
-    color: active ? 'var(--c-tx)' : C.tm,
-    fontSize: 10, letterSpacing: '0.05em', textTransform: 'uppercase',
+    fontSize: 10, letterSpacing: '0.03em',
   });
   // When a mode is ACTIVE its button shows the direction as a word that flips on
   // click (↓ Newest ⇄ ↑ Oldest); inactive buttons show the plain mode name. No
@@ -527,13 +522,13 @@ function SortBar({ sortBy, sortDir, onSortBy, onToggleDir, rightSlot }) {
     }}>
       {/* sort modes + dir = one segmented control, same total width as the
           owner/quick rows. No gaps → each mode has room for its active label. */}
-      <div style={{ display: 'flex', width: '100%', maxWidth: FILTER_GROUP_W, height: 30, border: `1px solid var(--c-cardBd)`, boxSizing: 'border-box' }}>
-        {SORT_MODES.map((m, i) => {
+      <div style={{ display: 'flex', gap: 6, width: '100%', maxWidth: FILTER_GROUP_W }}>
+        {SORT_MODES.map((m) => {
           const active = sortBy === m.id;
           return (
             <button key={m.id} onClick={() => active ? onToggleDir() : onSortBy(m.id)} className="tfbtn" data-active={active ? '' : undefined}
               title={active ? (m.id === 'manual' ? 'Manual order — drag tasks to arrange' : 'Click to flip the sort direction') : `Sort by ${m.label}`}
-              style={{ ...seg(active, i === 0), flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              style={{ ...seg(active), flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {active ? (() => { const { a, t } = activeDirParts(m.id); return (
                 <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', gap:4, minWidth:0 }}>
                   {a && <span aria-hidden="true" style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:9, height:9, fontSize:9, lineHeight:1, flexShrink:0 }}>{a}</span>}
@@ -565,29 +560,19 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
   const isFiltered = (search || '').trim() !== '';
   return (
     <div style={{ display: 'flex', gap: 6, marginBottom: 12, alignItems: 'center' }}>
-    <div style={{
-      display: 'flex', width: '100%', maxWidth: FILTER_GROUP_W,
-      height: 30, border: `1px solid var(--c-cardBd)`, boxSizing: 'border-box',
-    }}>
-      {/* Hide chips with zero count (except 'all'); compute the visible set
-          first so the segmented dividers land on real edges. */}
-      {QUICK_FILTERS.filter(f => f.id === 'all' || (counts[f.id] ?? 0) > 0).map((f, i) => {
+    <div style={{ display: 'flex', gap: 6, width: '100%', maxWidth: FILTER_GROUP_W }}>
+      {/* Hide chips with zero count (except 'all'). */}
+      {QUICK_FILTERS.filter(f => f.id === 'all' || (counts[f.id] ?? 0) > 0).map((f) => {
         const active = value === f.id;
         const c = counts[f.id] ?? 0;
         return (
           <button key={f.id} onClick={() => onChange(f.id)} className="tfbtn" data-active={active ? '' : undefined} style={{
-            flex: 1, minWidth: 0, height: '100%',
+            ...segBtn(active), flex: 1, minWidth: 0, height: 30,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            background: active ? 'var(--c-sf2)' : 'transparent',
-            color: active ? 'var(--c-tx)' : 'var(--c-tm)',
-            border: 'none', borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
-            fontFamily: FN, fontSize: 10, fontWeight: 700,
-            letterSpacing: '0.10em', padding: '0 10px',
-            cursor: 'pointer', textTransform: 'uppercase',
-            boxSizing: 'border-box',
+            fontSize: 10, letterSpacing: '0.10em', padding: '0 10px',
           }}>
             <span>{f.label}</span>
-            <span style={{ opacity: 0.55, fontSize: 9 }}>{c}</span>
+            <span style={{ opacity: 0.65, fontSize: 9 }}>{c}</span>
           </button>
         );
       })}
@@ -610,7 +595,7 @@ function QuickFilters({ value, onChange, counts, search, onSearch, resultCount, 
       style={{
         height: 30, minHeight: 30, boxSizing: 'border-box', padding: '0 10px',
         borderRadius: 0, cursor: 'text',
-        background: 'transparent', color: 'var(--c-tx)',
+        background: 'var(--c-sf)', color: 'var(--c-tx)',
         border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 11, fontWeight: 500,
         letterSpacing: '0.04em', width: HEADER_RIGHT_W, outline: 'none', flexShrink: 0,
       }}
@@ -630,6 +615,46 @@ const fmtDMY = (iso) => { if (!iso) return ''; const [y, m, d] = iso.split('-');
 // expanded "add task" row reads as labelled sections instead of a button soup.
 const cmpGroup = { display: 'inline-flex', alignItems: 'center', gap: 6 };
 const cmpLabel = { fontFamily: FN, fontSize: 8, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--c-td)', textTransform: 'uppercase', marginRight: 2 };
+// ---- vertical filter rail (Ohad's chosen Tasks toolbar, design 7) ----
+function RailGroup({ label, children }) {
+  return (
+    <div>
+      <div style={{ fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.2em', color: 'var(--c-td)', textTransform: 'uppercase', padding: '0 14px', marginBottom: 5 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+function RailOpt({ label, count, active, onClick, title }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button onClick={onClick} title={title}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', width: '100%', height: 28, border: 'none', padding: 0, cursor: 'pointer',
+        background: active ? 'rgba(57,189,255,0.20)' : (hov ? 'var(--c-sf3, rgba(127,127,138,0.10))' : 'transparent'),
+        color: active ? 'var(--c-ac)' : (hov ? 'var(--c-tx)' : 'var(--c-tm)'),
+        fontFamily: FN, fontSize: 10, fontWeight: active ? 800 : 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+        transition: 'background .12s, color .12s',
+      }}>
+      <span style={{ width: 3, alignSelf: 'stretch', background: 'var(--c-ac)', opacity: active ? 1 : 0, flexShrink: 0 }} />
+      <span style={{ flex: 1, textAlign: 'left', padding: '0 8px 0 14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
+      {count != null && <span style={{ paddingRight: 14, fontSize: 9, fontWeight: 700, opacity: active ? 0.9 : 0.55, flexShrink: 0 }}>{count}</span>}
+    </button>
+  );
+}
+// Active-sort label with direction arrow (mirrors SortBar.activeDirParts).
+function sortRailLabel(mode, sortDir) {
+  const d = sortDir === 'desc';
+  switch (mode) {
+    case 'date':     return d ? '↑ Latest' : '↓ Soonest';
+    case 'newest':   return d ? '↓ Newest' : '↑ Oldest';
+    case 'priority': return d ? '↑ Low'    : '↓ High';
+    case 'status':   return d ? '↑ Done'   : '↓ To-Do';
+    case 'name':     return d ? 'Z → A'    : 'A → Z';
+    default:         return 'Manual';
+  }
+}
+
 function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
   const [body, setBody] = useState('');
   const [assignee, setAssignee] = useState(defaultAssignee);
@@ -639,6 +664,7 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
   const [traineeId, setTraineeId] = useState(''); // '' = no link
   const [source, setSource] = useState('manual'); // 'manual' | 'center'
   const [focused, setFocused] = useState(false);
+  const [rowHov, setRowHov] = useState(false);
   const inputRef = React.useRef(null);
   // Stay expanded while focus is anywhere inside the composer, OR once any
   // field has been touched. Without this, clicking the date / time / athlete
@@ -676,13 +702,20 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
       background: 'var(--c-sf2, transparent)',
       transition: 'padding 180ms ease',
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        padding: '8px 12px',
-      }}>
+      <div
+        onMouseEnter={() => setRowHov(true)} onMouseLeave={() => setRowHov(false)}
+        onClick={() => inputRef.current?.focus()}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 11,
+          height: 46, padding: '0 14px', cursor: 'text',
+          background: (rowHov || focused) ? 'rgba(57,189,255,0.06)' : 'transparent',
+          transition: 'background .12s',
+        }}>
+        {/* Cyan bordered + box — reads as a real "create" affordance, not grey text (Ohad). */}
         <span style={{
-          fontFamily: FN, fontSize: 12, fontWeight: 700,
-          color: 'var(--c-ac)', flexShrink: 0,
+          width: 21, height: 21, border: '1.5px solid var(--c-ac)', color: 'var(--c-ac)',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 15, lineHeight: 1, flexShrink: 0,
         }}>+</span>
         <input
           ref={inputRef}
@@ -690,23 +723,27 @@ function SmartComposer({ onSubmit, defaultAssignee = 'ohad', trainees = [] }) {
           value={body}
           onChange={(e) => setBody(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-          placeholder="Add task…"
+          placeholder="Add a task…"
           style={{
             flex: 1, background: 'transparent', border: 'none', outline: 'none',
-            fontFamily: FB, fontSize: 13, color: 'var(--c-tx)',
-            padding: '4px 0',
+            fontFamily: FB, fontSize: 13, color: 'var(--c-tx)', padding: 0,
           }}
           autoComplete="off"
         />
-        {body.trim() && (
+        {body.trim() ? (
           <button
             onMouseDown={(e) => { e.preventDefault(); submit(); }}
             style={{
               background: 'var(--c-ac)', color: '#FFFFFF',
               border: 'none', fontFamily: FN, fontSize: 9, fontWeight: 700,
-              letterSpacing: '0.12em', padding: '4px 10px', height: 22,
+              letterSpacing: '0.12em', padding: '5px 12px', height: 24,
               cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase',
             }}>add</button>
+        ) : (
+          <span style={{
+            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em',
+            color: 'var(--c-td)', textTransform: 'uppercase', opacity: 0.75, flexShrink: 0,
+          }}>Enter to save</span>
         )}
       </div>
       {expanded && (
@@ -1378,7 +1415,10 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
   );
 }
 
-function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false }) {
+function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus, onSetPriority, onSetCategory, onDelete, now, search, viewer, readOnly = false, board = false, hideStatus = false, compact = false, narrow = false }) {
+  // On phones, wrap the list row the same way board columns do — title on its
+  // own line, meta + status pill below — so nothing gets clipped off-screen.
+  const wrapRow = board || narrow;
   const heb = isHebrew(row._display || '');
   // Date pill reads the parsed _dueAt (from inline `· due …`) and falls
   // back to created_at only as a last resort — without a real due date,
@@ -1405,6 +1445,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
   // Athlete name when the task is linked to a trainee; nothing otherwise
   // (Ohad: "what athlete, or if none attached, don't show it").
   const athleteName = (row.target_kind === 'trainee' && row.target_label) ? row.target_label : null;
+  // Only show the athlete chip when the TITLE doesn't already name them —
+  // auto-alerts embed the name in the body, so the chip is redundant there (Ohad).
+  const showAthlete = athleteName && !String(row._display || '').includes(athleteName);
 
   // Due shown as relative word + real date + time on ONE row (his spec:
   // "relative + date + time"), e.g. "TMRW · 7 Jun 09:00".
@@ -1435,9 +1478,10 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         onMouseLeave={() => setHover(false)}
         style={{
           display: 'flex', alignItems: 'center', gap: compact ? 6 : 10,
-          // Board columns are narrow — wrap so the title gets its own full line
-          // (via order:-1 below) instead of being crushed by the status pill.
-          flexWrap: board ? 'wrap' : 'nowrap', rowGap: board ? (compact ? 5 : 7) : 0,
+          // Board columns (and phones) are narrow — wrap so the title gets its
+          // own full line (via order:-1 below) instead of being crushed / the
+          // status pill pushed off-screen.
+          flexWrap: wrapRow ? 'wrap' : 'nowrap', rowGap: wrapRow ? (compact ? 5 : 7) : 0,
           padding: compact ? '4px 8px' : '7px 12px 7px 9px', cursor: 'pointer', minHeight: compact ? 26 : 32,
           borderBottom: `1px solid var(--c-cardBd)`,
           borderLeft: `3px solid ${edgeColor}`,
@@ -1452,15 +1496,15 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             Hebrew (RTL) and English rows. Each chip is no-wrap. */}
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, direction: 'ltr' }}>
           <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
-          {athleteName && (
+          {showAthlete && (
             <span title={`Athlete: ${athleteName}`} style={{
               boxSizing: 'border-box', height: TASK_PILL_H, display: 'inline-flex', alignItems: 'center',
               fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em',
-              // Fixed width so every athlete-name chip is the same size (Ohad),
-              // regardless of name length; longer names ellipsize.
-              color: 'var(--c-ac)', whiteSpace: 'nowrap', width: 104, justifyContent: 'center',
+              // Muted (not cyan) so it reads as quiet metadata, not a loud tag (Ohad).
+              // Fixed width keeps chips aligned; longer names ellipsize.
+              color: 'var(--c-tm)', whiteSpace: 'nowrap', width: 104, justifyContent: 'center',
               overflow: 'hidden', textOverflow: 'ellipsis',
-              border: `1px solid var(--c-ac)`, padding: '0 8px',
+              border: `1px solid var(--c-cardBd)`, padding: '0 8px',
             }}>{athleteName}</span>
           )}
           {/* SHARED as a fixed COLUMN — the slot is reserved on EVERY row (even
@@ -1494,8 +1538,8 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         </div>
         {showAvatar && <AssigneeDot owner={row._owner} />}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, alignItems: heb ? 'flex-end' : 'flex-start',
-          // Board: title takes its own full line above the controls (order:-1).
-          ...(board ? { order: -1, flexBasis: '100%' } : null) }}>
+          // Board + phone: title takes its own full line above the controls.
+          ...(wrapRow ? { order: -1, flexBasis: '100%' } : null) }}>
           <div style={{
             maxWidth: '100%',
             fontFamily: heb ? FH : FB,
@@ -1597,8 +1641,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // Compact density for narrow / split-screen windows (Ohad runs the browser at
   // half-width next to his terminal). ≤1000px → tighter rows, chips, board columns.
   const [compact, setCompact] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1000);
+  // Phone width: list rows wrap (title + status get their own line) so the
+  // fixed-width meta cluster can't push the status pill off-screen (Ohad).
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 560);
   React.useEffect(() => {
-    const onResize = () => setCompact(window.innerWidth <= 1000);
+    const onResize = () => { setCompact(window.innerWidth <= 1000); setNarrow(window.innerWidth <= 560); };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
@@ -2280,70 +2327,88 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         .tfbtn:hover{ color:var(--c-tx) !important; background:var(--c-sf2) !important; border-color:var(--c-tm) !important; }
         .tfbtn[data-active]:hover{ background:var(--c-sf2) !important; border-color:var(--c-tx) !important; }
       `}</style>
-      {/* Title + Google Calendar connect state */}
+      {/* Single header row: TASKS + LIVE grouped on the left (LIVE vertically
+          centred to the title), LIST/BOARD toggle on the right (Ohad). Keeping
+          the toggle on this row above both columns still leaves the rail's top
+          aligned with the list's first row (add-task). */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 14, gap: 12, flexWrap: 'wrap',
+        marginBottom: 12, gap: 12, flexWrap: 'wrap',
       }}>
-        <h2 style={{
-          margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700,
-          letterSpacing: '0.18em', textTransform: 'uppercase',
-          color: 'var(--c-tx)',
-        }}>Tasks</h2>
-        {/* Live-sync indicator: Ohad + Yuval see each other's changes in real
-            time (Supabase realtime on coach_notes) — no refresh needed. */}
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-          color: 'var(--c-tm)', textTransform: 'uppercase',
-        }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-gn)' }} />
-          Live
-        </span>
-      </div>
-
-      {/* Owner tabs + view toggle */}
-      <div style={{
-        display: 'flex', gap: 8, marginBottom: 12,
-        flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <div style={{ display: 'flex', width: '100%', maxWidth: FILTER_GROUP_W, height: 30, border: `1px solid var(--c-cardBd)`, boxSizing: 'border-box' }}>
-          {/* Both partners see all three tabs so each can SEE the other's
-              tasks; tasks owned solely by the other partner render read-only
-              (no status change / calendar edit) — only your own + shared are
-              editable. Default tab is the viewer's own (clamped on mount). */}
-          <OwnerTab label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} first />
-          <OwnerTab label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')} />
-          <OwnerTab label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <h2 style={{
+            margin: 0, fontFamily: FN, fontSize: 13, fontWeight: 700,
+            letterSpacing: '0.18em', textTransform: 'uppercase',
+            color: 'var(--c-tx)',
+          }}>Tasks</h2>
+          {/* Live-sync indicator: Ohad + Yuval see each other's changes in real
+              time (Supabase realtime on coach_notes) — no refresh needed. */}
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+            color: 'var(--c-tm)', textTransform: 'uppercase',
+          }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-gn)' }} />
+            Live
+          </span>
         </div>
-        <div style={{ width: HEADER_RIGHT_W, flexShrink: 0 }}><ViewToggle value={view} onChange={setView} /></div>
+        <div style={{ width: 168 }}><ViewToggle value={view} onChange={setView} /></div>
       </div>
 
-      {/* Header right column stacks LIST/BOARD → STATUS/CATEGORY → SEARCH,
-          one per row, matching the three left rows (Ohad 2026-07-05). */}
-      <SortBar
-        sortBy={sortBy} sortDir={sortDir}
-        onSortBy={setSortBy}
-        onToggleDir={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}
-        rightSlot={(
-          <div style={{ display: 'flex', width: HEADER_RIGHT_W, flexShrink: 0, border: `1px solid var(--c-cardBd)`, borderRadius: 0, height: 30, boxSizing: 'border-box' }}>
-            {[{ id: 'status', label: 'Status' }, { id: 'list', label: 'Category' }].map((g, i) => (
-              <button key={g.id} onClick={() => setBoardGroup(g.id)} className="tfbtn" data-active={boardGroup === g.id ? '' : undefined} style={{
-                flex: 1, height: '100%',
-                background: boardGroup === g.id ? 'var(--c-sf2)' : 'transparent',
-                color: boardGroup === g.id ? 'var(--c-tx)' : 'var(--c-tm)',
-                border: 'none', borderLeft: i === 0 ? 'none' : `1px solid var(--c-cardBd)`,
-                fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', padding: '0 12px',
-                cursor: 'pointer', textTransform: 'uppercase',
-              }}>{g.label}</button>
-            ))}
-          </div>
-        )}
-      />
+      {/* Two-column layout: left filter RAIL + content (Ohad's design 7).
+          Filters live in a slim labelled left rail beside the list. Rail stacks
+          on top when narrow. */}
+      <div style={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', gap: narrow ? 10 : 16, alignItems: 'flex-start' }}>
 
-      <QuickFilters value={quickFilter} onChange={setQuickFilter} counts={quickCounts}
-        search={search} onSearch={setSearch}
-        resultCount={quickFiltered.length} totalCount={ownerBase.length} />
+        {/* LEFT: filter rail — sticky below the sticky header so the filters
+            stay pinned as the (long) list scrolls; scrolls internally if it
+            ever outgrows the viewport. Static + full-width when narrow. */}
+        <div style={{
+          width: narrow ? 'auto' : 204, flexShrink: 0,
+          background: 'var(--c-sf2)', border: '1px solid var(--c-cardBd)',
+          padding: '14px 0 16px', display: 'flex', flexDirection: 'column', gap: 12,
+          alignSelf: 'flex-start',
+          position: narrow ? 'static' : 'sticky', top: narrow ? undefined : 66,
+          maxHeight: narrow ? undefined : 'calc(100vh - 84px)', overflowY: narrow ? 'visible' : 'auto',
+        }}>
+          <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: '0 16px 10px', borderBottom: '1px solid var(--c-cardBd)' }}>Filters</div>
+
+          <RailGroup label="Whose">
+            {/* Both partners see all three; tasks owned solely by the other
+                render read-only. Default is the viewer's own (clamped on mount). */}
+            <RailOpt label="Ohad"   count={counts.ohad}   active={owner === 'ohad'}   onClick={() => setOwner('ohad')} />
+            <RailOpt label="Yuval"  count={counts.yuval}  active={owner === 'yuval'}  onClick={() => setOwner('yuval')} />
+            <RailOpt label="Shared" count={counts.shared} active={owner === 'shared'} onClick={() => setOwner('shared')} />
+          </RailGroup>
+
+          <RailGroup label="Show">
+            {QUICK_FILTERS.filter(f => f.id === 'all' || (quickCounts[f.id] ?? 0) > 0).map(f => (
+              <RailOpt key={f.id} label={f.label} count={quickCounts[f.id] ?? 0} active={quickFilter === f.id} onClick={() => setQuickFilter(f.id)} />
+            ))}
+          </RailGroup>
+
+          <RailGroup label="Sort">
+            {SORT_MODES.map(m => {
+              const on = sortBy === m.id;
+              return <RailOpt key={m.id} label={on ? sortRailLabel(m.id, sortDir) : m.label} active={on}
+                onClick={() => on ? setSortDir(d => d === 'asc' ? 'desc' : 'asc') : setSortBy(m.id)}
+                title={on ? 'Click to flip the sort direction' : `Sort by ${m.label}`} />;
+            })}
+          </RailGroup>
+
+          <RailGroup label="Group">
+            <RailOpt label="By status"   active={boardGroup === 'status'} onClick={() => setBoardGroup('status')} />
+            <RailOpt label="By category" active={boardGroup === 'list'}   onClick={() => setBoardGroup('list')} />
+          </RailGroup>
+
+          <div style={{ padding: '0 14px' }}>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
+              style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
+          </div>
+        </div>
+
+        {/* RIGHT: content — the list/board (view toggle now lives above). */}
+        <div style={{ flex: 1, minWidth: 0 }}>
 
       {view === 'list' ? (
         <div style={{
@@ -2403,7 +2468,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     onDragLeave={() => { if (dropOnId === row.id) setDropOnId(null); }}
                     onDrop={e => { e.preventDefault(); reorderOnto(row, section); }}
                     style={{ cursor: isReadOnly(row) ? 'default' : 'grab', boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
-                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact}
+                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow}
                       theme={theme} showAvatar={owner === 'shared'}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
@@ -2444,7 +2509,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
               </div>
               <div style={{ display: 'grid', gridTemplateRows: autoOpen ? '1fr' : '0fr', transition: 'grid-template-rows 260ms ease' }}><div style={{ overflow: 'hidden', minHeight: 0 }}>
               {autoSection.rows.map(row => (
-                <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)} compact={compact}
+                <TaskRow key={row.id} row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
@@ -2509,7 +2574,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                     style={{ position: 'relative', cursor: isReadOnly(row) ? 'default' : 'grab', outline: selectedIds.has(row.id) ? '2px solid var(--c-ac)' : 'none', outlineOffset: -2, boxShadow: dropOnId === row.id ? 'inset 0 3px 0 -1px var(--c-ac)' : 'none' }}>
                     <button onClick={e => { e.stopPropagation(); toggleSelect(row.id); }} draggable={false} title="Select"
                       style={{ position: 'absolute', top: 6, left: 6, zIndex: 3, width: 15, height: 15, borderRadius: 0, border: `1px solid ${selectedIds.has(row.id) ? 'var(--c-ac)' : 'var(--c-cardBd)'}`, background: selectedIds.has(row.id) ? 'var(--c-ac)' : 'rgba(0,0,0,0.4)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#061016', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>{selectedIds.has(row.id) ? '✓' : ''}</button>
-                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact}
+                    <TaskRow row={row} readOnly={isReadOnly(row)} compact={compact} narrow={narrow}
                       theme={theme} showAvatar={owner === 'shared'} board hideStatus={!!section.statusId}
                       expanded={expandedRows.has(row.id)}
                       onToggleExpand={() => toggleRow(row.id)}
@@ -2594,7 +2659,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
                 _display: displayBodyOf(row.body),
               };
               return (
-                <TaskRow key={row.id} row={decoratedDone} readOnly={isReadOnly(decoratedDone)} compact={compact}
+                <TaskRow key={row.id} row={decoratedDone} readOnly={isReadOnly(decoratedDone)} compact={compact} narrow={narrow}
                   theme={theme} showAvatar={owner === 'shared'}
                   expanded={expandedRows.has(row.id)}
                   onToggleExpand={() => toggleRow(row.id)}
@@ -2617,6 +2682,8 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
           </div></div>
         </div>
       )}
+        </div>{/* /content */}
+      </div>{/* /rail+content flex row */}
 
       <div style={{
         marginTop: 22, padding: '10px 0',

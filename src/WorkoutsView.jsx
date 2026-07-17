@@ -461,31 +461,37 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     .filter(w => w.source==='coach-session' && (!filterTrainee || w.clientId===filterTrainee))
     .slice().sort((a,b)=> new Date(b.date||0) - new Date(a.date||0));
   const toggleExpanded = (tid) => setExpandedTrainees(prev => ({ ...prev, [tid]: !prev[tid] }));
+  // Athlete rows for the picker (hoisted so the header can show the count).
+  const pickerRows = Array.from(plansByTrainee.entries())
+    .map(([tid,plans])=>({tid,plans,name:(trainees.find(t=>t.id===tid)?.name)||''}))
+    .filter(r => filterTrainee ? r.tid===filterTrainee : (!pickSearch || r.name.toLowerCase().includes(pickSearch.toLowerCase())))
+    .sort((a,b)=>a.name.localeCompare(b.name));
   return (
     <div>
       {/* Picker — search-first accordion. One calm row per athlete (name +
           current block); tap to reveal that block's day buttons. Replaces the
           old wall of full-height cards (every athlete's buttons + older-block
           bars on screen at once = too much). */}
-      <h3 style={{fontFamily:FN,fontSize:9,fontWeight:700,color:C.tm,textTransform:"uppercase",letterSpacing:'0.18em',margin:'0 0 12px'}}>
-        Start a Session
-      </h3>
       {planIndex.length===0 ? (
         <div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>
       ) : (
         <div style={{marginBottom:24}}>
+          {/* Search — big, cyan-bordered, matching the Exercise Library search. */}
           {filterTrainee ? (
-            <button onClick={()=>setFilterTrainee("")} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',padding:'0 0 10px'}}>← all athletes</button>
+            <button onClick={()=>setFilterTrainee("")} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.08em',padding:'0 0 12px'}}>← all athletes</button>
           ) : (
             <input value={pickSearch} onChange={e=>setPickSearch(e.target.value)} placeholder="Search athlete…"
-              style={{...baseInput,width:'100%',boxSizing:'border-box',padding:'10px 12px',fontSize:14,marginBottom:10}} />
+              style={{...baseInput,width:'100%',boxSizing:'border-box',height:42,padding:'0 14px',fontSize:13,lineHeight:'42px',border:`1px solid ${C.ac}`,marginBottom:12}} />
           )}
-          <div style={{border:`1px solid ${C.cardBd}`}}>
+          {/* Card: cyan strip header ("Start a Session" + count) over the athlete
+              accordion — same card/strip language as the Exercise Library. */}
+          <div style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden'}}>
+            <div style={{background:'var(--c-stripBg, var(--c-sf))',borderBottom:'1px solid var(--c-cardBd)',padding:'10px 14px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,color:'#FFF',textTransform:'uppercase',letterSpacing:'0.08em'}}>Start a Session</span>
+              <span style={{fontFamily:FN,fontSize:10,fontWeight:700,color:'#FFF',opacity:0.85,letterSpacing:'0.08em'}}>{pickerRows.length} athlete{pickerRows.length!==1?'s':''}</span>
+            </div>
             {(() => {
-              const rows = Array.from(plansByTrainee.entries())
-                .map(([tid,plans])=>({tid,plans,name:(trainees.find(t=>t.id===tid)?.name)||''}))
-                .filter(r => filterTrainee ? r.tid===filterTrainee : (!pickSearch || r.name.toLowerCase().includes(pickSearch.toLowerCase())))
-                .sort((a,b)=>a.name.localeCompare(b.name));
+              const rows = pickerRows;
               if (!rows.length) return <div style={{color:C.td,fontSize:13,padding:'18px',textAlign:'center'}}>No athletes match.</div>;
               // Auto-open when the list is down to one (search hit or deep-link).
               const forceOpen = (filterTrainee || (rows.length===1 ? rows[0].tid : null));
