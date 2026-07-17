@@ -389,10 +389,14 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
   const activeRef = useRef(active);
   activeRef.current = active;
   useEffect(() => {
+    const tid = active?.traineeId;
+    if (!tid) return undefined;
     const matches = (prev, p) => prev && prev.traineeId === p.traineeId
       && (!p.planName || !prev.planName || p.planName === prev.planName)
       && (!p.dayName || !prev.dayName || p.dayName === prev.dayName);
-    const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
+    // Per-trainee topic (see ClientPortal) so only THIS athlete's portal shares
+    // the room — no cross-athlete leak on the old shared 'gym-session'.
+    const ch = supabase.channel('gym-set:' + tid, { config: { broadcast: { self: false } } });
     // Matched by EXERCISE INDEX (ei) — the portal derives exercise ids from the
     // title while this logger uses the plan's exerciseId, so only position is a
     // reliable shared key. 'done' (portal) maps to 'completed' (this view).
@@ -444,16 +448,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     ch.subscribe((status) => { if (status === 'SUBSCRIBED') { subscribedRef.current = true; ping(activeRef.current); } });
     chanRef.current = ch;
     return () => { chanRef.current = null; subscribedRef.current = false; supabase.removeChannel(ch); };
-  }, []);
-  // CATCH-UP dispatch: when a single session starts, ask the athlete's portal
-  // for anything already logged there. Gated on subscribedRef so it never races
-  // the subscription (a session active at mount is pinged on SUBSCRIBED above).
-  useEffect(() => {
-    if (!subscribedRef.current) return;
-    const ch = chanRef.current, a = active;
-    if (!ch || !a || !a.traineeId) return;
-    try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ }
-  }, [active?.traineeId, active?.planName, active?.dayName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [active?.traineeId]); // re-subscribe to the per-trainee topic when the athlete changes
   // Broadcast one coach set-edit to the athlete's portal. Reads the live
   // `active` via closure (recreated each render), translates 'completed'→'done'.
   const broadcastSet = (ei, si, field, value) => {

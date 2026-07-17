@@ -185,8 +185,16 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // never receive the echo of our own broadcast.
   const sessionRef = useRef(session);
   sessionRef.current = session;
-  const requestedRef = useRef(new Set()); // traineeIds we've already pinged for catch-up
-  const subscribedRef = useRef(false);    // gate sync-requests until the channel is live
+  // Debounced durable store write (no re-broadcast — every coach device also
+  // receives the granular event directly and merges independently).
+  const persistStore = useCallback((next) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => { supabase.from('store').upsert({ key: SKEY, value: next, updated_at: new Date().toISOString() }).then(() => {}, () => {}); }, 500);
+  }, []);
+
+  // 'gym-session' = COACH DEVICES ONLY — the full-session mirror so the floor
+  // big screen and the coach's phone stay in sync. Athletes never join this
+  // topic, so it carries no cross-athlete data leak.
   useEffect(() => {
     const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
     ch.on('broadcast', { event: 'session' }, ({ payload }) => {
@@ -194,116 +202,92 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       if (v == null) { setSession(null); return; }
       if (Array.isArray(v.athletes)) setSession(v);
     });
-    // CATCH-UP: an athlete's portal (or another coach device) just connected and
-    // asked for the current state of an athlete — reply with our session's copy.
-    ch.on('broadcast', { event: 'sync-request' }, ({ payload: p }) => {
-      if (!p || !p.traineeId) return;
-      const s = sessionRef.current;
-      const a = (s?.athletes || []).find(x => x.traineeId === p.traineeId
-        && (!p.planName || !x.planName || x.planName === p.planName)
-        && (!p.dayName || !x.dayName || x.dayName === p.dayName));
-      if (!a) return;
-      const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s2 => ({ reps: s2.reps, load: s2.load, rpe: s2.rpe, done: s2.done })) }));
-      if (!exercises.some(x => x.sets.some(s2 => s2.reps || s2.load || s2.rpe || s2.done))) return;
-      try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName, exercises } }); } catch { /* not ready */ }
-    });
-    // CATCH-UP: a peer replied with an athlete's current sets — fill our empty
-    // slots only (never clobber values the coach already entered).
-    ch.on('broadcast', { event: 'sync-state' }, ({ payload: p }) => {
-      if (!p || !p.traineeId || !Array.isArray(p.exercises)) return;
-      setSession(prev => {
-        if (!prev || !Array.isArray(prev.athletes)) return prev;
-        let hit = false;
-        const athletes = prev.athletes.map(a => {
-          if (a.traineeId !== p.traineeId) return a;
-          if (p.planName && a.planName && p.planName !== a.planName) return a;
-          if (p.dayName && a.dayName && p.dayName !== a.dayName) return a;
-          const exercises = (a.exercises || []).map((ex, ei) => {
-            const rex = p.exercises[ei];
-            if (!rex) return ex;
-            const sets = (ex.sets || []).map((s, si) => {
-              const rs = rex.sets?.[si];
-              if (!rs) return s;
-              const ns = { ...s };
-              ['reps', 'load', 'rpe'].forEach(f => { if ((ns[f] === '' || ns[f] == null) && rs[f] != null && rs[f] !== '') { ns[f] = rs[f]; hit = true; } });
-              if (!ns.done && rs.done) { ns.done = true; hit = true; }
-              return ns;
-            });
-            return { ...ex, sets };
-          });
-          return { ...a, exercises };
-        });
-        if (!hit) return prev;
-        const next = { ...prev, athletes };
-        if (saveTimer.current) clearTimeout(saveTimer.current);
-        saveTimer.current = setTimeout(() => { supabase.from('store').upsert({ key: SKEY, value: next, updated_at: new Date().toISOString() }).then(() => {}, () => {}); }, 500);
-        return next;
-      });
-    });
-    // A checked-in athlete logging a set from THEIR portal: merge that one
-    // field into the matching athlete/exercise/set so the floor screen updates
-    // live (Ohad — "even one line (kg/rpe) without moving to the next
-    // exercise"). self:false means every coach device receives this directly
-    // and applies it independently, so we never re-broadcast — just persist.
-    ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
-      if (!p || !p.traineeId || p.ei == null || p.si == null || !p.field) return;
-      setSession(prev => {
-        if (!prev || !Array.isArray(prev.athletes)) return prev;
-        let hit = false;
-        const athletes = prev.athletes.map(a => {
-          if (a.traineeId !== p.traineeId) return a;
-          // Guard plan/day so a portal left open on a different day doesn't
-          // bleed numbers onto the athlete's session card. Match by exercise
-          // INDEX — coach and portal use different eid schemes but share order.
-          if (p.planName && a.planName && p.planName !== a.planName) return a;
-          if (p.dayName && a.dayName && p.dayName !== a.dayName) return a;
-          const ex = a.exercises?.[p.ei];
-          if (!ex || p.si >= (ex.sets || []).length) return a;
-          const exercises = a.exercises.map((e, ei) => ei === p.ei
-            ? { ...e, sets: e.sets.map((s, i) => i === p.si ? { ...s, [p.field]: p.value } : s) }
-            : e);
-          hit = true;
-          return { ...a, exercises };
-        });
-        if (!hit) return prev;
-        const next = { ...prev, athletes };
-        if (saveTimer.current) clearTimeout(saveTimer.current);
-        saveTimer.current = setTimeout(() => {
-          supabase.from('store').upsert({ key: SKEY, value: next, updated_at: new Date().toISOString() }).then(() => {}, () => {});
-        }, 500);
-        return next;
-      });
-    });
-    // Fire catch-up requests only once the channel is actually live — sends
-    // before SUBSCRIBED are silently dropped, which is why a coach reopening a
-    // session with a pre-loaded athlete saw nothing. On connect, request every
-    // athlete already in the session; new athletes are handled by the effect.
-    const pingAthletes = () => {
-      const s = sessionRef.current;
-      for (const a of (s?.athletes || [])) {
-        if (!a.traineeId || requestedRef.current.has(a.traineeId)) continue;
-        requestedRef.current.add(a.traineeId);
-        try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ }
-      }
-    };
-    ch.subscribe((status) => { if (status === 'SUBSCRIBED') { subscribedRef.current = true; pingAthletes(); } });
+    ch.subscribe();
     chanRef.current = ch;
-    return () => { chanRef.current = null; subscribedRef.current = false; supabase.removeChannel(ch); };
+    return () => { chanRef.current = null; supabase.removeChannel(ch); };
   }, []);
 
-  // CATCH-UP dispatch for athletes added AFTER connect (checked in live): ping
-  // their portal for anything already logged there. Gated on subscribedRef so
-  // it never races the subscription; pre-connect athletes are pinged above.
+  // Per-trainee 'gym-set:<tid>' channels — each athlete shares a room ONLY with
+  // their own portal, so no athlete ever receives another's data. The athlete↔
+  // coach live set-sync + catch-up runs here. Reconciled to the roster.
+  const setChansRef = useRef(new Map());
+  const traineeKey = (session?.athletes || []).map(a => a.traineeId).filter(Boolean).join(',');
   useEffect(() => {
-    if (!subscribedRef.current) return;
-    const ch = chanRef.current;
-    if (!ch || !session || !Array.isArray(session.athletes)) return;
-    for (const a of session.athletes) {
-      if (!a.traineeId || requestedRef.current.has(a.traineeId)) continue;
-      requestedRef.current.add(a.traineeId);
-      try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ }
+    const tids = new Set(traineeKey.split(',').filter(Boolean));
+    const map = setChansRef.current;
+    for (const tid of tids) {
+      if (map.has(tid)) continue;
+      const ch = supabase.channel('gym-set:' + tid, { config: { broadcast: { self: false } } });
+      const findA = () => (sessionRef.current?.athletes || []).find(x => x.traineeId === tid);
+      const dayOk = (p, a) => (!p.planName || !a.planName || p.planName === a.planName) && (!p.dayName || !a.dayName || p.dayName === a.dayName);
+      // Athlete's live edit from their portal → overwrite that field on the card.
+      ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
+        if (!p || p.ei == null || p.si == null || !p.field) return;
+        setSession(prev => {
+          if (!prev?.athletes) return prev;
+          let hit = false;
+          const athletes = prev.athletes.map(a => {
+            if (a.traineeId !== tid || !dayOk(p, a)) return a;
+            const ex = a.exercises?.[p.ei];
+            if (!ex || p.si >= (ex.sets || []).length) return a;
+            hit = true;
+            return { ...a, exercises: a.exercises.map((e, ei) => ei === p.ei ? { ...e, sets: e.sets.map((s, i) => i === p.si ? { ...s, [p.field]: p.value } : s) } : e) };
+          });
+          if (!hit) return prev;
+          const next = { ...prev, athletes };
+          persistStore(next);
+          return next;
+        });
+      });
+      // Athlete's catch-up reply → fill our EMPTY slots only (never clobber).
+      ch.on('broadcast', { event: 'sync-state' }, ({ payload: p }) => {
+        if (!p || !Array.isArray(p.exercises)) return;
+        setSession(prev => {
+          if (!prev?.athletes) return prev;
+          let hit = false;
+          const athletes = prev.athletes.map(a => {
+            if (a.traineeId !== tid || !dayOk(p, a)) return a;
+            const exercises = (a.exercises || []).map((ex, ei) => {
+              const rex = p.exercises[ei];
+              if (!rex) return ex;
+              const sets = (ex.sets || []).map((s, si) => {
+                const rs = rex.sets?.[si];
+                if (!rs) return s;
+                const ns = { ...s };
+                ['reps', 'load', 'rpe'].forEach(f => { if ((ns[f] === '' || ns[f] == null) && rs[f] != null && rs[f] !== '') { ns[f] = rs[f]; hit = true; } });
+                if (!ns.done && rs.done) { ns.done = true; hit = true; }
+                return ns;
+              });
+              return { ...ex, sets };
+            });
+            return { ...a, exercises };
+          });
+          if (!hit) return prev;
+          const next = { ...prev, athletes };
+          persistStore(next);
+          return next;
+        });
+      });
+      // Athlete's portal asked for the current state → reply with the card's sets.
+      ch.on('broadcast', { event: 'sync-request' }, () => {
+        const a = findA();
+        if (!a) return;
+        const exercises = (a.exercises || []).map(ex => ({ sets: (ex.sets || []).map(s2 => ({ reps: s2.reps, load: s2.load, rpe: s2.rpe, done: s2.done })) }));
+        if (!exercises.some(x => x.sets.some(s2 => s2.reps || s2.load || s2.rpe || s2.done))) return;
+        try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: tid, planName: a.planName, dayName: a.dayName, exercises } }); } catch { /* not ready */ }
+      });
+      // On connect, pull anything the athlete already logged in their portal.
+      ch.subscribe((status) => {
+        if (status !== 'SUBSCRIBED') return;
+        const a = findA();
+        if (a) { try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: tid, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ } }
+      });
+      map.set(tid, ch);
     }
-  }, [session]);
+    for (const [tid, ch] of map) { if (!tids.has(tid)) { supabase.removeChannel(ch); map.delete(tid); } }
+  }, [traineeKey, persistStore]);
+  // Tear down all per-trainee channels on unmount.
+  useEffect(() => () => { for (const [, ch] of setChansRef.current) supabase.removeChannel(ch); setChansRef.current.clear(); }, []);
 
   const mutate = useCallback((fn) => {
     persist((() => { const draft = structuredClone(session); fn(draft); return draft; })());
@@ -456,9 +440,10 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
               // it carries every (mostly empty) set and would wipe the athlete's
               // own entries; 'athlete-set' overwrites only the field we changed.
               const a2 = sessionRef.current?.athletes?.[ai];
-              if (a2 && chanRef.current) {
+              const setCh = a2 && setChansRef.current.get(a2.traineeId);
+              if (setCh) {
                 Object.entries(patch).forEach(([f, v]) => {
-                  try { chanRef.current.send({ type: 'broadcast', event: 'athlete-set', payload: { traineeId: a2.traineeId, planName: a2.planName, dayName: a2.dayName, week: a2.week, ei, si, field: f, value: v } }); } catch { /* not ready */ }
+                  try { setCh.send({ type: 'broadcast', event: 'athlete-set', payload: { traineeId: a2.traineeId, planName: a2.planName, dayName: a2.dayName, week: a2.week, ei, si, field: f, value: v } }); } catch { /* not ready */ }
                 });
               }
             }}

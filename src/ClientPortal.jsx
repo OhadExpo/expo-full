@@ -497,27 +497,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       sets: (rows || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.done })),
     }));
     const hasData = (exs) => exs.some(x => x.sets.some(s => s.reps || s.load || s.rpe || s.done));
-    const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
-    // SINGLE session: coach's WorkoutsView broadcasts one 'athlete-set' per edit.
+    // Per-trainee topic so an athlete only ever joins their OWN room — another
+    // athlete's live sets never reach this browser (the old shared 'gym-session'
+    // room leaked every athlete's data to every portal). The coach's per-athlete
+    // edits + catch-up come here; the coach-device full-session mirror stays on
+    // the coach-only 'gym-session' topic that portals never join.
+    const ch = supabase.channel('gym-set:' + clientId, { config: { broadcast: { self: false } } });
+    // Coach edit (group or single) → one 'athlete-set' per field.
     ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
-      if (!p || p.traineeId !== clientId || p.ei == null || p.si == null || !p.field) return;
+      if (!p || p.ei == null || p.si == null || !p.field) return;
       if (!mine(p.planName, p.dayName)) return;
       applyRemoteSet(p.ei, p.si, p.field, p.value);
-    });
-    // GROUP session: coach's SessionsView broadcasts the whole 'session' object
-    // (all sets, most empty) on every change. Treat it as CATCH-UP only —
-    // fill-empty, never overwrite — so it can't wipe what the athlete typed.
-    // The coach's actual live edits arrive as granular 'athlete-set' above.
-    ch.on('broadcast', { event: 'session' }, ({ payload }) => {
-      const s = payload?.value;
-      if (!s || !Array.isArray(s.athletes)) return;
-      const a = s.athletes.find(x => x.traineeId === clientId && mine(x.planName, x.dayName));
-      if (!a) return;
-      (a.exercises || []).forEach((ex, ei) => {
-        (ex.sets || []).forEach((st, si) => {
-          ['reps', 'load', 'rpe', 'done'].forEach(f => { if (st[f] !== undefined) applyRemoteSet(ei, si, f, st[f], true); });
-        });
-      });
     });
     // CATCH-UP: a peer just connected and asked for the current state — if I
     // hold data for this athlete/day, reply with it.
