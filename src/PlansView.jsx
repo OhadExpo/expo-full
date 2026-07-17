@@ -2941,8 +2941,12 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             const cancelHover = () => { clearTimeout(hoverTimerRef.current); setHoverPos(null); clearPreviewPlan(); };
             const openHandlers = {
               role:'button', tabIndex:0,
-              onClick:()=>{ if (cardClickTimerRef.current) return; cardClickTimerRef.current = setTimeout(()=>{ cardClickTimerRef.current = null; handleOpenPlan(cur.id); }, 280); },
-              onDoubleClick:()=>{ clearTimeout(cardClickTimerRef.current); cardClickTimerRef.current = null; if (row.earlier.length > 0) toggleAthlete(row.tid); },
+              // Clear+reset the (grid-wide) timer on every click so the LAST
+              // card clicked wins — clicking A then B within 280ms opens B, not
+              // A. Double-click expands earlier blocks, or opens the plan when
+              // there are none (so a card is never inert to a double-click).
+              onClick:()=>{ clearTimeout(cardClickTimerRef.current); cardClickTimerRef.current = setTimeout(()=>{ cardClickTimerRef.current = null; handleOpenPlan(cur.id); }, 280); },
+              onDoubleClick:()=>{ clearTimeout(cardClickTimerRef.current); cardClickTimerRef.current = null; if (row.earlier.length > 0) toggleAthlete(row.tid); else handleOpenPlan(cur.id); },
               onKeyDown:e=>{ if(e.key==='Enter'){ e.preventDefault(); handleOpenPlan(cur.id); } },
               onMouseEnter:e => { const x = e.clientX, y = e.clientY; clearTimeout(hoverTimerRef.current); hoverTimerRef.current = setTimeout(() => { setHoverPos({ x, y }); loadPreviewPlan(cur.id); }, 260); },
               onMouseLeave:cancelHover,
