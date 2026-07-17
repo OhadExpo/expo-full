@@ -189,7 +189,41 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       const v = payload?.value;
       if (v == null) { setSession(null); return; }
       if (Array.isArray(v.athletes)) setSession(v);
-    }).subscribe();
+    });
+    // A checked-in athlete logging a set from THEIR portal: merge that one
+    // field into the matching athlete/exercise/set so the floor screen updates
+    // live (Ohad — "even one line (kg/rpe) without moving to the next
+    // exercise"). self:false means every coach device receives this directly
+    // and applies it independently, so we never re-broadcast — just persist.
+    ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
+      if (!p || !p.traineeId || !p.eid || p.si == null || !p.field) return;
+      setSession(prev => {
+        if (!prev || !Array.isArray(prev.athletes)) return prev;
+        let hit = false;
+        const athletes = prev.athletes.map(a => {
+          if (a.traineeId !== p.traineeId) return a;
+          // Guard plan/day so a portal left open on a different day doesn't
+          // bleed numbers onto the athlete's session card.
+          if (p.planName && a.planName && p.planName !== a.planName) return a;
+          if (p.dayName && a.dayName && p.dayName !== a.dayName) return a;
+          const exercises = (a.exercises || []).map(ex => {
+            if (ex.eid !== p.eid) return ex;
+            const sets = (ex.sets || []).map((s, i) => i === p.si ? { ...s, [p.field]: p.value } : s);
+            hit = true;
+            return { ...ex, sets };
+          });
+          return { ...a, exercises };
+        });
+        if (!hit) return prev;
+        const next = { ...prev, athletes };
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(() => {
+          supabase.from('store').upsert({ key: SKEY, value: next, updated_at: new Date().toISOString() }).then(() => {}, () => {});
+        }, 500);
+        return next;
+      });
+    });
+    ch.subscribe();
     chanRef.current = ch;
     return () => { chanRef.current = null; supabase.removeChannel(ch); };
   }, []);

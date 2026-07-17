@@ -457,7 +457,32 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (_restoredSession?.wuDone?.length === warmup.length) return _restoredSession.wuDone;
     return warmup.map(() => false);
   });
-  const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n)};
+  // Live gym-session bridge: while this athlete is on the floor of an active
+  // group session, every set edit (kg / reps / rpe / ✓) is broadcast to the
+  // coach's big screen so it shows up LIVE — no need to finish the workout or
+  // even advance the exercise (Ohad). Fire-and-forget on the same 'gym-session'
+  // Broadcast channel SessionsView listens on; if no session has this athlete
+  // checked in, the payload simply matches nothing and is ignored coach-side.
+  const sessChanRef = useRef(null);
+  useEffect(() => {
+    if (demoMode) return;
+    const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
+    ch.subscribe();
+    sessChanRef.current = ch;
+    return () => { sessChanRef.current = null; supabase.removeChannel(ch); };
+  }, [demoMode]);
+  const broadcastSet = (ei, si, f, v) => {
+    if (demoMode) return;
+    const eid = day.ex?.[ei]?.eid;
+    if (!eid) return;
+    try {
+      sessChanRef.current?.send({ type: 'broadcast', event: 'athlete-set', payload: {
+        traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum,
+        eid, si, field: f, value: v,
+      } });
+    } catch { /* channel not ready yet — skip this edit, the next one syncs */ }
+  };
+  const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n);broadcastSet(ei,si,f,v)};
 
   // Persist the in-progress session to localStorage on every state change.
   // Bundle once so the autosave hook has a single stable value to track.
