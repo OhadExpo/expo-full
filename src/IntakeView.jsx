@@ -7,7 +7,7 @@
 //
 // Token-bound links are the entire spam-control story — only people Ohad
 // sends a link to can submit. There is no public /intake landing page.
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { C, FN, FB, FH } from './theme';
 import { Btn, Modal, Card, Badge, isRefined5b, toast, SectionLabel, CollapsibleSection, ConfirmDialog } from './ui';
 import { supabase } from './supabase';
@@ -132,7 +132,10 @@ export default function IntakeView({ trainees }) {
     try { const { error } = await supabase.from('intake_tokens').delete().eq('token', token); if (error) throw error; } catch (e) { toast('Delete failed — restoring: ' + (e.message || e), 'error'); reload(); }
   };
 
+  const genBusyRef = useRef(false);
   const generateLink = async () => {
+    if (genBusyRef.current) return; // guard against a double-click minting two live tokens
+    genBusyRef.current = true;
     setGenError('');
     const token = generateIntakeToken();
     const row = {
@@ -154,6 +157,8 @@ export default function IntakeView({ trainees }) {
       reload();
     } catch (e) {
       setGenError(String(e?.message || e) || 'Could not generate link.');
+    } finally {
+      genBusyRef.current = false;
     }
   };
 
