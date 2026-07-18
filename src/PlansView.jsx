@@ -1788,7 +1788,11 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                           ))}
                         </div>
                       ) : (
-                        <input type="number" value={ex.sets||""} onChange={e=>update({sets:parseInt(e.target.value)||0})} style={tinyInput} />
+                        // Sets accepts an integer OR a range ("2-3", as Ohad's sheets
+                        // program): a pure integer stores as a NUMBER (setCountFor +
+                        // numeric consumers stay exact), a range stores as a STRING
+                        // (everything defaults to 3 rows). type=number blanked "2-3".
+                        <input value={ex.sets ?? ""} onChange={e=>{const v=e.target.value;const n=parseInt(v,10);update({sets:(v.trim()!=='' && String(n)===v.trim())?n:v});}} placeholder="3" style={tinyInput} />
                       )}
                       {ex.wk && Array.isArray(ex.wk) && ex.wk.length > 0 ? (
                         <div style={{display:"grid", gridTemplateColumns:`repeat(${weeks},minmax(0,1fr))`, gap:2}}>
