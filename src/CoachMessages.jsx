@@ -234,15 +234,21 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
   const refined = isRefined5b();
   const PAD = 14;
 
-  const reload = useCallback(async () => {
+  // showLoading=false on realtime refetches so an inbound (or the coach's own,
+  // echoed) message doesn't blank the OPEN thread to a 'Loading…' spinner.
+  // reqSeq drops any response that a newer reload has already superseded.
+  const reqSeq = useRef(0);
+  const reload = useCallback(async (showLoading = true) => {
     if (!traineeId) return;
-    setLoading(true);
+    const seq = ++reqSeq.current;
+    if (showLoading) setLoading(true);
     const { data, error } = await supabase
       .from('coach_messages')
       .select('*')
       .eq('trainee_id', traineeId)
       .order('created_at', { ascending: true })
       .limit(200);
+    if (seq !== reqSeq.current) return;   // a newer reload already ran
     if (error) {
       // Migration not yet applied locally — degrade silently with an
       // informative empty state instead of throwing.
@@ -267,7 +273,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
     if (!traineeId || demoMode) return;
     const ch = supabase
       .channel(`coach-msg-thread-${role}-${traineeId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'coach_messages', filter: `trainee_id=eq.${traineeId}` }, () => reload())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'coach_messages', filter: `trainee_id=eq.${traineeId}` }, () => reload(false))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [traineeId, role, demoMode, reload]);

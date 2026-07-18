@@ -953,12 +953,15 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // for inference and the rep counter state-machine; that conflicts with
   // comments' auto-pause at timestamps and would corrupt mid-drawing state.
   // So turning on one group disables the other.
+  // Turning a tool OFF hands COMMENTS back automatically once no exclusive tool
+  // is left on — otherwise the coach is stuck with the comment list + draw canvas
+  // gone (the manual re-enable button is hidden for trainers), until a remount.
   const togglePose = async () => {
-    if (poseOn) { setPoseOn(false); return; }
+    if (poseOn) { setPoseOn(false); if (!repsOn) setCommentsEnabled(true); return; }
     if (await ensureModel()) { setPoseOn(true); setCommentsEnabled(false); }
   };
   const toggleReps = async () => {
-    if (repsOn) { setRepsOn(false); return; }
+    if (repsOn) { setRepsOn(false); if (!poseOn) setCommentsEnabled(true); return; }
     if (await ensureModel()) { setRepsOn(true); setCommentsEnabled(false); }
   };
   const toggleComments = () => {

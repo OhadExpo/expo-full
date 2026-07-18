@@ -506,7 +506,10 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       {td && <CoachMessages
         traineeId={trainee}
         role="coach"
-        recipientEmail={Array.isArray(td.email) ? td.email.find(e => typeof e === 'string' && e.trim()) : td.email}
+        recipientEmail={[
+          ...(Array.isArray(td.email) ? td.email : [td.email]),
+          ...((td.members || []).map(m => m && m.email)),   // couples keep emails on members, not top-level
+        ].find(e => typeof e === 'string' && e.trim()) || ''}
         senderLabel="Ohad" />}
 
       {/* === CRM — slot #5: cadence pill, next actions, activity feed */}
