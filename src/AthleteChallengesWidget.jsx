@@ -42,10 +42,14 @@ export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLo
       // Pull meals only if a meal_log_streak challenge is live for this
       // athlete — skip the query otherwise.
       if (live.some(c => c.goal_type === 'meal_log_streak') && clientId) {
+        // athlete_meals is keyed by trainee_id + created_at. RLS only lets an
+        // athlete read their OWN meals, so this athlete's streak computes
+        // correctly; other participants' meal rows aren't readable here (they
+        // show on the coach leaderboard, which reads all meals).
         const { data: ms } = await supabase
           .from('athlete_meals')
-          .select('client_id,meal_date,logged_at')
-          .eq('client_id', clientId);
+          .select('trainee_id,created_at')
+          .eq('trainee_id', clientId);
         if (!cancelled) setMeals(ms || []);
       }
     })();

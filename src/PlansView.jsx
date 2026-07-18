@@ -1143,6 +1143,9 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
 
 function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, exercises, setExercises, planIndex, onPreviewPlan, onDelete, onNewProgramFor, onShare, onDuplicate, onCopyDays, onCopyWarmup, clientWorkouts, portalVis, setPortalVis, editorApiRef }) {
   const [plan, setPlan] = useState(init);
+  // Always-latest plan (setPlan makes new objects on every edit), so handleSave
+  // can tell whether an edit landed DURING its await before declaring clean.
+  const planRef = useRef(plan); planRef.current = plan;
   const [activeDay, setActiveDay] = useState(0);
   const [saving, setSaving] = useState(false);
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
@@ -1356,10 +1359,13 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
   const removeExFromDay = (di, ei) => setPlan(p => ({...p, days: p.days.map((d, idx) => idx === di ? {...d, exercises: (d.exercises||[]).filter((_,i) => i !== ei)} : d)}));
   const handleSave = async () => {
     setSaving(true);
-    await onSave(plan);
+    const snapshot = plan;            // exactly what onSave persists
+    await onSave(snapshot);
     // Explicit save covered everything pending — clear dirty so the
-    // visibilitychange/unmount paths don't issue a redundant write.
-    markClean();
+    // visibilitychange/unmount paths don't issue a redundant write. BUT only
+    // if no edit landed DURING the await; otherwise leaving dirty set lets the
+    // debounce/flush persist that interim edit instead of silently dropping it.
+    if (planRef.current === snapshot) markClean();
     setSaving(false);
     // Stay in the editor after Save (Ohad) — the URL stays /coach/programs/<id>
     // so a refresh keeps you here. BACK is the explicit "leave" action.

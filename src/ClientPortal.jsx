@@ -220,6 +220,10 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
           if (pe.tempo) out.tempo = pe.tempo;
           if (pe.superset) out.superset = pe.superset;
           if (notes) out.n = notes;
+          // Coach explicitly cleared this program's note (× CLEAR → notes:''
+          // + notesEdited:true). Carry that intent so the portal shows BLANK,
+          // not the library cue — an empty-but-edited note must not fall back.
+          else if (pe.notesEdited) out.nCleared = true;
           if (Array.isArray(pe.wk) && pe.wk.length) out.wk = pe.wk;
           if (Array.isArray(pe.wkS) && pe.wkS.length) out.wkS = pe.wkS;
           return out;
@@ -325,6 +329,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // because MediaPipe vision_bundle is ~140KB.
   const [liveCountForEid, setLiveCountForEid] = useState(null);
   const [fbOpenForEid, setFbOpenForEid] = useState(null);   // last-week coach video feedback, per exercise
+  const submittingRef = useRef(false);   // guards Complete-Workout against a double-tap minting two workout rows
 
   // Group consecutive exercises sharing the same superset letter.
   // groups[i] = { exIdxs: [0,1,...], superset: 'A' | '' }
@@ -406,8 +411,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // Only the first set carries the prior numbers; subsequent sets stay blank
       // so the trainee makes a deliberate call set-by-set instead of robotically
       // copying last session across all four sets.
+      // `prefill:true` marks the auto-filled top set as UNTOUCHED. It's stripped
+      // the moment the athlete edits the set (uSet) and blanked on save if still
+      // untouched — so a prefilled number the athlete never actually lifted can't
+      // resurface next week as a phantom "last week" ghost (empty = empty).
       return Array.from({ length: count }, (_, i) => i === 0 && prior
-        ? { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false }
+        ? { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false, prefill: true }
         : { reps: '', load: '', rpe: '', done: false });
     });
   });
@@ -490,8 +499,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         return n;
       });
     };
-    const mine = (planName, dayName) =>
-      (!planName || planName === plan?.name) && (!dayName || dayName === day?.name);
+    // Match plan + day + WEEK. Without the week check a coach card (or a stale
+    // peer) sitting on a different week of the same plan-day cross-wrote into the
+    // athlete's current-week grid. week is optional so pre-week peers still match.
+    const mine = (planName, dayName, week) =>
+      (!planName || planName === plan?.name) && (!dayName || dayName === day?.name) && (week == null || week === weekNum);
     // My current sets as a positional exercises[] list (index = exercise index).
     const snapshot = () => (allSetsRef.current || []).map((rows) => ({
       sets: (rows || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.done })),
@@ -511,20 +523,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       // on a guessed topic can't write into this logger (until the channel is
       // made private with Realtime Authorization — see task #35).
       if (p.traineeId && p.traineeId !== clientId) return;
-      if (!mine(p.planName, p.dayName)) return;
+      if (!mine(p.planName, p.dayName, p.week)) return;
       applyRemoteSet(p.ei, p.si, p.field, p.value);
     });
     // CATCH-UP: a peer just connected and asked for the current state — if I
     // hold data for this athlete/day, reply with it.
     ch.on('broadcast', { event: 'sync-request' }, ({ payload: p }) => {
-      if (!p || p.traineeId !== clientId || !mine(p.planName, p.dayName)) return;
+      if (!p || p.traineeId !== clientId || !mine(p.planName, p.dayName, p.week)) return;
       const exercises = snapshot();
       if (!hasData(exercises)) return;
-      try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name, exercises } }); } catch { /* not ready */ }
+      try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum, exercises } }); } catch { /* not ready */ }
     });
     // CATCH-UP: a peer replied with its current state — fill my empty slots.
     ch.on('broadcast', { event: 'sync-state' }, ({ payload: p }) => {
-      if (!p || p.traineeId !== clientId || !mine(p.planName, p.dayName)) return;
+      if (!p || p.traineeId !== clientId || !mine(p.planName, p.dayName, p.week)) return;
       (p.exercises || []).forEach((ex, ei) => {
         (ex.sets || []).forEach((st, si) => {
           ['reps', 'load', 'rpe', 'done'].forEach(f => { if (st[f] !== undefined) applyRemoteSet(ei, si, f, st[f], true); });
@@ -535,7 +547,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // current state so a freshly-opened portal pulls what's already filled.
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name } }); } catch { /* not ready */ }
+        try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum } }); } catch { /* not ready */ }
       }
     });
     sessChanRef.current = ch;
@@ -550,7 +562,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       } });
     } catch { /* channel not ready yet — skip this edit, the next one syncs */ }
   };
-  const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v};setAllSets(n);broadcastSet(ei,si,f,v)};
+  // Any edit means the athlete has taken ownership of this set — clear the
+  // `prefill` mark so it's kept (and counts) as a real logged set.
+  const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v,prefill:false};setAllSets(n);broadcastSet(ei,si,f,v)};
 
   // Persist the in-progress session to localStorage on every state change.
   // Bundle once so the autosave hook has a single stable value to track.
@@ -1113,6 +1127,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   };
 
   const finish = () => {
+    // In-flight guard: two taps in the same tick both ran finish() to completion
+    // (setLg(null) only unmounts on the next render), minting two workoutIds → two
+    // client_workouts rows + two pushes + a double session decrement. Once armed we
+    // unmount via onComplete, so no reset is needed.
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const workoutId = uid();
     // Carry pendingBlobId on each form_video entry so the blob queue can find
     // and patch this workout once the upload eventually succeeds.
@@ -1149,7 +1169,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           eid: ex.eid,
           title: sub ? sub.title : prescribedTitle,
           prescribed: `${(ex.wkS && ex.wkS[weekNum]) || ex.s}x${(ex.wk && ex.wk[weekNum]) || ex.r}`,
-          sets: allSets[i],
+          // Blank any set still carrying the untouched-prefill mark: the athlete
+          // never actually performed it, so it must save empty (not as a number
+          // they'll see resurface next week as a phantom "last week" ghost).
+          sets: allSets[i].map(s => (s.prefill && !s.done) ? { reps: '', load: '', rpe: '', done: false } : s),
           substitution: sub ? {
             from: prescribedTitle,
             fromEid: ex.eid,
@@ -1251,9 +1274,12 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // ===== WARM-UP STEP =====
   if (typeof step === 'string' && step.startsWith('wu')) {
     const wi = parseInt(step.slice(2));
-    const wu = warmup[wi];
-    const vid = ytId(wu.vid);
-    const vidShort = ytIsShort(wu.vid);
+    // Guard: if the plan was reshaped mid-session (coach removed a warm-up) the
+    // athlete can be parked on a now-out-of-range wuN step — warmup[wi] undefined
+    // would crash on .vid and blank the logger. Fall back to an empty card.
+    const wu = warmup[wi] || {};
+    const vid = wu.vid ? ytId(wu.vid) : null;
+    const vidShort = wu.vid ? ytIsShort(wu.vid) : false;
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>{bar}
       <div style={{padding:20}}>
         {/* Warm-up screen matches the EXERCISE screen exactly — centred name,
@@ -1490,7 +1516,9 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // last week's annotated form video (the coach's drawings + timestamped
     // comments, replayed via the same player) + the static program note as
     // fallback. Composed from existing data — no migration.
-    const staticNote = (ex.n && ex.n.trim()) || (d.q && d.q.trim()) || '';
+    // ex.nCleared → coach explicitly blanked this program's note; respect it
+    // and do NOT fall back to the library cue (d.q).
+    const staticNote = (ex.n && ex.n.trim()) || (ex.nCleared ? '' : (d.q && d.q.trim())) || '';
     const lastWeekFb = (() => {
       if (!priorWorkouts || weekNum < 1) return null;
       const pw = priorWorkouts.find(w => w.planName === plan.name && w.dayName === day.name && w.week === weekNum);
@@ -1526,7 +1554,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
           const pTitleKey = (pSub ? pSub.to : px.title || '').toLowerCase().trim();
           if (pStableId !== stableId && !(titleKey && pTitleKey === titleKey)) continue;
-          const sets = (px.sets || []).filter(s => parseFloat(s.load) > 0);
+          // A performed set = real load OR real reps (bodyweight/time work logs
+          // reps or seconds with no kg). Untouched prefills are saved blank now,
+          // so this no longer resurfaces phantom numbers.
+          const sets = (px.sets || []).filter(s => parseFloat(s.load) > 0 || parseFloat(s.reps) > 0);
           if (sets.length && (!prevDate || new Date(w.date) > new Date(prevDate))) {
             prevWeekSets = sets;
             prevWeekIdx = targetWeek;
@@ -1786,6 +1817,29 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     </div></div>;
 }
 
+// A plan's CURRENT week (0-indexed) derived from client_workouts — the same
+// "first un-logged (week, day), continue from the latest trained week" rule the
+// coach single/group surfaces use, so all views agree. Used both to open the
+// active block on the right week AND to log a NON-active visible plan's day
+// under ITS OWN week (a single global `wk` follows the active block only).
+function deriveWeekIdx(plan, cw) {
+  const name = plan?.name;
+  const planWeeks = Number(plan?.weeks) || 4;
+  const dayNames = (plan?.days || []).map(d => d.name).filter(Boolean);
+  const logs = (cw || []).filter(w => w.planName === name);
+  const done = new Set(logs.map(w => `${Number(w.week) || 1}|${w.dayName}`));
+  const maxWk = logs.length ? Math.max(...logs.map(w => Number(w.week) || 1)) : 1;
+  let nextWk = Math.max(1, maxWk);
+  if (dayNames.length) {
+    outer: for (let w = Math.max(1, maxWk); w <= planWeeks; w++) {
+      for (const dn of dayNames) { if (!done.has(`${w}|${dn}`)) { nextWk = w; break outer; } }
+    }
+  } else {
+    nextWk = Math.min(planWeeks, maxWk + (logs.length ? 1 : 0) || 1);
+  }
+  return Math.max(0, Math.min(planWeeks, nextWk) - 1);
+}
+
 // Main client portal
 export default function ClientPortal({ clientId, signOut, clientWorkouts, setClientWorkouts, bwLog, setBwLog, weeklyFocus, setWeeklyFocus, portalVis, trainerPlans, trainerExercises, trainees, selfTrainee = null, onDecrementSession, updateFormVideos, demoMode = false, demoPlans = null, onReturnToCoach = null, embedded = false }) {
   // clientId comes from the authenticated session (resolved upstream in App.jsx).
@@ -1818,6 +1872,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   const unreadCoachNotes = (() => {
     let n = 0;
     for (const w of (clientWorkouts || [])) {
+      // Scope strictly to THIS client — during a coach-preview switch the
+      // previous athlete's clientWorkouts can linger for a render, which made
+      // a brand-new athlete's portal flash a phantom "N new notes from Ohad"
+      // (Ohad: Amri, 0 workouts, showed 19). Never count another athlete's notes.
+      if (w.clientId && ci && w.clientId !== ci) continue;
       for (const fv of (w.formVideos || [])) {
         for (const note of (fv?.reviewNotes || [])) {
           if (note.author === 'trainer' && note.createdAt && note.createdAt > lastHistSeen) n++;
@@ -1843,6 +1902,8 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // gate-resolved record (my_trainee RPC) passed down from App so the portal
   // doesn't hang on "Loading your program…" with an empty trainees list.
   const trainee = (trainees || []).find(t => t.id === ci) || (selfTrainee && selfTrainee.id === ci ? selfTrainee : null);
+  // Bnei Herzliya club-TEAM format flag (|| legacy branch tag for pre-format athletes).
+  const isBnei = trainee?.format === 'Bnei Herzliya' || trainee?.branch === 'Bnei Herzliya';
 
   // Restore last-viewed week when a client logs in so they don't land on W1
   // every session when they're mid-way through a block.
@@ -1890,6 +1951,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             notes: p.notes, active: p.active, createdAt: p.created_at,
             days: p.data?.days || [], warmup: p.data?.warmup || [],
             weeks: p.data?.weeks || 4,
+            // Plan-level daily-routine flag (legacy 96e5f72 shape) — without it a
+            // whole-plan daily routine renders as a normal week-paced block.
+            kind: p.data?.kind || undefined,
           })));
         }
       } catch (e) {
@@ -2040,22 +2104,9 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // (W1 day1 done, day2 not → W1, not W2). All three derive identically from
     // the shared client_workouts, so the week shown here matches what the coach
     // sees in single/group. Fully-done block → last week.
-    const planWeeks = Number(activePlan.weeks) || 4;
-    const dayNames = (activePlan.days || []).map(d => d.name).filter(Boolean);
-    const logs = cw.filter(w => w.planName === name);
-    const done = new Set(logs.map(w => `${Number(w.week) || 1}|${w.dayName}`));
-    const maxWk = logs.length ? Math.max(...logs.map(w => Number(w.week) || 1)) : 1;
-    let nextWk = Math.max(1, maxWk);
-    if (dayNames.length) {
-      // Continue from the latest trained week (don't backfill a skipped earlier
-      // day) — same rule the coach single/group surfaces use, so all three agree.
-      outer: for (let w = Math.max(1, maxWk); w <= planWeeks; w++) {
-        for (const dn of dayNames) { if (!done.has(`${w}|${dn}`)) { nextWk = w; break outer; } }
-      }
-    } else {
-      nextWk = Math.min(planWeeks, maxWk + (logs.length ? 1 : 0) || 1);
-    }
-    setWk(Math.max(0, Math.min(planWeeks, nextWk) - 1));
+    // Open on the athlete's CURRENT week (first un-logged day, continue from the
+    // latest trained week). Same rule single/group/coach derive — see deriveWeekIdx.
+    setWk(deriveWeekIdx(activePlan, cw));
   }, [activePlan?.name]); // eslint-disable-line react-hooks/exhaustive-deps
   const handleComplete = w => {
     // demoMode = coach-side preview. Writes must never touch the real
@@ -2065,9 +2116,16 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     setClientWorkouts(prev => [...prev, w]);
     // Number.isFinite guard: type="number" still lets "e"/locale commas
     // through, and a NaN row poisons the BW chart min/max math.
-    if (bw && Number.isFinite(parseFloat(bw)) && activePlan) setBwLog(prev => {
-      const filtered = prev.filter(b => !(b.clientId===ci && b.blockName===activePlan.name && b.week===wk+1));
-      return [...filtered, {date:new Date().toISOString(),clientId:ci,week:wk+1,bw:parseFloat(bw),blockName:activePlan.name,planId:activePlan.id||null}];
+    if (bw && Number.isFinite(parseFloat(bw))) setBwLog(prev => {
+      // File the weigh-in under the block actually TRAINED (the completed workout),
+      // not whichever plan is "active" — a multi-plan athlete finishing a non-active
+      // plan's day was filing BW (and its week) under the wrong block.
+      const blockName = w.planName || activePlan?.name || null;
+      const wkNum = w.week ?? (wk + 1);
+      const planId = clientPlans.find(p => p.name === blockName)?.id || activePlan?.id || null;
+      if (!blockName) return prev;
+      const filtered = prev.filter(b => !(b.clientId === ci && b.blockName === blockName && b.week === wkNum));
+      return [...filtered, { date: new Date().toISOString(), clientId: ci, week: wkNum, bw: parseFloat(bw), blockName, planId }];
     });
     if(onDecrementSession && ci) onDecrementSession(ci);
     // Notify the coach. Fire-and-forget — push never blocks the
@@ -2100,7 +2158,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // hand-coached clients couldn't accidentally swap mid-session. With
     // proper coach insight into substitutions via workout logs, the gate
     // is no longer needed and trainees can adapt to a busy gym freely.
-    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={wk} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={trainee?.branch}/>; }
+    // weekNum follows the ACTIVE block's selector only. Logging a day that
+    // belongs to a DIFFERENT visible plan must file under THAT plan's own
+    // current week, not the active block's — else a multi-plan athlete's
+    // workout lands under the wrong week (done/AGAIN badge + ghosts too).
+    const logWeek = (targetPlan.name === activePlan?.name) ? wk : deriveWeekIdx(targetPlan, cw);
+    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
@@ -2131,7 +2194,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           "pages glitch from left to right"). */}
       <style>{`html{scrollbar-gutter:stable}`}</style>
       <div style={{background:C.bg,padding:'calc(12px + env(safe-area-inset-top)) 20px 12px',borderBottom:(ident==='CONSOLE'||ident==='RAIL')?'none':`1px solid ${C.bd2}`}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6,position:'relative'}}>
+          {/* Bnei Herzliya crest — top row, horizontally centered, sized to the
+              EXPO mark's height (Ohad: "all the way up, same size as the EXPO logo"). */}
+          {isBnei && <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{position:'absolute',left:'50%',top:'50%',transform:'translate(-50%,-50%)',height:36,width:'auto',objectFit:'contain',pointerEvents:'none'}} />}
           {/* EXPO logo. For dual-role accounts (trainer who also has a
               trainee row) it doubles as the "switch to coach portal"
               affordance — click the mark to go back to /coach/dashboard.
@@ -2174,18 +2240,17 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <button onClick={logOut} style={{background:'none',border:'none',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.12em',padding:0}}>LOG OUT →</button>
           </div>
         </div>
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:6}}>
-          {/* Team co-brand for Bnei Herzliya athletes — the team crest sits
-              centered ABOVE the greeting (white-filled logo reads on the dark
-              portal). Tight vertical rhythm so it fits the page. EXPO branding
-              stays in the header bar above. */}
-          {trainee?.branch === 'Bnei Herzliya' && (
-            <img src="/bnei-herzliya-logo-w.png" alt="Bnei Herzliya" style={{height:60,width:'auto',objectFit:'contain',marginBottom:4}} />
-          )}
-          <h1 style={{margin:0,fontFamily:FN,fontSize:18,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}>Hey {clientName.split(' ')[0]}</h1>
-          <div style={{width:24,height:1,background:C.ac,marginTop:8,opacity:0.5}}/>
-          {trainee?.branch === 'Bnei Herzliya' && (
-            <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',color:C.ac,marginTop:6,textAlign:'center'}}>BNEI HERZLIYA</div>
+        {/* Symmetric vertical rhythm (Ohad): crest→greeting == greeting→divider,
+            and BNEI HERZLIYA gets equal space above (divider) and below (the
+            block strip's cyan top border). lineHeight:1 makes the text boxes
+            glyph-tight so the measured gaps ARE the visual gaps. GAP=12. */}
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',marginBottom:12}}>
+          {/* Just the athlete's first name (Ohad: drop the "Hey"/"היי" prefix).
+              Hebrew names use the Hebrew font so they don't render oversized. */}
+          <h1 dir="auto" style={{margin:0,lineHeight:1,fontFamily:FN,fontSize:21,fontWeight:600,color:C.tx,textAlign:'center',letterSpacing:'0.04em'}}><span style={/[֐-׿]/.test(clientName.split(' ')[0]) ? {fontFamily:FH} : undefined}>{clientName.split(' ')[0]}</span></h1>
+          <div style={{width:24,height:1,background:C.ac,marginTop:12,opacity:0.5}}/>
+          {isBnei && (
+            <div style={{fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',lineHeight:1,color:C.ac,marginTop:12,textAlign:'center'}}>BNEI HERZLIYA</div>
           )}
         </div>
         {/* Three across: BLOCK (left) · THIS WEEK completion blocks (centred) ·
@@ -2304,16 +2369,19 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // inverse-video accents, everything tabular. Symmetric: banner
           // padding 10/10, groups share one baseline.
           if (hv === '4') return (
-            <div style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'flex',alignItems:'baseline',justifyContent:'space-between',whiteSpace:'nowrap',gap:10}}>
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx}}>BLOCK <span style={{color:C.ac}}>{blockLabel}</span></span>
+            <div style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'flex',alignItems:'center',justifyContent:'space-between',whiteSpace:'nowrap',gap:10}}>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1}}>BLOCK <span style={{color:C.ac}}>{blockLabel}</span></span>
               {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN}}>
-                <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums'}}>{doneThisWeek}/{weekDays.length}</span>
-                <span style={{display:'inline-flex',gap:2}}>
+                <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
+                {/* squares carry a −1px lift so their geometric centre sits on the
+                    text CAP axis, not the font-box centre (caps ride ~1px high in
+                    Nord). Measured, matches "0/3"/"WEEK" cap-centres. */}
+                <span style={{display:'inline-flex',gap:2,transform:'translateY(-1px)'}}>
                   {weekDays.map((d,i)=><span key={i} title={d.name} style={{width:10,height:10,display:'inline-block',background:isDayDone(d)?C.ac:'var(--c-sf2)',border:`1px solid ${isDayDone(d)?C.ac:C.cardBd}`}}/>)}
                 </span>
-                <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700}}>WEEK</span>
+                <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700,lineHeight:1}}>WEEK</span>
               </span>}
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> LEFT</span>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm,lineHeight:1}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> LEFT</span>
             </div>
           );
 
@@ -2662,8 +2730,10 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               tinted band with a cyan left rail + bottom border (card-header look
               like the coach dashboard). Spans the card via negative margins. */}
           <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
-            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName} <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
-            <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)} · W{w.week}</div>
+            {/* order: DAY · W# · BLOCK — the week sits between the day and the
+                block (Ohad); the date moves to the right on its own. */}
+            <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName} <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}>· W{w.week} ·</span> <span style={{color:C.tm,fontWeight:400,fontSize:12}}>{w.planName}</span></div>
+            <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date)}</div>
           </div>
           {/* Pre-workout readiness check-in the athlete logged for this session. */}
           {hasReadiness(w.autoregulation) && <div style={{marginBottom:10,paddingBottom:8,borderBottom:`1px solid ${C.cardBd}`}}><ReadinessRow data={w.autoregulation} showTitle /></div>}
@@ -2681,8 +2751,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                   onKeyDown={canExpand ? (e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpandedHistEx(isOpen ? null : expandKey); } }) : undefined}
                   style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,cursor:canExpand?'pointer':'default',padding:'3px 0'}}>
                   <span style={{flex:1}}>{i+1}. {x.title} <span style={{color:C.td}}>{x.prescribed} · {(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span></span>
-                  {hasVideo && <span style={{color:C.gn,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.08em'}}>VIDEO</span>}
-                  {notesCount > 0 && <span style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,padding:'1px 6px',borderRadius:0}}>{notesCount} {notesCount===1?'NOTE':'NOTES'}</span>}
+                  {/* VIDEO + NOTES are uniform bare caps tags (matching weight/
+                      size, each with a leading severity dot) so the row reads as
+                      one clean cluster instead of a bare label next to a boxed
+                      pill (Ohad: the mixed treatment looked awkward). */}
+                  {hasVideo && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gn,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1}}><span style={{width:5,height:5,background:C.gn,borderRadius:'50%'}}/>VIDEO</span>}
+                  {notesCount > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1}}><span style={{width:5,height:5,background:C.ac,borderRadius:'50%'}}/>{notesCount} {notesCount===1?'NOTE':'NOTES'}</span>}
                   {canExpand && <span style={{color:C.td,fontSize:10}}>{isOpen ? '▲' : '▼'}</span>}
                 </div>
                 {isOpen && hasVideo && (
@@ -2891,14 +2965,15 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
               : <button onClick={action.onClick} style={{padding:'5px 16px',minWidth:78,borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',color:C.ac,fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{action.label}</button>);
             const titleGroup = (size, tracking) => (
               <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
-                {/* Count sits on the title BASELINE, then rises by the cap-height
-                    difference so the small (N) optically CENTERS on the big title
-                    caps (Ohad). Size-aware: caps ≈ 0.72·fontSize, so half the
-                    cap-height gap is 0.36·(size−10). Fixes both the baseline-low
-                    and the box-center-high looks. */}
-                <span style={{display:'inline-flex',alignItems:'center',gap:7,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
+                {/* Count is BASELINE-aligned to the title, then lifted so its INK
+                    center matches the title-caps ink center (Ohad: optically
+                    centered). Calibrated from real Nord pixel-ink measurement:
+                    title-caps ink-center ≈ 0.333·size above baseline, the 10px
+                    count ≈ 3.28 above — so lift = 3.28−0.333·size (−1.05px at
+                    size 13). Same value for "(N)" and "N EX". */}
+                <span style={{display:'inline-flex',alignItems:'baseline',gap:7,whiteSpace:'nowrap',minWidth:0,lineHeight:1}}>
                   <span style={{fontWeight:700,fontSize:size,fontFamily:FN,letterSpacing:tracking,textTransform:'uppercase',lineHeight:1,color:ident==='EDITORIAL'&&accent===C.or?C.or:(accent===C.or?C.or:C.tx),overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
-                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,...(countColor?{opacity:0.65}:{})}}>{count}</span>
+                  <span style={{fontSize:10,color:countColor || C.tm,fontFamily:FN,letterSpacing:'0.08em',textTransform:'uppercase',lineHeight:1,transform:`translateY(${(3.28 - 0.333 * size).toFixed(2)}px)`,...(countColor?{opacity:0.65}:{})}}>{count}</span>
                 </span>
                 {extras}
               </div>

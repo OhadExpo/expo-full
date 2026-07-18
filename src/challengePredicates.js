@@ -110,10 +110,14 @@ function prWeeks(traineeWorkouts) {
 // Big-Three detector: which of {squat, bench, deadlift} hit a new e1RM
 // PR within the window. Returns a Set of pattern names matched.
 function bigThreePRs(traineeWorkouts, start, end) {
+  // NOTE: JS \b is only a boundary between a \w and non-\w char. Hebrew
+  // letters are non-\w, so \b never forms next to them — anchoring Hebrew
+  // alternatives with \b makes them un-matchable. Anchor the Latin words
+  // only; match the Hebrew substrings bare.
   const PATTERNS = {
     squat:    /\bsquat\b/i,
-    bench:    /\b(bench|חזה)\b/i,   // hebrew "chest" → close enough
-    deadlift: /\b(deadlift|dead\b|רומני|דדליפט)\b/i,
+    bench:    /\bbench\b|חזה/i,                       // hebrew "chest" → close enough
+    deadlift: /\bdeadlift\b|\bdead\b|רומני|דדליפט/i,
   };
   const sorted = [...traineeWorkouts].sort((a, b) => new Date(a.date) - new Date(b.date));
   const baseline = {}; // best e1RM before window per pattern
@@ -291,8 +295,9 @@ export const GOAL_TYPES_NEW = {
       const end   = new Date(challenge.end_at).getTime();
       const days = new Set();
       for (const m of (meals || [])) {
-        if (!ids.has(m.client_id)) continue;
-        const d = m.meal_date || (m.logged_at && m.logged_at.slice(0, 10));
+        if (!ids.has(m.trainee_id)) continue;
+        // athlete_meals is keyed by trainee_id + created_at (no meal_date col).
+        const d = m.created_at && m.created_at.slice(0, 10);
         if (!d) continue;
         const t = new Date(d + 'T12:00:00').getTime();
         if (t < start || t > end) continue;

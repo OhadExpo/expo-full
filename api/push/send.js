@@ -58,7 +58,12 @@ export default async function handler(req, res) {
   const toEmail = String(body.toEmail || '').trim().toLowerCase();
   const title   = String(body.title || 'EXPO').slice(0, 80);
   const text    = String(body.body  || '').slice(0, 200);
-  const url     = String(body.url   || '/').slice(0, 200);
+  const rawUrl  = String(body.url   || '/').slice(0, 200);
+  // Force a RELATIVE same-origin path. This value is opened by the service worker
+  // on notification tap; an absolute/protocol-relative URL would be a phishing
+  // open-redirect (any authenticated session can call this endpoint). Defense in
+  // depth with the same-origin coercion in sw.js.
+  const url     = (/^https?:\/\//i.test(rawUrl) || rawUrl.startsWith('//')) ? '/' : (rawUrl.startsWith('/') ? rawUrl : '/' + rawUrl);
   const tag     = String(body.tag   || '').slice(0, 100) || undefined;
 
   if (!toEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(toEmail)) {

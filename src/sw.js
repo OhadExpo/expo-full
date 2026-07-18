@@ -65,7 +65,16 @@ self.addEventListener('push', (event) => {
 // the URL the push specified (e.g., a trainee's message thread).
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/';
+  // Security: the push payload's `url` is attacker-influenceable (any authenticated
+  // session can trigger a push), so treat it as untrusted. Only ever navigate/open
+  // a SAME-ORIGIN path — resolve against our origin and coerce anything off-origin
+  // back to the app root. Prevents a trusted-EXPO-notification → external-phishing
+  // open-redirect.
+  let targetUrl = '/';
+  try {
+    const u = new URL(event.notification.data?.url || '/', self.location.origin);
+    targetUrl = u.origin === self.location.origin ? (u.pathname + u.search + u.hash) : '/';
+  } catch { targetUrl = '/'; }
 
   event.waitUntil((async () => {
     const allClients = await self.clients.matchAll({

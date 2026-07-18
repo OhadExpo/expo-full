@@ -90,8 +90,12 @@ export async function captureClipFrames(src, { crossOrigin = false, onProgress }
     await new Promise((res, rej) => { v.onloadedmetadata = () => res(); v.onerror = () => rej(new Error('Could not read that video.')); });
     const dur = v.duration;
     if (!isFinite(dur) || dur <= 0) throw new Error('Could not read that video (no duration).');
-    const STEP = 0.05;                 // ~20 fps
-    const MAX = 600;                   // ≈30s cap
+    const MAX = 600;                   // frame cap (protects long clips)
+    // Adaptive sampling: the fixed 0.05s (~20fps) step capped flight-time /
+    // velocity resolution for EVERY clip and made FpsBadge paint slow-mo uploads
+    // as "20fps low ≈±9cm". Short clips (jumps are ~2-5s) now sample up to 50fps
+    // for real precision; longer clips grow the step to stay within MAX frames.
+    const STEP = Math.max(0.02, dur / MAX);
     const total = Math.min(MAX, Math.max(2, Math.ceil(dur / STEP)));
     const frames = [];
     // Tracks WHICH detected pose is the subject across the whole seek pass —

@@ -60,6 +60,10 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   // doesn't trigger React re-renders every frame.
   const angleBufRef = useRef([]);
   const phaseRef = useRef('top');
+  // Throttle the debug angle READOUT to ~5x/sec. Rep detection still runs every
+  // frame off `smooth`; only the displayed number was re-rendering the whole
+  // portal (incl. the 180px rep digit) 30-60x/sec for nothing.
+  const lastAngleTsRef = useRef(0);
 
   // -----------------------------------------------------------------
   // Camera + pose model bootstrap
@@ -126,7 +130,11 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
       }
     };
     rec.onerror = (e) => { console.warn('voice err:', e.error); };
-    rec.onend = () => { if (voiceOn) { try { rec.start(); } catch {} } };
+    // Web Speech auto-ends after silence; restart to stay hands-free. Gate on the
+    // ref (stopVoice nulls it) NOT the captured `voiceOn` — at creation time voiceOn
+    // is still false (it's being toggled on), so the old closure never restarted and
+    // voice counting silently died after the first silence timeout.
+    rec.onend = () => { if (recognitionRef.current === rec) { try { rec.start(); } catch {} } };
     try { rec.start(); recognitionRef.current = rec; setVoiceOn(true); }
     catch (e) { setError(e.message || 'Could not start voice recognition.'); }
   }, [status, voiceOn]);
@@ -167,7 +175,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
         // Smoothed = median of last 5 samples (matches offline pipeline)
         const sorted = [...buf].sort((a, b) => a - b);
         const smooth = sorted[Math.floor(sorted.length / 2)];
-        setLastAngle(smooth);
+        if (ts - lastAngleTsRef.current > 200) { lastAngleTsRef.current = ts; setLastAngle(smooth); }
         if (thr) {
           if (phaseRef.current === 'top' && smooth < thr.low) {
             phaseRef.current = 'bottom';

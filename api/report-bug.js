@@ -4,6 +4,8 @@
 // reported) and mirrors the report to Vercel function logs so it shows
 // up next to ErrorBoundary crash captures.
 
+import { clientIp } from './_ip.js';
+
 export const config = {
   maxDuration: 5,
   api: { bodyParser: { sizeLimit: '64kb' } },
@@ -35,7 +37,7 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  const ip = clientIp(req); // trusted IP (x-real-ip / rightmost XFF); leftmost XFF is client-spoofable
   if (!withinBudget(ip)) {
     res.status(429).json({ error: 'Too many reports from this IP. Wait a few minutes and try again.' });
     return;

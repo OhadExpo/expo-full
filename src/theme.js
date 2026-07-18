@@ -84,7 +84,7 @@ export const MOVEMENT_TYPES = ["Push","Pull","Row","Curl","Extend","Squat","Hing
 export const LATERALITY = ["Bilateral","Unilateral","Alternating"];
 export const MOVEMENT_PATTERNS = ["Horizontal Push","Horizontal Pull","Vertical Push","Vertical Pull","Hip Hinge","Squat","Lunge","Carry/Loaded Locomotion","Rotation/Anti-Rotation","Isolation","Olympic"];
 export const REQUIRED_PATTERNS = ["Horizontal Push","Horizontal Pull","Vertical Push","Vertical Pull","Hip Hinge","Squat","Lunge","Carry/Loaded Locomotion","Rotation/Anti-Rotation"];
-export const TRAINING_FORMATS = ["Gym, Single","Gym, Couple","Gym, Group","Online Client","Hybrid"];
+export const TRAINING_FORMATS = ["Gym, Single","Gym, Couple","Gym, Group","Bnei Herzliya","Online Client"];
 export const TRAINEE_STATUSES = ["Active","On Hold","Inactive","Trial","Archived"];
 export const PACKAGE_TYPES = ["Single Session","8 Sessions","24 Sessions","Monthly","Custom"];
 // Canonical value stays English ('male'/'female') so message/conjugation logic

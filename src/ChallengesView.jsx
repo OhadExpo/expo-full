@@ -146,11 +146,18 @@ export default function ChallengesView({ trainees, clientWorkouts, bwLog }) {
       if (!starts.length || !ends.length) { if (!cancelled) setMeals([]); return; }
       const minStart = Math.min(...starts);
       const maxEnd   = Math.max(...ends);
+      // athlete_meals has no meal_date col — it's keyed by created_at (a full
+      // timestamp). Filter by a created_at range: [start-day 00:00, end-day+1
+      // 00:00) so the whole end day is included. The predicate scopes each row
+      // to a participant by trainee_id.
+      const startIso = new Date(minStart).toISOString().slice(0, 10) + 'T00:00:00';
+      const endNext  = new Date(maxEnd); endNext.setUTCDate(endNext.getUTCDate() + 1);
+      const endIso   = endNext.toISOString().slice(0, 10) + 'T00:00:00';
       const { data } = await supabase
         .from('athlete_meals')
-        .select('client_id,meal_date,logged_at')
-        .gte('meal_date', new Date(minStart).toISOString().slice(0, 10))
-        .lte('meal_date', new Date(maxEnd  ).toISOString().slice(0, 10));
+        .select('trainee_id,created_at')
+        .gte('created_at', startIso)
+        .lt('created_at', endIso);
       if (!cancelled) setMeals(data || []);
     })();
     return () => { cancelled = true; };
@@ -286,15 +293,16 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
     setGoalValue(tpl.goalValue != null ? String(tpl.goalValue) : '');
     const start = new Date();
     const end = new Date(Date.now() + tpl.durationDays * 86400000);
-    setStartAt(start.toISOString().slice(0, 10));
-    setEndAt(end.toISOString().slice(0, 10));
+    // localDay (not toISOString) — a UTC slice reads a day early in Israel evenings.
+    setStartAt(localDay(start));
+    setEndAt(localDay(end));
     setStage('form');
   };
   const startBlank = () => {
     setName(''); setDescription('');
     setGoalType('workouts_count'); setGoalValue('');
-    setStartAt(new Date().toISOString().slice(0, 10));
-    setEndAt(new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
+    setStartAt(localDay(new Date()));
+    setEndAt(localDay(new Date(Date.now() + 30 * 86400000)));
     setStage('form');
   };
 

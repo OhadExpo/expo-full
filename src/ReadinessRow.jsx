@@ -49,11 +49,15 @@ export default function ReadinessRow({ data, showTitle = false, style }) {
       {showTitle && <div style={{ fontSize: 9, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 6 }}>READINESS</div>}
       {/* PAIN / SLEEP / ENERGY on a single row below the title — no wrapping, so
           the three metrics always line up together (Ohad). Labels white. */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 28, flexWrap: 'nowrap', overflowX: 'auto', maxWidth: '100%' }}>
+      {/* label + value are CENTER-aligned (not baseline) and their font sizes
+          sit one notch apart (10 / 11) so PAIN reads at the same optical height
+          as MODERATE — the earlier 8/11 baseline pairing made the small label
+          drop below the value and look like a different size (Ohad). */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'nowrap', overflowX: 'auto', maxWidth: '100%' }}>
         {items.map(m => (
-          <span key={m.key} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, whiteSpace: 'nowrap' }}>
-            <span style={{ fontSize: 8, fontFamily: FN, color: C.tx, letterSpacing: '0.14em', fontWeight: 700 }}>{m.label}</span>
-            <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: readinessColor(m.key, data[m.key]) || C.tx }}>{data[m.key]}</span>
+          <span key={m.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', lineHeight: 1 }}>
+            <span style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.12em', fontWeight: 700, lineHeight: 1 }}>{m.label}</span>
+            <span style={{ fontSize: 11, fontFamily: FN, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', lineHeight: 1, color: readinessColor(m.key, data[m.key]) || C.tx }}>{data[m.key]}</span>
           </span>
         ))}
       </div>

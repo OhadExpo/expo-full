@@ -257,7 +257,9 @@ export default function WaitlistView({ trainees }) {
         }
       }
     }
-    const signupCount = enriched.filter(l => l.email && traineeEmails.has(String(l.email).toLowerCase())).length;
+    // Count conversions among CONTACTED leads only — dividing all-lead conversions
+    // by contactedCount let the rate exceed 100% when a never-contacted lead matched.
+    const signupCount = contacted.filter(l => l.email && traineeEmails.has(String(l.email).toLowerCase())).length;
     const signupRate = contactedCount > 0 ? signupCount / contactedCount : 0;
 
     const avgIntent = enriched.reduce((a, l) => a + (l.intent || 0), 0) / total;

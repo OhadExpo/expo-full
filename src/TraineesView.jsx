@@ -26,7 +26,7 @@ function CardStatusMenu({ status, onChange }) {
   return (
     <span ref={ref} style={{ position: 'relative', display: 'inline-block' }} onClick={e => e.stopPropagation()}>
       <button onClick={e => { e.stopPropagation(); setOpen(o => !o); }} title="Change status"
-        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 92, background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '2px 8px', fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minWidth: 92, height: 26, boxSizing: 'border-box', background: isRefined5b() ? '#FFFFFF' : 'transparent', border: `1px solid ${color}`, color, borderRadius: 0, padding: '0 8px', fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
         {/* center the label+caret as a unit; cancel the trailing letter-space
             after the last glyph so the group is optically centred, not shifted
             left by ~1px (space-between used to pin the label left / caret right,
@@ -207,7 +207,7 @@ const MidDot = () => <span style={{ color: C.tm, opacity: 0.5, fontSize: 11 }}>�
 
 function CardSection({ label, children, center = false }) {
   return (
-    <div style={{ marginTop: 12, paddingTop: 10, borderTop: `1px solid ${C.divider}` }}>
+    <div style={{ marginTop: 18, paddingTop: 0 }}>
       <div style={{
         fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
@@ -338,11 +338,13 @@ const OnlineDot = () => (
 // purpose because a plan assigned to the parent ID is visible to both.
 const getMemberPlanCounts = (t, planCounts) => {
   if (!isCouple(t)) return [planCounts?.[t.id] || 0];
-  const shared = planCounts?.[t.id] || 0;
-  return [
-    shared + (planCounts?.[subMemberId(t.id, 0)] || 0),
-    shared + (planCounts?.[subMemberId(t.id, 1)] || 0),
-  ];
+  const sub0 = planCounts?.[subMemberId(t.id, 0)] || 0;
+  const sub1 = planCounts?.[subMemberId(t.id, 1)] || 0;
+  // planCounts[parent] is ROLLED UP in App.jsx (parent-own + sub0 + sub1), so the
+  // shared (parent-ID) plans = that total minus each member's own. Adding the raw
+  // rolled-up value back onto each sub double-counted every member's plans.
+  const shared = Math.max(0, (planCounts?.[t.id] || 0) - sub0 - sub1);
+  return [shared + sub0, shared + sub1];
 };
 
 const defaultTrainee = () => ({
@@ -540,7 +542,7 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         <div ref={addMenuRef} style={{position:'relative'}}>
           <Btn onClick={() => setAddMenuOpen(!addMenuOpen)} style={{ height: 48, boxSizing: 'border-box', padding: '0 18px' }}>+ Add Athlete ▾</Btn>
           {addMenuOpen && <div style={{position:'absolute',right:0,top:'100%',marginTop:4,background:C.bg,border:`1px solid ${C.cardBd}`,borderRadius:0,overflow:'hidden',zIndex:50,minWidth:180,boxShadow:'0 8px 24px rgba(0,0,0,0.6)'}}>
-            {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple']].map(([label,format])=>(
+            {[['Online Athlete','Online Client'],['Gym, Single','Gym, Single'],['Gym, Couple','Gym, Couple'],['Bnei Herzliya','Bnei Herzliya']].map(([label,format])=>(
               <button key={format} onClick={()=>{
                 const f = {...defaultTrainee(), format};
                 // Use _members (the edit-form shape the modal + handleSave read)
@@ -586,8 +588,11 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
         // search/archive row above (matches the Tasks-page toolbar).
         return (
           <div style={{
-            display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 12,
+            display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'center', marginBottom: 12,
           }}>
+            {/* Cell 1 — sort keys SPREAD across the first card's column so PAYMENT's
+                right edge lines up with the first athlete card beneath it (Ohad). */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             {/* NAME and STATUS each carry their OWN direction toggle, shown
                 together (Ohad): NAME ↔ א→ת/ת→א · STATUS ↔ Active/Inactive. Every
                 pill + toggle shares boxBase (BOX_H) so the row is one height.
@@ -608,11 +613,15 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               }); };
               return <button key={o.id} onClick={toggleKey} style={pill(on)}>{o.label}</button>;
             })}
+            </div>
+            {/* Cell 2 — divider sits in the gutter between card 1 and 2; the direction
+                togglers begin at the second card's left edge (Ohad). */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
             {/* DIRECTION togglers — moved to the END (after the keys) and given a
                 DISTINCT look (rounded + dashed, not the square solid sort pills)
                 so it's obvious they flip direction, not pick a column (Ohad).
                 One per active key, in priority order. */}
-            {sortKeys.length > 0 && <span style={{ width: 1, alignSelf: 'stretch', background: C.cardBd, margin: '0 3px' }} />}
+            {sortKeys.length > 0 && <span style={{ position: 'absolute', left: -6, top: '50%', transform: 'translateY(-50%)', width: 1, height: 16, background: C.cardBd }} />}
             {sortKeys.map(key => {
               const desc = sortDirs[key] === 'desc';
               const lbl = key === 'name' ? (desc ? 'ת→א' : 'א→ת')
@@ -640,10 +649,13 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 </button>
               );
             })}
-            <span style={{ flex: 1 }} />
-            <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
-              {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
-            </span>
+            </div>
+            {/* Cell 3 — athlete count, right-aligned under the third column. */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+              <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>
+                {filtered.length} {filtered.length === 1 ? 'athlete' : 'athletes'}
+              </span>
+            </div>
           </div>
         );
       })()}
@@ -683,9 +695,9 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
               const sharedProgramsCount = Math.max(mpc[0] || 0, mpc[1] || 0);
               return (
                 <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
-                  header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
+                  header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title="Bnei Herzliya" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
                   headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-                  style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+                  style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
                   {/* IDENTITY: name + status badge live in the card header
                       (Card's header + headerRight props). No duplicate body
                       banner — Ohad called the inner repeat useless 2026-05-12. */}
@@ -754,8 +766,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
 
                   {!showArchived && (
                     <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
-                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PORTAL</button> : <span/>}
-                      <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>EDIT</button>
+                      {onPreview ? <button onClick={e => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:26,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PORTAL</button> : <span/>}
+                      <button onClick={e => {e.stopPropagation(); const f = {...t, _emails: emailsToArr(t.email)}; if(t.members) f._members = t.members.map(m=>({...m, _emails: emailsToArr(m.email)})); setForm(f); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:26,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>EDIT</button>
                     </div>
                   )}
                   {showArchived && <div style={{display:'flex',gap:6,marginTop:'auto',paddingTop:10}}>
@@ -776,9 +788,9 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             const programs = planCounts?.[t.id] || 0;
             return (
             <Card key={t.id} {...dragProps(t)} onClick={() => showArchived ? null : onSelect(t.id)}
-              header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}</span>}
+              header={<span style={{display:'inline-flex',alignItems:'center',gap:6,fontWeight:700,fontSize: hasHebrew(t.name) ? hebSize(14) : 14,letterSpacing:'0.04em',textTransform:'uppercase'}}>{t.name}{online && <OnlineDot />}{(t.format === 'Bnei Herzliya' || t.branch === 'Bnei Herzliya') && <span title="Bnei Herzliya" style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:22,height:22,borderRadius:'50%',background:'#0E1A2B',flexShrink:0}}><img src="/bnei-herzliya-logo-w.png" alt="" style={{height:18,width:'auto',objectFit:'contain'}}/></span>}</span>}
               headerRight={showArchived ? <Badge color={statusColor[t.status] || C.tm} style={isRefined5b()?{background:'#FFFFFF'}:undefined}>{t.status}</Badge> : <CardStatusMenu status={t.status} onChange={s => setTrainees(prev => prev.map(x => x.id === t.id ? {...x, status: s} : x))} />}
-              style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
+              style={{height:'100%',display:'flex',flexDirection:'column',boxSizing:'border-box',border:`1px solid ${C.divider}`,borderLeft:`1px solid ${C.divider}`,...(showArchived ? {opacity: 0.7, borderStyle: "dashed"} : {})}}>
               {/* IDENTITY: name + status badge live in the card header — no
                   body duplicate. Same shape in both themes; OnlineDot moves
                   into the header span via the {online && <OnlineDot />} above. */}
@@ -807,8 +819,8 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
                 <Btn variant="danger" onClick={(e) => {e.stopPropagation(); setDeleteConfirm(t)}} style={{fontSize:11,padding:"4px 10px"}}>Permanently Delete</Btn>
               </div>}
               {!showArchived && <div style={{display:'flex',justifyContent:'space-between',marginTop:'auto',paddingTop:8,gap:8}}>
-                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PORTAL</button> : <span/>}
-                <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'4px 14px',borderRadius:0}}>EDIT</button>
+                {onPreview ? <button onClick={(e) => {e.stopPropagation(); onPreview(t.id)}} title="Preview this athlete's portal" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${isRefined5b() ? C.ac : C.cardBd}`,color: isRefined5b() ? C.ac : C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:26,boxSizing:'border-box',borderRadius:0,display:'inline-flex',alignItems:'center',gap:6}}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>PORTAL</button> : <span/>}
+                <button onClick={(e) => {e.stopPropagation(); setForm({...t, _emails: emailsToArr(t.email)}); setEditId(t.id); setShowForm(true)}} style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.15em',padding:'0 14px',height:26,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRadius:0}}>EDIT</button>
               </div>}
             </Card>);
           })}

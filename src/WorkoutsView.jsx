@@ -393,7 +393,8 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
     if (!tid) return undefined;
     const matches = (prev, p) => prev && prev.traineeId === p.traineeId
       && (!p.planName || !prev.planName || p.planName === prev.planName)
-      && (!p.dayName || !prev.dayName || p.dayName === prev.dayName);
+      && (!p.dayName || !prev.dayName || p.dayName === prev.dayName)
+      && (p.week == null || prev.week == null || p.week === prev.week);
     // Per-trainee topic (see ClientPortal) so only THIS athlete's portal shares
     // the room — no cross-athlete leak on the old shared 'gym-session'.
     const ch = supabase.channel('gym-set:' + tid, { config: { broadcast: { self: false } } });

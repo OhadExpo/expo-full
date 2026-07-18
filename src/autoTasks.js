@@ -220,7 +220,10 @@ const ruleAtRiskSilent = {
       // re-engage task that adds nothing.
       if (isGhostTrainee(t, ctx)) continue;
       const tWorkouts = workouts.filter(w => traineeIdsFor(t.id).includes(w.clientId));
-      const tActivity = (activityRows || []).filter(a => a.trainee_id === t.id);
+      // Match the workout filter's couple-aware scoping — activity logged under a
+      // couple sub-member id (tr__0/__1) was missed by the parent-only compare,
+      // which could flag a recently-contacted couple as "never contacted".
+      const tActivity = (activityRows || []).filter(a => traineeIdsFor(t.id).includes(a.trainee_id));
       const latestWorkoutAgo = tWorkouts.length
         ? Math.min(...tWorkouts.map(w => daysAgo(w.date)))
         : Infinity;

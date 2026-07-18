@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState, asButton } from './ui';
-import { traineeIdsFor } from './traineeUtils';
+import { traineeIdsFor, parseTraineeId } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
 import NotesWidget from './NotesWidget';
@@ -109,7 +109,9 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
   const collected30 = paidPayments.filter(p => (now - new Date(p.date)) <= ms30).reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
   const collected90 = paidPayments.filter(p => (now - new Date(p.date)) <= ms90).reduce((a, p) => a + (parseFloat(p.amount) || 0), 0);
   const avgTicket = paidPayments.length ? Math.round(totalAllPaid / paidPayments.length) : 0;
-  const everPaidClientIds = new Set(paidPayments.map(p => p.traineeId).filter(Boolean));
+  // Normalize couple sub-member ids (tr__0/__1) to the household parent so a couple
+  // paying under both members counts as ONE client, not two (avgLtv was diluted).
+  const everPaidClientIds = new Set(paidPayments.map(p => { const par = parseTraineeId(p.traineeId); return par ? par.parentId : p.traineeId; }).filter(Boolean));
   const avgLtv = everPaidClientIds.size ? Math.round(totalAllPaid / everPaidClientIds.size) : 0;
   // 6-month bar chart of collected revenue per month (oldest → newest).
   const monthBars = useMemo(() => {

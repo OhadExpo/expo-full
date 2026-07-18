@@ -219,7 +219,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       if (map.has(tid)) continue;
       const ch = supabase.channel('gym-set:' + tid, { config: { broadcast: { self: false } } });
       const findA = () => (sessionRef.current?.athletes || []).find(x => x.traineeId === tid);
-      const dayOk = (p, a) => (!p.planName || !a.planName || p.planName === a.planName) && (!p.dayName || !a.dayName || p.dayName === a.dayName);
+      const dayOk = (p, a) => (!p.planName || !a.planName || p.planName === a.planName) && (!p.dayName || !a.dayName || p.dayName === a.dayName) && (p.week == null || a.week == null || p.week === a.week);
       // Athlete's live edit from their portal → overwrite that field on the card.
       ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
         if (!p || p.ei == null || p.si == null || !p.field) return;

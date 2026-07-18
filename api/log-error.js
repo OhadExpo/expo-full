@@ -4,6 +4,8 @@
 // runtime captures. Tightly rate-limited per IP so a malicious client
 // can't fill the log stream.
 
+import { clientIp } from './_ip.js';
+
 export const config = {
   maxDuration: 5,
   api: { bodyParser: { sizeLimit: '32kb' } },
@@ -30,7 +32,7 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  const ip = clientIp(req); // trusted IP (x-real-ip / rightmost XFF); leftmost XFF is client-spoofable
   if (!withinBudget(ip)) {
     res.status(429).json({ error: 'Too many client errors from this IP.' });
     return;
