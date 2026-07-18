@@ -499,11 +499,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         return n;
       });
     };
-    // Match plan + day + WEEK. Without the week check a coach card (or a stale
-    // peer) sitting on a different week of the same plan-day cross-wrote into the
-    // athlete's current-week grid. week is optional so pre-week peers still match.
+    // Match plan + day + WEEK. The WIRE week is 1-indexed (HUMAN week) so it
+    // agrees with the coach session (a.week = W1..Wn); weekNum here is 0-indexed,
+    // hence weekNum+1. (Comparing the raw 0-indexed weekNum rejected EVERY live
+    // sync message — coach 1-indexed vs portal 0-indexed.) week optional so
+    // pre-week peers still match.
     const mine = (planName, dayName, week) =>
-      (!planName || planName === plan?.name) && (!dayName || dayName === day?.name) && (week == null || week === weekNum);
+      (!planName || planName === plan?.name) && (!dayName || dayName === day?.name) && (week == null || week === weekNum + 1);
     // My current sets as a positional exercises[] list (index = exercise index).
     const snapshot = () => (allSetsRef.current || []).map((rows) => ({
       sets: (rows || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.done })),
@@ -532,7 +534,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (!p || p.traineeId !== clientId || !mine(p.planName, p.dayName, p.week)) return;
       const exercises = snapshot();
       if (!hasData(exercises)) return;
-      try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum, exercises } }); } catch { /* not ready */ }
+      try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum + 1, exercises } }); } catch { /* not ready */ }
     });
     // CATCH-UP: a peer replied with its current state — fill my empty slots.
     ch.on('broadcast', { event: 'sync-state' }, ({ payload: p }) => {
@@ -547,7 +549,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // current state so a freshly-opened portal pulls what's already filled.
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum } }); } catch { /* not ready */ }
+        try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum + 1 } }); } catch { /* not ready */ }
       }
     });
     sessChanRef.current = ch;
@@ -557,7 +559,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     if (demoMode) return;
     try {
       sessChanRef.current?.send({ type: 'broadcast', event: 'athlete-set', payload: {
-        traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum,
+        traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum + 1,   // 1-indexed wire (matches coach a.week)
         ei, si, field: f, value: v,
       } });
     } catch { /* channel not ready yet — skip this edit, the next one syncs */ }
