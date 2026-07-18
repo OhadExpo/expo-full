@@ -41,6 +41,7 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   const landmarkerRef = useRef(null);
   const rafRef = useRef(null);
   const recognitionRef = useRef(null);
+  const startingRef = useRef(false);   // synchronous re-entrancy guard for beginCounting
 
   const [status, setStatus] = useState('idle'); // idle | loading | listening | counting | stopped
   // Latest status for the persistent SpeechRecognition callback, which would
@@ -195,7 +196,12 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
   }, [channels, thr]);
 
   const beginCounting = useCallback(async () => {
-    if (status === 'counting') return;
+    // REF guard, not just status: two taps in one tick (or a voice-start during
+    // the multi-second first-run model download) both read status==='idle' and
+    // would open a SECOND getUserMedia stream (first leaks, LED stays on) + a
+    // duplicate rAF loop (reps count by 2, keep running after STOP).
+    if (status === 'counting' || startingRef.current) return;
+    startingRef.current = true;
     setError(null);
     setStatus('loading');
     try {
@@ -214,6 +220,8 @@ export default function LiveRepCounter({ exerciseTitle = 'Squat', onClose, targe
       streamRef.current = null;
       setStatus('idle');
       setError(e.message || 'Could not start counting.');
+    } finally {
+      startingRef.current = false;
     }
   }, [status, startCamera, loadPose, frameLoop]);
 
