@@ -288,7 +288,7 @@ export default function IntakeView({ trainees }) {
               <div>
                 <div style={{ fontSize: 10, fontFamily: FN, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 4, textTransform: 'uppercase' }}>FORM TYPE</div>
                 <div style={{ position: 'relative', display: 'flex' }}>
-                  <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value }))}
+                  <select value={genForm.formType} onChange={e => setGenForm(f => ({ ...f, formType: e.target.value, locale: getForm(e.target.value, f.locale) ? f.locale : 'he' }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
                     <option value="initial">Initial intake</option>
                     <option value="assessment">Physical assessment</option>
@@ -303,7 +303,10 @@ export default function IntakeView({ trainees }) {
                   <select value={genForm.locale} onChange={e => setGenForm(f => ({ ...f, locale: e.target.value }))}
                     style={{ flex: 1, background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, borderRadius: 0, padding: '8px 32px 8px 10px', color: C.tx, fontFamily: FB, fontSize: 13, outline: 'none', appearance: 'none', WebkitAppearance: 'none' }}>
                     <option value="he">Hebrew (HE)</option>
-                    <option value="en">English (EN)</option>
+                    {/* Only offer a locale that actually has a form for this type
+                        (no progress:en schema) — else the client gets a blank,
+                        unsubmittable link. */}
+                    <option value="en" disabled={!getForm(genForm.formType, 'en')}>English (EN){getForm(genForm.formType, 'en') ? '' : ' — n/a'}</option>
                   </select>
                   <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: C.tm, fontSize: 14, lineHeight: 1 }}>▾</span>
                 </div>

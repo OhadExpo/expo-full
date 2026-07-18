@@ -59,6 +59,10 @@ export default function ContractSign() {
         .rpc('sign_contract', { p_token: token, p_signature: signatureDataUrl });
       if (error) throw error;
       if (!ok) throw new Error('This contract was already signed or the link is invalid.');
+      // Reflect the just-signed state locally so the confirmation shows the real
+      // signature + timestamp instead of the stale null row (which rendered as
+      // "Signed 01/01/1970" with the signature image hidden until a reload).
+      setState(s => ({ ...s, contract: { ...s.contract, athlete_signed_at: new Date().toISOString(), athlete_signature: signatureDataUrl } }));
       setSigned(true);
     } catch (e) {
       // Show the friendly "already signed / invalid link" message; for any raw
