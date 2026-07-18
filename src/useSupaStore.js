@@ -148,7 +148,10 @@ export function useSupaStore(key, initial) {
         if (row && row.value !== undefined && !savingRef.current) {
           if (key === 'expo-exercises') {
             // Yield so React doesn't block on committing a very large list.
-            setTimeout(() => { setData(row.value); dataRef.current = row.value; }, 0);
+            // Re-check savingRef INSIDE the timer: a save dispatched between the
+            // outer guard and this macrotask would otherwise be clobbered back to
+            // the stale server snapshot (data loss).
+            setTimeout(() => { if (!savingRef.current) { setData(row.value); dataRef.current = row.value; } }, 0);
           } else {
             setData(row.value);
             dataRef.current = row.value;

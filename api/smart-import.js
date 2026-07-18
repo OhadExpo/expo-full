@@ -607,7 +607,10 @@ Produce normalized items. Strict JSON only.`;
       const items = Array.isArray(result?.items) ? result.items : [];
       const validated = items.map(item => ({ item, errors: validateAgainstSchema(item, target, schema) }));
       const broken = validated.filter(v => v.errors.length > 0);
-      if (broken.length > 0 && broken.length < items.length) {
+      if (broken.length > 0) {   // was `&& broken.length < items.length` — an
+        // ALL-broken import skipped repair AND error-surfacing, returning invalid
+        // rows with 0 errors (bad taxonomy committed silently). Repair whenever
+        // anything's broken; the final pass below guarantees leftovers surface.
         // Targeted repair only for the broken subset.
         try {
           const repairUser = `TARGET: ${target}
@@ -637,6 +640,20 @@ Fix each. Strict JSON only.`;
         } catch (e) {
           result.warnings = (result.warnings || []).concat([`Repair pass failed: ${e.message}`]);
         }
+      }
+      // Authoritative surfacing: ANY item still failing schema (unrepaired,
+      // beyond the repair batch, or an AI "fix" that still doesn't validate) is
+      // reported so the preview shows the real error count and commit can block —
+      // never return invalid rows to the client as "0 errors".
+      {
+        result.items = validated.map(v => v.item);
+        const known = new Set((result.errors || []).map(e => e.rowIdx));
+        validated.forEach((v, idx) => {
+          if (v.errors.length && !known.has(idx)) {
+            result.errors = result.errors || [];
+            result.errors.push({ rowIdx: idx, msg: v.errors.join('; ') });
+          }
+        });
       }
       res.status(200).json(result);
       return;
