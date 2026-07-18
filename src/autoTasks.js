@@ -188,8 +188,9 @@ const ruleWeekMissed = {
       if (!planId || !wNum) continue;
       const plan = (plans || []).find(p => p.id === planId);
       const planName = plan?.name;
+      const wkIds = traineeIdsFor(row.target_id);   // couple-aware, matching detect
       const wkLogged = workouts.some(w =>
-        w.clientId === row.target_id
+        wkIds.includes(w.clientId)
         && (planName ? w.planName === planName : true)
         && w.week >= wNum);
       if (wkLogged) closing.add(row.auto_ref);
@@ -252,11 +253,12 @@ const ruleAtRiskSilent = {
     const closing = new Set();
     for (const row of existing) {
       const tid = row.target_id;
+      const ids = traineeIdsFor(tid);   // couple-aware, matching detect
       const sinceWk = workouts
-        .filter(w => w.clientId === tid)
+        .filter(w => ids.includes(w.clientId))
         .reduce((min, w) => Math.min(min, daysAgo(w.date)), Infinity);
       const sinceAc = (activityRows || [])
-        .filter(a => a.trainee_id === tid)
+        .filter(a => ids.includes(a.trainee_id))
         .reduce((min, a) => Math.min(min, daysAgo(a.occurred_at)), Infinity);
       // Resolve when either signal goes fresh again — sync matches against
       // auto_ref (the rule's canonical key), not target_id. They happen to
@@ -527,7 +529,7 @@ const rulePlanDueAfterEval = {
   resolve({ plans }, existing) {
     const closing = new Set();
     for (const row of existing) {
-      const hasPlan = (plans || []).some(p => p.traineeId === row.target_id);
+      const hasPlan = (plans || []).some(p => traineeIdsFor(row.target_id).includes(p.traineeId));
       if (hasPlan) closing.add(row.auto_ref);
     }
     return closing;

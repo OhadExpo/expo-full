@@ -19,6 +19,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from './supabase';
+import { traineeIdsFor, subMemberId } from './traineeUtils';
 
 const ACT_KINDS = ['whatsapp', 'call', 'meeting', 'note', 'email', 'instagram', 'sms'];
 
@@ -157,11 +158,14 @@ export function deriveCadence(td, clientWorkouts) {
   // Couples (#6): a "1x/week couple" used to count BOTH members' sessions
   // together, so one active partner masked a silent one. Compute cadence
   // per member and surface the worst-off — the silent partner is the signal.
-  const members = Array.isArray(td?.members) ? td.members.filter(m => m?.id) : [];
+  const members = Array.isArray(td?.members) ? td.members : [];
   if (members.length > 0) {
-    const perMember = members.map(m => ({
+    const perMember = members.map((m, i) => ({
       name: m.name || '',
-      ...cadenceForIds([m.id], clientWorkouts, sessionsPerWeek),
+      // Couple member workouts log under the parent sub-ID by index
+      // (parent__0/__1); members carry no `id`, so the old m.id filter killed
+      // this whole branch and every couple fell back to parent-only → "Never".
+      ...cadenceForIds([subMemberId(td.id, i)], clientWorkouts, sessionsPerWeek),
     }));
     // Worst = highest severity, then most days silent within that severity.
     const worst = perMember.reduce((acc, cur) => {
@@ -225,9 +229,10 @@ export function deriveContactSilence(manualRows) {
 
 // Payment risk from the bit_payment_requests-backed rows + the monthly rate.
 export function derivePaymentRisk(td, payments) {
-  const ids = new Set();
-  if (td?.id) ids.add(td.id);
-  if (Array.isArray(td?.members)) td.members.forEach(m => m?.id && ids.add(m.id));
+  // parent + both couple sub-IDs (records key to parent__0/__1; couple members
+  // carry no `id`, so the old m.id loop added nothing and couple sub-ID records
+  // were missed).
+  const ids = new Set(td?.id ? traineeIdsFor(td.id) : []);
   const mine = (payments || []).filter(p => ids.has(p.traineeId) && p.date)
     .slice().sort((a, b) => new Date(a.date) - new Date(b.date));
 
@@ -333,9 +338,10 @@ export function useCompletedTasksForTrainee(traineeId) {
 //   kind ∈ 'session' | 'plan' | 'payment' | 'task'
 // ───────────────────────────────────────────────────────────────────────
 export function deriveAutoEvents(td, clientWorkouts, payments, planIndex, completedTasks) {
-  const ids = new Set();
-  if (td?.id) ids.add(td.id);
-  if (Array.isArray(td?.members)) td.members.forEach(m => m?.id && ids.add(m.id));
+  // parent + both couple sub-IDs (records key to parent__0/__1; couple members
+  // carry no `id`, so the old m.id loop added nothing and couple sub-ID records
+  // were missed).
+  const ids = new Set(td?.id ? traineeIdsFor(td.id) : []);
 
   const events = [];
 
