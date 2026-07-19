@@ -124,17 +124,15 @@ export async function disablePush() {
 export async function isCoachMutedForAthlete(traineeId) {
   if (!traineeId) return false;
   try {
-    const { data, error } = await supabase
-      .from('store')
-      .select('value')
-      .eq('key', 'expo-trainees')
-      .maybeSingle();
+    // The athlete's session CANNOT read the `expo-trainees` store (it's locked to
+    // staff by RLS), so the old store read always returned 0 rows and fell open —
+    // the coach's "🔕 MUTED" toggle silenced nothing. `my_trainee()` is a SECURITY
+    // DEFINER RPC that returns the CALLER's own trainee row (works for the athlete)
+    // and carries the coach-set notifOff flag. Falls open (returns false) if the
+    // row lacks notifOff, so a missing flag never blocks delivery.
+    const { data, error } = await supabase.rpc('my_trainee');
     if (error || !data) return false;
-    const arr = Array.isArray(data.value) ? data.value : [];
-    // Couple sub-members log under parentId__N; the notifOff flag lives
-    // on the parent trainee object.
-    const parentId = traineeId.includes('__') ? traineeId.split('__')[0] : traineeId;
-    const t = arr.find(tt => tt.id === parentId);
+    const t = Array.isArray(data) ? data[0] : data;
     return !!t?.notifOff;
   } catch { return false; }
 }
