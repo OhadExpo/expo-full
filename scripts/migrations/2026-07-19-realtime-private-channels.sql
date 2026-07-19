@@ -24,11 +24,13 @@
 --
 -- Idempotent: safe to re-run.
 
--- Authorization predicate, shared by both policies so read and write can never
--- drift apart.
+-- Two predicates — READ (subscribe) and WRITE (send) — because 'portal-sync'
+-- needs them to differ. Both are kept in the same shape so the gym topics can
+-- never drift apart between the two.
 --
 --   'gym-session'         → staff only (coach devices mirroring group state)
 --   'gym-set:<traineeId>' → staff, or the athlete who owns that trainee id
+--   'portal-sync'         → read: staff or any athlete; write: staff only
 --
 -- Couples note: a couple is ONE trainee row whose members log under sub-ids
 -- '<parentId>__0' / '<parentId>__1'. my_trainee() returns the PARENT row, so we
@@ -41,7 +43,7 @@
 --
 -- my_trainee() returns jsonb (a single object) and is NULL for a caller with no
 -- trainee row; '= NULL' yields NULL, which a policy treats as deny.
-create or replace function public.expo_can_use_live_topic(topic text)
+create or replace function public.expo_can_read_live_topic(topic text)
 returns boolean
 language sql
 stable
@@ -50,10 +52,38 @@ set search_path to 'public'
 -- coalesce: a caller with no trainee row compares '= NULL' → NULL. RLS treats
 -- NULL as deny so behaviour is identical, but an explicit false keeps the
 -- predicate safe to reuse outside a policy context.
+--
+-- READ and WRITE differ for 'portal-sync' (the portal-visibility fan-out):
+-- athletes must RECEIVE a visibility change, but only staff may SEND one.
+-- While that topic was public, any anon-key holder could broadcast a
+-- portal-vis payload; the client applies it wholesale and a coach device
+-- persists it, so an outsider could rewrite what the whole roster sees.
 as $$
   select coalesce(
     case
       when topic = 'gym-session' then public.is_staff()
+      when topic = 'portal-sync' then public.is_staff() or (public.my_trainee() is not null)
+      when topic like 'gym-set:%' then
+        public.is_staff()
+        or regexp_replace(substring(topic from 9), '__[0-9]+$', '')
+           = (public.my_trainee() ->> 'id')
+      else false
+    end,
+    false
+  );
+$$;
+
+create or replace function public.expo_can_write_live_topic(topic text)
+returns boolean
+language sql
+stable
+security invoker
+set search_path to 'public'
+as $$
+  select coalesce(
+    case
+      when topic = 'gym-session' then public.is_staff()
+      when topic = 'portal-sync' then public.is_staff()   -- athletes never author visibility
       when topic like 'gym-set:%' then
         public.is_staff()
         or regexp_replace(substring(topic from 9), '__[0-9]+$', '')
@@ -74,10 +104,10 @@ create policy "expo: read live-sync channels"
 on realtime.messages
 for select
 to authenticated
-using ( public.expo_can_use_live_topic(realtime.topic()) );
+using ( public.expo_can_read_live_topic(realtime.topic()) );
 
 create policy "expo: write live-sync channels"
 on realtime.messages
 for insert
 to authenticated
-with check ( public.expo_can_use_live_topic(realtime.topic()) );
+with check ( public.expo_can_write_live_topic(realtime.topic()) );

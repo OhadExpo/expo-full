@@ -642,12 +642,31 @@ function AuthedApp() {
   // so there's no rebroadcast loop. Guarded against malformed payloads.
   const portalVisChanRef = useRef(null);
   useEffect(() => {
-    const ch = supabase.channel('portal-sync', { config: { broadcast: { self: false } } });
-    ch.on('broadcast', { event: 'portal-vis' }, ({ payload }) => {
-      if (payload && payload.vis && typeof payload.vis === 'object') setPortalVis(payload.vis);
-    }).subscribe();
-    portalVisChanRef.current = ch;
-    return () => { portalVisChanRef.current = null; supabase.removeChannel(ch); };
+    // PRIVATE (#35): realtime.messages RLS splits read from write here — any
+    // signed-in athlete may RECEIVE a visibility change, but only is_staff()
+    // may SEND one. While this topic was public, anyone with the anon key that
+    // ships in the browser bundle could broadcast a portal-vis payload; the
+    // handler below applies it wholesale, and on a coach's device that setter
+    // persists it — so an outsider could rewrite which blocks the whole roster
+    // sees. Server-side write authorization is the real fix.
+    let disposed = false;
+    let ch = null;
+    (async () => {
+      // Logged-out visitors (landing / demo) have no portal visibility to sync
+      // and cannot join a private topic — skip instead of failing a join.
+      const { data } = await supabase.auth.getSession();
+      if (disposed || !data?.session) return;
+      try { await supabase.realtime.setAuth(); } catch { /* surfaced below */ }
+      if (disposed) return;
+      ch = supabase.channel('portal-sync', { config: { private: true, broadcast: { self: false } } });
+      ch.on('broadcast', { event: 'portal-vis' }, ({ payload }) => {
+        if (payload && payload.vis && typeof payload.vis === 'object') setPortalVis(payload.vis);
+      }).subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') console.warn('[portal-sync] channel not authorized');
+      });
+      portalVisChanRef.current = ch;
+    })();
+    return () => { disposed = true; portalVisChanRef.current = null; if (ch) supabase.removeChannel(ch); };
   }, [setPortalVis]);
   const setPortalVisSynced = useCallback((next) => {
     setPortalVis(prev => {
