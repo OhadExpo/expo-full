@@ -2154,10 +2154,23 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   // same week single/group/coach derive. Ref-guarded so it fires only on a real
   // block change, never overriding the athlete's manual week navigation.
   const lastBlockRef = React.useRef(null);
+  // True when the last derive ran against an EMPTY history. On a fresh device
+  // (new phone, cleared storage, private tab) there is no `expo-cw` cache and
+  // the small plans query resolves well before the full client_workouts scan —
+  // so the first derive saw cw = [] , returned week 0, and the ref guard below
+  // meant it NEVER re-derived once the workouts arrived. An athlete in week 5
+  // was shown W1, and tapping LOG filed the session under week 1, colliding
+  // with their real W1 in every week-scoped view (done ✓, ghosts, PRs).
+  const derivedFromEmptyRef = React.useRef(false);
   React.useEffect(() => {
     const name = activePlan?.name;
-    if (!name || lastBlockRef.current === name) return;
+    if (!name) return;
+    const blockChanged = lastBlockRef.current !== name;
+    // One-shot correction when real history finally lands.
+    const rescueFromEmpty = derivedFromEmptyRef.current && cw.length > 0;
+    if (!blockChanged && !rescueFromEmpty) return;
     lastBlockRef.current = name;
+    derivedFromEmptyRef.current = cw.length === 0;
     // Same autopicker rule single + group use: scan weeks then days, open on the
     // week of the FIRST un-logged (week, day) — a partially-done week stays put
     // (W1 day1 done, day2 not → W1, not W2). All three derive identically from
@@ -2166,7 +2179,11 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // Open on the athlete's CURRENT week (first un-logged day, continue from the
     // latest trained week). Same rule single/group/coach derive — see deriveWeekIdx.
     setWk(deriveWeekIdx(activePlan, cw));
-  }, [activePlan?.name]); // eslint-disable-line react-hooks/exhaustive-deps
+    // cw.length is in the deps ONLY to drive the rescue above. Once a derive
+    // has run against real history, derivedFromEmptyRef is false, so later
+    // growth (the athlete completing a workout) can never yank the week away
+    // from wherever they navigated manually.
+  }, [activePlan?.name, cw.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const handleComplete = w => {
     // demoMode = coach-side preview. Writes must never touch the real
     // trainee's record. Bail before any setter so a future refactor that

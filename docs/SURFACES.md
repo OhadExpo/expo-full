@@ -75,13 +75,21 @@ Staff (Yuval) coach sees only `STAFF_TABS` — verify gating when touching nav/R
 
 ## EXPO-IL (expo-il.co.il) — hash routing — `expo-il/src/App.jsx` `parseHash`
 
+Corrected 2026-07-19 against `parseHash`. The previous version of this table
+claimed `#/` and empty render **home**; they have rendered the **chooser** since
+the 2026-05-14 dual-arm split. Because audits enumerate from this file, that
+error is what let a live nav bug survive two passes — every tab on the catalog
+ran `location.hash = '#/'` and ejected the visitor to the chooser. Keep this
+table honest to `parseHash` or the same class of bug hides again.
+
 | Hash | view | Component | Audited |
 |------|------|-----------|---------|
-| `#/`, empty, `#programs`/`#why`/`#how`/`#contact`/`#faq`/`#discovery-call` | home | home tree (sections) | ✅ pass1 |
-| `#/online`, `#/online/*` | home | catalog on home | ✅ pass1 |
+| `#/`, empty, **and any unknown hash** | chooser | `EntryChooser` (expo-il) | ✅ 2026-07-19 |
+| `#/online`, `#/online/*` | home | programs catalog + sections | ✅ 2026-07-19 |
+| `#programs`/`#why`/`#how`/`#contact`/`#faq`/`#discovery-call` (bare section anchors) | home | catalog scrolled to a section (`HOME_SECTIONS`) | ✅ 2026-07-19 |
 | `#/gym`, `#/gym/*` | gym | `Gym` | ✅ pass1 |
 | `#/programs/<id>` (detail) | detail | `ProgramDetail` | ✅ pass2 |
-| chooser | chooser | `EntryChooser` (expo-il) | ✅ pass1 |
+| `#/programs/<unknown-id>` | detail | `NotFound` (in-component guard) | ✅ 2026-07-19 |
 
 ---
 
