@@ -297,6 +297,12 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       // athlete's own entries.
       (async () => {
       try { await supabase.realtime.setAuth(); } catch { /* surfaced below */ }
+      // The athlete may have been checked OUT (or the view unmounted) while we
+      // awaited the token — this channel was then already removed. Subscribing
+      // now would resurrect a zombie channel that nothing tears down. map.set
+      // below runs synchronously before this continuation, so an identity match
+      // means it's still the live channel for this trainee.
+      if (setChansRef.current.get(tid) !== ch) return;
       ch.subscribe((status) => {
         if (status === 'CHANNEL_ERROR') { console.warn('[live-sync] coach channel not authorized for', tid); return; }
         if (status !== 'SUBSCRIBED') return;
