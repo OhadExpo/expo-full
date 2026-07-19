@@ -96,7 +96,12 @@ export default function WeeklyFocusTool({ trainees, exercises, weeklyFocus, setW
     return (plan.data?.days || []).map((d, i) => resolveDay(d, i, exById, exByTitle));
   }, [plan, exById, exByTitle]);
 
-  const keyFor = (dayName, eid) => `${traineeId}|${plan.name}|${dayName}|${eid}|W${week}`;
+  // The athlete portal reads weekly-focus under the PARENT trainee id (a couple
+  // member logs into the shared row → clientId is the parent), so key on the
+  // parent — strip any __N sub-member suffix. Keying on the sub-member id (as the
+  // picker option carries) wrote a key the portal never reads → focus never showed
+  // for couples. (WorkoutReview already writes parent-scoped, so it worked.)
+  const keyFor = (dayName, eid) => `${traineeId.replace(/__\d+$/, '')}|${plan.name}|${dayName}|${eid}|W${week}`;
   const getF = (dayName, eid) => (plan ? (weeklyFocus?.[keyFor(dayName, eid)] ?? weeklyFocus?.[`${plan.name}|${dayName}|${eid}|W${week}`] ?? '') : '');
   // Focus autosaves (the weekly_focus store debounces the Supabase write). Show
   // a Saving…/Saved status so the coach knows it stuck — there's no Save button.

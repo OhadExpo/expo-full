@@ -2811,7 +2811,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
   </div>;
 
   // Program view
-  if (trainee) { const lb = bwLog.filter(b => b.clientId === ci).slice(-1)[0]?.bw;
+  if (trainee) { const lb = bwLog.filter(b => b.clientId === ci).slice().sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-1)[0]?.bw;   // chronologically latest, not last-appended (re-saving an older week reorders the array)
     return <div data-theme="dark" style={{background:C.bg,color:C.tx,minHeight:'100vh',fontFamily:FB,maxWidth:500,margin:'0 auto'}}>
       {renderTopHeader()}
       <div style={{padding:'14px 20px 20px'}}>
