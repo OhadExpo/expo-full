@@ -351,7 +351,16 @@ function Nav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   const goToAnchor = (anchor) => {
-    const onHome = location.hash === '' || location.hash === '#' || location.hash === '#/';
+    // The 2026-05-14 dual-arm split moved the catalog to #/online and made '#/'
+    // the entry CHOOSER (see parseHash). This check still treated '#/' as home,
+    // so on the catalog `onHome` was false and every nav tab ran the else-branch
+    // below — setting hash to '#/' and ejecting the visitor to the chooser,
+    // where getElementById then found nothing and no scroll happened. i.e.
+    // ABOUT / HOW / FAQ / CONTACT / PROGRAMS all threw the visitor off the page.
+    // "Already on the catalog" means whatever parseHash renders as view:'home':
+    // #/online, #/online/*, or a bare home-section anchor.
+    const h = (location.hash || '').replace(/^#\/?/, '');
+    const onHome = h === 'online' || h.startsWith('online/') || HOME_SECTIONS.has(h);
     const doScroll = () => {
       if (anchor === 'top') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -363,7 +372,9 @@ function Nav() {
     if (onHome) {
       doScroll();
     } else {
-      location.hash = '#/';
+      // Target the CATALOG, not the chooser — these tabs point at sections that
+      // only exist on the catalog page.
+      location.hash = '#/online';
       setTimeout(doScroll, 60);
     }
     // Close the mobile drawer on tab click — visitor expects the panel
@@ -2647,7 +2658,9 @@ function ProgramDetail({ program }) {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         gap: 12, marginBottom: 24, flexWrap: 'wrap',
       }}>
-        <a href="#/" style={{
+        {/* '#/' is the entry CHOOSER since the dual-arm split — this link says
+            "ALL PROGRAMS", so it must go to the catalog. */}
+        <a href="#/online" style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
           fontFamily: FN, fontSize: 12, color: C.tm, letterSpacing: 1,
         }}>
@@ -2871,7 +2884,9 @@ function NotFound() {
       }}>
         {t('notfound.body')}
       </p>
-      <a href="#/" style={{
+      {/* Reached from an unknown #/programs/<id> — send them to the catalog,
+          not back to the ONLINE-vs-GYM chooser. */}
+      <a href="#/online" style={{
         ...baseBtn,
         background: C.ac, color: '#000', padding: '12px 24px',
         fontSize: 13, fontWeight: 700, letterSpacing: 1.5, borderRadius: 0,
