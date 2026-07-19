@@ -52,15 +52,21 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       // athlete_meals columns: trainee_id, created_at, photo_url, kcal,
       // protein_g, carbs_g, fat_g, notes. There's no meal_date column, so
       // filter the day by a created_at range [iso 00:00, next-day 00:00).
-      const next = new Date(iso + 'T00:00:00');
-      next.setDate(next.getDate() + 1);
-      const nextIso = next.toISOString().slice(0, 10);
+      // Bucket by the athlete's LOCAL calendar day → real UTC instants. The old
+      // code derived the upper bound via new Date(local).toISOString() (→UTC),
+      // which for ANY east-of-UTC user (all of Israel, UTC+2/+3) landed nextIso
+      // back on the SAME date, making gte(X) AND lt(X) a degenerate empty range —
+      // the meal list + day totals were ALWAYS empty, even right after a save.
+      // A local-midnight Date's .toISOString() is the correct UTC instant and the
+      // [start, start+1day) range is never degenerate.
+      const start = new Date(iso + 'T00:00:00');            // local midnight of `iso`
+      const end = new Date(start); end.setDate(end.getDate() + 1);
       const { data, error } = await supabase
         .from('athlete_meals')
         .select('*')
         .eq('trainee_id', clientId)
-        .gte('created_at', iso + 'T00:00:00')
-        .lt('created_at', nextIso + 'T00:00:00')
+        .gte('created_at', start.toISOString())
+        .lt('created_at', end.toISOString())
         .order('created_at', { ascending: true });
       if (!error) setMeals(data || []);
     } catch {}

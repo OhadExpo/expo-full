@@ -942,7 +942,17 @@ function AuthedApp() {
     // Couple workouts arrive with sub-member IDs (tr_xxx__0). Sessions counter lives on the parent row.
     const parsed = parseTraineeId(tid);
     const targetId = parsed ? parsed.parentId : tid;
-    setTrainees(prev=>prev.map(t=>t.id===targetId&&t.sessionsRemaining>0?{...t,sessionsRemaining:t.sessionsRemaining-1}:t));
+    setTrainees(prev=>{
+      const target = prev.find(t=>t.id===targetId);
+      // No writable trainee row present (the ATHLETE portal's `trainees` is an
+      // empty, RLS-staff-locked list) or nothing to decrement → return the SAME
+      // reference so React skips the update. Otherwise setTrainees([]) hit the
+      // staff-only store → 42501 → a spurious "SAVE FAILED" on every portal
+      // workout completion. (A self-logged portal workout isn't a coaching
+      // session anyway; coach-side in-person logging still decrements normally.)
+      if (!target || !(target.sessionsRemaining>0)) return prev;
+      return prev.map(t=>t.id===targetId?{...t,sessionsRemaining:t.sessionsRemaining-1}:t);
+    });
   },[setTrainees]);
 
   const handleExport=async()=>{
@@ -1090,6 +1100,17 @@ function AuthedApp() {
     <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
       onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
   </Suspense></div>);
+
+  // Role not resolved yet — the my_trainee() RPC is still in flight for a
+  // possible athlete (selfTrainee===undefined only during that window; it always
+  // resolves to a value, null on error, so this can't strand). Wait instead of
+  // flashing the coach header/nav to someone who may be a client. Trainers get
+  // selfTrainee=null synchronously, so they're unaffected.
+  if (selfTrainee === undefined && !isTrainer) return (
+    <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+      <img src={logo.nav} alt="EXPO" style={{height:50}} />
+      <div style={{color:C.td,fontSize:13}}>Loading…</div>
+    </div>);
 
   // Wait for small stores + plan index + workout/bodyweight tables so
   // trainee card counts, the Review queue, and dashboard alert tiles don't
