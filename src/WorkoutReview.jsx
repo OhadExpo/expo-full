@@ -22,6 +22,7 @@ import WeeklyFocusTool from './WeeklyFocusTool';
 import {
   ANGLE_DEFS, angleAt, detectChannels, medianFilter, findPeaks, SMOOTH_N,
 } from './repCounter';
+import { detectLift, channelFromPose, CHANNELS } from './liftDetect';
 
 const bi = {background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:"8px 10px",borderRadius:0,
   color:C.tx,fontFamily:FB,fontSize:13,outline:"none",width:"100%",boxSizing:"border-box",textAlign:"center"};
@@ -577,7 +578,22 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
   // exercise title. Manual overrides let the trainer force a channel pair for
   // exercises the classifier mismapped.
   const [trackOverride, setTrackOverride] = useState('auto');
-  const autoPick = detectChannels(exerciseTitle);
+  // #19 auto-detect. NAME (taxonomy where authored, else the wide title lexicon)
+  // decides up front; MOTION is scored from the recorded angle buffers once the
+  // rep counter has run. Measured on the real 1472-exercise library: the old
+  // title regex left 24% unmatched and silently counted them on the KNEE — this
+  // returns an honest `unknown` instead, and lets motion answer those.
+  const namePick = useMemo(() => detectLift({ title: exerciseTitle }), [exerciseTitle]);
+  const [posePick, setPosePick] = useState(null);
+  // Motion only DRIVES the channel when the name had no answer — otherwise a
+  // mid-clip auto-switch would change the rep count under the coach's eyes.
+  // When both have an opinion and differ, we surface it as a suggestion below
+  // rather than overriding silently.
+  const autoPick = (namePick.source === 'unknown' && posePick) ? posePick : namePick;
+  const motionSuggestion =
+    trackOverride === 'auto' && posePick && namePick.source !== 'unknown'
+      && posePick.kind !== namePick.kind && posePick.confidence >= 0.5
+      ? posePick : null;
   const activeChannels =
     trackOverride === 'auto' ? autoPick.channels :
     trackOverride === 'hip'  ? ['L HIP', 'R HIP'] :
@@ -1203,6 +1219,30 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
                   repsCountRef.current = bestCount;
                   lastTempoRef.current = bestCount > 1 ? vt / bestCount : null;
                 }
+                // MOTION signal (#19): score which joint actually carries the
+                // rep cycle from the buffers we already filled. Throttled to
+                // ~1/s — it runs findPeaks across 4 channel pairs, so it is
+                // meaningfully more work than the single-channel count above
+                // and nothing here needs to be frame-fresh.
+                const nowMs = (typeof performance !== 'undefined' ? performance.now() : 0);
+                if (nowMs - (st.lastPoseDetectAt || 0) > 1000) {
+                  st.lastPoseDetectAt = nowMs;
+                  try {
+                    const truncated = {};
+                    const cutoff = Math.max(0, Math.round(v.currentTime * BUCKET_FPS) + 1);
+                    for (const d of ANGLE_DEFS) {
+                      const sig = st.signalBufs[d.name];
+                      if (sig && sig.length >= 10) truncated[d.name] = sig.slice(0, cutoff);
+                    }
+                    const p = channelFromPose(truncated);
+                    // Only re-render when the verdict actually moves.
+                    if (p) setPosePick(prev => (
+                      prev && prev.kind === p.kind && Math.abs(prev.confidence - p.confidence) < 0.05
+                        ? prev
+                        : { ...p, channels: CHANNELS[p.kind] || [], source: 'motion' }
+                    ));
+                  } catch { /* motion detect is advisory — never break playback */ }
+                }
               }
             }
           } catch { /* swallow per-frame detect errors */ }
@@ -1463,16 +1503,34 @@ function FormVideoPlayerImpl({ url, exerciseTitle, onVideoRef, reviewNotes, onRe
             </button>
             {repsOn && (
               <select value={trackOverride} onChange={e => setTrackOverride(e.target.value)}
-                title="Which joint pair to count peaks on"
+                title={trackOverride === 'auto' ? `${autoPick.why || 'no signal'} (confidence ${(autoPick.confidence * 100).toFixed(0)}%)` : 'Which joint pair to count peaks on'}
                 style={{height:22,boxSizing:'border-box',padding:'0 6px',borderRadius:0,border:`1px solid ${C.bd}`,
                   background:'transparent',color:C.tm,fontFamily:FN,fontSize:10,cursor:'pointer'}}>
-                <option value="auto">AUTO ({(autoPick.kind || 'none').toUpperCase()})</option>
+                {/* Show WHERE the pick came from, so a wrong auto-detect is
+                    diagnosable rather than mysterious. '?' = the title matched
+                    nothing and no motion read yet — previously this silently
+                    became KNEE (24% of the library). */}
+                <option value="auto">
+                  AUTO ({autoPick.source === 'unknown' ? '?' : (autoPick.kind || 'none').toUpperCase()}
+                  {autoPick.source === 'motion' ? ' · MOTION' : autoPick.source === 'library' ? ' · LIB' : ''})
+                </option>
                 <option value="hip">HIP</option>
                 <option value="knee">KNEE</option>
                 <option value="elbow">ELBOW</option>
                 <option value="sho">SHOULDER</option>
                 <option value="none">SKIP</option>
               </select>
+            )}
+            {/* Motion disagrees with the title. Never switched silently — a
+                mid-clip change would move the rep count under the coach's
+                eyes — so it is offered as one click. */}
+            {repsOn && motionSuggestion && (
+              <button onClick={() => setTrackOverride(motionSuggestion.kind)}
+                title={motionSuggestion.why}
+                style={{height:20,padding:'0 6px',borderRadius:0,border:`1px solid ${C.ac}`,background:'transparent',
+                  color:C.ac,fontFamily:FN,fontSize:9,letterSpacing:'0.06em',cursor:'pointer',whiteSpace:'nowrap'}}>
+                MOTION SEES {motionSuggestion.kind.toUpperCase()} →
+              </button>
             )}
           </div>
           {/* LIFT METRICS (coach only) — analyses THIS clip in place and shows
