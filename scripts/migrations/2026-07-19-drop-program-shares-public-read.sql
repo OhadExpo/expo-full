@@ -1,0 +1,18 @@
+-- program_shares had:  SELECT TO {anon, authenticated} USING (true)
+-- Applied to prod 2026-07-19.
+--
+-- Anyone holding the browser-shipped publishable key could
+--     GET /rest/v1/program_shares?select=*
+-- dump EVERY share token, then feed each to get_shared_program(token) and read
+-- every shared program. The unguessable token WAS the access control; a blanket
+-- SELECT defeated it.
+--
+-- Nothing in the client needs the policy:
+--   src/ProgramShare.jsx:28  reads via rpc('get_shared_program') — SECURITY
+--                            DEFINER, bypasses RLS, unaffected by this drop.
+--   src/PlansView.jsx:2498   INSERTs only, covered by shares_trainer_all.
+--
+-- Verified (scripts/_verify-program-shares.cjs, 4/4): owner still lists shares;
+-- anon dump returns 0 rows; a real share link still opens via the RPC; a bogus
+-- token returns nothing.
+drop policy if exists shares_public_read on public.program_shares;
