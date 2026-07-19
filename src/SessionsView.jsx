@@ -196,15 +196,27 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
   // big screen and the coach's phone stay in sync. Athletes never join this
   // topic, so it carries no cross-athlete data leak.
   useEffect(() => {
-    const ch = supabase.channel('gym-session', { config: { broadcast: { self: false } } });
+    // PRIVATE (#35): realtime.messages RLS restricts this topic to is_staff(),
+    // so only coach/staff devices can mirror or inject group-session state.
+    const ch = supabase.channel('gym-session', { config: { private: true, broadcast: { self: false } } });
     ch.on('broadcast', { event: 'session' }, ({ payload }) => {
       const v = payload?.value;
       if (v == null) { setSession(null); return; }
       if (Array.isArray(v.athletes)) setSession(v);
     });
-    ch.subscribe();
+    // setAuth() before joining: a private join is authorized from the JWT on
+    // the realtime socket, and this channel can be created before supabase-js
+    // has propagated the token from SIGNED_IN.
+    let disposed = false;
+    (async () => {
+      try { await supabase.realtime.setAuth(); } catch { /* surfaced below */ }
+      if (disposed) return;
+      ch.subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') console.warn('[live-sync] gym-session channel not authorized');
+      });
+    })();
     chanRef.current = ch;
-    return () => { chanRef.current = null; supabase.removeChannel(ch); };
+    return () => { disposed = true; chanRef.current = null; supabase.removeChannel(ch); };
   }, []);
 
   // Per-trainee 'gym-set:<tid>' channels — each athlete shares a room ONLY with
@@ -217,7 +229,9 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
     const map = setChansRef.current;
     for (const tid of tids) {
       if (map.has(tid)) continue;
-      const ch = supabase.channel('gym-set:' + tid, { config: { broadcast: { self: false } } });
+      // PRIVATE (#35): authorized coach-side by is_staff(); the athlete's own
+      // portal is authorized for the same topic by their trainee id.
+      const ch = supabase.channel('gym-set:' + tid, { config: { private: true, broadcast: { self: false } } });
       const findA = () => (sessionRef.current?.athletes || []).find(x => x.traineeId === tid);
       const dayOk = (p, a) => (!p.planName || !a.planName || p.planName === a.planName) && (!p.dayName || !a.dayName || p.dayName === a.dayName) && (p.week == null || a.week == null || p.week === a.week);
       // Athlete's live edit from their portal → overwrite that field on the card.
@@ -281,7 +295,10 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
       // in the ~1s before this channel finished subscribing (audit F4). The
       // portal applies sync-state fill-empty-only, so it can't clobber the
       // athlete's own entries.
+      (async () => {
+      try { await supabase.realtime.setAuth(); } catch { /* surfaced below */ }
       ch.subscribe((status) => {
+        if (status === 'CHANNEL_ERROR') { console.warn('[live-sync] coach channel not authorized for', tid); return; }
         if (status !== 'SUBSCRIBED') return;
         const a = findA();
         if (!a) return;
@@ -291,6 +308,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
           try { ch.send({ type: 'broadcast', event: 'sync-state', payload: { traineeId: tid, planName: a.planName, dayName: a.dayName, week: a.week, exercises } }); } catch { /* not ready */ }
         }
       });
+      })();
       map.set(tid, ch);
     }
     for (const [tid, ch] of map) { if (!tids.has(tid)) { supabase.removeChannel(ch); map.delete(tid); } }

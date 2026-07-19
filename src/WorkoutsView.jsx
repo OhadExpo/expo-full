@@ -397,7 +397,10 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       && (p.week == null || prev.week == null || p.week === prev.week);
     // Per-trainee topic (see ClientPortal) so only THIS athlete's portal shares
     // the room — no cross-athlete leak on the old shared 'gym-session'.
-    const ch = supabase.channel('gym-set:' + tid, { config: { broadcast: { self: false } } });
+    // PRIVATE (#35): realtime.messages RLS authorizes staff here, and the
+    // athlete's own portal for the same topic. Before #35 anyone with the
+    // browser-shipped anon key could join a guessed 'gym-set:<id>'.
+    const ch = supabase.channel('gym-set:' + tid, { config: { private: true, broadcast: { self: false } } });
     // Matched by EXERCISE INDEX (ei) — the portal derives exercise ids from the
     // title while this logger uses the plan's exerciseId, so only position is a
     // reliable shared key. 'done' (portal) maps to 'completed' (this view).
@@ -447,9 +450,19 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
       });
     });
     const ping = (a) => { if (a?.traineeId) { try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: a.traineeId, planName: a.planName, dayName: a.dayName } }); } catch { /* not ready */ } } };
-    ch.subscribe((status) => { if (status === 'SUBSCRIBED') { subscribedRef.current = true; ping(activeRef.current); } });
+    // setAuth() before joining — a private join is authorized from the JWT on
+    // the realtime socket, which may not be set yet on a fresh page load.
+    let disposed = false;
+    (async () => {
+      try { await supabase.realtime.setAuth(); } catch { /* surfaced below */ }
+      if (disposed) return;
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') { subscribedRef.current = true; ping(activeRef.current); }
+        else if (status === 'CHANNEL_ERROR') console.warn('[live-sync] coach 1-on-1 channel not authorized for', tid);
+      });
+    })();
     chanRef.current = ch;
-    return () => { chanRef.current = null; subscribedRef.current = false; supabase.removeChannel(ch); };
+    return () => { disposed = true; chanRef.current = null; subscribedRef.current = false; supabase.removeChannel(ch); };
   }, [active?.traineeId]); // re-subscribe to the per-trainee topic when the athlete changes
   // Broadcast one coach set-edit to the athlete's portal. Reads the live
   // `active` via closure (recreated each render), translates 'completed'→'done'.

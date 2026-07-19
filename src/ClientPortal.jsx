@@ -532,7 +532,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // room leaked every athlete's data to every portal). The coach's per-athlete
     // edits + catch-up come here; the coach-device full-session mirror stays on
     // the coach-only 'gym-session' topic that portals never join.
-    const ch = supabase.channel('gym-set:' + clientId, { config: { broadcast: { self: false } } });
+    // PRIVATE channel (#35): Realtime Authorization runs realtime.messages RLS
+    // on join, so only staff or this athlete can read/write this topic. Before
+    // #35 the topic was public — anyone with the (browser-shipped) anon key
+    // could subscribe to a guessed 'gym-set:<id>' and read an athlete's live
+    // sets or inject fake ones. The per-message guards below stay as defence in
+    // depth; the server is now the actual gate.
+    const ch = supabase.channel('gym-set:' + clientId, { config: { private: true, broadcast: { self: false } } });
     // Coach edit (group or single) → one 'athlete-set' per field.
     ch.on('broadcast', { event: 'athlete-set' }, ({ payload: p }) => {
       if (!p || p.ei == null || p.si == null || !p.field) return;
@@ -563,13 +569,27 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     });
     // On connect, ask whoever's online (coach session / other device) for the
     // current state so a freshly-opened portal pulls what's already filled.
-    ch.subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum + 1 } }); } catch { /* not ready */ }
-      }
-    });
+    // A private channel is authorized from the JWT on the realtime socket.
+    // supabase-js sets that on SIGNED_IN / TOKEN_REFRESHED, but a channel
+    // created during the same page load can race ahead of the auth event and
+    // join tokenless (→ denied). setAuth() first so the join always carries a
+    // token; it's idempotent and cheap.
+    let disposed = false;
+    (async () => {
+      try { await supabase.realtime.setAuth(); } catch { /* join below will surface it */ }
+      if (disposed) return;
+      ch.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          try { ch.send({ type: 'broadcast', event: 'sync-request', payload: { traineeId: clientId, planName: plan?.name, dayName: day?.name, week: weekNum + 1 } }); } catch { /* not ready */ }
+        } else if (status === 'CHANNEL_ERROR') {
+          // Live-sync is an enhancement — logging (not throwing) keeps a denied
+          // join from ever blocking the athlete's own logging.
+          console.warn('[live-sync] portal channel not authorized for', clientId);
+        }
+      });
+    })();
     sessChanRef.current = ch;
-    return () => { sessChanRef.current = null; supabase.removeChannel(ch); };
+    return () => { disposed = true; sessChanRef.current = null; supabase.removeChannel(ch); };
   }, [demoMode]); // eslint-disable-line react-hooks/exhaustive-deps
   const broadcastSet = (ei, si, f, v) => {
     if (demoMode) return;
