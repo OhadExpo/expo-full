@@ -20,6 +20,7 @@ import { fmtPrettyDate } from './dates';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, Btn, Input, toast, confirmToast, useEscClose } from './ui';
+import { parseTraineeId } from './traineeUtils';
 
 const fmtCurrency = (amount, currency = 'ils') => {
   const sym = currency === 'usd' ? '$' : '₪';
@@ -79,7 +80,11 @@ export default function BillingView({ trainees }) {
   const rosterSummary = useMemo(() => {
     const out = {};
     for (const r of requests) {
-      const k = r.trainee_id;
+      // Roll a couple's sub-member payment (tr_x__0/__1) up to the parent id so
+      // the ROSTER STATUS row (keyed by the couple's parent t.id) finds it
+      // instead of showing 'NO REQUEST' despite a real payment.
+      const parsed = parseTraineeId(r.trainee_id);
+      const k = parsed ? parsed.parentId : r.trainee_id;
       if (!out[k] || new Date(r.created_at) > new Date(out[k].created_at)) out[k] = r;
     }
     return out;

@@ -37,6 +37,7 @@ const adapt = (row) => ({
   id: row.id,
   traineeId: row.trainee_id,
   amount: row.paid_amount != null ? Number(row.paid_amount) : Number(row.amount),
+  currency: row.currency || 'ils',   // carried through (was dropped) so totals can be currency-aware; all current inserts are 'ils'
   date: (row.paid_at || row.created_at || new Date().toISOString()).slice(0, 10),
   status: STATUS_LABEL[row.status] || row.status,
   // The Bit-app integration is gone (2026-06-12); rows are plain ledger
@@ -108,7 +109,12 @@ export default function useBitPayments() {
 
   const updatePayment = useCallback(async (id, patch) => {
     const dbPatch = {};
-    if (patch.amount != null) dbPatch.paid_amount = Number(patch.amount);
+    // Write BOTH amount + paid_amount so every reader agrees: adapt() prefers
+    // paid_amount, but BillingView ledger/roster + the Dashboard Outstanding tile
+    // read the raw `amount` column — leaving them out of sync under-counted
+    // outstanding after an edit. (Safe: paid_amount<amount 'Partial' logic isn't
+    // implemented — Partial was removed from the selector.)
+    if (patch.amount != null) { dbPatch.paid_amount = Number(patch.amount); dbPatch.amount = Number(patch.amount); }
     if (patch.notes != null) dbPatch.reference = patch.notes;
     if (patch.date != null) dbPatch.paid_at = new Date(patch.date + 'T12:00:00Z').toISOString();
     if (patch.status != null) {
