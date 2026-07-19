@@ -2119,11 +2119,14 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // Number.isFinite guard: type="number" still lets "e"/locale commas
     // through, and a NaN row poisons the BW chart min/max math.
     if (bw && Number.isFinite(parseFloat(bw))) setBwLog(prev => {
-      // File the weigh-in under the block actually TRAINED (the completed workout),
-      // not whichever plan is "active" — a multi-plan athlete finishing a non-active
-      // plan's day was filing BW (and its week) under the wrong block.
-      const blockName = w.planName || activePlan?.name || null;
-      const wkNum = w.week ?? (wk + 1);
+      // File under the block the BW BOX was displayed in — the active plan,
+      // labeled "LOG W{wk+1} · {activePlan}" — because that's where the athlete
+      // typed this weight. Filing under the COMPLETED workout's block instead
+      // mis-attributed it for a multi-plan athlete who typed BW under the active
+      // block then finished a different block's day (task #58). The explicit BW
+      // SAVE button already files under activePlan; this matches it.
+      const blockName = activePlan?.name || w.planName || null;
+      const wkNum = wk + 1;
       const planId = clientPlans.find(p => p.name === blockName)?.id || activePlan?.id || null;
       if (!blockName) return prev;
       const filtered = prev.filter(b => !(b.clientId === ci && b.blockName === blockName && b.week === wkNum));
