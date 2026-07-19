@@ -6,6 +6,8 @@
 // Vercel auto-routes this file to /api/chat. ANTHROPIC_API_KEY must be
 // set in this project's Vercel env vars (production + preview).
 
+import { clientIp, originAllowed } from './_ip.js';
+
 import crypto from 'crypto';
 
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
@@ -189,7 +191,14 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' }); return;
   }
 
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  // Cross-site callers have no business driving a paid model on Ohad's key.
+  if (!originAllowed(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
+
+  // Was keyed on the LEFTMOST x-forwarded-for entry, which is client-supplied:
+  // sending a random XFF per request reset the bucket every time, making the
+  // limiter a no-op for anyone who bothered. clientIp() prefers x-real-ip and
+  // otherwise takes the RIGHTMOST XFF hop, which Vercel controls.
+  const ip = clientIp(req);
   if (!checkRate(ip)) {
     res.status(429).json({ error: 'Slow down — try again in a bit, or use the contact form.' }); return;
   }

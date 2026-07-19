@@ -3,6 +3,8 @@
 // source/context tags and a summary prompt scoped to athlete intents
 // (which program, equipment, scheduling, etc).
 
+import { clientIp, originAllowed, rateLimit, capMessages } from './_ip.js';
+
 const SUPA_URL = 'https://gtcbfglttoiyfsnfbhdy.supabase.co';
 const SUPA_PUBLISHABLE_KEY = 'sb_publishable_i_ifflCFMUF7rX2ABAY3vA_5JKTmFlv';
 
@@ -140,6 +142,19 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' }); return;
   }
+  // ABUSE GUARDS. This endpoint is unauthenticated and fires TWO paid Anthropic
+  // calls per request, so before this it was a direct route to running up
+  // Ohad's bill: a plain `curl` loop cost two model calls per hit, unbounded,
+  // from any origin, with no cap on transcript size.
+  if (!originAllowed(req)) { res.status(403).json({ error: 'Forbidden' }); return; }
+  const ip = clientIp(req);
+  const rl = rateLimit(`capture:${ip}`, 8, 60_000);   // 8/min per IP
+  if (!rl.ok) {
+    res.setHeader('Retry-After', String(rl.retryAfter || 60));
+    res.status(429).json({ error: 'Too many requests — try again shortly.' });
+    return;
+  }
+
   let body = req.body;
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch { res.status(400).json({ error: 'Bad JSON' }); return; }
@@ -147,17 +162,29 @@ export default async function handler(req, res) {
   const email = String(body?.email || '').trim();
   const source = String(body?.source || 'expo-il-chat').slice(0, 60);
   const context = String(body?.context || 'chat_capture').slice(0, 60);
-  const messages = Array.isArray(body?.messages) ? body.messages.slice(-30) : [];
+  // capMessages both CAPS the token spend per request and drops malformed
+  // entries. Previously `messages.slice(-30)` was passed straight through and
+  // the transcript build ran OUTSIDE any try — so `{"messages":[null]}` threw
+  // an unhandled TypeError, returned a raw 500, and the lead was never saved.
+  const messages = capMessages(body?.messages, { maxMessages: 20, maxChars: 1500 });
   const userAgent = (req.headers['user-agent'] || '').toString().slice(0, 200);
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     res.status(400).json({ error: 'Invalid email' }); return;
   }
 
-  const [summary, intent] = await Promise.all([
-    summarize(messages, process.env.ANTHROPIC_API_KEY),
-    extractIntent(messages, process.env.ANTHROPIC_API_KEY),
-  ]);
+  // Enriching the lead must never cost us the lead itself. If the model calls
+  // fail (outage, bad key, rate limit), fall back to nulls and still insert —
+  // an email with no summary is worth far more than a 500.
+  let summary = null, intent = null;
+  try {
+    [summary, intent] = await Promise.all([
+      summarize(messages, process.env.ANTHROPIC_API_KEY),
+      extractIntent(messages, process.env.ANTHROPIC_API_KEY),
+    ]);
+  } catch (e) {
+    console.error('capture enrichment failed (saving lead anyway):', e?.message || e);
+  }
 
   try {
     const supaRes = await insertLead({
