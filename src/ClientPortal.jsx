@@ -144,6 +144,7 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
     warmup: Array.isArray(plan.warmup) ? plan.warmup : [],
     days: (plan.days || []).map(d => {
       const rawList = Array.isArray(d.exercises) ? d.exercises : (Array.isArray(d.ex) ? d.ex : []);
+      const seenEid = new Map();   // #51: disambiguate the same exercise appearing twice in one day
       return {
         name: d.name,
         // Per-day daily-routine flag. Propagates from PlanEditor's per-day
@@ -203,6 +204,21 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
             if (next.vid !== existing.vid || next.q !== existing.q) {
               EX[eid] = next;
             }
+          }
+          // #51: the SAME exercise can appear twice in one day (e.g. a heavy
+          // top set + a back-off of the same lift). Both resolve to one eid,
+          // which collapsed them into a single portal row (shared substitution,
+          // shared prev-week ghost, shared PR match). Give the 2nd+ occurrence a
+          // suffixed eid with a MIRRORED EX entry so title/video/cue still
+          // resolve, but the rows are treated as distinct. The 1st keeps its
+          // original eid, so already-stored workouts still match by eid; live
+          // set-sync matches by exercise INDEX, not eid, so it is unaffected.
+          const nSeen = (seenEid.get(eid) || 0) + 1;
+          seenEid.set(eid, nSeen);
+          if (nSeen > 1) {
+            const dupEid = `${eid}#${nSeen}`;
+            if (!EX[dupEid] && EX[eid]) EX[dupEid] = EX[eid];
+            eid = dupEid;
           }
           const sets = pe.sets ?? pe.s ?? 3;
           const reps = pe.reps ?? pe.r ?? '8-12';
