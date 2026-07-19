@@ -10,7 +10,7 @@
 // arrow). Per-meal delete + edit are out of scope for the first cut; we
 // can add later if Ohad sees clients wanting it.
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
 
@@ -44,6 +44,9 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
   const [macros, setMacros] = useState(null);
   const [hint, setHint] = useState('');
   const [error, setError] = useState(null);
+  // In-flight guard for save() — see the double-tap note there.
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [meals, setMeals] = useState([]);
   const [day, setDay] = useState(todayISO());
 
@@ -68,8 +71,16 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
         .gte('created_at', start.toISOString())
         .lt('created_at', end.toISOString())
         .order('created_at', { ascending: true });
-      if (!error) setMeals(data || []);
-    } catch {}
+      // On failure, CLEAR rather than leave the previous day's meals in place.
+      // The header and the DAY TOTAL hero both render the newly-selected date,
+      // so keeping stale rows showed yesterday's calories labelled as today's —
+      // silently wrong data is worse than an empty day plus an error.
+      if (error) { setMeals([]); setError('Could not load this day — check your connection.'); }
+      else { setMeals(data || []); setError(null); }
+    } catch {
+      setMeals([]);
+      setError('Could not load this day — check your connection.');
+    }
   }, [clientId]);
 
   useEffect(() => { if (clientId) loadDay(day); }, [clientId, day, loadDay]);
@@ -142,6 +153,13 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
 
   const save = async () => {
     if (!macros || !photoUrl || demoMode) return;
+    // Double-tap guard. photoUrl/macros are only cleared AFTER the awaited
+    // insert, so a second tap during the round-trip inserted the SAME meal
+    // twice and double-counted the day's totals. Ref, not state, so the second
+    // tap is rejected synchronously rather than after a re-render.
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     setError(null);
     try {
       // Map to the real athlete_meals columns (created_at is auto). The AI
@@ -164,6 +182,9 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       await loadDay(day);
     } catch (e) {
       setError(e.message || 'Save failed.');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -301,7 +322,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
               }}>ANALYZING…</div>
             )}
             {macros && photoUrl && (
-              <MacrosReview macros={macros} setMacros={setMacros} photoUrl={photoUrl} onCancel={() => { setMacros(null); setPhotoUrl(null); setHint(''); }} onSave={save} />
+              <MacrosReview macros={macros} setMacros={setMacros} photoUrl={photoUrl} onCancel={() => { setMacros(null); setPhotoUrl(null); setHint(''); }} onSave={save} saving={saving} />
             )}
             {error && (
               <div style={{
@@ -413,7 +434,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
             </div>
           )}
           {macros && photoUrl && (
-            <MacrosReview macros={macros} setMacros={setMacros} photoUrl={photoUrl} onCancel={() => { setMacros(null); setPhotoUrl(null); setHint(''); }} onSave={save} />
+            <MacrosReview macros={macros} setMacros={setMacros} photoUrl={photoUrl} onCancel={() => { setMacros(null); setPhotoUrl(null); setHint(''); }} onSave={save} saving={saving} />
           )}
           {error && (
             <div style={{
@@ -437,7 +458,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
   );
 }
 
-function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave }) {
+function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave, saving }) {
   const setField = (k, v) => setMacros({ ...macros, [k]: v });
   return (
     <div>
@@ -467,7 +488,7 @@ function MacrosReview({ macros, setMacros, photoUrl, onCancel, onSave }) {
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={onCancel} style={btnGhost}>CANCEL</button>
-        <button onClick={onSave} style={btnAc}>SAVE MEAL</button>
+        <button onClick={onSave} disabled={saving} style={{ ...btnAc, opacity: saving ? 0.6 : 1, cursor: saving ? 'wait' : 'pointer' }}>{saving ? 'SAVING…' : 'SAVE MEAL'}</button>
       </div>
     </div>
   );

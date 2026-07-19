@@ -507,11 +507,26 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         if (!prev[ei] || si >= prev[ei].length) return prev;
         const cur = prev[ei][si];
         if (cur?.[field] === value) return prev;
+        // An untouched PREFILLED value is a suggestion carried over from last
+        // session, not something the athlete entered — treat it as empty for
+        // catch-up purposes. Without this, fill-empty-only saw a non-empty
+        // string and refused, so a reopened portal could never pull down the
+        // real set-1 values a coach had already logged.
+        const isUntouchedPrefill = !!cur?.prefill && !cur?.done;
         if (fillOnly) {
           if (field === 'done') { if (cur.done || !value) return prev; }
-          else { if (cur[field] !== '' && cur[field] != null) return prev; if (value === '' || value == null) return prev; }
+          else {
+            if (!isUntouchedPrefill && cur[field] !== '' && cur[field] != null) return prev;
+            if (value === '' || value == null) return prev;
+          }
         }
-        const n = [...prev]; n[ei] = [...n[ei]]; n[ei][si] = { ...n[ei][si], [field]: value };
+        // Clear `prefill` on any remote write, exactly as uSet does for a local
+        // edit. This is REAL data (the coach logging the athlete's set from the
+        // gym-floor screen), and finish() blanks every still-prefilled, unticked
+        // set — so leaving the flag set silently discarded the coach's numbers
+        // the moment the athlete tapped Complete.
+        const n = [...prev]; n[ei] = [...n[ei]];
+        n[ei][si] = { ...n[ei][si], [field]: value, prefill: false };
         return n;
       });
     };
@@ -1210,7 +1225,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // Blank any set still carrying the untouched-prefill mark: the athlete
           // never actually performed it, so it must save empty (not as a number
           // they'll see resurface next week as a phantom "last week" ghost).
-          sets: allSets[i].map(s => (s.prefill && !s.done) ? { reps: '', load: '', rpe: '', done: false } : s),
+          // `|| []` matching the guarded derefs at ~1435 / ~1749: if the open
+          // day changes underneath the logger (portalVis arrives over realtime
+          // and re-filters visPlans, shifting the flat `lg` index), allSets can
+          // be shorter than the newly-targeted day's exercise list. Unguarded,
+          // this threw at the exact moment of committing — white screen, and the
+          // athlete's whole session lost on the last tap.
+          sets: (allSets[i] || []).map(s => (s.prefill && !s.done) ? { reps: '', load: '', rpe: '', done: false } : s),
           substitution: sub ? {
             from: prescribedTitle,
             fromEid: ex.eid,

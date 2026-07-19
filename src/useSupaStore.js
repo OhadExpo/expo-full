@@ -390,12 +390,18 @@ export function useSupaBwLog(initial = []) {
   const dataRef = useRef(data);
   // Same loaded contract as useSupaClientWorkouts above.
   const [loaded, setLoaded] = useState(false);
+  // Mirrors useSupaClientWorkouts' guard (see ~240). Without it, an athlete who
+  // typed their weight and hit SAVE *before* this mount fetch resolved had the
+  // response overwrite both state and the localStorage cache — their weigh-in
+  // visibly vanished from the graph. The row did reach the DB (the upsert had
+  // already fired), so it reappeared after a reload, which made it look random.
+  const mutatedRef = useRef(false);
 
   useEffect(() => {
     (async () => {
       try {
         const { data: rows } = await supabase.from('bw_logs').select('*').order('date', { ascending: true });
-        if (rows && rows.length > 0) {
+        if (rows && rows.length > 0 && !mutatedRef.current) {
           const mapped = rows.map(r => ({
             date: r.date, clientId: r.client_id, week: r.week, bw: r.bw,
             blockName: r.block_name, planId: r.plan_id
@@ -414,6 +420,9 @@ export function useSupaBwLog(initial = []) {
   const save = useCallback(async (next) => {
     const prev = dataRef.current;
     const val = typeof next === 'function' ? next(prev) : next;
+    // Claim local ownership BEFORE the await below, so an in-flight mount fetch
+    // can no longer clobber this entry when it lands.
+    mutatedRef.current = true;
     setData(val);
     dataRef.current = val;
     try { localStorage.setItem('expo-bw', JSON.stringify(val)); } catch {}
