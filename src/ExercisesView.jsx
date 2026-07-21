@@ -119,6 +119,12 @@ export default function ExercisesView({ exercises, setExercises }) {
         );
       })()}
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editId ? "Edit Exercise" : "New Exercise"} wide>
+        {/* data-allow-copy: this Modal portals to <body> (see ui.jsx), landing
+            OUTSIDE the ExercisesView data-allow-copy wrapper, so the site-wide
+            copyGuard would block Ctrl+C / selection-copy of the video link and
+            cues inside the popup. Re-open the zone here so Ohad can copy while
+            editing an exercise. */}
+        <div data-allow-copy>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div style={{ gridColumn: "1 / -1" }}><Input label="Title" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Barbell Back Squat" /></div>
           <Select label="Category" options={CATEGORIES} value={form.category} onChange={v => setForm({...form, category: v})} placeholder="Select..." />
@@ -136,6 +142,7 @@ export default function ExercisesView({ exercises, setExercises }) {
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
           <Btn variant="ghost" onClick={() => setShowForm(false)}>Cancel</Btn>
           <Btn onClick={handleSave}>{editId ? "Update" : "Create"}</Btn>
+        </div>
         </div>
       </Modal>
       <ConfirmDialog open={!!confirmDelete} title="Delete Exercise?" message="Plans referencing it will show 'Unknown Exercise'."
