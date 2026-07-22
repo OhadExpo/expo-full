@@ -81,7 +81,29 @@ export function AuthProvider({ children, clientList }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Keep the session alive across PWA background/resume (Ohad: "the app on my
+    // phone often gets logged out"). autoRefreshToken runs on a timer, but mobile
+    // browsers throttle/kill background timers, so the access token can lapse
+    // while the PWA is backgrounded. On resume we (a) re-arm the refresher and
+    // (b) proactively getSession() — supabase-js refreshes it from the (long-
+    // lived) refresh token before the app fires any request that would 401 and
+    // bounce the user to login. Cheap, idempotent, can only help.
+    const onVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        try { supabase.auth.startAutoRefresh(); } catch { /* older sdk */ }
+        supabase.auth.getSession().catch(() => {});
+      } else {
+        try { supabase.auth.stopAutoRefresh(); } catch { /* older sdk */ }
+      }
+    };
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisible);
+    if (typeof window !== 'undefined') window.addEventListener('focus', onVisible);
+
+    return () => {
+      subscription.unsubscribe();
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisible);
+      if (typeof window !== 'undefined') window.removeEventListener('focus', onVisible);
+    };
   }, []);
 
   const signOut = async () => {

@@ -505,7 +505,7 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
 // ---- live floor summary bar ----
 function FloorBar({ session, checkedIn, traineeById, onAdd, onFinish }) {
   return (
-    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}` }}>
+    <div style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, overflow: 'hidden' }}>
       <RefinedHeaderStrip padY={14} padX={14} marginBottom={0}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#FFF' }}>

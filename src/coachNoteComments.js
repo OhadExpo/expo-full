@@ -12,6 +12,33 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from './supabase';
+import { sendPush } from './push';
+
+// @mention → the coach's login email + display name. The two staff coaches.
+const MENTION_EMAIL = { ohad: 'ohadyproductions@gmail.com', yuval: 'yuvalberkovitch@gmail.com' };
+const AUTHOR_NAME   = { ohad: 'Ohad', yuval: 'Yuval' };
+
+// Fire a push to everyone @mentioned in a comment (except the author — no point
+// pinging yourself). Best-effort: sendPush already swallows failures, and this
+// runs after the comment is safely saved so a push hiccup never loses the note.
+// This is what makes @mention actually DO something — before, mentions were
+// parsed and shown as a chip but nobody was ever notified (Ohad, 2026-07-22).
+function notifyMentions(row) {
+  try {
+    for (const m of (row.mentions || [])) {
+      if (m === row.author) continue;
+      const toEmail = MENTION_EMAIL[m];
+      if (!toEmail) continue;
+      sendPush({
+        toEmail,
+        title: `${AUTHOR_NAME[row.author] || 'A coach'} mentioned you`,
+        body: (row.body || '').replace(/\s+/g, ' ').slice(0, 140),
+        url: '/coach/tasks',
+        tag: `mention:${row.note_id}`,
+      });
+    }
+  } catch { /* push is non-essential */ }
+}
 
 const COMMENT_ID = () => 'cmt_' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36).slice(-4);
 
@@ -92,6 +119,7 @@ export function useCoachNoteComments(noteId) {
       return null;
     }
     setRows(prev => [...prev, row]);
+    notifyMentions(row);
     return row;
   }, [noteId]);
 
