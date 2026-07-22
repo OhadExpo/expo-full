@@ -1398,6 +1398,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
            always has room (no label wrap / misalignment). */
         .plan-fields-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         @media (max-width: 620px) { .plan-fields-grid { grid-template-columns: 1fr; } }
+        /* Toolbar secondary tier: space-between on desktop so the group edges
+           line up under BACK/SAVE. On a phone the 8 buttons wrap, and
+           space-between would spread each wrapped line with big gaps — pack them
+           left instead so they read as a tidy block. */
+        .plan-toolbar-secondary { justify-content: space-between; }
+        @media (max-width: 640px) { .plan-toolbar-secondary { justify-content: flex-start; } }
         /* (Removed .ex-row-outer/.ex-row-scroll/.ex-row-grid rules — those
            classes died with the !overview detail view; the unified grid
            handles narrow widths via its own overflowX scroll.) */
@@ -1484,7 +1490,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             duplicate/new) · scope+danger (only-this/delete). space-between so
             the group edges line up with the primary row above — PORTAL under
             BACK, DELETE under SAVE (Ohad) — with wide gaps doing the grouping. */}
-        <div style={{display:"flex",gap:10,alignItems:"stretch",justifyContent:"space-between",flexWrap:"wrap"}}>
+        <div className="plan-toolbar-secondary" style={{display:"flex",gap:10,alignItems:"stretch",flexWrap:"wrap"}}>
           <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {/* PORTAL first (Ohad). */}
           {onPreviewPlan && plan?.id && <button onClick={async () => { await flushAutosave(); onPreviewPlan(plan.id); }}
