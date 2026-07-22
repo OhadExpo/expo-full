@@ -123,6 +123,32 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Anti-impersonation for athlete → coach pushes. The athlete's client supplies
+  // title/body, so a malicious athlete could send { title: 'EXPO', body:
+  // 'Your payment failed — tap here' } and it would land on Ohad's phone looking
+  // like a system message. Force a server-attributed title that NAMES the sender
+  // (identity taken from the verified token via my_trainee, which is athlete-
+  // readable), so the coach always sees who it's really from and it can never
+  // masquerade as EXPO/system. The body still carries the preview; the url is
+  // already coerced same-origin above.
+  let notifTitle = title;
+  if (callerEmail !== OWNER_EMAIL && toEmail === OWNER_EMAIL) {
+    let senderName = callerEmail.split('@')[0];
+    try {
+      const mtR = await fetch(`${SUPA_URL}/rest/v1/rpc/my_trainee`, {
+        method: 'POST',
+        headers: { 'apikey': SUPA_PUBLISHABLE_KEY, 'Authorization': `Bearer ${callerToken}`, 'content-type': 'application/json' },
+        body: '{}',
+      });
+      if (mtR.ok) {
+        const t = await mtR.json();
+        const row = Array.isArray(t) ? t[0] : t;
+        if (row?.name) senderName = String(row.name);
+      }
+    } catch { /* fall back to the email local-part */ }
+    notifTitle = `EXPO · ${String(senderName).slice(0, 40)}`;
+  }
+
   // Resolve target's subscriptions via SECURITY DEFINER RPC. Avoids
   // needing a service-role key in env — the function is gated to
   // authenticated callers and has the same trust boundary as the
@@ -152,7 +178,7 @@ export default async function handler(req, res) {
   }
 
   const payload = JSON.stringify({
-    title, body: text, url, tag,
+    title: notifTitle, body: text, url, tag,
     icon: '/icon-192.png', badge: '/icon-192.png',
   });
 
