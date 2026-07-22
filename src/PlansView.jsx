@@ -38,6 +38,7 @@ import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStor
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
 import { sortProgramsChrono } from './traineeUtils';
+import { fmtPrettyDate } from './dates';
 
 const defaultPlanEx = () => ({ id: uid(), exerciseId: "", sets: "", reps: "", load: "", rpe: "", tempo: "", rest: "", notes: "", order: 0, superset: "", wk: null });
 const defaultDay = (n) => ({ id: uid(), name: `Day ${n}`, exercises: [] });
@@ -1948,27 +1949,33 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               {blockWorkouts.length === 0
                 ? <div style={{color:C.td,textAlign:'center',padding:'34px 10px',fontSize:13}}>No logged workouts for this block yet.</div>
                 : blockWorkouts.map(w => {
+                    // Card design ported verbatim from the athlete-portal HISTORY
+                    // card (ClientPortal `vw==='hist'`) so the two read identically
+                    // (Ohad): thin cyan card border, tinted header strip with a cyan
+                    // left rail (DAY · W# left, pretty date right), exercise rows as
+                    // `n. title  prescribed · done/total` with VIDEO / NOTES dot-tags,
+                    // and a boxed 📝 note. (Block name is omitted — the modal title
+                    // already names the block, unlike the multi-block athlete view.)
                     const exs = w.exercises || [];
-                    const doneEx = exs.filter(x => (x.sets||[]).some(s=>s.done)).length;
-                    const totalSets = exs.reduce((a,x)=>a+(x.sets||[]).length,0);
-                    const doneSets = exs.reduce((a,x)=>a+(x.sets||[]).filter(s=>s.done).length,0);
-                    const d = new Date(w.date || w.createdAt || 0);
-                    const dateStr = isFinite(d.getTime()) ? d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '';
                     return (
-                      <div key={w.id} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0,padding:'10px 12px',marginBottom:8}}>
-                        {/* card-header strip — matches the athlete-portal history look */}
-                        <div style={{background:'var(--c-sf2)',borderBottom:`1px solid ${C.cardBd}`,margin:'-10px -12px 8px',padding:'7px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
-                          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName || 'Workout'} {w.week!=null && <span style={{color:C.tm,fontWeight:400,fontSize:11}}>· W{w.week}</span>}</div>
-                          <div style={{fontFamily:FN,fontSize:11,color:C.tm,whiteSpace:'nowrap',flexShrink:0}}>{dateStr}</div>
+                      <div key={w.id} style={{background:'var(--c-sf)',border:`0.25px solid ${C.ac}4D`,borderRadius:0,padding:12,marginBottom:8}}>
+                        <div style={{background:'var(--c-sf2)',borderLeft:`3px solid ${C.ac}`,borderBottom:`1px solid ${C.cardBd}`,margin:'-12px -12px 10px',padding:'8px 12px',display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:10}}>
+                          <div style={{fontFamily:FN,fontWeight:700,fontSize:13,letterSpacing:'0.02em',color:C.tx,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{w.dayName || 'Workout'}{w.week!=null && <span style={{color:C.ac,fontWeight:700,fontSize:11,letterSpacing:'0.04em'}}> · W{w.week}</span>}</div>
+                          <div style={{fontSize:10,fontFamily:FN,color:C.tm,letterSpacing:'0.08em',whiteSpace:'nowrap',flexShrink:0}}>{fmtPrettyDate(w.date || w.createdAt)}</div>
                         </div>
-                        <div style={{fontFamily:FN,fontSize:11,color:C.ac,margin:'0 0 6px',letterSpacing:'0.03em'}}>{doneEx}/{exs.length} exercises · {doneSets}/{totalSets} sets</div>
-                        {exs.map((x,i)=>(
-                          <div key={i} style={{fontSize:12,color:C.tm,display:'flex',gap:6,padding:'1px 0'}}>
-                            <span style={{flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{i+1}. {x.title}</span>
-                            <span style={{color:C.td,fontFamily:FN,flexShrink:0}}>{(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span>
-                          </div>
-                        ))}
-                        {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:6,fontStyle:'italic'}}>“{w.notes}”</div>}
+                        {exs.map((x,i)=>{
+                          const fv = (w.formVideos || [])[i];
+                          const hasVideo = !!(fv && fv.cloudUrl);
+                          const notesCount = (fv?.reviewNotes || []).reduce((a, n) => a + 1 + (n.replies?.length || 0), 0);
+                          return (
+                            <div key={i} style={{fontSize:11,fontFamily:FN,color:C.tm,display:'flex',alignItems:'center',gap:6,padding:'3px 0'}}>
+                              <span style={{flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{i+1}. {x.title} <span style={{color:C.td}}>{x.prescribed ? x.prescribed + ' · ' : ''}{(x.sets||[]).filter(s=>s.done).length}/{(x.sets||[]).length}</span></span>
+                              {hasVideo && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.gn,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.gn,borderRadius:'50%'}}/>VIDEO</span>}
+                              {notesCount > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:4,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.12em',lineHeight:1,flexShrink:0}}><span style={{width:5,height:5,background:C.ac,borderRadius:'50%'}}/>{notesCount} {notesCount===1?'NOTE':'NOTES'}</span>}
+                            </div>
+                          );
+                        })}
+                        {w.notes && <div style={{fontSize:11,color:C.tm,marginTop:6,background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,padding:6,borderRadius:0,fontFamily:FN}}>📝 {w.notes}</div>}
                       </div>
                     );
                   })}
