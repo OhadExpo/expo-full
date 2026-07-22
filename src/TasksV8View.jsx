@@ -1703,6 +1703,11 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // Phone width: list rows wrap (title + status get their own line) so the
   // fixed-width meta cluster can't push the status pill off-screen (Ohad).
   const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 560);
+  // On a phone the filter rail stacks full-width ON TOP of the list, so you
+  // scroll through the whole Whose/Show/Sort/Group panel before seeing a single
+  // task. Collapse it behind the "Filters" header on narrow (tasks first); it
+  // stays fully open on desktop. (Ohad, 2026-07-22)
+  const [railOpen, setRailOpen] = useState(false);
   React.useEffect(() => {
     const onResize = () => { setCompact(window.innerWidth <= 1000); setNarrow(window.innerWidth <= 560); };
     window.addEventListener('resize', onResize);
@@ -2436,13 +2441,19 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
         <div style={{
           width: narrow ? 'auto' : 204, flexShrink: 0,
           background: 'var(--c-sf2)', border: '1px solid var(--c-cardBd)',
-          padding: '14px 0 16px', display: 'flex', flexDirection: 'column', gap: 12,
+          // Collapsed on mobile → just the toggle bar, no trailing empty box.
+          padding: (narrow && !railOpen) ? '12px 0' : '14px 0 16px', display: 'flex', flexDirection: 'column', gap: 12,
           alignSelf: 'flex-start',
           position: narrow ? 'static' : 'sticky', top: narrow ? undefined : 66,
           maxHeight: narrow ? undefined : 'calc(100vh - 84px)', overflowY: narrow ? 'visible' : 'auto',
         }}>
-          <div style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: '0 16px 10px', borderBottom: '1px solid var(--c-cardBd)' }}>Filters</div>
+          <div onClick={narrow ? () => setRailOpen(o => !o) : undefined}
+            style={{ fontFamily: FN, fontSize: 10, fontWeight: 700, letterSpacing: '0.22em', color: 'var(--c-ac)', textTransform: 'uppercase', padding: (narrow && !railOpen) ? '0 16px' : '0 16px 10px', borderBottom: (narrow && !railOpen) ? 'none' : '1px solid var(--c-cardBd)', cursor: narrow ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span>Filters</span>
+            {narrow && <span aria-hidden style={{ fontSize: 11, lineHeight: 1, transform: railOpen ? 'rotate(180deg)' : 'none', transition: 'transform 180ms ease' }}>▾</span>}
+          </div>
 
+          {(!narrow || railOpen) && (<>
           <RailGroup label="Whose">
             {/* Both partners see all three; tasks owned solely by the other
                 render read-only. Default is the viewer's own (clamped on mount). */}
@@ -2475,6 +2486,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
               style={{ width: '100%', height: 34, boxSizing: 'border-box', padding: '0 11px', borderRadius: 0, background: 'var(--c-sf)', color: 'var(--c-tx)', border: '1px solid var(--c-cardBd)', fontFamily: FN, fontSize: 11, fontWeight: 500, letterSpacing: '0.04em', outline: 'none', textAlign: 'left' }} autoComplete="off" />
           </div>
+          </>)}
         </div>
 
         {/* RIGHT: content — the list/board (view toggle now lives above). */}
