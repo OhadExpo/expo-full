@@ -1480,8 +1480,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <div style={{borderTop:`1px solid ${C.cardBd}`,margin:'6px 0 12px'}} />
         {/* SECONDARY tier — grouped by purpose so 8 buttons read as 3 clusters,
             not one wall: inspect (portal/compare/history) · propagate (share/
-            duplicate/new) · scope+danger (only-this/delete). */}
-        <div style={{display:"flex",gap:10,alignItems:"stretch",justifyContent:"center",flexWrap:"wrap"}}>
+            duplicate/new) · scope+danger (only-this/delete). space-between so
+            the group edges line up with the primary row above — PORTAL under
+            BACK, DELETE under SAVE (Ohad) — with wide gaps doing the grouping. */}
+        <div style={{display:"flex",gap:10,alignItems:"stretch",justifyContent:"space-between",flexWrap:"wrap"}}>
           <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {/* PORTAL first (Ohad). */}
           {onPreviewPlan && plan?.id && <button onClick={async () => { await flushAutosave(); onPreviewPlan(plan.id); }}
@@ -1500,7 +1502,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             HISTORY{blockWorkouts.length ? <span style={{fontFamily:FN,fontSize:12,fontWeight:700,color:C.ac,opacity:0.65,letterSpacing:'0.04em'}}>{blockWorkouts.length}</span> : null}
           </button>}
           </div>
-          <span aria-hidden style={{width:1,alignSelf:'stretch',minHeight:24,background:C.cardBd,flexShrink:0}} />
           <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {/* Flush pending autosave BEFORE share/duplicate: both re-read the
               plan from the DB, and the 600ms debounce means edits made just
@@ -1520,7 +1521,6 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             }}
             title="Create a new, empty program for this athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>+ NEW PROGRAM</button>}
           </div>
-          <span aria-hidden style={{width:1,alignSelf:'stretch',minHeight:24,background:C.cardBd,flexShrink:0}} />
           <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {setPortalVis && plan?.id && plan?.traineeId && (() => {
             // "Show only this program" on the athlete's portal — makes THIS the
