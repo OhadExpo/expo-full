@@ -127,7 +127,7 @@ export default function BookingView({ trainees }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: FN, fontSize: 10, color: C.td, letterSpacing: '0.08em' }}>PUBLIC URL:</span>
-          <code style={{ fontSize: 12, color: C.ac, background: 'var(--c-sf)', padding: '4px 8px', border: `1px solid ${C.cardBd}` }}>
+          <code style={{ fontSize: 12, color: C.ac, background: 'var(--c-sf)', padding: '4px 8px', border: `1px solid ${C.cardBd}`, wordBreak: 'break-all', minWidth: 0 }}>
             {bookingPublicUrl(draftSettings?.slug)}
           </code>
           <span style={{ flex: 1 }} />
@@ -146,7 +146,7 @@ export default function BookingView({ trainees }) {
         ) : rules.map(r => (
           <div key={r.id} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
-            borderBottom: `1px solid ${C.cardBd}`,
+            borderBottom: `1px solid ${C.cardBd}`, flexWrap: 'wrap',
           }}>
             <select value={r.day_of_week} onChange={e => updateRule(r.id, { day_of_week: parseInt(e.target.value) })}
               style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, padding: '4px 8px', color: C.tx, fontFamily: FN, fontSize: 11, outline: 'none' }}>

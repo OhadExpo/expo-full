@@ -1558,7 +1558,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
         {/* Meta cluster — date+time, then priority (dot to its RIGHT), then
             athlete. Forced LTR internally so the order reads the same on
             Hebrew (RTL) and English rows. Each chip is no-wrap. */}
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, direction: 'ltr' }}>
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, direction: 'ltr', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <PriorityPill priority={priority} onSetPriority={(p) => onSetPriority(row, p)} readOnly={readOnly} />
           {showAthlete && (
             <span title={`Athlete: ${athleteName}`} style={{

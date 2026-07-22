@@ -1153,6 +1153,15 @@ function AuthedApp() {
           .nav-item-inactive:hover{color:rgba(57,189,255,0.72) !important;background:rgba(57,189,255,0.035) !important}
           .hdr-icon-btn{transition:color 120ms, background 120ms}
           .hdr-icon-btn:hover{color:#0E0F12 !important;background:rgba(57,189,255,0.08) !important}
+          /* Mobile: the header scrolls horizontally, which pushed the right
+             cluster (⋯ / theme / bug / SIGN OUT) off-screen — you had to swipe
+             the nav to reach Sign-out. Pin it to the right edge so it stays
+             reachable while the tabs scroll under it. */
+          @media (max-width: 640px) {
+            .hdr-right { position: sticky; right: 0; margin-left: 4px !important;
+              background: var(--c-headerBg, var(--c-sf));
+              box-shadow: -10px 0 8px -4px var(--c-headerBg, var(--c-sf)); z-index: 2; }
+          }
           [data-theme="5b"] .alert-card,[data-theme="light"] .alert-card{transition:box-shadow 200ms, transform 200ms}
           [data-theme="5b"] .alert-card:hover,[data-theme="light"] .alert-card:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.30), 0 2px 4px rgba(0,0,0,0.10), 0 10px 24px rgba(0,0,0,0.14);transform:translateY(-1px)}
           [data-theme="5b"] .alert-row,[data-theme="light"] .alert-row{transition:background 120ms}
@@ -1196,7 +1205,7 @@ function AuthedApp() {
               border that previously fenced this whole group from the
               nav; the cyan separators between items are the only
               dividers now. */}
-          <div style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
+          <div className="hdr-right" style={{flex:"0 0 auto",display:"flex",alignItems:"center",gap:2,marginLeft:12}}>
             <MoreMenu tab={tab} navTo={navTo} onExport={handleExport} onChangePassword={()=>setShowPwModal(true)} isOwner={isOwner} />
             <span style={{width:1,height:22,background:C.ac,opacity:0.15,alignSelf:'center',marginLeft:6,marginRight:6}} aria-hidden="true" />
             <ThemeToggle size={32} />

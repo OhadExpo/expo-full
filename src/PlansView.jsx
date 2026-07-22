@@ -2962,7 +2962,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           click expands the card to reveal earlier blocks inline. Same data,
           same actions, same hover-preview as the table. */}
       {grouped && grouped.length > 0 && progView === 'grid' && (
-        <div ref={gridRef} style={{display:'grid',gap:14,gridTemplateColumns:'repeat(auto-fill,minmax(360px,1fr))'}}>
+        <div ref={gridRef} style={{display:'grid',gap:14,gridTemplateColumns:'repeat(auto-fill,minmax(min(360px,100%),1fr))'}}>
           {grouped.map(row => {
             const expanded = expandedAthletes.has(row.tid);
             const cur = row.current;

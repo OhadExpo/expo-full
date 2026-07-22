@@ -208,7 +208,7 @@ export default function IntakeView({ trainees }) {
               const origin = typeof window !== 'undefined' ? window.location.origin : '';
               const url = `${origin}/intake/${t.locale}?t=${t.token}`;
               return (
-                <div key={t.token} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: FB }}>
+                <div key={t.token} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: FB, flexWrap: 'wrap' }}>
                   <Badge color={t.form_type === 'initial' ? C.ac : (t.form_type === 'assessment' ? C.or : C.gn)}>{t.form_type}</Badge>
                   <span style={{ color: C.tm }}>{(t.locale || '').toUpperCase()}</span>
                   {t.label && <span style={{ color: C.tx }}>· {t.label}</span>}

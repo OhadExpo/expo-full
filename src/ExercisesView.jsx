@@ -125,7 +125,7 @@ export default function ExercisesView({ exercises, setExercises }) {
             cues inside the popup. Re-open the zone here so Ohad can copy while
             editing an exercise. */}
         <div data-allow-copy>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(200px, 100%), 1fr))", gap: 12 }}>
           <div style={{ gridColumn: "1 / -1" }}><Input label="Title" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Barbell Back Squat" /></div>
           <Select label="Category" options={CATEGORIES} value={form.category} onChange={v => setForm({...form, category: v})} placeholder="Select..." />
           <Select label="Resistance Type" options={RESISTANCE_TYPES} value={form.resistanceType} onChange={v => setForm({...form, resistanceType: v})} placeholder="Select..." />

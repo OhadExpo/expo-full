@@ -2014,7 +2014,7 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         {/* Compare picker: pick second video from the same client */}
         {cmpPickerHold.value && createPortal((
           <div onClick={() => setComparePicker(null)} role="dialog" aria-modal="true" aria-label="Pick a video to compare" className={cmpPickerHold.closing ? 'motion-fade-out' : 'motion-fade-in'} style={{position:'fixed',inset:0,zIndex:1100,background:C.scrim,display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:60,backdropFilter:'blur(4px)'}}>
-            <div onClick={e => e.stopPropagation()} className={cmpPickerHold.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxHeight:'80vh',overflow:'auto',padding:20}}>
+            <div onClick={e => e.stopPropagation()} className={cmpPickerHold.closing ? 'motion-fall' : 'motion-rise'} style={{background:C.sf,border:`1px solid ${C.bd}`,borderRadius:0,width:520,maxWidth:'calc(100vw - 24px)',maxHeight:'80vh',overflow:'auto',padding:20}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
                 <h3 style={{margin:0,fontFamily:FN,fontSize:15,color:C.tx}}>Compare with…</h3>
                 <button onClick={() => setComparePicker(null)} style={{background:'none',border:'none',color:C.tm,cursor:'pointer',fontSize:16}}>✕</button>

@@ -528,7 +528,7 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
         return (
           <CollapsibleSection title="Incoming · 30D" storageKey="dash-incoming" style={{ marginBottom: 14 }}
             right={<span style={{ fontSize: 10, fontFamily: FN, color: 'rgba(255,255,255,0.78)', letterSpacing: '0.06em' }}>VISITS in Vercel Analytics</span>}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12 }}>
               {[
                 { label: 'CHAT SESSIONS', value: funnel.sessions, color: refined ? C.tx : C.tm },
                 { label: 'MESSAGES SENT', value: funnel.messages, color: refined ? C.tx : C.tm },

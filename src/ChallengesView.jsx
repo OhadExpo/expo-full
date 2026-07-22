@@ -414,7 +414,7 @@ function ChallengeForm({ initial, trainees, existingParticipants, onClose, onSav
           options={GOAL_TYPES.map(g => ({ value: g.id, label: g.label }))}
           />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 12, marginBottom: 12 }}>
         <Input label="Goal value (optional)" value={goalValue} onChange={e => setGoalValue(e.target.value)} placeholder="—" />
         <Input label="Start" type="date" value={startAt} onChange={e => setStartAt(e.target.value)} />
         <Input label="End"   type="date" value={endAt}   onChange={e => setEndAt(e.target.value)} />
