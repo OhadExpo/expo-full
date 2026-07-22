@@ -218,6 +218,60 @@ async function markCwBlobFailed(workoutId, exerciseIndex, reason) {
   }
 }
 
+// Durably attach an uploaded video's URL to its client_workouts row. Returns
+// true once the reference is recorded (written to the DB, or durably queued in
+// the offlineQueue). Returns false when the workout row can't be reached yet —
+// its own offlineQueue upsert may not have drained, or the DB flapped — so the
+// caller keeps the blob and retries instead of orphaning the uploaded bytes.
+async function attachUrl(workoutId, exerciseIndex, cloudUrl) {
+  // Best-effort local-cache patch first (drives the UI immediately). When the
+  // cache holds the workout we get back the full form_videos array to write.
+  const patchedFv = await patchLocalCw(workoutId, exerciseIndex, cloudUrl);
+  if (patchedFv) {
+    try {
+      const { error } = await supabase
+        .from('client_workouts')
+        .update({ form_videos: patchedFv })
+        .eq('id', workoutId);
+      if (error) throw error;
+    } catch {
+      // Direct write flapped — hand it to the durable queue. Still "referenced":
+      // the URL now lives in the persisted offlineQueue, so dropping the blob is
+      // safe (the bytes are already up; only the row update remains, and it will
+      // converge on the next drain).
+      enqueueOp({
+        type: 'client_workouts.update',
+        payload: { id: workoutId, patch: { form_videos: patchedFv } },
+        dedupeKey: 'fv:' + workoutId,
+      });
+    }
+    return true;
+  }
+  // Local cache doesn't have this workout (evicted, or synced from another
+  // device). Read-modify-write the row on the server so the URL still lands.
+  try {
+    const { data, error } = await supabase
+      .from('client_workouts')
+      .select('form_videos')
+      .eq('id', workoutId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return false; // row not synced yet — retry on the next drain
+    const fv = Array.isArray(data.form_videos) ? data.form_videos.slice() : [];
+    while (fv.length <= exerciseIndex) fv.push(null);
+    const { pendingBlobId, ...rest } = fv[exerciseIndex] || {};
+    fv[exerciseIndex] = { ...rest, cloudUrl, has: true };
+    const { error: e2 } = await supabase
+      .from('client_workouts')
+      .update({ form_videos: fv })
+      .eq('id', workoutId);
+    if (e2) throw e2;
+    return true;
+  } catch {
+    return false; // transient (offline / DB error) — keep the blob, retry
+  }
+}
+
 export async function drainBlobs() {
   if (draining) return;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
@@ -250,54 +304,64 @@ export async function drainBlobs() {
           await markCwBlobFailed(entry.workoutId, entry.exerciseIndex, `too large (${mb}MB)`);
           continue;
         }
-        const { error } = await supabase.storage
-          .from('form-videos')
-          .upload(entry.storagePath, entry.blob, { upsert: true, contentType: entry.contentType });
-        if (error) throw error;
-        const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(entry.storagePath);
-        const cloudUrl = urlData?.publicUrl;
-        if (!cloudUrl) throw new Error('no public url after upload');
-
-        const patchedFv = await patchLocalCw(entry.workoutId, entry.exerciseIndex, cloudUrl);
-        if (patchedFv) {
-          // Try the DB write directly — keeps localStorage and DB in sync
-          // immediately. If a reload happens between blob-upload and the
-          // queued offlineQueue drain, the row would otherwise come back
-          // with a stale form_videos and clobber the local patch on rehydrate.
-          let directDbOk = false;
-          try {
-            const { error: e2 } = await supabase
-              .from('client_workouts')
-              .update({ form_videos: patchedFv })
-              .eq('id', entry.workoutId);
-            if (e2) throw e2;
-            directDbOk = true;
-          } catch {
-            directDbOk = false;
-          }
-          if (!directDbOk) {
-            // Fall back through the regular queue so a flap mid-drain still
-            // converges. The blob is already uploaded — we don't redo that
-            // work even if this update has to retry.
-            enqueueOp({
-              type: 'client_workouts.update',
-              payload: { id: entry.workoutId, patch: { form_videos: patchedFv } },
-              dedupeKey: 'fv:' + entry.workoutId,
-            });
-          }
-          // Tell the UI the upload is done so it can swap the local
-          // previewUrl out for the cloudUrl and free its blob URL.
-          try {
-            window.dispatchEvent(new CustomEvent('expo-blob-uploaded', {
-              detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, cloudUrl },
-            }));
-          } catch {}
+        // STEP 1 — upload the bytes. Idempotent (upsert), and the result is
+        // persisted onto the queue entry so a later reference-retry never has
+        // to re-upload the (potentially large) blob.
+        let cloudUrl = entry.cloudUrl;
+        if (!entry.uploaded || !cloudUrl) {
+          const { error } = await supabase.storage
+            .from('form-videos')
+            .upload(entry.storagePath, entry.blob, { upsert: true, contentType: entry.contentType });
+          if (error) throw error;
+          const { data: urlData } = supabase.storage.from('form-videos').getPublicUrl(entry.storagePath);
+          cloudUrl = urlData?.publicUrl;
+          if (!cloudUrl) throw new Error('no public url after upload');
+          const cur0 = await getEntry(entry.id);
+          if (cur0) { cur0.uploaded = true; cur0.cloudUrl = cloudUrl; await writeEntry(cur0); }
         }
+
+        // STEP 2 — durably attach the URL to the workout row BEFORE dropping the
+        // blob. Previously deleteEntry() ran unconditionally, so when the local
+        // cache patch found nothing to patch (cache evicted, or the workout not
+        // cached on this device), the blob was deleted after upload with NO row
+        // ever pointing to the bytes — a silently orphaned video. attachUrl now
+        // guarantees the reference lands (locally-queued, direct write, or
+        // server read-modify-write) and returns false only when the workout row
+        // isn't reachable yet, in which case we keep the blob and retry.
+        const referenced = await attachUrl(entry.workoutId, entry.exerciseIndex, cloudUrl);
+        if (!referenced) {
+          throw Object.assign(new Error('form-video reference not yet durable'), { _transientRef: true });
+        }
+        // Tell the UI the upload is done so it can swap the local previewUrl out
+        // for the cloudUrl and free its blob URL.
+        try {
+          window.dispatchEvent(new CustomEvent('expo-blob-uploaded', {
+            detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, cloudUrl },
+          }));
+        } catch {}
         await deleteEntry(entry.id);
       } catch (e) {
         const cur = await getEntry(entry.id);
         if (!cur) break;
         const msg = e?.message || String(e);
+        // Reference-not-yet-durable: the bytes are already uploaded (persisted on
+        // the entry), we're only waiting on the workout row to become reachable.
+        // Keep the blob, count the attempt, and move ON to other blobs rather
+        // than blocking the whole drain behind one un-synced workout. After the
+        // cap, dead-letter it (surface + mark the slot failed) instead of looping.
+        if (e?._transientRef) {
+          cur.lastError = msg;
+          cur.attempts = (cur.attempts || 0) + 1;
+          if (cur.attempts >= MAX_ATTEMPTS) {
+            await deleteEntry(cur.id);
+            if (onErrorHook) { try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex }, msg: 'video uploaded but its workout never synced' }); } catch {} }
+            try { window.dispatchEvent(new CustomEvent('expo-blob-failed', { detail: { blobId: entry.id, workoutId: entry.workoutId, exerciseIndex: entry.exerciseIndex, reason: 'orphan', msg } })); } catch {}
+            await markCwBlobFailed(entry.workoutId, entry.exerciseIndex, 'workout never synced');
+          } else {
+            await writeEntry(cur);
+          }
+          continue;
+        }
         const st = e?.status ?? e?.statusCode ?? e?.httpStatus;
         cur.lastError = msg;
         // Classify like the live uploader: a permanent failure (RLS/payload/mime,
