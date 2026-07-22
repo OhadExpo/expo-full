@@ -1402,9 +1402,14 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
            handles narrow widths via its own overflowX scroll.) */
         .daydel-btn:hover { border-color: var(--c-rd, #ff5a5a) !important; }
       `}</style>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,gap:12,flexWrap:'wrap'}}>
-        <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flex:'1 1 100%',justifyContent:'center',position:'relative'}}>
-          <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap',position:'absolute',left:0}}>← BACK</button>
+      <div style={{marginBottom:16}}>
+        {/* PRIMARY tier: BACK · athlete+block pickers · SAVE. Navigation and the
+            one commit action live up here; the 8 secondary actions moved to
+            their own tier below the divider (Ohad: the single 10-button row read
+            as a mess). */}
+        <div style={{display:'flex',gap:12,alignItems:'center',minWidth:0,flexWrap:'wrap'}}>
+          <button onClick={handleBack} style={{background:"none",border:"none",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:12,fontWeight:700,letterSpacing:'0.06em',padding:0,whiteSpace:'nowrap',flexShrink:0}}>← BACK</button>
+          <div style={{flex:1,display:'flex',gap:12,alignItems:'center',justifyContent:'center',minWidth:0}}>
           {/* Athlete assignment — editable, to the LEFT of the block dropdown
               (Ohad). This is the ONLY athlete control now (dropped the duplicate
               field from the row below). */}
@@ -1462,30 +1467,41 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               </div>
             );
           })()}
+          </div>
+          <Btn onClick={handleSave} disabled={saving} style={{height:38,minWidth:150,padding:'0 18px',fontSize:13,letterSpacing:'0.09em',lineHeight:'38px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
         </div>
         {/* Autosave status on its OWN right-aligned line with a RESERVED height,
             so it appearing / disappearing / changing width ("Saving…" ⇄
             "✓ Saved") never re-centers and shifts the button row below (Ohad). */}
-        <div style={{flex:'1 1 100%',display:'flex',justifyContent:'flex-end',alignItems:'center',minHeight:15,marginBottom:1,paddingRight:2}}>
+        <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',minHeight:15,marginTop:4,paddingRight:2}}>
           {statusLabel && <span aria-live="polite" style={{fontFamily:FN,fontSize:10,fontWeight:700,color:statusLabel.color,letterSpacing:'0.1em',textTransform:'uppercase'}}>{statusLabel.text}</span>}
         </div>
-        <div style={{display:"flex",gap:8,alignItems:"stretch",justifyContent:"center",flexWrap:"wrap",flex:"1 1 100%"}}>
-          {/* COMPARE: read-only view of a previous program for the same
-              athlete, side-by-side with the editor grid. */}
-          <button onClick={()=>setCompareOpen(v=>!v)}
-            title="Compare with a previous program (read-only)"
-            style={{background: compareActive ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'}}><span style={{display:'inline-block',width:13,textAlign:'center',flexShrink:0}}>{compareActive?'✓':'↔'}</span>COMPARE</button>
+        {/* hairline between the two tiers */}
+        <div style={{borderTop:`1px solid ${C.cardBd}`,margin:'6px 0 12px'}} />
+        {/* SECONDARY tier — grouped by purpose so 8 buttons read as 3 clusters,
+            not one wall: inspect (portal/compare/history) · propagate (share/
+            duplicate/new) · scope+danger (only-this/delete). */}
+        <div style={{display:"flex",gap:10,alignItems:"stretch",justifyContent:"center",flexWrap:"wrap"}}>
+          <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
+          {/* PORTAL first (Ohad). */}
           {onPreviewPlan && plan?.id && <button onClick={async () => { await flushAutosave(); onPreviewPlan(plan.id); }}
             title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             PORTAL
           </button>}
+          {/* COMPARE: read-only view of a previous program for the same athlete. */}
+          <button onClick={()=>setCompareOpen(v=>!v)}
+            title="Compare with a previous program (read-only)"
+            style={{background: compareActive ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'}}><span style={{display:'inline-block',width:13,textAlign:'center',flexShrink:0}}>{compareActive?'✓':'↔'}</span>COMPARE</button>
           {plan?.id && <button onClick={()=>setHistoryOpen(true)}
             title="See the workouts the athlete has logged for this block"
             style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:7,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
             HISTORY{blockWorkouts.length ? <span style={{fontFamily:FN,fontSize:12,fontWeight:700,color:C.ac,opacity:0.65,letterSpacing:'0.04em'}}>{blockWorkouts.length}</span> : null}
           </button>}
+          </div>
+          <span aria-hidden style={{width:1,alignSelf:'stretch',minHeight:24,background:C.cardBd,flexShrink:0}} />
+          <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {/* Flush pending autosave BEFORE share/duplicate: both re-read the
               plan from the DB, and the 600ms debounce means edits made just
               before the click aren't there yet — the copy would miss them. */}
@@ -1493,6 +1509,19 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
             title="Share this program to another athlete (duplicates it for them)" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>⤴ SHARE</button>}
           {onDuplicate && plan?.id && <button onClick={async () => { await flushAutosave(); onDuplicate(); }}
             title="Duplicate this program for the same athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>⎘ DUPLICATE</button>}
+          {/* NEW PROGRAM — fresh empty program for THIS athlete. Grouped with
+              SHARE/DUPLICATE as the "propagate" cluster (was next to DELETE). */}
+          {onNewProgramFor && plan?.traineeId && <button onClick={async () => {
+              await flushAutosave();
+              const base = String(plan.traineeId).split('__')[0];
+              const t = (trainees || []).find(x => x.id === base);
+              const label = t ? (t.members && t.members.length === 2 ? (t.members[parseInt(String(plan.traineeId).split('__')[1] || '0')]?.name || t.name) : t.name) : undefined;
+              onNewProgramFor(plan.traineeId, label);
+            }}
+            title="Create a new, empty program for this athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>+ NEW PROGRAM</button>}
+          </div>
+          <span aria-hidden style={{width:1,alignSelf:'stretch',minHeight:24,background:C.cardBd,flexShrink:0}} />
+          <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {setPortalVis && plan?.id && plan?.traineeId && (() => {
             // "Show only this program" on the athlete's portal — makes THIS the
             // only visible program (hides the athlete's other blocks); toggling
@@ -1510,24 +1539,12 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
               title={isOnly ? 'This is the only program shown on the portal — click to show all again' : 'Show ONLY this program on the athlete portal (hide the others)'}
               style={{background: isOnly ? `${C.gn}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${isOnly ? C.gn : C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:isOnly ? C.gn : C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>{isOnly ? '✓ ONLY THIS' : 'SHOW ONLY'}</button>;
           })()}
-          {/* NEW PROGRAM — start a fresh, empty program for THIS athlete without
-              leaving the editor (Ohad; placed next to DELETE). Same flow as the
-              athlete-dropdown "new program" path; flush pending autosave first so
-              the current edits land. Matches the row's 38px button metrics. */}
-          {onNewProgramFor && plan?.traineeId && <button onClick={async () => {
-              await flushAutosave();
-              const base = String(plan.traineeId).split('__')[0];
-              const t = (trainees || []).find(x => x.id === base);
-              const label = t ? (t.members && t.members.length === 2 ? (t.members[parseInt(String(plan.traineeId).split('__')[1] || '0')]?.name || t.name) : t.name) : undefined;
-              onNewProgramFor(plan.traineeId, label);
-            }}
-            title="Create a new, empty program for this athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>+ NEW PROGRAM</button>}
           {onDelete && plan?.id && <button onClick={onDelete}
             title="Delete this program" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.rd}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.rd,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             DELETE
           </button>}
-          <Btn onClick={handleSave} disabled={saving} style={{height:38,minWidth:150,padding:'0 18px',fontSize:13,letterSpacing:'0.09em',lineHeight:'38px',background:'#39BDFF',color:'#FFFFFF',border:'1px solid #39BDFF',opacity:saving?0.6:1,display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{saving ? 'Saving...' : 'Save Program'}</Btn>
+          </div>
         </div>
       </div>
       <div style={{display:compareActive?'flex':'block',gap:16,alignItems:compareActive?'stretch':'flex-start',maxHeight:compareActive?'calc(100vh - 170px)':undefined}}>
