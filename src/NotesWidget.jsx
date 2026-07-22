@@ -11,7 +11,7 @@
 import React, { useMemo, useState } from 'react';
 import { fmtPrettyDate } from './dates';
 import { C, FN, FB, FH } from './theme';
-import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState } from './ui';
+import { isRefined5b, RefinedHeaderStrip, confirmToast, usePersistentState, useIsMobile } from './ui';
 import { useCoachNotes, setPendingTaskPlanLink } from './coachNotes';
 import useDraftAutosave from './hooks/useDraftAutosave';
 import { AUTO_KIND_LABEL, AUTO_KIND_ACTION, whatsappMessageForTask, throttleWhatsAppTasks } from './autoTasks';
@@ -338,6 +338,11 @@ function TaskActionButton({ note, trainee, onCreatePlan, onOpenReview, onOpenInt
 
 export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanForTask, onOpenIntakeTab, onOpenWaitlist, compact = false, trainees = [], viewerOwner = 'ohad' }) {
   const { rows, create, update, togglePin, toggleDone, remove } = useCoachNotes({ limit: 60 });
+  // Phone-narrow: the compact dashboard mini-board (a 4-col status kanban) is
+  // cramped side-by-side at ~140px/col and scrolls sideways with clipped text.
+  // Below this width we stack the status columns vertically full-width instead
+  // (same colored-header + card style, just readable). (Ohad, 2026-07-22)
+  const stackBoard = useIsMobile(560);
   // Collapsible on the dashboard (compact). Full /coach/tasks view ignores it.
   const [open, setOpen] = usePersistentState('dash-tasks', true);
   const [adding, setAdding] = useState(false);
@@ -725,27 +730,34 @@ export default function NotesWidget({ onNavigate, onOpenFullTasks, onCreatePlanF
             { id:'stuck',   label:'Stuck',       color:'#C0392B' },
           ];
           return (
-            <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
+            <div style={{ display:'flex', flexDirection: stackBoard ? 'column' : 'row', gap:8, overflowX: stackBoard ? 'visible' : 'auto', paddingBottom:4 }}>
               {COLS.map(col => {
                 const rows = col.id==='open'
                   ? openRows.filter(r => !['working','waiting','stuck'].includes(r.status))
                   : openRows.filter(r => r.status === col.id);
+                // Stacked (phone): drop empty status sections — a full-width empty
+                // "—" box is just noise; on desktop the empty column keeps the
+                // kanban structure so it stays.
+                if (stackBoard && rows.length === 0) return null;
                 return (
-                  <div key={col.id} style={{ flex:'1 1 150px', minWidth:140, border:`1px solid var(--c-cardBd)`, display:'flex', flexDirection:'column' }}>
+                  <div key={col.id} style={{ flex: stackBoard ? '1 1 auto' : '1 1 150px', minWidth: stackBoard ? 0 : 140, border:`1px solid var(--c-cardBd)`, display:'flex', flexDirection:'column' }}>
                     <div style={{ background:col.color, color:'#FFFFFF', padding:'5px 8px', fontFamily:FN, fontSize:9, fontWeight:700, letterSpacing:'0.08em', textTransform:'uppercase', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                       <span>{col.label}</span><span style={{ opacity:0.85 }}>{rows.length}</span>
                     </div>
-                    <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, minHeight:40, maxHeight:260, overflowY:'auto' }}>
-                      {rows.slice(0,10).map(n => {
+                    {/* Stacked: let the list flow (no nested scroll trap on touch),
+                        capped shorter. Side-by-side: bounded with inner scroll. */}
+                    <div style={{ padding:4, display:'flex', flexDirection:'column', gap:4, minHeight:40, maxHeight: stackBoard ? 'none' : 260, overflowY: stackBoard ? 'visible' : 'auto' }}>
+                      {rows.slice(0, stackBoard ? 6 : 10).map(n => {
                         const body = displayBodyOf(n.body); const heb = isHebrew(body);
                         const tone = TONE_COLOR[AUTO_KIND_TONE[n.auto_kind]] || 'var(--c-cardBd)';
                         return (
                           <div key={n.id} onClick={()=>handleClick(n)} title={body}
-                            style={{ border:`1px solid var(--c-cardBd)`, borderLeft:`3px solid ${tone}`, padding:'5px 7px', fontFamily:heb?FH:FB, fontSize:11, lineHeight:1.3, color:'var(--c-tx)', cursor:'pointer', direction:heb?'rtl':'ltr', textAlign:heb?'right':'left', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
+                            style={{ border:`1px solid var(--c-cardBd)`, borderLeft:`3px solid ${tone}`, padding:'6px 8px', fontFamily:heb?FH:FB, fontSize:stackBoard?12:11, lineHeight:1.3, color:'var(--c-tx)', cursor:'pointer', direction:heb?'rtl':'ltr', textAlign:heb?'right':'left', display:'-webkit-box', WebkitLineClamp: stackBoard ? 2 : 2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
                             {body}
                           </div>
                         );
                       })}
+                      {stackBoard && rows.length > 6 && <div onClick={()=>{ if(onOpenFullTasks) onOpenFullTasks(); }} style={{ padding:'4px', textAlign:'center', color:'var(--c-ac)', fontSize:9, fontFamily:FN, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer' }}>+{rows.length-6} MORE →</div>}
                       {rows.length===0 && <div style={{ padding:'6px 4px', textAlign:'center', color:'var(--c-td)', fontSize:9, fontFamily:FN }}>—</div>}
                     </div>
                   </div>
