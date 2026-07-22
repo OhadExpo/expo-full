@@ -2257,7 +2257,7 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     // gym-tagged task to General left a 'gym'/'center:*' tag behind → sourceKey
     // still returned 'center' → the row snapped back and the picker "did
     // nothing" (Ohad). Now General clears every center-family tag.
-    const isCenterTag = (t) => t === 'center' || t === 'gym' || t.startsWith('gym:') || t.startsWith('center:');
+    const isCenterTag = (t) => typeof t === 'string' && (t === 'center' || t === 'gym' || t.startsWith('gym:') || t.startsWith('center:'));
     const others = Array.isArray(row.tags) ? row.tags.filter(t => !isCenterTag(t)) : [];
     const newTags = cat === 'center' ? [...others, 'center'] : others;
     await update(row.id, { tags: newTags.length ? newTags : null });
