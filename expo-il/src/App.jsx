@@ -404,7 +404,9 @@ function Nav() {
       }}>
         <a href="#/" style={{
           flex: '0 0 auto', display: 'flex', alignItems: 'center',
-          marginRight: 12, height: 56,
+          // logical (was marginRight) so the gap sits on the content side in
+          // BOTH directions — the site is Hebrew/RTL by default.
+          marginInlineEnd: 12, height: 56,
         }}>
           <BrandMark height={36} />
         </a>
@@ -3170,7 +3172,7 @@ export default function App() {
         }
         /* Skip-link: visually hidden until focused, then anchored top-left. */
         .fv-skip {
-          position: absolute; top: -40px; left: 12px;
+          position: absolute; top: -40px; inset-inline-start: 12px;
           background: ${C.ac}; color: #000; padding: 8px 14px;
           font-family: ${FN}; font-size: 12px; font-weight: 700;
           letter-spacing: 1px; border-radius: 6px;
