@@ -1621,14 +1621,9 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
             <HighlightedText text={row._display} query={search} />
           </div>
         </div>
-        {/* Hover-revealed quick action — Linear pattern. Doesn't do anything
-            yet (Phase 1 hooks up a quick-menu), just signals interactivity. */}
-        <span style={{
-          fontFamily: FN, fontSize: 14, fontWeight: 700, color: 'var(--c-td)',
-          opacity: hover ? 1 : 0, transition: 'opacity 120ms ease',
-          width: 14, textAlign: 'center', cursor: 'pointer',
-          flexShrink: 0,
-        }} title="More actions (Phase 1)">⋯</span>
+        {/* (Removed the hover "⋯" affordance — it showed cursor:pointer and a
+            "More actions" tooltip but had no handler, so it read as a broken
+            control. Re-add WITH an onClick when the quick-menu exists.) */}
         {/* Board: title takes line 1, so push the status pill to the card's right
             edge on line 2 (in LIST the title's flex already does this).
             hideStatus drops the pill in the STATUS board — the column header
