@@ -2449,8 +2449,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           // padding 10/10, groups share one baseline.
           if (hv === '4') return (
             <div style={{borderTop:`1px solid ${C.cardBd}`,borderBottom:`1px solid ${C.cardBd}`,padding:'10px 2px',display:'flex',alignItems:'center',justifyContent:'space-between',whiteSpace:'nowrap',gap:10}}>
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1}}>BLOCK <span style={{color:C.ac}}>{blockLabel}</span></span>
-              {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN}}>
+              {/* min-width:0 + ellipsis so a LONG block name (e.g. "#4 — Hypertrophy…")
+                  truncates instead of shoving the LEFT group off the right edge and
+                  overflowing the phone viewport. The week + left groups are
+                  flexShrink:0 so only the label gives way. */}
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tx,lineHeight:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis'}}>BLOCK <span style={{color:C.ac}}>{blockLabel}</span></span>
+              {weekDays.length > 0 && <span style={{display:'inline-flex',alignItems:'center',gap:8,fontFamily:FN,flexShrink:0}}>
                 <span style={{fontSize:11,fontWeight:700,color:C.ac,fontVariantNumeric:'tabular-nums',lineHeight:1}}>{doneThisWeek}/{weekDays.length}</span>
                 {/* squares carry a −1px lift so their geometric centre sits on the
                     text CAP axis, not the font-box centre (caps ride ~1px high in
@@ -2460,7 +2464,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
                 </span>
                 <span style={{fontSize:9,color:C.tm,letterSpacing:'0.14em',fontWeight:700,lineHeight:1}}>WEEK</span>
               </span>}
-              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm,lineHeight:1}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> LEFT</span>
+              <span style={{fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',color:C.tm,lineHeight:1,flexShrink:0}}><span style={{color:C.ac,fontVariantNumeric:'tabular-nums'}}>{blockLeft}</span> LEFT</span>
             </div>
           );
 
