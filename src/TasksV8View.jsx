@@ -1144,6 +1144,46 @@ function CommentsThread({ noteId, viewer }) {
   // which misattributes every action. Identity comes from auth, not a button.
   const author = viewer === 'yuval' ? 'yuval' : 'ohad';
   const [busy, setBusy] = useState(false);
+  // @-mention autocomplete. The placeholder advertised "@ohad @yuval to mention"
+  // but nothing ever listened for '@' — mentions were only parsed at submit
+  // time by a regex, so typing '@' did nothing (Ohad, 2026-07-22). This wires
+  // the interactive menu. Candidates are the two coaches, matching the storage/
+  // notify regex in coachNoteComments (MENTION_RE = /@(ohad|yuval)/).
+  const taRef = useRef(null);
+  const [mention, setMention] = useState(null); // { query, start, index } | null
+  const MENTION_PEOPLE = [{ key: 'ohad', label: 'Ohad' }, { key: 'yuval', label: 'Yuval' }];
+  const mentionMatches = mention
+    ? MENTION_PEOPLE.filter(p => {
+        const q = mention.query.toLowerCase();
+        return p.key.startsWith(q) || p.label.toLowerCase().startsWith(q);
+      })
+    : [];
+  const autosize = (el) => { if (el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 160) + 'px'; } };
+  const detectMention = (value, caret) => {
+    // '@' before the caret with only word-chars after it = an in-progress
+    // mention. Anchored to start-or-whitespace so "a@b" (an email) never fires.
+    const m = /(?:^|\s)@(\w*)$/.exec(value.slice(0, caret));
+    setMention(m ? { query: m[1], start: caret - m[1].length - 1, index: 0 } : null);
+  };
+  const applyMention = (person) => {
+    if (!person) return;
+    const ta = taRef.current;
+    const caret = ta ? ta.selectionStart : draft.length;
+    const start = mention ? mention.start : draft.lastIndexOf('@');
+    const before = draft.slice(0, start);
+    const inserted = `@${person.key} `;
+    const next = before + inserted + draft.slice(caret);
+    setDraft(next);
+    setMention(null);
+    requestAnimationFrame(() => {
+      if (taRef.current) {
+        const pos = (before + inserted).length;
+        taRef.current.focus();
+        taRef.current.setSelectionRange(pos, pos);
+        autosize(taRef.current);
+      }
+    });
+  };
   if (!available) {
     // Migration not applied — render an actionable hint with a one-click
     // copy + a direct link to Supabase Studio SQL Editor. Avoids the
@@ -1247,10 +1287,21 @@ function CommentsThread({ noteId, viewer }) {
         {/* Multi-line comment box (Yuval: "Enter didn't work"). Enter now adds
             a newline; ⌘/Ctrl+Enter or the Send button posts. Auto-grows with
             content up to a cap, then scrolls. */}
-        <textarea value={draft} rows={1}
-          onChange={(e) => { setDraft(e.target.value); e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px'; }}
+        <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+        <textarea value={draft} rows={1} ref={taRef}
+          onChange={(e) => { setDraft(e.target.value); detectMention(e.target.value, e.target.selectionStart); autosize(e.target); }}
           onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(e); } }}
+          onBlur={() => setTimeout(() => setMention(null), 150)}
+          onKeyDown={(e) => {
+            // While the mention menu is open, arrows/enter/tab/esc drive it.
+            if (mention && mentionMatches.length) {
+              if (e.key === 'ArrowDown') { e.preventDefault(); setMention(mm => ({ ...mm, index: (mm.index + 1) % mentionMatches.length })); return; }
+              if (e.key === 'ArrowUp')   { e.preventDefault(); setMention(mm => ({ ...mm, index: (mm.index - 1 + mentionMatches.length) % mentionMatches.length })); return; }
+              if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); applyMention(mentionMatches[mention.index % mentionMatches.length]); return; }
+              if (e.key === 'Escape')    { e.preventDefault(); setMention(null); return; }
+            }
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); submit(e); }
+          }}
           placeholder="Add comment…  (Enter = new line · ⌘/Ctrl+Enter to send · @ohad @yuval to mention)"
           style={{
             flex: 1, background: 'transparent',
@@ -1259,6 +1310,19 @@ function CommentsThread({ noteId, viewer }) {
             padding: '7px 10px', borderRadius: 0, outline: 'none',
             resize: 'vertical', minHeight: 30, lineHeight: 1.4, boxSizing: 'border-box',
           }} />
+        {mention && mentionMatches.length > 0 && (
+          <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 2, zIndex: 40, minWidth: 170, background: 'var(--c-sf)', border: '1px solid var(--c-cardBd)', boxShadow: '0 6px 20px rgba(0,0,0,0.45)' }}>
+            {mentionMatches.map((p, i) => (
+              <button key={p.key} type="button"
+                onMouseDown={(e) => { e.preventDefault(); applyMention(p); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '7px 10px', background: i === (mention.index % mentionMatches.length) ? 'var(--c-sf2)' : 'transparent', border: 'none', cursor: 'pointer', fontFamily: FB, fontSize: 12, color: 'var(--c-tx)' }}>
+                <span style={{ width: 20, height: 20, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 0, background: p.key === 'yuval' ? YUVAL_COLOR : 'var(--c-ac)', color: '#FFFFFF', fontFamily: FN, fontSize: 10, fontWeight: 700 }}>{p.key === 'yuval' ? 'Y' : 'O'}</span>
+                <span>@{p.key} <span style={{ color: 'var(--c-td)', fontSize: 11 }}>· {p.label}</span></span>
+              </button>
+            ))}
+          </div>
+        )}
+        </div>
         <button type="submit" disabled={busy || !draft.trim()}
           style={{
             background: draft.trim() ? 'var(--c-ac)' : 'var(--c-sf2)',
@@ -2100,10 +2164,13 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
     // Same section iff the dragged task is one of the target section's rows.
     const sameSection = section.rows.some(r => r.id === d.id);
     if (!sameSection) {
-      // Only the BOARD lets a drag cross sections (changes status/category); the
-      // LIST restricts drag to reordering WITHIN a section (Ohad — change status
-      // via the row's status pill, not by dragging between titles).
-      if (view !== 'board') return;
+      // Cross-section drop = change the task's status (status grouping) or
+      // category (list grouping) to the target lane's. This now works in the
+      // LIST view too, not just the board: the default view is List grouped by
+      // status, so dragging a card between the visible status lanes is the
+      // natural gesture — the old "list drag only reorders" rule made that a
+      // silent no-op and read as "dragging is broken" (Ohad, 2026-07-22). Status
+      // can still be changed via the row's pill; drag is now an additional path.
       if (boardGroup === 'status' && section.statusId) await setStatus(d, section.statusId);
       else if (boardGroup === 'list') {
         if (section.key === 'center' && sourceKey(d) !== 'center') await setCategory(d, 'center');
@@ -2183,7 +2250,15 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
   // Move a task between General and Performance Center. Category = the 'center'
   // tag (sourceKey reads it); toggle it, preserving any other tags.
   const setCategory = async (row, cat) => {
-    const others = Array.isArray(row.tags) ? row.tags.filter(t => t !== 'center') : [];
+    // Strip the WHOLE center-tag family, not just the literal 'center'. sourceKey
+    // (line ~207) classifies a task as Performance Center if it has ANY of
+    // 'gym' / 'center' / 'gym:*' / 'center:*' (the gym subsystem writes the
+    // prefixed forms). The old filter removed only 'center', so moving a
+    // gym-tagged task to General left a 'gym'/'center:*' tag behind → sourceKey
+    // still returned 'center' → the row snapped back and the picker "did
+    // nothing" (Ohad). Now General clears every center-family tag.
+    const isCenterTag = (t) => t === 'center' || t === 'gym' || t.startsWith('gym:') || t.startsWith('center:');
+    const others = Array.isArray(row.tags) ? row.tags.filter(t => !isCenterTag(t)) : [];
     const newTags = cat === 'center' ? [...others, 'center'] : others;
     await update(row.id, { tags: newTags.length ? newTags : null });
   };
