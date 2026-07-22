@@ -330,10 +330,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // (clientId, plan.name, day.name, weekNum) so resuming the same day in the
   // same week brings back the in-progress entries.
   const sessionKey = `expo-stepLogger-${clientId}-${plan.name}-${day.name}-w${weekNum}`;
-  const _restoredSession = (() => {
+  // Memoized: this is read ONLY by useState initializers (first render). As a
+  // plain IIFE it re-ran localStorage.getItem + JSON.parse of the whole session
+  // draft on EVERY render — i.e. on every keystroke in a set input while the
+  // athlete logs. Keyed on sessionKey so it still refreshes when the day/week
+  // changes. (perf)
+  const _restoredSession = useMemo(() => {
     try { const raw = localStorage.getItem(sessionKey); return raw ? JSON.parse(raw) : null; }
     catch { return null; }
-  })();
+  }, [sessionKey]);
 
   // Per-session substitutions: { [originalEid]: libraryExercise }. Resets on
   // workout finish or if the trainee navigates away from this day. The
