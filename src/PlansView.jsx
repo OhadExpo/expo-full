@@ -451,30 +451,35 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
             invisible, so it opens the card along with the rows. */}
         {warmup.length > 0 && (() => {
           const anyOpen = warmup.some((_, i) => wuExpanded[i]);
+          // Mirror the DAY card header cluster EXACTLY (Ohad: "the buttons
+          // should be the same as in the day a card"): EXPAND ALL first
+          // (marginLeft:auto pushes the cluster right — warm-ups have no DAILY
+          // toggle to hold that slot), then the ⤴ copy + invisible × spacer as
+          // one icon pair, same 28×24 boxes and same height:24/padding:0 as the
+          // day card. Previously ⤴ sat BEFORE EXPAND ALL and EXPAND ALL used
+          // padding:'3px 0' instead of height:24 — different order AND height.
           return <>
-          {/* ⤴ copy the whole warm-up to another program — mirrors the day
-              card's ⤴ (Ohad: "share a warmup like a day"). */}
-          {onCopyWarmup && <button onClick={(e)=>{ e.stopPropagation(); onCopyWarmup(); }} title="Copy this warm-up to another program" aria-label="Copy warm-up to another program"
-            style={{ marginLeft:'auto', width:28, height:24, boxSizing:'border-box', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, color:C.ac, cursor:'pointer', fontSize:12, lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0, flexShrink:0 }}>⤴</button>}
           <button onClick={() => {
             if (!anyOpen && !open) setOpen(true);
             setWuExpanded(prev => { const next = { ...prev }; warmup.forEach((_, i) => { if (anyOpen) delete next[i]; else next[i] = true; }); return next; });
           }}
             title={anyOpen ? 'Collapse all warm-ups' : 'Expand all warm-ups to edit fully'}
-            style={{ marginLeft: onCopyWarmup ? 8 : 'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, padding:'3px 0', color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.14em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+            style={{ marginLeft:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, height:24, padding:0, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.14em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
             <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}>▾</span>
             {/* marginRight cancels the trailing letter-space (letterSpacing
                 adds 0.14em AFTER the last glyph too), so the arrow+text group
                 optically centres in the box instead of sitting ~1.4px left. */}
             <span style={{ marginRight:'-0.14em' }}>{anyOpen ? 'COLLAPSE ALL' : 'EXPAND ALL'}</span>
           </button>
-          {/* Invisible spacer mirroring the day cards' "× delete" slot
-              (line ~1311: fontSize 17, padding '0 4px') so the warm-up
-              EXPAND ALL right-edge lands in the SAME column as the day
-              cards' EXPAND ALL (which is pushed left by their × button).
-              The warm-up card has no delete of its own. visibility:hidden
-              keeps the box, drops the paint + pointer target. */}
-          <span aria-hidden style={{ visibility:'hidden', fontSize:17, lineHeight:1, padding:'0 4px', flexShrink:0, userSelect:'none' }}>×</span>
+          {/* ⤴ copy + hidden × spacer = the same icon-pair cluster the day
+              cards use, so the warm-up right edge lines up column-for-column.
+              Warm-up has no delete, so the × slot is a hidden 28×24 box (not a
+              text spacer) — identical geometry to the day card's × button. */}
+          <div style={{ display:'inline-flex', gap:4, flexShrink:0, alignItems:'center' }}>
+            {onCopyWarmup && <button onClick={(e)=>{ e.stopPropagation(); onCopyWarmup(); }} title="Copy this warm-up to another program" aria-label="Copy warm-up to another program"
+              style={{ width:28, height:24, boxSizing:'border-box', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, color:C.ac, cursor:'pointer', fontSize:12, lineHeight:1, display:'inline-flex', alignItems:'center', justifyContent:'center', padding:0 }}>⤴</button>}
+            <span aria-hidden style={{ width:28, height:24, boxSizing:'border-box', visibility:'hidden', flexShrink:0 }}>×</span>
+          </div>
           </>;
         })()}
       </div>
@@ -2936,8 +2941,13 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             // Orphan (active athlete, no program) — dashed card mirroring the
             // table's zero-state row.
             if (row.orphan) {
+              // minHeight matches a real collapsed card (measured 186px on the
+              // live grid). Grid auto-stretch already equalises an orphan that
+              // shares a row with a full card, so only a LONE orphan (a trailing
+              // row by itself) was short — this makes it match the rest.
+              // border-box so 186 is the outer height, padding included.
               return (
-                <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,minHeight:120}}>
+                <div key={row.tid} data-prog-card={row.tid} style={{background:'var(--c-sf)',border:'0.25px dashed rgba(255,165,2,0.502)',borderRadius:0,padding:'14px',display:'flex',flexDirection:'column',gap:12,minHeight:186,boxSizing:'border-box'}}>
                   <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em'}}><bdi>{row.name}</bdi></div>
                   <div style={{fontSize:11,color:C.or,fontFamily:FN,letterSpacing:'0.18em',textTransform:'uppercase',fontWeight:700}}>No program assigned</div>
                   <div style={{flex:1}} />
