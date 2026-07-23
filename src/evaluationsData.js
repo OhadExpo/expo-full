@@ -41,9 +41,13 @@ export function useTraineeEvaluations(traineeId) {
       trainee_id: traineeId,
       eval_date: input.eval_date,
       eval_time: input.eval_time || null,
-      age: input.age != null ? Number(input.age) : null,
-      height_cm: input.height_cm != null ? Number(input.height_cm) : null,
-      weight_kg: input.weight_kg != null ? Number(input.weight_kg) : null,
+      // `Number(x) || null` (matching the update path): the editor initializes
+      // these to '' , and '' != null is true, so the old `!= null ? Number(x)`
+      // stored Number('')===0 → a blank eval showed "AGE 0 · HT 0cm · WT 0kg".
+      // Empty stays empty (0 is never a valid age/height/weight anyway).
+      age: Number(input.age) || null,
+      height_cm: Number(input.height_cm) || null,
+      weight_kg: Number(input.weight_kg) || null,
       scores: input.scores || {},
       rom: input.rom || {},
       notes: input.notes || null,
@@ -60,8 +64,11 @@ export function useTraineeEvaluations(traineeId) {
     if ('height_cm' in dbPatch && dbPatch.height_cm !== null) dbPatch.height_cm = Number(dbPatch.height_cm) || null;
     if ('weight_kg' in dbPatch && dbPatch.weight_kg !== null) dbPatch.weight_kg = Number(dbPatch.weight_kg) || null;
     const { error } = await supabase.from('trainee_evaluations').update(dbPatch).eq('id', id);
-    if (error) { console.warn('trainee_evaluations update failed:', error.message); return; }
+    // Return a success flag (like create returns the row/null) so callers can
+    // tell a failed save from a good one instead of always reading "done".
+    if (error) { console.warn('trainee_evaluations update failed:', error.message); return false; }
     setRows(prev => prev.map(r => r.id === id ? { ...r, ...dbPatch } : r));
+    return true;
   }, []);
 
   const remove = useCallback(async (id) => {

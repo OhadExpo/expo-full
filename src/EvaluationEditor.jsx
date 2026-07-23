@@ -402,11 +402,15 @@ export default function EvaluationEditor({ trainee, existing, onSave, onClose })
 
   const save = async () => {
     const scoresOut = Object.keys(exNotes).length ? { ...scores, __notes: exNotes } : scores;
-    await onSave({
+    // onSave is create (row|null) or update (true|false). Only close on a
+    // confirmed write — closing unconditionally on a swallowed failure lost the
+    // whole eval (every score + ROM) while reading as success.
+    const ok = await onSave({
       eval_date: evalDate, eval_time: evalTime || null,
       age, height_cm: heightCm, weight_kg: weightKg,
       scores: scoresOut, rom, notes: notes || null,
     });
+    if (!ok) { toast('Could not save the evaluation — check your connection and try again.', 'error', { ttl: 5000 }); return; }
     onClose();
   };
 

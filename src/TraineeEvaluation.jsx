@@ -265,14 +265,18 @@ export default function TraineeEvaluation({ trainee }) {
   const onSaveJump = async (j) => {
     const today = new Date().toISOString().slice(0, 10);
     const powerNote = j.powerW ? ` · peak power ${j.powerW}W (${j.powerWkg}W/kg @ ${j.bodyweightKg}kg)` : '';
-    await create({
+    // create() returns the row on success, null on a swallowed insert failure.
+    // Toasting "Saved" unconditionally meant a failed insert (RLS/offline) lost
+    // the measured jump while the coach saw a green confirmation.
+    const saved = await create({
       eval_date: today,
       ...(j.bodyweightKg ? { weight_kg: j.bodyweightKg } : {}),
       scores: { svj: String(j.heightCm) },
       notes: `Vertical jump ${j.heightCm}cm — camera (flight ${j.flightMs}ms, peak rise ${j.peakRiseCm}cm)${powerNote}.`,
     });
     setCameraTest(false);
-    toast(`Saved ${j.heightCm}cm vertical jump to evaluation`, 'success', { ttl: 4000 });
+    if (saved) toast(`Saved ${j.heightCm}cm vertical jump to evaluation`, 'success', { ttl: 4000 });
+    else toast('Could not save the jump — check your connection and try again.', 'error', { ttl: 5000 });
   };
 
   // Prefill the jump-power bodyweight from the most recent evaluation that has one.
