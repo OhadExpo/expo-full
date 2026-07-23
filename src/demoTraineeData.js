@@ -168,4 +168,15 @@ export const DEMO_WEEKLY_FOCUS = {
   'Block #4 — Hypertrophy|Day C — Legs|ex_aiqevttcg7umobz1x89|W1': 'Knee tracks toe — keep the hinge dominant',
 };
 
+// Today's meals for the demo Meal Log tab (athlete_meals columns). demoMode
+// bypasses Supabase, so MealLogger seeds these directly. photo_url is null —
+// MealThumb renders a neutral tile rather than a broken image.
+const mealAt = (h, m) => new Date(daysAgo(0) + `T${h}:${m}:00`).toISOString();
+export const DEMO_MEALS = [
+  { id: 'meal_demo_1', trainee_id: 'tr_demo', created_at: mealAt('08', '15'), photo_url: null, kcal: 640, protein_g: 48, carbs_g: 70, fat_g: 18, notes: 'Oats, whey, banana, peanut butter', items: [{ name: 'Oats' }, { name: 'Whey' }, { name: 'Banana' }, { name: 'Peanut butter' }] },
+  { id: 'meal_demo_2', trainee_id: 'tr_demo', created_at: mealAt('13', '10'), photo_url: null, kcal: 820, protein_g: 55, carbs_g: 85, fat_g: 22, notes: 'Chicken, rice, salad', items: [{ name: 'Chicken breast' }, { name: 'White rice' }, { name: 'Salad + olive oil' }] },
+  { id: 'meal_demo_3', trainee_id: 'tr_demo', created_at: mealAt('16', '40'), photo_url: null, kcal: 320, protein_g: 30, carbs_g: 35, fat_g: 6, notes: 'Greek yogurt + berries', items: [{ name: 'Greek yogurt' }, { name: 'Mixed berries' }] },
+  { id: 'meal_demo_4', trainee_id: 'tr_demo', created_at: mealAt('20', '05'), photo_url: null, kcal: 780, protein_g: 52, carbs_g: 60, fat_g: 30, notes: 'Salmon, potatoes, veg', items: [{ name: 'Salmon fillet' }, { name: 'Roasted potatoes' }, { name: 'Steamed veg' }] },
+];
+
 export const DEMO_PORTAL_VIS = {};

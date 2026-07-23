@@ -13,6 +13,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { C, FN, FB } from './theme';
 import { supabase } from './supabase';
+import { DEMO_MEALS } from './demoTraineeData';
 
 const BUCKET = 'meal-photos';
 
@@ -51,6 +52,9 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
   const [day, setDay] = useState(todayISO());
 
   const loadDay = useCallback(async (iso) => {
+    // demoMode bypasses Supabase — seed today's meals so the nutrition feature
+    // (macros + day totals) is actually demonstrated instead of an empty tab.
+    if (demoMode) { setMeals(iso === todayISO() ? DEMO_MEALS : []); setError(null); return; }
     try {
       // athlete_meals columns: trainee_id, created_at, photo_url, kcal,
       // protein_g, carbs_g, fat_g, notes. There's no meal_date column, so
@@ -81,7 +85,7 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       setMeals([]);
       setError('Could not load this day — check your connection.');
     }
-  }, [clientId]);
+  }, [clientId, demoMode]);
 
   useEffect(() => { if (clientId) loadDay(day); }, [clientId, day, loadDay]);
 
@@ -507,6 +511,16 @@ function MacroInput({ label, value, onChange }) {
   );
 }
 
+// Saved meals always carry a photo in production (the save path requires one),
+// but the demo fixture and any legacy/photo-less row must not render a broken
+// <img>. Fall back to a neutral placeholder tile.
+function MealThumb({ url, size }) {
+  if (url) return <img src={url} alt="" style={{ width: size, height: size, objectFit: 'cover', flexShrink: 0 }} />;
+  return (
+    <div style={{ width: size, height: size, flexShrink: 0, background: 'var(--c-sf2)', border: `1px solid ${C.cardBd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FN, fontSize: Math.max(7, Math.round(size / 9)), fontWeight: 700, color: C.td, letterSpacing: '0.12em' }}>MEAL</div>
+  );
+}
+
 function MealRow({ meal, page = false }) {
   if (page) {
     return (
@@ -514,9 +528,7 @@ function MealRow({ meal, page = false }) {
         display: 'flex', gap: 12, padding: 10, marginBottom: 8,
         border: `1px solid ${C.cardBd}`, background: 'var(--c-sf)',
       }}>
-        <img src={meal.photo_url} alt="" style={{
-          width: 80, height: 80, objectFit: 'cover', flexShrink: 0,
-        }} />
+        <MealThumb url={meal.photo_url} size={80} />
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{
@@ -556,7 +568,7 @@ function MealRow({ meal, page = false }) {
     <div style={{
       display: 'flex', gap: 10, padding: '8px 0', borderBottom: `1px solid ${C.cardBd}`,
     }}>
-      <img src={meal.photo_url} alt="" style={{ width: 56, height: 56, objectFit: 'cover', flexShrink: 0 }} />
+      <MealThumb url={meal.photo_url} size={56} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.04em', fontWeight: 700 }}>
           {new Date(meal.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {meal.kcal} kcal
