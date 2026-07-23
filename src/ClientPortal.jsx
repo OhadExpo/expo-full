@@ -276,7 +276,10 @@ function GooglePhotosEmbed({ url }) {
       .then(({ ok, j }) => {
         if (!alive) return;
         const next = ok && j?.url ? { phase: 'ok', src: j.url, poster: j.poster || null } : { phase: 'err', error: j?.error || 'Cannot resolve video' };
-        _gphResolveCache.set(url, next);
+        // Cache SUCCESSES only — caching an error poisoned the URL so a single
+        // transient resolve failure showed "VIDEO COULD NOT BE EMBEDDED" forever
+        // until a hard reload (the trainee's exercise demo, gone until reload).
+        if (next.phase === 'ok') _gphResolveCache.set(url, next);
         setState(next);
       })
       .catch(e => { if (alive) setState({ phase: 'err', error: String(e?.message || e) }); });

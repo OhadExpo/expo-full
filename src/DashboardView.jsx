@@ -153,7 +153,10 @@ export default function DashboardView({ isOwner = true, trainees, planCounts, wo
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+    // Re-fetch when the realtime-driven payments array changes (e.g. a pending
+    // request flips to paid) — with [] the tile stayed stale until remount while
+    // the rest of the revenue card updated live.
+  }, [payments]);
 
   // Dropout risk: active clients who haven't trained in 14+ days
   const DROPOUT_DAYS = 14;

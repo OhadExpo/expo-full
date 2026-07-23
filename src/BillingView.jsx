@@ -120,7 +120,10 @@ export default function BillingView({ trainees }) {
             No payment requests yet. Tap "+ NEW REQUEST" to create one.
           </div>
         ) : requests.map(r => {
-          const t = traineesById[r.trainee_id];
+          // traineesById is keyed by parent id; a payment filed against a couple
+          // member (`<parent>__0/__1`) would otherwise miss and render the raw
+          // id string as the client name. Fall back to the stripped parent id.
+          const t = traineesById[r.trainee_id] || traineesById[String(r.trainee_id || '').replace(/__\d+$/, '')];
           const tone = r.status === 'paid' ? C.gn : r.status === 'canceled' ? C.tm : C.or;
           return (
             <div key={r.id} style={{

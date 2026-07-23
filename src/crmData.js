@@ -243,8 +243,12 @@ export function derivePaymentRisk(td, payments) {
   const lastPaid = mine.filter(p => p.status === 'Paid').map(p => p.date).pop()
     || td?.lastPayment || null;
 
-  // An explicit non-Paid status on the most recent charge = outstanding.
-  const latest = mine[mine.length - 1];
+  // An explicit non-Paid status on the most recent NON-CANCELED charge =
+  // outstanding. Canceled/voided requests are ignored — a coach canceling a
+  // mistakenly-created request must not flag a client (with a Paid history) as
+  // payment-at-risk. Fall through to the monthly-staleness check instead.
+  const isCanceled = s => /^cancel/i.test(String(s || ''));
+  const latest = [...mine].reverse().find(p => !isCanceled(p.status));
   if (latest && latest.status && latest.status !== 'Paid') {
     return { level: 'at-risk', label: `PAYMENT ${String(latest.status).toUpperCase()}`, lastPaid };
   }

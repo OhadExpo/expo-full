@@ -25,7 +25,11 @@ function GooglePhotos({ url }) {
       .then(({ ok, j }) => {
         if (!alive) return;
         const next = ok && j?.url ? { phase: 'ok', src: j.url, poster: j.poster || null } : { phase: 'err', error: j?.error || 'Cannot resolve' };
-        _gphCache.set(url, next);
+        // Cache SUCCESSES only. Caching an error poisoned the URL: a single
+        // transient /api/resolve-video failure (cold start / timeout / 429) was
+        // served from cache on every later render, so the video showed
+        // "NOT EMBEDDABLE" forever until a hard reload — re-pasting never retried.
+        if (next.phase === 'ok') _gphCache.set(url, next);
         setState(next);
       })
       .catch(e => { if (alive) setState({ phase: 'err', error: String(e?.message || e) }); });
