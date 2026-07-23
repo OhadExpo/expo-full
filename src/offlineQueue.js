@@ -42,7 +42,10 @@ export function registerHandler(type, fn) {
   handlers[type] = fn;
 }
 
-export function enqueue({ type, payload, dedupeKey }) {
+// `critical: true` marks a data-bearing write (a logged workout, a weigh-in)
+// that must NEVER be silently dropped. On repeated transient failure such an
+// entry is PARKED (kept + retried) instead of discarded after MAX_ATTEMPTS.
+export function enqueue({ type, payload, dedupeKey, critical }) {
   const q = read();
   let next = q;
   if (dedupeKey) {
@@ -53,6 +56,7 @@ export function enqueue({ type, payload, dedupeKey }) {
     type,
     payload,
     dedupeKey: dedupeKey || null,
+    critical: !!critical,
     attempts: 0,
     lastError: null,
     createdAt: Date.now(),
@@ -125,18 +129,32 @@ export async function drain() {
         if (target) {
           target.attempts = (target.attempts || 0) + 1;
           target.lastError = e?.message || String(e);
-          // Permanent errors: drop now, surface a toast, and keep draining the
-          // rest of the queue — don't let a bad payload hold up unrelated work.
-          if (isPermanent(e) || target.attempts >= MAX_ATTEMPTS) {
+          // Permanent errors (RLS/constraint/auth) can never succeed — drop now,
+          // toast, and keep draining the rest. A non-critical op that exhausts
+          // its retries is also dropped (its loss is tolerable).
+          if (isPermanent(e) || (target.attempts >= MAX_ATTEMPTS && !target.critical)) {
             const filtered = cur.filter(x => x.id !== next.id);
             write(filtered);
             if (onErrorHook) {
               try { onErrorHook({ type: next.type, payload: next.payload, msg: target.lastError }); } catch {}
             }
             continue;
-          } else {
-            write(cur);
           }
+          if (target.attempts >= MAX_ATTEMPTS && target.critical) {
+            // Data-bearing write on a flaky connection: NEVER drop it. Park it —
+            // rotate to the tail so it can't head-of-line-block other ops, keep
+            // it queued to retry on the next online/interval/visibility trigger,
+            // and surface ONCE so the athlete knows it's still saving. The full
+            // row lives in the payload, so nothing is lost even across a reload.
+            const wasParked = target.parked;
+            const rest = cur.filter(x => x.id !== next.id);
+            write([...rest, { ...target, parked: true }]);
+            if (!wasParked && onErrorHook) {
+              try { onErrorHook({ type: next.type, payload: next.payload, msg: 'Still saving — will retry when the connection is back. (' + target.lastError + ')' }); } catch {}
+            }
+            break; // stop this pass; the parked op retries on the next trigger
+          }
+          write(cur);
         }
         break; // stop the drain; reschedule by online/interval
       }

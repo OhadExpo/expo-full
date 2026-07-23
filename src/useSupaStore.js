@@ -306,11 +306,11 @@ export function useSupaClientWorkouts(initial = []) {
       try {
         const { error } = await supabase.from('client_workouts').upsert(row);
         if (error) {
-          if (isTransient(error)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id });
+          if (isTransient(error)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id, critical: true });
           else emitSaveError({ key: 'client_workouts', op: 'save', msg: error.message || String(error) });
         }
       } catch (e) {
-        if (isTransient(e)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id });
+        if (isTransient(e)) enqueue({ type: 'client_workouts.upsert', payload: { row }, dedupeKey: w.id, critical: true });
         else emitSaveError({ key: 'client_workouts', op: 'save', msg: e?.message || 'save failed' });
       }
     }
@@ -445,11 +445,11 @@ export function useSupaBwLog(initial = []) {
       try {
         const { error } = await supabase.from('bw_logs').upsert(row, { onConflict: 'client_id,block_name,week' });
         if (error) {
-          if (isTransient(error)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey });
+          if (isTransient(error)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
           else emitSaveError({ key: 'bw_logs', op: 'save', msg: error.message || String(error) });
         }
       } catch (e) {
-        if (isTransient(e)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey });
+        if (isTransient(e)) enqueue({ type: 'bw_logs.upsert', payload: { row }, dedupeKey, critical: true });
         else emitSaveError({ key: 'bw_logs', op: 'save', msg: e?.message || 'save failed' });
       }
     }
