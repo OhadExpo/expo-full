@@ -543,8 +543,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const mine = (planName, dayName, week) =>
       (!planName || planName === plan?.name) && (!dayName || dayName === day?.name) && (week == null || week === weekNum + 1);
     // My current sets as a positional exercises[] list (index = exercise index).
+    // Blank untouched prefills (prefill && !done) — they're last week's suggestion
+    // carried into set 1, NOT something the athlete logged. Transmitting them as
+    // real values let a catch-up peer accept them as logged data and clear the
+    // prefill flag, so finish() no longer blanked them and they saved as phantom
+    // sets the athlete never performed. Mirrors finish()'s own prefill blanking.
     const snapshot = () => (allSetsRef.current || []).map((rows) => ({
-      sets: (rows || []).map(s => ({ reps: s.reps, load: s.load, rpe: s.rpe, done: s.done })),
+      sets: (rows || []).map(s => (s.prefill && !s.done)
+        ? { reps: '', load: '', rpe: '', done: false }
+        : { reps: s.reps, load: s.load, rpe: s.rpe, done: s.done }),
     }));
     const hasData = (exs) => exs.some(x => x.sets.some(s => s.reps || s.load || s.rpe || s.done));
     // Per-trainee topic so an athlete only ever joins their OWN room — another
