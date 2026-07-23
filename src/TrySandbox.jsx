@@ -598,7 +598,10 @@ function ClientPortalMock({ onPick }) {
 
   // ─── Program tab body (default) — mirror of ClientPortal `vw === 'prog'` ───
   const lb = bwData[bwData.length - 1]?.bw;
-  const unreadCoachNotes = HISTORY.reduce((a, h) => a + (h.coachNotes || 0), 0);
+  // notes live per-exercise inside each session (h.exercises[].notes), not as a
+  // session-level h.coachNotes — the old read was always undefined, so the
+  // "Ohad left N new notes" banner never rendered.
+  const unreadCoachNotes = HISTORY.reduce((a, h) => a + (h.exercises || []).reduce((b, ex) => b + (ex.notes || 0), 0), 0);
   return (
     <div style={{ background: C.bg, color: C.tx, minHeight: '100vh', fontFamily: FB, maxWidth: 500, margin: '0 auto' }}>
       {renderTopHeader()}
