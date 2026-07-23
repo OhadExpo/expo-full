@@ -2045,10 +2045,10 @@ function DemoPrograms() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button style={{ ...baseBtn, background: C.ac, color: '#000' }}>+ ADD EXERCISE</button>
-        <button style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📋 DUPLICATE BLOCK</button>
-        <button style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📥 IMPORT XLSX</button>
-        <button style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📤 EXPORT</button>
+        <button title="Demo only" style={{ ...baseBtn, background: C.ac, color: '#000' }}>+ ADD EXERCISE</button>
+        <button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📋 DUPLICATE BLOCK</button>
+        <button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📥 IMPORT XLSX</button>
+        <button title="Demo only" style={{ ...baseBtn, background: 'transparent', color: C.tx, border: `1px solid ${C.bd}` }}>📤 EXPORT</button>
       </div>
     </section>
   );
