@@ -285,7 +285,11 @@ const ruleFormVideoPending = {
       if (!Array.isArray(w.formVideos)) continue;
       if (w.reviewedAt) continue;                // already reviewed → no task
       if (daysAgo(w.date) < 1) continue;         // give the coach 24h
-      const t = trainees.find(tt => tt.id === w.clientId);
+      // Couple-aware, matching every other rule: a couple member's workout logs
+      // under `<parent>__0/__1`, which is in the parent's traineeIdsFor set but
+      // never equals a trainees[].id — direct equality skipped couples entirely,
+      // so a couple member's form videos never surfaced a review task.
+      const t = trainees.find(tt => traineeIdsFor(tt.id).includes(w.clientId));
       if (!t) continue;
       // A workout exists, so by definition the trainee isn't a ghost here.
       // Count unreviewed videos in this workout. Skip the workout entirely
@@ -607,6 +611,13 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
   // Phase A: compute desired open-task set
   const inserts = [];
   const bodyPatches = [];
+  // In-batch dedupe: `byKey` only reflects rows already in the DB, so two
+  // desired items with the SAME (kind, ref) this sync — e.g. a trainee with two
+  // reviewed intakes both emitting (eval_due_first_session, id) — would both be
+  // queued and collide on the unique index, and a multi-row INSERT aborts
+  // ENTIRELY on one 23505. That silently dropped every new auto-task across all
+  // rules. Guard so each key is queued at most once per sync.
+  const queuedKeys = new Set();
   for (const rule of RULES) {
     let desired = [];
     try { desired = rule.detect(ctx) || []; }
@@ -625,6 +636,8 @@ export async function syncAutoTasks({ trainees, plans, workouts, payments } = {}
         }
         continue;
       }
+      if (queuedKeys.has(key)) continue; // already queued this sync — see note above
+      queuedKeys.add(key);
       inserts.push({
         id: newAutoId(),
         body: d.body,

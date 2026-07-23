@@ -635,7 +635,7 @@ function AuthedApp() {
   const [clientWorkouts,setClientWorkouts,markWorkoutReviewed,updateFormVideos,deleteClientWorkout,cwL]=useSupaClientWorkouts([]);
   const [bwLog,setBwLog,bwL]=useSupaBwLog([]);
   const [weeklyFocus,setWeeklyFocus]=useSupaWeeklyFocus({});
-  const [portalVis,setPortalVis]=useSupaStore('expo-portal-vis',{});
+  const [portalVis,setPortalVis,,,setPortalVisLocal]=useSupaStore('expo-portal-vis',{});
   // Live portal-visibility sync: when the coach hides/shows a block, the
   // athlete's OPEN portal (and the coach's other devices) reflect it live
   // instead of on reload. Pure broadcast (no DDL); the athlete never sets it,
@@ -660,14 +660,18 @@ function AuthedApp() {
       if (disposed) return;
       ch = supabase.channel('portal-sync', { config: { private: true, broadcast: { self: false } } });
       ch.on('broadcast', { event: 'portal-vis' }, ({ payload }) => {
-        if (payload && payload.vis && typeof payload.vis === 'object') setPortalVis(payload.vis);
+        // Local-only: the coach who toggled already persisted it. Persisting
+        // again on the receiver is redundant, and on an athlete (no write RLS on
+        // the staff-locked store) it fired a false "SAVE FAILED" toast on every
+        // visibility toggle.
+        if (payload && payload.vis && typeof payload.vis === 'object') setPortalVisLocal(payload.vis);
       }).subscribe((status) => {
         if (status === 'CHANNEL_ERROR') console.warn('[portal-sync] channel not authorized');
       });
       portalVisChanRef.current = ch;
     })();
     return () => { disposed = true; portalVisChanRef.current = null; if (ch) supabase.removeChannel(ch); };
-  }, [setPortalVis]);
+  }, [setPortalVisLocal]);
   const setPortalVisSynced = useCallback((next) => {
     setPortalVis(prev => {
       const resolved = typeof next === 'function' ? next(prev) : next;

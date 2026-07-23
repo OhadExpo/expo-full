@@ -223,7 +223,22 @@ export function useSupaStore(key, initial) {
     writeToSupa(val);
   }, [key, writeToSupa]);
 
-  return [data, save, loaded, loadError];
+  // Local-only setter: updates state + the localStorage snapshot but does NOT
+  // write to Supabase. For applying a value that arrived over realtime broadcast
+  // (the sender already persisted it) — persisting again on the receiver is
+  // redundant, and on a user without write RLS (e.g. an athlete receiving a
+  // coach's portal-visibility change) the failed upsert fires a false
+  // "SAVE FAILED" toast.
+  const saveLocal = useCallback((next) => {
+    const val = typeof next === 'function' ? next(dataRef.current) : next;
+    setData(val);
+    dataRef.current = val;
+    if (key !== 'expo-exercises' && key !== 'expo-trainees') {
+      try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    }
+  }, [key]);
+
+  return [data, save, loaded, loadError, saveLocal];
 }
 
 // Client workouts hook — uses dedicated table
