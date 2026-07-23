@@ -669,10 +669,14 @@ export default function TraineesView({ trainees, setTrainees, planCounts, paymen
             const couple = isCouple(t);
             const mpc = getMemberPlanCounts(t, planCounts);
             // Extract family name for couple cards (shared surname after ו)
-            const familyName = couple ? (t.name.match(/\s+(\S+)$/)?.[1] || '') : '';
+            const familyName = (couple && typeof t.name === 'string') ? (t.name.match(/\s+(\S+)$/)?.[1] || '') : '';
 
             if (couple) {
-              const [m0, m1] = t.members;
+              // couple detection is members.length===2; a null member element (or
+              // a non-string name above) would throw on m.name/.phone and blank
+              // the roster grid. Default to {} so a corrupt member renders empty.
+              const m0 = (t.members && t.members[0]) || {};
+              const m1 = (t.members && t.members[1]) || {};
               const online = isOnline(t.id, presence);
               const pay = getPaymentStatus(t, payments);
               const lastWk = getLastWorkoutLabel(t, workouts, clientWorkouts);

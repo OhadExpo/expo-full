@@ -3151,11 +3151,11 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
         return (
           <div style={{position:'fixed',zIndex:900,top:top,left:leftAnchored?Math.max(8,left):undefined,right:leftAnchored?undefined:Math.max(8,right),width:'min(440px,90vw)',background: isRefined5b() ? '#F0FAFF' : C.sf,border:`2px solid ${C.ac}`,borderRadius:0,padding:16,pointerEvents:'none',boxShadow: isRefined5b() ? '0 6px 16px rgba(0,0,0,0.10), 0 16px 40px rgba(0,0,0,0.18)' : `0 8px 32px ${C.shadow}`}}>
             <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:C.ac,letterSpacing:'0.04em',marginBottom:2}}>{previewPlan.name||"Untitled"}</div>
-            <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:12}}>{previewPlan.days.length} DAYS · {previewPlan.days.reduce((n,d)=>n+d.exercises.length,0)} EX{previewPlan.phase?` · ${previewPlan.phase}`:''}</div>
-            {previewPlan.days.map((d,di) => (
-              <div key={d.id} style={{marginBottom:10}}>
-                <div style={{fontFamily:FN,fontSize:10,fontWeight:700,color:C.tx,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>{d.name}</div>
-                {d.exercises.slice(0,8).map((pe,ei) => {
+            <div style={{fontFamily:FN,fontSize:10,color:C.tm,letterSpacing:'0.1em',textTransform:'uppercase',marginBottom:12}}>{(previewPlan.days||[]).length} DAYS · {(previewPlan.days||[]).reduce((n,d)=>n+((d?.exercises||[]).length),0)} EX{previewPlan.phase?` · ${previewPlan.phase}`:''}</div>
+            {(previewPlan.days||[]).map((d,di) => (
+              <div key={d?.id||di} style={{marginBottom:10}}>
+                <div style={{fontFamily:FN,fontSize:10,fontWeight:700,color:C.tx,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:4}}>{d?.name}</div>
+                {(d?.exercises||[]).filter(Boolean).slice(0,8).map((pe,ei) => {
                   const ex = exById(exercises).get(pe.exerciseId);
                   const title = ex?.title || pe.title || '—';
                   return (
@@ -3165,7 +3165,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                     </div>
                   );
                 })}
-                {d.exercises.length > 8 && <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:3}}>+{d.exercises.length-8} more</div>}
+                {(d?.exercises||[]).length > 8 && <div style={{fontSize:10,color:C.td,fontFamily:FN,marginTop:3}}>+{(d?.exercises||[]).length-8} more</div>}
               </div>
             ))}
           </div>

@@ -69,7 +69,7 @@ export default function CoachPreviewPortal({ traineeId, planId, trainees, exerci
     return () => { alive = false; };
   }, [traineeId, planId]);
 
-  const trainee = trainees.find(t => t.id === resolvedTraineeId);
+  const trainee = (trainees||[]).find(t => t.id === resolvedTraineeId);
 
   if (error) return <div style={{padding:40,textAlign:'center',color:C.rd}}>Failed to load: {error}</div>;
   if (plans === null) return <div style={{padding:40,textAlign:'center',color:C.tm,fontFamily:FN,letterSpacing:'0.18em'}}>LOADING PREVIEW…</div>;

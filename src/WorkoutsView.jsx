@@ -569,7 +569,7 @@ export default function WorkoutsView({ workouts, setWorkouts, planIndex, trainee
           current block); tap to reveal that block's day buttons. Replaces the
           old wall of full-height cards (every athlete's buttons + older-block
           bars on screen at once = too much). */}
-      {planIndex.length===0 ? (
+      {(planIndex||[]).length===0 ? (
         <div style={{color:C.td,fontSize:13,marginBottom:20}}>Create a plan first.</div>
       ) : (
         <div style={{marginBottom:24}}>
