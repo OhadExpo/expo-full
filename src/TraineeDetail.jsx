@@ -159,9 +159,16 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       } else {
         await addPayment({ traineeId: trainee, amount: payForm.amount, date: payForm.date, notes: payForm.notes, status: payForm.status });
       }
-    }catch(err){ console.warn('payment write failed:', err.message); }
-    setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
-    setShowPayForm(false);
+      // Only clear + close on a CONFIRMED write. Previously these ran after the
+      // catch unconditionally, so an RLS/network failure closed the modal and
+      // read as success — the coach believed money was logged when it wasn't,
+      // and the overdue/CRM signals then went wrong.
+      setPayForm({amount:"",date:new Date().toISOString().slice(0,10),notes:"",status:"Paid"});
+      setShowPayForm(false);
+    }catch(err){
+      console.warn('payment write failed:', err.message);
+      try { toast('Could not save the payment — try again.', 'error'); } catch { /* noop */ }
+    }
   };
   const handleEditPay=(p)=>{setPayForm({amount:p.amount,date:p.date,notes:p.notes||"",status:p.status});setEditPayId(p.id);setShowPayForm(true)};
   const handleDeletePay=async(pid)=>{ try { await removePayment(pid); } catch(err) { console.warn('payment delete failed:', err.message); } };

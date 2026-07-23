@@ -383,12 +383,19 @@ function GroupSessions({ trainees = [], planIndex = [], exercises = [], clientWo
         exercises: exList,
       };
     });
-    const next = session
-      ? { ...session, athletes: [...session.athletes, ...athletes] }
+    // Merge onto the LATEST session via the ref, not the render-closure
+    // `session` captured before the `await` above: a portal 'athlete-set'
+    // broadcast (or another coach's edit) can land during the plans fetch, and
+    // building `next` from the stale closure would drop that just-synced set
+    // from the screen AND re-broadcast the stale state to every device (audit F3
+    // — same class already fixed in `mutate`).
+    const base = sessionRef.current;
+    const next = base
+      ? { ...base, athletes: [...base.athletes, ...athletes] }
       : { id: uid(), startedAt: new Date().toISOString(), athletes };
     persist(next);
     setPicking(false);
-  }, [session, persist, exById]);
+  }, [persist, exById]);
 
   const finishSession = useCallback(async () => {
     if (!session) return;
