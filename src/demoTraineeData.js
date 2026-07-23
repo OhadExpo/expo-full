@@ -179,4 +179,14 @@ export const DEMO_MEALS = [
   { id: 'meal_demo_4', trainee_id: 'tr_demo', created_at: mealAt('20', '05'), photo_url: null, kcal: 780, protein_g: 52, carbs_g: 60, fat_g: 30, notes: 'Salmon, potatoes, veg', items: [{ name: 'Salmon fillet' }, { name: 'Roasted potatoes' }, { name: 'Steamed veg' }] },
 ];
 
+// Coach<->athlete thread for the demo Messages tab (coach_messages columns:
+// sender_role/body_text/audio_url/duration_sec/created_at). demoMode bypasses
+// Supabase, so CoachMessages seeds these directly.
+const hoursAgo = n => new Date(today.getTime() - n * 3600000).toISOString();
+export const DEMO_MESSAGES = [
+  { id: 'msg_demo_1', trainee_id: 'tr_demo', sender_role: 'coach', body_text: 'Great work on the bench this week — those ISO holds are paying off. Keep the eccentric controlled on the trap-bar pulls.', audio_url: null, duration_sec: null, created_at: hoursAgo(50) },
+  { id: 'msg_demo_2', trainee_id: 'tr_demo', sender_role: 'athlete', body_text: 'Thanks! Felt strong. Knee held up fine on legs day.', audio_url: null, duration_sec: null, created_at: hoursAgo(49) },
+  { id: 'msg_demo_3', trainee_id: 'tr_demo', sender_role: 'coach', body_text: 'Perfect. Bumping the Day A top set next week — log your readiness (pain / sleep / energy) before you start so I can autoregulate it.', audio_url: null, duration_sec: null, created_at: hoursAgo(26) },
+];
+
 export const DEMO_PORTAL_VIS = {};

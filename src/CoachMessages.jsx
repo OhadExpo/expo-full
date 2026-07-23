@@ -14,6 +14,7 @@ import { C, FN, FB, FH } from './theme';
 import { supabase, SUPA_URL, SUPA_PUBLISHABLE_KEY } from './supabase';
 import { isRefined5b, RefinedHeaderStrip, toast, usePersistentState } from './ui';
 import { sendPush, isCoachMutedForAthlete } from './push';
+import { DEMO_MESSAGES } from './demoTraineeData';
 
 const isHebrew = (s) => /[֐-׿]/.test(s || '');
 const fmt = (iso) => {
@@ -240,6 +241,9 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
   const reqSeq = useRef(0);
   const reload = useCallback(async (showLoading = true) => {
     if (!traineeId) return;
+    // demoMode bypasses Supabase — seed a coach<->athlete thread so the
+    // Messages feature is demonstrated instead of an empty tab.
+    if (demoMode) { setRows(DEMO_MESSAGES); setLoading(false); return; }
     const seq = ++reqSeq.current;
     if (showLoading) setLoading(true);
     const { data, error } = await supabase
@@ -261,7 +265,7 @@ export default function CoachMessages({ traineeId, role = 'coach', recipientEmai
       setRows(data || []);
     }
     setLoading(false);
-  }, [traineeId]);
+  }, [traineeId, demoMode]);
 
   useEffect(() => { reload(); }, [reload]);
 
