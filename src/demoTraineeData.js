@@ -92,46 +92,58 @@ export const DEMO_PLANS = [
 const today = new Date();
 const daysAgo = n => { const d = new Date(today); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 
+// These rows are already in the CONSUMED (post-normalization) shape that
+// ClientPortal reads — camelCase keys, `exercises[]` each with per-set
+// {reps,load,rpe,done}, and autoregulation as {pain,sleep,energy} WORD levels
+// (ReadinessRow.CHECKIN_METRICS scale) — because demoMode bypasses Supabase and
+// the useSupaStore snake_case→camelCase mapper (which builds this shape from the
+// server row) never runs on demo data. The old snake_case + flat `sets` fixture
+// matched nothing: `w.clientId === ci` was false for every row, so History,
+// the Week-2 default, readiness rows and CheckinTrends were all empty.
+const sett = (reps, load, rpe) => ({ reps, load, rpe, done: true });
+
 export const DEMO_CLIENT_WORKOUTS = [
   {
     id: 'cw_demo_1',
-    client_id: 'tr_demo',
-    plan_id: 'plan_demo_active',
-    plan_name: 'Block #4 — Hypertrophy',
-    day_name: 'Day A — Push',
+    clientId: 'tr_demo',
+    planName: 'Block #4 — Hypertrophy',
+    dayName: 'Day A — Push',
     week: 2,
     date: daysAgo(2),
     notes: 'Felt strong on bench. ISO sets really cooked the chest.',
-    reviewed_at: null,
-    created_at: new Date(today - 2 * 86400000).toISOString(),
-    sets: [
-      { eid: 'e221', s_idx: 0, reps: '5', load: '85kg', rpe: '8' },
-      { eid: 'e221', s_idx: 1, reps: '5', load: '85kg', rpe: '8.5' },
-      { eid: 'e221', s_idx: 2, reps: '4', load: '85kg', rpe: '9' },
-      { eid: 'e33',  s_idx: 0, reps: '8', load: '75kg', rpe: '7' },
-      { eid: 'e33',  s_idx: 1, reps: '8', load: '75kg', rpe: '7.5' },
+    reviewedAt: null,
+    autoregulation: { pain: 'none', sleep: 'good', energy: 'good' },
+    formVideos: [],
+    exercises: [
+      { eid: 'e221', title: 'ISO BB Bench Press', prescribed: '3x5', substitution: null,
+        sets: [ sett('5', '82.5kg', '8'), sett('5', '82.5kg', '8.5'), sett('4', '82.5kg', '9') ] },
+      { eid: 'e33', title: 'BB Bench Press', prescribed: '3x8', substitution: null,
+        sets: [ sett('8', '72.5kg', '7'), sett('8', '72.5kg', '7.5'), sett('8', '72.5kg', '8') ] },
+      { eid: 'ex_d8yxfmm21mhmo7afevn', title: 'Tall-Kneeling DB OHP', prescribed: '3x10', substitution: null,
+        sets: [ sett('10', '22.5kg', '7'), sett('10', '22.5kg', '7.5'), sett('9', '22.5kg', '8') ] },
+      { eid: 'ex_d4vfns0625pmo7afevm', title: 'Seated Cable Facepull', prescribed: '3x15', substitution: null,
+        sets: [ sett('15', '25kg', '6'), sett('15', '25kg', '6.5'), sett('15', '27.5kg', '7') ] },
     ],
-    form_videos: [],
-    autoregulation: { painScore: '0', energyLevel: '4', sleepQuality: '4' },
   },
   {
     id: 'cw_demo_2',
-    client_id: 'tr_demo',
-    plan_id: 'plan_demo_active',
-    plan_name: 'Block #4 — Hypertrophy',
-    day_name: 'Day C — Legs',
+    clientId: 'tr_demo',
+    planName: 'Block #4 — Hypertrophy',
+    dayName: 'Day C — Legs',
     week: 2,
     date: daysAgo(5),
     notes: 'Trap-bar deficit feeling smoother. Knee no issues.',
-    reviewed_at: new Date(today - 4 * 86400000).toISOString(),
-    created_at: new Date(today - 5 * 86400000).toISOString(),
-    sets: [
-      { eid: 'ex_aiqevttcg7umobz1x89', s_idx: 0, reps: '5', load: '125kg', rpe: '7' },
-      { eid: 'ex_aiqevttcg7umobz1x89', s_idx: 1, reps: '5', load: '125kg', rpe: '7.5' },
-      { eid: 'e69',                     s_idx: 0, reps: '10 E', load: '20kg/hand', rpe: '8' },
+    reviewedAt: new Date(today - 4 * 86400000).toISOString(),
+    autoregulation: { pain: 'mild', sleep: 'good', energy: 'high' },
+    formVideos: [],
+    exercises: [
+      { eid: 'ex_aiqevttcg7umobz1x89', title: 'Deficit/Low-Handles Trap-Bar Deadlift', prescribed: '4x5', substitution: null,
+        sets: [ sett('5', '125kg', '7'), sett('5', '125kg', '7.5'), sett('5', '127.5kg', '8'), sett('5', '127.5kg', '8.5') ] },
+      { eid: 'e69', title: 'Walking DB Lunge', prescribed: '3x10 E', substitution: null,
+        sets: [ sett('10 E', '20kg/hand', '7'), sett('10 E', '20kg/hand', '7.5'), sett('10 E', '20kg/hand', '8') ] },
+      { eid: 'e63', title: 'Machine Leg Extension', prescribed: '3x12', substitution: null,
+        sets: [ sett('12', '60kg', '7'), sett('12', '65kg', '8'), sett('11', '65kg', '9') ] },
     ],
-    form_videos: [],
-    autoregulation: { painScore: '1', energyLevel: '5', sleepQuality: '4' },
   },
 ];
 
@@ -146,10 +158,14 @@ export const DEMO_BW_LOG = [
   { date: daysAgo(1),  clientId: DEMO_CLIENT_ID, week: 2, bw: 78.3, blockName: 'Block #4 — Hypertrophy', planId: 'plan_demo_active' },
 ];
 
+// Focus is keyed by its SOURCE week = (display human week − 1), 0-based
+// (ClientPortal.jsx:1579 `fwk = weekNum`). The demo default view is human
+// week 2 (weekNum 1) → the guidance shown there lives under W1, not W2. Keyed
+// W2, none of these ever rendered.
 export const DEMO_WEEKLY_FOCUS = {
-  'Block #4 — Hypertrophy|Day A — Push|e221|W2': 'Pause longer at lockout — really squeeze the lats',
-  'Block #4 — Hypertrophy|Day B — Pull|e201|W2': 'Slow the eccentric to a true 5 sec',
-  'Block #4 — Hypertrophy|Day C — Legs|ex_aiqevttcg7umobz1x89|W2': 'Knee tracks toe — keep the hinge dominant',
+  'Block #4 — Hypertrophy|Day A — Push|e221|W1': 'Pause longer at lockout — really squeeze the lats',
+  'Block #4 — Hypertrophy|Day B — Pull|e201|W1': 'Slow the eccentric to a true 5 sec',
+  'Block #4 — Hypertrophy|Day C — Legs|ex_aiqevttcg7umobz1x89|W1': 'Knee tracks toe — keep the hinge dominant',
 };
 
 export const DEMO_PORTAL_VIS = {};
