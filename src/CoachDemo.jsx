@@ -3005,11 +3005,15 @@ function DemoTasks() {
 
 // ── BILLING — mirrors src/BillingView.jsx (bit_payment_requests ledger).
 // Israeli VAT 18% → pre-VAT multiplier 0.8475. Static mock, no writes. ───────
+// Names + statuses mirror the roster (MOCK_TRAINEES): Hebrew names like the
+// rest of the demo (was Latin — the same people appeared in two scripts across
+// tabs), and each row's status matches that athlete's payment state (Noa PAID,
+// Gal OVERDUE→pending, the Yael+Idan couple PAID, split 600+600 = their ₪1,200).
 const DEMO_PAYMENTS = [
-  { id: 1, name: 'Noa Levi', amount: 600, status: 'pending', date: '2026-06-20', ref: 'June coaching' },
-  { id: 2, name: 'Gal Mizrahi', amount: 800, status: 'paid', date: '2026-06-15', ref: 'June + plan' },
-  { id: 3, name: 'Idan Cohen', amount: 600, status: 'pending', date: '2026-06-10', ref: 'June coaching' },
-  { id: 4, name: 'Yael Cohen', amount: 450, status: 'canceled', date: '2026-06-08', ref: 'Drop-in pack' },
+  { id: 1, name: 'נועה לוי', amount: 800, status: 'paid', date: '2026-06-20', ref: 'June coaching' },
+  { id: 2, name: 'גל מזרחי', amount: 800, status: 'pending', date: '2026-06-15', ref: 'June + plan' },
+  { id: 3, name: 'עידן כהן', amount: 600, status: 'paid', date: '2026-06-10', ref: 'June coaching (couple)' },
+  { id: 4, name: 'יעל כהן', amount: 600, status: 'paid', date: '2026-06-08', ref: 'June coaching (couple)' },
 ];
 const PAY_STATUS = { pending: { label: 'PENDING', color: C.or }, paid: { label: 'PAID', color: C.gn }, canceled: { label: 'CANCELED', color: C.td } };
 const fmtIls = (n) => `₪${Number(n).toLocaleString()}`;
