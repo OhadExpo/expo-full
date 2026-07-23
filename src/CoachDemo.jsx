@@ -217,6 +217,22 @@ function DemoDashboard({ onJumpToTrainee }) {
   const expiring = MOCK_TRAINEES.filter(t => t.sessionsLeft > 0 && t.sessionsLeft <= 2);
   const onlineNow = MOCK_TRAINEES.filter(t => t.online);
   const overdue = MOCK_TRAINEES.filter(t => t.payment === 'OVERDUE');
+  // Derive every headline number from the roster so the dashboard is internally
+  // consistent with the 8-athlete fixture (no hardcoded "3/4 · ₪2,800" that
+  // silently drifts when the roster changes). Active = status Active; collected
+  // = the PAID clients' monthly; outstanding = the OVERDUE clients' monthly.
+  const active = MOCK_TRAINEES.filter(t => t.status === 'Active');
+  const paying = MOCK_TRAINEES.filter(t => t.payment === 'PAID');
+  const num = n => Math.round(n).toLocaleString('en-US');
+  const nis = n => '₪' + num(n);
+  const mrr = active.reduce((s, t) => s + (t.monthly || 0), 0);
+  const collected30 = paying.reduce((s, t) => s + (t.monthly || 0), 0);
+  const outstandingAmt = overdue.reduce((s, t) => s + (t.monthly || 0), 0);
+  const avgTicket = paying.length ? collected30 / paying.length : 0;
+  const avgLtv = avgTicket * 10; // ~10-month mean tenure, plenty for a demo
+  const months6 = [['Jan', 2900], ['Feb', 3200], ['Mar', 2700], ['Apr', 3600], ['May', 3400], ['Jun', collected30]];
+  const barMax = Math.max(...months6.map(m => m[1]));
+  const collected90 = months6.slice(-3).reduce((s, m) => s + m[1], 0);
   return (
     <section>
 
@@ -226,10 +242,10 @@ function DemoDashboard({ onJumpToTrainee }) {
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
         gap: 10, marginBottom: 20,
       }}>
-        <StatCard label="Active Athletes" value="3" total="4" accent={C.gn} />
-        <StatCard label="Low Sessions" value="1" sub="≤ 2 LEFT" accent={C.or} />
-        <StatCard label="Estimated Monthly" value="₪2,800" accent={C.ac} />
-        <StatCard label="Collected MTD" value="₪1,800" sub="+12% vs last month" accent={C.gn} />
+        <StatCard label="Active Athletes" value={String(active.length)} total={String(MOCK_TRAINEES.length)} accent={C.gn} />
+        <StatCard label="Low Sessions" value={String(expiring.length)} sub="≤ 2 LEFT" accent={C.or} />
+        <StatCard label="Estimated Monthly" value={nis(mrr)} accent={C.ac} />
+        <StatCard label="Collected MTD" value={nis(collected30)} sub="+12% vs last month" accent={C.gn} />
       </div>
 
       {/* Incoming · 30D — funnel summary, mirrors the real dashboard section. */}
@@ -255,12 +271,12 @@ function DemoDashboard({ onJumpToTrainee }) {
         <div style={{ padding: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
             {[
-              ['MRR (ACTIVE)', '2,800', 'recurring committed', C.ac],
-              ['30D COLLECTED', '1,800', '+12% vs prev month', C.gn],
-              ['90D COLLECTED', '6,400', 'trailing 3 months', C.gn],
-              ['OUTSTANDING', '0', '0 pending requests', C.ac],
-              ['AVG LTV', '4,200', 'per paying client', C.ac],
-              ['AVG TICKET', '450', 'per payment row', C.ac],
+              ['MRR (ACTIVE)', num(mrr), 'recurring committed', C.ac],
+              ['30D COLLECTED', num(collected30), '+12% vs prev month', C.gn],
+              ['90D COLLECTED', num(collected90), 'trailing 3 months', C.gn],
+              ['OUTSTANDING', num(outstandingAmt), `${overdue.length} overdue client${overdue.length === 1 ? '' : 's'}`, outstandingAmt > 0 ? C.or : C.ac],
+              ['AVG LTV', num(avgLtv), 'per paying client', C.ac],
+              ['AVG TICKET', num(avgTicket), 'per paying client', C.ac],
             ].map(([lab, val, sub, col], i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 14px', border: `1px solid ${C.cardBd}`, background: C.sf }}>
                 <span style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700 }}>{lab}</span>
@@ -272,10 +288,10 @@ function DemoDashboard({ onJumpToTrainee }) {
           <div>
             <div style={{ fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em', fontWeight: 700, marginBottom: 8 }}>LAST 6 MONTHS · COLLECTED</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, alignItems: 'end', height: 90 }}>
-              {[['Jan', 1200], ['Feb', 1500], ['Mar', 900], ['Apr', 2100], ['May', 1700], ['Jun', 1800]].map(([m, v], i) => (
+              {months6.map(([m, v], i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4, height: '100%' }}>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                    <div style={{ width: '100%', height: `${Math.round(v / 2100 * 100)}%`, background: C.ac }} title={`${m} · ₪${v}`} />
+                    <div style={{ width: '100%', height: `${Math.round(v / barMax * 100)}%`, background: C.ac }} title={`${m} · ₪${num(v)}`} />
                   </div>
                   <div style={{ textAlign: 'center', fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.08em', fontWeight: 700 }}>{m}</div>
                 </div>
