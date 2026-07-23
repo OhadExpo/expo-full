@@ -53,14 +53,20 @@ export default function SwUpdateBanner() {
       try { return [...document.querySelectorAll('video')].some(v => v.srcObject instanceof MediaStream && !v.paused); }
       catch { return false; }
     };
+    // A form-video upload (compression + PUT) emits no input events and holds no
+    // live stream, so the idle timer could reload mid-upload and drop the clip
+    // before it lands in storage or the IDB blob queue. ClientPortal bumps this
+    // counter around the upload. Same "don't reload during active work" intent.
+    const uploadActive = () => { try { return (window.__expoUploadInFlight | 0) > 0; } catch { return false; } };
+    const busy = () => cameraActive() || uploadActive();
 
     // Apply when tab is backgrounded — typing definitely paused.
-    const onVis = () => { if (document.visibilityState === 'hidden' && !cameraActive()) tryUpdate('hidden'); };
+    const onVis = () => { if (document.visibilityState === 'hidden' && !busy()) tryUpdate('hidden'); };
     document.addEventListener('visibilitychange', onVis);
 
     // Idle timer: poll once per second; if no input for IDLE_MS, apply.
     const idle = setInterval(() => {
-      if (Date.now() - lastActivity >= IDLE_MS && !cameraActive()) tryUpdate('idle');
+      if (Date.now() - lastActivity >= IDLE_MS && !busy()) tryUpdate('idle');
     }, 1000);
 
     return () => {

@@ -1100,6 +1100,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       path = `${clientId}/${ts}-${rand}-form${ext}`;
 
       let publicUrl;
+      // Tell SwUpdateBanner an upload is in flight so its idle timer doesn't
+      // reload the page mid-upload (no input events + no live stream during a
+      // PUT would otherwise read as "stepped away") and drop the clip before it
+      // lands in storage or the IDB blob queue. Cleared in the finally below.
+      try { window.__expoUploadInFlight = (window.__expoUploadInFlight | 0) + 1; } catch { /* noop */ }
       try {
         const result = await uploadWithProgress(uploadBlob, path, contentType, pct => {
           setFv(prev => { const n=[...prev]; n[exIdx]={...n[exIdx], uploadProgress:pct}; return n; });
@@ -1120,6 +1125,8 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         // catch (which queues/retries) instead of marking uploaded with null.
         if (!urlData?.publicUrl) throw new Error('no public url after upload');
         publicUrl = urlData.publicUrl;
+      } finally {
+        try { window.__expoUploadInFlight = Math.max(0, (window.__expoUploadInFlight | 0) - 1); } catch { /* noop */ }
       }
 
       // Switch the video element to the cloud URL BEFORE revoking the preview
