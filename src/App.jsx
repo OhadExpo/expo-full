@@ -12,6 +12,7 @@ import { Btn, baseBtn, ToastHost, toast } from './ui';
 import BugReportButton from './BugReportButton';
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS } from './auth';
+import ErrorBoundary from './ErrorBoundary';
 // Lazy-load every heavy view so the initial bundle stays small.
 // Each tab fetches its own chunk on first navigation; subsequent visits use cache.
 //
@@ -1124,8 +1125,10 @@ function AuthedApp() {
   // Removing this attribute later will let the athlete portal follow the
   // user's preference.
   if (isClient) return (<div data-theme="dark" style={{ background: 'var(--c-bg)', color: 'var(--c-tx)', minHeight: '100vh' }}><Suspense fallback={<ViewFallback />}>
+    <ErrorBoundary inline>
     <ClientPortal clientId={clientId} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} bwLog={bwLog} setBwLog={setBwLog} weeklyFocus={weeklyFocus} setWeeklyFocus={setWeeklyFocus} portalVis={portalVis} trainerExercises={exercises} trainees={trainees} selfTrainee={clientTrainee} onDecrementSession={handleDecrementSession} signOut={signOut} updateFormVideos={updateFormVideos}
       onReturnToCoach={isBoth ? () => pickPortal('trainer') : null}/>
+    </ErrorBoundary>
   </Suspense></div>);
 
   // Role not resolved yet — the my_trainee() RPC is still in flight for a
@@ -1225,6 +1228,11 @@ function AuthedApp() {
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
+          {/* Per-tab boundary, keyed on `tab` so it resets on tab switch: a crash
+              in one view degrades to a recovery card while the nav + other tabs
+              stay usable, instead of the whole coach app going to the full-page
+              boundary. */}
+          <ErrorBoundary key={tab} inline>
           {tab==="dashboard"&&<DashboardView isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}
@@ -1249,6 +1257,7 @@ function AuthedApp() {
               gate is belt-and-suspenders so it can never render for anyone but
               Ohad. Athletes never reach the coach app at all. */}
           {(tab==="sessions"||tab==="sessionsSolo")&&isOwner&&<SessionsView mode={tab==="sessionsSolo"?"single":"group"} trainees={trainees} planIndex={planIndex} exercises={exercises} clientWorkouts={clientWorkouts} setClientWorkouts={setClientWorkouts} workouts={workouts} setWorkouts={setWorkouts} onDecrementSession={handleDecrementSession} />}
+          </ErrorBoundary>
         </Suspense>
       </main>
     </div>);

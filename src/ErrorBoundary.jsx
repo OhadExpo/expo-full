@@ -73,6 +73,33 @@ export default class ErrorBoundary extends React.Component {
   render() {
     if (!this.state.error) return this.props.children;
     const msg = (this.state.error && this.state.error.message) || String(this.state.error);
+    // Inline variant: a compact recovery card that sits INSIDE the content area
+    // instead of taking the full viewport, so a crash in one tab/subtree
+    // degrades to a card while the nav (outside this boundary) stays usable —
+    // the coach can switch tabs, the athlete's other data is untouched. Used
+    // per-route in App.jsx; keyed on the tab so switching tabs resets it.
+    if (this.props.inline) {
+      return (
+        <div style={{
+          maxWidth: 520, margin: '28px auto', padding: '22px 24px',
+          background: 'var(--c-sf, #111114)',
+          border: '1px solid var(--c-cardBd, #1F4A5C)',
+          fontFamily: "'Nord', 'DM Sans', sans-serif",
+        }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--c-rd, #FF4757)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 10 }}>THIS VIEW HIT AN ERROR</div>
+          <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--c-tm, #7a7a88)', lineHeight: 1.55 }}>
+            This section couldn't render. Switch away and back, or refresh — your other data is unaffected.
+          </p>
+          <div style={{ background: 'var(--c-bg, #0a0a0c)', border: '1px solid var(--c-cardBd, #1F4A5C)', padding: '8px 10px', marginBottom: 14, fontSize: 11, fontFamily: 'monospace', color: 'var(--c-rd, #FF4757)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 100, overflow: 'auto' }}>{msg}</div>
+          <button onClick={this.handleReload} style={{
+            padding: '10px 16px', background: 'transparent',
+            border: '1px solid var(--c-ac, #39BDFF)', color: 'var(--c-ac, #39BDFF)',
+            fontFamily: "'Nord', 'DM Sans', sans-serif", fontSize: 11, fontWeight: 700,
+            letterSpacing: '0.18em', textTransform: 'uppercase', cursor: 'pointer',
+          }}>↻ Refresh</button>
+        </div>
+      );
+    }
     // Use CSS vars (not C tokens from theme.js) — theme.js itself could be
     // the broken thing, but themes.css is loaded independently so var(--c-*)
     // still resolves in both light and dark. Fallbacks cover the case where
