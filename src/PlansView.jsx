@@ -2392,7 +2392,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     if (copy) toast(`Duplicated — "${copy.name}"`, 'success', { ttl: 3000 });
     else toast('Duplicate failed — the save was refused. See console.', 'error');
   };
-  const handleDelete = async (planId) => { await deletePlan(planId); setConfirmDelete(null); await reloadIndex(); };
+  const handleDelete = async (planId) => { const ok = await deletePlan(planId); setConfirmDelete(null); await reloadIndex(); if (!ok) { try { toast('Could not delete the program — try again.', 'error'); } catch { /* noop */ } } };
   // Delete from inside the editor (the DELETE button between PORTAL + Save).
   // Delete = a styled WEBSITE modal (not a Chrome dialog, Ohad) that needs the
   // coach to TYPE "delete" — second verification so a stray click can't wipe a
@@ -2414,8 +2414,9 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
       await editorApiRef.current?.flush?.();
       editorApiRef.current?.markClean?.();
     }
-    await deletePlan(id);
+    const ok = await deletePlan(id);
     if (fromEditor) handleCancel(); else await reloadIndex();
+    if (!ok) { try { toast('Could not delete the program — try again.', 'error'); } catch { /* noop */ } }
   };
   // SHARE → athlete picker → create a DUPLICATE of the program assigned to the
   // picked athlete (Ohad). They then have their own independent copy.
@@ -2424,9 +2425,14 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
     const { supabase: sb } = await import('./supabase');
     const { data } = await sb.from('plans').select('*').eq('id', shareTarget).single();
     if (data) {
-      await duplicatePlan({ id: data.id, name: data.name, traineeId: athlete.id, phase: data.phase, notes: data.notes, active: true, createdAt: data.created_at, days: data.data?.days || [], warmup: data.data?.warmup || [], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase });
+      // Check the write actually landed — duplicatePlan returns null on an RLS
+      // denial / network drop / blank-overwrite guard. Firing the success toast
+      // unconditionally told the coach the athlete had the program when the copy
+      // never happened.
+      const copy = await duplicatePlan({ id: data.id, name: data.name, traineeId: athlete.id, phase: data.phase, notes: data.notes, active: true, createdAt: data.created_at, days: data.data?.days || [], warmup: data.data?.warmup || [], weeks: data.data?.weeks, kind: data.data?.kind, isTemplatePurchase: data.data?.isTemplatePurchase });
       await reloadIndex();
-      try { toast(`Program copied to ${athlete.name}`, 'success', { ttl: 3000 }); } catch { /* noop */ }
+      if (copy) { try { toast(`Program copied to ${athlete.name}`, 'success', { ttl: 3000 }); } catch { /* noop */ } }
+      else { toast(`Could not copy the program to ${athlete.name} — try again.`, 'error'); }
     } else {
       toast('Share failed — could not load the program.', 'error');
     }
