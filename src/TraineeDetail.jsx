@@ -69,8 +69,11 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   const tpMember = (mi) => tp.filter(p => p.traineeId === trainee || p.traineeId === subMemberId(trainee, mi));
   // Couples: workouts/payments may be recorded against either parent or sub-member IDs.
   const _allIds = new Set(traineeIds);
-  const tw=workouts.filter(w=>_allIds.has(w.traineeId)&&w.status==="completed");
-  const tPay=payments.filter(p=>_allIds.has(p.traineeId));
+  // (x||[]): these props can be momentarily undefined during a realtime/offline
+  // reload; bare .filter here would throw and white-screen the whole coach app
+  // (other uses of the same props three lines away already guard with ||[]).
+  const tw=(workouts||[]).filter(w=>_allIds.has(w.traineeId)&&w.status==="completed");
+  const tPay=(payments||[]).filter(p=>_allIds.has(p.traineeId));
   // Portal-logged workouts (the trainee's own session logs from their portal).
   // We merge these with in-person `tw` for the Recent Workouts feed below —
   // without that merge, clients who train solo from the portal (Amit, Roey)

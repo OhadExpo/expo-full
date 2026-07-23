@@ -24,7 +24,7 @@
 //   updatePayment(id, patch) — UPDATE on bit_payment_requests
 //   removePayment(id) — DELETE on bit_payment_requests
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabase';
 
 const STATUS_LABEL = {
@@ -77,7 +77,11 @@ export default function useBitPayments() {
     return () => { try { supabase.removeChannel(channel); } catch {} };
   }, [reload]);
 
-  const payments = rows.map(adapt);
+  // Memoized on `rows`: a fresh array every render (adapt is a module-level
+  // pure fn) gave every consumer an unstable reference, so effects keyed on
+  // `payments` (e.g. DashboardView's outstanding-tile fetch) re-ran on EVERY
+  // parent render — query amplification. Stable identity unless rows change.
+  const payments = useMemo(() => rows.map(adapt), [rows]);
 
   const addPayment = useCallback(async ({ traineeId, amount, date, notes, status }) => {
     // Honor the form's Status selector (was hard-coded 'paid', so every

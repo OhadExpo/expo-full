@@ -703,7 +703,11 @@ function AuthedApp() {
     return (trainees || []).find(t => {
       if (!t.email) return false;
       const emails = Array.isArray(t.email) ? t.email : [t.email];
-      return emails.some(e => e.toLowerCase() === email);
+      // typeof guard: a null/non-string element inside a multi-email array
+      // (the `if(!t.email)` above only catches a top-level falsy) would throw on
+      // .toLowerCase() and white-screen the whole app shell (this runs in the
+      // shell on every trainees change).
+      return emails.some(e => typeof e === 'string' && e.toLowerCase() === email);
     }) || null;
   }, [trainees, email]);
   // Athletes can't read the full `expo-trainees` store under RLS (locked to

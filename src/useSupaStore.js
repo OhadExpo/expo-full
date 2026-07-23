@@ -130,8 +130,14 @@ export function useSupaStore(key, initial) {
     // the source of truth, and a stale localStorage blob here can overwrite fresh
     // server data during the brief window before the effect runs.
     if (key === 'expo-exercises' || key === 'expo-trainees') return initial;
-    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : initial; } catch { return initial; }
+    // Coerce a corrupt persisted blob back to the declared shape: if the caller
+    // declared an array store (initial is []) but the snapshot is a non-array
+    // (a real serial-corruption/blob-restore hazard in this app's history), a
+    // non-array here makes every downstream .map/.filter crash app-wide.
+    try { const s = localStorage.getItem(key); const p = s ? JSON.parse(s) : initial; return (Array.isArray(initial) && !Array.isArray(p)) ? initial : p; } catch { return initial; }
   });
+  // Same shape-guard for values loaded from Supabase / re-hydrated below.
+  const asShape = (v) => (Array.isArray(initial) && !Array.isArray(v)) ? initial : v;
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const dataRef = useRef(data);
@@ -146,17 +152,18 @@ export function useSupaStore(key, initial) {
         const { data: row, error } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
         if (error) throw error;
         if (row && row.value !== undefined && !savingRef.current) {
+          const val = asShape(row.value);
           if (key === 'expo-exercises') {
             // Yield so React doesn't block on committing a very large list.
             // Re-check savingRef INSIDE the timer: a save dispatched between the
             // outer guard and this macrotask would otherwise be clobbered back to
             // the stale server snapshot (data loss).
-            setTimeout(() => { if (!savingRef.current) { setData(row.value); dataRef.current = row.value; } }, 0);
+            setTimeout(() => { if (!savingRef.current) { setData(val); dataRef.current = val; } }, 0);
           } else {
-            setData(row.value);
-            dataRef.current = row.value;
+            setData(val);
+            dataRef.current = val;
             if (key !== 'expo-trainees') {
-              try { localStorage.setItem(key, JSON.stringify(row.value)); } catch {}
+              try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
             }
           }
         }
@@ -165,7 +172,7 @@ export function useSupaStore(key, initial) {
         // on a transient network blip.
         try {
           const s = localStorage.getItem(key);
-          if (s) { const parsed = JSON.parse(s); setData(parsed); dataRef.current = parsed; }
+          if (s) { const parsed = asShape(JSON.parse(s)); setData(parsed); dataRef.current = parsed; }
         } catch {}
         setLoadError(e?.message || 'load failed');
         console.warn(`useSupaStore[${key}] load failed:`, e?.message || e);

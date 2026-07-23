@@ -141,9 +141,14 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
     // athlete can log unlimited times (no day rotation, no week
     // structure, no warm-up). Everything else is undefined / 'standard'.
     kind: plan.kind || undefined,
-    warmup: Array.isArray(plan.warmup) ? plan.warmup : [],
-    days: (plan.days || []).map(d => {
-      const rawList = Array.isArray(d.exercises) ? d.exercises : (Array.isArray(d.ex) ? d.ex : []);
+    // filter(Boolean) at every seam: a null day / exercise / warm-up element
+    // (corrupt Drive import, half-deleted editor row, offline partial) would
+    // otherwise throw on `.exerciseId`/`.rx` and blank the ENTIRE athlete portal
+    // (this transform runs over every plan before any tab branches). Dropping a
+    // corrupt entry degrades gracefully instead of crashing every tab.
+    warmup: Array.isArray(plan.warmup) ? plan.warmup.filter(Boolean) : [],
+    days: (plan.days || []).filter(Boolean).map(d => {
+      const rawList = (Array.isArray(d.exercises) ? d.exercises : (Array.isArray(d.ex) ? d.ex : [])).filter(Boolean);
       const seenEid = new Map();   // #51: disambiguate the same exercise appearing twice in one day
       return {
         name: d.name,
@@ -1586,7 +1591,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const wrS = ex.wkS?.length > 0 ? (ex.wkS[weekNum] ?? ex.s) : null;
     const setsForDisplay = wrS ?? ex.s;
     const repsForDisplay = wr ?? ex.r;
-    const f = fv[ei];
+    // `|| {}`: fv is sized at mount, so if the coach adds an exercise to this day
+    // mid-session, day.ex grows past fv and fv[ei] is undefined — f.uploaded/.has
+    // would then throw and white-screen the workout (allSets[ei] was already
+    // guarded for this exact reshape; fv[ei] was the unguarded twin).
+    const f = fv[ei] || {};
     // Focus keys are client-scoped (`clientId|plan|day|eid|Wn`); the legacy
     // un-scoped key is kept as a read fallback for pre-scoping notes.
     // Focus is keyed by its SOURCE week N (written during week N to guide week
@@ -2280,7 +2289,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // now maps to a DIFFERENT day, this forces a fresh StepLogger so allSets is
     // rebuilt from the correct prescription instead of the old day's numbers
     // being saved onto the new day's exercises.
-    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${logWeek}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
+    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${targetPlan.days[targetDayIdx]?.name || ''}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,

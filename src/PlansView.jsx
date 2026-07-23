@@ -88,8 +88,11 @@ function useScrollbarInset(active) {
 function PatternCoverage({ plan, exercises, cols = 5 }) {
   const pats = useMemo(() => {
     const s = new Set();
-    plan.days.forEach(d => d.exercises.forEach(pe => {
-      const ex = exById(exercises).get(pe.exerciseId);
+    // Guard days/exercises (the one spot in the plan-render path that was missing
+    // the `||[]` its siblings use, :779/:1597) — a null day or missing exercises
+    // array would throw here during PlanEditor render and lose the coach's draft.
+    (plan.days || []).forEach(d => (d?.exercises || []).forEach(pe => {
+      const ex = exById(exercises).get(pe?.exerciseId);
       if (ex?.movementPattern) s.add(ex.movementPattern);
     }));
     return s;

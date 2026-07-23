@@ -229,11 +229,26 @@ async function attachUrl(workoutId, exerciseIndex, cloudUrl) {
   const patchedFv = await patchLocalCw(workoutId, exerciseIndex, cloudUrl);
   if (patchedFv) {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('client_workouts')
         .update({ form_videos: patchedFv })
-        .eq('id', workoutId);
+        .eq('id', workoutId)
+        .select('id');
       if (error) throw error;
+      if (!data || data.length === 0) {
+        // The row isn't on the server yet — an offline-finished workout whose own
+        // client_workouts.upsert hasn't drained. An .update() matching 0 rows
+        // returns NO error, so treating this as done would drop the blob while
+        // the later full-row upsert (form_videos snapshotted before this URL
+        // existed) overwrites it → orphaned bytes. Queue a durable form_videos
+        // update instead; the offlineQueue is FIFO so it lands AFTER the pending
+        // workout upsert (its update handler upserts-with-onConflict), URL last.
+        enqueueOp({
+          type: 'client_workouts.update',
+          payload: { id: workoutId, patch: { form_videos: patchedFv } },
+          dedupeKey: 'fv:' + workoutId,
+        });
+      }
     } catch {
       // Direct write flapped — hand it to the durable queue. Still "referenced":
       // the URL now lives in the persisted offlineQueue, so dropping the blob is
