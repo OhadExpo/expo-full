@@ -3,7 +3,7 @@
 // Full-bleed split screen. Two immersive panels, 50/50 on desktop and
 // stacked on mobile. Hovering one panel dims the other (cinema-curtain
 // reveal). Brand-tight: only the canonical EXPO palette (#000 bg, cyan
-// #39BDFF accent), Nord/JetBrains Mono typography, hairline cyan
+// #39BDFF accent), Nord + Heebo/DM Sans typography, hairline cyan
 // borders consistent with the rest of the platform.
 //
 // Routes:

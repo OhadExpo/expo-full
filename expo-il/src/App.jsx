@@ -49,7 +49,7 @@ function trackAndOpen(event, payload) {
 
 // Scroll-target sections that live ON the home/catalog view (have matching
 // id="…" elements). A bare `#<id>` for these must keep the home view mounted.
-const HOME_SECTIONS = new Set(['programs', 'why', 'how', 'contact', 'faq', 'discovery-call']);
+const HOME_SECTIONS = new Set(['programs', 'about', 'why', 'how', 'contact', 'faq', 'discovery-call']);
 
 function parseHash(hash) {
   const h = (hash || '').replace(/^#\/?/, '');
