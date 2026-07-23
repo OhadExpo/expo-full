@@ -80,6 +80,15 @@ Operating context: solo operator, ~20 clients, limited hours, no staff. Every ho
 
 This rule overrides any default eagerness to ship. When in doubt, branch + preview + ask.
 
+### Marketing + demo parity is part of EVERY app change (hard rule, 2026-07-22)
+
+Ohad's standing mandate: **whenever anything about the coach or athlete app changes — feature, behavior, or design, however minor — the marketing site (`expo-il/`) and the in-app demo surfaces (`/demo`, `/demo/coach`, `/demo/athlete`, `/try`) MUST be brought back into parity in the same piece of work. Forever. Every change.**
+
+- A coach/athlete change is **not "done"** until you have checked whether it affects what marketing or the demo shows, and updated them if so. Restate parity in your Definition-of-Done every time.
+- This is autonomous — do not ask whether to keep them in sync; keep them in sync. Only ask before the prod *deploy* (both sites are public), per the testing-env-first rule above.
+- The full how-to (surfaces, the real-platform baseline, the audit → fix-on-branch → verify → ask-to-deploy flow) is in the **`expo-site-parity` skill** — invoke it for any parity pass.
+- Not every change touches these (e.g. an internal RLS fix), but you must consciously decide that each time, not skip the check. When a change is user-visible (a new feature, a redesigned screen, renamed concepts, new copy), assume the marketing/demo need updating until you've confirmed otherwise.
+
 ### Verify before declaring done
 
 The primary failure mode Ohad penalizes: Claude deploys, claims success, Ohad finds it still broken.
