@@ -622,7 +622,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   };
   // Any edit means the athlete has taken ownership of this set — clear the
   // `prefill` mark so it's kept (and counts) as a real logged set.
-  const uSet = (ei,si,f,v) => {const n=[...allSets];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v,prefill:false};setAllSets(n);broadcastSet(ei,si,f,v)};
+  // Functional updater (not a spread of the `allSets` closure): a coach floor-
+  // screen edit can land via applyRemoteSet in the same tick, and a stale-closure
+  // write would clobber it (lost update in the very live-sync path this exists for).
+  const uSet = (ei,si,f,v) => {setAllSets(prev=>{const n=[...prev];n[ei]=[...n[ei]];n[ei][si]={...n[ei][si],[f]:v,prefill:false};return n;});broadcastSet(ei,si,f,v)};
 
   // Persist the in-progress session to localStorage on every state change.
   // Bundle once so the autosave hook has a single stable value to track.
@@ -2197,7 +2200,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     setClientWorkouts(prev => [...prev, w]);
     // Number.isFinite guard: type="number" still lets "e"/locale commas
     // through, and a NaN row poisons the BW chart min/max math.
-    if (bw && Number.isFinite(parseFloat(bw))) setBwLog(prev => {
+    if (bw && Number.isFinite(parseFloat(bw))) {
       // File under the block the BW BOX was displayed in — the active plan,
       // labeled "LOG W{wk+1} · {activePlan}" — because that's where the athlete
       // typed this weight. Filing under the COMPLETED workout's block instead
@@ -2207,10 +2210,18 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
       const blockName = activePlan?.name || w.planName || null;
       const wkNum = wk + 1;
       const planId = clientPlans.find(p => p.name === blockName)?.id || activePlan?.id || null;
-      if (!blockName) return prev;
-      const filtered = prev.filter(b => !(b.clientId === ci && b.blockName === blockName && b.week === wkNum));
-      return [...filtered, { date: new Date().toISOString(), clientId: ci, week: wkNum, bw: parseFloat(bw), blockName, planId }];
-    });
+      if (blockName) {
+        setBwLog(prev => {
+          const filtered = prev.filter(b => !(b.clientId === ci && b.blockName === blockName && b.week === wkNum));
+          return [...filtered, { date: new Date().toISOString(), clientId: ci, week: wkNum, bw: parseFloat(bw), blockName, planId }];
+        });
+        // Clear the box so this weigh-in isn't silently re-filed under the next
+        // week/block on subsequent workout completions (the SAVE button clears
+        // too; without this, one typed weigh-in became phantom points across
+        // multiple weeks as `wk` advanced after each completion).
+        setBw('');
+      }
+    }
     if(onDecrementSession && ci) onDecrementSession(ci);
     // Notify the coach. Fire-and-forget — push never blocks the
     // post-workout UI. Tag includes the workout id so two devices on
@@ -2247,7 +2258,12 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // current week, not the active block's — else a multi-plan athlete's
     // workout lands under the wrong week (done/AGAIN badge + ghosts too).
     const logWeek = (targetPlan.name === activePlan?.name) ? wk : deriveWeekIdx(targetPlan, cw);
-    return <StepLogger day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
+    // key by the day's IDENTITY (plan + day index + week), not the flat `lg`
+    // index: if portalVis updates over realtime mid-session and the same `lg`
+    // now maps to a DIFFERENT day, this forces a fresh StepLogger so allSets is
+    // rebuilt from the correct prescription instead of the old day's numbers
+    // being saved onto the new day's exercises.
+    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${logWeek}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,
