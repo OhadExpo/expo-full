@@ -184,7 +184,18 @@ export default function BookingPublic() {
       // Public page — keep the detail in the console, show the anon visitor a
       // generic message so a raw Supabase/schema error never leaks. (security)
       console.error('booking failed', e);
-      toast('Booking failed — please try again, or contact us directly.', 'error');
+      // Once the recommended partial-unique index on (coach_email, start_at)
+      // WHERE status='confirmed' is in place, a slot taken between the visitor's
+      // snapshot and submit rejects with 23505 — tell them it's taken and mark
+      // the slot occupied so it greys out, instead of a generic "try again".
+      const dup = /duplicate key|23505|already exists|unique/i.test(`${e?.message || ''} ${e?.code || ''}`);
+      if (dup) {
+        toast('That time was just booked — please pick another slot.', 'error');
+        setOccupied(prev => [...prev, { start_at: selectedSlot.toISOString() }]);
+        setSelectedSlot(null);
+      } else {
+        toast('Booking failed — please try again, or contact us directly.', 'error');
+      }
     } finally {
       setSubmitting(false);
     }
