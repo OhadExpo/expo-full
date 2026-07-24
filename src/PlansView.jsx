@@ -575,7 +575,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
                           <label style={{ fontSize: 11, fontWeight: 600, color: C.tm, textTransform: 'uppercase', fontFamily: FN }}>Video</label>
                           <Input value={w.vid || ''} onChange={e => update(i, { vid: e.target.value })}
-                            onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update(i, { vid: resolved }); }}
+                            onBlur={async e => { const original = e.target.value; const resolved = await maybeResolveGooglePhotos(original); if (resolved !== original) setPlan(p => { const cur = (p.warmup || [])[i]; if (!cur || (cur.vid ?? '') !== original) return p; return { ...p, warmup: p.warmup.map((w2, j) => j === i ? { ...w2, vid: resolved } : w2) }; }); }}
                             placeholder="📹 Video URL" />
                         </div>
                       </div>
@@ -1008,7 +1008,7 @@ function newLibExercise({ title, videoLink, cues }) {
 // abstracts the day/exercise write so either view can drive it.
 // `exercises`/`setExercises` (when passed) enable the two library-write buttons
 // so the coach can push this row's edits back to the Exercise Database.
-function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker = null, exercises = null, setExercises = null }) {
+function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, showEmbed = true, picker = null, exercises = null, setExercises = null }) {
   const libCues = exData?.cues || '';
   const hasNoteOverride = !!ex.notesEdited || !!(ex.notes && ex.notes.length > 0);
   const noteValue = hasNoteOverride ? (ex.notes || '') : libCues;
@@ -1088,7 +1088,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, showEmbed = true, picker 
           <div style={{display:'flex',flexDirection:'column',gap:4,minWidth:0}}>
             <label style={{fontSize:11,fontWeight:600,color:C.tm,textTransform:'uppercase',fontFamily:FN}}>Video</label>
             <Input value={vidValue} onChange={e=>update({videoUrl:e.target.value})}
-              onBlur={async e => { const resolved = await maybeResolveGooglePhotos(e.target.value); if (resolved !== e.target.value) update({ videoUrl: resolved }); }}
+              onBlur={async e => { const original = e.target.value; const resolved = await maybeResolveGooglePhotos(original); if (resolved !== original) { if (onResolveVideo) onResolveVideo(original, resolved); else update({ videoUrl: resolved }); } }}
               placeholder="📹 Video URL" />
           </div>
         </div>
@@ -1764,6 +1764,15 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     const title = exData?.title || ex.title || (ex.notes?.match(/^\[(.+)\]$/)?.[1]) || '(unresolved)';
                     const sc = supersetColor(ex.superset);
                     const update = (u) => updateExInDay(dayIdx, exIdx, u);
+                    // Guarded video-URL apply: maybeResolveGooglePhotos awaits ~1-3s,
+                    // so a reorder/delete during it would make the frozen exIdx write
+                    // the resolved video onto a DIFFERENT exercise. Only apply if this
+                    // slot still holds the exact URL we started resolving.
+                    const onResolveVideo = (original, resolved) => setPlan(p => {
+                      const cur = p.days?.[dayIdx]?.exercises?.[exIdx];
+                      if (!cur || (cur.videoUrl ?? cur.vid ?? '') !== original) return p;
+                      return { ...p, days: p.days.map((d, i2) => i2 === dayIdx ? { ...d, exercises: (d.exercises || []).map((e, j2) => j2 === exIdx ? { ...e, videoUrl: resolved } : e) } : d) };
+                    });
                     // While a drag is live in this day, render expanded rows
                     // as collapsed (the panel animates shut via its 0fr/1fr
                     // transition) so the drag gets the same clean gap-line
@@ -1858,7 +1867,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                               + the polished notes/video block (ExEditorExtras). The
                               picker renders INSIDE extras, on one row with the
                               video URL (50/50, aligned with notes/thumb below). */}
-                          <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} showEmbed={exOpen}
+                          <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} onResolveVideo={onResolveVideo} showEmbed={exOpen}
                             exercises={exercises} setExercises={setExercises}
                             picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})}
                               onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name }); }) : undefined}
