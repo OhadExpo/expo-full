@@ -73,7 +73,11 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
     // NOT also prepend the flat sets count — "3 × 2x10 e" tells the athlete to do
     // 3× a 2×10 (6 working sets) instead of the intended 2×10. Mirrors rxOf's
     // /[x×]/ guard on the overview surface so the two screens agree.
-    const combined = /[×x]/i.test(rStr);
+    // "combined" = reps is ITSELF a full N×M prescription ("2x10 e"), where
+    // prepending the flat sets would double-count. Must match ONLY a real
+    // set-count prefix (a leading number then ×/x) — NOT a stray letter x in a
+    // word like "max"/"max reps" (that regressed "3 × max" down to just "max").
+    const combined = /^\s*\d+\s*[×x]/i.test(rStr);
     const txt = (combined ? rStr : [sStr, rStr].filter(Boolean).join(' × ')) || '—';
     return <div style={{ fontSize: 15, color: C.ac, fontWeight: 700, fontFamily: FN, textAlign: 'center' }}>{txt}</div>;
   }
