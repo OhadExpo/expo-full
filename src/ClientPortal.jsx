@@ -69,7 +69,12 @@ function SetsRepsHero({ sets, reps, splitCombined = false }) {
   }
   const labeled = sStr && rStr && !/[×x]/i.test(rStr) && rStr.length <= 12;
   if (!labeled) {
-    const txt = [sStr, rStr].filter(Boolean).join(' × ') || '—';
+    // If reps is ITSELF a full 'N×M' prescription (a per-week "2x10 e" cell) do
+    // NOT also prepend the flat sets count — "3 × 2x10 e" tells the athlete to do
+    // 3× a 2×10 (6 working sets) instead of the intended 2×10. Mirrors rxOf's
+    // /[x×]/ guard on the overview surface so the two screens agree.
+    const combined = /[×x]/i.test(rStr);
+    const txt = (combined ? rStr : [sStr, rStr].filter(Boolean).join(' × ')) || '—';
     return <div style={{ fontSize: 15, color: C.ac, fontWeight: 700, fontFamily: FN, textAlign: 'center' }}>{txt}</div>;
   }
   // Both columns share ONE font size (driven by the longer value) so SETS and
@@ -413,14 +418,18 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // the keystrokes for "match last week" + makes progressive overload visible
   // (you see what you did and can bump it). Honors substitutions on the prior
   // session side. Returns { reps, load, rpe } or null.
-  const priorTopFor = (stableId) => {
+  const priorTopFor = (stableId, titleKey) => {
     if (!priorWorkouts || priorWorkouts.length === 0) return null;
     let best = null;
     for (const w of priorWorkouts) {
       for (const px of (w.exercises || [])) {
         const pSub = px.substitution;
         const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
-        if (pStableId !== stableId) continue;
+        // eid first, normalized title second (plan rebuilds rotate eids) — so
+        // the "match last week" prefill survives a rebuild instead of silently
+        // dropping. Mirrors the prevWeekSets / newPRs matchers.
+        const pTitleKey = (pSub ? pSub.to : px.title || '').toLowerCase().trim();
+        if (pStableId !== stableId && !(titleKey && pTitleKey === titleKey)) continue;
         for (const s of (px.sets || [])) {
           if (!s.done) continue;
           const load = parseFloat(s.load) || 0;
@@ -440,11 +449,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     // plan than to splice partial old data into the new structure.
     if (_restoredSession?.allSets?.length === day.ex.length) {
       const sizesOk = _restoredSession.allSets.every((rows, i) => rows.length === setCountFor(day.ex[i]));
-      if (sizesOk) return _restoredSession.allSets;
+      // Identity check: the day's exercise eids must match, in order. Without
+      // this, a coach reorder/swap that preserves row+set counts realigns the
+      // draft's logged sets onto the WRONG exercises (Squat's 100kg saved under
+      // Bench). If exOrder is absent (older draft) fall back to size-only.
+      const curOrder = day.ex.map(e => e.eid);
+      const prevOrder = _restoredSession.exOrder;
+      const identityOk = !Array.isArray(prevOrder) ||
+        (prevOrder.length === curOrder.length && prevOrder.every((e, i) => e === curOrder[i]));
+      if (sizesOk && identityOk) return _restoredSession.allSets;
     }
     return day.ex.map(ex => {
       const count = setCountFor(ex);
-      const prior = priorTopFor(ex.eid);
+      const prior = priorTopFor(ex.eid, (EX[ex.eid]?.t || '').toLowerCase().trim());
       // Only the first set carries the prior numbers; subsequent sets stay blank
       // so the trainee makes a deliberate call set-by-set instead of robotically
       // copying last session across all four sets.
@@ -502,7 +519,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const stableId = sub.id || `swap:${(sub.title||'').toLowerCase()}`;
         const first = rows[0];
         if (!first || first.reps || first.load || first.rpe || first.done) return rows;
-        const prior = priorTopFor(stableId);
+        const prior = priorTopFor(stableId, (sub.title || '').toLowerCase().trim());
         if (!prior) return rows;
         changed = true;
         // prefill:true (same marker as the initial-mount prefill at ~448) so a
@@ -692,8 +709,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     return safe;
   });
   const sessionDraft = React.useMemo(
-    () => ({ step, notes, autoregulation: checkin, allSets, fv: serializeFv(fv), wuDone, substitutions, savedAt: Date.now() }),
-    [step, notes, checkin, allSets, fv, wuDone, substitutions]
+    // exOrder fingerprints the day's exercise identities so resume can detect a
+    // coach reorder/swap since the draft was written. allSets binds to exercises
+    // purely by position, so restoring a positionally-valid but reordered draft
+    // silently smears one exercise's logged sets onto another (data corruption).
+    () => ({ step, notes, autoregulation: checkin, allSets, fv: serializeFv(fv), wuDone, substitutions, exOrder: day.ex.map(e => e.eid), savedAt: Date.now() }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [step, notes, checkin, allSets, fv, wuDone, substitutions, day]
   );
   const sessionAutosave = useAutosave(
     sessionDraft,
@@ -1508,13 +1530,18 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       const sub = substitutions[ex.eid];
       const stableId = sub ? (sub.id || `swap:${(sub.title||'').toLowerCase()}`) : ex.eid;
       const displayTitle = sub ? sub.title : (EX[ex.eid]?.t || '?');
+      // Title key for the eid-OR-title match below: a plan rebuild rotates eids
+      // while the title is stable; matching by eid alone made every exercise a
+      // false "FIRST LOG" debut after a rebuild and missed real PRs.
+      const prTitleKey = (sub ? sub.title : (EX[ex.eid]?.t || '')).toLowerCase().trim();
       // Find prior best across all this trainee's prior workouts.
       let priorBest = 0;
       for (const w of (priorWorkouts || [])) {
         for (const px of (w.exercises || [])) {
           const pSub = px.substitution;
           const pStableId = pSub ? (pSub.toLibId || `swap:${(pSub.to||'').toLowerCase()}`) : px.eid;
-          if (pStableId !== stableId) continue;
+          const pTitleKey = (pSub ? pSub.to : px.title || '').toLowerCase().trim();
+          if (pStableId !== stableId && !(prTitleKey && pTitleKey === prTitleKey)) continue;
           for (const s of (px.sets || [])) {
             if (!s.done) continue;
             const v = parseFloat(s.load) || 0;
@@ -1616,12 +1643,17 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const effectiveVid = sub ? d.vid : ('vid' in ex ? ex.vid : d.vid);
     const vid = ytId(effectiveVid);
     const vidShort = ytIsShort(effectiveVid);
+    // Treat an empty-string per-week cell as MISSING (fall back to flat ex.r/ex.s),
+    // not as a real value — `??` only catches null/undefined, so a blank week
+    // entry ('') rendered '—' instead of the flat prescription. (blank ≠ 0; reps
+    // are never a literal '0'.)
+    const pickWk = (arr, i, flat) => { const v = arr?.[i]; return (v == null || v === '') ? flat : v; };
     const hw = ex.wk?.length > 0;
-    const wr = hw ? (ex.wk[weekNum] ?? ex.r) : null;
+    const wr = hw ? pickWk(ex.wk, weekNum, ex.r) : null;
     // Per-week sets array (ex.wkS) mirrors per-week reps (ex.wk). When the
     // coach defined per-week reps but kept sets flat, we still need to render
     // the sets × reps prescription so the trainee sees how many sets to do.
-    const wrS = ex.wkS?.length > 0 ? (ex.wkS[weekNum] ?? ex.s) : null;
+    const wrS = ex.wkS?.length > 0 ? pickWk(ex.wkS, weekNum, ex.s) : null;
     const setsForDisplay = wrS ?? ex.s;
     const repsForDisplay = wr ?? ex.r;
     // `|| {}`: fv is sized at mount, so if the coach adds an exercise to this day
@@ -1649,7 +1681,13 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
       if (!priorWorkouts || weekNum < 1) return null;
       const pw = priorWorkouts.find(w => w.planName === plan.name && w.dayName === day.name && w.week === weekNum);
       if (!pw) return null;
-      const pidx = (pw.exercises || []).findIndex(pe => pe.eid === ex.eid);
+      // Match by eid first, normalized title second — a plan rebuild can rotate
+      // eids while the title stays stable, and without the title fallback the
+      // coach's last-week form-video feedback silently vanished. Mirrors the
+      // prevWeekSets matcher below.
+      const fbTitleKey = (sub ? sub.title : d.t || '').toLowerCase().trim();
+      let pidx = (pw.exercises || []).findIndex(pe => pe.eid === ex.eid);
+      if (pidx < 0 && fbTitleKey) pidx = (pw.exercises || []).findIndex(pe => (pe.title || '').toLowerCase().trim() === fbTitleKey);
       if (pidx < 0) return null;
       const fvid = (pw.formVideos || [])[pidx];
       if (!fvid || !fvid.cloudUrl) return null;
@@ -1951,7 +1989,11 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
 function deriveWeekIdx(plan, cw) {
   const name = plan?.name;
   const planWeeks = Number(plan?.weeks) || 4;
-  const dayNames = (plan?.days || []).map(d => d.name).filter(Boolean);
+  // Exclude daily-routine days (kind:'daily') from the week-advancement scan —
+  // they're logged unlimited times and are NOT a weekly requirement, so counting
+  // them as "un-logged" pinned a mixed plan's week forever (and made a non-active
+  // plan re-log every set under week 1). Mirrors the header's d.kind !== 'daily'.
+  const dayNames = (plan?.days || []).filter(d => d.kind !== 'daily' && plan?.kind !== 'daily').map(d => d.name).filter(Boolean);
   const logs = (cw || []).filter(w => w.planName === name);
   const done = new Set(logs.map(w => `${Number(w.week) || 1}|${w.dayName}`));
   const maxWk = logs.length ? Math.max(...logs.map(w => Number(w.week) || 1)) : 1;
@@ -3052,7 +3094,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
             <div style={{fontSize:9,color:C.tm,marginTop:3,fontFamily:FN,letterSpacing:'0.12em',textTransform:'uppercase'}}>View in History →</div>
           </div>
         </div>}
-        {ci && <AthleteChallengesWidget clientId={ci} clientWorkouts={clientWorkouts} bwLog={bwLog} traineesById={Object.fromEntries((trainees||[]).map(t=>[t.id,t]))} />}
+        {ci && !demoMode && <AthleteChallengesWidget clientId={ci} clientWorkouts={clientWorkouts} bwLog={bwLog} traineesById={Object.fromEntries((trainees||[]).map(t=>[t.id,t]))} />}
         {/* Messages + Meal Log used to render inline here. Both are
             now their own pages (vw='msg' / vw='meal') reached via the
             two-row nav above. Removed 2026-05-16. */}

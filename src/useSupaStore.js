@@ -143,6 +143,12 @@ export function useSupaStore(key, initial) {
   const dataRef = useRef(data);
   const savingRef = useRef(false);
   const pendingRef = useRef(null);
+  // Sticky "the user has mutated local state" latch (mirrors useSupaClientWorkouts
+  // / useSupaBwLog). savingRef is only true DURING an in-flight write, so a slow
+  // initial mount-load that resolves AFTER a save completed would clobber the
+  // just-saved value back to the stale server snapshot. This latch is set on the
+  // first save/saveLocal and never reset, so the load permanently defers to it.
+  const mutatedRef = useRef(false);
 
   // Load from Supabase on mount. On failure, fall back to any localStorage
   // snapshot and surface the error so the caller can show a banner.
@@ -151,14 +157,14 @@ export function useSupaStore(key, initial) {
       try {
         const { data: row, error } = await supabase.from('store').select('value').eq('key', key).maybeSingle();
         if (error) throw error;
-        if (row && row.value !== undefined && !savingRef.current) {
+        if (row && row.value !== undefined && !savingRef.current && !mutatedRef.current) {
           const val = asShape(row.value);
           if (key === 'expo-exercises') {
             // Yield so React doesn't block on committing a very large list.
             // Re-check savingRef INSIDE the timer: a save dispatched between the
             // outer guard and this macrotask would otherwise be clobbered back to
             // the stale server snapshot (data loss).
-            setTimeout(() => { if (!savingRef.current) { setData(val); dataRef.current = val; } }, 0);
+            setTimeout(() => { if (!savingRef.current && !mutatedRef.current) { setData(val); dataRef.current = val; } }, 0);
           } else {
             setData(val);
             dataRef.current = val;
@@ -221,6 +227,7 @@ export function useSupaStore(key, initial) {
   }, [key]);
 
   const save = useCallback(async (next) => {
+    mutatedRef.current = true;
     const val = typeof next === 'function' ? next(dataRef.current) : next;
     setData(val);
     dataRef.current = val;
@@ -237,6 +244,7 @@ export function useSupaStore(key, initial) {
   // coach's portal-visibility change) the failed upsert fires a false
   // "SAVE FAILED" toast.
   const saveLocal = useCallback((next) => {
+    mutatedRef.current = true;
     const val = typeof next === 'function' ? next(dataRef.current) : next;
     setData(val);
     dataRef.current = val;

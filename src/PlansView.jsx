@@ -34,6 +34,17 @@ function exById(exercises) {
   }
   return _exMap;
 }
+// Same module-singleton pattern, keyed on normalized title — so free-text rows
+// resolve their library target with an O(1) Map lookup instead of a linear
+// exercises.find() over ~1,500 entries per row on every render (keystroke lag).
+let _exTitleSrc = null, _exTitleMap = null;
+function exByTitle(exercises) {
+  if (_exTitleSrc !== exercises) {
+    _exTitleSrc = exercises;
+    _exTitleMap = new Map((exercises || []).map(e => [(e.title || '').trim().toLowerCase(), e]));
+  }
+  return _exTitleMap;
+}
 import { useFullPlan, savePlan, deletePlan, duplicatePlan } from './usePlansStore';
 import useAutosave, { autosaveStatusLabel } from './hooks/useAutosave';
 import VideoEmbed from './VideoEmbed';
@@ -1023,7 +1034,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
   // "Update" needs a target: the exercise this row is linked to (exData), or —
   // for a free-text row — an exact (case-insensitive) title match in the library.
   const libTarget = libEnabled
-    ? (exData || (exTitle ? exercises.find(e => (e.title || '').trim().toLowerCase() === exTitle.trim().toLowerCase()) : null))
+    ? (exData || (exTitle ? (exByTitle(exercises).get(exTitle.trim().toLowerCase()) || null) : null))
     : null;
   // "Update" is only a real action when the card actually DIFFERS from the
   // library target — with no diff the push is a no-op, so the button must

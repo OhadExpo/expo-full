@@ -1157,7 +1157,7 @@ function AuthedApp() {
 
   return(
     <div style={{background:C.bg,color:C.tx,minHeight:"100vh",fontFamily:FB}}>
-      <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100}}>
+      <header style={{background:C.headerBg,borderBottom:`1px solid ${C.cardBd}`,boxShadow:'0 1px 2px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.04)',position:"sticky",top:0,zIndex:100,paddingTop:'env(safe-area-inset-top)'}}>
         <style>{`
           .hdr-scroll::-webkit-scrollbar{display:none}
           .nav-item-inactive{transition:color 120ms, background 120ms}
@@ -1228,11 +1228,13 @@ function AuthedApp() {
       {showPwModal && <PasswordChangeModal onClose={()=>setShowPwModal(false)}/>}
       <main style={{maxWidth:1200,margin:"0 auto",padding:"12px"}}>
         <Suspense fallback={<ViewFallback />}>
-          {/* Per-tab boundary, keyed on `tab` so it resets on tab switch: a crash
-              in one view degrades to a recovery card while the nav + other tabs
-              stay usable, instead of the whole coach app going to the full-page
-              boundary. */}
-          <ErrorBoundary key={tab} inline>
+          {/* Per-view boundary: a crash in one view degrades to a recovery card
+              while the nav + other tabs stay usable. Keyed on the full sub-route
+              identity (not just `tab`) so navigating BETWEEN trainees/plans within
+              the same tab remounts the boundary and recovers — keying on `tab`
+              alone left the recovery card stuck when switching to another trainee
+              after a crash. */}
+          <ErrorBoundary key={`${tab}:${selectedTrainee||''}:${previewTrainee||''}:${selectedPlanId||''}`} inline>
           {tab==="dashboard"&&<DashboardView isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}

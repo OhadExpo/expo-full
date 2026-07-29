@@ -24,6 +24,23 @@ Code (branch integrate-tonight):
 10. CP:2858 — History rendered raw array order; optimistic append put the just-finished session at the BOTTOM. Sort newest-first at render.
 11. MealLogger:186 — a reload failure after a successful insert reported "Save failed" → duplicate re-saves. Refresh is now best-effort.
 
+## Round 2 (resumed workflow) — 27 verdict-backed CONFIRMED; fixed in-loop
+
+Fixed after re-verifying by reading (commits d3ca7d7, 2e5916d, 67a591c, + batch 4-7):
+- CP deriveWeekIdx counted daily-routine days → week never advanced / re-log collisions. Excluded daily days.
+- CP session-draft resume validated size only, not identity → a coach reorder realigned logged sets onto the wrong exercises. Added exOrder eid fingerprint.
+- useSupaStore initial load clobbered a completed local save (transient savingRef vs sticky latch). Added mutatedRef.
+- CP SetsRepsHero double-counted sets on an 'N×M' per-week reps cell ("3 × 2x10"). Drop sets when reps is combined.
+- CP empty-string per-week cell showed '—' instead of flat fallback (?? vs empty check). pickWk helper.
+- CP StepLogger key omitted week → stale allSets on week change (also fixes the realtime stale-weekNum finding via remount).
+- CP sessionKey omitted day-index → same-named days collided on one draft. Added index + legacy fallback.
+- CP eid-only matching (last-week video feedback, PR detection, priorTopFor prefill) → added normalized-title fallback.
+- CP AthleteChallengesWidget fired real Supabase reads on demo/preview. Gated on !demoMode.
+- PlansView exByTitle memoized index replaces per-row linear find (rule 90).
+- App per-view ErrorBoundary key (was tab-only) → recovers on intra-tab nav.
+- App coach header iOS safe-area padding (rule 150).
+- theme.ytId host-guarded bare ?v= fallback (wrong-YouTube embed).
+
 ## DEFERRED — real but need Ohad's call or bigger work
 - **CP:174 / App:1129 — athlete VIDEO for library-only rows.** Athletes can't read the library, so an eid-only row with no per-row `videoUrl` override shows no video. Ron did NOT report missing video (only names), and filling `videoUrl` risks the 3-state (undefined/''/url) "explicitly cleared" semantics. VERIFY whether athletes actually see videos before touching. Candidate: backfill `videoUrl` from library `videoLink` fill-empty-only, respecting `nCleared`-style intent.
 - **PV:2166 / 2170 — portalVis keyed by trainee-name + plan-name.** Two same-named blocks share one visibility flag; renaming a hidden plan orphans its `false`. Needs a stable plan-id key (migration of the portalVis map).
