@@ -64,6 +64,24 @@ function StatusMenu({ status, onChange }) {
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
   const [secTab, setSecTab] = useState('all');   // section-jump tab menu (hook must precede any early return)
+  // Deep-link + back/forward for the section tabs: apply the section named in
+  // the URL hash on mount and on hashchange (back/forward). Does NOT push —
+  // jumpTo owns the push — so there's no loop. Placed here (before any early
+  // return) to satisfy rules-of-hooks. Ids kept inline (SEC_TABS is defined
+  // later, after the early return).
+  useEffect(() => {
+    const SEC_IDS = ['all', 'billing', 'bw', 'readiness', 'workouts', 'programs', 'overload'];
+    const apply = () => {
+      const raw = (typeof window !== 'undefined' ? window.location.hash : '').replace(/^#/, '');
+      const id = SEC_IDS.includes(raw) ? raw : 'all';
+      setSecTab(id);
+      if (id !== 'all') { const el = document.getElementById('td-sec-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    };
+    apply();
+    window.addEventListener('hashchange', apply);
+    return () => window.removeEventListener('hashchange', apply);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trainee]);
   const td = trainees.find(t=>t.id===trainee);
   // For couples: plans assigned to parent ID are shared, plans to sub-IDs are per-member
   const traineeIds = traineeIdsFor(trainee);
@@ -345,6 +363,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   // section into view. Scroll-jump, not filter — every section stays on the page.
   const jumpTo = (id) => {
     setSecTab(id);
+    // Give each section its own URL (hash), so the click is deep-linkable and
+    // the back button walks sections. pushState/replaceState don't fire
+    // hashchange, so this won't re-enter the sync effect below.
+    if (typeof window !== 'undefined') {
+      const wantHash = id === 'all' ? '' : '#' + id;
+      if (window.location.hash !== wantHash) {
+        window.history.pushState(null, '', window.location.pathname + window.location.search + wantHash);
+      }
+    }
     if (id === 'all') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
     const el = document.getElementById('td-sec-' + id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
