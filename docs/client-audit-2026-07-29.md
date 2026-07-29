@@ -41,6 +41,10 @@ Fixed after re-verifying by reading (commits d3ca7d7, 2e5916d, 67a591c, + batch 
 - App coach header iOS safe-area padding (rule 150).
 - theme.ytId host-guarded bare ?v= fallback (wrong-YouTube embed).
 
+## STILL DEFERRED after the 2-3h finish pass (risky/broad — need a tap-test or migration)
+- **#11 couple live-sync cross-contamination (CP:576 / SessionsView:234).** RLS VERIFIED SAFE: `expo_can_read_live_topic` strips `__[0-9]+$` and matches the parent, so member-scoped topics `gym-set:<parent>__N` authorize. The fix (scope the topic + the `p.traineeId` guard by the member sub-id) must change BOTH the athlete portal AND SessionsView consistently and be validated with a real 2-member couple session (tap-test) — done wrong it breaks live-sync for everyone. Rare trigger (both members live-syncing same-name plans at once). Left for a focused pass with a live couple test.
+- **#12 portalVis rename-orphan (visKeyForPlan @ PlansView:2177).** Key is `${trainee.name}:${plan.name}` (+`:mN`). Re-keying by plan.id is the robust fix but touches ~10 read sites + needs a store migration; done hastily it can flip real athletes' plan visibility (worse than the rare rename-orphan). Left for a careful migration pass.
+
 ## DEFERRED — real but need Ohad's call or bigger work
 - **CP:174 / App:1129 — athlete VIDEO for library-only rows.** Athletes can't read the library, so an eid-only row with no per-row `videoUrl` override shows no video. Ron did NOT report missing video (only names), and filling `videoUrl` risks the 3-state (undefined/''/url) "explicitly cleared" semantics. VERIFY whether athletes actually see videos before touching. Candidate: backfill `videoUrl` from library `videoLink` fill-empty-only, respecting `nCleared`-style intent.
 - **PV:2166 / 2170 — portalVis keyed by trainee-name + plan-name.** Two same-named blocks share one visibility flag; renaming a hidden plan orphans its `false`. Needs a stable plan-id key (migration of the portalVis map).
