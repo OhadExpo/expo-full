@@ -1735,9 +1735,14 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // A performed set = real load OR real reps (bodyweight/time work logs
           // reps or seconds with no kg). Untouched prefills are saved blank now,
           // so this no longer resurfaces phantom numbers.
-          const sets = (px.sets || []).filter(s => parseFloat(s.load) > 0 || parseFloat(s.reps) > 0);
-          if (sets.length && (!prevDate || new Date(w.date) > new Date(prevDate))) {
-            prevWeekSets = sets;
+          // Keep the FULL sets array (do NOT compact out blanks) so ghost rows
+          // stay index-aligned to THIS week's set rows — filtering a skipped
+          // early set shifted every later ghost onto the wrong row. The render
+          // skips blank ghost entries per-row instead. Gate on "any performed".
+          const perf = s => parseFloat(s.load) > 0 || parseFloat(s.reps) > 0;
+          const full = (px.sets || []);
+          if (full.some(perf) && (!prevDate || new Date(w.date) > new Date(prevDate))) {
+            prevWeekSets = full;
             prevWeekIdx = targetWeek;
             prevDate = w.date;
           }
@@ -1888,7 +1893,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           // the light theme stopped seeing it — restored here. Uses theme-aware
           // tokens (var(--c-ac)/var(--c-tx)) so it reads correctly on light too.
           const prior = prevWeekSets?.[si];
-          const showGhost = !!prior;
+          // prevWeekSets is now the FULL (un-compacted) array, so a blank entry
+          // = a set the athlete skipped that week. Only show a ghost for a set
+          // that was actually performed (real load or reps) at THIS index.
+          const showGhost = !!prior && (parseFloat(prior.load) > 0 || parseFloat(prior.reps) > 0);
           return <React.Fragment key={si}>
             {showGhost && <div style={{
               display:'grid',gridTemplateColumns:'32px 1fr 1fr 1fr 40px',gap:4,

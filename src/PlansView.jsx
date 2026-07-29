@@ -1788,7 +1788,14 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     // slot still holds the exact URL we started resolving.
                     const onResolveVideo = (original, resolved) => setPlan(p => {
                       const cur = p.days?.[dayIdx]?.exercises?.[exIdx];
-                      if (!cur || (cur.videoUrl ?? cur.vid ?? '') !== original) return p;
+                      // Stale-guard: drop only if the coach has since typed a
+                      // DIFFERENT explicit override into this row. When the row is
+                      // still inheriting (stored ''), the blurred value was the
+                      // inherited library video the coach saw in the field — apply
+                      // the resolution (the old `stored !== original` check dropped
+                      // every inherited-video resolution, since stored is '').
+                      const stored = cur ? (cur.videoUrl ?? cur.vid ?? '') : '';
+                      if (!cur || (stored && stored !== original)) return p;
                       return { ...p, days: p.days.map((d, i2) => i2 === dayIdx ? { ...d, exercises: (d.exercises || []).map((e, j2) => j2 === exIdx ? { ...e, videoUrl: resolved } : e) } : d) };
                     });
                     // While a drag is live in this day, render expanded rows
