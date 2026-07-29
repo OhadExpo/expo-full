@@ -28,6 +28,11 @@ export function useCoachNotes(filter = {}) {
   const filterKey = JSON.stringify(filter);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Realtime channel connection state. Default true so the "sync lost" banner
+  // never flashes on mount before the first SUBSCRIBED lands. Flips false only
+  // if the channel errors/closes/times out — the 90s poll still keeps data
+  // fresh, so it means "live updates paused", not "data is stale".
+  const [connected, setConnected] = useState(true);
 
   const refetch = useCallback(async () => {
     let q = supabase.from('coach_notes').select('*');
@@ -60,7 +65,10 @@ export function useCoachNotes(filter = {}) {
     const channel = supabase
       .channel(chName)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'coach_notes' }, () => { refetch(); })
-      .subscribe();
+      .subscribe((status) => {
+        // SUBSCRIBED = live. CHANNEL_ERROR / TIMED_OUT / CLOSED = dropped.
+        setConnected(status === 'SUBSCRIBED');
+      });
     const onFocus = () => refetch();
     window.addEventListener('focus', onFocus);
     // 90s fallback poll — realtime + the focus listener already cover liveness;
@@ -132,7 +140,7 @@ export function useCoachNotes(filter = {}) {
     return update(id, { status: 'done', completed_at: new Date().toISOString() });
   }, [rows, update]);
 
-  return { rows, loading, refetch, create, update, remove, togglePin, toggleDone };
+  return { rows, loading, connected, refetch, create, update, remove, togglePin, toggleDone };
 }
 
 // Sort: open + pinned first, then open by recency, then done at the end.

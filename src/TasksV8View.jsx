@@ -1661,7 +1661,7 @@ function TaskRow({ row, theme, showAvatar, expanded, onToggleExpand, onSetStatus
 // ────────────────────────────────────────────────────────────────────
 
 export default function TasksV8View({ trainees = [], onSelectTrainee }) {
-  const { rows, loading, update, create, remove } = useCoachNotes({ limit: 200 });
+  const { rows, loading, connected, update, create, remove } = useCoachNotes({ limit: 200 });
   // Subscribe to theme changes so StatusPill colors update live on a dark/light
   // toggle (was read once via getAttribute → went stale until next re-render).
   const { theme: liveTheme } = useTheme();
@@ -2419,16 +2419,20 @@ export default function TasksV8View({ trainees = [], onSelectTrainee }) {
             letterSpacing: '0.18em', textTransform: 'uppercase',
             color: 'var(--c-tx)',
           }}>Tasks</h2>
-          {/* Live-sync indicator: Ohad + Yuval see each other's changes in real
-              time (Supabase realtime on coach_notes) — no refresh needed. */}
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
-            color: 'var(--c-tm)', textTransform: 'uppercase',
-          }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-gn)' }} />
-            Live
-          </span>
+          {/* No always-on "LIVE" badge (a permanently-green dot carries no info).
+              Instead, surface a warning ONLY when the realtime channel actually
+              drops — that's information. The 90s poll still refreshes data, so
+              this means "live updates paused", not "data stale". */}
+          {!connected && (
+            <span title="Realtime sync dropped — changes may take up to 90s to appear until it reconnects" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.12em',
+              color: 'var(--c-or)', textTransform: 'uppercase',
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--c-or)' }} />
+              Sync lost — reconnecting
+            </span>
+          )}
         </div>
         <div style={{ width: 168 }}><ViewToggle value={view} onChange={setView} /></div>
       </div>
