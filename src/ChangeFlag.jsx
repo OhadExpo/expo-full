@@ -60,10 +60,27 @@ export function DesignChangesPanel() {
   const F = "'Nord','Heebo',sans-serif";
   return (
     <div style={{ position: 'fixed', bottom: 16, right: 16, zIndex: 100000, fontFamily: F, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-      {listOpen && (
-        <div style={{ width: 320, maxHeight: '60vh', overflowY: 'auto', background: '#0a0a0e', border: '1px solid #39BDFF', boxShadow: '0 14px 44px rgba(0,0,0,.8)' }}>
-          <div style={{ padding: '11px 13px', borderBottom: '1px solid rgba(57,189,255,.3)', borderLeft: '3px solid #39BDFF', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <b style={{ fontSize: 12, letterSpacing: '.05em', textTransform: 'uppercase' }}>Design Changes</b>
+      {listOpen && (() => {
+        const port = typeof location !== 'undefined' ? location.port : '';
+        const VERS = { '5173': ['V1', 'Calm · Editorial'], '5174': ['V2', 'Branded · Energetic'], '5175': ['V3', 'Dense · Terminal'] };
+        const me = VERS[port] || ['—', 'design pass'];
+        const others = Object.entries(VERS).filter(([p]) => p !== port);
+        return (
+        <div style={{ width: 320, maxHeight: '64vh', overflowY: 'auto', background: '#0a0a0e', border: '1px solid #39BDFF', boxShadow: '0 14px 44px rgba(0,0,0,.8)' }}>
+          <div style={{ padding: '11px 13px', borderBottom: '1px solid rgba(57,189,255,.3)', borderLeft: '3px solid #39BDFF' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <b style={{ fontSize: 13, color: '#39BDFF' }}>{me[0]}</b>
+              <b style={{ fontSize: 12, letterSpacing: '.05em', textTransform: 'uppercase' }}>{me[1]}</b>
+            </div>
+            <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {others.map(([p, v]) => (
+                <a key={p} href={`http://localhost:${p}${typeof location !== 'undefined' ? location.pathname : ''}`}
+                  style={{ fontSize: 9, letterSpacing: '.08em', textTransform: 'uppercase', color: '#7a7a88', border: '1px solid rgba(57,189,255,.3)', padding: '3px 7px', textDecoration: 'none' }}>{v[0]} · {v[1].split(' · ')[0]} →</a>
+              ))}
+            </div>
+          </div>
+          <div style={{ padding: '9px 13px 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <b style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: '#7a7a88' }}>Changes</b>
             <span style={{ fontSize: 11, color: '#7a7a88' }}>{_flags.length}</span>
           </div>
           {Object.entries(byPage).map(([pg, list]) => (
@@ -79,7 +96,7 @@ export function DesignChangesPanel() {
           ))}
           {_flags.length === 0 && <div style={{ padding: 16, fontSize: 11, color: '#7a7a88' }}>Navigate the pages — flags register as they render.</div>}
         </div>
-      )}
+        ); })()}
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={toggle} style={{ height: 30, padding: '0 12px', background: on ? '#39BDFF' : 'transparent', color: on ? '#fff' : '#7a7a88', border: '1px solid #39BDFF', fontFamily: F, fontWeight: 700, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>{on ? '✦ Flags On' : 'Flags Off'}</button>
         <button onClick={() => setListOpen(o => !o)} style={{ height: 30, padding: '0 12px', background: '#0a0a0e', color: '#39BDFF', border: '1px solid #39BDFF', fontFamily: F, fontWeight: 700, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>List · {_flags.length}</button>
