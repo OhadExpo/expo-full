@@ -1,6 +1,14 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
+import { noteChange } from './ChangeFlag';
+// V1 · Calm/Editorial: the defining direction here is RESTRAINT + BREATHING
+// ROOM (the deliberate opposite of V2's energy and V3's density). Card header
+// strips sit a little airier and cards carry more generous internal space, so
+// the whole app reads calm and considered — an editorial layout, not a
+// dashboard crammed to the edges.
+noteChange('App-wide', 'V1 · Airier editorial header strips', 'Every card header strip breathes a little more (inner padding 8→10px) — the calm/editorial direction favours air over density.');
+noteChange('App-wide', 'V1 · More generous card space', 'Cards carry more generous internal padding (20→24px) so content sits in an editorial amount of whitespace rather than crammed to the edge.');
 
 // Every full-screen overlay in this file renders through <body> via
 // createPortal. Views are wrapped in a `.motion-rise` element whose CSS
@@ -221,7 +229,7 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
     <div style={{
       background: 'var(--c-stripBg, var(--c-sf))',
       margin: `-${padY}px -${padX}px ${marginBottom}px`,
-      padding: `8px ${padX}px`,
+      padding: `10px ${padX}px`,
       borderBottom: '1px solid var(--c-cardBd)',
     }}>{children}</div>
   );
@@ -522,7 +530,7 @@ export const SectionLabel = ({ children, color = C.tm, as: Tag = 'div', style: s
 // On hover (clickable cards only), the shadow grows + the card lifts
 // 1px. This is the Linear / Vercel / Notion pattern — strokes are
 // noise, shadows are signal.
-export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 20, draggable, onDragStart, onDragEnd, onDragOver, onDrop, dropActive }) => {
+export const Card = ({ children, style, onClick, onMouseEnter, onMouseLeave, header, headerRight, leftStripe, padding = 24, draggable, onDragStart, onDragEnd, onDragOver, onDrop, dropActive }) => {
   // Refined light variant: in refined mode every card flips to a white body.
   // When `header` is also passed, the cyan strip is rendered above the body.
   // In dark / non-refined modes the card stays single-zone cyan.
