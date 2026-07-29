@@ -11,6 +11,7 @@ const isHebrew = (s) => /[\\u0590-\\u05FF]/.test(s || '');
 // Helper to pluralize day/ex counts consistently — "1 day" not "1 days".
 const plur = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 import { Btn, Input, Select, TextArea, Badge, Card, Modal, EmailsInput, baseInput, toast, confirmToast, useEscClose, SectionLabel, CollapsibleSection } from './ui';
+import Segmented from './Segmented';
 import { savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import OverloadChart from './OverloadChart';
@@ -62,6 +63,7 @@ function StatusMenu({ status, onChange }) {
 }
 
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
+  const [secTab, setSecTab] = useState('all');   // section-jump tab menu (hook must precede any early return)
   const td = trainees.find(t=>t.id===trainee);
   // For couples: plans assigned to parent ID are shared, plans to sub-IDs are per-member
   const traineeIds = traineeIdsFor(trainee);
@@ -338,6 +340,25 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
     return sorted.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <Card key={p.id} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}><div style={{fontWeight:600,color:C.tx}}>{p.name}</div><div style={{fontSize:12,color:C.tm,marginTop:2}}>{plur(p.dayCount||0, 'day', 'days')} · {plur(p.exerciseCount||0, 'exercise', 'exercises')}</div></div><div style={{display:'flex',alignItems:'center',gap:8}}><button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} title="Remove program" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,height:24,boxSizing:'border-box',padding:'0 4px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>✕</button><button onClick={e=>{e.stopPropagation();onlyThis(visKey,sorted)}} title="Show only this program on the athlete portal — hide all others" style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.10em',height:24,boxSizing:'border-box',padding:'0 8px',borderRadius:0,cursor:'pointer',textTransform:'uppercase',display:'inline-flex',alignItems:'center'}}>Only this</button><button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} title={isVis?"Visible on portal — click to hide":"Hidden from portal — click to show"} style={{background:'none',border:'none',padding:0,cursor:'pointer',height:24,display:'inline-flex',alignItems:'center',gap:4}}><div style={{width:36,height:20,borderRadius:10,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:16,height:16,borderRadius:8,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?18:1,transition:'all .15s'}}/></div><span style={{fontSize:10,fontFamily:FN,color:isVis?C.gn:C.td,minWidth:32}}>{isVis?'ON':'OFF'}</span></button><span onClick={()=>onOpenPlan&&onOpenPlan(p.id)} style={{color:C.ac,fontSize:12,cursor:'pointer',display:'inline-flex',alignItems:'center',height:24}}>Open →</span></div></div></Card>});
   };
 
+  // Section-jump tab menu (Tasks-style segmented control). VIEW ALL is the
+  // default (leftmost) and scrolls to the top; each section tab scrolls that
+  // section into view. Scroll-jump, not filter — every section stays on the page.
+  const jumpTo = (id) => {
+    setSecTab(id);
+    if (id === 'all') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    const el = document.getElementById('td-sec-' + id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const SEC_TABS = [
+    { id: 'all', label: 'View All' },
+    { id: 'billing', label: 'Billing' },
+    { id: 'bw', label: 'Bodyweight' },
+    { id: 'readiness', label: 'Readiness' },
+    { id: 'workouts', label: 'Workouts' },
+    { id: 'programs', label: 'Programs' },
+    { id: 'overload', label: 'Overload' },
+  ];
+
   return (
     <div>
       {/* Couples-layout responsive stacking. The two member cards sit
@@ -387,6 +408,15 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             <Btn variant="danger" onClick={()=>setShowDeleteConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>Permanently Delete</Btn>
           </> : <Btn variant="danger" onClick={()=>setShowArchiveConfirm(true)} style={{fontSize:11,padding:"4px 10px",height:30,boxSizing:"border-box"}}>ARCHIVE</Btn>}
         </div></div>
+
+      {/* Section-jump tab menu (Tasks-style segmented control) — VIEW ALL first
+          (default, scrolls to top), then one tab per section. Scrolls sideways
+          rather than wrapping so it never reflows. */}
+      <div style={{ overflowX: 'auto', marginBottom: 16, paddingBottom: 2 }}>
+        <div style={{ minWidth: 'max-content' }}>
+          <Segmented items={SEC_TABS} value={secTab} onChange={jumpTo} equal={false} ariaLabel="Jump to section" />
+        </div>
+      </div>
 
       {/* === COUPLE LAYOUT === */}
       {couple ? <>
@@ -463,7 +493,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           for visual parity. Header = "Billing (N)" + total-paid badge;
           headerRight = the 3 action buttons. Body = payments table or
           empty state. */}
-      <CollapsibleSection title="Billing" count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16}}
+      <CollapsibleSection domId="td-sec-billing" title="Billing" count={tPay.length} storageKey={`td-billing-${trainee}`} style={{marginBottom:16}}
         right={<div style={{display:'flex',flexWrap:'wrap',gap:6,justifyContent:'flex-end',alignItems:'center'}}>
           {totalPaid>0&&<span style={{color:'#FFFFFF',opacity:0.85,fontWeight:400,fontFamily:FB,fontSize:12,marginRight:6,whiteSpace:'nowrap'}}>₪{totalPaid.toLocaleString()} paid</span>}
           <div style={{display:'flex',gap:0}}>
@@ -536,7 +566,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
       )}
 
       {/* === BODYWEIGHT — slot #6 (collapsible; chart is self-carded → bare) */}
-      <CollapsibleSection bare title="Bodyweight" count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0'}}>
+      <CollapsibleSection bare domId="td-sec-bw" title="Bodyweight" count={tBw.length} storageKey={`td-bw-${trainee}`} style={{margin:'20px 0 0'}}>
         <BWChart entries={tBw} />
       </CollapsibleSection>
 
@@ -544,13 +574,13 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           the SAME graph the athlete sees in their portal (Ohad). Only shown
           once the athlete has logged at least one readiness check-in. */}
       {tAllWorkouts.some(w=>hasReadiness(w.autoregulation)) && (
-        <CollapsibleSection bare title="Readiness" count={tAllWorkouts.filter(w=>hasReadiness(w.autoregulation)).length} storageKey={`td-readiness-${trainee}`} style={{margin:'20px 0 0'}}>
+        <CollapsibleSection bare domId="td-sec-readiness" title="Readiness" count={tAllWorkouts.filter(w=>hasReadiness(w.autoregulation)).length} storageKey={`td-readiness-${trainee}`} style={{margin:'20px 0 0'}}>
           <CheckinTrends workouts={tAllWorkouts} />
         </CollapsibleSection>
       )}
 
       {/* === WORKOUTS — slot #7 (collapsible) */}
-      <CollapsibleSection bare title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0'}}>
+      <CollapsibleSection bare domId="td-sec-workouts" title="Recent Workouts" count={tAllWorkouts.length} storageKey={`td-workouts-${trainee}`} style={{margin:'20px 0 0'}}>
         {tAllWorkouts.length===0?<div style={{color:C.td,fontSize:13}}>No completed workouts.</div>:
           tAllWorkouts.slice(0,10).map(w=><Card key={`${w.source}-${w.id}`} style={{marginBottom:8}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"baseline",gap:8,minWidth:0}}><span style={{fontWeight:600,color:C.tx,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.dayName}</span>{w.week!=null&&<span style={{fontFamily:FN,fontSize:11,color:C.tm,flexShrink:0}}>Week {w.week}</span>}</div><span style={{fontSize:12,color:C.tm,flexShrink:0}}>{fmtPrettyDate(w.date)}</span></div>
             {/* Per-workout readiness — equal-width stat cells (label stacked over
@@ -573,7 +603,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
 
       {/* === ASSIGNED PROGRAMS — slot #8 */}
       {couple ? <>
-        <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
+        <CollapsibleSection bare domId="td-sec-programs" title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:28,padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
           </>}>
@@ -626,7 +656,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
             Program / sort / visibility stay reachable even when the program list
             is collapsed. Clean order: sort → portal-visibility → + New Program
             (primary, last); wraps under the title on narrow widths. */}
-        <CollapsibleSection bare title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
+        <CollapsibleSection bare domId="td-sec-programs" title="Assigned Programs" count={tp.length} storageKey={`td-programs-${trainee}`} style={{margin:"28px 0 0"}} right={<>
             <button onClick={()=>setProgramSort(s=>s==='chrono'?'alpha':'chrono')} style={{background:'var(--c-sf)',border:`1px solid var(--c-ghostBd)`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 12px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',justifyContent:'center',minWidth:78}}>{programSort==='chrono'?'↕ DATE':'↕ A→Z'}</button>
             {bulkToggleBtn(tp, (p)=>`${td.name}:${p.name}`)}
             <button onClick={()=>setShowAssign(true)} style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:28,boxSizing:'border-box',padding:"0 14px",color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.12em',display:'inline-flex',alignItems:'center',whiteSpace:'nowrap',textTransform:'uppercase'}}>+ New Program</button>
@@ -650,7 +680,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
           hub: the table is the overview, each row expands into the lift's
           full record (all-time PR · trend chart · session history). The old
           standalone "Records" section was merged in here to kill the overlap. */}
-      <CollapsibleSection bare title="Progressive Overload" storageKey={`td-overload-${trainee}`} style={{margin:'20px 0 0'}}>
+      <CollapsibleSection bare domId="td-sec-overload" title="Progressive Overload" storageKey={`td-overload-${trainee}`} style={{margin:'20px 0 0'}}>
         <OverloadChart workouts={[...tw, ...tcw]} exercises={exercises} />
       </CollapsibleSection>
 
