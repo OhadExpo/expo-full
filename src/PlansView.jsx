@@ -1869,7 +1869,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                               video URL (50/50, aligned with notes/thumb below). */}
                           <ExEditorExtras ex={ex} exData={exData} exTitle={title} update={update} onResolveVideo={onResolveVideo} showEmbed={exOpen}
                             exercises={exercises} setExercises={setExercises}
-                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>update({exerciseId:id})} onPickName={name=>update({exerciseId:'', title:name})}
+                            picker={<ExPicker exercises={exercises} value={ex.exerciseId} onChange={id=>{ const lib = exById(exercises).get(id); update({ exerciseId: id, title: lib?.title || ex.title || '' }); }} onPickName={name=>update({exerciseId:'', title:name})}
                               onCreateLibrary={setExercises ? (name => { const id = addLibExercise(setExercises, name); if (id) update({ exerciseId: id, title: name }); }) : undefined}
                               label="Exercise" fallbackTitle={ex.title} />} />
                         </div>
