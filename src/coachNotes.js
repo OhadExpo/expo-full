@@ -7,7 +7,7 @@
 // Writes go through Supabase. Optimistic local state so toggling pinned
 // or appending a body doesn't blink.
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from './supabase';
 import { toast } from './ui';
 
@@ -33,6 +33,9 @@ export function useCoachNotes(filter = {}) {
   // if the channel errors/closes/times out — the 90s poll still keeps data
   // fresh, so it means "live updates paused", not "data is stale".
   const [connected, setConnected] = useState(true);
+  // Tracks whether the realtime channel has dropped, so a RE-subscribe triggers
+  // a catch-up refetch (realtime doesn't replay changes missed during an outage).
+  const hadDropRef = useRef(false);
 
   const refetch = useCallback(async () => {
     let q = supabase.from('coach_notes').select('*');
@@ -67,7 +70,14 @@ export function useCoachNotes(filter = {}) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'coach_notes' }, () => { refetch(); })
       .subscribe((status) => {
         // SUBSCRIBED = live. CHANNEL_ERROR / TIMED_OUT / CLOSED = dropped.
-        setConnected(status === 'SUBSCRIBED');
+        const isUp = status === 'SUBSCRIBED';
+        setConnected(isUp);
+        // Catch-up refetch on RE-subscribe after a drop — realtime does not
+        // replay changes that landed during the outage, so without this a
+        // status/urgency/new-task by the other coach stayed invisible until the
+        // 90s poll. Skip the first SUBSCRIBED (the mount effect already fetched).
+        if (isUp) { if (hadDropRef.current) { hadDropRef.current = false; refetch(); } }
+        else { hadDropRef.current = true; }
       });
     const onFocus = () => refetch();
     window.addEventListener('focus', onFocus);

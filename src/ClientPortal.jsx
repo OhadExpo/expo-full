@@ -337,16 +337,24 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // finished and committed) or onBack (trainee explicitly leaves). Keyed by
   // (clientId, plan.name, day.name, weekNum) so resuming the same day in the
   // same week brings back the in-progress entries.
-  const sessionKey = `expo-stepLogger-${clientId}-${plan.name}-${day.name}-w${weekNum}`;
+  // Day INDEX disambiguates two days that share a name in the same plan+week —
+  // without it their in-progress drafts collided on one localStorage key, so
+  // logging the 2nd "Day A" loaded/overwrote the 1st's draft.
+  const _dayIdx = Array.isArray(plan?.days) ? plan.days.indexOf(day) : -1;
+  const sessionKey = `expo-stepLogger-${clientId}-${plan.name}-${day.name}-d${_dayIdx}-w${weekNum}`;
+  // Legacy key (pre day-index). READ fallback only, so a draft saved under the
+  // old key still restores on deploy instead of vanishing. Cleared alongside
+  // the new key on finish so a completed session's draft can't resurface.
+  const _legacySessionKey = `expo-stepLogger-${clientId}-${plan.name}-${day.name}-w${weekNum}`;
   // Memoized: this is read ONLY by useState initializers (first render). As a
   // plain IIFE it re-ran localStorage.getItem + JSON.parse of the whole session
   // draft on EVERY render — i.e. on every keystroke in a set input while the
   // athlete logs. Keyed on sessionKey so it still refreshes when the day/week
   // changes. (perf)
   const _restoredSession = useMemo(() => {
-    try { const raw = localStorage.getItem(sessionKey); return raw ? JSON.parse(raw) : null; }
+    try { const raw = localStorage.getItem(sessionKey) || localStorage.getItem(_legacySessionKey); return raw ? JSON.parse(raw) : null; }
     catch { return null; }
-  }, [sessionKey]);
+  }, [sessionKey, _legacySessionKey]);
 
   // Per-session substitutions: { [originalEid]: libraryExercise }. Resets on
   // workout finish or if the trainee navigates away from this day. The
@@ -696,7 +704,7 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     { debounceMs: 200 }
   );
   const clearSessionDraft = () => {
-    try { localStorage.removeItem(sessionKey); } catch {}
+    try { localStorage.removeItem(sessionKey); localStorage.removeItem(_legacySessionKey); } catch {}
     sessionAutosave.markClean();
   };
 
@@ -2314,7 +2322,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
     // now maps to a DIFFERENT day, this forces a fresh StepLogger so allSets is
     // rebuilt from the correct prescription instead of the old day's numbers
     // being saved onto the new day's exercises.
-    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${targetPlan.days[targetDayIdx]?.name || ''}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
+    return <StepLogger key={`${targetPlan.id || targetPlan.name || 'p'}|${targetDayIdx}|${targetPlan.days[targetDayIdx]?.name || ''}|w${logWeek}`} day={targetPlan.days[targetDayIdx]} plan={targetPlan} weekNum={logWeek} clientId={ci} onBack={() => setLg(null)} onComplete={handleComplete} weeklyFocus={weeklyFocus} trainerExercises={trainerExercises} priorWorkouts={cw} allowSubstitution={true} demoMode={demoMode} branch={isBnei ? 'Bnei Herzliya' : (trainee?.branch || '')}/>; }
 
   // Shared portal header (logo + lock + logout / greeting / block badges +
   // sessions count / tab switcher). Rendered at the top of Program, BW Graph,

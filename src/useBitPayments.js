@@ -120,7 +120,13 @@ export default function useBitPayments() {
     // implemented — Partial was removed from the selector.)
     if (patch.amount != null) { dbPatch.paid_amount = Number(patch.amount); dbPatch.amount = Number(patch.amount); }
     if (patch.notes != null) dbPatch.reference = patch.notes;
-    if (patch.date != null) dbPatch.paid_at = new Date(patch.date + 'T12:00:00Z').toISOString();
+    // Guard against '' / malformed date: `!= null` let an empty string through,
+    // and new Date('T12:00:00Z') is Invalid → .toISOString() throws RangeError,
+    // silently failing the whole edit. Only write a parseable date.
+    if (patch.date) {
+      const d = new Date(patch.date + 'T12:00:00Z');
+      if (!Number.isNaN(d.getTime())) dbPatch.paid_at = d.toISOString();
+    }
     if (patch.status != null) {
       const inv = Object.entries(STATUS_LABEL).find(([, v]) => v === patch.status);
       dbPatch.status = inv ? inv[0] : patch.status.toLowerCase();

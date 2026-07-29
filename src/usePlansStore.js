@@ -11,8 +11,15 @@ import { toast } from './ui';
 // saving writes back the trainer shape, which ClientPortal also accepts post-fix.
 function normalizeDays(days) {
   return (days || []).map(d => {
-    const hasTrainerShape = Array.isArray(d.exercises);
-    const src = hasTrainerShape ? d.exercises : (Array.isArray(d.ex) ? d.ex : []);
+    // Prefer whichever shape actually HAS exercises. An empty d.exercises:[]
+    // must not shadow a populated d.ex (a hybrid/partial-write state) — that
+    // would drop the day's real content on load and, if the coach then saves,
+    // destroy it permanently. Fall back to trainer-shape when both are empty.
+    const trainerArr = Array.isArray(d.exercises) ? d.exercises : null;
+    const compressedArr = Array.isArray(d.ex) ? d.ex : null;
+    const src = (trainerArr && trainerArr.length) ? trainerArr
+              : (compressedArr && compressedArr.length) ? compressedArr
+              : (trainerArr || compressedArr || []);
     const exercises = src.map((e, i) => ({
       id: e.id || uid(),
       exerciseId: e.exerciseId || e.eid || '',
@@ -206,7 +213,12 @@ export async function savePlan(plan) {
     (a, d) => a + ((d.exercises || d.ex || []).length),
     0
   );
-  if (incomingDays.length > 0 && incomingExTotal === 0) {
+  // Guard whenever the incoming plan has ZERO exercises total — whether that's
+  // "days present but all empty" OR "no days at all" (the editor never lets a
+  // coach drop below 1 day, so zero-days is always a corrupt/partial state that
+  // must not overwrite a real plan). A genuinely new empty plan still saves:
+  // the read-back finds no existing row, so existingExTotal is 0 → allowed.
+  if (incomingExTotal === 0) {
     // Three outcomes from the read-back:
     //   1. row doesn't exist (data=null, no error) → fresh plan, OK to save
     //   2. row exists with content → REFUSE (the bug we're guarding against)

@@ -251,7 +251,10 @@ export function useSupaStore(key, initial) {
 // Client workouts hook — uses dedicated table
 export function useSupaClientWorkouts(initial = []) {
   const [data, setData] = useState(() => {
-    try { const s = localStorage.getItem('expo-cw'); return s ? JSON.parse(s) : initial; } catch { return initial; }
+    // Array-shape guard: a corrupt non-array 'expo-cw' blob would JSON.parse
+    // fine but then poison every downstream .map/.filter/.reduce on cw and
+    // white-screen Review/CRM/History. Fall back to `initial` unless it's an array.
+    try { const s = localStorage.getItem('expo-cw'); const p = s ? JSON.parse(s) : initial; return Array.isArray(p) ? p : initial; } catch { return initial; }
   });
   const dataRef = useRef(data);
   // Becomes true the moment the user mutates local state (new workout,
@@ -407,7 +410,9 @@ export function useSupaClientWorkouts(initial = []) {
 // BW logs hook — uses dedicated table
 export function useSupaBwLog(initial = []) {
   const [data, setData] = useState(() => {
-    try { const s = localStorage.getItem('expo-bw'); return s ? JSON.parse(s) : initial; } catch { return initial; }
+    // Array-shape guard (same as useSupaClientWorkouts): a corrupt non-array
+    // 'expo-bw' blob would poison the BW chart's min/max/map math.
+    try { const s = localStorage.getItem('expo-bw'); const p = s ? JSON.parse(s) : initial; return Array.isArray(p) ? p : initial; } catch { return initial; }
   });
   const dataRef = useRef(data);
   // Same loaded contract as useSupaClientWorkouts above.

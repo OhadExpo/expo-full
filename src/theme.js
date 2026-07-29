@@ -63,8 +63,15 @@ export const ytId = u => {
   const s = String(u);
   const m = s.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/)|youtu\.be\/)([\w-]{11})/i);
   if (m) return m[1];
-  const m2 = s.match(/[?&]v=([\w-]{11})/);   // bare ?v= / &v= fallback
-  return m2 ? m2[1] : null;
+  // Bare ?v=/&v= fallback (for youtube URLs like watch?feature=x&v=ID where v
+  // isn't first) — but ONLY on a real YouTube host. Without the host guard, a
+  // non-YouTube URL carrying a v= param (some CDNs, Google Photos links) was
+  // mis-rendered as a YouTube embed, hiding the actual video.
+  if (/youtube\.com|youtu\.be/i.test(s)) {
+    const m2 = s.match(/[?&]v=([\w-]{11})/);
+    if (m2) return m2[1];
+  }
+  return null;
 };
 // True when the URL is a YouTube Short — vertical (9:16), so the embed frame
 // must be portrait or the video shows pillarboxed inside a 16:9 box.

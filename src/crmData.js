@@ -391,6 +391,10 @@ export function deriveAutoEvents(td, clientWorkouts, payments, planIndex, comple
   for (const p of payments || []) {
     if (!ids.has(p.traineeId)) continue;
     if (!p.date) continue;
+    // A canceled/voided request is not payment activity — emitting it as a
+    // "payment" event misrepresents a payment that never happened.
+    const pst = (p.status || '').toLowerCase();
+    if (pst === 'canceled' || pst === 'cancelled') continue;
     events.push({
       id: `auto-payment-${p.id}`,
       ts: p.date,
