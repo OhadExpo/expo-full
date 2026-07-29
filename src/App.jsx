@@ -959,6 +959,19 @@ function AuthedApp() {
     }
   }, [isCoach, isOwner, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Deep-link URL correction for staff: a limited coach who typed/bookmarked an
+  // owner-only tab URL lands with `tab` pre-sanitized to 'dashboard', so the
+  // guard above (keyed on `tab`) never fires — yet the address bar still shows
+  // the forbidden path. Fix the URL once on mount so it matches the view shown.
+  useEffect(() => {
+    if (!(isCoach && !isOwner)) return;
+    const r = getRoute();
+    if (r.mode === 'coach' && r.tab && !STAFF_TABS.includes(r.tab) && window.location.pathname !== '/coach/dashboard') {
+      setTab('dashboard');
+      window.history.replaceState(null, '', '/coach/dashboard');
+    }
+  }, [isCoach, isOwner]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Earlier a one-time BILLING seed lived here that gated on
   // `!t.monthly` — it ran successfully on the first sign-in, then went
   // permanently dormant because every trainee then had `monthly` set.

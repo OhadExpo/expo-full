@@ -547,6 +547,20 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
   // without re-subscribing on every keystroke.
   const allSetsRef = useRef(allSets);
   allSetsRef.current = allSets;
+  // Revoke every in-memory blob: preview URL when the logger unmounts (workout
+  // finished / exited). Any pending upload's bytes persist in IndexedDB via
+  // blobQueue, so the preview URL isn't needed after unmount — without this
+  // each queued form video (a 10-40MB Blob) stayed pinned in memory until a
+  // full page reload (the expo-blob-uploaded event had no listener to free it).
+  const fvRef = useRef(fv);
+  fvRef.current = fv;
+  useEffect(() => () => {
+    for (const f of (fvRef.current || [])) {
+      if (f && typeof f.videoUrl === 'string' && f.videoUrl.startsWith('blob:')) {
+        try { URL.revokeObjectURL(f.videoUrl); } catch { /* noop */ }
+      }
+    }
+  }, []);
   useEffect(() => {
     if (demoMode) return;
     // Merge a remote field into local set state WITHOUT re-broadcasting (only

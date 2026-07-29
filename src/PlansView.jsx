@@ -1514,7 +1514,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         <div className="plan-toolbar-secondary" style={{display:"flex",gap:10,alignItems:"stretch",flexWrap:"wrap"}}>
           <div style={{display:'flex',gap:8,alignItems:'stretch',flexWrap:'wrap'}}>
           {/* PORTAL first (Ohad). */}
-          {onPreviewPlan && plan?.id && <button onClick={async () => { await flushAutosave(); onPreviewPlan(plan.id); }}
+          {onPreviewPlan && plan?.id && <button onClick={async () => { if (await flushAutosave()) onPreviewPlan(plan.id); else toast('Save failed — preview may be stale. Retry once your edits save.', 'error'); }}
             title="Open this program in the athlete portal view" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             PORTAL
@@ -1534,9 +1534,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {/* Flush pending autosave BEFORE share/duplicate: both re-read the
               plan from the DB, and the 600ms debounce means edits made just
               before the click aren't there yet — the copy would miss them. */}
-          {onShare && plan?.id && <button onClick={async () => { await flushAutosave(); onShare(); }}
+          {onShare && plan?.id && <button onClick={async () => { if (await flushAutosave()) onShare(); else toast('Save failed — not sharing a stale copy. Check your connection and retry.', 'error'); }}
             title="Share this program to another athlete (duplicates it for them)" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>⤴ SHARE</button>}
-          {onDuplicate && plan?.id && <button onClick={async () => { await flushAutosave(); onDuplicate(); }}
+          {onDuplicate && plan?.id && <button onClick={async () => { if (await flushAutosave()) onDuplicate(); else toast('Save failed — not duplicating a stale copy. Check your connection and retry.', 'error'); }}
             title="Duplicate this program for the same athlete" style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'}}>⎘ DUPLICATE</button>}
           {/* NEW PROGRAM — fresh empty program for THIS athlete. Grouped with
               SHARE/DUPLICATE as the "propagate" cluster (was next to DELETE). */}

@@ -98,7 +98,10 @@ export function useTheme() {
 // asset level, not via CSS filter.
 export function useLogoSrc() {
   const { theme } = useTheme();
-  const isLight = theme === 'light';
+  // Any non-dark (light-family) theme uses the black-wordmark light logo — not
+  // just exact 'light'. Keying on === 'light' left light preview variants
+  // (lightA/lightB/…) rendering the white-wordmark logo invisibly on a light bg.
+  const isLight = theme !== 'dark';
   return {
     nav:    isLight ? '/logos/expo-logo-nav-light.png' : '/logos/expo-logo-nav.png',
     full:   isLight ? '/logos/expo-logo-light.png'      : '/logos/expo-logo.png',

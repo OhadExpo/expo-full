@@ -31,6 +31,9 @@ export default function useAutosave(value, save, options = {}) {
   const isMountRef = useRef(skipFirst);
   const debounceRef = useRef(null);
   const savedTimerRef = useRef(null);
+  // Result of the most recent save, so flush() can report success/failure to
+  // its caller (SHARE/DUPLICATE/PREVIEW must NOT proceed on a stale DB copy).
+  const lastOkRef = useRef(true);
 
   useEffect(() => { saveRef.current = save; }, [save]);
 
@@ -46,6 +49,7 @@ export default function useAutosave(value, save, options = {}) {
       let ok = true;
       try { ok = (await saveRef.current(snap)) !== false; }
       catch (e) { ok = false; console.error('useAutosave error:', e); }
+      lastOkRef.current = ok;
       if (!ok) {
         dirtyRef.current = true;
         setStatus('error');
@@ -64,9 +68,12 @@ export default function useAutosave(value, save, options = {}) {
     return next;
   }, [savedDisplayMs]);
 
+  // Returns true if the flushed save succeeded (or there was nothing to save),
+  // false if it failed — callers gate destructive/outbound actions on this.
   const flush = useCallback(async () => {
     if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
     await enqueue();
+    return lastOkRef.current;
   }, [enqueue]);
 
   const markClean = useCallback(() => {
