@@ -183,7 +183,11 @@ export default function MealLogger({ clientId, page = false, demoMode = false })
       setPhotoUrl(null);
       setMacros(null);
       setHint('');
-      await loadDay(day);
+      // The insert already succeeded — refreshing the day's list is best-effort.
+      // If loadDay throws (a network blip right after the write), we must NOT
+      // surface "Save failed", or the athlete re-saves a meal that IS stored →
+      // duplicate. The next open of this screen reloads the list correctly.
+      try { await loadDay(day); } catch { /* saved; list refreshes on next open */ }
     } catch (e) {
       setError(e.message || 'Save failed.');
     } finally {

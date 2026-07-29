@@ -147,7 +147,7 @@ function trainerPlanToPortal(plan, exById, exByTitle) {
     // (this transform runs over every plan before any tab branches). Dropping a
     // corrupt entry degrades gracefully instead of crashing every tab.
     warmup: Array.isArray(plan.warmup) ? plan.warmup.filter(Boolean) : [],
-    days: (plan.days || []).filter(Boolean).map(d => {
+    days: (Array.isArray(plan.days) ? plan.days : []).filter(Boolean).map(d => {
       const rawList = (Array.isArray(d.exercises) ? d.exercises : (Array.isArray(d.ex) ? d.ex : [])).filter(Boolean);
       const seenEid = new Map();   // #51: disambiguate the same exercise appearing twice in one day
       return {
@@ -461,6 +461,19 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
           out.videoUrl = null;
           if (!out.cloudUrl && !out.pendingBlobId) out.has = false;
         }
+        // A restored draft is NEVER mid-upload — the upload ran in a document
+        // that's gone. Rehydrating uploading:true permanently locks the whole
+        // workout: the Complete button becomes the non-clickable "Video
+        // uploading…" label and Record/Replace stay disabled, so the athlete
+        // can neither finish nor re-record and every logged set is stranded.
+        // A finished upload left cloudUrl; a queued one left pendingBlobId
+        // (both set uploading:false first) — so if neither is present, nothing
+        // survived the interruption and the slot resets to re-recordable.
+        if (out.uploading) {
+          out.uploading = false;
+          if (!out.cloudUrl && !out.pendingBlobId) { out.has = false; out.videoUrl = null; }
+          delete out.phase; out.compressProgress = 0; out.uploadProgress = 0;
+        }
         return out;
       });
     }
@@ -484,7 +497,10 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
         const prior = priorTopFor(stableId);
         if (!prior) return rows;
         changed = true;
-        const newFirst = { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false };
+        // prefill:true (same marker as the initial-mount prefill at ~448) so a
+        // swap-in top set the athlete never touches is BLANKED on save instead
+        // of persisting last session's numbers as if they were performed.
+        const newFirst = { reps: String(prior.reps || ''), load: String(prior.load || ''), rpe: prior.rpe != null ? String(prior.rpe) : '', done: false, prefill: true };
         const out = [...rows]; out[0] = newFirst; return out;
       });
       return changed ? next : prev;
@@ -655,6 +671,15 @@ function StepLogger({day, plan, weekNum, clientId, onBack, onComplete, weeklyFoc
     const safe = { ...f };
     if (typeof safe.videoUrl === 'string' && safe.videoUrl.startsWith('blob:')) {
       safe.videoUrl = null;
+    }
+    // Never persist mid-upload state: a resumed draft can't have a live
+    // upload, and rehydrating uploading:true permanently locks the workout
+    // (Complete button disabled + Record/Replace disabled → sets stranded).
+    // See the restore mapper above for the full rationale.
+    if (safe.uploading) {
+      safe.uploading = false;
+      if (!safe.cloudUrl && !safe.pendingBlobId) { safe.has = false; safe.videoUrl = null; }
+      delete safe.phase; safe.compressProgress = 0; safe.uploadProgress = 0;
     }
     return safe;
   });
@@ -2808,7 +2833,7 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
           <div style={{fontSize:13,color:C.tx,marginBottom:20,fontFamily:FB,lineHeight:1.5}}>Remove {bwDel.value.bw}kg from {bwDel.value.blockName || '?'} · W{bwDel.value.week || '?'}?</div>
           <div style={{display:'flex',gap:8}}>
             <button onClick={() => setBwDeleteConfirm(null)} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.cardBd}`,background:'transparent',color:C.tm,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>CANCEL</button>
-            <button onClick={() => { const d = bwDel.value; if (d) setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>DELETE</button>
+            <button onClick={() => { const d = bwDel.value; if (d) setBwLog(prev => prev.filter(b => !(b.clientId===d.clientId && b.blockName===d.blockName && b.week===d.week && b.date===d.date))); setBwDeleteConfirm(null); }} style={{flex:1,padding:'10px 0',borderRadius:0,border:`1px solid ${C.rd}`,background:'transparent',color:C.rd,fontFamily:FN,fontSize:11,fontWeight:700,letterSpacing:'0.1em',cursor:'pointer'}}>DELETE</button>
           </div>
         </div>
       </div>, document.body)}
@@ -2851,11 +2876,13 @@ export default function ClientPortal({ clientId, signOut, clientWorkouts, setCli
         {cw.length > 0 && <button onClick={() => setVw('chk')} style={{background:'transparent',border:'none',color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.16em',padding:0,cursor:'pointer',whiteSpace:'nowrap'}}>READINESS GRAPH →</button>}
       </div>
       {cw.length === 0 ? <div style={{textAlign:'center',padding:40,color:C.td}}>No workouts yet.</div> :
-        // The DB query orders by date DESC (newest first). The previous
-        // `.reverse()` flipped it to oldest-first, but the athlete
-        // expects to see their most-recent session at the top. Use the
-        // natural newest-first order.
-        cw.map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'var(--c-sf)',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
+        // Sort newest-first by date at render time. The DB query returns date
+        // DESC, but handleComplete optimistically APPENDS a just-finished
+        // session to the end of cw — so relying on array order stranded the
+        // workout the athlete just completed at the very BOTTOM of History.
+        // Sorting here is order-independent and always puts today's session up
+        // top. (~dozens of rows; trivial cost.)
+        [...cw].sort((a,b) => new Date(b.date||0) - new Date(a.date||0)).map(w => { const wActive = !!expandedHistEx && expandedHistEx.startsWith(w.id + ':'); return <div key={w.id} style={{background:'var(--c-sf)',border:`${wActive?'2px':'0.25px'} solid ${C.ac}${wActive?'':'4D'}`,borderRadius:0,padding:12,marginBottom:8}}>
           {/* header strip — day/block on the left, date/week on the right, on a
               tinted band with a cyan left rail + bottom border (card-header look
               like the coach dashboard). Spans the card via negative margins. */}

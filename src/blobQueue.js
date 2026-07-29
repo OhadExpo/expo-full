@@ -390,9 +390,15 @@ export async function drainBlobs() {
         // unless the body names a permanent cause. Otherwise a recoverable 403
         // would match permanent-by-status (403 is 4xx) and the blob would be
         // dropped instead of waiting for re-auth.
-        const permanentByMsg = /row-level security|permission denied|payload too large|exceeded|maximum allowed|invalid (jwt|token|signature|mime)|mime type|not allowed/i.test(msg);
+        const permanentByMsg = /row-level security|permission denied|payload too large|maximum allowed|invalid (jwt|token|signature|mime)|mime type|not allowed/i.test(msg);
         const isAuth = st === 401 || (st === 403 && !permanentByMsg);
-        const permanent = !isAuth && ((typeof st === 'number' && st >= 400 && st < 500 && ![408, 429].includes(st)) || permanentByMsg);
+        // 408 (timeout) and 429 (rate limit) are ALWAYS transient — retry them
+        // regardless of the message body. A 429 "rate limit exceeded" must not
+        // be dropped as permanent just because the body contains "exceeded"
+        // (which permanentByMsg would otherwise match), or the form video is
+        // lost the moment storage throttles the athlete's device.
+        const isThrottleOrTimeout = st === 408 || st === 429;
+        const permanent = !isAuth && !isThrottleOrTimeout && ((typeof st === 'number' && st >= 400 && st < 500) || permanentByMsg);
         if (permanent) {
           await deleteEntry(entry.id);
           if (onErrorHook) { try { onErrorHook({ type: 'form_video.upload', payload: { storagePath: entry.storagePath, workoutId: entry.workoutId }, msg }); } catch {} }

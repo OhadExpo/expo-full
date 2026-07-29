@@ -1328,6 +1328,10 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     // truth for what the athlete sees.
     const lib = exerciseId ? (exercises || []).find(e => e.id === exerciseId) : null;
     if (lib?.cues) ex.n = lib.cues;
+    // Snapshot the title into the plan row. Athletes cannot read the exercise
+    // library (RLS staff-only), so a row with only exerciseId renders as
+    // "Exercise N" on their device. The plan must be self-contained.
+    ex.title = lib?.title || '';
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
   };
   // Draft quick-add: append an exercise by NAME only — no library link, no
@@ -1355,6 +1359,9 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
     const ex = defaultPlanEx();
     ex.order = plan.days[activeDay]?.exercises.length || 0;
     ex.exerciseId = id;
+    // Self-contained plan row (see addExWithId): embed the title so athletes,
+    // who can't read the library, still see the exercise name.
+    ex.title = t;
     updateDay(activeDay, { exercises: [...(plan.days[activeDay]?.exercises || []), ex] });
   };
   // Per-day variants — used by the overview table so a row in any day can be

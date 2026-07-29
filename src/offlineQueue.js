@@ -85,17 +85,25 @@ export function setOnError(fn) {
 // Permanent errors — RLS, auth, constraint violations — never succeed on retry.
 // Drop them on the first failure so the user sees a toast immediately instead
 // of waiting MAX_ATTEMPTS × DRAIN_INTERVAL_MS (~150s) of silent looping.
+// TRULY permanent: the write can never succeed as-is because the ROW is
+// invalid or forbidden (integrity constraint / RLS). These are safe to drop
+// on any write. Auth-TOKEN errors (jwt expired/invalid, unauthorized,
+// PGRST301/302) are DELIBERATELY NOT here: supabase-js refreshes the session
+// and the identical write then succeeds, so classifying them permanent would
+// throw away a logged workout / weigh-in that hit a token-refresh window.
+// Those fall through to the retry/park path instead — a critical write is
+// never lost to a transient auth blip.
 function isPermanent(err) {
   const code = err?.code || '';
   if (typeof code === 'string') {
     if (/^23\d{3}$/.test(code)) return true;     // integrity constraints
     if (code === '42501') return true;            // RLS
-    if (code.startsWith('PGRST')) return true;    // PostgREST request errors
+    // PostgREST request errors are permanent EXCEPT the auth-token ones
+    // (301 = JWT expired, 302 = anon disallowed) which recover after refresh.
+    if (code.startsWith('PGRST') && code !== 'PGRST301' && code !== 'PGRST302') return true;
   }
   const msg = (err?.message || String(err || '')).toLowerCase();
   return msg.includes('row-level security') || msg.includes('permission denied') ||
-         msg.includes('not authorized') || msg.includes('unauthorized') ||
-         msg.includes('jwt expired') || msg.includes('invalid jwt') ||
          msg.includes('duplicate key') || msg.includes('violates') ||
          msg.includes('check constraint') || msg.includes('foreign key');
 }
