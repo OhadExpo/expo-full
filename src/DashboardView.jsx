@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { C, FN, FB, EXPO_ICON } from './theme';
 import { Badge, baseInput, SectionLabel, isRefined5b, RefinedHeaderStrip, SectionIcon, confirmToast, CollapsibleSection, usePersistentState, asButton } from './ui';
+import { ChangeFlag } from './ChangeFlag';
 import { traineeIdsFor, parseTraineeId } from './traineeUtils';
 import { supabase } from './supabase';
 import { WhatsAppCheckInButton, normalizePhoneIL } from './whatsappButton';
@@ -476,9 +477,13 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                   (Ohad 2026-05-23). Dark mode strip uses --c-stripBg=#000
                   with cyan-30% bottom hairline; light mode is brand cyan. */}
               <RefinedHeaderStrip padY={16} padX={20}>
-                <SectionLabel style={{ color: '#FFFFFF', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                  <span title="status" style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
+                  <SectionLabel style={{ color: '#FFFFFF', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+                  {i === 0 && <ChangeFlag page="Dashboard" title="KPI colour = signal, not paint" note="The big numbers are now one calm weight so they compare at a glance, instead of a green/amber/cyan rainbow. Each metric's meaning moved to a small status dot beside its label — colour used only as a sparse signal, exactly like the Tasks board." />}
+                </span>
               </RefinedHeaderStrip>
-              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: s.color, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>{s.value}
+              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
               {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
             </div>
