@@ -12,6 +12,10 @@ function _register(f) {
 }
 function _flagsOn() { return typeof window === 'undefined' ? true : window.__EXPO_FLAGS__ !== false; }
 
+// Register an app-wide / shared-component change that has no single inline
+// anchor (e.g. a change to every card header). Shows in the panel list only.
+export function noteChange(page, title, note) { _register({ page, title, note }); }
+
 export function ChangeFlag({ title, note, page }) {
   const [open, setOpen] = useState(false);
   const [on, setOn] = useState(_flagsOn);
