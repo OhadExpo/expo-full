@@ -1200,7 +1200,26 @@ function DemoPrograms() {
   // existing block-detail panel as the editor view, with a back-link to
   // return. The block editor below is unchanged from before; it just lives
   // behind the list now instead of being the default surface.
-  const [selectedProgramId, setSelectedProgramId] = useState(null);
+  // Deep-link the open program: /demo/coach/programs/<id>. Initial state reads
+  // the URL so a shared/refreshed link opens the right program.
+  const [selectedProgramId, setSelectedProgramId] = useState(() => typeof window === 'undefined' ? null : programIdFromPath(window.location.pathname));
+  // One effect keeps the URL in lockstep with the selection (any of the 4
+  // set-sites), so opening/closing a program gets its own URL + back button,
+  // without touching each click handler. The startsWith guard means it only
+  // rewrites while the Programs tab owns the path.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const base = '/demo/coach/programs';
+    if (!window.location.pathname.startsWith(base)) return;
+    const target = selectedProgramId ? `${base}/${encodeURIComponent(selectedProgramId)}` : base;
+    if (window.location.pathname !== target) window.history.pushState({ program: selectedProgramId || null }, '', target + window.location.hash);
+  }, [selectedProgramId]);
+  // Sync selection FROM the URL on back/forward.
+  useEffect(() => {
+    const onPop = () => setSelectedProgramId(programIdFromPath(window.location.pathname));
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
   const [search, setSearch] = useState('');
   const [filterTrainee, setFilterTrainee] = useState('');
   const [sortField, setSortField] = useState('updated');
@@ -3096,10 +3115,22 @@ function tabFromPath(p) {
   if (!m) return 'dashboard';
   return TAB_KEYS.includes(m[1]) ? m[1] : 'dashboard';
 }
+// Deep-link the selected item so every navigational click has its own URL:
+//   /demo/coach/trainees/<id>   → trainee detail
+//   /demo/coach/programs/<id>   → program open
+function traineeIdFromPath(p) {
+  const m = (p || '').match(/^\/demo\/coach\/trainees\/([^/?#]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+function programIdFromPath(p) {
+  const m = (p || '').match(/^\/demo\/coach\/programs\/([^/?#]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
 
 export default function CoachDemo() {
   const [tab, setTab] = useState(() => typeof window === 'undefined' ? 'dashboard' : tabFromPath(window.location.pathname));
-  const [selectedTrainee, setSelectedTrainee] = useState(null);
+  // Deep-link support: if the URL already points at a trainee, open it.
+  const [selectedTrainee, setSelectedTrainee] = useState(() => typeof window === 'undefined' ? null : traineeIdFromPath(window.location.pathname));
   // Track where the trainee-detail view was reached from so the back button
   // returns to the source surface instead of always landing on the Trainees tab.
   const [returnTab, setReturnTab] = useState('trainees');
@@ -3123,22 +3154,41 @@ export default function CoachDemo() {
   // Browser back/forward: keep the React tab in sync with the URL the user
   // navigated to. popstate fires on both back and forward, plus on any
   // external pushState (e.g. nav from another component).
+  // Open a trainee's detail AND give it its own URL so the click is
+  // deep-linkable + back-button correct. (navigateToTab clears the selection,
+  // so selecting must push its own path rather than route through it — that
+  // ordering also fixes the old onJumpToTrainee, which set the trainee then
+  // immediately had navigateToTab null it out.)
+  const selectTrainee = (id, sourceTab = 'trainees') => {
+    setReturnTab(sourceTab);
+    setTab('trainees');
+    setSelectedTrainee(id);
+    if (typeof window === 'undefined') return;
+    const target = `/demo/coach/trainees/${encodeURIComponent(id)}`;
+    if (window.location.pathname !== target) {
+      window.history.pushState({ tab: 'trainees', trainee: id }, '', target + window.location.hash);
+    }
+  };
+
+  // Keep BOTH tab and selected trainee in sync with the URL on back/forward.
   useEffect(() => {
-    const onPop = () => setTab(tabFromPath(window.location.pathname));
+    const onPop = () => {
+      setTab(tabFromPath(window.location.pathname));
+      setSelectedTrainee(traineeIdFromPath(window.location.pathname));
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  const onJumpToTrainee = (id, sourceTab = 'trainees') => {
-    setReturnTab(sourceTab);
-    setSelectedTrainee(id);
-    navigateToTab('trainees');
-  };
+  const onJumpToTrainee = (id, sourceTab = 'trainees') => selectTrainee(id, sourceTab);
   const onClearTrainee = () => {
     setSelectedTrainee(null);
-    if (returnTab !== 'trainees') {
-      navigateToTab(returnTab);
-      setReturnTab('trainees');
+    const back = returnTab !== 'trainees' ? returnTab : 'trainees';
+    setReturnTab('trainees');
+    if (back !== 'trainees') setTab(back);
+    if (typeof window !== 'undefined') {
+      const target = back === 'dashboard' ? '/demo/coach' : `/demo/coach/${back}`;
+      if (window.location.pathname !== target) window.history.pushState({ tab: back }, '', target + window.location.hash);
     }
   };
 
@@ -3291,7 +3341,7 @@ export default function CoachDemo() {
 
       <main style={{ flex: 1, padding: '28px 16px 80px', maxWidth: 1280, margin: '0 auto', width: '100%' }}>
         {tab === 'dashboard' && <DemoDashboard onJumpToTrainee={onJumpToTrainee} />}
-        {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={setSelectedTrainee} onClear={onClearTrainee} returnTab={returnTab} />}
+        {tab === 'trainees'  && <DemoTrainees selected={selectedTrainee} onSelect={(id) => selectTrainee(id, 'trainees')} onClear={onClearTrainee} returnTab={returnTab} />}
         {tab === 'programs'  && <DemoPrograms />}
         {tab === 'exercises' && <DemoExercises />}
         {tab === 'workouts'  && <DemoWorkouts />}
