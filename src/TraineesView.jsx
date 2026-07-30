@@ -251,7 +251,7 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
             )}
             {hasSessions && programs > 0 && <MidDot />}
             {programs > 0 && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{programs} PROGRAMS</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{programs} PROGRAMS</span>
             )}
           </div>
         )}

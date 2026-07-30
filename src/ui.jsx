@@ -227,7 +227,11 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
   // boxed title area, "closed" along the bottom.
   return (
     <div style={{
-      background: 'var(--c-stripBg, var(--c-sf))',
+      // Header strip sits ONE subtle shade brighter/more-cyan than the card box
+      // below it — a faint cyan highlight that separates header from content
+      // without a hard fill (Ohad's test, 2026-07-30). ~10% brand cyan mixed
+      // into the strip token; stays subtle in dark, stays branded in light.
+      background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
       margin: `-${padY}px -${padX}px ${marginBottom}px`,
       padding: `10px ${padX}px`,
       borderBottom: '1px solid var(--c-cardBd)',
