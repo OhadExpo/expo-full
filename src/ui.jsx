@@ -393,7 +393,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
         {titleNode ? <span style={{ minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
           <span style={{
             color: '#FFFFFF', fontFamily: FN, fontSize: 13, fontWeight: 700,
-            letterSpacing: '0.04em', textTransform: 'uppercase',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
           }}>{title}{count != null && ` (${count})`}</span>
         )}
@@ -681,7 +681,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     >
       <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-          <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
+          <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</h3>
           <button onClick={onClose} aria-label="Close dialog" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>{children}</div></div>);
 };
@@ -731,7 +731,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
   return portal(
     <div role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={onCancel}>
       <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: 400, maxWidth: 'calc(100vw - 24px)', padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
-        <h3 id={titleId} style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
+        <h3 id={titleId} style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</h3>
         <p id={msgId} style={{ margin: "0 0 22px", fontSize: 13, color: C.tm, fontFamily: FB, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>

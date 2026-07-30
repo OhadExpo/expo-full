@@ -479,7 +479,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
               <RefinedHeaderStrip padY={16} padX={20}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
                   <span title="status" style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
-                  <SectionLabel style={{ color: '#FFFFFF', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+                  <SectionLabel style={{ color: '#FFFFFF', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
                   {i === 0 && <ChangeFlag page="Dashboard" title="KPI colour = signal, not paint" note="The big numbers are now one calm weight so they compare at a glance, instead of a green/amber/cyan rainbow. Each metric's meaning moved to a small status dot beside its label — colour used only as a sparse signal, exactly like the Tasks board." />}
                 </span>
               </RefinedHeaderStrip>
@@ -510,7 +510,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
             display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
           }}>
             <span style={{
-              fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em',
+              fontFamily: FN, fontSize: 13, color: C.tm, letterSpacing: '0.08em',
               fontWeight: 700, textTransform: 'uppercase', flexShrink: 0,
             }}>Storage</span>
             <div style={{ flex: '1 1 200px', minWidth: 140, height: 6, background: 'var(--c-sf2)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, position: 'relative' }}>
