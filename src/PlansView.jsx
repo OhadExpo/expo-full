@@ -3089,20 +3089,24 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 ) : (
                   /* NARROW: stacked body + two symmetrical action lines. */
                   <>
-                    <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px 14px 12px',display:'flex',flexDirection:'column',gap:8}}>
-                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    {/* Program card in the TASKS-BOARD language (the surface Ohad
+                        likes): a square status dot for training recency, calm
+                        name, a sharp mono recency pill, calm block title, and
+                        uniform outlined meta pills. Colour only as signal. */}
+                    <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px 14px 12px',display:'flex',flexDirection:'column',gap:11}}>
+                      <div style={{display:'flex',alignItems:'center',gap:9}}>
+                        <span title={`Last session: ${tagText}`} style={{width:8,height:8,background:tagColor,flexShrink:0,boxShadow:`0 0 6px ${tagColor}66`}} />
                         <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><bdi>{row.name}</bdi></div>
-                        {tag}
+                        <span style={{boxSizing:'border-box',height:22,display:'inline-flex',alignItems:'center',padding:'0 9px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',border:`1px solid ${tagColor}`,color:tagColor,whiteSpace:'nowrap',flexShrink:0}}>{tagText}</span>
                       </div>
-                      <div style={{fontWeight:700,fontSize:15,color:C.ac,letterSpacing:'0.04em',fontFamily:FN,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cur.name||"Untitled"}</div>
-                      <div style={{display:'flex',alignItems:'center',gap:10}}>
-                        <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
+                      <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:C.tx,letterSpacing:'0.02em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cur.name||"Untitled"}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                        <span style={{boxSizing:'border-box',height:22,display:'inline-flex',alignItems:'center',padding:'0 9px',fontFamily:FN,fontSize:9,fontWeight:600,letterSpacing:'0.08em',textTransform:'uppercase',border:`1px solid ${C.cardBd}`,color:C.tm,whiteSpace:'nowrap'}}>{cur.dayCount} Days</span>
+                        <span style={{boxSizing:'border-box',height:22,display:'inline-flex',alignItems:'center',padding:'0 9px',fontFamily:FN,fontSize:9,fontWeight:600,letterSpacing:'0.08em',textTransform:'uppercase',border:`1px solid ${C.cardBd}`,color:C.tm,whiteSpace:'nowrap'}}>{cur.exerciseCount} Ex</span>
                         <div style={{flex:1}} />
                         {plusBtn}
                       </div>
                     </div>
-                    {/* Two symmetrical lines: the ON PORTAL toggle on its own
-                        full-width line, then the CRUD actions in an even grid. */}
                     <div onMouseEnter={cancelHover} style={{display:'flex',flexDirection:'column',gap:6,padding:'0 14px 12px'}}>
                       {portalPillFor(cur, true)}
                       <div style={{display:'grid',gridTemplateColumns:`repeat(${nCur},1fr)`,gap:6}}>{curActions(true)}</div>
