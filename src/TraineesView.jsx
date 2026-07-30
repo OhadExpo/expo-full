@@ -209,7 +209,7 @@ function CardSection({ label, children, center = false }) {
   return (
     <div style={{ marginTop: 18, paddingTop: 0 }}>
       <div style={{
-        fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
+        fontFamily: FN, fontSize: 9, color: 'rgba(57,189,255,0.72)', letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
         textAlign: center ? 'center' : 'left',
       }}>{label}</div>

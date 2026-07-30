@@ -1705,8 +1705,8 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   title={dayCollapsed?'Expand day':'Collapse day'}
                   style={{cursor:'pointer',color:'#FFFFFF',fontSize:13,lineHeight:1,flexShrink:0,transform:dayCollapsed?'rotate(-90deg)':'none',transition:'transform 180ms ease',userSelect:'none'}}>▾</span>
                 <input value={d.name} onChange={e=>updateDay(dayIdx,{name:e.target.value})}
-                  style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260, minWidth:64, flex:'1 1 120px', width:'auto'}} />
-                <span style={{color:C.td,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
+                  style={{...baseInput, fontFamily:FB, fontWeight:700, fontSize:14, color:C.tx, padding:"4px 8px", maxWidth:260, minWidth:64, flex:'1 1 120px', width:'auto', boxShadow:'0 0 12px -6px var(--c-ac)'}} />
+                <span style={{color:C.ac,fontSize:12,whiteSpace:"nowrap"}}>({dayExs.length} ex)</span>
                 {/* Per-day Daily-Routine toggle — ported from the old detail view
                     (the unified view had dropped it). ON = athlete logs this day
                     unlimited times per block, no DONE lock, no week rotation. */}
@@ -3089,24 +3089,20 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 ) : (
                   /* NARROW: stacked body + two symmetrical action lines. */
                   <>
-                    {/* Program card in the TASKS-BOARD language (the surface Ohad
-                        likes): a square status dot for training recency, calm
-                        name, a sharp mono recency pill, calm block title, and
-                        uniform outlined meta pills. Colour only as signal. */}
-                    <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px 14px 12px',display:'flex',flexDirection:'column',gap:11}}>
-                      <div style={{display:'flex',alignItems:'center',gap:9}}>
-                        <span title={`Last session: ${tagText}`} style={{width:8,height:8,background:tagColor,flexShrink:0,boxShadow:`0 0 6px ${tagColor}66`}} />
+                    <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px 14px 12px',display:'flex',flexDirection:'column',gap:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
                         <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><bdi>{row.name}</bdi></div>
-                        <span style={{boxSizing:'border-box',height:22,display:'inline-flex',alignItems:'center',padding:'0 9px',fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',border:`1px solid ${tagColor}`,color:tagColor,whiteSpace:'nowrap',flexShrink:0}}>{tagText}</span>
+                        {tag}
                       </div>
-                      <div style={{fontFamily:FN,fontSize:13,fontWeight:700,color:C.tx,letterSpacing:'0.02em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cur.name||"Untitled"}</div>
-                      <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-                        <span style={{boxSizing:'border-box',height:22,display:'inline-flex',alignItems:'center',padding:'0 9px',fontFamily:FN,fontSize:9,fontWeight:600,letterSpacing:'0.08em',textTransform:'uppercase',border:`1px solid ${C.cardBd}`,color:C.tm,whiteSpace:'nowrap'}}>{cur.dayCount} Days</span>
-                        <span style={{boxSizing:'border-box',height:22,display:'inline-flex',alignItems:'center',padding:'0 9px',fontFamily:FN,fontSize:9,fontWeight:600,letterSpacing:'0.08em',textTransform:'uppercase',border:`1px solid ${C.cardBd}`,color:C.tm,whiteSpace:'nowrap'}}>{cur.exerciseCount} Ex</span>
+                      <div style={{fontWeight:700,fontSize:15,color:C.ac,letterSpacing:'0.04em',fontFamily:FN,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cur.name||"Untitled"}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
                         <div style={{flex:1}} />
                         {plusBtn}
                       </div>
                     </div>
+                    {/* Two symmetrical lines: the ON PORTAL toggle on its own
+                        full-width line, then the CRUD actions in an even grid. */}
                     <div onMouseEnter={cancelHover} style={{display:'flex',flexDirection:'column',gap:6,padding:'0 14px 12px'}}>
                       {portalPillFor(cur, true)}
                       <div style={{display:'grid',gridTemplateColumns:`repeat(${nCur},1fr)`,gap:6}}>{curActions(true)}</div>

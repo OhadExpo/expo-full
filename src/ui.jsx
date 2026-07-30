@@ -367,9 +367,13 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
     return n;
   });
   const baseBorder = `1px solid ${C.cardBd}`;
+  // Same header treatment as RefinedHeaderStrip so EVERY header matches app-wide:
+  // one shade of cyan above the box (the highlight test) AND one uniform 8px
+  // inner height (bare no longer runs taller at 10px/minHeight-45).
+  const stripBg = 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))';
   const stripStyle = bare
-    ? { background: 'var(--c-stripBg, var(--c-sf))', border: baseBorder, padding: '10px 14px', minHeight: 45, boxSizing: 'border-box' }
-    : { background: 'var(--c-stripBg, var(--c-sf))', borderBottom: open ? `1px solid ${C.cardBd}` : 'none', padding: `8px ${padX}px` };
+    ? { background: stripBg, border: baseBorder, padding: '8px 14px', boxSizing: 'border-box' }
+    : { background: stripBg, borderBottom: open ? `1px solid ${C.cardBd}` : 'none', padding: `8px ${padX}px` };
   const outerStyle = bare
     ? { ...style }
     : { background: 'var(--c-sf)', border: baseBorder, borderLeft: leftStripe ? `3px solid ${leftStripe}` : baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style };
