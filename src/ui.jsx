@@ -233,7 +233,10 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
       // into the strip token; stays subtle in dark, stays branded in light.
       background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
       margin: `-${padY}px -${padX}px ${marginBottom}px`,
-      padding: `10px ${padX}px`,
+      // ONE uniform header height app-wide (Ohad: stop varying it page to page).
+      // 8px inner — matches the original "current expo" height he referenced,
+      // clearly taller than V3's too-short 5px.
+      padding: `8px ${padX}px`,
       borderBottom: '1px solid var(--c-cardBd)',
     }}>{children}</div>
   );
