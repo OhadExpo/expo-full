@@ -3005,7 +3005,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
           click expands the card to reveal earlier blocks inline. Same data,
           same actions, same hover-preview as the table. */}
       {grouped && grouped.length > 0 && progView === 'grid' && (
-        <div ref={gridRef} style={{display:'grid',gap:16,gridTemplateColumns:'repeat(auto-fill,minmax(min(400px,100%),1fr))'}}>
+        <div ref={gridRef} style={{display:'grid',gap:14,gridTemplateColumns:'repeat(auto-fill,minmax(min(360px,100%),1fr))'}}>
           {grouped.map(row => {
             const expanded = expandedAthletes.has(row.tid);
             const cur = row.current;
@@ -3070,7 +3070,7 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
             );
             return (
               <div key={row.tid} data-prog-card={row.tid}
-                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow}}>
+                style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderLeft:`3px solid ${C.ac}`,borderRadius:0,display:'flex',flexDirection:'column',gridColumn:expanded?'1 / -1':'auto',willChange:'transform',boxShadow:C.cardShadow}}>
                 {expanded ? (
                   /* FULL-WIDTH: one horizontal row like the table — body left,
                      actions right, using the whole width. */
@@ -3089,28 +3089,21 @@ export default function PlansView({ planIndex, reloadIndex, trainees, exercises,
                 ) : (
                   /* NARROW: stacked body + two symmetrical action lines. */
                   <>
-                    {/* HERO + STAT-STRIP card (structural redesign, not a recolor):
-                        block name = cyan eyebrow, athlete name = large hero,
-                        then a bordered 3-cell metric strip, then actions. */}
-                    <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'16px 16px 0',display:'flex',flexDirection:'column',gap:13}}>
-                      <div style={{display:'flex',alignItems:'flex-start',gap:10}}>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',color:C.ac,textTransform:'uppercase',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',marginBottom:5}}>{cur.name||"Untitled"}</div>
-                          <div style={{fontWeight:800,fontSize:23,color:C.tx,letterSpacing:'-0.01em',lineHeight:1.02,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><bdi>{row.name}</bdi></div>
-                        </div>
+                    <div {...openHandlers} style={{cursor:openingId===cur.id?'progress':'pointer',opacity:openingId===cur.id?0.55:1,transition:'opacity 0.12s',padding:'14px 14px 12px',display:'flex',flexDirection:'column',gap:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <div style={{fontWeight:700,fontSize:16,color:C.tx,letterSpacing:'0.01em',flex:1,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}><bdi>{row.name}</bdi></div>
                         {tag}
                       </div>
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',border:`1px solid ${C.cardBd}`}}>
-                        {[['DAYS',cur.dayCount],['EXERCISES',cur.exerciseCount],['BLOCKS',row.earlier.length+1]].map(([label,val],i)=>(
-                          <div key={label} style={{padding:'11px 6px',textAlign:'center',borderLeft:i?`1px solid ${C.cardBd}`:'none'}}>
-                            <div style={{fontFamily:FN,fontSize:21,fontWeight:800,color:C.tx,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{val}</div>
-                            <div style={{fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.12em',color:C.tm,marginTop:5}}>{label}</div>
-                          </div>
-                        ))}
+                      <div style={{fontWeight:700,fontSize:15,color:C.ac,letterSpacing:'0.04em',fontFamily:FN,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{cur.name||"Untitled"}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <div style={{fontSize:11,color:C.tm,fontFamily:FN,letterSpacing:'0.04em',fontWeight:500,whiteSpace:'nowrap'}}>{cur.dayCount}d · {cur.exerciseCount}ex</div>
+                        <div style={{flex:1}} />
+                        {plusBtn}
                       </div>
-                      {plusBtn && <div style={{display:'flex'}}>{plusBtn}</div>}
                     </div>
-                    <div onMouseEnter={cancelHover} style={{display:'flex',flexDirection:'column',gap:6,padding:'13px 16px 15px'}}>
+                    {/* Two symmetrical lines: the ON PORTAL toggle on its own
+                        full-width line, then the CRUD actions in an even grid. */}
+                    <div onMouseEnter={cancelHover} style={{display:'flex',flexDirection:'column',gap:6,padding:'0 14px 12px'}}>
                       {portalPillFor(cur, true)}
                       <div style={{display:'grid',gridTemplateColumns:`repeat(${nCur},1fr)`,gap:6}}>{curActions(true)}</div>
                     </div>
