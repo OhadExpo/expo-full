@@ -2475,11 +2475,23 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
           domId={`review-client-${cid}`}
           titleNode={(() => {
             // The athlete's ONE current stage = their most-recent workout's
-            // block + week (not 6 per-row stages).
+            // block + week, shown once in the title as filled week-boxes after
+            // the block # (not 6 per-row stages).
             const latest = (data.workouts || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
             const lw = latest ? (((planIndex || []).find(p => p.traineeId === latest.clientId && p.name === latest.planName) || (planIndex || []).find(p => p.name === latest.planName))?.weeks || null) : null;
-            const stage = latest ? `${latest.planName} · W${latest.week}${lw ? `/${lw}` : ''}` : '';
-            return <span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : (data.name || '').toUpperCase()} ({(data.workouts || []).filter(w => !w.reviewedAt).length}){stage && <span style={{fontFamily:FN,fontSize:10,color:'var(--c-ac)',fontWeight:600,letterSpacing:'0.06em',marginLeft:9}}>· {stage}</span>}</span>;
+            const segCount = lw && lw <= 12 ? lw : 0;
+            const cnt = (data.workouts || []).filter(w => !w.reviewedAt).length;
+            return <span style={{display:'inline-flex',alignItems:'center',flexWrap:'wrap',gap:8,fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>
+              <span>{isHebrew(data.name) ? data.name : (data.name || '').toUpperCase()} ({cnt})</span>
+              {latest && <span style={{display:'inline-flex',alignItems:'center',gap:7}}>
+                <span style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',fontWeight:700,letterSpacing:'0.04em'}}>· {latest.planName}</span>
+                {segCount > 0 && <span style={{display:'inline-flex',gap:3,verticalAlign:'middle'}}>
+                  {Array.from({length:segCount},(_,i)=>(
+                    <span key={i} style={{width:13,height:5,background:i < Math.min(latest.week, segCount) ? 'var(--c-ac)' : 'var(--c-tm)', opacity:i < Math.min(latest.week, segCount) ? 1 : 0.35}} />
+                  ))}
+                </span>}
+              </span>}
+            </span>;
           })()}
           right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
             <button onClick={() => onOpenTrainee(cid)}
