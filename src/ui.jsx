@@ -1,14 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { C, FN, FB } from './theme';
-import { noteChange } from './ChangeFlag';
-// V1 · Calm/Editorial: the defining direction here is RESTRAINT + BREATHING
-// ROOM (the deliberate opposite of V2's energy and V3's density). Card header
-// strips sit a little airier and cards carry more generous internal space, so
-// the whole app reads calm and considered — an editorial layout, not a
-// dashboard crammed to the edges.
-noteChange('App-wide', 'V1 · Airier editorial header strips', 'Every card header strip breathes a little more (inner padding 8→10px) — the calm/editorial direction favours air over density.');
-noteChange('App-wide', 'V1 · More generous card space', 'Cards carry more generous internal padding (20→24px) so content sits in an editorial amount of whitespace rather than crammed to the edge.');
 
 // Every full-screen overlay in this file renders through <body> via
 // createPortal. Views are wrapped in a `.motion-rise` element whose CSS
@@ -184,7 +176,7 @@ export const TextArea = ({ label, id, ...props }) => {
   );
 };
 export const Badge = ({ children, color = C.ac, style: s }) =>
-  <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
+  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
 
 // ============================================================
 // Refined light-mode primitives

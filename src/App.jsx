@@ -9,7 +9,6 @@ import useBitPayments from './useBitPayments';
 import { usePlanIndex, savePlan } from './usePlansStore';
 import { supabase } from './supabase';
 import { Btn, baseBtn, ToastHost, toast } from './ui';
-import { ChangeFlag, DesignChangesPanel } from './ChangeFlag';
 import BugReportButton from './BugReportButton';
 import { parseTraineeId } from './traineeUtils';
 import { AuthProvider, useAuth, LoginScreen, UnauthorizedScreen, PasswordChangeModal, SaveErrorToast, OfflineStatusPill, RolePickerScreen, PORTAL_CHOICE_KEY, TRAINER_EMAILS, OWNER_EMAILS } from './auth';
@@ -601,7 +600,7 @@ function AuthGate() {
   // SaveErrorToast rides alongside AuthedApp so a failed write from any
   // hook (useSupaStore, useSupaClientWorkouts, useSupaBwLog, useSupaWeeklyFocus)
   // surfaces as a red card bottom-right instead of being swallowed.
-  return <><AuthedApp /><SaveErrorToast /><OfflineStatusPill /><ToastHost /><DesignChangesPanel /></>;
+  return <><AuthedApp /><SaveErrorToast /><OfflineStatusPill /><ToastHost /></>;
 }
 
 function AuthedApp() {
