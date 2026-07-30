@@ -848,12 +848,12 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
           <div style={metricStyle}>
             <span style={labelStyle}>MRR (ACTIVE)</span>
-            <span style={numStyle}><span style={{ color: C.ac }}>₪</span>{Math.round(monthlyRate).toLocaleString()}</span>
+            <span style={numStyle}>₪{Math.round(monthlyRate).toLocaleString()}</span>
             <span style={subStyle}>recurring committed</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>30D COLLECTED</span>
-            <span style={numStyle}><span style={{ color: C.gn }}>₪</span>{Math.round(collected30).toLocaleString()}</span>
+            <span style={numStyle}>₪{Math.round(collected30).toLocaleString()}</span>
             {revDelta !== null && (
               <span style={{ ...subStyle, color: revDelta >= 0 ? C.gn : C.rd }}>
                 {revDelta >= 0 ? '+' : ''}{revDelta}% vs prev month
@@ -862,24 +862,28 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>90D COLLECTED</span>
-            <span style={numStyle}><span style={{ color: C.gn }}>₪</span>{Math.round(collected90).toLocaleString()}</span>
+            <span style={numStyle}>₪{Math.round(collected90).toLocaleString()}</span>
             <span style={subStyle}>trailing 3 months</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>OUTSTANDING</span>
-            <span style={{ ...numStyle, color: outstanding.amount > 0 ? C.or : C.tx }}>
-              <span style={{ color: outstanding.amount > 0 ? C.or : C.ac }}>₪</span>{Math.round(outstanding.amount).toLocaleString()}
+            {/* OUTSTANDING carries a real status (overdue money) — per the
+                first-row principle the number stays calm and the signal moves
+                to a small amber dot beside the label, exactly like LOW SESSIONS. */}
+            <span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {outstanding.amount > 0 && <span title="outstanding balance" style={{ width: 6, height: 6, borderRadius: '50%', background: C.or, flexShrink: 0, boxShadow: `0 0 5px ${C.or}66` }} />}
+              OUTSTANDING
             </span>
+            <span style={numStyle}>₪{Math.round(outstanding.amount).toLocaleString()}</span>
             <span style={subStyle}>{outstanding.count} pending request{outstanding.count === 1 ? '' : 's'}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>AVG LTV</span>
-            <span style={numStyle}><span style={{ color: C.ac }}>₪</span>{avgLtv.toLocaleString()}</span>
+            <span style={numStyle}>₪{avgLtv.toLocaleString()}</span>
             <span style={subStyle}>per paying client</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>AVG TICKET</span>
-            <span style={numStyle}><span style={{ color: C.ac }}>₪</span>{avgTicket.toLocaleString()}</span>
+            <span style={numStyle}>₪{avgTicket.toLocaleString()}</span>
             <span style={subStyle}>per payment row</span>
           </div>
         </div>
