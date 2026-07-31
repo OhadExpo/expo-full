@@ -209,7 +209,10 @@ function CardSection({ label, children, center = false }) {
   return (
     <div style={{ marginTop: 18, paddingTop: 0 }}>
       <div style={{
-        fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: 1.5, fontWeight: 700,
+        // Card subtitles use the theme-aware cyan-text token: bright brand cyan
+        // (#39BDFF) in dark, deeper cyan (#08668F) on the white card in light —
+        // the same token every cyan-on-white text now routes through.
+        fontFamily: FN, fontSize: 9, color: C.acText, letterSpacing: 1.5, fontWeight: 700,
         textTransform: 'uppercase', marginBottom: 6,
         textAlign: center ? 'center' : 'left',
       }}>{label}</div>
@@ -251,7 +254,7 @@ function TrainingBlock({ format, sessionsRemaining, programs, lastWk, center = f
             )}
             {hasSessions && programs > 0 && <MidDot />}
             {programs > 0 && (
-              <span style={{ fontFamily: FN, fontSize: 11, color: C.ac, fontWeight: 700 }}>{programs} PROGRAMS</span>
+              <span style={{ fontFamily: FN, fontSize: 11, color: C.tx, fontWeight: 700 }}>{programs} PROGRAMS</span>
             )}
           </div>
         )}

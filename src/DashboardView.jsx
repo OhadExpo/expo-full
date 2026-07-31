@@ -476,9 +476,12 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
                   (Ohad 2026-05-23). Dark mode strip uses --c-stripBg=#000
                   with cyan-30% bottom hairline; light mode is brand cyan. */}
               <RefinedHeaderStrip padY={16} padX={20}>
-                <SectionLabel style={{ color: '#FFFFFF', fontSize: 10, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
+                  <span title="status" style={{ width: 6, height: 6, borderRadius: '50%', background: s.color, flexShrink: 0, boxShadow: `0 0 5px ${s.color}66` }} />
+                  <SectionLabel style={{ color: '#FFFFFF', fontSize: 13, letterSpacing: '0.08em', fontWeight: 700 }}>{s.label}</SectionLabel>
+                </span>
               </RefinedHeaderStrip>
-              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: s.color, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>{s.value}
+              <div style={{ fontSize: C.kpiNumberSize, fontWeight: 800, fontFamily: FN, color: C.tx, lineHeight: 1.05, letterSpacing: '-0.015em', direction: 'ltr', unicodeBidi: 'isolate', textAlign: 'left' }}>{s.value}
                 {s.total !== undefined && <span style={{ fontSize: 13, color: refined ? 'rgba(0,0,0,0.55)' : C.td, fontWeight: 400, letterSpacing: 0 }}> / {s.total}</span>}</div>
               {s.sub && <div style={{ fontSize: 10, fontFamily: FN, color: s.subColor, marginTop: 6, letterSpacing: '0.04em' }}>{s.sub}</div>}
             </div>
@@ -505,7 +508,7 @@ export default function DashboardView({ isOwner = true, trainees = [], planCount
             display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
           }}>
             <span style={{
-              fontFamily: FN, fontSize: 9, color: C.tm, letterSpacing: '0.18em',
+              fontFamily: FN, fontSize: 13, color: C.tm, letterSpacing: '0.08em',
               fontWeight: 700, textTransform: 'uppercase', flexShrink: 0,
             }}>Storage</span>
             <div style={{ flex: '1 1 200px', minWidth: 140, height: 6, background: 'var(--c-sf2)', border: `0.25px solid ${C.cardBd}`, borderRadius: 0, position: 'relative' }}>
@@ -843,12 +846,12 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16 }}>
           <div style={metricStyle}>
             <span style={labelStyle}>MRR (ACTIVE)</span>
-            <span style={numStyle}><span style={{ color: C.ac }}>₪</span>{Math.round(monthlyRate).toLocaleString()}</span>
+            <span style={numStyle}>₪{Math.round(monthlyRate).toLocaleString()}</span>
             <span style={subStyle}>recurring committed</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>30D COLLECTED</span>
-            <span style={numStyle}><span style={{ color: C.gn }}>₪</span>{Math.round(collected30).toLocaleString()}</span>
+            <span style={numStyle}>₪{Math.round(collected30).toLocaleString()}</span>
             {revDelta !== null && (
               <span style={{ ...subStyle, color: revDelta >= 0 ? C.gn : C.rd }}>
                 {revDelta >= 0 ? '+' : ''}{revDelta}% vs prev month
@@ -857,24 +860,28 @@ function RevenueCard({ monthlyRate, thisMonthPaid, revDelta, collected30, collec
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>90D COLLECTED</span>
-            <span style={numStyle}><span style={{ color: C.gn }}>₪</span>{Math.round(collected90).toLocaleString()}</span>
+            <span style={numStyle}>₪{Math.round(collected90).toLocaleString()}</span>
             <span style={subStyle}>trailing 3 months</span>
           </div>
           <div style={metricStyle}>
-            <span style={labelStyle}>OUTSTANDING</span>
-            <span style={{ ...numStyle, color: outstanding.amount > 0 ? C.or : C.tx }}>
-              <span style={{ color: outstanding.amount > 0 ? C.or : C.ac }}>₪</span>{Math.round(outstanding.amount).toLocaleString()}
+            {/* OUTSTANDING carries a real status (overdue money) — per the
+                first-row principle the number stays calm and the signal moves
+                to a small amber dot beside the label, exactly like LOW SESSIONS. */}
+            <span style={{ ...labelStyle, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {outstanding.amount > 0 && <span title="outstanding balance" style={{ width: 6, height: 6, borderRadius: '50%', background: C.or, flexShrink: 0, boxShadow: `0 0 5px ${C.or}66` }} />}
+              OUTSTANDING
             </span>
+            <span style={numStyle}>₪{Math.round(outstanding.amount).toLocaleString()}</span>
             <span style={subStyle}>{outstanding.count} pending request{outstanding.count === 1 ? '' : 's'}</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>AVG LTV</span>
-            <span style={numStyle}><span style={{ color: C.ac }}>₪</span>{avgLtv.toLocaleString()}</span>
+            <span style={numStyle}>₪{avgLtv.toLocaleString()}</span>
             <span style={subStyle}>per paying client</span>
           </div>
           <div style={metricStyle}>
             <span style={labelStyle}>AVG TICKET</span>
-            <span style={numStyle}><span style={{ color: C.ac }}>₪</span>{avgTicket.toLocaleString()}</span>
+            <span style={numStyle}>₪{avgTicket.toLocaleString()}</span>
             <span style={subStyle}>per payment row</span>
           </div>
         </div>

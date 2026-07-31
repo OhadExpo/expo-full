@@ -2473,7 +2473,26 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
         const renderClient = ([cid, data]) => (
         <CollapsibleSection key={cid} bare storageKey={`review-client-${cid}`} style={{marginBottom:20}}
           domId={`review-client-${cid}`}
-          titleNode={<span style={{fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>{isHebrew(data.name) ? data.name : (data.name || '').toUpperCase()} ({(data.workouts || []).filter(w => !w.reviewedAt).length})</span>}
+          titleNode={(() => {
+            // The athlete's ONE current stage = their most-recent workout's
+            // block + week, shown once in the title as filled week-boxes after
+            // the block # (not 6 per-row stages).
+            const latest = (data.workouts || []).slice().sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+            const lw = latest ? (((planIndex || []).find(p => p.traineeId === latest.clientId && p.name === latest.planName) || (planIndex || []).find(p => p.name === latest.planName))?.weeks || null) : null;
+            const segCount = lw && lw <= 12 ? lw : 0;
+            const cnt = (data.workouts || []).filter(w => !w.reviewedAt).length;
+            return <span style={{display:'inline-flex',alignItems:'center',flexWrap:'wrap',gap:8,fontSize:isHebrew(data.name)?15:12,fontFamily:isHebrew(data.name)?FH:FN,color:'#FFFFFF',fontWeight:700}}>
+              <span>{isHebrew(data.name) ? data.name : (data.name || '').toUpperCase()} ({cnt})</span>
+              {latest && <span style={{display:'inline-flex',alignItems:'center',gap:7}}>
+                <span style={{fontFamily:FN,fontSize:11,color:'var(--c-ac)',fontWeight:700,letterSpacing:'0.04em'}}>· {latest.planName}</span>
+                {segCount > 0 && <span style={{display:'inline-flex',gap:3,verticalAlign:'middle'}}>
+                  {Array.from({length:segCount},(_,i)=>(
+                    <span key={i} style={{width:13,height:5,background:i < Math.min(latest.week, segCount) ? 'var(--c-ac)' : 'var(--c-tm)', opacity:i < Math.min(latest.week, segCount) ? 1 : 0.35}} />
+                  ))}
+                </span>}
+              </span>}
+            </span>;
+          })()}
           right={onOpenTrainee && trainees.some(t => t.id === cid) ? (
             <button onClick={() => onOpenTrainee(cid)}
               title="Open this athlete's page"
@@ -2515,25 +2534,19 @@ export default function WorkoutReview({ clientWorkouts, weeklyFocus, setWeeklyFo
                   // of different lengths), fall back to name-only. (audit)
                   const planWeeks = ((planIndex || []).find(p => p.traineeId === wo.clientId && p.name === wo.planName)
                     || (planIndex || []).find(p => p.name === wo.planName))?.weeks || null;
-                  const segCount = planWeeks && planWeeks <= 12 ? planWeeks : 0;
                   return (
                 <div style={{minWidth:0,flex:1}}>
-                  {/* Row 1 — DAY + WEEK (progress bar) only */}
+                  {/* DAY name only — the per-row week "stage" bar was removed
+                      (6 workouts across weeks 1/3/5 read as 6 conflicting
+                      stages). The athlete's ONE current stage now shows once
+                      in the group header; the per-clip week is quiet inline. */}
                   <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
                     <span style={{fontWeight:700,fontSize:15,color:C.tx,letterSpacing:'0.01em'}}>{wo.dayName}</span>
-                    {segCount > 0 && (
-                      <span style={{display:'inline-flex',gap:3,verticalAlign:'middle'}}>
-                        {Array.from({length:segCount},(_,i)=>(
-                          <span key={i} style={{width:13,height:5,background:i < Math.min(wo.week, segCount) ? 'var(--c-ac)' : 'var(--c-tm)', opacity:i < Math.min(wo.week, segCount) ? 1 : 0.35}} />
-                        ))}
-                      </span>
-                    )}
-                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>Week {wo.week}{planWeeks?` / ${planWeeks}`:''}</span>
                   </div>
-                  {/* Row 2 — BLOCK + date + sets (moved here from the week row) + reviewed */}
+                  {/* BLOCK · week · date · sets */}
                   <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6,flexWrap:"wrap"}}>
                     <span style={{fontFamily:FN,fontSize:12,color:C.ac,letterSpacing:'0.04em'}}>{wo.planName}</span>
-                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>· {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets{hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}</span>
+                    <span style={{fontFamily:FN,fontSize:11,color:C.tm,letterSpacing:'0.04em'}}>· W{wo.week}{planWeeks?`/${planWeeks}`:''} · {fmtPrettyDate(wo.date)} · {doneSets}/{totalSets} sets{hasFormVids && <span style={{color:C.gn,marginLeft:4}}>📹</span>}</span>
                     {reviewed && (
                       <span style={{fontSize:8,fontFamily:FN,color:C.gn,fontWeight:700,letterSpacing:0.5,
                         padding:"1px 5px",borderRadius:0,border:`1px solid rgba(46,213,115,0.251)`,background:C.gnD}}>

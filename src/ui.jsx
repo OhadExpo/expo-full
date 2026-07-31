@@ -176,7 +176,7 @@ export const TextArea = ({ label, id, ...props }) => {
   );
 };
 export const Badge = ({ children, color = C.ac, style: s }) =>
-  <span style={{ display: "inline-block", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
+  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "3px 10px", borderRadius: 0, fontSize: 10, fontWeight: 700, fontFamily: FN, background: C.badgeBg, border: `1px solid ${color}`, color, letterSpacing: "0.1em", textTransform: "uppercase", ...s }}>{children}</span>;
 
 // ============================================================
 // Refined light-mode primitives
@@ -219,8 +219,15 @@ export function RefinedHeaderStrip({ children, padY = 14, padX = 18, marginBotto
   // boxed title area, "closed" along the bottom.
   return (
     <div style={{
-      background: 'var(--c-stripBg, var(--c-sf))',
+      // Header strip sits ONE subtle shade brighter/more-cyan than the card box
+      // below it — a faint cyan highlight that separates header from content
+      // without a hard fill (Ohad's test, 2026-07-30). ~10% brand cyan mixed
+      // into the strip token; stays subtle in dark, stays branded in light.
+      background: 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))',
       margin: `-${padY}px -${padX}px ${marginBottom}px`,
+      // ONE uniform header height app-wide (Ohad: stop varying it page to page).
+      // 8px inner — matches the original "current expo" height he referenced,
+      // clearly taller than V3's too-short 5px.
       padding: `8px ${padX}px`,
       borderBottom: '1px solid var(--c-cardBd)',
     }}>{children}</div>
@@ -352,9 +359,13 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
     return n;
   });
   const baseBorder = `1px solid ${C.cardBd}`;
+  // Same header treatment as RefinedHeaderStrip so EVERY header matches app-wide:
+  // one shade of cyan above the box (the highlight test) AND one uniform 8px
+  // inner height (bare no longer runs taller at 10px/minHeight-45).
+  const stripBg = 'color-mix(in srgb, var(--c-stripBg, var(--c-sf)) 90%, var(--c-ac))';
   const stripStyle = bare
-    ? { background: 'var(--c-stripBg, var(--c-sf))', border: baseBorder, padding: '10px 14px', minHeight: 45, boxSizing: 'border-box' }
-    : { background: 'var(--c-stripBg, var(--c-sf))', borderBottom: open ? `1px solid ${C.cardBd}` : 'none', padding: `8px ${padX}px` };
+    ? { background: stripBg, border: baseBorder, padding: '8px 14px', boxSizing: 'border-box' }
+    : { background: stripBg, borderBottom: open ? `1px solid ${C.cardBd}` : 'none', padding: `8px ${padX}px` };
   const outerStyle = bare
     ? { ...style }
     : { background: 'var(--c-sf)', border: baseBorder, borderLeft: leftStripe ? `3px solid ${leftStripe}` : baseBorder, borderRadius: 0, boxShadow: C.cardShadow, marginBottom: 12, ...style };
@@ -374,7 +385,7 @@ export function CollapsibleSection({ title, titleNode, count, right, storageKey,
         {titleNode ? <span style={{ minWidth: 0, overflow: 'hidden' }}>{titleNode}</span> : (
           <span style={{
             color: '#FFFFFF', fontFamily: FN, fontSize: 13, fontWeight: 700,
-            letterSpacing: '0.04em', textTransform: 'uppercase',
+            letterSpacing: '0.08em', textTransform: 'uppercase',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0,
           }}>{title}{count != null && ` (${count})`}</span>
         )}
@@ -662,7 +673,7 @@ export const Modal = ({ open, onClose, title, children, wide }) => {
     >
       <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: wide ? 700 : 480, maxWidth: 'calc(100vw - 24px)', maxHeight: "80vh", overflow: "auto", padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-          <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 16, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
+          <h3 id={titleId} style={{ margin: 0, fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</h3>
           <button onClick={onClose} aria-label="Close dialog" style={{ background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`, color: C.tm, cursor: "pointer", padding: "4px 10px", borderRadius: 0, fontSize: 14 }}>✕</button>
         </div>{children}</div></div>);
 };
@@ -712,7 +723,7 @@ export const ConfirmDialog = ({ open, onConfirm, onCancel, title, message }) => 
   return portal(
     <div role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={msgId} className={closing ? 'motion-fade-out' : 'motion-fade-in'} style={{ position: "fixed", inset: 0, zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", background: C.scrim }} onClick={onCancel}>
       <div ref={cardRef} tabIndex={-1} onClick={e => e.stopPropagation()} className={closing ? 'motion-fall' : 'motion-rise'} style={{ background: C.sf, border: `1px solid ${C.bd}`, borderRadius: 0, width: 400, maxWidth: 'calc(100vw - 24px)', padding: 28, boxShadow: C.cardShadow, outline: 'none' }}>
-        <h3 id={titleId} style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 15, color: C.tx, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</h3>
+        <h3 id={titleId} style={{ margin: "0 0 10px", fontFamily: FN, fontSize: 13, color: C.tx, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</h3>
         <p id={msgId} style={{ margin: "0 0 22px", fontSize: 13, color: C.tm, fontFamily: FB, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
