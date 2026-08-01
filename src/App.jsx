@@ -1247,7 +1247,14 @@ function AuthedApp() {
               the same tab remounts the boundary and recovers — keying on `tab`
               alone left the recovery card stuck when switching to another trainee
               after a crash. */}
-          <ErrorBoundary key={`${tab}:${selectedTrainee||''}:${previewTrainee||''}:${selectedPlanId||''}`} inline>
+          {/* NOTE: selectedPlanId is deliberately NOT in this key. Opening a
+              program from TraineeDetail sets selectedPlanId then PlansView's
+              onPlanOpened immediately clears it back to null — putting it in the
+              boundary key made that pid→null toggle remount the whole subtree,
+              throwing away the editor's just-set editMode and dumping the coach
+              back on the programs list. tab + trainee already reset a stuck
+              recovery card on navigation. */}
+          <ErrorBoundary key={`${tab}:${selectedTrainee||''}:${previewTrainee||''}`} inline>
           {tab==="dashboard"&&<DashboardView isOwner={isOwner} trainees={trainees} planCounts={planCounts} workouts={workouts} clientWorkouts={clientWorkouts} payments={payments} presence={presence} onSelectTrainee={id=>navTo("trainees",id)} onOpenTasksTab={()=>navTo("tasks")} onCreatePlanForTask={()=>navTo("plans")} onOpenIntakeTab={()=>navTo("intake")} onOpenWaitlist={()=>navTo("waitlist")} onOpenReviewWorkout={id=>{try{sessionStorage.setItem('expo-pendingReviewWorkout',id);}catch{} navTo("review");}}/>}
           {tab==="waitlist"&&<WaitlistView trainees={trainees}/>}
           {tab==="intake"&&<IntakeView trainees={trainees}/>}
