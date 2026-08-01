@@ -103,3 +103,28 @@ export const sortProgramsChrono = (a, b) => {
   if (bn !== 0) return bn;
   return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
 };
+
+/**
+ * Coach-side "most recent block first" sort — literal last-created/added wins,
+ * so a freshly-created block with NO number (e.g. "Block Beta") floats to the
+ * top instead of sinking below every numbered block the way sortProgramsChrono
+ * ranks it. Robust recency signal, in order:
+ *
+ *   1. createdAt DESC — a new program is stamped `createdAt: new Date()` at
+ *      creation, so the block the coach just added is always newest. THIS is
+ *      what "figure out the most recent one, constantly" means.
+ *   2. block# DESC — breaks ties for a Drive-import batch that shares one
+ *      import timestamp (so #9 still sits above #8 within the batch).
+ *   3. updatedAt DESC — final tiebreak (last-edited) when both above tie.
+ *
+ * COACH-SIDE ONLY. The athlete portal (ClientPortal) deliberately keeps
+ * sortProgramsChrono / highest-block-# as its "current block" — see the
+ * coach-vs-athlete divergence Ohad signed off on.
+ */
+export const sortProgramsRecent = (a, b) => {
+  const ct = new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  if (ct !== 0) return ct;
+  const bn = blockNum(b.name) - blockNum(a.name);
+  if (bn !== 0) return bn;
+  return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+};
