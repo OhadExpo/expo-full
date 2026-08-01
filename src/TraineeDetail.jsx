@@ -62,6 +62,36 @@ function StatusMenu({ status, onChange }) {
   );
 }
 
+// One canonical "assigned program" card for EVERY programs list — the solo
+// list, the couple member columns, and the couple bottom grid. Those three
+// renderers had drifted: only the solo list showed an "Open →" affordance, the
+// "Only" button was 8px in the couple/member cards but 9px in the solo list,
+// and the visibility toggle came in two sizes (28×16 no-label vs 36×20 ON/OFF).
+// This unifies all of it: a clickable name that opens the editor PLUS an
+// explicit "Open →" button, and consistent ✕ / Only / visibility controls.
+function ProgramCard({ plan: p, isVis, onOpen, onUnassign, onOnly, onToggleVis }) {
+  const btn = { height:24, boxSizing:'border-box', borderRadius:0, cursor:'pointer', fontFamily:FN, fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center' };
+  return (
+    <Card style={{ marginBottom:8, padding:10 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+        <div style={{ flex:'1 1 140px', minWidth:0, cursor:'pointer' }} onClick={onOpen}>
+          <div style={{ fontWeight:600, color:C.tx, fontSize:13, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</div>
+          <div style={{ fontSize:12, color:C.tm, marginTop:2 }}>{plur(p.dayCount||0,'day','days')} · {p.exerciseCount||0} ex</div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0, flexWrap:'wrap' }}>
+          <button onClick={e=>{ e.stopPropagation(); onUnassign(); }} aria-label="Remove program from athlete" title="Remove program from athlete" style={{ ...btn, background:'none', border:'none', color:C.rd, fontSize:11, fontWeight:400, opacity:0.6, padding:'0 4px' }}>✕</button>
+          <button onClick={e=>{ e.stopPropagation(); onOnly(); }} title="Show only this program on the athlete portal — hide all others" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 8px', textTransform:'uppercase' }}>Only</button>
+          <button onClick={e=>{ e.stopPropagation(); onToggleVis(); }} title={isVis?'Visible on the portal — click to hide':'Hidden from the portal — click to show'} style={{ ...btn, background:'none', border:'none', padding:0, gap:4, justifyContent:'flex-start' }}>
+            <span style={{ width:36, height:20, borderRadius:10, background:isVis?'rgba(46,213,115,0.251)':C.sf3, border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`, position:'relative', transition:'all .15s', display:'inline-block', flexShrink:0 }}><span style={{ width:16, height:16, borderRadius:8, background:isVis?C.gn:C.td, position:'absolute', top:1, left:isVis?18:1, transition:'all .15s' }}/></span>
+            <span style={{ fontSize:10, fontFamily:FN, fontWeight:700, color:isVis?C.gn:C.td, minWidth:26, textAlign:'left' }}>{isVis?'ON':'OFF'}</span>
+          </button>
+          <button onClick={e=>{ e.stopPropagation(); onOpen(); }} title="Open this program in the editor" style={{ ...btn, background:'transparent', border:`1px solid ${C.ac}`, color:C.ac, fontSize:9, letterSpacing:'0.1em', padding:'0 10px', textTransform:'uppercase', gap:4 }}>Open →</button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function TraineeDetail({ trainee, trainees, setTrainees, planIndex, reloadPlanIndex, exercises, workouts, clientWorkouts, payments, addPayment, updatePayment, removePayment, bwLog, onBack, onOpenPlan, onPreviewPortal, onOpenTasksTab, onCreatePlanForTask, onOpenIntakeTab, onOpenInPersonForTrainee, portalVis, setPortalVis }) {
   const [secTab, setSecTab] = useState('all');   // section-jump tab menu (hook must precede any early return)
   // Deep-link + back/forward for the section tabs: apply the section named in
@@ -322,21 +352,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
         </div>
         {sorted.length===0?<div style={{color:C.td,fontSize:12}}>No programs assigned.</div>:
           sorted.map(p=>{const visKey=memberVisKey(p);const isVis=portalVis?.[visKey]!==false;return(
-            <Card key={p.id} style={{marginBottom:6,padding:10}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}>
-                  <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
-                  <div style={{fontSize:11,color:C.tm,marginTop:2}}>{plur(p.dayCount||0, 'day', 'days')} · {plur(p.exerciseCount||0, 'ex', 'ex')}</div>
-                </div>
-                <div style={{display:'flex',alignItems:'center',gap:6}}>
-                  <button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} aria-label="Remove program from athlete" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button>
-                  <button onClick={e=>{e.stopPropagation();onlyThisMember(visKey)}} title="Show only this program on the athlete portal — hide all others" style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.08em',padding:'2px 6px',borderRadius:0,cursor:'pointer',textTransform:'uppercase'}}>Only</button>
-                  <button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
-                    <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
-                  </button>
-                </div>
-              </div>
-            </Card>)})}
+            <ProgramCard key={p.id} plan={p} isVis={isVis} onOpen={()=>onOpenPlan&&onOpenPlan(p.id)} onUnassign={()=>{setConfirmUnassign(p.id);setUnassignTyped("")}} onOnly={()=>onlyThisMember(visKey)} onToggleVis={()=>{const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} />)})}
         </>}
       </div>
     );
@@ -355,7 +371,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
   };
   const renderProgramsList = () => {
     const sorted = [...tp].sort((a,b)=>programSort==='alpha'?a.name.localeCompare(b.name):sortProgramsRecent(a,b));
-    return sorted.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <Card key={p.id} style={{marginBottom:8}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}><div style={{fontWeight:600,color:C.tx}}>{p.name}</div><div style={{fontSize:12,color:C.tm,marginTop:2}}>{plur(p.dayCount||0, 'day', 'days')} · {plur(p.exerciseCount||0, 'exercise', 'exercises')}</div></div><div style={{display:'flex',alignItems:'center',gap:8}}><button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} title="Remove program" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,height:24,boxSizing:'border-box',padding:'0 4px',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>✕</button><button onClick={e=>{e.stopPropagation();onlyThis(visKey,sorted)}} title="Show only this program on the athlete portal — hide all others" style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:9,fontWeight:700,letterSpacing:'0.10em',height:24,boxSizing:'border-box',padding:'0 8px',borderRadius:0,cursor:'pointer',textTransform:'uppercase',display:'inline-flex',alignItems:'center'}}>Only this</button><button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} title={isVis?"Visible on portal — click to hide":"Hidden from portal — click to show"} style={{background:'none',border:'none',padding:0,cursor:'pointer',height:24,display:'inline-flex',alignItems:'center',gap:4}}><div style={{width:36,height:20,borderRadius:10,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:16,height:16,borderRadius:8,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?18:1,transition:'all .15s'}}/></div><span style={{fontSize:10,fontFamily:FN,color:isVis?C.gn:C.td,minWidth:32}}>{isVis?'ON':'OFF'}</span></button><span onClick={()=>onOpenPlan&&onOpenPlan(p.id)} style={{color:C.ac,fontSize:12,cursor:'pointer',display:'inline-flex',alignItems:'center',height:24}}>Open →</span></div></div></Card>});
+    return sorted.map(p=>{const visKey=`${td.name}:${p.name}`;const isVis=portalVis?.[visKey]!==false;return <ProgramCard key={p.id} plan={p} isVis={isVis} onOpen={()=>onOpenPlan&&onOpenPlan(p.id)} onUnassign={()=>{setConfirmUnassign(p.id);setUnassignTyped("")}} onOnly={()=>onlyThis(visKey,sorted)} onToggleVis={()=>{const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} />});
   };
 
   // Section-jump tab menu (Tasks-style segmented control). VIEW ALL is the
@@ -657,21 +673,7 @@ export default function TraineeDetail({ trainee, trainees, setTrainees, planInde
                   </div>
                   {sorted.length===0?<div style={{color:C.td,fontSize:12}}>No programs assigned.</div>:
                     sorted.map(p=>{const visKey=memberVisKey(p);const isVis=portalVis?.[visKey]!==false;return(
-                      <Card key={p.id} style={{marginBottom:6,padding:10}}>
-                        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                          <div style={{flex:1,cursor:'pointer'}} onClick={()=>onOpenPlan&&onOpenPlan(p.id)}>
-                            <div style={{fontWeight:600,color:C.tx,fontSize:13}}>{p.name}</div>
-                            <div style={{fontSize:11,color:C.tm,marginTop:2}}>{plur(p.dayCount||0, 'day', 'days')} · {plur(p.exerciseCount||0, 'ex', 'ex')}</div>
-                          </div>
-                          <div style={{display:'flex',alignItems:'center',gap:6}}>
-                            <button onClick={e=>{e.stopPropagation();setConfirmUnassign(p.id);setUnassignTyped("")}} aria-label="Remove program from athlete" style={{background:'none',border:'none',color:C.rd,cursor:'pointer',fontSize:11,fontFamily:FN,opacity:0.6,padding:2}}>✕</button>
-                            <button onClick={e=>{e.stopPropagation();onlyThisCouple(visKey)}} title="Show only this program on the athlete portal — hide all others" style={{background:'transparent',border:`1px solid ${C.ac}`,color:C.ac,fontFamily:FN,fontSize:8,fontWeight:700,letterSpacing:'0.08em',padding:'2px 6px',borderRadius:0,cursor:'pointer',textTransform:'uppercase'}}>Only</button>
-                            <button onClick={e=>{e.stopPropagation();const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} style={{background:'none',border:'none',padding:0,cursor:'pointer',display:'flex',alignItems:'center',gap:3}}>
-                              <div style={{width:28,height:16,borderRadius:8,background:isVis?'rgba(46,213,115,0.251)':C.sf3,border:`1px solid ${isVis?'rgba(46,213,115,0.376)':C.bd2}`,position:'relative',transition:'all .15s'}}><div style={{width:12,height:12,borderRadius:6,background:isVis?C.gn:C.td,position:'absolute',top:1,left:isVis?14:1,transition:'all .15s'}}/></div>
-                            </button>
-                          </div>
-                        </div>
-                      </Card>)})}
+                      <ProgramCard key={p.id} plan={p} isVis={isVis} onOpen={()=>onOpenPlan&&onOpenPlan(p.id)} onUnassign={()=>{setConfirmUnassign(p.id);setUnassignTyped("")}} onOnly={()=>onlyThisCouple(visKey)} onToggleVis={()=>{const nv={...portalVis,[visKey]:!isVis};setPortalVis(nv)}} />)})}
                 </div>
               </React.Fragment>
             );
