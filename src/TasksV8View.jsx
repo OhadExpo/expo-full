@@ -1202,11 +1202,11 @@ function CommentsThread({ noteId, viewer }) {
   };
   const now = Date.now();
   return (
-    <div style={{ marginTop: 14 }}>
+    <div style={{ marginTop: 6 }}>
       <div style={{
         fontFamily: FN, fontSize: 9, fontWeight: 700,
         letterSpacing: '0.12em', color: 'var(--c-tm)',
-        textTransform: 'uppercase', marginBottom: 8,
+        textTransform: 'uppercase', marginBottom: 6,
       }}>Comments {rows.length > 0 ? `· ${rows.length}` : ''}</div>
       {rows.map(c => {
         const heb = isHebrew(c.body || '');
@@ -1275,7 +1275,7 @@ function CommentsThread({ noteId, viewer }) {
         );
       })}
       <form onSubmit={submit} style={{
-        display: 'flex', gap: 6, alignItems: 'flex-start',
+        display: 'flex', gap: 6, alignItems: 'center',
         marginTop: rows.length > 0 ? 8 : 0,
       }}>
         {/* Author is fixed to the viewer — a non-interactive identity chip
@@ -1451,7 +1451,7 @@ function ExpandedDetail({ row, displayBody, viewer, onSetCategory, onArchive, on
           <select value={cat} onClick={(e) => e.stopPropagation()}
             onChange={(e) => { e.stopPropagation(); if (e.target.value !== cat) onSetCategory(row, e.target.value); }}
             title="Move this task to another list"
-            style={{ background: 'var(--c-sf)', color: 'var(--c-tx)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 22px 4px 8px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
+            style={{ width: 175, boxSizing: 'border-box', background: 'var(--c-sf)', color: 'var(--c-tx)', border: `1px solid var(--c-cardBd)`, fontFamily: FN, fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', padding: '4px 22px 4px 8px', cursor: 'pointer', borderRadius: 0, textTransform: 'uppercase' }}>
             <option value="manual">General</option>
             <option value="center">Performance Center</option>
           </select>
