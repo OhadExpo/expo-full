@@ -88,7 +88,7 @@ export default function AthleteChallengesWidget({ clientId, clientWorkouts, bwLo
             background: 'var(--c-sf)', border: `1px solid ${C.cardBd}`,
             borderLeft: `3px solid ${C.ac}`, padding: '10px 12px', marginBottom: 8,
           }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: FN, fontSize: 9, color: C.ac, fontWeight: 700, letterSpacing: '0.12em', border: `1px solid ${C.ac}`, padding: '2px 8px' }}>🏆 CHALLENGE</span>
               <span style={{ fontWeight: 700, fontSize: 14, color: C.tx }}>{c.name}</span>
               <span style={{ flex: 1 }} />

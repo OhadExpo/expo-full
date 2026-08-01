@@ -667,7 +667,7 @@ function ClientPortalMock({ onPick }) {
                 <div>
                   <span style={{ fontWeight: 700, fontSize: 15 }}>{day.name}</span>
                   {done && (
-                    <span style={{ fontSize: 9, fontFamily: FN, color: C.gn, fontWeight: 700, padding: '2px 6px', marginLeft: 6, borderRadius: 0, border: `1px solid rgba(46,213,115,0.251)`, background: C.gnD }}>✓</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', lineHeight: 1, fontSize: 9, fontFamily: FN, color: C.gn, fontWeight: 700, padding: '2px 6px', marginLeft: 6, borderRadius: 0, border: `1px solid rgba(46,213,115,0.251)`, background: C.gnD }}>✓</span>
                   )}
                   <div style={{ fontSize: 11, color: C.tm, marginTop: 2 }}>{day.ex.length} exercises</div>
                 </div>
@@ -1025,7 +1025,7 @@ function TraineeHomeMock({ onPick }) {
               padding: '14px 16px',
               display: 'grid', gap: 10, gridTemplateColumns: '1fr',
             }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{
                   fontFamily: FN, fontSize: 10, color: isLogged ? C.gn : C.tm, letterSpacing: 1.5, fontWeight: 700,
                   background: isLogged ? `rgba(46,213,115,0.125)` : C.sf2, border: `1px solid ${isLogged ? `'rgba(46,213,115,0.333)'` : C.bd}`,

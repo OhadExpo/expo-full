@@ -466,7 +466,7 @@ export default function TraineeCRM({ trainee, clientWorkouts, payments, planInde
 
   return (
     <div style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'stretch', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
         <HealthStrip health={health} tenure={tenure} />
         {trainee?.status && trainee.status !== 'Active' && (
           <div style={{
