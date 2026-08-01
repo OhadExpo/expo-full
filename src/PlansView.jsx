@@ -433,7 +433,7 @@ function WarmupLibraryControls({ w, onLink, exercises, setExercises }) {
   return (
     <>
       <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center',paddingTop:12,marginTop:2,borderTop:`1px solid ${C.cardBd}`}}>
-        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.14em',marginRight:'auto'}}>EXERCISE DATABASE</span>
+        <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginRight:'auto'}}>EXERCISE DATABASE</span>
         <button onClick={()=>setLibConfirm('update')} disabled={!canUpdateLib}
           title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
             : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this warm-up's name, video and notes.`
@@ -548,7 +548,7 @@ function WarmupEditor({ plan, setPlan, compact = false, exercises = [], setExerc
             setWuExpanded(prev => { const next = { ...prev }; warmup.forEach((_, i) => { if (anyOpen) delete next[i]; else next[i] = true; }); return next; });
           }}
             title={anyOpen ? 'Collapse all warm-ups' : 'Expand all warm-ups to edit fully'}
-            style={{ marginLeft:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, height:24, padding:0, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.14em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
+            style={{ marginLeft:'auto', background:'var(--c-sf)', border:`1px solid ${C.ac}`, borderRadius:0, height:24, padding:0, color:C.ac, cursor:'pointer', fontFamily:FN, fontSize:10, fontWeight:700, letterSpacing:'0.09em', whiteSpace:'nowrap', width:142, flexShrink:0, boxSizing:'border-box', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5 }}>
             <span aria-hidden style={{ display:'inline-block', transform:anyOpen?'rotate(180deg)':'none', transition:'transform 180ms ease', lineHeight:1 }}>▾</span>
             {/* marginRight cancels the trailing letter-space (letterSpacing
                 adds 0.14em AFTER the last glyph too), so the arrow+text group
@@ -1202,7 +1202,7 @@ function ExEditorExtras({ ex, exData, exTitle, update, onResolveVideo = null, sh
           edit made for one program can't silently rewrite the shared library. */}
       {libEnabled && (exTitle || vidValue || noteValue) ? (
         <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end',alignItems:'center',paddingTop:12,marginTop:2,borderTop:`1px solid ${C.cardBd}`}}>
-          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.14em',marginRight:'auto'}}>EXERCISE DATABASE</span>
+          <span style={{fontSize:9,fontFamily:FN,fontWeight:700,color:C.td,letterSpacing:'0.09em',marginRight:'auto'}}>EXERCISE DATABASE</span>
           <button onClick={()=>setLibConfirm('update')} disabled={!canUpdateLib}
             title={!libTarget ? 'No matching library exercise to update — use “Save new exercise”.'
               : canUpdateLib ? `Overwrite "${libTarget.title}" in the exercise database with this card's name, video and notes.`
@@ -1558,7 +1558,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                   onSwitchProgram(nextId);
                 }}
                   title="Switch to another program for this athlete"
-                  style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap',textAlign:'center'}}>
+                  style={{background:'var(--c-sf)',border:`1px solid ${C.cardBd}`,borderRadius:0,height:42,padding:'0 36px 0 18px',lineHeight:'42px',color:C.tm,fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',outline:'none',appearance:'none',WebkitAppearance:'none',flex:1,minWidth:0,boxSizing:'border-box',cursor:'pointer',textOverflow:'ellipsis',whiteSpace:'nowrap',textAlign:'center'}}>
                   {sameAthlete.map(p => <option key={p.id} value={p.id}>{p.name || 'Untitled'}</option>)}
                 </select>
                 <span style={{position:'absolute',right:14,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:C.tm,fontSize:12,lineHeight:1}}>▾</span>
@@ -1592,7 +1592,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
           {/* COMPARE: read-only view of a previous program for the same athlete. */}
           <button onClick={()=>setCompareOpen(v=>!v)}
             title="Compare with a previous program (read-only)"
-            style={{background: compareActive ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.18em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'}}><span style={{display:'inline-block',width:13,textAlign:'center',flexShrink:0}}>{compareActive?'✓':'↔'}</span>COMPARE</button>
+            style={{background: compareActive ? `${C.ac}1f` : (isRefined5b() ? 'transparent' : 'var(--c-sf)'),border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:6,whiteSpace:'nowrap'}}><span style={{display:'inline-block',width:13,textAlign:'center',flexShrink:0}}>{compareActive?'✓':'↔'}</span>COMPARE</button>
           {plan?.id && <button onClick={()=>setHistoryOpen(true)}
             title="See the workouts the athlete has logged for this block"
             style={{background: isRefined5b() ? 'transparent' : 'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:38,padding:'0 13px',lineHeight:'38px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase',display:'inline-flex',alignItems:'center',gap:7,whiteSpace:'nowrap'}}>
@@ -1782,7 +1782,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     unlimited times per block, no DONE lock, no week rotation. */}
                 <button onClick={() => { if (d.kind === 'daily') { const { kind: _k, ...rest } = d; setPlan(p => ({ ...p, days: p.days.map((dd, idx) => idx === dayIdx ? rest : dd) })); } else updateDay(dayIdx, { kind: 'daily' }); }}
                   title={d.kind==='daily' ? 'Daily Routine ON — unlimited logs per block, no DONE lock, no week rotation. Click for a standard week-paced day.' : 'Make this a Daily Routine day (unlimited logs, no DONE lock, no week rotation).'}
-                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,height:24,padding:0,color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.1em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
+                  style={{marginLeft:'auto',background: d.kind==='daily' ? `${C.ac}1f` : 'var(--c-sf)',border:`1px solid ${d.kind==='daily'?C.ac:C.cardBd}`,borderRadius:0,height:24,padding:0,color: d.kind==='daily'?C.ac:C.tm,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.09em',whiteSpace:'nowrap',width:100,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center'}}>{d.kind==='daily'?'DAILY ✓':'DAILY'}</button>
                 {(() => {
                   const dayIds = (dayExs||[]).map(e=>e.id);
                   const anyOpen = dayIds.some(id=>ovExpanded[id]);
@@ -1793,7 +1793,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
                     setOvExpanded(prev=>{ const next={...prev}; dayIds.forEach(id=>{ if(anyOpen) delete next[id]; else next[id]=true; }); return next; });
                   }}
                     title={anyOpen?'Collapse all exercises in this day':'Expand all exercises in this day to edit fully'}
-                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:24,padding:0,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.14em',whiteSpace:'nowrap',width:142,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5}}>
+                    style={{background:'var(--c-sf)',border:`1px solid ${C.ac}`,borderRadius:0,height:24,padding:0,color:C.ac,cursor:"pointer",fontFamily:FN,fontSize:10,fontWeight:700,letterSpacing:'0.09em',whiteSpace:'nowrap',width:142,flexShrink:0,boxSizing:'border-box',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:5}}>
                     {/* One glyph rotated for both states — ▴ and ▾ render at
                         different sizes in this font, so the arrows mismatched. */}
                     <span aria-hidden style={{display:'inline-block',transform:anyOpen?'rotate(180deg)':'none',transition:'transform 180ms ease',lineHeight:1}}>▾</span>
@@ -1990,7 +1990,7 @@ function PlanEditor({ plan: init, onSave, onCancel, onSwitchProgram, trainees, e
         {/* Add-day — ported to the unified view (the only add-day button lived
             in the dead detail view, so the unified editor couldn't add days). */}
         <button onClick={addDay} title="Add a day to this program"
-          style={{background:`${C.ac}12`,border:`1px solid ${C.ac}`,borderRadius:0,padding:'15px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.2em',textTransform:'uppercase'}}>+ ADD DAY</button>
+          style={{background:`${C.ac}12`,border:`1px solid ${C.ac}`,borderRadius:0,padding:'15px',color:C.ac,cursor:'pointer',fontFamily:FN,fontSize:13,fontWeight:700,letterSpacing:'0.09em',textTransform:'uppercase'}}>+ ADD DAY</button>
         {/* Day insertion bar — absolute overlay, glides between card slots
             without moving the cards (same pattern as the exercise rows). */}
         {dayDragging && dayDragOver && dayDragOver.y != null && (
